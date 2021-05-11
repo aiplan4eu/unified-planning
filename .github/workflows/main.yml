@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: aiplan4eu/upf
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout mockup planners
+        uses: actions/checkout@v2
+        with:
+            repository: aiplan4eu/mockup-planners
+            path: mockup-planners
+
+      - run: python3 mockup-planners/install.py
+
+      - run: python3 run_tests.py
