@@ -11,15 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+"""This module defines all the types."""
 
-from upf.planner import Planner
-from upf.action import Action, ActionParameter
-from upf.fluent import Fluent
-from upf.problem import Problem
+class Type:
+    """Basic class for representing a type."""
 
-__all__ = [
-    "Action",
-    "Problem",
-    "Fluent",
-    "Planner"
-]
+    def is_bool_type(self):
+        """Returns true iff is boolean type."""
+        return False
+
+
+class _BoolType(Type):
+    """Represents the boolean type."""
+
+    def is_bool_type(self):
+        """Returns true iff is boolean type."""
+        return True
+
+
+BOOL = _BoolType()

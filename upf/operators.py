@@ -11,15 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+"""This module defines all the operators used by the UPF."""
 
-from upf.planner import Planner
-from upf.action import Action, ActionParameter
-from upf.fluent import Fluent
-from upf.problem import Problem
+ALL_TYPES = list(range(0, 8))
 
-__all__ = [
-    "Action",
-    "Problem",
-    "Fluent",
-    "Planner"
-]
+(
+AND, OR, NOT, IMPLIES, IFF,
+FLUENT_EXP, BOOL_CONSTANT, PARAM_EXP
+) = ALL_TYPES
+
+
+def op_to_str(node_id):
+    """Returns a string representation of the given node."""
+    return __OP_STR__[node_id]
+
+
+__OP_STR__ = {
+    AND : "AND",
+    OR : "OR",
+    NOT : "NOT",
+    IMPLIES : "IMPLIES",
+    IFF : "IFF",
+    FLUENT_EXP : "FLUENT_EXP",
+    BOOL_CONSTANT : "BOOL_CONSTANT",
+    PARAM_EXP: "PARAM_EXP"
+}
