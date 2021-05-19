@@ -21,7 +21,7 @@ class TestPlanner(TestCase):
     def test_basic(self):
         x = upf.Fluent('x')
         a = upf.Action('a')
-        a.add_precondition(Iff(x, False))
+        a.add_precondition(Not(x))
         a.add_effect(x, True)
         problem = upf.Problem('basic')
         problem.add_fluent(x)

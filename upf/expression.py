@@ -189,6 +189,9 @@ def Implies(*args, **kwargs):
 def Iff(*args, **kwargs):
     return EXPR_MANAGER.Iff(*args, **kwargs)
 
+def Not(*args, **kwargs):
+    return EXPR_MANAGER.Not(*args, **kwargs)
+
 def TRUE(*args, **kwargs):
     return EXPR_MANAGER.TRUE(*args, **kwargs)
 

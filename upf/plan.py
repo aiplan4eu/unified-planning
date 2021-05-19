@@ -49,7 +49,7 @@ class ActionInstance:
         return self._params
 
 
-class SequentialPlan:
+class SequentialPlan(Plan):
     """Represents a sequential plan."""
     def __init__(self, actions):
         self._actions = actions
