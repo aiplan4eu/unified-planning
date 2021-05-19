@@ -17,7 +17,7 @@ from upf.expression import *
 from upf.test import TestCase, main
 
 
-class TestProblem(TestCase):
+class TestPlanner(TestCase):
     def test_basic(self):
         x = upf.Fluent('x')
         a = upf.Action('a')

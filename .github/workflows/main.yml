@@ -17,14 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Checkout mockup planners
-        uses: actions/checkout@v2
-        with:
-            repository: aiplan4eu/mockup-planners
-            submodules: recursive
-            path: mockup-planners
-
-      - name: Checkout TAMER
+      - name: Checkout Tamer UPF
         uses: actions/checkout@v2
         with:
             repository: aiplan4eu/tamer-upf
