@@ -1,4 +1,4 @@
 # upf
 The AIPlan4EU Unified Planning Framework
 
-![example workflow](https://github.com/aiplan4eu/upf/actions/workflows/main.yml/badge.svg)
+[![Actions Status](https://github.com/aiplan4eu/upf/actions/workflows/main.yml/badge.svg)](https://github.com/aiplan4eu/upf/actions)
