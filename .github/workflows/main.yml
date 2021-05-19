@@ -24,6 +24,12 @@ jobs:
             submodules: recursive
             path: mockup-planners
 
-      - run: python3 mockup-planners/install.py
+      - name: Checkout TAMER
+        uses: actions/checkout@v2
+        with:
+            repository: aiplan4eu/tamer-upf
+            path: tamer-upf
+
+      - run: bash tamer-upf/install.sh
 
       - run: bash run_tests.sh

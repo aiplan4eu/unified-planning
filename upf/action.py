@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the action class and the action parameter class. """
+"""This module defines the action class and the action parameter class."""
 
 from collections import OrderedDict
 from upf.expression import EXPR_MANAGER

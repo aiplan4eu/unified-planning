@@ -11,23 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+"""This module defines the solver interface."""
 
 import importlib
-
 from contextlib import contextmanager
 
 
-class Solver():
-    def solve(problem):
+class Solver:
+    """Represents the solver interface."""
+
+    def solve(self, problem):
         raise NotImplementedError
 
-    def destroy():
+    def destroy(self):
         raise NotImplementedError
 
 
 @contextmanager
 def Planner(module_name):
-    a = importlib.import_module(module_name).LinkedSolver
+    a = importlib.import_module(module_name).SolverImpl()
     try:
         yield a
     finally:

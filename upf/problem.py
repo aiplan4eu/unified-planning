@@ -74,6 +74,10 @@ class Problem:
             raise Exception('Initial value not set!')
         return self._initial_value[fluent]
 
+    def initial_values(self):
+        """Gets the initial value of the fluents."""
+        return self._initial_value
+
     def add_goal(self, goal):
         """Adds a goal."""
         goal = EXPR_MANAGER.auto_promote(goal)

@@ -52,7 +52,7 @@ class FNode(object):
 
     def is_constant(self, _type=None, value=None):
         """Test whether the formula is a constant."""
-        return self.node_type() == BOOL_CONSTANT
+        return self.node_type() == op.BOOL_CONSTANT
 
     def constant_value(self):
         """Return the value of the Constant."""
@@ -61,7 +61,12 @@ class FNode(object):
 
     def fluent(self):
         """Return the fluent of the FluentExp."""
-        assert self.is_fluent()
+        assert self.is_fluent_exp()
+        return self._content.payload
+
+    def parameter(self):
+        """Return the parameter of the ParameterExp."""
+        assert self.is_parameter_exp()
         return self._content.payload
 
     def is_true(self):

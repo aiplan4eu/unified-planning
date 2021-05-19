@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from upf.planner import Planner
+from upf.planner import Planner, Solver
 from upf.action import Action, ActionParameter
 from upf.fluent import Fluent
 from upf.problem import Problem
+from upf.plan import ActionInstance, SequentialPlan
 
 __all__ = [
     "Action",
