@@ -15,6 +15,7 @@
 from upf.planner import Planner, Solver
 from upf.action import Action, ActionParameter
 from upf.fluent import Fluent
+from upf.object import Object
 from upf.problem import Problem
 from upf.plan import ActionInstance, SequentialPlan
 

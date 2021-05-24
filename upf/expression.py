@@ -27,7 +27,8 @@ from typing import Iterable
 class ExpressionManager(object):
     """ExpressionManager is responsible for the creation of all expressions."""
 
-    def __init__(self):
+    def __init__(self, env):
+        self.env = env
         self.expressions = {}
         self._next_free_id = 1
 
@@ -58,6 +59,8 @@ class ExpressionManager(object):
                 res.append(self.FluentExp(e))
             elif isinstance(e, upf.ActionParameter):
                 res.append(self.ParameterExp(e))
+            elif isinstance(e, upf.Object):
+                res.append(self.ObjectExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
             else:
@@ -75,7 +78,16 @@ class ExpressionManager(object):
             n = FNode(content, self._next_free_id)
             self._next_free_id += 1
             self.expressions[content] = n
+            self._do_type_check(n)
             return n
+
+    def _do_type_check_real(self, formula):
+        self.get_type(formula)
+
+    def _do_type_check(self, formula):
+        self.get_type = self.env.stc.get_type
+        self._do_type_check = self._do_type_check_real
+        return self._do_type_check(formula)
 
     def And(self, *args):
         """ Returns a conjunction of terms.
@@ -139,6 +151,13 @@ class ExpressionManager(object):
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IFF, args=(left, right))
 
+    def Equals(self, left, right):
+        """ Creates an expression of the form:
+            left == right
+        """
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.EQUALS, args=(left, right))
+
     def TRUE(self):
         """Return the boolean constant True."""
         return self.true_expression
@@ -169,40 +188,9 @@ class ExpressionManager(object):
         return self.create_node(node_type=op.FLUENT_EXP, args=params, payload=fluent)
 
     def ParameterExp(self, param):
-        """Returns an expression for the given action parameter"""
-        param = self.auto_promote(param)
+        """Returns an expression for the given action parameter."""
         return self.create_node(node_type=op.PARAM_EXP, args=tuple(), payload=param)
 
-
-EXPR_MANAGER = ExpressionManager()
-
-
-def And(*args, **kwargs):
-    return EXPR_MANAGER.And(*args, **kwargs)
-
-def Or(*args, **kwargs):
-    return EXPR_MANAGER.Or(*args, **kwargs)
-
-def Implies(*args, **kwargs):
-    return EXPR_MANAGER.Implies(*args, **kwargs)
-
-def Iff(*args, **kwargs):
-    return EXPR_MANAGER.Iff(*args, **kwargs)
-
-def Not(*args, **kwargs):
-    return EXPR_MANAGER.Not(*args, **kwargs)
-
-def TRUE(*args, **kwargs):
-    return EXPR_MANAGER.TRUE(*args, **kwargs)
-
-def FALSE(*args, **kwargs):
-    return EXPR_MANAGER.FALSE(*args, **kwargs)
-
-def Bool(*args, **kwargs):
-    return EXPR_MANAGER.Bool(*args, **kwargs)
-
-def FluentExp(*args, **kwargs):
-    return EXPR_MANAGER.FluentExp(*args, **kwargs)
-
-def ParameterExp(*args, **kwargs):
-    return EXPR_MANAGER.ParameterExp(*args, **kwargs)
+    def ObjectExp(self, obj):
+        """Returns an expression for the given object."""
+        return self.create_node(node_type=op.OBJECT_EXP, args=tuple(), payload=obj)

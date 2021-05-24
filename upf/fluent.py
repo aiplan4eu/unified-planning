@@ -14,15 +14,18 @@
 #
 """This module defines the fluent class. """
 
-from upf.typing import BOOL
-from upf.expression import FluentExp
+from upf.environment import get_env
 
 
 class Fluent:
     """Represents a fluent."""
-    def __init__(self, name, typename=BOOL, signature=[]):
+    def __init__(self, name, typename=None, signature=[], env=None):
+        self._env = get_env(env)
         self._name = name
-        self._typename = typename
+        if typename is None:
+            self._typename = self._env.type_manager.BOOL()
+        else:
+            self._typename = typename
         self._signature = signature
 
     def name(self):
@@ -43,6 +46,6 @@ class Fluent:
         """Returns the fluent arity."""
         return len(self._signature)
 
-    def __call__(self, params):
+    def __call__(self, *args):
         """Returns a fluent expression with the given parameters."""
-        return FluentExp(self, params)
+        return self._env.expression_manager.FluentExp(self, args)
