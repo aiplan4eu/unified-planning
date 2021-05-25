@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the object class. """
+"""
+This module defines an Object of a planning problem.
+An Object is represented by a name and by its type.
+"""
 
 class Object:
     """Represents an object."""

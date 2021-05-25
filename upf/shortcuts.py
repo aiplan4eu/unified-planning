@@ -56,8 +56,8 @@ def ParameterExp(*args, **kwargs):
 def ObjectExp(*args, **kwargs):
     return get_env().expression_manager.ObjectExp(*args, **kwargs)
 
-def BOOL():
-    return get_env().type_manager.BOOL()
+def BoolType():
+    return get_env().type_manager.BoolType()
 
 def UserType(name):
     return get_env().type_manager.UserType(name)

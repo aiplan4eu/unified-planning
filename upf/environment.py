@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the environment."""
+"""
+This module defines the Environment class.
+The Environment is a structure that contains multiple
+singleton objects that are used throughout the system,
+such as the ExpressionManager, TypeChecker, TypeManager.
+"""
 
 import upf.expression
 import upf.typing
@@ -22,7 +27,7 @@ import upf.type_checker
 class Environment:
     """Represents the environment."""
     def __init__(self):
-        self._stc = upf.type_checker.SimpleTypeChecker()
+        self._tc = upf.type_checker.TypeChecker()
         self._expression_manager = upf.expression.ExpressionManager(self)
         self._type_manager = upf.typing.TypeManager()
 
@@ -35,15 +40,15 @@ class Environment:
         return self._type_manager
 
     @property
-    def stc(self):
-        """ Get the Simple Type Checker """
-        return self._stc
+    def type_checker(self):
+        """ Get the Type Checker """
+        return self._tc
 
 
-ENVIRONMENT = Environment()
+GLOBAL_ENVIRONMENT = Environment()
 
 def get_env(env=None):
     if env is None:
-        return ENVIRONMENT
+        return GLOBAL_ENVIRONMENT
     else:
         return env

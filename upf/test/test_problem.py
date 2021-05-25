@@ -49,7 +49,7 @@ class TestProblem(TestCase):
         self.assertTrue(Location.is_user_type())
         self.assertEqual(Location.name(), 'Location')
 
-        robot_at = upf.Fluent('robot_at', BOOL(), [Location])
+        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
         self.assertEqual(robot_at.name(), 'robot_at')
         self.assertEqual(robot_at.arity(), 1)
         self.assertEqual(robot_at.signature(), [Location])

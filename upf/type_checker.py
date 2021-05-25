@@ -18,7 +18,7 @@ import upf.operators as op
 from upf.typing import BOOL
 
 
-class SimpleTypeChecker(walkers.DagWalker):
+class TypeChecker(walkers.DagWalker):
     def __init__(self):
         walkers.DagWalker.__init__(self)
 

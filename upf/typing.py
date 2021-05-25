@@ -55,7 +55,7 @@ class TypeManager:
         self._bool = BOOL
         self._user_types = {}
 
-    def BOOL(self):
+    def BoolType(self):
         return self._bool
 
     def UserType(self, name):

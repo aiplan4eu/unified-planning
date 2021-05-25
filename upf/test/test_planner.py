@@ -37,7 +37,7 @@ class TestPlanner(TestCase):
 
     def test_with_parameters(self):
         Location = UserType('Location')
-        robot_at = upf.Fluent('robot_at', BOOL(), [Location])
+        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
         move = upf.Action('move', l_from=Location, l_to=Location)
         l_from = move.parameter('l_from')
         l_to = move.parameter('l_to')

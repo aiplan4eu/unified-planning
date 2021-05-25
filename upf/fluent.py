@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the fluent class. """
+"""
+This module defines the Fluent class.
+A Fluent has a name, a type and a signature
+that defines the types of its parameters.
+"""
 
 from upf.environment import get_env
 
@@ -23,7 +27,7 @@ class Fluent:
         self._env = get_env(env)
         self._name = name
         if typename is None:
-            self._typename = self._env.type_manager.BOOL()
+            self._typename = self._env.type_manager.BoolType()
         else:
             self._typename = typename
         self._signature = signature

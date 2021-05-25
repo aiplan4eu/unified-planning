@@ -85,7 +85,7 @@ class ExpressionManager(object):
         self.get_type(formula)
 
     def _do_type_check(self, formula):
-        self.get_type = self.env.stc.get_type
+        self.get_type = self.env.type_checker.get_type
         self._do_type_check = self._do_type_check_real
         return self._do_type_check(formula)
 

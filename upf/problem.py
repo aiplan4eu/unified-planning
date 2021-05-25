@@ -88,7 +88,7 @@ class Problem:
     def set_initial_value(self, fluent, value):
         """Sets the initial value for the given fluent."""
         fluent, value = self._env.expression_manager.auto_promote(fluent, value)
-        assert self._env.stc.get_type(fluent) == self._env.stc.get_type(value)
+        assert self._env.type_checker.get_type(fluent) == self._env.type_checker.get_type(value)
         if fluent in self._initial_value:
             raise Exception('Initial value already set!')
         self._initial_value[fluent] = value
@@ -107,7 +107,7 @@ class Problem:
     def add_goal(self, goal):
         """Adds a goal."""
         goal = self._env.expression_manager.auto_promote(goal)
-        assert self._env.stc.get_type(goal).is_bool_type()
+        assert self._env.type_checker.get_type(goal).is_bool_type()
         self._goals.add(goal)
 
     def goals(self):
