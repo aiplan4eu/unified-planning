@@ -12,15 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the action class and the action parameter class."""
+"""
+This module defines the Action class and the ActionParameter class.
+An Action has a name, a list of ActionParameter, a list of preconditions
+and a list of effects.
+"""
 
 from collections import OrderedDict
-from upf.expression import EXPR_MANAGER
+from upf.environment import get_env
 
 
 class Action:
     """Represents an instantaneous action."""
-    def __init__(self, _name, _parameters=None, **kwargs):
+    def __init__(self, _name, _parameters=None, _env=None, **kwargs):
+        self._env = get_env(_env)
         self._name = _name
         self._preconditions = []
         self._effects = []
@@ -55,12 +60,14 @@ class Action:
 
     def add_precondition(self, precondition):
         """Adds the given action precondition."""
-        precondition = EXPR_MANAGER.auto_promote(precondition)
+        precondition = self._env.expression_manager.auto_promote(precondition)
+        assert self._env.type_checker.get_type(precondition).is_bool_type()
         self._preconditions.append(precondition)
 
     def add_effect(self, fluent, value):
         """Adds the given action effect."""
-        fluent, value = EXPR_MANAGER.auto_promote(fluent, value)
+        fluent, value = self._env.expression_manager.auto_promote(fluent, value)
+        assert self._env.type_checker.get_type(fluent) == self._env.type_checker.get_type(value)
         self._effects.append((fluent, value))
 
 

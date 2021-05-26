@@ -21,6 +21,10 @@ class Type:
         """Returns true iff is boolean type."""
         return False
 
+    def is_user_type(self):
+        """Returns true iff is a user type."""
+        return False
+
 
 class _BoolType(Type):
     """Represents the boolean type."""
@@ -30,4 +34,34 @@ class _BoolType(Type):
         return True
 
 
+class _UserType(Type):
+    """Represents the user type."""
+    def __init__(self, name):
+        self._name = name
+
+    def name(self):
+        """Returns the type name."""
+        return self._name
+
+    def is_user_type(self):
+        """Returns true iff is a user type."""
+        return True
+
+
 BOOL = _BoolType()
+
+class TypeManager:
+    def __init__(self):
+        self._bool = BOOL
+        self._user_types = {}
+
+    def BoolType(self):
+        return self._bool
+
+    def UserType(self, name):
+        if name in self._user_types:
+            return self._user_types[name]
+        else:
+            ut = _UserType(name)
+            self._user_types[name] = ut
+            return ut

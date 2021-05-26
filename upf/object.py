@@ -12,31 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines all the operators used by the UPF."""
+"""
+This module defines an Object of a planning problem.
+An Object is represented by a name and by its type.
+"""
 
-ALL_TYPES = list(range(0, 10))
+class Object:
+    """Represents an object."""
+    def __init__(self, name, typename):
+        self._name = name
+        self._typename = typename
 
-(
-AND, OR, NOT, IMPLIES, IFF, EQUALS,
-FLUENT_EXP, BOOL_CONSTANT, PARAM_EXP,
-OBJECT_EXP
-) = ALL_TYPES
+    def name(self):
+        """Returns the fluent name."""
+        return self._name
 
-
-def op_to_str(node_id):
-    """Returns a string representation of the given node."""
-    return __OP_STR__[node_id]
-
-
-__OP_STR__ = {
-    AND : "AND",
-    OR : "OR",
-    NOT : "NOT",
-    IMPLIES : "IMPLIES",
-    IFF : "IFF",
-    EQUALS : "EQUALS",
-    FLUENT_EXP : "FLUENT_EXP",
-    BOOL_CONSTANT : "BOOL_CONSTANT",
-    PARAM_EXP: "PARAM_EXP",
-    OBJECT_EXP: "OBJECT_EXP"
-}
+    def type(self):
+        """Returns the fluent type."""
+        return self._typename

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import upf
-from upf.expression import *
+from upf.shortcuts import *
 from upf.test import TestCase, main
 
 
@@ -25,7 +25,7 @@ class TestProblem(TestCase):
         self.assertTrue(x.type().is_bool_type())
 
         a = upf.Action('a')
-        a.add_precondition(Iff(x, False))
+        a.add_precondition(Not(x))
         a.add_effect(x, True)
         self.assertEqual(a.name(), 'a')
         self.assertEqual(len(a.preconditions()), 1)
@@ -43,6 +43,62 @@ class TestProblem(TestCase):
         self.assertEqual(problem.action('a'), a)
         self.assertTrue(problem.initial_value(x) is not None)
         self.assertEqual(len(problem.goals()), 1)
+
+    def test_with_parameters(self):
+        Location = UserType('Location')
+        self.assertTrue(Location.is_user_type())
+        self.assertEqual(Location.name(), 'Location')
+
+        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+        self.assertEqual(robot_at.name(), 'robot_at')
+        self.assertEqual(robot_at.arity(), 1)
+        self.assertEqual(robot_at.signature(), [Location])
+        self.assertTrue(robot_at.type().is_bool_type())
+
+        move = upf.Action('move', l_from=Location, l_to=Location)
+        l_from = move.parameter('l_from')
+        l_to = move.parameter('l_to')
+        move.add_precondition(Not(Equals(l_from, l_to)))
+        move.add_precondition(robot_at(l_from))
+        move.add_precondition(Not(robot_at(l_to)))
+        move.add_effect(robot_at(l_from), False)
+        move.add_effect(robot_at(l_to), True)
+        self.assertEqual(move.name(), 'move')
+        self.assertEqual(len(move.parameters()), 2)
+        self.assertEqual(l_from.name(), 'l_from')
+        self.assertEqual(l_from.type(), Location)
+        self.assertEqual(l_to.name(), 'l_to')
+        self.assertEqual(l_to.type(), Location)
+        self.assertEqual(len(move.preconditions()), 3)
+        self.assertEqual(len(move.effects()), 2)
+
+        l1 = upf.Object('l1', Location)
+        l2 = upf.Object('l2', Location)
+        self.assertEqual(l1.name(), 'l1')
+        self.assertEqual(l1.type(), Location)
+        self.assertEqual(l2.name(), 'l2')
+        self.assertEqual(l2.type(), Location)
+
+        p = upf.Problem('robot')
+        p.add_fluent(robot_at)
+        p.add_action(move)
+        p.add_object(l1)
+        p.add_object(l2)
+        p.set_initial_value(robot_at(l1), True)
+        p.set_initial_value(robot_at(l2), False)
+        p.add_goal(robot_at(l2))
+        self.assertEqual(p.name(), 'robot')
+        self.assertEqual(len(p.fluents()), 1)
+        self.assertEqual(p.fluent('robot_at'), robot_at)
+        self.assertEqual(len(p.user_types()), 1)
+        self.assertEqual(p.user_types()['Location'], Location)
+        self.assertEqual(len(p.objects(Location)), 2)
+        self.assertEqual(p.objects(Location), [l1, l2])
+        self.assertEqual(len(p.actions()), 1)
+        self.assertEqual(p.action('move'), move)
+        self.assertTrue(p.initial_value(robot_at(l1)) is not None)
+        self.assertTrue(p.initial_value(robot_at(l2)) is not None)
+        self.assertEqual(len(p.goals()), 1)
 
 
 if __name__ == "__main__":

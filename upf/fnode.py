@@ -69,6 +69,11 @@ class FNode(object):
         assert self.is_parameter_exp()
         return self._content.payload
 
+    def object(self):
+        """Return the object of the ObjectExp."""
+        assert self.is_object_exp()
+        return self._content.payload
+
     def is_true(self):
         """Test whether the formula is the True Boolean constant."""
         return self.constant_value() == True
@@ -97,6 +102,10 @@ class FNode(object):
         """Test whether the node is the Iff operator."""
         return self.node_type() == op.IFF
 
+    def is_equals(self):
+        """Test whether the node is the Equals operator."""
+        return self.node_type() == op.EQUALS
+
     def is_fluent_exp(self):
         """Test whether the node is a fluent."""
         return self.node_type() == op.FLUENT_EXP
@@ -104,3 +113,7 @@ class FNode(object):
     def is_parameter_exp(self):
         """Test whether the node is an action parameter."""
         return self.node_type() == op.PARAM_EXP
+
+    def is_object_exp(self):
+        """Test whether the node is an action object."""
+        return self.node_type() == op.OBJECT_EXP
