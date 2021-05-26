@@ -23,7 +23,7 @@ OBJECT_EXP
 ) = ALL_TYPES
 
 
-def op_to_str(node_id):
+def op_to_str(node_id: int) -> str:
     """Returns a string representation of the given node."""
     return __OP_STR__[node_id]
 

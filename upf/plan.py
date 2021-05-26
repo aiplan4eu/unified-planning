@@ -14,6 +14,10 @@
 #
 """This module defines the different plan classes."""
 
+import upf
+from upf.fnode import FNode
+from typing import Tuple, List
+
 
 class Plan:
     """Represents a generic plan."""
@@ -22,12 +26,12 @@ class Plan:
 
 class ActionInstance:
     """Represents an action instance with the actual parameters."""
-    def __init__(self, action, params=tuple()):
+    def __init__(self, action: upf.Action, params: Tuple[FNode] = tuple()):
         assert len(action.parameters()) == len(params)
         self._action = action
         self._params = params
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = ''
         if len(self._params) > 0:
             s = '('
@@ -40,23 +44,23 @@ class ActionInstance:
             s += ')'
         return self._action.name() + s
 
-    def action(self):
+    def action(self) -> upf.Action:
         """Returns the action."""
         return self._action
 
-    def parameters(self):
+    def parameters(self) -> Tuple[FNode]:
         """Returns the actual parameters."""
         return self._params
 
 
 class SequentialPlan(Plan):
     """Represents a sequential plan."""
-    def __init__(self, actions):
+    def __init__(self, actions: List[upf.Action]):
         self._actions = actions
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self._actions)
 
-    def actions(self):
+    def actions(self) -> List[upf.Action]:
         """Returns the sequence of action instances."""
         return self._actions

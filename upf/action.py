@@ -18,13 +18,35 @@ An Action has a name, a list of ActionParameter, a list of preconditions
 and a list of effects.
 """
 
+import upf.typing
+import typing
 from collections import OrderedDict
-from upf.environment import get_env
+from upf.environment import get_env, Environment
+from upf.fnode import FNode
+from upf.fluent import Fluent
+from upf.object import Object
+from typing import List, Union
+
+
+class ActionParameter:
+    """Represents an action parameter."""
+    def __init__(self, name: str, typename: upf.typing.Type):
+        self._name = name
+        self._typename = typename
+
+    def name(self) -> str:
+        """Returns the parameter name."""
+        return self._name
+
+    def type(self) -> upf.typing.Type:
+        """Returns the parameter type."""
+        return self._typename
 
 
 class Action:
     """Represents an instantaneous action."""
-    def __init__(self, _name, _parameters=None, _env=None, **kwargs):
+    def __init__(self, _name: str, _parameters: typing.OrderedDict[str, upf.typing.Type] = None,
+                 _env: Environment = None, **kwargs):
         self._env = get_env(_env)
         self._name = _name
         self._preconditions = []
@@ -38,49 +60,35 @@ class Action:
         for n, t in parameters.items():
             self._parameters[n] = ActionParameter(n, t)
 
-    def name(self):
+    def name(self) -> str:
         """Returns the action name."""
         return self._name
 
-    def preconditions(self):
+    def preconditions(self) -> List[FNode]:
         """Returns the list of the action preconditions."""
         return self._preconditions
 
-    def effects(self):
+    def effects(self) -> List[FNode]:
         """Returns the list of the action effects."""
         return self._effects
 
-    def parameters(self):
+    def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
         return self._parameters.values()
 
-    def parameter(self, name):
+    def parameter(self, name) -> ActionParameter:
         """Returns the parameter of the action with the given name."""
         return self._parameters[name]
 
-    def add_precondition(self, precondition):
+    def add_precondition(self, precondition: Union[FNode, Fluent, Object, ActionParameter, bool]):
         """Adds the given action precondition."""
         precondition = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition).is_bool_type()
         self._preconditions.append(precondition)
 
-    def add_effect(self, fluent, value):
+    def add_effect(self, fluent: Union[FNode, Fluent],
+                   value: Union[FNode, Fluent, Object, ActionParameter, bool]):
         """Adds the given action effect."""
         fluent, value = self._env.expression_manager.auto_promote(fluent, value)
         assert self._env.type_checker.get_type(fluent) == self._env.type_checker.get_type(value)
         self._effects.append((fluent, value))
-
-
-class ActionParameter:
-    """Represents an action parameter."""
-    def __init__(self, name, typename):
-        self._name = name
-        self._typename = typename
-
-    def name(self):
-        """Returns the parameter name."""
-        return self._name
-
-    def type(self):
-        """Returns the parameter type."""
-        return self._typename

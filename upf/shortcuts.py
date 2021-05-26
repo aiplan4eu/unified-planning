@@ -17,47 +17,49 @@ This module defines a global environment, so that most methods can be
 called without the need to specify an environment or a ExpressionManager.
 """
 
+import upf.typing
 from upf.environment import get_env
+from upf.fnode import FNode
 
 
-def And(*args, **kwargs):
+def And(*args, **kwargs) -> FNode:
     return get_env().expression_manager.And(*args, **kwargs)
 
-def Or(*args, **kwargs):
+def Or(*args, **kwargs) -> FNode:
     return get_env().expression_manager.Or(*args, **kwargs)
 
-def Implies(*args, **kwargs):
+def Implies(*args, **kwargs) -> FNode:
     return get_env().expression_manager.Implies(*args, **kwargs)
 
-def Iff(*args, **kwargs):
+def Iff(*args, **kwargs) -> FNode:
     return get_env().expression_manager.Iff(*args, **kwargs)
 
-def Equals(*args, **kwargs):
+def Equals(*args, **kwargs) -> FNode:
     return get_env().expression_manager.Equals(*args, **kwargs)
 
-def Not(*args, **kwargs):
+def Not(*args, **kwargs) -> FNode:
     return get_env().expression_manager.Not(*args, **kwargs)
 
-def TRUE(*args, **kwargs):
+def TRUE(*args, **kwargs) -> FNode:
     return get_env().expression_manager.TRUE(*args, **kwargs)
 
-def FALSE(*args, **kwargs):
+def FALSE(*args, **kwargs) -> FNode:
     return get_env().expression_manager.FALSE(*args, **kwargs)
 
-def Bool(*args, **kwargs):
+def Bool(*args, **kwargs) -> FNode:
     return get_env().expression_manager.Bool(*args, **kwargs)
 
-def FluentExp(*args, **kwargs):
+def FluentExp(*args, **kwargs) -> FNode:
     return get_env().expression_manager.FluentExp(*args, **kwargs)
 
-def ParameterExp(*args, **kwargs):
+def ParameterExp(*args, **kwargs) -> FNode:
     return get_env().expression_manager.ParameterExp(*args, **kwargs)
 
-def ObjectExp(*args, **kwargs):
+def ObjectExp(*args, **kwargs) -> FNode:
     return get_env().expression_manager.ObjectExp(*args, **kwargs)
 
-def BoolType():
+def BoolType() -> upf.typing.Type:
     return get_env().type_manager.BoolType()
 
-def UserType(name):
+def UserType(name: str) -> upf.typing.Type:
     return get_env().type_manager.UserType(name)
