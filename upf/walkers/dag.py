@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from upf.walkers.generic import Walker
+from upf.fnode import FNode
 
 
 class DagWalker(Walker):
@@ -39,10 +40,10 @@ class DagWalker(Walker):
         self.stack = []
         return
 
-    def _get_children(self, expression):
+    def _get_children(self, expression: FNode):
         return expression.args()
 
-    def _push_with_children_to_stack(self, expression, **kwargs):
+    def _push_with_children_to_stack(self, expression: FNode, **kwargs):
         """Add children to the stack."""
         self.stack.append((True, expression))
         for s in self._get_children(expression):
@@ -51,7 +52,7 @@ class DagWalker(Walker):
             if key not in self.memoization:
                 self.stack.append((False, s))
 
-    def _compute_node_result(self, expression, **kwargs):
+    def _compute_node_result(self, expression: FNode, **kwargs):
         """Apply function to the node and memoize the result.
         Note: This function assumes that the results for the children
               are already available.
@@ -84,14 +85,14 @@ class DagWalker(Walker):
             else:
                 self._push_with_children_to_stack(expression, **kwargs)
 
-    def iter_walk(self, expression, **kwargs):
+    def iter_walk(self, expression: FNode, **kwargs):
         """Performs an iterative walk of the DAG"""
         self.stack.append((False, expression))
         self._process_stack(**kwargs)
         res_key = self._get_key(expression, **kwargs)
         return self.memoization[res_key]
 
-    def walk(self, expression, **kwargs):
+    def walk(self, expression: FNode, **kwargs):
         if expression in self.memoization:
             return self.memoization[expression]
 
@@ -101,38 +102,38 @@ class DagWalker(Walker):
             self.memoization.clear()
         return res
 
-    def _get_key(self, expression, **kwargs):
+    def _get_key(self, expression: FNode, **kwargs):
         if not kwargs:
             return expression
         raise NotImplementedError("DagWalker should redefine '_get_key'" +
                                   " when using keywords arguments")
 
-    def walk_true(self, expression, args, **kwargs):
+    def walk_true(self, expression: FNode, args, **kwargs):
         #pylint: disable=unused-argument
         """ Returns True, independently from the children's value."""
         return True
 
-    def walk_false(self, expression, args, **kwargs):
+    def walk_false(self, expression: FNode, args, **kwargs):
         #pylint: disable=unused-argument
         """ Returns False, independently from the children's value."""
         return False
 
-    def walk_none(self, expression, args, **kwargs):
+    def walk_none(self, expression: FNode, args, **kwargs):
         #pylint: disable=unused-argument
         """ Returns None, independently from the children's value."""
         return None
 
-    def walk_identity(self, expression, **kwargs):
+    def walk_identity(self, expression: FNode, **kwargs):
         #pylint: disable=unused-argument
         """ Returns expression, independently from the childrens's value."""
         return expression
 
-    def walk_any(self, expression, args, **kwargs):
+    def walk_any(self, expression: FNode, args, **kwargs):
         #pylint: disable=unused-argument
         """ Returns True if any of the children returned True. """
         return any(args)
 
-    def walk_all(self, expression, args, **kwargs):
+    def walk_all(self, expression: FNode, args, **kwargs):
         #pylint: disable=unused-argument
         """ Returns True if all the children returned True. """
         return all(args)

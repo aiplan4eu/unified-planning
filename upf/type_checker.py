@@ -18,7 +18,7 @@ import upf.walkers as walkers
 import upf.operators as op
 from upf.typing import BOOL
 from upf.fnode import FNode
-from typing import List
+from typing import List, Optional
 
 
 class TypeChecker(walkers.DagWalker):
@@ -29,12 +29,12 @@ class TypeChecker(walkers.DagWalker):
         """ Returns the pysmt.types type of the expression """
         res = self.walk(expression)
         if res is None:
-            raise PysmtTypeError("The expression '%s' is not well-formed" \
-                                 % str(expression))
+            raise Exception("The expression '%s' is not well-formed" \
+                            % str(expression))
         return res
 
     def walk_type_to_type(self, expression: FNode, args: List[upf.typing.Type],
-                          type_in: upf.typing.Type, type_out: upf.typing.Type) -> upf.typing.Type:
+                          type_in: upf.typing.Type, type_out: upf.typing.Type) -> Optional[upf.typing.Type]:
         assert expression is not None
         for x in args:
             if x is None or x != type_in:
@@ -42,24 +42,24 @@ class TypeChecker(walkers.DagWalker):
         return type_out
 
     @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF)
-    def walk_bool_to_bool(self, expression: FNode, args: List[upf.typing.Type]) -> upf.typing.Type:
+    def walk_bool_to_bool(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
         return self.walk_type_to_type(expression, args, BOOL, BOOL)
 
-    def walk_equals(self, expression: FNode, args: List[upf.typing.Type]) -> upf.typing.Type:
+    def walk_equals(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
         if args[0].is_bool_type():
-            raise PysmtTypeError("The expression '%s' is not well-formed."
-                                 "Equality operator is not supported for Boolean"
-                                 " terms. Use Iff instead." \
-                                 % str(expression))
+            raise Exception("The expression '%s' is not well-formed."
+                            "Equality operator is not supported for Boolean"
+                            " terms. Use Iff instead." \
+                            % str(expression))
         return self.walk_type_to_type(expression, args, args[0], BOOL)
 
     @walkers.handles(op.BOOL_CONSTANT)
-    def walk_identity_bool(self, expression: FNode, args: List[upf.typing.Type]) -> upf.typing.Type:
+    def walk_identity_bool(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
         assert expression is not None
         assert len(args) == 0
         return BOOL
 
-    def walk_fluent_exp(self, expression: FNode, args: List[upf.typing.Type]) -> upf.typing.Type:
+    def walk_fluent_exp(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
         assert expression.is_fluent_exp()
         f = expression.fluent()
 

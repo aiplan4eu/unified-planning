@@ -20,9 +20,10 @@ else:
     from collections import Iterable
 
 import upf.operators as op
+from upf.fnode import FNode
 
 # NodeType to Function Name
-def nt_to_fun(o):
+def nt_to_fun(o: int) -> str:
     """Returns the name of the walk function for the given nodetype."""
     return "walk_%s" % op.op_to_str(o).lower()
 
@@ -89,13 +90,13 @@ class Walker(object, metaclass=MetaNodeTypeHandler):
             setattr(cls, nt_to_fun(nt), function)
 
     @classmethod
-    def super(cls, self, expression, *args, **kwargs):
+    def super(cls, self, expression: FNode, *args, **kwargs):
         """Call the correct walk_* function of cls for the given expression."""
         f = getattr(cls, nt_to_fun(expression.node_type()))
         return f(self, expression, *args, **kwargs)
 
     @handles(op.ALL_TYPES)
-    def walk_error(self, expression, **kwargs):
+    def walk_error(self, expression: FNode, **kwargs):
         raise NotImplementedError
 
 # EOC Walker

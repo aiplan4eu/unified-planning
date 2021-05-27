@@ -12,12 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-
+import unittest
 
 TestCase = unittest.TestCase
 main = unittest.main

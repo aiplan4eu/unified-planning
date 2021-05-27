@@ -14,8 +14,10 @@
 #
 """FNode are the building blocks of expressions."""
 
+import upf
 import collections
 import upf.operators as op
+from typing import List
 
 FNodeContent = collections.namedtuple("FNodeContent",
                                       ["node_type", "args", "payload"])
@@ -23,7 +25,7 @@ FNodeContent = collections.namedtuple("FNodeContent",
 class FNode(object):
     __slots__ = ["_content", "_node_id"]
 
-    def __init__(self, content, node_id):
+    def __init__(self, content: FNodeContent, node_id: int):
         self._content = content
         self._node_id = node_id
         return
@@ -33,87 +35,87 @@ class FNode(object):
     # environment two nodes have always different ids, but in
     # different environments they can have the same id. This is not an
     # issue since, by default, equality coincides with identity.
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self._node_id
 
-    def node_id(self):
+    def node_id(self) -> int:
         return self._node_id
 
-    def node_type(self):
+    def node_type(self) -> int:
         return self._content.node_type
 
-    def args(self):
-        """Returns the subformulae."""
+    def args(self) -> List['FNode']:
+        """Returns the subexpressions."""
         return self._content.args
 
-    def arg(self, idx):
-        """Return the given subformula at the given position."""
+    def arg(self, idx: int) -> 'FNode':
+        """Return the given subexpression at the given position."""
         return self._content.args[idx]
 
-    def is_constant(self, _type=None, value=None):
-        """Test whether the formula is a constant."""
+    def is_constant(self) -> bool:
+        """Test whether the expression is a constant."""
         return self.node_type() == op.BOOL_CONSTANT
 
-    def constant_value(self):
+    def constant_value(self) -> bool:
         """Return the value of the Constant."""
         assert self.is_constant()
         return self._content.payload
 
-    def fluent(self):
+    def fluent(self) -> 'upf.Fluent':
         """Return the fluent of the FluentExp."""
         assert self.is_fluent_exp()
         return self._content.payload
 
-    def parameter(self):
+    def parameter(self) -> 'upf.ActionParameter':
         """Return the parameter of the ParameterExp."""
         assert self.is_parameter_exp()
         return self._content.payload
 
-    def object(self):
+    def object(self) -> 'upf.Object':
         """Return the object of the ObjectExp."""
         assert self.is_object_exp()
         return self._content.payload
 
-    def is_true(self):
-        """Test whether the formula is the True Boolean constant."""
+    def is_true(self) -> bool:
+        """Test whether the expression is the True Boolean constant."""
         return self.constant_value() == True
 
-    def is_false(self):
-        """Test whether the formula is the False Boolean constant."""
+    def is_false(self) -> bool:
+        """Test whether the expression is the False Boolean constant."""
         return self.constant_value() == False
 
-    def is_and(self):
+    def is_and(self) -> bool:
         """Test whether the node is the And operator."""
         return self.node_type() == op.AND
 
-    def is_or(self):
+    def is_or(self) -> bool:
         """Test whether the node is the Or operator."""
         return self.node_type() == op.OR
 
-    def is_not(self):
+    def is_not(self) -> bool:
         """Test whether the node is the Not operator."""
         return self.node_type() == op.NOT
 
-    def is_implies(self):
+    def is_implies(self) -> bool:
         """Test whether the node is the Implies operator."""
         return self.node_type() == op.IMPLIES
 
-    def is_iff(self):
+    def is_iff(self) -> bool:
         """Test whether the node is the Iff operator."""
         return self.node_type() == op.IFF
 
-    def is_equals(self):
+    def is_equals(self) -> bool:
         """Test whether the node is the Equals operator."""
         return self.node_type() == op.EQUALS
 
-    def is_fluent_exp(self):
+    def is_fluent_exp(self) -> bool:
         """Test whether the node is a fluent."""
         return self.node_type() == op.FLUENT_EXP
 
-    def is_parameter_exp(self):
+    def is_parameter_exp(self) -> bool:
         """Test whether the node is an action parameter."""
         return self.node_type() == op.PARAM_EXP
 
-    def is_object_exp(self):
+    def is_object_exp(self) -> bool:
         """Test whether the node is an action object."""
         return self.node_type() == op.OBJECT_EXP

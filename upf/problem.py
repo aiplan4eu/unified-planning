@@ -19,7 +19,7 @@ from upf.environment import get_env, Environment
 from upf.fnode import FNode
 from upf.fluent import Fluent
 from upf.object import Object
-from typing import List, Dict, Set, Union
+from typing import List, Dict, Set, Union, Optional
 
 
 class Problem:
@@ -27,18 +27,18 @@ class Problem:
     def __init__(self, name: str = None, env: Environment = None):
         self._env = get_env(env)
         self._name = name
-        self._fluents = {}
-        self._actions = {}
-        self._user_types = {}
-        self._objects = {}
-        self._initial_value = {}
-        self._goals = set()
+        self._fluents: Dict[str, upf.Fluent] = {}
+        self._actions: Dict[str, upf.Action] = {}
+        self._user_types: Dict[str, upf.typing.Type] = {}
+        self._objects: Dict[upf.typing.Type, List[upf.Object]] = {}
+        self._initial_value: Dict[FNode, FNode] = {}
+        self._goals: Set[FNode] = set()
 
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Returns the problem name."""
         return self._name
 
-    def fluents(self) -> upf.Fluent:
+    def fluents(self) -> Dict[str, upf.Fluent]:
         """Returns the fluents."""
         return self._fluents
 
@@ -52,10 +52,10 @@ class Problem:
         if fluent.name() in self._fluents:
             raise Exception('Fluent ' + fluent.name() + ' already defined!')
         if fluent.type().is_user_type():
-            self._user_types[fluent.type().name()] = fluent.type()
+            self._user_types[fluent.type().name()] = fluent.type() # type: ignore
         for t in fluent.signature():
             if t.is_user_type():
-                self._user_types[t.name()] = t
+                self._user_types[t.name()] = t # type: ignore
         self._fluents[fluent.name()] = fluent
 
     def actions(self) -> Dict[str, upf.Action]:
@@ -73,7 +73,7 @@ class Problem:
             raise Exception('Action ' + action.name() + ' already defined!')
         for p in action.parameters():
             if p.type().is_user_type():
-                self._user_types[p.type().name()] = p.type()
+                self._user_types[p.type().name()] = p.type() # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.typing.Type]:
@@ -93,18 +93,18 @@ class Problem:
     def set_initial_value(self, fluent: Union[FNode, Fluent],
                           value: Union[FNode, Fluent, Object, bool]):
         """Sets the initial value for the given fluent."""
-        fluent, value = self._env.expression_manager.auto_promote(fluent, value)
-        assert self._env.type_checker.get_type(fluent) == self._env.type_checker.get_type(value)
-        if fluent in self._initial_value:
+        [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
+        assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)
+        if fluent_exp in self._initial_value:
             raise Exception('Initial value already set!')
-        self._initial_value[fluent] = value
+        self._initial_value[fluent_exp] = value_exp
 
     def initial_value(self, fluent: Union[FNode, Fluent]) -> FNode:
         """Gets the initial value of the given fluent."""
-        fluent = self._env.expression_manager.auto_promote(fluent)
-        if fluent not in self._initial_value:
+        [fluent_exp] = self._env.expression_manager.auto_promote(fluent)
+        if fluent_exp not in self._initial_value:
             raise Exception('Initial value not set!')
-        return self._initial_value[fluent]
+        return self._initial_value[fluent_exp]
 
     def initial_values(self) -> Dict[FNode, FNode]:
         """Gets the initial value of the fluents."""
@@ -112,9 +112,9 @@ class Problem:
 
     def add_goal(self, goal: Union[FNode, Fluent, Object, bool]):
         """Adds a goal."""
-        goal = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(goal).is_bool_type()
-        self._goals.add(goal)
+        [goal_exp] = self._env.expression_manager.auto_promote(goal)
+        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        self._goals.add(goal_exp)
 
     def goals(self) -> Set[FNode]:
         """Returns the goals."""
