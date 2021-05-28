@@ -20,6 +20,7 @@ that defines the types of its parameters.
 
 import upf.typing
 from upf.environment import get_env, Environment
+from upf.expression import Expression
 from upf.fnode import FNode
 from typing import List
 
@@ -54,6 +55,6 @@ class Fluent:
         """Returns the fluent arity."""
         return len(self._signature)
 
-    def __call__(self, *args) -> FNode:
+    def __call__(self, *args: Expression) -> FNode:
         """Returns a fluent expression with the given parameters."""
         return self._env.expression_manager.FluentExp(self, args)

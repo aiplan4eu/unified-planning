@@ -75,7 +75,7 @@ class Action:
         """Returns the list of the action parameters."""
         return list(self._parameters.values())
 
-    def parameter(self, name) -> ActionParameter:
+    def parameter(self, name: str) -> ActionParameter:
         """Returns the parameter of the action with the given name."""
         return self._parameters[name]
 

@@ -17,8 +17,6 @@
 import upf.typing
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
-from upf.fluent import Fluent
-from upf.object import Object
 from typing import List, Dict, Set, Union, Optional
 
 
@@ -90,8 +88,8 @@ class Problem:
         """Returns the user types."""
         return self._objects[typename]
 
-    def set_initial_value(self, fluent: Union[FNode, Fluent],
-                          value: Union[FNode, Fluent, Object, bool]):
+    def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
+                          value: Union[FNode, upf.Fluent, upf.Object, bool]):
         """Sets the initial value for the given fluent."""
         [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
         assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)
@@ -99,7 +97,7 @@ class Problem:
             raise Exception('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
 
-    def initial_value(self, fluent: Union[FNode, Fluent]) -> FNode:
+    def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
         """Gets the initial value of the given fluent."""
         [fluent_exp] = self._env.expression_manager.auto_promote(fluent)
         if fluent_exp not in self._initial_value:
@@ -110,7 +108,7 @@ class Problem:
         """Gets the initial value of the fluents."""
         return self._initial_value
 
-    def add_goal(self, goal: Union[FNode, Fluent, Object, bool]):
+    def add_goal(self, goal: Union[FNode, upf.Fluent, upf.Object, bool]):
         """Adds a goal."""
         [goal_exp] = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
