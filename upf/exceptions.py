@@ -11,8 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+"""This module contains all custom exceptions."""
 
-import unittest
 
-TestCase = unittest.TestCase
-main = unittest.main
+class UPFException(Exception):
+    """Base class for all custom exceptions of the UPF"""
+    pass
+
+class UPFProblemDefinitionError(UPFException):
+    pass
+
+class UPFTypeError(UPFException, TypeError):
+    pass

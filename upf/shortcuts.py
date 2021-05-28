@@ -17,47 +17,51 @@ This module defines a global environment, so that most methods can be
 called without the need to specify an environment or a ExpressionManager.
 """
 
+import upf.typing
 from upf.environment import get_env
+from upf.expression import BoolExpression, Expression
+from typing import Iterable, List, Union, Dict, Tuple
+from upf.fnode import FNode
 
 
-def And(*args, **kwargs):
-    return get_env().expression_manager.And(*args, **kwargs)
+def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    return get_env().expression_manager.And(*args)
 
-def Or(*args, **kwargs):
-    return get_env().expression_manager.Or(*args, **kwargs)
+def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    return get_env().expression_manager.Or(*args)
 
-def Implies(*args, **kwargs):
-    return get_env().expression_manager.Implies(*args, **kwargs)
+def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
+    return get_env().expression_manager.Implies(left, right)
 
-def Iff(*args, **kwargs):
-    return get_env().expression_manager.Iff(*args, **kwargs)
+def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
+    return get_env().expression_manager.Iff(left, right)
 
-def Equals(*args, **kwargs):
-    return get_env().expression_manager.Equals(*args, **kwargs)
+def Equals(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.Equals(left, right)
 
-def Not(*args, **kwargs):
-    return get_env().expression_manager.Not(*args, **kwargs)
+def Not(expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.Not(expression)
 
-def TRUE(*args, **kwargs):
-    return get_env().expression_manager.TRUE(*args, **kwargs)
+def TRUE() -> FNode:
+    return get_env().expression_manager.TRUE()
 
-def FALSE(*args, **kwargs):
-    return get_env().expression_manager.FALSE(*args, **kwargs)
+def FALSE() -> FNode:
+    return get_env().expression_manager.FALSE()
 
-def Bool(*args, **kwargs):
-    return get_env().expression_manager.Bool(*args, **kwargs)
+def Bool(value: bool) -> FNode:
+    return get_env().expression_manager.Bool(value)
 
-def FluentExp(*args, **kwargs):
-    return get_env().expression_manager.FluentExp(*args, **kwargs)
+def FluentExp(fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
+    return get_env().expression_manager.FluentExp(fluent, params)
 
-def ParameterExp(*args, **kwargs):
-    return get_env().expression_manager.ParameterExp(*args, **kwargs)
+def ParameterExp(param: 'upf.ActionParameter') -> FNode:
+    return get_env().expression_manager.ParameterExp(param)
 
-def ObjectExp(*args, **kwargs):
-    return get_env().expression_manager.ObjectExp(*args, **kwargs)
+def ObjectExp(obj: 'upf.Object') -> FNode:
+    return get_env().expression_manager.ObjectExp(obj)
 
-def BoolType():
+def BoolType() -> upf.typing.Type:
     return get_env().type_manager.BoolType()
 
-def UserType(name):
+def UserType(name: str) -> upf.typing.Type:
     return get_env().type_manager.UserType(name)

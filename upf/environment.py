@@ -32,22 +32,22 @@ class Environment:
         self._type_manager = upf.typing.TypeManager()
 
     @property
-    def expression_manager(self):
+    def expression_manager(self) -> upf.expression.ExpressionManager:
         return self._expression_manager
 
     @property
-    def type_manager(self):
+    def type_manager(self) -> upf.typing.TypeManager:
         return self._type_manager
 
     @property
-    def type_checker(self):
+    def type_checker(self) -> upf.type_checker.TypeChecker:
         """ Get the Type Checker """
         return self._tc
 
 
 GLOBAL_ENVIRONMENT = Environment()
 
-def get_env(env=None):
+def get_env(env: Environment = None) -> Environment:
     if env is None:
         return GLOBAL_ENVIRONMENT
     else:

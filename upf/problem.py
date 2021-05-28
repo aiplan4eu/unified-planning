@@ -14,102 +14,107 @@
 #
 """This module defines the problem class."""
 
-from upf.environment import get_env
+import upf.typing
+from upf.environment import get_env, Environment
+from upf.fnode import FNode
+from upf.exceptions import UPFProblemDefinitionError
+from typing import List, Dict, Set, Union, Optional
 
 
 class Problem:
     """Represents a planning problem."""
-    def __init__(self, name=None, env=None):
+    def __init__(self, name: str = None, env: Environment = None):
         self._env = get_env(env)
         self._name = name
-        self._fluents = {}
-        self._actions = {}
-        self._user_types = {}
-        self._objects = {}
-        self._initial_value = {}
-        self._goals = set()
+        self._fluents: Dict[str, upf.Fluent] = {}
+        self._actions: Dict[str, upf.Action] = {}
+        self._user_types: Dict[str, upf.typing.Type] = {}
+        self._objects: Dict[upf.typing.Type, List[upf.Object]] = {}
+        self._initial_value: Dict[FNode, FNode] = {}
+        self._goals: Set[FNode] = set()
 
-    def name(self):
+    def name(self) -> Optional[str]:
         """Returns the problem name."""
         return self._name
 
-    def fluents(self):
+    def fluents(self) -> Dict[str, upf.Fluent]:
         """Returns the fluents."""
         return self._fluents
 
-    def fluent(self, name):
+    def fluent(self, name: str) -> upf.Fluent:
         """Returns the fluent with the given name."""
         assert name in self._fluents
         return self._fluents[name]
 
-    def add_fluent(self, fluent):
+    def add_fluent(self, fluent: upf.Fluent):
         """Adds the given fluent."""
         if fluent.name() in self._fluents:
-            raise Exception('Fluent ' + fluent.name() + ' already defined!')
+            raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
         if fluent.type().is_user_type():
-            self._user_types[fluent.type().name()] = fluent.type()
+            self._user_types[fluent.type().name()] = fluent.type() # type: ignore
         for t in fluent.signature():
             if t.is_user_type():
-                self._user_types[t.name()] = t
+                self._user_types[t.name()] = t # type: ignore
         self._fluents[fluent.name()] = fluent
 
-    def actions(self):
+    def actions(self) -> Dict[str, upf.Action]:
         """Returns the actions."""
         return self._actions
 
-    def action(self, name):
+    def action(self, name: str) -> upf.Action:
         """Returns the action with the given name."""
         assert name in self._actions
         return self._actions[name]
 
-    def add_action(self, action):
+    def add_action(self, action: upf.Action):
         """Adds the given action."""
         if action.name() in self._actions:
-            raise Exception('Action ' + action.name() + ' already defined!')
+            raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
         for p in action.parameters():
             if p.type().is_user_type():
-                self._user_types[p.type().name()] = p.type()
+                self._user_types[p.type().name()] = p.type() # type: ignore
         self._actions[action.name()] = action
 
-    def user_types(self):
+    def user_types(self) -> Dict[str, upf.typing.Type]:
         """Returns the user types."""
         return self._user_types
 
-    def add_object(self, obj):
+    def add_object(self, obj: upf.Object):
         """Adds the given object."""
         if obj.type() not in self._objects:
             self._objects[obj.type()] = []
         self._objects[obj.type()].append(obj)
 
-    def objects(self, typename):
+    def objects(self, typename: upf.typing.Type) -> List[upf.Object]:
         """Returns the user types."""
         return self._objects[typename]
 
-    def set_initial_value(self, fluent, value):
+    def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
+                          value: Union[FNode, upf.Fluent, upf.Object, bool]):
         """Sets the initial value for the given fluent."""
-        fluent, value = self._env.expression_manager.auto_promote(fluent, value)
-        assert self._env.type_checker.get_type(fluent) == self._env.type_checker.get_type(value)
-        if fluent in self._initial_value:
-            raise Exception('Initial value already set!')
-        self._initial_value[fluent] = value
+        [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
+        assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)
+        if fluent_exp in self._initial_value:
+            raise UPFProblemDefinitionError('Initial value already set!')
+        self._initial_value[fluent_exp] = value_exp
 
-    def initial_value(self, fluent):
+    def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
         """Gets the initial value of the given fluent."""
-        fluent = self._env.expression_manager.auto_promote(fluent)
-        if fluent not in self._initial_value:
-            raise Exception('Initial value not set!')
-        return self._initial_value[fluent]
+        [fluent_exp] = self._env.expression_manager.auto_promote(fluent)
+        if fluent_exp not in self._initial_value:
+            raise UPFProblemDefinitionError('Initial value not set!')
+        return self._initial_value[fluent_exp]
 
-    def initial_values(self):
+    def initial_values(self) -> Dict[FNode, FNode]:
         """Gets the initial value of the fluents."""
         return self._initial_value
 
-    def add_goal(self, goal):
+    def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
         """Adds a goal."""
-        goal = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(goal).is_bool_type()
-        self._goals.add(goal)
+        [goal_exp] = self._env.expression_manager.auto_promote(goal)
+        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        self._goals.add(goal_exp)
 
-    def goals(self):
+    def goals(self) -> Set[FNode]:
         """Returns the goals."""
         return self._goals
