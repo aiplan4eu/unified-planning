@@ -14,24 +14,27 @@
 #
 """This module defines the solver interface."""
 
-import importlib
-from contextlib import contextmanager
+import upf
+from upf.problem_kind import ProblemKind
 
 
 class Solver:
     """Represents the solver interface."""
 
-    def solve(self, problem):
+    def is_oneshot_planner(self) -> bool:
+        return False
+
+    def is_plan_validator(self) -> bool:
+        return False
+
+    def support(self, problem_kind: 'ProblemKind') -> bool:
+        return len(problem_kind.features()) == 0
+
+    def solve(self, problem: 'upf.Problem') -> 'upf.Plan':
+        raise NotImplementedError
+
+    def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
         raise NotImplementedError
 
     def destroy(self):
         raise NotImplementedError
-
-
-@contextmanager
-def Planner(module_name):
-    a = importlib.import_module(module_name).SolverImpl()
-    try:
-        yield a
-    finally:
-        a.destroy()

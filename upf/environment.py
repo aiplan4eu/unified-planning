@@ -20,6 +20,7 @@ such as the ExpressionManager, TypeChecker, TypeManager.
 """
 
 import upf.expression
+import upf.factory
 import upf.typing
 import upf.type_checker
 
@@ -30,6 +31,7 @@ class Environment:
         self._tc = upf.type_checker.TypeChecker()
         self._expression_manager = upf.expression.ExpressionManager(self)
         self._type_manager = upf.typing.TypeManager()
+        self._factory = upf.factory.Factory()
 
     @property
     def expression_manager(self) -> upf.expression.ExpressionManager:
@@ -43,6 +45,10 @@ class Environment:
     def type_checker(self) -> upf.type_checker.TypeChecker:
         """ Get the Type Checker """
         return self._tc
+
+    @property
+    def factory(self) -> upf.factory.Factory:
+        return self._factory
 
 
 GLOBAL_ENVIRONMENT = Environment()

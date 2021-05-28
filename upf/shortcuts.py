@@ -20,8 +20,10 @@ called without the need to specify an environment or a ExpressionManager.
 import upf.typing
 from upf.environment import get_env
 from upf.expression import BoolExpression, Expression
-from typing import Iterable, List, Union, Dict, Tuple
+from upf.problem_kind import ProblemKind
+from upf.planner import Solver
 from upf.fnode import FNode
+from typing import Iterable, List, Union, Dict, Tuple, Optional
 
 
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
@@ -65,3 +67,9 @@ def BoolType() -> upf.typing.Type:
 
 def UserType(name: str) -> upf.typing.Type:
     return get_env().type_manager.UserType(name)
+
+def OneshotPlanner(problem_kind: ProblemKind = ProblemKind(), name: Optional[str] = None) -> Optional[Solver]:
+    return get_env().factory.OneshotPlanner(problem_kind, name)
+
+def PlanValidator(problem_kind: ProblemKind = ProblemKind(), name: Optional[str] = None) -> Optional[Solver]:
+    return get_env().factory.PlanValidator(problem_kind, name)
