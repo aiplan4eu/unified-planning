@@ -22,6 +22,7 @@ import upf
 import upf.typing
 import upf.operators as op
 from upf.fnode import FNodeContent, FNode
+from upf.exceptions import UPFTypeError
 from typing import Iterable, List, Union, Dict, Tuple
 
 Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', bool]
@@ -163,7 +164,7 @@ class ExpressionManager(object):
 
     def Bool(self, value: bool) -> FNode:
         if type(value) != bool:
-            raise Exception("Expecting bool, got %s" % type(value))
+            raise UPFTypeError("Expecting bool, got %s" % type(value))
 
         if value:
             return self.true_expression

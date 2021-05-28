@@ -18,11 +18,10 @@ An Action has a name, a list of ActionParameter, a list of preconditions
 and a list of effects.
 """
 
+import upf
 import upf.typing
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
-from upf.fluent import Fluent
-from upf.object import Object
 from collections import OrderedDict
 from typing import List, Union, Tuple
 
@@ -50,7 +49,7 @@ class Action:
         self._name = _name
         self._preconditions: List[FNode] = []
         self._effects: List[Tuple[FNode, FNode]] = []
-        self._parameters = OrderedDict()
+        self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
@@ -79,14 +78,14 @@ class Action:
         """Returns the parameter of the action with the given name."""
         return self._parameters[name]
 
-    def add_precondition(self, precondition: Union[FNode, Fluent, Object, ActionParameter, bool]):
+    def add_precondition(self, precondition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
         """Adds the given action precondition."""
         [precondition_exp] = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         self._preconditions.append(precondition_exp)
 
-    def add_effect(self, fluent: Union[FNode, Fluent],
-                   value: Union[FNode, Fluent, Object, ActionParameter, bool]):
+    def add_effect(self, fluent: Union[FNode, 'upf.Fluent'],
+                   value: Union[FNode, 'upf.Fluent', 'upf.Object', ActionParameter, bool]):
         """Adds the given action effect."""
         [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
         assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)

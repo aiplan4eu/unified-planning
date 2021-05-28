@@ -17,6 +17,7 @@
 import upf.typing
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
+from upf.exceptions import UPFProblemDefinitionError
 from typing import List, Dict, Set, Union, Optional
 
 
@@ -48,7 +49,7 @@ class Problem:
     def add_fluent(self, fluent: upf.Fluent):
         """Adds the given fluent."""
         if fluent.name() in self._fluents:
-            raise Exception('Fluent ' + fluent.name() + ' already defined!')
+            raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
         if fluent.type().is_user_type():
             self._user_types[fluent.type().name()] = fluent.type() # type: ignore
         for t in fluent.signature():
@@ -68,7 +69,7 @@ class Problem:
     def add_action(self, action: upf.Action):
         """Adds the given action."""
         if action.name() in self._actions:
-            raise Exception('Action ' + action.name() + ' already defined!')
+            raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
         for p in action.parameters():
             if p.type().is_user_type():
                 self._user_types[p.type().name()] = p.type() # type: ignore
@@ -94,21 +95,21 @@ class Problem:
         [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
         assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)
         if fluent_exp in self._initial_value:
-            raise Exception('Initial value already set!')
+            raise UPFProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
 
     def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
         """Gets the initial value of the given fluent."""
         [fluent_exp] = self._env.expression_manager.auto_promote(fluent)
         if fluent_exp not in self._initial_value:
-            raise Exception('Initial value not set!')
+            raise UPFProblemDefinitionError('Initial value not set!')
         return self._initial_value[fluent_exp]
 
     def initial_values(self) -> Dict[FNode, FNode]:
         """Gets the initial value of the fluents."""
         return self._initial_value
 
-    def add_goal(self, goal: Union[FNode, upf.Fluent, upf.Object, bool]):
+    def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
         """Adds a goal."""
         [goal_exp] = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()

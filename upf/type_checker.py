@@ -18,6 +18,7 @@ import upf.walkers as walkers
 import upf.operators as op
 from upf.typing import BOOL
 from upf.fnode import FNode
+from upf.exceptions import UPFTypeError
 from typing import List, Optional
 
 
@@ -29,8 +30,8 @@ class TypeChecker(walkers.DagWalker):
         """ Returns the pysmt.types type of the expression """
         res = self.walk(expression)
         if res is None:
-            raise Exception("The expression '%s' is not well-formed" \
-                            % str(expression))
+            raise UPFTypeError("The expression '%s' is not well-formed" \
+                               % str(expression))
         return res
 
     def walk_type_to_type(self, expression: FNode, args: List[upf.typing.Type],
@@ -47,10 +48,10 @@ class TypeChecker(walkers.DagWalker):
 
     def walk_equals(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
         if args[0].is_bool_type():
-            raise Exception("The expression '%s' is not well-formed."
-                            "Equality operator is not supported for Boolean"
-                            " terms. Use Iff instead." \
-                            % str(expression))
+            raise UPFTypeError("The expression '%s' is not well-formed."
+                               "Equality operator is not supported for Boolean"
+                               " terms. Use Iff instead." \
+                               % str(expression))
         return self.walk_type_to_type(expression, args, args[0], BOOL)
 
     @walkers.handles(op.BOOL_CONSTANT)
