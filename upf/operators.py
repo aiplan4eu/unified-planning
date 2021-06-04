@@ -14,13 +14,25 @@
 #
 """This module defines all the operators used by the UPF."""
 
-ALL_TYPES = list(range(0, 10))
+ALL_TYPES = list(range(0, 18))
 
 (
-AND, OR, NOT, IMPLIES, IFF, EQUALS,
-FLUENT_EXP, BOOL_CONSTANT, PARAM_EXP,
-OBJECT_EXP
+AND, OR, NOT, IMPLIES, IFF,
+FLUENT_EXP, PARAM_EXP, OBJECT_EXP,
+BOOL_CONSTANT, INT_CONSTANT, REAL_CONSTANT,
+PLUS, MINUS, TIMES, DIV,
+LE, LT, EQUALS
 ) = ALL_TYPES
+
+BOOL_OPERATORS = frozenset([AND, OR, NOT, IMPLIES, IFF])
+
+CONSTANTS = frozenset([BOOL_CONSTANT, REAL_CONSTANT, INT_CONSTANT])
+
+IRA_RELATIONS = frozenset([LE, LT])
+
+RELATIONS = frozenset((EQUALS,)) | IRA_RELATIONS
+
+IRA_OPERATORS = frozenset([PLUS, MINUS, TIMES, DIV])
 
 
 def op_to_str(node_id: int) -> str:
@@ -34,9 +46,17 @@ __OP_STR__ = {
     NOT : "NOT",
     IMPLIES : "IMPLIES",
     IFF : "IFF",
-    EQUALS : "EQUALS",
     FLUENT_EXP : "FLUENT_EXP",
-    BOOL_CONSTANT : "BOOL_CONSTANT",
     PARAM_EXP: "PARAM_EXP",
-    OBJECT_EXP: "OBJECT_EXP"
+    OBJECT_EXP: "OBJECT_EXP",
+    BOOL_CONSTANT : "BOOL_CONSTANT",
+    INT_CONSTANT : "INT_CONSTANT",
+    REAL_CONSTANT : "REAL_CONSTANT",
+    PLUS : "PLUS",
+    MINUS : "MINUS",
+    TIMES : "TIMES",
+    DIV : "DIV",
+    LE : "LE",
+    LT : "LT",
+    EQUALS : "EQUALS"
 }

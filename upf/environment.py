@@ -28,10 +28,10 @@ import upf.type_checker
 class Environment:
     """Represents the environment."""
     def __init__(self):
-        self._tc = upf.type_checker.TypeChecker()
-        self._expression_manager = upf.expression.ExpressionManager(self)
         self._type_manager = upf.typing.TypeManager()
         self._factory = upf.factory.Factory()
+        self._tc = upf.type_checker.TypeChecker(self)
+        self._expression_manager = upf.expression.ExpressionManager(self)
 
     @property
     def expression_manager(self) -> upf.expression.ExpressionManager:

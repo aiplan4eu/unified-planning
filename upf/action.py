@@ -88,5 +88,9 @@ class Action:
                    value: Union[FNode, 'upf.Fluent', 'upf.Object', ActionParameter, bool]):
         """Adds the given action effect."""
         [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
-        assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)
+        t_left = self._env.type_checker.get_type(fluent_exp)
+        t_right = self._env.type_checker.get_type(value_exp)
+        assert (t_left == t_right or (t_left.is_int_type() and t_right.is_int_type()) or
+                (t_left.is_real_type() and t_right.is_real_type()) or
+                (t_left.is_real_type() and t_right.is_int_type()))
         self._effects.append((fluent_exp, value_exp))

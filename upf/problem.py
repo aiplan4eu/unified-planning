@@ -94,7 +94,11 @@ class Problem:
                           value: Union[FNode, upf.Fluent, upf.Object, bool]):
         """Sets the initial value for the given fluent."""
         [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
-        assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)
+        t_left = self._env.type_checker.get_type(fluent_exp)
+        t_right = self._env.type_checker.get_type(value_exp)
+        assert (t_left == t_right or (t_left.is_int_type() and t_right.is_int_type()) or
+                (t_left.is_real_type() and t_right.is_real_type()) or
+                (t_left.is_real_type() and t_right.is_int_type()))
         if fluent_exp in self._initial_value:
             raise UPFProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp

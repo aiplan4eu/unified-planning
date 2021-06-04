@@ -14,6 +14,7 @@
 #
 
 import upf.typing
+import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
 from upf.typing import BOOL
@@ -23,8 +24,9 @@ from typing import List, Optional
 
 
 class TypeChecker(walkers.DagWalker):
-    def __init__(self):
+    def __init__(self, env: 'upf.environment.Environment'):
         walkers.DagWalker.__init__(self)
+        self.env = env
 
     def get_type(self, expression: FNode) -> upf.typing.Type:
         """ Returns the pysmt.types type of the expression """
@@ -34,43 +36,23 @@ class TypeChecker(walkers.DagWalker):
                                % str(expression))
         return res
 
-    def walk_type_to_type(self, expression: FNode, args: List[upf.typing.Type],
-                          type_in: upf.typing.Type, type_out: upf.typing.Type) -> Optional[upf.typing.Type]:
+    @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF)
+    def walk_bool_to_bool(self, expression: FNode,
+                          args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
         assert expression is not None
         for x in args:
-            if x is None or x != type_in:
+            if x is None or x != BOOL:
                 return None
-        return type_out
-
-    @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF)
-    def walk_bool_to_bool(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
-        return self.walk_type_to_type(expression, args, BOOL, BOOL)
-
-    def walk_equals(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
-        if args[0].is_bool_type():
-            raise UPFTypeError("The expression '%s' is not well-formed."
-                               "Equality operator is not supported for Boolean"
-                               " terms. Use Iff instead." \
-                               % str(expression))
-        return self.walk_type_to_type(expression, args, args[0], BOOL)
-
-    @walkers.handles(op.BOOL_CONSTANT)
-    def walk_identity_bool(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
-        assert expression is not None
-        assert len(args) == 0
         return BOOL
 
     def walk_fluent_exp(self, expression: FNode, args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
         assert expression.is_fluent_exp()
         f = expression.fluent()
-
         if len(args) != len(f.signature()):
             return None
-
         for (arg, p_type) in zip(args, f.signature()):
             if arg != p_type:
                 return None
-
         return f.type()
 
     def walk_param_exp(self, expression: FNode, args: List[upf.typing.Type]) -> upf.typing.Type:
@@ -82,3 +64,62 @@ class TypeChecker(walkers.DagWalker):
         assert expression is not None
         assert len(args) == 0
         return expression.object().type()
+
+    @walkers.handles(op.BOOL_CONSTANT)
+    def walk_identity_bool(self, expression: FNode,
+                           args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
+        assert expression is not None
+        assert len(args) == 0
+        return BOOL
+
+    @walkers.handles(op.REAL_CONSTANT)
+    def walk_identity_real(self, expression, args):
+        assert expression is not None
+        assert len(args) == 0
+        return self.env.type_manager().RealType(expression.value(), expression.value())
+
+    @walkers.handles(op.INT_CONSTANT)
+    def walk_identity_int(self, expression, args):
+        assert expression is not None
+        assert len(args) == 0
+        return self.env.type_manager().IntType(expression.value(), expression.value())
+
+    @walkers.handles(op.PLUS, op.MINUS, op.TIMES, op.DIV)
+    def walk_realint_to_realint(self, expression, args):
+        has_real = False
+        for x in args:
+            if x is None or not (x.is_int_type() or x.is_real_type()):
+                return None
+            if x.is_real_type():
+                has_real = True
+        if has_real:
+            return self.env.type_manager().RealType()
+        else:
+            return self.env.type_manager().IntType()
+
+    @walkers.handles(op.LE, op.LT)
+    def walk_math_relation(self, expression, args):
+        for x in args:
+            if x is None or not (x.is_int_type() or x.is_real_type()):
+                return None
+        return BOOL
+
+    def walk_equals(self, expression: FNode,
+                    args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
+        t = args[0]
+        if t is None:
+            return None
+
+        if t.is_bool_type():
+            raise UPFTypeError("The expression '%s' is not well-formed."
+                               "Equality operator is not supported for Boolean"
+                               " terms. Use Iff instead." \
+                               % str(expression))
+        for x in args:
+            if x is None:
+                return None
+            elif t.is_user_type() and t != x:
+                return None
+            elif (t.is_int_type() or t.is_real_type()) and not (x.is_int_type() or x.is_real_type()):
+                return None
+        return BOOL
