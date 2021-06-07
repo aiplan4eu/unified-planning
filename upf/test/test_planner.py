@@ -29,11 +29,13 @@ class TestPlanner(TestCase):
         problem.set_initial_value(x, False)
         problem.add_goal(x)
 
-        with upf.Planner('upf_tamer') as p:
-            plan = p.solve(problem)
-            self.assertEqual(len(plan.actions()), 1)
-            self.assertEqual(plan.actions()[0].action(), a)
-            self.assertEqual(len(plan.actions()[0].parameters()), 0)
+        planner = OneshotPlanner(problem_kind=problem.kind())
+        self.assertNotEqual(planner, None)
+
+        plan = planner.solve(problem)
+        self.assertEqual(len(plan.actions()), 1)
+        self.assertEqual(plan.actions()[0].action(), a)
+        self.assertEqual(len(plan.actions()[0].parameters()), 0)
 
     def test_with_parameters(self):
         Location = UserType('Location')
@@ -57,11 +59,13 @@ class TestPlanner(TestCase):
         problem.set_initial_value(robot_at(l2), False)
         problem.add_goal(robot_at(l2))
 
-        with upf.Planner('upf_tamer') as p:
-            plan = p.solve(problem)
-            self.assertEqual(len(plan.actions()), 1)
-            self.assertEqual(plan.actions()[0].action(), move)
-            self.assertEqual(len(plan.actions()[0].parameters()), 2)
+        planner = OneshotPlanner(problem_kind=problem.kind())
+        self.assertNotEqual(planner, None)
+
+        plan = planner.solve(problem)
+        self.assertEqual(len(plan.actions()), 1)
+        self.assertEqual(plan.actions()[0].action(), move)
+        self.assertEqual(len(plan.actions()[0].parameters()), 2)
 
 
 if __name__ == "__main__":

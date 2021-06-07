@@ -100,6 +100,15 @@ class TestProblem(TestCase):
         self.assertTrue(p.initial_value(robot_at(l2)) is not None)
         self.assertEqual(len(p.goals()), 1)
 
+    def test_problem_kind(self):
+        problem_kind = ProblemKind()
+        self.assertFalse(problem_kind.has_discrete_time())
+        self.assertFalse(problem_kind.has_continuous_time())
+        problem_kind.set_time('DISCRETE_TIME')
+        self.assertTrue(problem_kind.has_discrete_time())
+        problem_kind.set_time('CONTINUOUS_TIME')
+        self.assertTrue(problem_kind.has_continuous_time())
+
 
 if __name__ == "__main__":
     main()

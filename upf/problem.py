@@ -18,6 +18,7 @@ import upf.typing
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError
+from upf.problem_kind import ProblemKind
 from typing import List, Dict, Set, Union, Optional
 
 
@@ -118,3 +119,7 @@ class Problem:
     def goals(self) -> Set[FNode]:
         """Returns the goals."""
         return self._goals
+
+    def kind(self) -> ProblemKind:
+        """Returns the problem kind of this planning problem."""
+        return ProblemKind()
