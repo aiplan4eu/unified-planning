@@ -36,6 +36,14 @@ class TypeChecker(walkers.DagWalker):
                                % str(expression))
         return res
 
+    def is_compatible_type(self, fluent_exp: FNode, value_exp: FNode) -> bool:
+        """Returns true iff the given expressions have compatible types."""
+        t_left = self.get_type(fluent_exp)
+        t_right = self.get_type(value_exp)
+        return (t_left == t_right or (t_left.is_int_type() and t_right.is_int_type()) or
+                (t_left.is_real_type() and t_right.is_real_type()) or
+                (t_left.is_real_type() and t_right.is_int_type()))
+
     @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF)
     def walk_bool_to_bool(self, expression: FNode,
                           args: List[upf.typing.Type]) -> Optional[upf.typing.Type]:
@@ -76,13 +84,13 @@ class TypeChecker(walkers.DagWalker):
     def walk_identity_real(self, expression, args):
         assert expression is not None
         assert len(args) == 0
-        return self.env.type_manager().RealType(expression.value(), expression.value())
+        return self.env.type_manager.RealType(expression.constant_value(), expression.constant_value())
 
     @walkers.handles(op.INT_CONSTANT)
     def walk_identity_int(self, expression, args):
         assert expression is not None
         assert len(args) == 0
-        return self.env.type_manager().IntType(expression.value(), expression.value())
+        return self.env.type_manager.IntType(expression.constant_value(), expression.constant_value())
 
     @walkers.handles(op.PLUS, op.MINUS, op.TIMES, op.DIV)
     def walk_realint_to_realint(self, expression, args):
@@ -93,9 +101,9 @@ class TypeChecker(walkers.DagWalker):
             if x.is_real_type():
                 has_real = True
         if has_real:
-            return self.env.type_manager().RealType()
+            return self.env.type_manager.RealType()
         else:
-            return self.env.type_manager().IntType()
+            return self.env.type_manager.IntType()
 
     @walkers.handles(op.LE, op.LT)
     def walk_math_relation(self, expression, args):

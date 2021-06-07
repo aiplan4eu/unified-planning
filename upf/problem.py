@@ -17,7 +17,7 @@
 import upf.typing
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
-from upf.exceptions import UPFProblemDefinitionError
+from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
 from typing import List, Dict, Set, Union, Optional
 
@@ -93,19 +93,16 @@ class Problem:
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
                           value: Union[FNode, upf.Fluent, upf.Object, bool]):
         """Sets the initial value for the given fluent."""
-        [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
-        t_left = self._env.type_checker.get_type(fluent_exp)
-        t_right = self._env.type_checker.get_type(value_exp)
-        assert (t_left == t_right or (t_left.is_int_type() and t_right.is_int_type()) or
-                (t_left.is_real_type() and t_right.is_real_type()) or
-                (t_left.is_real_type() and t_right.is_int_type()))
+        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Initial value assignment has not compatible types!')
         if fluent_exp in self._initial_value:
             raise UPFProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
 
     def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
         """Gets the initial value of the given fluent."""
-        [fluent_exp] = self._env.expression_manager.auto_promote(fluent)
+        fluent_exp, = self._env.expression_manager.auto_promote(fluent)
         if fluent_exp not in self._initial_value:
             raise UPFProblemDefinitionError('Initial value not set!')
         return self._initial_value[fluent_exp]
@@ -116,7 +113,7 @@ class Problem:
 
     def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
         """Adds a goal."""
-        [goal_exp] = self._env.expression_manager.auto_promote(goal)
+        goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._goals.add(goal_exp)
 

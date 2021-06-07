@@ -54,7 +54,9 @@ class FNode(object):
 
     def is_constant(self) -> bool:
         """Test whether the expression is a constant."""
-        return self.node_type() == op.BOOL_CONSTANT
+        return self.node_type() == op.BOOL_CONSTANT or \
+            self.node_type() == op.INT_CONSTANT or \
+            self.node_type() == op.REAL_CONSTANT
 
     def constant_value(self) -> bool:
         """Return the value of the Constant."""

@@ -22,6 +22,7 @@ import upf
 import upf.typing
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
+from upf.exceptions import UPFTypeError
 from collections import OrderedDict
 from typing import List, Union, Tuple
 
@@ -80,17 +81,14 @@ class Action:
 
     def add_precondition(self, precondition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
         """Adds the given action precondition."""
-        [precondition_exp] = self._env.expression_manager.auto_promote(precondition)
+        precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         self._preconditions.append(precondition_exp)
 
     def add_effect(self, fluent: Union[FNode, 'upf.Fluent'],
                    value: Union[FNode, 'upf.Fluent', 'upf.Object', ActionParameter, bool]):
         """Adds the given action effect."""
-        [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
-        t_left = self._env.type_checker.get_type(fluent_exp)
-        t_right = self._env.type_checker.get_type(value_exp)
-        assert (t_left == t_right or (t_left.is_int_type() and t_right.is_int_type()) or
-                (t_left.is_real_type() and t_right.is_real_type()) or
-                (t_left.is_real_type() and t_right.is_int_type()))
+        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append((fluent_exp, value_exp))

@@ -60,34 +60,34 @@ def FALSE() -> FNode:
 def Bool(value: bool) -> FNode:
     return get_env().expression_manager.Bool(value)
 
-def Int(self, value: int) -> FNode:
+def Int(value: int) -> FNode:
     return get_env().expression_manager.Int(value)
 
-def Real(self, value: Fraction) -> FNode:
+def Real(value: Fraction) -> FNode:
     return get_env().expression_manager.Real(value)
 
-def Plus(self, left: Expression, right: Expression) -> FNode:
+def Plus(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Plus(left, right)
 
-def Minus(self, left: Expression, right: Expression) -> FNode:
+def Minus(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Minus(left, right)
 
-def Times(self, left: Expression, right: Expression) -> FNode:
+def Times(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Times(left, right)
 
-def Div(self, left: Expression, right: Expression) -> FNode:
+def Div(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Div(left, right)
 
-def LE(self, left: Expression, right: Expression) -> FNode:
+def LE(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.LE(left, right)
 
-def GE(self, left: Expression, right: Expression) -> FNode:
+def GE(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.GE(left, right)
 
-def LT(self, left: Expression, right: Expression) -> FNode:
+def LT(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.LT(left, right)
 
-def GT(self, left: Expression, right: Expression) -> FNode:
+def GT(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.GT(left, right)
 
 def Equals(left: Expression, right: Expression) -> FNode:
@@ -96,10 +96,10 @@ def Equals(left: Expression, right: Expression) -> FNode:
 def BoolType() -> upf.typing.Type:
     return get_env().type_manager.BoolType()
 
-def IntType(self, lower_bound: int = None, upper_bound: int = None) -> upf.typing.Type:
+def IntType(lower_bound: int = None, upper_bound: int = None) -> upf.typing.Type:
     return get_env().type_manager.IntType(lower_bound, upper_bound)
 
-def RealType(self, lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.typing.Type:
+def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.typing.Type:
     return get_env().type_manager.RealType(lower_bound, upper_bound)
 
 def UserType(name: str) -> upf.typing.Type:

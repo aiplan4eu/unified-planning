@@ -133,7 +133,7 @@ class ExpressionManager(object):
                 not expression
         Restriction: Expression must be of boolean type
         """
-        [expression] = self.auto_promote(expression)
+        expression, = self.auto_promote(expression)
         if expression.is_not():
             return expression.arg(0)
         return self.create_node(node_type=op.NOT, args=(expression,))
@@ -143,7 +143,7 @@ class ExpressionManager(object):
             left -> right
         Restriction: Left and Right must be of boolean type
         """
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IMPLIES, args=(left, right))
 
     def Iff(self, left: BoolExpression, right: BoolExpression) -> FNode:
@@ -151,7 +151,7 @@ class ExpressionManager(object):
             left <-> right
         Restriction: Left and Right must be of boolean type
         """
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IFF, args=(left, right))
 
     def FluentExp(self, fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
@@ -204,45 +204,45 @@ class ExpressionManager(object):
         """ Creates an expression of the form:
             left + right
         """
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.PLUS, args=(left, right))
 
     def Minus(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left - right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.MINUS, args=(left, right))
 
     def Times(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left * right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.TIMES, args=(left, right))
 
     def Div(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left / right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.DIV, args=(left, right))
 
     def LE(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left <= right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LE, args=(left, right))
 
     def GE(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left >= right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LE, args=(right, left))
 
     def LT(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left < right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LT, args=(left, right))
 
     def GT(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left > right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LT, args=(right, left))
 
     def Equals(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left == right."""
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.EQUALS, args=(left, right))
