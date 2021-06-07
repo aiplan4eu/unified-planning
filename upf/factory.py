@@ -42,7 +42,7 @@ class Factory:
             assert name in self.solvers
             return self.solvers[name]
         for solver in self.solvers.values():
-            if solver.is_oneshot_planner() and solver.support(problem_kind):
+            if solver.is_oneshot_planner() and solver.supports(problem_kind):
                 return solver
         return None
 
@@ -52,6 +52,6 @@ class Factory:
             assert name in self.solvers
             return self.solvers[name]
         for solver in self.solvers.values():
-            if solver.is_plan_validator() and solver.support(problem_kind):
+            if solver.is_plan_validator() and solver.supports(problem_kind):
                 return solver
         return None

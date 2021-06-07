@@ -121,5 +121,5 @@ class Problem:
         return self._goals
 
     def kind(self) -> ProblemKind:
-        """Returns the problem kind"""
+        """Returns the problem kind of this planning problem."""
         return ProblemKind()

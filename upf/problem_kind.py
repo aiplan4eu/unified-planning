@@ -17,13 +17,14 @@ from functools import partialmethod
 from typing import Set
 
 
+# TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
     'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME']
 }
 
 
-class MetaClass(type):
-    """Metaclass used to intepret the nodehandler decorator. """
+class ProblemKindMeta(type):
+    """Meta class used to interpret the nodehandler decorator. """
     def __new__(cls, name, bases, dct):
         def _set(self, feature, possible_features):
             assert feature in possible_features
@@ -40,7 +41,7 @@ class MetaClass(type):
         return obj
 
 
-class ProblemKind(metaclass=MetaClass):
+class ProblemKind(metaclass=ProblemKindMeta):
     def __init__(self):
         self._features: Set[str] = set()
 

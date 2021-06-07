@@ -27,7 +27,7 @@ class Solver:
     def is_plan_validator(self) -> bool:
         return False
 
-    def support(self, problem_kind: 'ProblemKind') -> bool:
+    def supports(self, problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
     def solve(self, problem: 'upf.Problem') -> 'upf.Plan':
