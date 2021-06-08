@@ -34,6 +34,11 @@ class Problem:
         self._initial_value: Dict[FNode, FNode] = {}
         self._goals: Set[FNode] = set()
 
+    @property
+    def env(self) -> Environment:
+        """Returns the problem environment."""
+        return self._env
+
     def name(self) -> Optional[str]:
         """Returns the problem name."""
         return self._name

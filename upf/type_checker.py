@@ -40,9 +40,20 @@ class TypeChecker(walkers.DagWalker):
         """Returns true iff the given expressions have compatible types."""
         t_left = self.get_type(fluent_exp)
         t_right = self.get_type(value_exp)
-        return (t_left == t_right or (t_left.is_int_type() and t_right.is_int_type()) or
+        if t_left == t_right:
+            return True
+        if not ((t_left.is_int_type() and t_right.is_int_type()) or
                 (t_left.is_real_type() and t_right.is_real_type()) or
-                (t_left.is_real_type() and t_right.is_int_type()))
+                (t_left.is_real_type() and t_right.is_int_type())):
+            return False
+        left_lower = -float('inf') if t_left.lower_bound() is None else t_left.lower_bound() # type: ignore
+        left_upper = float('inf') if t_left.upper_bound() is None else t_left.upper_bound() # type: ignore
+        right_lower = -float('inf') if t_right.lower_bound() is None else t_right.lower_bound() # type: ignore
+        right_upper = float('inf') if t_right.upper_bound() is None else t_right.upper_bound() # type: ignore
+        if right_upper < left_lower or right_upper > left_upper:
+            return False
+        else:
+            return True
 
     @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF)
     def walk_bool_to_bool(self, expression: FNode,
@@ -92,18 +103,130 @@ class TypeChecker(walkers.DagWalker):
         assert len(args) == 0
         return self.env.type_manager.IntType(expression.constant_value(), expression.constant_value())
 
-    @walkers.handles(op.PLUS, op.MINUS, op.TIMES, op.DIV)
-    def walk_realint_to_realint(self, expression, args):
+    def walk_plus(self, expression, args):
         has_real = False
+        lower = None
+        upper = None
         for x in args:
             if x is None or not (x.is_int_type() or x.is_real_type()):
                 return None
             if x.is_real_type():
                 has_real = True
+        for x in args:
+            if x.lower_bound() is None:
+                lower = -float('inf')
+            elif lower is None:
+                lower = x.lower_bound()
+            else:
+                lower += x.lower_bound()
+            if x.upper_bound() is None:
+                upper = float('inf')
+            elif upper is None:
+                upper = x.upper_bound()
+            else:
+                upper += x.upper_bound()
+        if lower == -float('inf'):
+            lower = None
+        if upper == -float('inf'):
+            upper = None
         if has_real:
-            return self.env.type_manager.RealType()
+            return self.env.type_manager.RealType(lower, upper)
         else:
-            return self.env.type_manager.IntType()
+            return self.env.type_manager.IntType(lower, upper)
+
+    def walk_minus(self, expression, args):
+        has_real = False
+        lower = None
+        upper = None
+        for x in args:
+            if x is None or not (x.is_int_type() or x.is_real_type()):
+                return None
+            if x.is_real_type():
+                has_real = True
+        for x in args:
+            if lower is None:
+                if x.lower_bound() is None:
+                    lower = -float('inf')
+                else:
+                    lower = x.lower_bound()
+                if x.upper_bound() is None:
+                    upper = float('inf')
+                else:
+                    upper = x.upper_bound()
+            else:
+                if x.lower_bound() is None:
+                    upper = float('inf')
+                else:
+                    upper -= x.lower_bound()
+                if x.upper_bound() is None:
+                    lower = -float('inf')
+                else:
+                    lower -= x.upper_bound()
+        if lower == -float('inf'):
+            lower = None
+        if upper == -float('inf'):
+            upper = None
+        if has_real:
+            return self.env.type_manager.RealType(lower, upper)
+        else:
+            return self.env.type_manager.IntType(lower, upper)
+
+    def walk_times(self, expression, args):
+        has_real = False
+        lower = None
+        upper = None
+        for x in args:
+            if x is None or not (x.is_int_type() or x.is_real_type()):
+                return None
+            if x.is_real_type():
+                has_real = True
+        for x in args:
+            l = -float('inf') if x.lower_bound() is None else x.lower_bound()
+            u = float('inf') if x.upper_bound() is None else x.upper_bound()
+            if lower is None:
+                lower = l
+                upper = u
+            else:
+                lower = min(lower*l, lower*u, upper*l, upper*u)
+                upper = max(lower*l, lower*u, upper*l, upper*u)
+        if lower == -float('inf'):
+            lower = None
+        if upper == -float('inf'):
+            upper = None
+        if has_real:
+            return self.env.type_manager.RealType(lower, upper)
+        else:
+            return self.env.type_manager.IntType(lower, upper)
+
+    def walk_div(self, expression, args):
+        has_real = False
+        to_skip = False
+        lower = None
+        upper = None
+        first = True
+        for x in args:
+            if x is None or not (x.is_int_type() or x.is_real_type()):
+                return None
+            if x.is_real_type():
+                has_real = True
+            if x.lower_bound() is None or x.upper_bound() is None or \
+               (not first and x.lower_bound() != x.upper_bound()):
+                to_skip = True
+            first = False
+        if not to_skip:
+            for x in args:
+                l = x.lower_bound()
+                u = x.upper_bound()
+                if lower is None:
+                    lower = l
+                    upper = u
+                else:
+                    lower = min(lower/l, upper/l)
+                    upper = max(lower/l, upper/l)
+        if has_real:
+            return self.env.type_manager.RealType(lower, upper)
+        else:
+            return self.env.type_manager.IntType(lower, upper)
 
     @walkers.handles(op.LE, op.LT)
     def walk_math_relation(self, expression, args):
