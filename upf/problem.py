@@ -26,6 +26,7 @@ class Problem:
     """Represents a planning problem."""
     def __init__(self, name: str = None, env: Environment = None):
         self._env = get_env(env)
+        self._kind = ProblemKind()
         self._name = name
         self._fluents: Dict[str, upf.Fluent] = {}
         self._actions: Dict[str, upf.Action] = {}
@@ -58,9 +59,17 @@ class Problem:
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
         if fluent.type().is_user_type():
             self._user_types[fluent.type().name()] = fluent.type() # type: ignore
+        elif fluent.type().is_int_type():
+            self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        elif fluent.type().is_real_type():
+            self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         for t in fluent.signature():
             if t.is_user_type():
                 self._user_types[t.name()] = t # type: ignore
+            elif t.is_int_type():
+                self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+            elif t.is_real_type():
+                self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         self._fluents[fluent.name()] = fluent
 
     def actions(self) -> Dict[str, upf.Action]:
@@ -79,6 +88,10 @@ class Problem:
         for p in action.parameters():
             if p.type().is_user_type():
                 self._user_types[p.type().name()] = p.type() # type: ignore
+            elif p.type().is_int_type():
+                self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+            elif p.type().is_real_type():
+                self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.typing.Type]:
@@ -128,4 +141,4 @@ class Problem:
 
     def kind(self) -> ProblemKind:
         """Returns the problem kind of this planning problem."""
-        return ProblemKind()
+        return self._kind
