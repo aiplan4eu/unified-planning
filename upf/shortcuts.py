@@ -21,7 +21,7 @@ import upf.typing
 from upf.environment import get_env
 from upf.expression import BoolExpression, Expression
 from upf.problem_kind import ProblemKind
-from upf.planner import Solver
+from upf.solver import Solver
 from upf.fnode import FNode
 from typing import Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction

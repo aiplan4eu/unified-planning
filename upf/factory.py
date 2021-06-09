@@ -15,7 +15,7 @@
 
 import importlib
 from upf.problem_kind import ProblemKind
-from upf.planner import Solver
+from upf.solver import Solver
 from typing import Dict, Tuple, Optional
 
 
