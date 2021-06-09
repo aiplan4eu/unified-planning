@@ -127,7 +127,7 @@ class TypeChecker(walkers.DagWalker):
                 upper += x.upper_bound()
         if lower == -float('inf'):
             lower = None
-        if upper == -float('inf'):
+        if upper == float('inf'):
             upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
@@ -135,6 +135,7 @@ class TypeChecker(walkers.DagWalker):
             return self.env.type_manager.IntType(lower, upper)
 
     def walk_minus(self, expression, args):
+        assert len(args) == 2
         has_real = False
         lower = None
         upper = None
@@ -143,28 +144,17 @@ class TypeChecker(walkers.DagWalker):
                 return None
             if x.is_real_type():
                 has_real = True
-        for x in args:
-            if lower is None:
-                if x.lower_bound() is None:
-                    lower = -float('inf')
-                else:
-                    lower = x.lower_bound()
-                if x.upper_bound() is None:
-                    upper = float('inf')
-                else:
-                    upper = x.upper_bound()
-            else:
-                if x.lower_bound() is None:
-                    upper = float('inf')
-                else:
-                    upper -= x.lower_bound()
-                if x.upper_bound() is None:
-                    lower = -float('inf')
-                else:
-                    lower -= x.upper_bound()
+        left = args[0]
+        right = args[1]
+        left_lower = -float('inf') if left.lower_bound() is None else left.lower_bound()
+        left_upper = float('inf') if left.upper_bound() is None else left.upper_bound()
+        right_lower = -float('inf') if right.lower_bound() is None else right.lower_bound()
+        right_upper = float('inf') if right.upper_bound() is None else right.upper_bound()
+        lower = left_lower - right_upper
+        upper = left_upper - right_lower
         if lower == -float('inf'):
             lower = None
-        if upper == -float('inf'):
+        if upper == float('inf'):
             upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
@@ -191,7 +181,7 @@ class TypeChecker(walkers.DagWalker):
                 upper = max(lower*l, lower*u, upper*l, upper*u)
         if lower == -float('inf'):
             lower = None
-        if upper == -float('inf'):
+        if upper == float('inf'):
             upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
@@ -199,30 +189,32 @@ class TypeChecker(walkers.DagWalker):
             return self.env.type_manager.IntType(lower, upper)
 
     def walk_div(self, expression, args):
+        assert len(args) == 2
         has_real = False
         to_skip = False
         lower = None
         upper = None
-        first = True
         for x in args:
             if x is None or not (x.is_int_type() or x.is_real_type()):
                 return None
             if x.is_real_type():
                 has_real = True
-            if x.lower_bound() is None or x.upper_bound() is None or \
-               (not first and x.lower_bound() != x.upper_bound()):
+            if x.lower_bound() is None and x.upper_bound() is None:
                 to_skip = True
-            first = False
-        if not to_skip:
-            for x in args:
-                l = x.lower_bound()
-                u = x.upper_bound()
-                if lower is None:
-                    lower = l
-                    upper = u
-                else:
-                    lower = min(lower/l, upper/l)
-                    upper = max(lower/l, upper/l)
+        left = args[0]
+        right = args[1]
+        if to_skip or right.lower_bound() != right.upper_bound():
+            pass
+        else:
+            left_lower = -float('inf') if left.lower_bound() is None else left.lower_bound()
+            left_upper = float('inf') if left.upper_bound() is None else left.upper_bound()
+            right = right.lower_bound()
+            lower = min(left_lower/right, left_upper/right)
+            upper = max(left_lower/right, left_upper/right)
+        if lower == -float('inf'):
+            lower = None
+        if upper == float('inf'):
+            upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
         else:
