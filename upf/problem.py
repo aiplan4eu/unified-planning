@@ -17,7 +17,7 @@
 import upf.typing
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
-from upf.exceptions import UPFProblemDefinitionError
+from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
 from typing import List, Dict, Set, Union, Optional
 
@@ -26,6 +26,7 @@ class Problem:
     """Represents a planning problem."""
     def __init__(self, name: str = None, env: Environment = None):
         self._env = get_env(env)
+        self._kind = ProblemKind()
         self._name = name
         self._fluents: Dict[str, upf.Fluent] = {}
         self._actions: Dict[str, upf.Action] = {}
@@ -33,6 +34,11 @@ class Problem:
         self._objects: Dict[upf.typing.Type, List[upf.Object]] = {}
         self._initial_value: Dict[FNode, FNode] = {}
         self._goals: Set[FNode] = set()
+
+    @property
+    def env(self) -> Environment:
+        """Returns the problem environment."""
+        return self._env
 
     def name(self) -> Optional[str]:
         """Returns the problem name."""
@@ -53,9 +59,17 @@ class Problem:
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
         if fluent.type().is_user_type():
             self._user_types[fluent.type().name()] = fluent.type() # type: ignore
+        elif fluent.type().is_int_type():
+            self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        elif fluent.type().is_real_type():
+            self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         for t in fluent.signature():
             if t.is_user_type():
                 self._user_types[t.name()] = t # type: ignore
+            elif t.is_int_type():
+                self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+            elif t.is_real_type():
+                self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         self._fluents[fluent.name()] = fluent
 
     def actions(self) -> Dict[str, upf.Action]:
@@ -74,6 +88,10 @@ class Problem:
         for p in action.parameters():
             if p.type().is_user_type():
                 self._user_types[p.type().name()] = p.type() # type: ignore
+            elif p.type().is_int_type():
+                self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+            elif p.type().is_real_type():
+                self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.typing.Type]:
@@ -93,15 +111,16 @@ class Problem:
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
                           value: Union[FNode, upf.Fluent, upf.Object, bool]):
         """Sets the initial value for the given fluent."""
-        [fluent_exp, value_exp] = self._env.expression_manager.auto_promote(fluent, value)
-        assert self._env.type_checker.get_type(fluent_exp) == self._env.type_checker.get_type(value_exp)
+        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Initial value assignment has not compatible types!')
         if fluent_exp in self._initial_value:
             raise UPFProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
 
     def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
         """Gets the initial value of the given fluent."""
-        [fluent_exp] = self._env.expression_manager.auto_promote(fluent)
+        fluent_exp, = self._env.expression_manager.auto_promote(fluent)
         if fluent_exp not in self._initial_value:
             raise UPFProblemDefinitionError('Initial value not set!')
         return self._initial_value[fluent_exp]
@@ -112,7 +131,7 @@ class Problem:
 
     def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
         """Adds a goal."""
-        [goal_exp] = self._env.expression_manager.auto_promote(goal)
+        goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._goals.add(goal_exp)
 
@@ -122,4 +141,4 @@ class Problem:
 
     def kind(self) -> ProblemKind:
         """Returns the problem kind of this planning problem."""
-        return ProblemKind()
+        return self._kind

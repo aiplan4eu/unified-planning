@@ -23,9 +23,10 @@ import upf.typing
 import upf.operators as op
 from upf.fnode import FNodeContent, FNode
 from upf.exceptions import UPFTypeError
+from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
-Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', bool]
+Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', bool, int, float]
 BoolExpression = Union[FNode, 'upf.Fluent', 'upf.ActionParameter', bool]
 
 class ExpressionManager(object):
@@ -71,12 +72,18 @@ class ExpressionManager(object):
                 res.append(self.ObjectExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
+            elif isinstance(e, int):
+                res.append(self.Int(e))
+            elif isinstance(e, float):
+                res.append(self.Real(Fraction(e)))
+            elif isinstance(e, Fraction):
+                res.append(self.Real(e))
             else:
                 res.append(e)
         return res
 
     def create_node(self, node_type: int, args: Iterable[FNode],
-                    payload: Union['upf.Fluent', 'upf.Object', 'upf.ActionParameter', bool] = None) -> FNode:
+                    payload: Union['upf.Fluent', 'upf.Object', 'upf.ActionParameter', bool, int, Fraction] = None) -> FNode:
         content = FNodeContent(node_type, args, payload)
         if content in self.expressions:
             return self.expressions[content]
@@ -126,7 +133,7 @@ class ExpressionManager(object):
                 not expression
         Restriction: Expression must be of boolean type
         """
-        [expression] = self.auto_promote(expression)
+        expression, = self.auto_promote(expression)
         if expression.is_not():
             return expression.arg(0)
         return self.create_node(node_type=op.NOT, args=(expression,))
@@ -136,7 +143,7 @@ class ExpressionManager(object):
             left -> right
         Restriction: Left and Right must be of boolean type
         """
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IMPLIES, args=(left, right))
 
     def Iff(self, left: BoolExpression, right: BoolExpression) -> FNode:
@@ -144,32 +151,8 @@ class ExpressionManager(object):
             left <-> right
         Restriction: Left and Right must be of boolean type
         """
-        [left, right] = self.auto_promote(left, right)
+        left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IFF, args=(left, right))
-
-    def Equals(self, left: Expression, right: Expression) -> FNode:
-        """ Creates an expression of the form:
-            left == right
-        """
-        [left, right] = self.auto_promote(left, right)
-        return self.create_node(node_type=op.EQUALS, args=(left, right))
-
-    def TRUE(self) -> FNode:
-        """Return the boolean constant True."""
-        return self.true_expression
-
-    def FALSE(self):
-        """Return the boolean constant False."""
-        return self.false_expression
-
-    def Bool(self, value: bool) -> FNode:
-        if type(value) != bool:
-            raise UPFTypeError("Expecting bool, got %s" % type(value))
-
-        if value:
-            return self.true_expression
-        else:
-            return self.false_expression
 
     def FluentExp(self, fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
         """ Creates an expression for the given fluent and parameters.
@@ -186,3 +169,80 @@ class ExpressionManager(object):
     def ObjectExp(self, obj: 'upf.Object') -> FNode:
         """Returns an expression for the given object."""
         return self.create_node(node_type=op.OBJECT_EXP, args=tuple(), payload=obj)
+
+    def TRUE(self) -> FNode:
+        """Return the boolean constant True."""
+        return self.true_expression
+
+    def FALSE(self) -> FNode:
+        """Return the boolean constant False."""
+        return self.false_expression
+
+    def Bool(self, value: bool) -> FNode:
+        """Return a boolean constant."""
+        if type(value) != bool:
+            raise UPFTypeError("Expecting bool, got %s" % type(value))
+
+        if value:
+            return self.true_expression
+        else:
+            return self.false_expression
+
+    def Int(self, value: int) -> FNode:
+        """Return an int constant."""
+        if type(value) != int:
+            raise UPFTypeError("Expecting int, got %s" % type(value))
+        return self.create_node(node_type=op.INT_CONSTANT, args=tuple(), payload=value)
+
+    def Real(self, value: Fraction) -> FNode:
+        """Return a real constant."""
+        if type(value) != Fraction:
+            raise UPFTypeError("Expecting Fraction, got %s" % type(value))
+        return self.create_node(node_type=op.REAL_CONSTANT, args=tuple(), payload=value)
+
+    def Plus(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form:
+            left + right
+        """
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.PLUS, args=(left, right))
+
+    def Minus(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left - right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.MINUS, args=(left, right))
+
+    def Times(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left * right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.TIMES, args=(left, right))
+
+    def Div(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left / right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.DIV, args=(left, right))
+
+    def LE(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left <= right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.LE, args=(left, right))
+
+    def GE(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left >= right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.LE, args=(right, left))
+
+    def LT(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left < right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.LT, args=(left, right))
+
+    def GT(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left > right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.LT, args=(right, left))
+
+    def Equals(self, left: Expression, right: Expression) -> FNode:
+        """ Creates an expression of the form: left == right."""
+        left, right = self.auto_promote(left, right)
+        return self.create_node(node_type=op.EQUALS, args=(left, right))

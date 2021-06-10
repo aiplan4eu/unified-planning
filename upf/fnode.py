@@ -54,7 +54,9 @@ class FNode(object):
 
     def is_constant(self) -> bool:
         """Test whether the expression is a constant."""
-        return self.node_type() == op.BOOL_CONSTANT
+        return self.node_type() == op.BOOL_CONSTANT or \
+            self.node_type() == op.INT_CONSTANT or \
+            self.node_type() == op.REAL_CONSTANT
 
     def constant_value(self) -> bool:
         """Return the value of the Constant."""
@@ -75,6 +77,18 @@ class FNode(object):
         """Return the object of the ObjectExp."""
         assert self.is_object_exp()
         return self._content.payload
+
+    def is_bool_constant(self) -> bool:
+        """Test whether the expression is a boolean constant."""
+        return self.node_type() == op.BOOL_CONSTANT
+
+    def is_int_constant(self) -> bool:
+        """Test whether the expression is an integer constant."""
+        return self.node_type() == op.INT_CONSTANT
+
+    def is_real_constant(self) -> bool:
+        """Test whether the expression is a real constant."""
+        return self.node_type() == op.REAL_CONSTANT
 
     def is_true(self) -> bool:
         """Test whether the expression is the True Boolean constant."""
@@ -104,10 +118,6 @@ class FNode(object):
         """Test whether the node is the Iff operator."""
         return self.node_type() == op.IFF
 
-    def is_equals(self) -> bool:
-        """Test whether the node is the Equals operator."""
-        return self.node_type() == op.EQUALS
-
     def is_fluent_exp(self) -> bool:
         """Test whether the node is a fluent."""
         return self.node_type() == op.FLUENT_EXP
@@ -119,3 +129,31 @@ class FNode(object):
     def is_object_exp(self) -> bool:
         """Test whether the node is an action object."""
         return self.node_type() == op.OBJECT_EXP
+
+    def is_plus(self) -> bool:
+        """Test whether the node is the Plus operator."""
+        return self.node_type() == op.PLUS
+
+    def is_minus(self) -> bool:
+        """Test whether the node is the Minus operator."""
+        return self.node_type() == op.MINUS
+
+    def is_times(self) -> bool:
+        """Test whether the node is the Times operator."""
+        return self.node_type() == op.TIMES
+
+    def is_div(self) -> bool:
+        """Test whether the node is the Div operator."""
+        return self.node_type() == op.DIV
+
+    def is_equals(self) -> bool:
+        """Test whether the node is the Equals operator."""
+        return self.node_type() == op.EQUALS
+
+    def is_le(self) -> bool:
+        """Test whether the node is the LE operator."""
+        return self.node_type() == op.LE
+
+    def is_lt(self) -> bool:
+        """Test whether the node is the LT operator."""
+        return self.node_type() == op.LT

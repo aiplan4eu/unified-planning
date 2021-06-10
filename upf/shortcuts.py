@@ -21,9 +21,10 @@ import upf.typing
 from upf.environment import get_env
 from upf.expression import BoolExpression, Expression
 from upf.problem_kind import ProblemKind
-from upf.planner import Solver
+from upf.solver import Solver
 from upf.fnode import FNode
 from typing import Iterable, List, Union, Dict, Tuple, Optional
+from fractions import Fraction
 
 
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
@@ -32,26 +33,14 @@ def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
 def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     return get_env().expression_manager.Or(*args)
 
+def Not(expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.Not(expression)
+
 def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
     return get_env().expression_manager.Implies(left, right)
 
 def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
     return get_env().expression_manager.Iff(left, right)
-
-def Equals(left: Expression, right: Expression) -> FNode:
-    return get_env().expression_manager.Equals(left, right)
-
-def Not(expression: BoolExpression) -> FNode:
-    return get_env().expression_manager.Not(expression)
-
-def TRUE() -> FNode:
-    return get_env().expression_manager.TRUE()
-
-def FALSE() -> FNode:
-    return get_env().expression_manager.FALSE()
-
-def Bool(value: bool) -> FNode:
-    return get_env().expression_manager.Bool(value)
 
 def FluentExp(fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
     return get_env().expression_manager.FluentExp(fluent, params)
@@ -62,8 +51,56 @@ def ParameterExp(param: 'upf.ActionParameter') -> FNode:
 def ObjectExp(obj: 'upf.Object') -> FNode:
     return get_env().expression_manager.ObjectExp(obj)
 
+def TRUE() -> FNode:
+    return get_env().expression_manager.TRUE()
+
+def FALSE() -> FNode:
+    return get_env().expression_manager.FALSE()
+
+def Bool(value: bool) -> FNode:
+    return get_env().expression_manager.Bool(value)
+
+def Int(value: int) -> FNode:
+    return get_env().expression_manager.Int(value)
+
+def Real(value: Fraction) -> FNode:
+    return get_env().expression_manager.Real(value)
+
+def Plus(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.Plus(left, right)
+
+def Minus(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.Minus(left, right)
+
+def Times(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.Times(left, right)
+
+def Div(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.Div(left, right)
+
+def LE(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.LE(left, right)
+
+def GE(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.GE(left, right)
+
+def LT(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.LT(left, right)
+
+def GT(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.GT(left, right)
+
+def Equals(left: Expression, right: Expression) -> FNode:
+    return get_env().expression_manager.Equals(left, right)
+
 def BoolType() -> upf.typing.Type:
     return get_env().type_manager.BoolType()
+
+def IntType(lower_bound: int = None, upper_bound: int = None) -> upf.typing.Type:
+    return get_env().type_manager.IntType(lower_bound, upper_bound)
+
+def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.typing.Type:
+    return get_env().type_manager.RealType(lower_bound, upper_bound)
 
 def UserType(name: str) -> upf.typing.Type:
     return get_env().type_manager.UserType(name)

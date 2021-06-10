@@ -55,12 +55,12 @@ class ActionInstance:
 
 class SequentialPlan(Plan):
     """Represents a sequential plan."""
-    def __init__(self, actions: List[upf.Action]):
+    def __init__(self, actions: List[ActionInstance]):
         self._actions = actions
 
     def __repr__(self) -> str:
         return str(self._actions)
 
-    def actions(self) -> List[upf.Action]:
+    def actions(self) -> List[ActionInstance]:
         """Returns the sequence of action instances."""
         return self._actions
