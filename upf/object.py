@@ -26,6 +26,9 @@ class Object:
         self._name = name
         self._typename = typename
 
+    def __repr__(self) -> str:
+        return self.name()
+
     def name(self) -> str:
         """Returns the fluent name."""
         return self._name

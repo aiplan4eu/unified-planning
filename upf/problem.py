@@ -35,6 +35,33 @@ class Problem:
         self._initial_value: Dict[FNode, FNode] = {}
         self._goals: Set[FNode] = set()
 
+    def __repr__(self) -> str:
+        s = ''
+        if not self.name() is None:
+            s += 'problem name = ' + str(self.name()) + '\n\n'
+        s += 'types = ' + str(list(self.user_types().values())) + '\n\n'
+        s += 'fluents = [\n'
+        for f in self.fluents().values():
+            s += '  ' + str(f) + '\n'
+        s += ']\n\n'
+        s += 'actions = [\n'
+        for a in self.actions().values():
+            s += '  ' + str(a) + '\n'
+        s += ']\n\n'
+        s += 'objects = [\n'
+        for t in self.user_types().values():
+            s += '  ' + str(t) + ': ' + str(self.objects(t)) + '\n'
+        s += ']\n\n'
+        s += 'initial values = [\n'
+        for k, v in self.initial_values().items():
+            s += '  ' + str(k) + ' := ' + str(v) + '\n'
+        s += ']\n\n'
+        s += 'goals = [\n'
+        for g in self.goals():
+            s += '  ' + str(g) + '\n'
+        s += ']\n\n'
+        return s
+
     @property
     def env(self) -> Environment:
         """Returns the problem environment."""
