@@ -34,7 +34,7 @@ jobs:
       - name: Install Tamer UPF
         run: bash tamer-upf/install.sh
 
-      - name Run tests
+      - name: Run tests
         run: |
           python3 -mpip install pytest-cov
           bash run_tests.sh
