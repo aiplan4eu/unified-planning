@@ -13,11 +13,12 @@
 # limitations under the License.
 
 from upf.solver import Solver
-from upf.action import Action, ActionParameter
+from upf.action import Action, ActionParameter, SimulatedAction, InstantaneousAction
 from upf.fluent import Fluent
 from upf.object import Object
 from upf.problem import Problem
 from upf.plan import ActionInstance, SequentialPlan, Plan
+from upf.state import State
 
 __all__ = [
     "Action",

@@ -85,6 +85,8 @@ class Problem:
         """Adds the given action."""
         if action.name() in self._actions:
             raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
+        if isinstance(action, upf.SimulatedAction):
+            self._kind.set_simulated_entities('SIMULATED_ACTIONS') # type: ignore
         for p in action.parameters():
             if p.type().is_user_type():
                 self._user_types[p.type().name()] = p.type() # type: ignore

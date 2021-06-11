@@ -24,7 +24,7 @@ class TestProblem(TestCase):
         self.assertEqual(x.arity(), 0)
         self.assertTrue(x.type().is_bool_type())
 
-        a = upf.Action('a')
+        a = upf.InstantaneousAction('a')
         a.add_precondition(Not(x))
         a.add_effect(x, True)
         self.assertEqual(a.name(), 'a')
@@ -55,7 +55,7 @@ class TestProblem(TestCase):
         self.assertEqual(robot_at.signature(), [Location])
         self.assertTrue(robot_at.type().is_bool_type())
 
-        move = upf.Action('move', l_from=Location, l_to=Location)
+        move = upf.InstantaneousAction('move', l_from=Location, l_to=Location)
         l_from = move.parameter('l_from')
         l_to = move.parameter('l_to')
         move.add_precondition(Not(Equals(l_from, l_to)))
@@ -131,7 +131,7 @@ class TestProblem(TestCase):
         self.assertEqual(cargo_mounted.arity(), 0)
         self.assertTrue(cargo_mounted.type().is_bool_type())
 
-        move = upf.Action('move', l_from=Location, l_to=Location)
+        move = upf.InstantaneousAction('move', l_from=Location, l_to=Location)
         l_from = move.parameter('l_from')
         l_to = move.parameter('l_to')
         move.add_precondition(Not(Equals(l_from, l_to)))
@@ -148,7 +148,7 @@ class TestProblem(TestCase):
         self.assertEqual(len(move.preconditions()), 3)
         self.assertEqual(len(move.effects()), 2)
 
-        load = upf.Action('load', loc = Location)
+        load = upf.InstantaneousAction('load', loc = Location)
         loc = load.parameter('loc')
         load.add_precondition(cargo_at(loc))
         load.add_precondition(robot_at(loc))
@@ -162,7 +162,7 @@ class TestProblem(TestCase):
         self.assertEqual(len(load.preconditions()), 3)
         self.assertEqual(len(load.effects()), 2)
 
-        unload = upf.Action('unload',pos = Location)
+        unload = upf.InstantaneousAction('unload',pos = Location)
         pos = unload.parameter('pos')
         unload.add_precondition(Not(cargo_at(pos)))
         unload.add_precondition(robot_at(pos))
@@ -228,7 +228,7 @@ class TestProblem(TestCase):
         cargo_at = upf.Fluent('cargo_at', BoolType(), [Container, Location])
         cargo_mounted = upf.Fluent('cargo_mounted', BoolType(), [Container, Robot])
 
-        move = upf.Action('move', l_from=Location, l_to=Location, r = Robot)
+        move = upf.InstantaneousAction('move', l_from=Location, l_to=Location, r = Robot)
         l_from = move.parameter('l_from')
         l_to = move.parameter('l_to')
         r = move.parameter('r')
@@ -238,7 +238,7 @@ class TestProblem(TestCase):
         move.add_effect(robot_at(r, l_from), False)
         move.add_effect(robot_at(r, l_to), True)
 
-        load = upf.Action('load', loc = Location, r = Robot, c = Container)
+        load = upf.InstantaneousAction('load', loc = Location, r = Robot, c = Container)
         loc = load.parameter('loc')
         r = load.parameter('r')
         c = load.parameter('c')
@@ -247,7 +247,7 @@ class TestProblem(TestCase):
         load.add_effect(cargo_at(c, loc), False)
         load.add_effect(cargo_mounted(c,r), True)
 
-        unload = upf.Action('unload', loc = Location, r= Robot, c = Container)
+        unload = upf.InstantaneousAction('unload', loc = Location, r= Robot, c = Container)
         loc = unload.parameter('loc')
         r = unload.parameter('r')
         c = unload.parameter('c')

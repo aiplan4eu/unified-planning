@@ -20,7 +20,7 @@ from upf.test import TestCase, main
 class TestPlanValidator(TestCase):
     def test_basic(self):
         x = upf.Fluent('x')
-        a = upf.Action('a')
+        a = upf.InstantaneousAction('a')
         a.add_precondition(Not(x))
         a.add_effect(x, True)
         problem = upf.Problem('basic')
@@ -48,7 +48,7 @@ class TestPlanValidator(TestCase):
         Location = UserType('Location')
         robot_at = upf.Fluent('robot_at', BoolType(), [Location])
         battery_charge = upf.Fluent('battery_charge', RealType(0, 100))
-        move = upf.Action('move', l_from=Location, l_to=Location)
+        move = upf.InstantaneousAction('move', l_from=Location, l_to=Location)
         l_from = move.parameter('l_from')
         l_to = move.parameter('l_to')
         move.add_precondition(GE(battery_charge, 10))

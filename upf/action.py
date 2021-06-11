@@ -43,7 +43,7 @@ class ActionParameter:
 
 
 class Action:
-    """Represents an instantaneous action."""
+    """Represents a generic action."""
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.typing.Type]' = None,
                  _env: Environment = None, **kwargs: upf.typing.Type):
         self._env = get_env(_env)
@@ -63,14 +63,6 @@ class Action:
         """Returns the action name."""
         return self._name
 
-    def preconditions(self) -> List[FNode]:
-        """Returns the list of the action preconditions."""
-        return self._preconditions
-
-    def effects(self) -> List[Tuple[FNode, FNode]]:
-        """Returns the list of the action effects."""
-        return self._effects
-
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
         return list(self._parameters.values())
@@ -78,6 +70,23 @@ class Action:
     def parameter(self, name: str) -> ActionParameter:
         """Returns the parameter of the action with the given name."""
         return self._parameters[name]
+
+
+class InstantaneousAction(Action):
+    """Represents an instantaneous action."""
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.typing.Type]' = None,
+                 _env: Environment = None, **kwargs: upf.typing.Type):
+        Action.__init__(self, _name, _parameters, _env, **kwargs)
+        self._preconditions: List[FNode] = []
+        self._effects: List[Tuple[FNode, FNode]] = []
+
+    def preconditions(self) -> List[FNode]:
+        """Returns the list of the action preconditions."""
+        return self._preconditions
+
+    def effects(self) -> List[Tuple[FNode, FNode]]:
+        """Returns the list of the action effects."""
+        return self._effects
 
     def add_precondition(self, precondition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
         """Adds the given action precondition."""
@@ -92,3 +101,16 @@ class Action:
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append((fluent_exp, value_exp))
+
+
+class SimulatedAction(Action):
+    """Represents a simulated action."""
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.typing.Type]' = None,
+                 _env: Environment = None, **kwargs: upf.typing.Type):
+        Action.__init__(self, _name, _parameters, _env, **kwargs)
+
+    def is_applicable(self, state: 'upf.State') -> bool:
+        raise NotImplementedError
+
+    def apply(self, state: 'upf.State') -> 'upf.State':
+        raise NotImplementedError
