@@ -23,9 +23,18 @@ jobs:
       - name: Checkout Tamer UPF
         uses: actions/checkout@v2
         with:
-            repository: aiplan4eu/tamer-upf
-            path: tamer-upf
+          repository: aiplan4eu/tamer-upf
+          path: tamer-upf
 
-      - run: bash tamer-upf/install.sh
+      - name: Install Tamer UPF
+        run: bash tamer-upf/install.sh
 
-      - run: bash run_tests.sh
+      - name: Run tests
+        run: bash run_tests.sh
+
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: true

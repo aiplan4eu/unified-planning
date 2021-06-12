@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 -m pytest -x upf/test
+python3 -m pytest --cov=upf --cov-report=xml -x upf/test
