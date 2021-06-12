@@ -17,11 +17,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup Python
-        uses: actions/setup-python@master
-        with:
-          python-version: 3.9
-
       - name: Mypy check
         uses: jpetrucciani/mypy-check@master
 
