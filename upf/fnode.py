@@ -39,18 +39,18 @@ class FNode(object):
         return self._node_id
 
     def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
-        p = ''
+        p = []
         first = True
         for x in args:
             if first:
-                p = '('
+                p.append('(')
                 first = False
             else:
-                p += op
-            p += str(x)
+                p.append(op)
+            p.append(str(x))
         if len(args) > 0:
-            p += ')'
-        return p
+            p.append(')')
+        return ''.join(p)
 
     def __repr__(self) -> str:
         if self.is_bool_constant():
@@ -70,7 +70,7 @@ class FNode(object):
         elif self.is_or():
             return self.get_nary_expression_string(' or ', self.args())
         elif self.is_not():
-            return '(not ' + str(self.arg(0)) + ')'
+            return f'(not {str(self.arg(0))})'
         elif self.is_implies():
             return self.get_nary_expression_string(' implies ', self.args())
         elif self.is_iff():

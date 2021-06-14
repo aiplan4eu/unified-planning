@@ -36,31 +36,31 @@ class Problem:
         self._goals: Set[FNode] = set()
 
     def __repr__(self) -> str:
-        s = ''
+        s = []
         if not self.name() is None:
-            s += 'problem name = ' + str(self.name()) + '\n\n'
-        s += 'types = ' + str(list(self.user_types().values())) + '\n\n'
-        s += 'fluents = [\n'
+            s.append(f'problem name = {str(self.name())}\n\n')
+        s.append(f'types = {str(list(self.user_types().values()))}\n\n')
+        s.append('fluents = [\n')
         for f in self.fluents().values():
-            s += '  ' + str(f) + '\n'
-        s += ']\n\n'
-        s += 'actions = [\n'
+            s.append(f'  {str(f)}\n')
+        s.append(']\n\n')
+        s.append('actions = [\n')
         for a in self.actions().values():
-            s += '  ' + str(a) + '\n'
-        s += ']\n\n'
-        s += 'objects = [\n'
+            s.append(f'  {str(a)}\n')
+        s.append(']\n\n')
+        s.append('objects = [\n')
         for t in self.user_types().values():
-            s += '  ' + str(t) + ': ' + str(self.objects(t)) + '\n'
-        s += ']\n\n'
-        s += 'initial values = [\n'
+            s.append(f'  {str(t)}: {str(self.objects(t))}\n')
+        s.append(']\n\n')
+        s.append('initial values = [\n')
         for k, v in self.initial_values().items():
-            s += '  ' + str(k) + ' := ' + str(v) + '\n'
-        s += ']\n\n'
-        s += 'goals = [\n'
+            s.append(f'  {str(k)} := {str(v)}\n')
+        s.append(']\n\n')
+        s.append('goals = [\n')
         for g in self.goals():
-            s += '  ' + str(g) + '\n'
-        s += ']\n\n'
-        return s
+            s.append(f'  {str(g)}\n')
+        s.append(']\n\n')
+        return ''.join(s)
 
     @property
     def env(self) -> Environment:

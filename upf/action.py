@@ -34,7 +34,7 @@ class ActionParameter:
         self._typename = typename
 
     def __repr__(self) -> str:
-        return str(self.type()) + ' ' + self.name()
+        return f'{str(self.type())} {self.name()}'
 
     def name(self) -> str:
         """Returns the parameter name."""
@@ -63,28 +63,29 @@ class Action:
                 self._parameters[n] = ActionParameter(n, t)
 
     def __repr__(self) -> str:
-        s = 'action ' + self.name()
+        s = []
+        s.append(f'action {self.name()}')
         first = True
         for p in self.parameters():
             if first:
-                s += '('
+                s.append('(')
                 first = False
             else:
-                s += ', '
-            s += str(p)
+                s.append(', ')
+            s.append(str(p))
         if not first:
-            s += ')'
-        s += ' {\n'
-        s += '    preconditions = [\n'
+            s.append(')')
+        s.append(' {\n')
+        s.append('    preconditions = [\n')
         for c in self.preconditions():
-            s += '      ' + str(c) + '\n'
-        s += '    ]\n'
-        s += '    effects = [\n'
+            s.append(f'      {str(c)}\n')
+        s.append('    ]\n')
+        s.append('    effects = [\n')
         for f, v in self.effects():
-            s += '      ' + str(f) + ' := ' + str(v) + '\n'
-        s += '    ]\n'
-        s += '  }'
-        return s
+            s.append(f'      {str(f)} := {str(v)}\n')
+        s.append('    ]\n')
+        s.append('  }')
+        return ''.join(s)
 
     def name(self) -> str:
         """Returns the action name."""

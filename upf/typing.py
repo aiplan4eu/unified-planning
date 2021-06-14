@@ -74,14 +74,14 @@ class _IntType(Type):
         self._upper_bound = upper_bound
 
     def __repr__(self) -> str:
-        b = ''
+        b = []
         if (not self.lower_bound() is None) or (not self.upper_bound() is None):
-            b += '['
-            b += '-inf' if self.lower_bound() is None else str(self.lower_bound())
-            b += ', '
-            b += 'inf' if self.upper_bound() is None else str(self.upper_bound())
-            b += ']'
-        return 'int' + b
+            b.append('[')
+            b.append('-inf' if self.lower_bound() is None else str(self.lower_bound()))
+            b.append(', ')
+            b.append('inf' if self.upper_bound() is None else str(self.upper_bound()))
+            b.append(']')
+        return 'integer' + ''.join(b)
 
     def lower_bound(self) -> Optional[int]:
         return self._lower_bound
@@ -100,14 +100,14 @@ class _RealType(Type):
         self._upper_bound = upper_bound
 
     def __repr__(self) -> str:
-        b = ''
+        b = []
         if (not self.lower_bound() is None) or (not self.upper_bound() is None):
-            b += '['
-            b += '-inf' if self.lower_bound() is None else str(self.lower_bound())
-            b += ', '
-            b += 'inf' if self.upper_bound() is None else str(self.upper_bound())
-            b += ']'
-        return 'real' + b
+            b.append('[')
+            b.append('-inf' if self.lower_bound() is None else str(self.lower_bound()))
+            b.append(', ')
+            b.append('inf' if self.upper_bound() is None else str(self.upper_bound()))
+            b.append(']')
+        return 'real' + ''.join(b)
 
     def lower_bound(self) -> Optional[Fraction]:
         return self._lower_bound
