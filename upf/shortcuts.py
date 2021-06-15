@@ -105,8 +105,16 @@ def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.
 def UserType(name: str) -> upf.typing.Type:
     return get_env().type_manager.UserType(name)
 
-def OneshotPlanner(problem_kind: ProblemKind = ProblemKind(), name: Optional[str] = None) -> Optional[Solver]:
-    return get_env().factory.OneshotPlanner(problem_kind, name)
+def OneshotPlanner(*, name: Optional[str] = None,
+                   names: Optional[List[str]] = None,
+                   params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                   problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+    return get_env().factory.OneshotPlanner(name=name, names=names, params=params,
+                                            problem_kind=problem_kind)
 
-def PlanValidator(problem_kind: ProblemKind = ProblemKind(), name: Optional[str] = None) -> Optional[Solver]:
-    return get_env().factory.PlanValidator(problem_kind, name)
+def PlanValidator(*, name: Optional[str] = None,
+                   names: Optional[List[str]] = None,
+                   params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                   problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+    return get_env().factory.PlanValidator(name=name, names=names, params=params,
+                                           problem_kind=problem_kind)

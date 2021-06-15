@@ -39,3 +39,11 @@ class Solver:
 
     def destroy(self):
         raise NotImplementedError
+
+    def __enter__(self):
+        """Manages entering a Context (i.e., with statement)"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Manages exiting from Context (i.e., with statement)"""
+        self.destroy()

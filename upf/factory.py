@@ -16,7 +16,8 @@
 import importlib
 from upf.problem_kind import ProblemKind
 from upf.solver import Solver
-from typing import Dict, Tuple, Optional
+from upf.parallel import Parallel
+from typing import Dict, Tuple, Optional, List, Union
 
 
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl')}
@@ -24,7 +25,7 @@ DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl')}
 
 class Factory:
     def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
-        self.solvers: Dict[str, Solver] = {}
+        self.solvers: Dict[str, type] = {}
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
@@ -34,24 +35,52 @@ class Factory:
     def add_solver(self, name: str, module_name: str, class_name: str):
         module = importlib.import_module(module_name)
         SolverImpl = getattr(module, class_name)
-        self.solvers[name] = SolverImpl()
+        self.solvers[name] = SolverImpl
 
-    def OneshotPlanner(self, problem_kind: ProblemKind = ProblemKind(),
-                       name: Optional[str] = None) -> Optional[Solver]:
+    def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
+                          problem_kind: ProblemKind = ProblemKind()) -> Optional[type]:
         if name is not None:
-            assert name in self.solvers
             return self.solvers[name]
-        for solver in self.solvers.values():
-            if solver.is_oneshot_planner() and solver.supports(problem_kind):
-                return solver
+        for SolverClass in self.solvers.values():
+            solver = SolverClass()
+            if getattr(solver, 'is_'+solver_kind)() and solver.supports(problem_kind):
+                return SolverClass
         return None
 
-    def PlanValidator(self, problem_kind: ProblemKind = ProblemKind(),
-                      name: Optional[str] = None) -> Optional[Solver]:
-        if name is not None:
-            assert name in self.solvers
-            return self.solvers[name]
-        for solver in self.solvers.values():
-            if solver.is_plan_validator() and solver.supports(problem_kind):
-                return solver
+    def _get_solver(self, solver_kind: str, name: Optional[str] = None,
+                    names: Optional[List[str]] = None,
+                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                    problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+        if names is not None:
+            assert name is None
+            if params is None:
+                params = [{} for i in range(len(names))]
+            assert isinstance(params, List) and len(names) == len(params)
+            solvers = []
+            for name, param in zip(names, params):
+                SolverClass = self._get_solver_class(solver_kind, name)
+                if SolverClass is None:
+                    raise
+                solvers.append((SolverClass, param))
+            return Parallel(solvers)
+        else:
+            if params is None:
+                params = {}
+            assert isinstance(params, Dict)
+            SolverClass = self._get_solver_class(solver_kind, name, problem_kind)
+            if SolverClass is None:
+                raise
+            return SolverClass(**params)
         return None
+
+    def OneshotPlanner(self, *, name: Optional[str] = None,
+                       names: Optional[List[str]] = None,
+                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+        return self._get_solver('oneshot_planner', name, names, params, problem_kind)
+
+    def PlanValidator(self, *, name: Optional[str] = None,
+                       names: Optional[List[str]] = None,
+                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+        return self._get_solver('plan_validator', name, names, params, problem_kind)
