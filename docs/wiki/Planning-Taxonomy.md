@@ -7,8 +7,8 @@ https://www.din.de/en/innovation-and-research/artificial-intelligence (from the 
 The first item in our taxonomy concerns the characterization of the planning problem characteristics, these define the features used in the description of the planning task.
 * **Planning Problem Characterization**
   * **Pure Scheduling** (i.e. no actions to be decided, just sequencing/time assignment)
-    * No
-    * Yes
+    * **No**
+    * **Yes**
   * **Presence of Time**
     * **No**
     * **Discrete**
@@ -79,7 +79,7 @@ The first item in our taxonomy concerns the characterization of the planning pro
     * **Optimal**
     * **Pareto-optimal**
 
-The second item concerns solutions, i.e what the planner/solver generates as output 
+The second item concerns solutions, i.e what the planner/solver generates as output
 * **Solutions**
   * **Action Sequence**
   * **Partial-Order Plan**
@@ -146,6 +146,3 @@ Actual tools that implement planning algorithms and operation modes
 Several relations are possible!
 E.g.:
 A Planning Problem emerges from a Use-Case and is solved by a Tool configured with a certain Operation Mode that implements a Method that generates a certain Solution
-
-
-
