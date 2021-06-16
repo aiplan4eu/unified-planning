@@ -1,0 +1,26 @@
+name: Deploy Wiki
+
+on:
+  push:
+    paths:
+      # Trigger only when docs/wiki directory changes
+      - 'docs/wiki/**'
+    branches:
+      # And only on master branch
+      - master
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Push Wiki Changes
+      uses: Andrew-Chen-Wang/github-wiki-action@v2
+      env:
+        # Make sure you have that / at the end. We use rsync
+        # WIKI_DIR's default is wiki/
+        WIKI_DIR: docs/wiki/
+        GH_TOKEN: ${{ secrets.WIKI_GITHUB_TOKEN }}
+        GH_MAIL: ${{ secrets.WIKI_COMMITTER_EMAIL }}
+        GH_NAME: ${{ secrets.WIKI_COMMITTER_NAME }}
