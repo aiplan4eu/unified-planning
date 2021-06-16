@@ -39,7 +39,8 @@ class Problem:
         s = []
         if not self.name() is None:
             s.append(f'problem name = {str(self.name())}\n\n')
-        s.append(f'types = {str(list(self.user_types().values()))}\n\n')
+        if len(self.user_types()) > 0:
+            s.append(f'types = {str(list(self.user_types().values()))}\n\n')
         s.append('fluents = [\n')
         for f in self.fluents().values():
             s.append(f'  {str(f)}\n')
@@ -48,10 +49,11 @@ class Problem:
         for a in self.actions().values():
             s.append(f'  {str(a)}\n')
         s.append(']\n\n')
-        s.append('objects = [\n')
-        for t in self.user_types().values():
-            s.append(f'  {str(t)}: {str(self.objects(t))}\n')
-        s.append(']\n\n')
+        if len(self.user_types()) > 0:
+            s.append('objects = [\n')
+            for t in self.user_types().values():
+                s.append(f'  {str(t)}: {str(self.objects(t))}\n')
+            s.append(']\n\n')
         s.append('initial values = [\n')
         for k, v in self.initial_values().items():
             s.append(f'  {str(k)} := {str(v)}\n')
