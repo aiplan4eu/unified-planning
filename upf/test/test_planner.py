@@ -27,11 +27,23 @@ class TestPlanner(TestCase):
         problem = self.problems['basic'].problem
         a = problem.action('a')
 
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
+            self.assertEqual(len(plan.actions()[0].parameters()), 0)
+
+    def test_basic_parallel(self):
+        problem = self.problems['basic'].problem
+        a = problem.action('a')
+
+        with OneshotPlanner(names=['tamer', 'tamer'],
+                            params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}]) as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem)
+            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(plan.actions()[0].action().name(), a.name())
             self.assertEqual(len(plan.actions()[0].parameters()), 0)
 
     def test_robot(self):
