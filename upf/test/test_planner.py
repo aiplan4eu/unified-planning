@@ -43,7 +43,7 @@ class TestPlanner(TestCase):
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             self.assertEqual(len(plan.actions()), 1)
-            self.assertEqual(plan.actions()[0].action().name(), a.name())
+            self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].parameters()), 0)
 
     def test_robot(self):

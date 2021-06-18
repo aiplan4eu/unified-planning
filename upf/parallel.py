@@ -51,7 +51,30 @@ class Parallel(Solver):
         return res
 
     def solve(self, problem: 'upf.Problem') -> 'upf.Plan':
-        return self._run_parallel('solve', problem)
+        plan = self._run_parallel('solve', problem)
+        actions = []
+        objects = {}
+        for ut in problem.user_types().values():
+            for obj in problem.objects(ut):
+                objects[obj.name()] = obj
+        em = problem.env.expression_manager
+        for a in plan.actions():
+            new_a = problem.action(a.action().name())
+            params = []
+            for p in a.parameters():
+                if p.is_object_exp():
+                    obj = objects[p.object().name()]
+                    params.append(em.ObjectExp(obj))
+                elif p.is_bool_constant():
+                    params.append(em.Bool(p.is_true()))
+                elif p.is_int_constant():
+                    params.append(em.Int(p.constant_value()))
+                elif p.is_real_constant():
+                    params.append(em.Real(p.constant_value()))
+                else:
+                    raise
+            actions.append(upf.ActionInstance(new_a, tuple(params)))
+        return upf.SequentialPlan(actions)
 
     def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
         return self._run_parallel('validate', problem, plan)
