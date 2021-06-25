@@ -127,8 +127,8 @@ class Problem:
                 self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
             elif p.type().is_real_type():
                 self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        for p in action.preconditions():
-            ops = self._operators_extractor.get(p)
+        for c in action.preconditions():
+            ops = self._operators_extractor.get(c)
             if op.EQUALS in ops:
                 self._kind.set_conditions_kind('EQUALITY') # type: ignore
             if op.NOT in ops:
