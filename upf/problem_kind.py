@@ -20,7 +20,9 @@ from typing import Set
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
     'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME'],
-    'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS']
+    'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
+    'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY'],
+    'TYPING' : ['FLAT_TYPING']
 }
 
 

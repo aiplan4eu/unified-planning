@@ -114,6 +114,19 @@ class PDDLWriter:
         else:
             name = f'{self.problem.name()}'
         out.write(f'(domain {name}-domain)\n')
+        out.write(' (:requirements :strips')
+        if self.problem.kind().has_flat_typing():
+            out.write(' :typing')
+        if self.problem.kind().has_negative_conditions():
+            out.write(' :negative-preconditions')
+        if self.problem.kind().has_disjunctive_conditions():
+            out.write(' :disjunctive-preconditions')
+        if self.problem.kind().has_equality():
+            out.write(' :equality')
+        if self.problem.kind().has_continuous_numbers() or \
+           self.problem.kind().has_discrete_numbers():
+            out.write(' :numeric-fluents')
+        out.write(')\n')
         predicates = []
         functions = []
         for f in self.problem.fluents().values():
@@ -188,7 +201,7 @@ class PDDLWriter:
             if v.is_true():
                 out.write(f' {converter.convert(f)}')
             elif v.is_false():
-                out.write(f' (not {converter.convert(f)})')
+                pass
             else:
                 out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
         out.write('))\n')
