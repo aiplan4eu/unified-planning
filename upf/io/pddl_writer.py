@@ -61,7 +61,7 @@ class Converter(walkers.DagWalker):
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
         o = expression.object()
-        return f'?{o.name()}'
+        return f'{o.name()}'
 
     def walk_bool_constant(self, expression, args):
         raise
@@ -196,7 +196,7 @@ class PDDLWriter:
                 out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}')
             out.write('\n )\n')
         converter = Converter(self.problem.env)
-        out.write(' (:init (and')
+        out.write(' (:init')
         for f, v in self.problem.initial_values().items():
             if v.is_true():
                 out.write(f' {converter.convert(f)}')
@@ -204,7 +204,7 @@ class PDDLWriter:
                 pass
             else:
                 out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
-        out.write('))\n')
+        out.write(')\n')
         out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals()])}))\n')
         out.write(')\n')
 
@@ -217,12 +217,12 @@ class PDDLWriter:
     def get_domain(self) -> str:
         out = StringIO()
         self._write_domain(out)
-        return out.read()
+        return out.getvalue()
 
     def get_problem(self) -> str:
         out = StringIO()
         self._write_problem(out)
-        return out.read()
+        return out.getvalue()
 
     def write_domain(self, filename: str):
         with open(filename, 'w') as f:
