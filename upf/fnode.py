@@ -38,6 +38,60 @@ class FNode(object):
     def __hash__(self) -> int:
         return self._node_id
 
+    def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
+        p = []
+        first = True
+        for x in args:
+            if first:
+                p.append('(')
+                first = False
+            else:
+                p.append(op)
+            p.append(str(x))
+        if len(args) > 0:
+            p.append(')')
+        return ''.join(p)
+
+    def __repr__(self) -> str:
+        if self.is_bool_constant():
+            return 'true' if self.is_true() else 'false'
+        elif self.is_int_constant():
+            return str(self.constant_value())
+        elif self.is_real_constant():
+            return str(self.constant_value())
+        elif self.is_fluent_exp():
+            return self.fluent().name() + self.get_nary_expression_string(', ', self.args())
+        elif self.is_parameter_exp():
+            return self.parameter().name()
+        elif self.is_object_exp():
+            return self.object().name()
+        elif self.is_and():
+            return self.get_nary_expression_string(' and ', self.args())
+        elif self.is_or():
+            return self.get_nary_expression_string(' or ', self.args())
+        elif self.is_not():
+            return f'(not {str(self.arg(0))})'
+        elif self.is_implies():
+            return self.get_nary_expression_string(' implies ', self.args())
+        elif self.is_iff():
+            return self.get_nary_expression_string(' iff ', self.args())
+        elif self.is_plus():
+            return self.get_nary_expression_string(' + ', self.args())
+        elif self.is_minus():
+            return self.get_nary_expression_string(' - ', self.args())
+        elif self.is_times():
+            return self.get_nary_expression_string(' * ', self.args())
+        elif self.is_div():
+            return self.get_nary_expression_string(' / ', self.args())
+        elif self.is_le():
+            return self.get_nary_expression_string(' <= ', self.args())
+        elif self.is_lt():
+            return self.get_nary_expression_string(' < ', self.args())
+        elif self.is_equals():
+            return self.get_nary_expression_string(' == ', self.args())
+        else:
+            raise
+
     def node_id(self) -> int:
         return self._node_id
 

@@ -41,6 +41,9 @@ class Type:
 class _BoolType(Type):
     """Represents the boolean type."""
 
+    def __repr__(self) -> str:
+        return 'bool'
+
     def is_bool_type(self) -> bool:
         """Returns true iff is boolean type."""
         return True
@@ -51,6 +54,9 @@ class _UserType(Type):
     def __init__(self, name: str):
         Type.__init__(self)
         self._name = name
+
+    def __repr__(self) -> str:
+        return self.name()
 
     def name(self) -> str:
         """Returns the type name."""
@@ -67,6 +73,16 @@ class _IntType(Type):
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
 
+    def __repr__(self) -> str:
+        b = []
+        if (not self.lower_bound() is None) or (not self.upper_bound() is None):
+            b.append('[')
+            b.append('-inf' if self.lower_bound() is None else str(self.lower_bound()))
+            b.append(', ')
+            b.append('inf' if self.upper_bound() is None else str(self.upper_bound()))
+            b.append(']')
+        return 'integer' + ''.join(b)
+
     def lower_bound(self) -> Optional[int]:
         return self._lower_bound
 
@@ -82,6 +98,16 @@ class _RealType(Type):
         Type.__init__(self)
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
+
+    def __repr__(self) -> str:
+        b = []
+        if (not self.lower_bound() is None) or (not self.upper_bound() is None):
+            b.append('[')
+            b.append('-inf' if self.lower_bound() is None else str(self.lower_bound()))
+            b.append(', ')
+            b.append('inf' if self.upper_bound() is None else str(self.upper_bound()))
+            b.append(']')
+        return 'real' + ''.join(b)
 
     def lower_bound(self) -> Optional[Fraction]:
         return self._lower_bound

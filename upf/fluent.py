@@ -37,6 +37,9 @@ class Fluent:
             self._typename = typename
         self._signature = signature
 
+    def __repr__(self) -> str:
+        return f'{str(self.type())} {self.name()}{str(self.signature()) if self.arity() > 0 else ""}'
+
     def name(self) -> str:
         """Returns the fluent name."""
         return self._name

@@ -32,17 +32,17 @@ class ActionInstance:
         self._params = params
 
     def __repr__(self) -> str:
-        s = ''
+        s = []
         if len(self._params) > 0:
-            s = '('
+            s.append('(')
             first = True
             for p in self._params:
                 if not first:
-                    s += ', '
-                s += str(p)
+                    s.append(', ')
+                s.append(str(p))
                 first = False
-            s += ')'
-        return self._action.name() + s
+            s.append(')')
+        return self._action.name() + ''.join(s)
 
     def action(self) -> upf.Action:
         """Returns the action."""

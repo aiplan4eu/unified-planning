@@ -33,6 +33,9 @@ class ActionParameter:
         self._name = name
         self._typename = typename
 
+    def __repr__(self) -> str:
+        return f'{str(self.type())} {self.name()}'
+
     def name(self) -> str:
         """Returns the parameter name."""
         return self._name
@@ -58,6 +61,31 @@ class Action:
         else:
             for n, t in kwargs.items():
                 self._parameters[n] = ActionParameter(n, t)
+
+    def __repr__(self) -> str:
+        s = []
+        s.append(f'action {self.name()}')
+        first = True
+        for p in self.parameters():
+            if first:
+                s.append('(')
+                first = False
+            else:
+                s.append(', ')
+            s.append(str(p))
+        if not first:
+            s.append(')')
+        s.append(' {\n')
+        s.append('    preconditions = [\n')
+        for c in self.preconditions():
+            s.append(f'      {str(c)}\n')
+        s.append('    ]\n')
+        s.append('    effects = [\n')
+        for f, v in self.effects():
+            s.append(f'      {str(f)} := {str(v)}\n')
+        s.append('    ]\n')
+        s.append('  }')
+        return ''.join(s)
 
     def name(self) -> str:
         """Returns the action name."""
