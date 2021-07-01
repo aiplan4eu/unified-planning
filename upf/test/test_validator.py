@@ -15,74 +15,63 @@
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
+from upf.test.examples import get_example_problems
 
 
 class TestPlanValidator(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        self.problems = get_example_problems()
+
     def test_basic(self):
-        x = upf.Fluent('x')
-        a = upf.Action('a')
-        a.add_precondition(Not(x))
-        a.add_effect(x, True)
-        problem = upf.Problem('basic')
-        problem.add_fluent(x)
-        problem.add_action(a)
-        problem.set_initial_value(x, False)
-        problem.add_goal(x)
+        problem, plan = self.problems['basic']
 
         validator = PlanValidator(problem_kind=problem.kind())
         self.assertNotEqual(validator, None)
+
+        res = validator.validate(problem, plan)
+        self.assertTrue(res)
 
         plan = upf.SequentialPlan([])
         res = validator.validate(problem, plan)
         self.assertFalse(res)
 
-        plan = upf.SequentialPlan([upf.ActionInstance(a)])
-        res = validator.validate(problem, plan)
-        self.assertTrue(res)
-
-        plan = upf.SequentialPlan([upf.ActionInstance(a), upf.ActionInstance(a)])
-        res = validator.validate(problem, plan)
-        self.assertFalse(res)
-
-    def test_with_parameters(self):
-        Location = UserType('Location')
-        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
-        battery_charge = upf.Fluent('battery_charge', RealType(0, 100))
-        move = upf.Action('move', l_from=Location, l_to=Location)
-        l_from = move.parameter('l_from')
-        l_to = move.parameter('l_to')
-        move.add_precondition(GE(battery_charge, 10))
-        move.add_precondition(Not(Equals(l_from, l_to)))
-        move.add_precondition(robot_at(l_from))
-        move.add_precondition(Not(robot_at(l_to)))
-        move.add_effect(robot_at(l_from), False)
-        move.add_effect(robot_at(l_to), True)
-        move.add_effect(battery_charge, Minus(battery_charge, 10))
-        l1 = upf.Object('l1', Location)
-        l2 = upf.Object('l2', Location)
-        problem = upf.Problem('robot')
-        problem.add_fluent(robot_at)
-        problem.add_fluent(battery_charge)
-        problem.add_action(move)
-        problem.add_object(l1)
-        problem.add_object(l2)
-        problem.set_initial_value(robot_at(l1), True)
-        problem.set_initial_value(robot_at(l2), False)
-        problem.set_initial_value(battery_charge, 100)
-        problem.add_goal(robot_at(l2))
+    def test_robot(self):
+        problem, plan = self.problems['robot']
 
         validator = PlanValidator(problem_kind=problem.kind())
         self.assertNotEqual(validator, None)
+
+        res = validator.validate(problem, plan)
+        self.assertTrue(res)
 
         plan = upf.SequentialPlan([])
         res = validator.validate(problem, plan)
         self.assertFalse(res)
 
-        plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
+    def test_robot_loader(self):
+        problem, plan = self.problems['robot_loader']
+
+        validator = PlanValidator(problem_kind=problem.kind())
+        self.assertNotEqual(validator, None)
+
         res = validator.validate(problem, plan)
         self.assertTrue(res)
 
-        plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l2), ObjectExp(l1)])])
+        plan = upf.SequentialPlan([])
+        res = validator.validate(problem, plan)
+        self.assertFalse(res)
+
+    def test_robot_loader_adv(self):
+        problem, plan = self.problems['robot_loader_adv']
+
+        validator = PlanValidator(problem_kind=problem.kind())
+        self.assertNotEqual(validator, None)
+
+        res = validator.validate(problem, plan)
+        self.assertTrue(res)
+
+        plan = upf.SequentialPlan([])
         res = validator.validate(problem, plan)
         self.assertFalse(res)
 
