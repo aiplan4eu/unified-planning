@@ -75,13 +75,13 @@ class TestPddlIO(TestCase):
 
         pddl_domain = w.get_domain()
         self.assertTrue('(:requirements :strips :typing :negative-preconditions :equality :numeric-fluents)' in pddl_domain)
+        self.assertTrue('(:types Location)' in pddl_domain)
         self.assertTrue('(:predicates (robot_at ?p0 - Location))' in pddl_domain)
         self.assertTrue('(:functions (battery_charge))' in pddl_domain)
-        self.assertTrue('(:types Location)' in pddl_domain)
         self.assertTrue('(:action move' in pddl_domain)
         self.assertTrue(':parameters ( ?l_from - Location ?l_to - Location)' in pddl_domain)
         self.assertTrue(':precondition (and (<= 10 (battery_charge)) (not (= ?l_from ?l_to)) (robot_at ?l_from) (not (robot_at ?l_to)))' in pddl_domain)
-        self.assertTrue(':effect (and (not (robot_at ?l_from)) (robot_at ?l_to) (= (battery_charge) (- (battery_charge) 10)))' in pddl_domain)
+        self.assertTrue(':effect (and (not (robot_at ?l_from)) (robot_at ?l_to) (assign (battery_charge) (- (battery_charge) 10)))' in pddl_domain)
 
         pddl_problem = w.get_problem()
         self.assertTrue('(:domain robot-domain)' in pddl_problem)

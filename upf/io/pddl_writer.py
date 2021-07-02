@@ -104,8 +104,9 @@ class Converter(walkers.DagWalker):
 
 
 class PDDLWriter:
-    def __init__(self, problem):
+    def __init__(self, problem: 'upf.Problem', needs_requirements: bool = True):
         self.problem = problem
+        self.needs_requirements = needs_requirements
 
     def _write_domain(self, out: IO[str]):
         out.write('(define ')
@@ -114,19 +115,24 @@ class PDDLWriter:
         else:
             name = f'{self.problem.name()}'
         out.write(f'(domain {name}-domain)\n')
-        out.write(' (:requirements :strips')
-        if self.problem.kind().has_flat_typing():
-            out.write(' :typing')
-        if self.problem.kind().has_negative_conditions():
-            out.write(' :negative-preconditions')
-        if self.problem.kind().has_disjunctive_conditions():
-            out.write(' :disjunctive-preconditions')
-        if self.problem.kind().has_equality():
-            out.write(' :equality')
-        if self.problem.kind().has_continuous_numbers() or \
-           self.problem.kind().has_discrete_numbers():
-            out.write(' :numeric-fluents')
-        out.write(')\n')
+
+        if self.needs_requirements:
+            out.write(' (:requirements :strips')
+            if self.problem.kind().has_flat_typing(): # type: ignore
+                out.write(' :typing')
+            if self.problem.kind().has_negative_conditions(): # type: ignore
+                out.write(' :negative-preconditions')
+            if self.problem.kind().has_disjunctive_conditions(): # type: ignore
+                out.write(' :disjunctive-preconditions')
+            if self.problem.kind().has_equality(): # type: ignore
+                out.write(' :equality')
+            if (self.problem.kind().has_continuous_numbers() or # type: ignore
+                self.problem.kind().has_discrete_numbers()): # type: ignore
+                out.write(' :numeric-fluents')
+            out.write(')\n')
+
+        out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')
+
         predicates = []
         functions = []
         for f in self.problem.fluents().values():
@@ -135,7 +141,7 @@ class PDDLWriter:
                 i = 0
                 for p in f.signature():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {p.name()}')
+                        params.append(f' ?p{str(i)} - {p.name()}') # type: ignore
                         i += 1
                     else:
                         raise UPFTypeError('PDDL supports only user type parameters')
@@ -145,7 +151,7 @@ class PDDLWriter:
                 i = 0
                 for p in f.signature():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {p.name()}')
+                        params.append(f' ?p{str(i)} - {p.name()}') # type: ignore
                         i += 1
                     else:
                         raise UPFTypeError('PDDL supports only user type parameters')
@@ -155,30 +161,27 @@ class PDDLWriter:
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
-        out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')
-
         converter = Converter(self.problem.env)
         for a in self.problem.actions().values():
             out.write(f' (:action {a.name()}')
-            if len(a.parameters()) > 0:
-                out.write(f'\n  :parameters (')
-                for ap in a.parameters():
-                    if ap.type().is_user_type():
-                        out.write(f' ?{ap.name()} - {ap.type().name()}')
-                    else:
-                        raise UPFTypeError('PDDL supports only user type parameters')
-                out.write(')')
+            out.write(f'\n  :parameters (')
+            for ap in a.parameters():
+                if ap.type().is_user_type():
+                    out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
+                else:
+                    raise UPFTypeError('PDDL supports only user type parameters')
+            out.write(')')
             if len(a.preconditions()) > 0:
                 out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions()])})')
             if len(a.effects()) > 0:
                 out.write('\n  :effect (and')
-                for f, v in a.effects():
+                for k, v in a.effects():
                     if v.is_true():
-                        out.write(f' {converter.convert(f)}')
+                        out.write(f' {converter.convert(k)}')
                     elif v.is_false():
-                        out.write(f' (not {converter.convert(f)})')
+                        out.write(f' (not {converter.convert(k)})')
                     else:
-                        out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
+                        out.write(f' (assign {converter.convert(k)} {converter.convert(v)})')
                 out.write(')')
             out.write(')\n')
         out.write(')\n')
@@ -193,7 +196,7 @@ class PDDLWriter:
         if len(self.problem.user_types()) > 0:
             out.write(' (:objects ')
             for t in self.problem.user_types().values():
-                out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}')
+                out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
             out.write('\n )\n')
         converter = Converter(self.problem.env)
         out.write(' (:init')
