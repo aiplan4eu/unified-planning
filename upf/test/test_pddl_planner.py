@@ -37,6 +37,8 @@ class TestPDDLPlanner(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         env = get_env()
+        if not os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
+            self.skipTest('ENHSP not found!')
         env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
     def test_basic(self):
