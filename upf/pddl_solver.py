@@ -68,7 +68,11 @@ class PDDLSolver(upf.Solver):
         p = Popen(cmd, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
 
-        plan = self._plan_from_file(problem, plan_filename)
+        if os.path.isfile(plan_filename):
+            plan = self._plan_from_file(problem, plan_filename)
+        else:
+            print(err.decode())
+            plan = None
 
         shutil.rmtree(tempdir)
 
