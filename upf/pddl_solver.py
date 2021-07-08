@@ -21,6 +21,7 @@ import upf
 from upf.shortcuts import *
 from upf.io.pddl_writer import PDDLWriter
 from subprocess import Popen, PIPE
+from typing import Optional
 
 
 class PDDLSolver(upf.Solver):
@@ -55,7 +56,7 @@ class PDDLSolver(upf.Solver):
                 actions.append(upf.ActionInstance(action, tuple(parameters)))
         return upf.SequentialPlan(actions)
 
-    def solve(self, problem: 'upf.Problem') -> 'upf.Plan':
+    def solve(self, problem: 'upf.Problem') -> Optional['upf.Plan']:
         w = PDDLWriter(problem, self._needs_requirements)
         tempdir = tempfile.mkdtemp()
         domanin_filename = os.path.join(tempdir, 'domain.pddl')
@@ -68,11 +69,11 @@ class PDDLSolver(upf.Solver):
         p = Popen(cmd, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
 
-        if os.path.isfile(plan_filename):
-            plan = self._plan_from_file(problem, plan_filename)
-        else:
+        if not os.path.isfile(plan_filename):
             print(err.decode())
             plan = None
+        else:
+            plan = self._plan_from_file(problem, plan_filename)
 
         shutil.rmtree(tempdir)
 
