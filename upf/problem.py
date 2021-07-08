@@ -31,7 +31,7 @@ class Problem:
         self._fluents: Dict[str, upf.Fluent] = {}
         self._actions: Dict[str, upf.Action] = {}
         self._user_types: Dict[str, upf.typing.Type] = {}
-        self._objects: Dict[upf.typing.Type, List[upf.Object]] = {}
+        self._objects: Dict[str, upf.Object] = {}
         self._initial_value: Dict[FNode, FNode] = {}
         self._goals: Set[FNode] = set()
 
@@ -127,15 +127,27 @@ class Problem:
         """Returns the user types."""
         return self._user_types
 
+    def user_type(self, name: str) -> upf.typing.Type:
+        """Returns the user type with the given name."""
+        return self._user_types[name]
+
     def add_object(self, obj: upf.Object):
         """Adds the given object."""
-        if obj.type() not in self._objects:
-            self._objects[obj.type()] = []
-        self._objects[obj.type()].append(obj)
+        if obj.name() in self._objects:
+            raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
+        self._objects[obj.name()] = obj
+
+    def object(self, name: str) -> upf.Object:
+        """Returns the object with the given name."""
+        return self._objects[name]
 
     def objects(self, typename: upf.typing.Type) -> List[upf.Object]:
-        """Returns the user types."""
-        return self._objects[typename]
+        """Returns the objects of the given user types."""
+        res = []
+        for obj in self._objects.values():
+            if obj.type() == typename:
+                res.append(obj)
+        return res
 
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
                           value: Union[FNode, upf.Fluent, upf.Object, bool]):
