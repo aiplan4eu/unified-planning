@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
+import os
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.io.pddl_writer import PDDLWriter
+from upf.io.pddl_reader import PDDLReader
 from upf.test.examples import get_example_problems
+
+
+FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, 'pddl')
 
 
 class TestPddlIO(TestCase):
@@ -64,7 +70,7 @@ class TestPddlIO(TestCase):
         self.assertTrue('(:init (robot_at l1) (= (battery_charge) 100))' in pddl_problem)
         self.assertTrue('(:goal (and (robot_at l2)))' in pddl_problem)
 
-    def test_robot_loader(self):
+    def test_robot_loader_writer(self):
         problem = self.problems['robot_loader'].problem
 
         w = PDDLWriter(problem)
@@ -93,7 +99,7 @@ class TestPddlIO(TestCase):
         self.assertTrue('(:init (robot_at l1) (cargo_at l2))' in pddl_problem)
         self.assertTrue('(:goal (and (cargo_at l1)))' in pddl_problem)
 
-    def test_robot_loader_adv(self):
+    def test_robot_loader_adv_writer(self):
         problem = self.problems['robot_loader_adv'].problem
 
         w = PDDLWriter(problem)
@@ -123,3 +129,40 @@ class TestPddlIO(TestCase):
         self.assertTrue('c1 - Container' in pddl_problem)
         self.assertTrue('(:init (robot_at r1 l1) (cargo_at c1 l2))' in pddl_problem)
         self.assertTrue('(:goal (and (cargo_at c1 l3) (robot_at r1 l1)))' in pddl_problem)
+
+    def test_depot_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, 'depot', 'domain.pddl')
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, 'depot', 'problem.pddl')
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents()), 15)
+        self.assertEqual(len(problem.actions()), 5)
+        self.assertEqual(len(problem.objects(problem.user_type('object'))), 13)
+
+    def test_counters_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, 'counters', 'domain.pddl')
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, 'counters', 'problem.pddl')
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents()), 2)
+        self.assertEqual(len(problem.actions()), 2)
+        self.assertEqual(len(problem.objects(problem.user_type('counter'))), 4)
+
+    def test_sailing_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, 'sailing', 'domain.pddl')
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, 'sailing', 'problem.pddl')
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents()), 4)
+        self.assertEqual(len(problem.actions()), 8)
+        self.assertEqual(len(problem.objects(problem.user_type('boat'))), 2)
+        self.assertEqual(len(problem.objects(problem.user_type('person'))), 2)
