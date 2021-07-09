@@ -25,10 +25,16 @@ jobs:
         with:
           repository: aiplan4eu/tamer-upf
           path: tamer-upf
-          ref: "bfe222d6060fa8ccdc8d95a206b3c4bc741810cc"
+          ref: "89e105f91f7fad26605ddab0c0e222850fae8ae0"
 
       - name: Install Tamer UPF
         run: bash tamer-upf/install.sh
+
+      - name: Download ENHSP
+        run: |
+          git clone https://gitlab.com/enricos83/ENHSP-Public.git
+          cd ENHSP-Public; git checkout enhsp-20; ./compile; cd ..
+          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
         run: bash run_tests.sh

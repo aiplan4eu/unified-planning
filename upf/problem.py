@@ -15,10 +15,12 @@
 """This module defines the problem class."""
 
 import upf.typing
+import upf.operators as op
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
+from upf.operators_extractor import OperatorsExtractor
 from typing import List, Dict, Set, Union, Optional
 
 
@@ -26,6 +28,7 @@ class Problem:
     """Represents a planning problem."""
     def __init__(self, name: str = None, env: Environment = None):
         self._env = get_env(env)
+        self._operators_extractor = OperatorsExtractor()
         self._kind = ProblemKind()
         self._name = name
         self._fluents: Dict[str, upf.Fluent] = {}
@@ -87,6 +90,7 @@ class Problem:
         if fluent.name() in self._fluents:
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
         if fluent.type().is_user_type():
+            self._kind.set_typing('FLAT_TYPING') # type: ignore
             self._user_types[fluent.type().name()] = fluent.type() # type: ignore
         elif fluent.type().is_int_type():
             self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
@@ -94,6 +98,7 @@ class Problem:
             self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         for t in fluent.signature():
             if t.is_user_type():
+                self._kind.set_typing('FLAT_TYPING') # type: ignore
                 self._user_types[t.name()] = t # type: ignore
             elif t.is_int_type():
                 self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
@@ -116,11 +121,20 @@ class Problem:
             raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
         for p in action.parameters():
             if p.type().is_user_type():
+                self._kind.set_typing('FLAT_TYPING') # type: ignore
                 self._user_types[p.type().name()] = p.type() # type: ignore
             elif p.type().is_int_type():
                 self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
             elif p.type().is_real_type():
                 self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+        for c in action.preconditions():
+            ops = self._operators_extractor.get(c)
+            if op.EQUALS in ops:
+                self._kind.set_conditions_kind('EQUALITY') # type: ignore
+            if op.NOT in ops:
+                self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+            if op.OR in ops:
+                self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.typing.Type]:
@@ -174,6 +188,13 @@ class Problem:
         """Adds a goal."""
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        ops = self._operators_extractor.get(goal_exp)
+        if op.EQUALS in ops:
+            self._kind.set_conditions_kind('EQUALITY') # type: ignore
+        if op.NOT in ops:
+            self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+        if op.OR in ops:
+            self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
         self._goals.add(goal_exp)
 
     def goals(self) -> Set[FNode]:

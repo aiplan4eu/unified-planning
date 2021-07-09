@@ -16,6 +16,7 @@
 
 import upf
 from upf.problem_kind import ProblemKind
+from typing import Optional
 
 
 class Solver:
@@ -30,7 +31,7 @@ class Solver:
     def supports(self, problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'upf.Problem') -> 'upf.Plan':
+    def solve(self, problem: 'upf.Problem') -> Optional['upf.Plan']:
         raise NotImplementedError
 
     def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
