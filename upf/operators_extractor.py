@@ -20,6 +20,8 @@ from typing import List, Set
 
 
 class OperatorsExtractor(walkers.DagWalker):
+    """This expression walker returns all the operators of a given expression."""
+
     def __init__(self):
         walkers.DagWalker.__init__(self)
 

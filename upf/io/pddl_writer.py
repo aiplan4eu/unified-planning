@@ -22,13 +22,15 @@ from typing import IO
 from io import StringIO
 
 
-class Converter(walkers.DagWalker):
+class ConverterToPDDLString(walkers.DagWalker):
+    """Expression converter to a PDDL string."""
+
     def __init__(self, env: 'upf.environment.Environment'):
         walkers.DagWalker.__init__(self)
         self.simplifier = Simplifier(env)
 
     def convert(self, expression):
-        """Converts the given expression."""
+        """Converts the given expression to a PDDL string."""
         return self.walk(self.simplifier.simplify(expression))
 
     def walk_and(self, expression, args):
@@ -104,6 +106,8 @@ class Converter(walkers.DagWalker):
 
 
 class PDDLWriter:
+    """This class can be used to write a Problem in PDDL."""
+
     def __init__(self, problem: 'upf.Problem', needs_requirements: bool = True):
         self.problem = problem
         self.needs_requirements = needs_requirements
@@ -161,7 +165,7 @@ class PDDLWriter:
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
-        converter = Converter(self.problem.env)
+        converter = ConverterToPDDLString(self.problem.env)
         for a in self.problem.actions().values():
             out.write(f' (:action {a.name()}')
             out.write(f'\n  :parameters (')
@@ -198,7 +202,7 @@ class PDDLWriter:
             for t in self.problem.user_types().values():
                 out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
             out.write('\n )\n')
-        converter = Converter(self.problem.env)
+        converter = ConverterToPDDLString(self.problem.env)
         out.write(' (:init')
         for f, v in self.problem.initial_values().items():
             if v.is_true():
@@ -212,25 +216,31 @@ class PDDLWriter:
         out.write(')\n')
 
     def print_domain(self):
+        """Prints to std output the PDDL domain."""
         self._write_domain(sys.stdout)
 
     def print_problem(self):
+        """Prints to std output the PDDL problem."""
         self._write_problem(sys.stdout)
 
     def get_domain(self) -> str:
+        """Returns the PDDL domain."""
         out = StringIO()
         self._write_domain(out)
         return out.getvalue()
 
     def get_problem(self) -> str:
+        """Returns the PDDL problem."""
         out = StringIO()
         self._write_problem(out)
         return out.getvalue()
 
     def write_domain(self, filename: str):
+        """Dumps to file the PDDL domain."""
         with open(filename, 'w') as f:
             self._write_domain(f)
 
     def write_problem(self, filename: str):
+        """Dumps to file the PDDL problem."""
         with open(filename, 'w') as f:
             self._write_problem(f)

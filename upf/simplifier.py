@@ -21,13 +21,15 @@ from typing import List, Set
 
 
 class Simplifier(walkers.DagWalker):
+    """Performs basic simplifications of the input expression."""
+
     def __init__(self, env: 'upf.environment.Environment'):
         walkers.DagWalker.__init__(self)
         self.env = env
         self.manager = env.expression_manager
 
     def simplify(self, expression: FNode) -> FNode:
-        """Performs simplification of the given expression."""
+        """Performs basic simplification of the given expression."""
         return self.walk(expression)
 
     def walk_and(self, expression: FNode, args: List[FNode]) -> FNode:
