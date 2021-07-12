@@ -20,7 +20,12 @@ from upf.interop.tarski import convert_tarski_problem
 
 
 class PDDLReader:
-    """Parse a PDDL problem and generate a upf problem."""
+    """
+    Parse a PDDL problem and generate a upf problem.
+
+    The current implementation relies on tarski and has a bug parsing real
+    constants. See issue https://github.com/aig-upf/tarski/issues/114.
+    """
     def __init__(self, env: Environment = None):
         self.reader = tarski.io.PDDLReader(raise_on_error=True,
                                            strict_with_requirements=False)
