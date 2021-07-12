@@ -47,26 +47,26 @@ class TestPDDLPlanner(TestCase):
         problem = self.problems['basic'].problem
         a = problem.action('a')
 
-        planner = OneshotPlanner(name='enhsp')
-        self.assertNotEqual(planner, None)
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
 
-        plan = planner.solve(problem)
-        self.assertEqual(len(plan.actions()), 1)
-        self.assertEqual(plan.actions()[0].action(), a)
-        self.assertEqual(len(plan.actions()[0].parameters()), 0)
+            plan = planner.solve(problem)
+            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(plan.actions()[0].action(), a)
+            self.assertEqual(len(plan.actions()[0].parameters()), 0)
 
     def test_robot(self):
         problem = self.problems['robot'].problem
         move = problem.action('move')
 
-        planner = OneshotPlanner(name='enhsp')
-        self.assertNotEqual(planner, None)
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
 
-        plan = planner.solve(problem)
-        self.assertNotEqual(plan, None)
-        self.assertEqual(len(plan.actions()), 1)
-        self.assertEqual(plan.actions()[0].action(), move)
-        self.assertEqual(len(plan.actions()[0].parameters()), 2)
+            plan = planner.solve(problem)
+            self.assertNotEqual(plan, None)
+            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(plan.actions()[0].action(), move)
+            self.assertEqual(len(plan.actions()[0].parameters()), 2)
 
     def test_robot_loader(self):
         problem = self.problems['robot_loader'].problem
@@ -74,19 +74,19 @@ class TestPDDLPlanner(TestCase):
         load = problem.action('load')
         unload = problem.action('unload')
 
-        planner = OneshotPlanner(name='enhsp')
-        self.assertNotEqual(planner, None)
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
 
-        plan = planner.solve(problem)
-        self.assertEqual(len(plan.actions()), 4)
-        self.assertEqual(plan.actions()[0].action(), move)
-        self.assertEqual(plan.actions()[1].action(), load)
-        self.assertEqual(plan.actions()[2].action(), move)
-        self.assertEqual(plan.actions()[3].action(), unload)
-        self.assertEqual(len(plan.actions()[0].parameters()), 2)
-        self.assertEqual(len(plan.actions()[1].parameters()), 1)
-        self.assertEqual(len(plan.actions()[2].parameters()), 2)
-        self.assertEqual(len(plan.actions()[3].parameters()), 1)
+            plan = planner.solve(problem)
+            self.assertEqual(len(plan.actions()), 4)
+            self.assertEqual(plan.actions()[0].action(), move)
+            self.assertEqual(plan.actions()[1].action(), load)
+            self.assertEqual(plan.actions()[2].action(), move)
+            self.assertEqual(plan.actions()[3].action(), unload)
+            self.assertEqual(len(plan.actions()[0].parameters()), 2)
+            self.assertEqual(len(plan.actions()[1].parameters()), 1)
+            self.assertEqual(len(plan.actions()[2].parameters()), 2)
+            self.assertEqual(len(plan.actions()[3].parameters()), 1)
 
     def test_robot_loader_adv(self):
         problem = self.problems['robot_loader_adv'].problem
@@ -94,18 +94,18 @@ class TestPDDLPlanner(TestCase):
         load = problem.action('load')
         unload = problem.action('unload')
 
-        planner = OneshotPlanner(name='enhsp')
-        self.assertNotEqual(planner, None)
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
 
-        plan = planner.solve(problem)
-        self.assertEqual(len(plan.actions()), 5)
-        self.assertEqual(plan.actions()[0].action(), move)
-        self.assertEqual(plan.actions()[1].action(), load)
-        self.assertEqual(plan.actions()[2].action(), move)
-        self.assertEqual(plan.actions()[3].action(), unload)
-        self.assertEqual(plan.actions()[4].action(), move)
-        self.assertEqual(len(plan.actions()[0].parameters()), 3)
-        self.assertEqual(len(plan.actions()[1].parameters()), 3)
-        self.assertEqual(len(plan.actions()[2].parameters()), 3)
-        self.assertEqual(len(plan.actions()[3].parameters()), 3)
-        self.assertEqual(len(plan.actions()[4].parameters()), 3)
+            plan = planner.solve(problem)
+            self.assertEqual(len(plan.actions()), 5)
+            self.assertEqual(plan.actions()[0].action(), move)
+            self.assertEqual(plan.actions()[1].action(), load)
+            self.assertEqual(plan.actions()[2].action(), move)
+            self.assertEqual(plan.actions()[3].action(), unload)
+            self.assertEqual(plan.actions()[4].action(), move)
+            self.assertEqual(len(plan.actions()[0].parameters()), 3)
+            self.assertEqual(len(plan.actions()[1].parameters()), 3)
+            self.assertEqual(len(plan.actions()[2].parameters()), 3)
+            self.assertEqual(len(plan.actions()[3].parameters()), 3)
+            self.assertEqual(len(plan.actions()[4].parameters()), 3)
