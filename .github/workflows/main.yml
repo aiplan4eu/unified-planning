@@ -31,7 +31,7 @@ jobs:
         with:
           repository: aiplan4eu/tamer-upf
           path: tamer-upf
-          ref: "6ff8dc610c022769e786dc615fd89630539edb9f"
+          ref: "52a57fadb69f0908bcf3ea4fb03e7179ebc78732"
 
       - name: Install Tamer UPF
         run: bash tamer-upf/install.sh

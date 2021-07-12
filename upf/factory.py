@@ -17,7 +17,7 @@ import importlib
 from upf.problem_kind import ProblemKind
 from upf.solver import Solver
 from upf.parallel import Parallel
-from typing import Dict, Tuple, Optional, List, Union
+from typing import Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl')}
@@ -25,7 +25,7 @@ DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl')}
 
 class Factory:
     def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
-        self.solvers: Dict[str, type] = {}
+        self.solvers: Dict[str, Type[Solver]] = {}
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
@@ -38,12 +38,11 @@ class Factory:
         self.solvers[name] = SolverImpl
 
     def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
-                          problem_kind: ProblemKind = ProblemKind()) -> Optional[type]:
+                          problem_kind: ProblemKind = ProblemKind()) -> Optional[Type[Solver]]:
         if name is not None:
             return self.solvers[name]
         for SolverClass in self.solvers.values():
-            solver = SolverClass()
-            if getattr(solver, 'is_'+solver_kind)() and solver.supports(problem_kind):
+            if getattr(SolverClass, 'is_'+solver_kind)() and SolverClass.supports(problem_kind):
                 return SolverClass
         return None
 
@@ -77,10 +76,33 @@ class Factory:
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+        """
+        Returns a oneshot planner. There are three ways to call this method:
+        - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
+          e.g. OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})
+        - using 'names' (list of specific planners name) and 'params' (list of
+          planners dependent options) to get a Parallel solver.
+          e.g. OneshotPlanner(names=['tamer', 'tamer'],
+                              params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
+        - using 'problem_kind' parameter.
+          e.g. OneshotPlanner(problem_kind=problem.kind())
+        """
         return self._get_solver('oneshot_planner', name, names, params, problem_kind)
 
     def PlanValidator(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+        """
+        Returns a plan validator. There are three ways to call this method:
+        - using 'name' (the name of a specific plan validator) and 'params'
+          (plan validator dependent options).
+          e.g. PlanValidator(name='tamer', params={'opt': 'val'})
+        - using 'names' (list of specific plan validators name) and 'params' (list of
+          plan validators dependent options) to get a Parallel solver.
+          e.g. PlanValidator(names=['tamer', 'tamer'],
+                             params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
+        - using 'problem_kind' parameter.
+          e.g. PlanValidator(problem_kind=problem.kind())
+        """
         return self._get_solver('plan_validator', name, names, params, problem_kind)

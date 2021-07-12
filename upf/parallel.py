@@ -15,19 +15,29 @@
 
 import upf
 from upf.solver import Solver
+from upf.problem_kind import ProblemKind
+from upf.exceptions import UPFException
 from typing import Dict, List, Tuple
 from multiprocessing import Process, Queue
 
 
 class Parallel(Solver):
+    """Create a parallel instance of multiple Solvers."""
+
     def __init__(self, solvers: List[Tuple[type, Dict[str, str]]]):
         self.solvers = solvers
 
-    def is_oneshot_planner(self) -> bool:
-        return True
+    @staticmethod
+    def is_oneshot_planner() -> bool:
+        raise UPFException('The Parallel solver type depends on its actual solvers')
 
-    def is_plan_validator(self) -> bool:
-        return True
+    @staticmethod
+    def is_plan_validator() -> bool:
+        raise UPFException('The Parallel solver type depends on its actual solvers')
+
+    @staticmethod
+    def supports(problem_kind: 'ProblemKind') -> bool:
+        raise UPFException('The Parallel supported features depends on its actual solvers')
 
     def _run_parallel(self, fname, *args):
         signaling_queue = Queue()

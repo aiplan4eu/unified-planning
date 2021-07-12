@@ -109,6 +109,17 @@ def OneshotPlanner(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+    """
+    Returns a oneshot planner. There are three ways to call this method:
+    - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
+      e.g. OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})
+    - using 'names' (list of specific planners name) and 'params' (list of
+      planner dependent options) to get a Parallel solver.
+      e.g. OneshotPlanner(names=['tamer', 'tamer'],
+                          params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
+    - using 'problem_kind' parameter.
+      e.g. OneshotPlanner(problem_kind=problem.kind())
+    """
     return get_env().factory.OneshotPlanner(name=name, names=names, params=params,
                                             problem_kind=problem_kind)
 
@@ -116,5 +127,17 @@ def PlanValidator(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+    """
+    Returns a plan validator. There are three ways to call this method:
+    - using 'name' (the name of a specific plan validator) and 'params'
+      (plan validator dependent options).
+      e.g. PlanValidator(name='tamer', params={'opt': 'val'})
+    - using 'names' (list of specific plan validators name) and 'params' (list of
+      plan validators dependent options) to get a Parallel solver.
+      e.g. PlanValidator(names=['tamer', 'tamer'],
+                         params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
+    - using 'problem_kind' parameter.
+      e.g. PlanValidator(problem_kind=problem.kind())
+    """
     return get_env().factory.PlanValidator(name=name, names=names, params=params,
                                            problem_kind=problem_kind)
