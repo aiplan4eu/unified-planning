@@ -21,12 +21,15 @@ from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
 from upf.operators_extractor import OperatorsExtractor
-from typing import List, Dict, Union, Optional
+from fractions import Fraction
+from typing import List, Dict, Set, Union, Optional
 
 
 class Problem:
     """Represents a planning problem."""
-    def __init__(self, name: str = None, env: Environment = None):
+    def __init__(self, name: str = None, env: Environment = None, *,
+                 initial_defaults: Dict[upf.types.Type, Union[FNode, 'upf.Object', bool,
+                                                              int, float, Fraction]] = {}):
         self._env = get_env(env)
         self._operators_extractor = OperatorsExtractor()
         self._kind = ProblemKind()
@@ -37,6 +40,11 @@ class Problem:
         self._objects: Dict[str, upf.Object] = {}
         self._initial_value: Dict[FNode, FNode] = {}
         self._goals: List[FNode] = list()
+        self._initial_defaults: Dict[upf.types.Type, FNode] = {}
+        for k, v in initial_defaults.items():
+            v_exp, = self._env.expression_manager.auto_promote(v)
+            self._initial_defaults[k] = v_exp
+        self._fluents_defaults: Dict[upf.Fluent, FNode] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -85,7 +93,9 @@ class Problem:
         assert name in self._fluents
         return self._fluents[name]
 
-    def add_fluent(self, fluent: upf.Fluent):
+    def add_fluent(self, fluent: upf.Fluent, *,
+                   default_initial_value: Union[FNode, 'upf.Object', bool,
+                                                int, float, Fraction] = None):
         """Adds the given fluent."""
         if fluent.name() in self._fluents:
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
@@ -105,6 +115,9 @@ class Problem:
             elif t.is_real_type():
                 self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         self._fluents[fluent.name()] = fluent
+        if not default_initial_value is None:
+            v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
+            self._fluents_defaults[fluent] = v_exp
 
     def actions(self) -> Dict[str, upf.Action]:
         """Returns the actions."""
@@ -170,6 +183,13 @@ class Problem:
             raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
         self._objects[obj.name()] = obj
 
+    def add_objects(self, objs: List[upf.Object]):
+        """Adds the given objects."""
+        for obj in objs:
+            if obj.name() in self._objects:
+                raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
+            self._objects[obj.name()] = obj
+
     def object(self, name: str) -> upf.Object:
         """Returns the object with the given name."""
         return self._objects[name]
@@ -187,7 +207,8 @@ class Problem:
         return [o for o in self._objects.values()]
 
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
-                          value: Union[FNode, upf.Fluent, upf.Object, bool]):
+                          value: Union[FNode, upf.Fluent, upf.Object, bool,
+                                       int, float, Fraction]):
         """Sets the initial value for the given fluent."""
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
@@ -199,9 +220,14 @@ class Problem:
     def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
         """Gets the initial value of the given fluent."""
         fluent_exp, = self._env.expression_manager.auto_promote(fluent)
-        if fluent_exp not in self._initial_value:
+        if fluent_exp in self._initial_value:
+            return self._initial_value[fluent_exp]
+        elif fluent_exp.fluent() in self._fluents_defaults:
+            return self._fluents_defaults[fluent_exp.fluent()]
+        elif fluent_exp.fluent().type() in self._initial_defaults:
+            return self._initial_defaults[fluent_exp.fluent().type()]
+        else:
             raise UPFProblemDefinitionError('Initial value not set!')
-        return self._initial_value[fluent_exp]
 
     def initial_values(self) -> Dict[FNode, FNode]:
         """Gets the initial value of the fluents."""

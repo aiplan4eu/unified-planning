@@ -390,5 +390,71 @@ class TestProblem(TestCase):
         self.assertTrue(problem.initial_value(cargo_mounted(c1, r1)) is not None)
         self.assertEqual(len(problem.goals()), 2)
 
+    def test_fluents_defaults(self):
+        Location = UserType('Location')
+        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+        distance = upf.Fluent('distance', RealType(), [Location, Location])
+
+        N = 10
+        locations = [upf.Object(f'l{i}', Location) for i in range(N)]
+
+        problem = upf.Problem('robot')
+        problem.add_fluent(robot_at, default_initial_value=False)
+        problem.add_fluent(distance, default_initial_value=Fraction(-1))
+        problem.add_objects(locations)
+        problem.set_initial_value(robot_at(locations[0]), True)
+        for i in range(N-1):
+            problem.set_initial_value(distance(locations[i], locations[i+1]), Fraction(10))
+
+        self.assertEqual(problem.initial_value(robot_at(locations[0])), TRUE())
+        for i in range(1, N):
+            self.assertEqual(problem.initial_value(robot_at(locations[i])), FALSE())
+
+        for i in range(N):
+            for j in range(N):
+                if j == i+1:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])),
+                                     Real(Fraction(10)))
+                else:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])),
+                                     Real(Fraction(-1)))
+
+    def test_problem_defaults(self):
+        Location = UserType('Location')
+        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+        distance = upf.Fluent('distance', RealType(), [Location, Location])
+        cost = upf.Fluent('cost', RealType(), [Location, Location])
+
+        N = 10
+        locations = [upf.Object(f'l{i}', Location) for i in range(N)]
+
+        problem = upf.Problem('robot', initial_defaults={RealType(): Fraction(0)})
+        problem.add_fluent(robot_at, default_initial_value=False)
+        problem.add_fluent(distance, default_initial_value=Fraction(-1))
+        problem.add_fluent(cost)
+        problem.add_objects(locations)
+        problem.set_initial_value(robot_at(locations[0]), True)
+        for i in range(N-1):
+            problem.set_initial_value(distance(locations[i], locations[i+1]), Fraction(10))
+            problem.set_initial_value(cost(locations[i], locations[i+1]), Fraction(100))
+
+        self.assertEqual(problem.initial_value(robot_at(locations[0])), TRUE())
+        for i in range(1, N):
+            self.assertEqual(problem.initial_value(robot_at(locations[i])), FALSE())
+
+        for i in range(N):
+            for j in range(N):
+                if j == i+1:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])),
+                                     Real(Fraction(10)))
+                    self.assertEqual(problem.initial_value(cost(locations[i], locations[j])),
+                                     Real(Fraction(100)))
+                else:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])),
+                                     Real(Fraction(-1)))
+                    self.assertEqual(problem.initial_value(cost(locations[i], locations[j])),
+                                     Real(Fraction(0)))
+
+
 if __name__ == "__main__":
     main()

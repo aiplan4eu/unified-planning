@@ -26,7 +26,7 @@ from upf.exceptions import UPFTypeError
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
-Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', bool, int, float]
+Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', bool, int, float, Fraction]
 BoolExpression = Union[FNode, 'upf.Fluent', 'upf.ActionParameter', bool]
 
 class ExpressionManager(object):
