@@ -15,12 +15,12 @@
      (:action go_north_east
           :parameters (?b -boat)
           :precondition ()
-          :effect (and(increase (x ?b) 1) (increase (y ?b) 1))
+          :effect (and(increase (x ?b) 1.5) (increase (y ?b) 1.5))
      )
      (:action go_north_west
           :parameters (?b -boat)
           :precondition ()
-          :effect (and(decrease (x ?b) 1) (increase (y ?b) 1))
+          :effect (and(decrease (x ?b) 1.5) (increase (y ?b) 1.5))
      )
      (:action go_est
           :parameters (?b -boat)
