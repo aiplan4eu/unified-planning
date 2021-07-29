@@ -22,13 +22,19 @@ from typing import Optional
 class Solver:
     """Represents the solver interface."""
 
-    def is_oneshot_planner(self) -> bool:
+    def __init__(self, **kwargs):
+        pass
+
+    @staticmethod
+    def is_oneshot_planner() -> bool:
         return False
 
-    def is_plan_validator(self) -> bool:
+    @staticmethod
+    def is_plan_validator() -> bool:
         return False
 
-    def supports(self, problem_kind: 'ProblemKind') -> bool:
+    @staticmethod
+    def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
     def solve(self, problem: 'upf.Problem') -> Optional['upf.Plan']:
@@ -39,3 +45,11 @@ class Solver:
 
     def destroy(self):
         raise NotImplementedError
+
+    def __enter__(self):
+        """Manages entering a Context (i.e., with statement)"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Manages exiting from Context (i.e., with statement)"""
+        self.destroy()

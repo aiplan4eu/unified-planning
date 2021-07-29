@@ -26,54 +26,54 @@ class TestPlanValidator(TestCase):
     def test_basic(self):
         problem, plan = self.problems['basic']
 
-        validator = PlanValidator(problem_kind=problem.kind())
-        self.assertNotEqual(validator, None)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            self.assertNotEqual(validator, None)
 
-        res = validator.validate(problem, plan)
-        self.assertTrue(res)
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
-        plan = upf.SequentialPlan([])
-        res = validator.validate(problem, plan)
-        self.assertFalse(res)
+            plan = upf.SequentialPlan([])
+            res = validator.validate(problem, plan)
+            self.assertFalse(res)
 
     def test_robot(self):
         problem, plan = self.problems['robot']
 
-        validator = PlanValidator(problem_kind=problem.kind())
-        self.assertNotEqual(validator, None)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            self.assertNotEqual(validator, None)
 
-        res = validator.validate(problem, plan)
-        self.assertTrue(res)
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
-        plan = upf.SequentialPlan([])
-        res = validator.validate(problem, plan)
-        self.assertFalse(res)
+            plan = upf.SequentialPlan([])
+            res = validator.validate(problem, plan)
+            self.assertFalse(res)
 
     def test_robot_loader(self):
         problem, plan = self.problems['robot_loader']
 
-        validator = PlanValidator(problem_kind=problem.kind())
-        self.assertNotEqual(validator, None)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            self.assertNotEqual(validator, None)
 
-        res = validator.validate(problem, plan)
-        self.assertTrue(res)
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
-        plan = upf.SequentialPlan([])
-        res = validator.validate(problem, plan)
-        self.assertFalse(res)
+            plan = upf.SequentialPlan([])
+            res = validator.validate(problem, plan)
+            self.assertFalse(res)
 
     def test_robot_loader_adv(self):
         problem, plan = self.problems['robot_loader_adv']
 
-        validator = PlanValidator(problem_kind=problem.kind())
-        self.assertNotEqual(validator, None)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            self.assertNotEqual(validator, None)
 
-        res = validator.validate(problem, plan)
-        self.assertTrue(res)
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
-        plan = upf.SequentialPlan([])
-        res = validator.validate(problem, plan)
-        self.assertFalse(res)
+            plan = upf.SequentialPlan([])
+            res = validator.validate(problem, plan)
+            self.assertFalse(res)
 
 
 if __name__ == "__main__":

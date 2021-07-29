@@ -36,7 +36,8 @@ class PDDLSolver(upf.Solver):
         upf.Solver.__init__(self)
         self._needs_requirements = needs_requirements
 
-    def is_oneshot_planner(self) -> bool:
+    @staticmethod
+    def is_oneshot_planner() -> bool:
         return True
 
     def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
