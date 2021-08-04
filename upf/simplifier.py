@@ -20,7 +20,7 @@ import upf.walkers as walkers
 import upf.operators as op
 from upf.shortcuts import *
 from upf.fnode import FNode
-from typing import List, Any
+from typing import List, Union
 
 
 class Simplifier(walkers.DagWalker):
@@ -30,6 +30,13 @@ class Simplifier(walkers.DagWalker):
         walkers.DagWalker.__init__(self)
         self.env = env
         self.manager = env.expression_manager
+
+    def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
+            if isinstance(value, int):
+                fnode = self.manager.Int(value)
+            else:
+                fnode = self.manager.Real(Fraction(value))
+            return fnode
 
     def simplify(self, expression: FNode) -> FNode:
         """Performs basic simplification of the given expression."""
@@ -219,38 +226,30 @@ class Simplifier(walkers.DagWalker):
         else: 
             if len(new_args_plus) == 0:
                 return self.manager.Int(0)
-            elif len(new_args_plus) == 1:
-                return new_args_plus[0]
             else:
-                fnode_acc = new_args_plus.pop(0)
-                for a in new_args_plus:
+                fnode_acc = new_args_plus[0]
+                for a in new_args_plus[1:]:
                     fnode_acc = self.manager.Plus(a, fnode_acc)
                 return fnode_acc
 
 
     def walk_minus(self, expression: FNode, args: List[FNode]) -> FNode:
-        #da agiungere possibilità di trasformare - in + se la costante è negativa e non ci sono altri Fnode non rimpicciolibili negativi
         assert len(args) == 2
+        left, right = args
         value : Union[Fraction, int] = 0
-        if (args[0].is_int_constant() or args[0].is_real_constant()) and (args[1].is_int_constant() or args[1].is_real_constant()):
-            value = args[0].constant_value() - args[1].constant_value()
-            if isinstance(value, int):
-                fnode_constant_values = self.manager.Int(value)
-            else:
-                fnode_constant_values = self.manager.Real(Fraction(value))
+        if (left.is_int_constant() or left.is_real_constant()) and (right.is_int_constant() or right.is_real_constant()):
+            value = left.constant_value() - right.constant_value()
+            fnode_constant_values = self._number_to_fnode(value)
             return fnode_constant_values
-        elif args[1].is_int_constant() or args[1].is_real_constant():
-            if args[1].constant_value() < 0:
-                value = -args[1].constant_value()
-                if isinstance(value, int):
-                    fnode_constant_values = self.manager.Int(value)
-                else:
-                    fnode_constant_values = self.manager.Real(Fraction(value))
-                return self.manager.Plus(args[0], fnode_constant_values)
+        elif right.is_int_constant() or right.is_real_constant():
+            if right.constant_value() < 0:
+                value = -right.constant_value()
+                fnode_constant_values = self._number_to_fnode(value)
+                return self.manager.Plus(left, fnode_constant_values)
             else:
-                return self.manager.Minus(args[0], args[1])
+                return self.manager.Minus(left, right)
         else:
-            return self.manager.Minus(args[0], args[1])
+            return self.manager.Minus(left, right)
 
     
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
@@ -300,21 +299,19 @@ class Simplifier(walkers.DagWalker):
         
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
-        value : Union[Fraction, int, float, Any] = 0
-        if args[0].is_int_constant() and args[1].is_int_constant():
-            if (args[0].constant_value() % args[1].constant_value()) == 0:
-                value = int(args[0].constant_value() / args[1].constant_value())
+        left, right = args
+        value : Union[Fraction, int, float] = 0
+        if left.is_int_constant() and right.is_int_constant():
+            if (left.constant_value() % right.constant_value()) == 0:
+                value = int(left.constant_value() / right.constant_value())
             else:
-                value = Fraction(args[0].constant_value(), args[1].constant_value())
-        elif (args[0].is_int_constant() or args[0].is_real_constant()) and (args[1].is_int_constant() or args[1].is_real_constant()):
-            assert(args[1].constant_value() != 0)
-            value = args[0].constant_value() / args[1].constant_value()
+                value = Fraction(left.constant_value(), right.constant_value())
+        elif (left.is_int_constant() or left.is_real_constant()) and (right.is_int_constant() or right.is_real_constant()):
+            assert(right.constant_value() != 0)
+            value = Fraction(left.constant_value(), right.constant_value())
         else:
-            return self.manager.Div(args[0], args[1])
-        if isinstance(value, int):
-            fnode_constant_values = self.manager.Int(value)
-        else:
-            fnode_constant_values = self.manager.Real(Fraction(value))
+            return self.manager.Div(left, right)
+        fnode_constant_values = self._number_to_fnode(value)
         return fnode_constant_values
                 
         
