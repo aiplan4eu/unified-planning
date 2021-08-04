@@ -28,11 +28,40 @@ from upf.environment import get_env
 class TestBoolOperators(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+          
+    def test_and_constant(self):
+        s = Simplifier(get_env())
+        t = Bool(True)
+        f = Bool(False)
+        e1 = And(t, f)
+        r1 = s.simplify(e1)
+        self.assertEqual(r1, f)
+        self.assertEqual(r1.constant_value(), False)
+        e2 = And(t, e1)
+        r2 = s.simplify(e2)
+        self.assertEqual(r2, f)
+        self.assertEqual(r2.constant_value(), False)
 
-    
-        
-    def test_plus_constant(self):
-        return
+    def test_and_constant(self):
+        s = Simplifier(get_env())
+        x = upf.Fluent('x')
+        t = Bool(True)
+        f = Bool(False)
+        e1 = And(x, f)
+        r1 = s.simplify(e1)
+        self.assertEqual(r1, f)
+        self.assertEqual(r1.constant_value(), False)
+        e2 = And(x, e1)
+        r2 = s.simplify(e2)
+        self.assertEqual(r2, f)
+        self.assertEqual(r2.constant_value(), False)
+        e3 = And(x, t, t)
+        e4 = And(e3, t)
+        r4 = s.simplify(e4)
+        self.assertEqual(x, r4)
+
+
+
 
 class TestArithmeticOperators(TestCase):
     def setUp(self):

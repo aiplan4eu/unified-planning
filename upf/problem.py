@@ -21,7 +21,7 @@ from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
 from upf.operators_extractor import OperatorsExtractor
-from typing import List, Dict, Set, Union, Optional
+from typing import List, Dict, Union, Optional
 
 
 class Problem:
