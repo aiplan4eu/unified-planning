@@ -42,7 +42,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r2, f)
         self.assertEqual(r2.constant_value(), False)
 
-    def test_and_constant(self):
+    def test_or_constant(self):
         s = Simplifier(get_env())
         x = upf.Fluent('x')
         t = Bool(True)
