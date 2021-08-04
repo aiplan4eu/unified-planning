@@ -45,6 +45,7 @@ class TestBoolOperators(TestCase):
     def test_and_fluent(self):
         s = Simplifier(get_env())
         x = upf.Fluent('x')
+        y = upf.Fluent('y')
         t = Bool(True)
         f = Bool(False)
         e1 = And(x, f)
@@ -59,6 +60,18 @@ class TestBoolOperators(TestCase):
         e4 = And(e3, t)
         r4 = s.simplify(e4)
         self.assertEqual(FluentExp(x), r4)
+        e5 = And(x, x)
+        r5 = s.simplify(e5)
+        self.assertEqual(r5, FluentExp(x))
+        e6 = And(And(x, y), And(y, x))
+        r6 = s.simplify(e6)
+        self.assertEqual(r6, And(x, y))
+        e7 = And(And(x, y), And(y, Not(x)))
+        r7 = s.simplify(e7)
+        self.assertEqual(r7, f)
+        e8 = And(And(x, y), Not(x))
+        r8 = s.simplify(e8)
+        self.assertEqual(r8, f)
 
     def test_or_constant(self):
         s = Simplifier(get_env())
@@ -76,6 +89,7 @@ class TestBoolOperators(TestCase):
     def test_or_fluent(self):
         s = Simplifier(get_env())
         x = upf.Fluent('x')
+        y = upf.Fluent('y')
         t = Bool(True)
         f = Bool(False)
         e1 = Or(x, t)
@@ -90,6 +104,18 @@ class TestBoolOperators(TestCase):
         e4 = Or(e3, f)
         r4 = s.simplify(e4)
         self.assertEqual(FluentExp(x), r4)
+        e5 = Or(x, x)
+        r5 = s.simplify(e5)
+        self.assertEqual(r5, FluentExp(x))
+        e6 = Or(Or(x, y), Or(y, x))
+        r6 = s.simplify(e6)
+        self.assertEqual(r6, Or(x, y))
+        e7 = Or(Or(x, y), Or(y, Not(x)))
+        r7 = s.simplify(e7)
+        self.assertEqual(r7, t)
+        e8 = Or(Or(x, y), Not(x))
+        r8 = s.simplify(e8)
+        self.assertEqual(r8, t)
 
     def test_not(self):
         s = Simplifier(get_env())
@@ -106,6 +132,9 @@ class TestBoolOperators(TestCase):
         e4 = Not(Or(e3, f))
         r4 = s.simplify(Not(e4))
         self.assertEqual(FluentExp(x), r4)
+        e5 = Not(Not(x))
+        r5 = s.simplify(e5)
+        self.assertEqual(r5, FluentExp(x))
 
     def test_iff(self):
         s = Simplifier(get_env())
@@ -275,9 +304,9 @@ class TestArithmeticOperators(TestCase):
     def test_plus_constant(self):
         #simple plus
         s = Simplifier(get_env())
-        data1 = 5
+        data1 = Fraction(5.0)
         data2 = 3
-        fnode1 = Int(data1)
+        fnode1 = Real(data1)
         fnode2 = Int(data2)
         fnode1_2 = Plus(fnode1, fnode2)
         result1_2 = s.simplify(fnode1_2)
@@ -287,6 +316,11 @@ class TestArithmeticOperators(TestCase):
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertTrue(fnode_simplified.is_int_constant())
         self.assertTrue(fnode_simplified.constant_value() == 23)
+        data_list = [1,5,6,2,-10,-5,3,-2]
+        fnode_of_data_list = Plus(data_list)
+        fnode_simplified = s.simplify(fnode_of_data_list)
+        self.assertTrue(fnode_simplified.is_int_constant())
+        self.assertEqual(fnode_simplified.constant_value(), 0)
         
 
     def test_plus_fluent(self):
@@ -294,6 +328,7 @@ class TestArithmeticOperators(TestCase):
         s = Simplifier(get_env())
         data2 = 3
         x = upf.Fluent('x', IntType())
+        y = upf.Fluent('y', IntType())
         fnode2 = Int(data2)
         fnodex_2 = Plus(x, fnode2)
         data_list = [1,5,6,2,3,4,-3,5]
@@ -303,6 +338,11 @@ class TestArithmeticOperators(TestCase):
         fnode_simplified = s.simplify(fnode_of_data_list)
         #self.assertEqual(fnode_simplified, Plus(upf.Fluent('x', IntType()), Int(26)))
         self.assertEqual(fnode_simplified, Plus(x ,Int(26)))
+
+        data_list = [1,5,6,2,-10,-5,3,-2, x, y]
+        fnode_of_data_list = Plus(data_list)
+        fnode_simplified = s.simplify(fnode_of_data_list)
+        self.assertEqual(fnode_simplified, Plus(x, y))
 
 
 

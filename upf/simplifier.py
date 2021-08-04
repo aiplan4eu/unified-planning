@@ -227,9 +227,7 @@ class Simplifier(walkers.DagWalker):
             if len(new_args_plus) == 0:
                 return self.manager.Int(0)
             else:
-                fnode_acc = new_args_plus[0]
-                for a in new_args_plus[1:]:
-                    fnode_acc = self.manager.Plus(a, fnode_acc)
+                fnode_acc = self.manager.Plus(new_args_plus)
                 return fnode_acc
 
 
@@ -288,9 +286,7 @@ class Simplifier(walkers.DagWalker):
             if len(new_args_times) == 0:
                 return self.manager.Int(1)
             else:
-                fnode_acc = new_args_times[0]
-                for a in new_args_times[1:]:
-                    fnode_acc = self.manager.Times(a, fnode_acc)
+                fnode_acc = self.manager.Times(new_args_times)
                 return fnode_acc
     
             
