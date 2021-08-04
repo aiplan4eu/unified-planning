@@ -17,7 +17,8 @@
 import upf
 import collections
 import upf.operators as op
-from typing import List
+from typing import List, Union
+from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent",
                                       ["node_type", "args", "payload"])
@@ -112,7 +113,7 @@ class FNode(object):
             self.node_type() == op.INT_CONSTANT or \
             self.node_type() == op.REAL_CONSTANT
 
-    def constant_value(self) -> bool:
+    def constant_value(self) -> Union[bool, int, Fraction]:
         """Return the value of the Constant."""
         assert self.is_constant()
         return self._content.payload

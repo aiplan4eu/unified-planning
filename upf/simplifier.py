@@ -13,9 +13,11 @@
 # limitations under the License.
 #
 
+from fractions import Fraction
 import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
+from upf.shortcuts import *
 from upf.fnode import FNode
 from typing import List, Set
 
@@ -186,8 +188,137 @@ class Simplifier(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.FluentExp(expression.fluent(), tuple(args))
+        
+    def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
+        new_args_plus: Set[FNode] = list()
+        accumulator = 0
+        #divide constant FNode and accumulate their value into accumulator
+        for a in args:
+            if a.is_int_constant() or a.is_real_constant():
+                accumulator = accumulator + a.constant_value()
+            elif a.is_plus():
+                for s in a.args():
+                    if s.is_int_constant() or s.is_real_constant():
+                        accumulator = accumulator + s.constant_value()
+                    else:
+                        new_args_plus.append(s)
+            else:
+                new_args_plus.append(a)
+        #if accumulator != 0 create it as a constant FNode and then add all the non-constant FNodes found
+        #else return 0 or all the non-constant FNodes found
+        if accumulator != 0:
+            if isinstance(accumulator, int):
+                fnode_constant_values = self.manager.Int(accumulator)
+            else:
+                fnode_constant_values = self.manager.Real(Fraction(accumulator))
+            fnode_acc = fnode_constant_values
+            for a in new_args_plus:
+                fnode_acc = self.manager.Plus(a, fnode_acc)
+            return fnode_acc
+        else: 
+            if len(new_args_plus) == 0:
+                return self.manager.Int(0)
+            elif len(new_args_plus) == 1:
+                return new_args_plus[0]
+            else:
+                fnode_acc = new_args_plus.pop(0)
+                for a in new_args_plus:
+                    fnode_acc = self.manager.Plus(a, fnode_acc)
+                return fnode_acc
 
-    @walkers.handles(op.IRA_OPERATORS)
+
+    def walk_minus(self, expression: FNode, args: List[FNode]) -> FNode:
+        #da agiungere possibilità di trasformare - in + se la costante è negativa e non ci sono altri Fnode non rimpicciolibili negativi
+        assert len(args) == 2
+        value = 0
+        if (args[0].is_int_constant() or args[0].is_real_constant()) and (args[1].is_int_constant() or args[1].is_real_constant()):
+            value = args[0].constant_value() - args[1].constant_value()
+            if isinstance(value, int):
+                fnode_constant_values = self.manager.Int(value)
+            else:
+                fnode_constant_values = self.manager.Real(Fraction(value))
+            return fnode_constant_values
+        elif args[1].is_int_constant() or args[1].is_real_constant():
+            if args[1].constant_value() < 0:
+                value = -args[1].constant_value()
+                if isinstance(value, int):
+                    fnode_constant_values = self.manager.Int(value)
+                else:
+                    fnode_constant_values = self.manager.Real(Fraction(value))
+                return self.manager.Plus(args[0], fnode_constant_values)
+            else:
+                return self.manager.Minus(args[0], args[1])
+        else:
+            return self.manager.Minus(args[0], args[1])
+
+    
+    def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
+        new_args_times: Set[FNode] = list()
+        accumulator = 1
+        #divide constant FNode and accumulate their value into accumulator
+        for a in args:
+            if a.is_int_constant() or a.is_real_constant():
+                if a.constant_value() == 0:
+                    return self.manager.Int(0)
+                else:
+                    accumulator = accumulator * a.constant_value()
+            elif a.is_times():
+                for s in a.args():
+                    if s.is_int_constant() or s.is_real_constant():
+                        if s.constant_value() == 0:
+                            return self.manager.Int(0)
+                        else:
+                            accumulator = accumulator * s.constant_value()
+                    else:
+                        new_args_times.append(s)
+            else:
+                new_args_times.append(a)
+        #if accumulator != 1 create it as a constant FNode and then add all the non-constant FNodes found
+        #else return  or all the non-constant FNodes found
+        if accumulator != 1:
+            if isinstance(accumulator, int):
+                fnode_constant_values = self.manager.Int(accumulator)
+            else:
+                fnode_constant_values = self.manager.Real(Fraction(accumulator))
+            fnode_acc = fnode_constant_values
+            for a in new_args_times:
+                fnode_acc = self.manager.Times(a, fnode_acc)
+            return fnode_acc
+        else: 
+            if len(new_args_times) == 0:
+                return self.manager.Int(1)
+            elif len(new_args_times) == 1:
+                return new_args_times[0]
+            else:
+                fnode_acc = new_args_times.pop(0)
+                for a in new_args_times:
+                    fnode_acc = self.manager.Times(a, fnode_acc)
+                return fnode_acc
+    
+            
+        
+    def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 2
+        if args[0].is_int_constant() and args[1].is_int_constant():
+            if (args[0].constant_value() % args[1].constant_value()) == 0:
+                value = int(args[0].constant_value() / args[1].constant_value())
+            else:
+                value = Fraction(args[0].constant_value(), args[1].constant_value())
+        elif (args[0].is_int_constant() or args[0].is_real_constant()) and (args[1].is_int_constant() or args[1].is_real_constant()):
+            assert(args[1].constant_value() != 0)
+            value = args[0].constant_value() / args[1].constant_value()
+        else:
+            return self.manager.Div(args[0], args[1])
+        if isinstance(value, int):
+            fnode_constant_values = self.manager.Int(value)
+        else:
+            fnode_constant_values = self.manager.Real(Fraction(value))
+        return fnode_constant_values
+                
+        
+        
+
+
     @walkers.handles(op.CONSTANTS)
     @walkers.handles(op.PARAM_EXP, op.OBJECT_EXP)
     def walk_identity(self, expression: FNode, args: List[FNode]) -> FNode:
