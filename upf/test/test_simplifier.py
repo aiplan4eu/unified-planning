@@ -25,11 +25,20 @@ from upf.environment import get_env
 
 
 
-
-
-class TestPlus(TestCase):
+class TestBoolOperators(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+
+    
+        
+    def test_plus_constant(self):
+        return
+
+class TestArithmeticOperators(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+
+    
         
     def test_plus_constant(self):
         #simple plus
