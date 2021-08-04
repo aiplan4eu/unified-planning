@@ -199,10 +199,7 @@ class TestPlus(TestCase):
         self.assertTrue(result1_2.is_real_constant())
         self.assertTrue(result1_2.constant_value() == Fraction(6, 4))
         self.assertTrue(result1_2 == Real(Fraction(6, 4)))
-
-
-
-
+        
         data_list = ['1.0','0.5','10','0.25','0.125']
         fnode_of_data_list = Int(125)
         for a in data_list:

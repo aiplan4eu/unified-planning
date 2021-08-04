@@ -14,12 +14,13 @@
 #
 
 from fractions import Fraction
+from collections import OrderedDict
 import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
 from upf.shortcuts import *
 from upf.fnode import FNode
-from typing import List, Set
+from typing import List, Any
 
 
 class Simplifier(walkers.DagWalker):
@@ -38,7 +39,7 @@ class Simplifier(walkers.DagWalker):
         if len(args) == 2 and args[0] == args[1]:
             return args[0]
 
-        new_args: Set[FNode] = set()
+        new_args: OrderedDict[FNode, bool] = OrderedDict()
         for a in args:
             if a.is_true():
                 continue
@@ -48,24 +49,24 @@ class Simplifier(walkers.DagWalker):
                 for s in a.args():
                     if self.walk_not(self.manager.Not(s), [s]) in new_args:
                         return self.manager.FALSE()
-                    new_args.add(s)
+                    new_args[s] = True
             else:
                 if self.walk_not(self.manager.Not(a), [a]) in new_args:
                     return self.manager.FALSE()
-                new_args.add(a)
+                new_args[a] = True
 
         if len(new_args) == 0:
             return self.manager.TRUE()
         elif len(new_args) == 1:
             return next(iter(new_args))
         else:
-            return self.manager.And(new_args)
+            return self.manager.And(new_args.keys())
 
     def walk_or(self, expression: FNode, args: List[FNode]) -> FNode:
         if len(args) == 2 and args[0] == args[1]:
             return args[0]
 
-        new_args: Set[FNode] = set()
+        new_args: OrderedDict[FNode, bool] = OrderedDict()
         for a in args:
             if a.is_false():
                 continue
@@ -75,18 +76,18 @@ class Simplifier(walkers.DagWalker):
                 for s in a.args():
                     if self.walk_not(self.manager.Not(s), [s]) in new_args:
                         return self.manager.TRUE()
-                    new_args.add(s)
+                    new_args[s] = True
             else:
                 if self.walk_not(self.manager.Not(a), [a]) in new_args:
                     return self.manager.TRUE()
-                new_args.add(a)
+                new_args[a] = True
 
         if len(new_args) == 0:
             return self.manager.FALSE()
         elif len(new_args) == 1:
             return next(iter(new_args))
         else:
-            return self.manager.Or(new_args)
+            return self.manager.Or(new_args.keys())
 
     def walk_not(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
@@ -190,7 +191,7 @@ class Simplifier(walkers.DagWalker):
         return self.manager.FluentExp(expression.fluent(), tuple(args))
         
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
-        new_args_plus: Set[FNode] = list()
+        new_args_plus: List[FNode] = list()
         accumulator = 0
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
@@ -230,7 +231,7 @@ class Simplifier(walkers.DagWalker):
     def walk_minus(self, expression: FNode, args: List[FNode]) -> FNode:
         #da agiungere possibilità di trasformare - in + se la costante è negativa e non ci sono altri Fnode non rimpicciolibili negativi
         assert len(args) == 2
-        value = 0
+        value : Union[Fraction, int] = 0
         if (args[0].is_int_constant() or args[0].is_real_constant()) and (args[1].is_int_constant() or args[1].is_real_constant()):
             value = args[0].constant_value() - args[1].constant_value()
             if isinstance(value, int):
@@ -253,7 +254,7 @@ class Simplifier(walkers.DagWalker):
 
     
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
-        new_args_times: Set[FNode] = list()
+        new_args_times: List[FNode] = list()
         accumulator = 1
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
@@ -299,6 +300,7 @@ class Simplifier(walkers.DagWalker):
         
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
+        value : Union[Fraction, int, float, Any] = 0
         if args[0].is_int_constant() and args[1].is_int_constant():
             if (args[0].constant_value() % args[1].constant_value()) == 0:
                 value = int(args[0].constant_value() / args[1].constant_value())
