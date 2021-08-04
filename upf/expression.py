@@ -200,22 +200,38 @@ class ExpressionManager(object):
             raise UPFTypeError("Expecting Fraction, got %s" % type(value))
         return self.create_node(node_type=op.REAL_CONSTANT, args=tuple(), payload=value)
 
-    def Plus(self, left: Expression, right: Expression) -> FNode:
+    def Plus(self, *args: Union[Expression, Iterable[Expression]]) -> FNode:
         """ Creates an expression of the form:
-            left + right
+            args[0] + ... + args[n]
         """
-        left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.PLUS, args=(left, right))
+        tuple_args = tuple(self.auto_promote(*args))
+
+        if len(tuple_args) == 0:
+            return self.Int(0)
+        elif len(tuple_args) == 1:
+            return tuple_args[0]
+        else:
+            return self.create_node(node_type=op.PLUS,
+                                    args=tuple_args)
 
     def Minus(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left - right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.MINUS, args=(left, right))
 
-    def Times(self, left: Expression, right: Expression) -> FNode:
-        """ Creates an expression of the form: left * right."""
-        left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.TIMES, args=(left, right))
+    def Times(self, *args: Union[Expression, Iterable[Expression]]) -> FNode:
+        """ Creates an expression of the form:
+            args[0] * ... * args[n]
+        """
+        tuple_args = tuple(self.auto_promote(*args))
+
+        if len(tuple_args) == 0:
+            return self.Int(1)
+        elif len(tuple_args) == 1:
+            return tuple_args[0]
+        else:
+            return self.create_node(node_type=op.TIMES,
+                                    args=tuple_args)
 
     def Div(self, left: Expression, right: Expression) -> FNode:
         """ Creates an expression of the form: left / right."""

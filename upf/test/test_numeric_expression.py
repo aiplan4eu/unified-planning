@@ -42,9 +42,7 @@ class TestPlus(TestCase):
         result1_2 = s.simplify(fnode1_2)
         self.assertTrue(result1_2.constant_value() == 8)
         data_list = [1,5,6,2,3,4,-3,5]
-        fnode_of_data_list = Int(0)
-        for a in data_list:
-            fnode_of_data_list = Plus(fnode_of_data_list, Int(a))
+        fnode_of_data_list = Plus(data_list)
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertTrue(fnode_simplified.is_int_constant())
         self.assertTrue(fnode_simplified.constant_value() == 23)
@@ -54,18 +52,16 @@ class TestPlus(TestCase):
         #plus with fluent
         s = Simplifier(get_env())
         data2 = 3
-        fnode1 = upf.Fluent('x', IntType())
+        x = upf.Fluent('x', IntType())
         fnode2 = Int(data2)
-        fnode1_2 = Plus(fnode1, fnode2)
+        fnodex_2 = Plus(x, fnode2)
         data_list = [1,5,6,2,3,4,-3,5]
 
-        fnode_of_data_list = Int(0)
-        for a in data_list:
-            fnode_of_data_list = Plus(fnode_of_data_list, Int(a))
-        fnode_of_data_list = Plus(fnode_of_data_list, fnode1_2)
+        fnode_of_data_list = Plus(data_list)
+        fnode_of_data_list = Plus(fnode_of_data_list, fnodex_2)
         fnode_simplified = s.simplify(fnode_of_data_list)
         #self.assertEqual(fnode_simplified, Plus(upf.Fluent('x', IntType()), Int(26)))
-        self.assertEqual(fnode_simplified, Plus(fnode1, Int(26)))
+        self.assertEqual(fnode_simplified, Plus(x ,Int(26)))
 
 
 
@@ -81,13 +77,13 @@ class TestPlus(TestCase):
         fnode2 = Int(data2)
         fnode1_2 = Minus(fnode1, fnode2)
         result1_2 = s.simplify(fnode1_2)
-        self.assertTrue(result1_2.constant_value() == 2)
+        self.assertEqual(result1_2.constant_value(), 2)
         data_list = [1,5,6,2,3,4,-3,5]
         fnode_of_data_list = Int(data_list.pop(0))
         for a in data_list:
             fnode_of_data_list = Minus(fnode_of_data_list, Int(a))
         fnode_simplified = s.simplify(fnode_of_data_list)
-        self.assertTrue(fnode_simplified.constant_value() == -21)
+        self.assertEqual(fnode_simplified.constant_value(), -21)
 
     def test_minus_fluent(self):
         #minus with fluent
@@ -130,19 +126,15 @@ class TestPlus(TestCase):
         print(result1_2)
         self.assertTrue(result1_2.constant_value() == 15)
         data_list = [1,5,6,2,3,4,-3,5]
-        fnode_of_data_list = Int(0)
-        for a in data_list:
-            fnode_of_data_list = Times(fnode_of_data_list, Int(a))
+        fnode_of_data_list = Times(0, *data_list)
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertTrue(fnode_simplified.is_int_constant())
-        self.assertTrue(fnode_simplified.constant_value() == 0)
+        self.assertEqual(fnode_simplified.constant_value(), 0)
         data_list = [1,5,6,2,3,4,-3,5]
-        fnode_of_data_list = Int(1)
-        for a in data_list:
-            fnode_of_data_list = Times(fnode_of_data_list, Int(a))
+        fnode_of_data_list = Times(data_list)
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertTrue(fnode_simplified.is_int_constant())
-        self.assertTrue(fnode_simplified.constant_value() == -10800)
+        self.assertEqual(fnode_simplified.constant_value(), -10800)
 
     def test_times_fluent(self):
         #plus with fluent
@@ -208,7 +200,7 @@ class TestPlus(TestCase):
         print(fnode_of_data_list)
         print(fnode_simplified)
         self.assertTrue(fnode_simplified.is_real_constant())
-        self.assertTrue(fnode_simplified.constant_value() == 800)
+        self.assertEqual(fnode_simplified.constant_value(), 800)
 
     def test_div_fluent(self):
         #div with fluent
