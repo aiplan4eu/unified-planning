@@ -37,7 +37,7 @@ class FNode(object):
     # issue since, by default, equality coincides with identity.
     def __hash__(self) -> int:
         return self._node_id
-    
+
     def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
         p = []
         if len(args) > 0:
