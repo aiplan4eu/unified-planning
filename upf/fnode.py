@@ -40,15 +40,12 @@ class FNode(object):
 
     def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
         p = []
-        first = True
-        for x in args:
-            if first:
-                p.append('(')
-                first = False
-            else:
-                p.append(op)
-            p.append(str(x))
         if len(args) > 0:
+            p.append('(')
+            p.append(str(args[0]))
+            for x in args[1:]:
+                p.append(op)
+                p.append(str(x))
             p.append(')')
         return ''.join(p)
 
