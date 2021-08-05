@@ -274,20 +274,13 @@ class Simplifier(walkers.DagWalker):
         #if accumulator != 1 create it as a constant FNode and then add all the non-constant FNodes found
         #else return  or all the non-constant FNodes found
         if accumulator != 1:
-            if isinstance(accumulator, int):
-                fnode_constant_values = self.manager.Int(accumulator)
-            else:
-                fnode_constant_values = self.manager.Real(Fraction(accumulator))
-            fnode_acc = fnode_constant_values
-            for a in new_args_times:
-                fnode_acc = self.manager.Times(a, fnode_acc)
-            return fnode_acc
+            fnode_acc = self._number_to_fnode(accumulator)
+            return self.manager.Times(*new_args_times, fnode_acc)
         else: 
             if len(new_args_times) == 0:
                 return self.manager.Int(1)
             else:
-                fnode_acc = self.manager.Times(new_args_times)
-                return fnode_acc
+                return self.manager.Times(new_args_times)
     
             
         
