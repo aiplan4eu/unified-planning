@@ -330,9 +330,7 @@ class TestBoolOperators(TestCase):
 class TestArithmeticOperators(TestCase):
     def setUp(self):
         TestCase.setUp(self)
-
-    
-        
+     
     def test_plus_constant(self):
         #simple plus
         s = Simplifier(get_env())
@@ -553,7 +551,26 @@ class TestArithmeticOperators(TestCase):
         fnode_simplified = s.simplify(fnode_of_data_list)
         print(fnode_simplified)
         self.assertEqual(fnode_simplified, Div(Fraction('6.4'), Div(x, Int(3))))
-       
+
+class TestGeneralSimplifier(TestCase):
+    def test_general(self):
+        s = Simplifier(get_env())
+        x = FluentExp(upf.Fluent('x'))
+        y = FluentExp(upf.Fluent('y', IntType()))
+        t = Bool(True)
+        f = Bool(False)
+        # ((25/5)*30*2*2) - (20*5) (500) == (25*4*10) / 2 (500)
+        e1 = Equals(Minus(Times([Div(25, 5), 30, 2, 2]), Times(20, 5)), Div(Times(25, 4, 10) ,2))
+        r1 = s.simplify(e1)
+        self.assertEqual(r1, t)
+        # T => !x
+        e2 = Implies(e1, Not(x))
+        r2 = s.simplify(e2)
+        self.assertEqual(r2, Not(x))
+        # !x || (T => x)
+        e3 = Or(e2, Implies(e1, x))
+        r3 = s.simplify(e3)
+        self.assertEqual(r3, t)
         
 
 if __name__ == "__main__":
