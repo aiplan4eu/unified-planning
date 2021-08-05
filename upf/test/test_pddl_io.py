@@ -123,7 +123,7 @@ class TestPddlIO(TestCase):
 
         pddl_problem = w.get_problem()
         self.assertIn('(:domain robot_loader_adv-domain)', pddl_problem)
-        self.assertIn('(:objects', pddl_problem),
+        self.assertIn('(:objects', pddl_problem)
         self.assertIn('r1 - Robot', pddl_problem)
         self.assertIn('l1 l2 l3 - Location', pddl_problem)
         self.assertIn('c1 - Container', pddl_problem)

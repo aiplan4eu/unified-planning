@@ -1,4 +1,4 @@
-    # Copyright 2021 AIPlan4EU project
+# Copyright 2021 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-
 from fractions import Fraction
 import upf
 from upf.shortcuts import *
@@ -25,7 +24,7 @@ from upf.environment import get_env
 class TestBoolOperators(TestCase):
     def setUp(self):
         TestCase.setUp(self)
-          
+
     def test_and_constant(self):
         s = Simplifier(get_env())
         t = Bool(True)
@@ -189,7 +188,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r1, e1)
         e2 = Implies(e1, e1)
         r2 = s.simplify(e2)
-        self.assertEqual(r2, t) 
+        self.assertEqual(r2, t)
         e3 = Implies(And(t, y), Or(y, f))
         r3 = s.simplify(e3)
         self.assertEqual(r3, t)
@@ -322,11 +321,11 @@ class TestBoolOperators(TestCase):
         r4 = s.simplify(e4)
         self.assertEqual(r4, t)
 
-    
+
 class TestArithmeticOperators(TestCase):
     def setUp(self):
         TestCase.setUp(self)
-     
+
     def test_plus_constant(self):
         #simple plus
         s = Simplifier(get_env())
@@ -347,7 +346,7 @@ class TestArithmeticOperators(TestCase):
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertTrue(fnode_simplified.is_int_constant())
         self.assertEqual(fnode_simplified.constant_value(), 0)
-        
+
     def test_plus_fluent(self):
         #plus with fluent
         s = Simplifier(get_env())
@@ -361,7 +360,6 @@ class TestArithmeticOperators(TestCase):
         fnode_of_data_list = Plus(data_list)
         fnode_of_data_list = Plus(fnode_of_data_list, fnodex_2)
         fnode_simplified = s.simplify(fnode_of_data_list)
-        #self.assertEqual(fnode_simplified, Plus(upf.Fluent('x', IntType()), Int(26)))
         self.assertEqual(fnode_simplified, Plus(x ,Int(26)))
 
         data_list = [1,5,6,2,-10,-5,3,-2, x, y]
@@ -406,7 +404,7 @@ class TestArithmeticOperators(TestCase):
             else:
                 fnode_of_data_list_expected = Plus(fnode_of_data_list_expected, Int(-a))
         self.assertEqual(fnode_simplified, fnode_of_data_list_expected)
-        
+
         fnode_of_data_list = Int(0)
         for a in data_list:
             fnode_of_data_list = Minus(fnode_of_data_list, Int(a))
@@ -428,7 +426,6 @@ class TestArithmeticOperators(TestCase):
         fnode1_2 = Times(fnode1, fnode2)
         result1_2 = s.simplify(fnode1_2)
 
-        print(result1_2)
         self.assertTrue(result1_2.constant_value() == 15)
         data_list = [1,5,6,2,3,4,-3,5]
         fnode_of_data_list = Times(0, *data_list)
@@ -511,8 +508,6 @@ class TestArithmeticOperators(TestCase):
         for a in data_list:
             fnode_of_data_list = Div(fnode_of_data_list, Real(Fraction(a)))
         fnode_simplified = s.simplify(fnode_of_data_list)
-        print(fnode_of_data_list)
-        print(fnode_simplified)
         self.assertTrue(fnode_simplified.is_real_constant())
         self.assertEqual(fnode_simplified.constant_value(), 800)
 
@@ -531,15 +526,13 @@ class TestArithmeticOperators(TestCase):
         fnode_of_data_list = Div(x_2, fnode_of_data_list)
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertEqual(fnode_simplified, Div( Div(x, Int(3)), Real(Fraction(1))))
-        
+
         data_list = ['1.0','0.5','10','0.25','0.125']
         fnode_of_data_list = Int(1)
         for a in data_list:
             fnode_of_data_list = Div(fnode_of_data_list, Real(Fraction(a)))
         fnode_of_data_list = Div(fnode_of_data_list, x_2)
-        print(fnode_of_data_list)
         fnode_simplified = s.simplify(fnode_of_data_list)
-        print(fnode_simplified)
         self.assertEqual(fnode_simplified, Div(Fraction('6.4'), Div(x, Int(3))))
 
 
@@ -562,7 +555,7 @@ class TestGeneralSimplifier(TestCase):
         e3 = Or(e2, Implies(e1, x))
         r3 = s.simplify(e3)
         self.assertEqual(r3, t)
-        
+
 
 if __name__ == "__main__":
     main()
