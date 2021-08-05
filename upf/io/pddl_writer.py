@@ -20,6 +20,7 @@ from upf.simplifier import Simplifier
 from upf.exceptions import UPFTypeError
 from typing import IO
 from io import StringIO
+from functools import reduce
 
 
 class ConverterToPDDLString(walkers.DagWalker):
@@ -34,9 +35,11 @@ class ConverterToPDDLString(walkers.DagWalker):
         return self.walk(self.simplifier.simplify(expression))
 
     def walk_and(self, expression, args):
+        assert len(args) > 1
         return f'(and {" ".join(args)})'
 
     def walk_or(self, expression, args):
+        assert len(args) > 1
         return f'(or {" ".join(args)})'
 
     def walk_not(self, expression, args):
@@ -77,16 +80,16 @@ class ConverterToPDDLString(walkers.DagWalker):
         return str(expression.constant_value())
 
     def walk_plus(self, expression, args):
-        assert len(args) == 2
-        return f'(+ {args[0]} {args[1]})'
+        assert len(args) > 1
+        return reduce(lambda x, y: f'(+ {y} {x})', args)
 
     def walk_minus(self, expression, args):
         assert len(args) == 2
         return f'(- {args[0]} {args[1]})'
 
     def walk_times(self, expression, args):
-        assert len(args) == 2
-        return f'(* {args[0]} {args[1]})'
+        assert len(args) > 1
+        return reduce(lambda x, y: f'(* {y} {x})', args)
 
     def walk_div(self, expression, args):
         assert len(args) == 2

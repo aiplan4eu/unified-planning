@@ -21,7 +21,7 @@ from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
 from upf.operators_extractor import OperatorsExtractor
-from typing import List, Dict, Set, Union, Optional
+from typing import List, Dict, Union, Optional
 
 
 class Problem:
@@ -36,7 +36,7 @@ class Problem:
         self._user_types: Dict[str, upf.typing.Type] = {}
         self._objects: Dict[str, upf.Object] = {}
         self._initial_value: Dict[FNode, FNode] = {}
-        self._goals: Set[FNode] = set()
+        self._goals: List[FNode] = list()
 
     def __repr__(self) -> str:
         s = []
@@ -195,9 +195,9 @@ class Problem:
             self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
         if op.OR in ops:
             self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        self._goals.add(goal_exp)
+        self._goals.append(goal_exp)
 
-    def goals(self) -> Set[FNode]:
+    def goals(self) -> List[FNode]:
         """Returns the goals."""
         return self._goals
 
