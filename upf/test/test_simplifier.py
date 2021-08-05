@@ -452,14 +452,15 @@ class TestArithmeticOperators(TestCase):
         e1 = Times(Int(5), Minus(-3, Plus(-5, 2)))
         r1 = s.simplify(e1)
         self.assertTrue(r1.is_constant())
-        #self.assertTrue(r1.constant_value() == 0)
+        self.assertTrue(r1.constant_value() == 0)
         self.assertEqual(r1, Int(0))
+
 
     def test_times_fluent(self):
         #plus with fluent
         s = Simplifier(get_env())
         data2 = 3
-        x = upf.Fluent('x', IntType())
+        x = FluentExp(upf.Fluent('x', IntType()))
         fnode2 = Int(data2)
         x_2 = Times(x, fnode2)
         data_list = [1,5,6,2,3,4,-3,5]
@@ -477,6 +478,10 @@ class TestArithmeticOperators(TestCase):
         fnode_of_data_list = Times(fnode_of_data_list, x_2)
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertEqual(fnode_simplified, Times(x, Int(-32400)))
+
+        e1 = Times(x, Div(1, 5), Int(5))
+        r1 = s.simplify(e1)
+        self.assertEqual(r1, x)
 
 
     def test_div_constant(self):
