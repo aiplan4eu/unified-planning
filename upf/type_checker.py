@@ -46,7 +46,7 @@ class TypeChecker(walkers.DagWalker):
                 (t_left.is_real_type() and t_right.is_real_type()) or
                 (t_left.is_real_type() and t_right.is_int_type())):
             return False
-        left_lower = -float('inf') if t_left.lower_bound() is None else t_left.lower_bound() #type: ignore
+        left_lower = -float('inf') if t_left.lower_bound() is None else t_left.lower_bound() # type: ignore
         left_upper = float('inf') if t_left.upper_bound() is None else t_left.upper_bound() # type: ignore
         right_lower = -float('inf') if t_right.lower_bound() is None else t_right.lower_bound() # type: ignore
         right_upper = float('inf') if t_right.upper_bound() is None else t_right.upper_bound() # type: ignore

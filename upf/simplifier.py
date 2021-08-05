@@ -18,7 +18,6 @@ from collections import OrderedDict
 import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
-from upf.shortcuts import *
 from upf.fnode import FNode
 from typing import List, Union
 
@@ -32,11 +31,11 @@ class Simplifier(walkers.DagWalker):
         self.manager = env.expression_manager
 
     def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
-            if isinstance(value, int):
-                fnode = self.manager.Int(value)
-            else:
-                fnode = self.manager.Real(Fraction(value))
-            return fnode
+        if isinstance(value, int):
+            fnode = self.manager.Int(value)
+        else:
+            fnode = self.manager.Real(Fraction(value))
+        return fnode
 
     def simplify(self, expression: FNode) -> FNode:
         """Performs basic simplification of the given expression."""
@@ -215,21 +214,13 @@ class Simplifier(walkers.DagWalker):
         #if accumulator != 0 create it as a constant FNode and then add all the non-constant FNodes found
         #else return 0 or all the non-constant FNodes found
         if accumulator != 0:
-            if isinstance(accumulator, int):
-                fnode_constant_values = self.manager.Int(accumulator)
-            else:
-                fnode_constant_values = self.manager.Real(Fraction(accumulator))
-            fnode_acc = fnode_constant_values
-            for a in new_args_plus:
-                fnode_acc = self.manager.Plus(a, fnode_acc)
+            fnode_acc = self.manager.Plus(*new_args_plus,self._number_to_fnode(accumulator))
             return fnode_acc
         else: 
             if len(new_args_plus) == 0:
                 return self.manager.Int(0)
             else:
-                fnode_acc = self.manager.Plus(new_args_plus)
-                return fnode_acc
-
+                return self.manager.Plus(new_args_plus)
 
     def walk_minus(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
@@ -248,7 +239,6 @@ class Simplifier(walkers.DagWalker):
                 return self.manager.Minus(left, right)
         else:
             return self.manager.Minus(left, right)
-
     
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
@@ -281,9 +271,7 @@ class Simplifier(walkers.DagWalker):
                 return self.manager.Int(1)
             else:
                 return self.manager.Times(new_args_times)
-    
-            
-        
+                  
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
         left, right = args
@@ -298,12 +286,7 @@ class Simplifier(walkers.DagWalker):
             value = Fraction(left.constant_value(), right.constant_value())
         else:
             return self.manager.Div(left, right)
-        fnode_constant_values = self._number_to_fnode(value)
-        return fnode_constant_values
-                
-        
-        
-
+        return self._number_to_fnode(value)
 
     @walkers.handles(op.CONSTANTS)
     @walkers.handles(op.PARAM_EXP, op.OBJECT_EXP)

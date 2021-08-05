@@ -1,5 +1,3 @@
-    
-
     # Copyright 2021 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +20,6 @@ from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.simplifier import Simplifier
 from upf.environment import get_env
-
 
 
 class TestBoolOperators(TestCase):
@@ -326,7 +323,6 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r4, t)
 
     
-
 class TestArithmeticOperators(TestCase):
     def setUp(self):
         TestCase.setUp(self)
@@ -352,7 +348,6 @@ class TestArithmeticOperators(TestCase):
         self.assertTrue(fnode_simplified.is_int_constant())
         self.assertEqual(fnode_simplified.constant_value(), 0)
         
-
     def test_plus_fluent(self):
         #plus with fluent
         s = Simplifier(get_env())
@@ -423,7 +418,6 @@ class TestArithmeticOperators(TestCase):
         r1 = s.simplify(e1)
         self.assertEqual(r1, e1)
 
-
     def test_times_constant(self):
         #simple times
         s = Simplifier(get_env())
@@ -453,7 +447,6 @@ class TestArithmeticOperators(TestCase):
         self.assertTrue(r1.constant_value() == 0)
         self.assertEqual(r1, Int(0))
 
-
     def test_times_fluent(self):
         #plus with fluent
         s = Simplifier(get_env())
@@ -480,7 +473,6 @@ class TestArithmeticOperators(TestCase):
         e1 = Times(x, Div(1, 5), Int(5))
         r1 = s.simplify(e1)
         self.assertEqual(r1, x)
-
 
     def test_div_constant(self):
         #simple div
@@ -538,8 +530,6 @@ class TestArithmeticOperators(TestCase):
             fnode_of_data_list = Div(fnode_of_data_list, Real(Fraction(a)))
         fnode_of_data_list = Div(x_2, fnode_of_data_list)
         fnode_simplified = s.simplify(fnode_of_data_list)
-        #self.assertEqual(fnode_simplified, Div( Div(x, Int(3s)), Int(1)))
-        #self.assertEqual(fnode_simplified, Div( Div(x, Real(Fraction(3))), Real(Fraction(1))))
         self.assertEqual(fnode_simplified, Div( Div(x, Int(3)), Real(Fraction(1))))
         
         data_list = ['1.0','0.5','10','0.25','0.125']
@@ -551,6 +541,7 @@ class TestArithmeticOperators(TestCase):
         fnode_simplified = s.simplify(fnode_of_data_list)
         print(fnode_simplified)
         self.assertEqual(fnode_simplified, Div(Fraction('6.4'), Div(x, Int(3))))
+
 
 class TestGeneralSimplifier(TestCase):
     def test_general(self):
