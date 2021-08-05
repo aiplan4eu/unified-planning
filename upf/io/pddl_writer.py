@@ -81,7 +81,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_plus(self, expression, args):
         assert len(args) > 1
-        return reduce(lambda x, y: f'(+ {y} {x})', iter(args))
+        return reduce(lambda x, y: f'(+ {y} {x})', args)
 
     def walk_minus(self, expression, args):
         assert len(args) == 2
@@ -89,7 +89,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_times(self, expression, args):
         assert len(args) > 1
-        return reduce(lambda x, y: f'(* {y} {x})', iter(args))
+        return reduce(lambda x, y: f'(* {y} {x})', args)
 
     def walk_div(self, expression, args):
         assert len(args) == 2
