@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from upf.exceptions import UPFTypeError
 from upf.expression import Expression
 import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
@@ -48,7 +49,7 @@ class Substituter(IdentityDagWalker):
 
         f = a & b
         subs = {a -> 5, b -> c}
-        substitute(f, subs) = a & c
+        substitute(f, subs) raises an UPFTypeError
 
         Note that, since subs is a dictionary:
         f = a
@@ -62,12 +63,10 @@ class Substituter(IdentityDagWalker):
         new_keys = self.manager.auto_promote(substitutions.keys())
         new_values = self.manager.auto_promote(substitutions.values())
         new_substitutions = dict(zip(new_keys, new_values))
-        to_remove: typing.List[FNode] = []
         for k, v in new_substitutions.items():
             if not self.type_checker.is_compatible_type(k, v):
-                to_remove.append(k)
-        for d in to_remove:
-            del new_substitutions[d]
+                raise UPFTypeError(
+                    f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}")
         return self.walk(expression, subs = new_substitutions)
 
     @walkers.handles(op.ALL_TYPES)

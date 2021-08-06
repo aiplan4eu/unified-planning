@@ -19,7 +19,7 @@ from upf.test import TestCase, main
 import upf
 from upf.substituter import Substituter
 from upf.environment import get_env
-
+from upf.exceptions import UPFTypeError
 
 class TestSubstituter(TestCase):
     def setUp(self):
@@ -68,18 +68,17 @@ class TestSubstituter(TestCase):
         s2 = s.substitute(e2, subst)
         self.assertEqual(s2, c)
 
-        subst = {}
-        subst[a] = c
-        subst[And(c,b)] = d
-        subst[And(a,b)] = Int(5)
-        e3 = And(a, b)
-        s3 = s.substitute(e3, subst)
-        self.assertEqual(s3, And(c,b))
+        with self.assertRaises(UPFTypeError):
+            subst = {}
+            subst[a] = c
+            subst[And(c,b)] = d
+            subst[And(a,b)] = Int(5)
+            e3 = And(a, b)
+            s3 = s.substitute(e3, subst)
 
         subst = {}
         subst[a] = c
         subst[And(c,b)] = d
-        subst[And(a,b)] = Int(5)
         e4 = And(a, b, And(c, b))
         s4 = s.substitute(e4, subst)
         self.assertEqual(s4, And(c,b,d))
@@ -90,3 +89,10 @@ class TestSubstituter(TestCase):
         e5 = And(a, c, And(a, c))
         s5 = s.substitute(e5, subst)
         self.assertEqual(s5, And(c, d, And(c, d)))
+
+        with self.assertRaises(UPFTypeError):
+            subst = {}
+            subst[a] = c
+            subst[And(c,b)] = Plus(1, 2)
+            e6 = Int(1)
+            s.substitute(e6, subst)
