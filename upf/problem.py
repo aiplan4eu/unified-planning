@@ -14,7 +14,7 @@
 #
 """This module defines the problem class."""
 
-import upf.typing
+import upf.types
 import upf.operators as op
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
@@ -33,7 +33,7 @@ class Problem:
         self._name = name
         self._fluents: Dict[str, upf.Fluent] = {}
         self._actions: Dict[str, upf.Action] = {}
-        self._user_types: Dict[str, upf.typing.Type] = {}
+        self._user_types: Dict[str, upf.types.Type] = {}
         self._objects: Dict[str, upf.Object] = {}
         self._initial_value: Dict[FNode, FNode] = {}
         self._goals: List[FNode] = list()
@@ -137,11 +137,11 @@ class Problem:
                 self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
         self._actions[action.name()] = action
 
-    def user_types(self) -> Dict[str, upf.typing.Type]:
+    def user_types(self) -> Dict[str, upf.types.Type]:
         """Returns the user types."""
         return self._user_types
 
-    def user_type(self, name: str) -> upf.typing.Type:
+    def user_type(self, name: str) -> upf.types.Type:
         """Returns the user type with the given name."""
         return self._user_types[name]
 
@@ -155,7 +155,7 @@ class Problem:
         """Returns the object with the given name."""
         return self._objects[name]
 
-    def objects(self, typename: upf.typing.Type) -> List[upf.Object]:
+    def objects(self, typename: upf.types.Type) -> List[upf.Object]:
         """Returns the objects of the given user types."""
         res = []
         for obj in self._objects.values():
