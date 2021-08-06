@@ -37,10 +37,23 @@ class Substituter(IdentityDagWalker):
     def substitute(self, expression: FNode, substitutions: typing.Dict[Expression, Expression] = {}) -> FNode:
         """Performs substitution into the given expression.
 
-        Lets consider the example:
-        f = (a & b)
+        Lets consider the examples:
+        f = a & b
         subs = {a -> c, (c & b) -> d, (a & b) -> c}
-        f' = c
+        substitute(f, subs) = c
+
+        f = a
+        subs = {a -> c, c -> d}
+        substitute(f, subs) = c
+
+        f = a & b
+        subs = {a -> 5, b -> c}
+        substitute(f, subs) = a & c
+
+        Note that, since subs is a dictionary:
+        f = a
+        subs = {a -> b, a -> c}
+        substitute(f, subs) = c
         """
 
         if len(substitutions) == 0:

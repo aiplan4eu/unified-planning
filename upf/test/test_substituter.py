@@ -83,3 +83,10 @@ class TestSubstituter(TestCase):
         e4 = And(a, b, And(c, b))
         s4 = s.substitute(e4, subst)
         self.assertEqual(s4, And(c,b,d))
+
+        subst = {}
+        subst[a] = c
+        subst[c] = d
+        e5 = And(a, c, And(a, c))
+        s5 = s.substitute(e5, subst)
+        self.assertEqual(s5, And(c, d, And(c, d)))
