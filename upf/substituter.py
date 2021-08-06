@@ -31,7 +31,7 @@ class Substituter(IdentityDagWalker):
         IdentityDagWalker.__init__(self, env, True)
         self.env = env
         self.manager = env.expression_manager
-        self.type_checker = TypeChecker(env)
+        self.type_checker = env.type_checker
 
     def _get_key(self, expression, **kwargs):
         return expression
@@ -63,16 +63,18 @@ class Substituter(IdentityDagWalker):
         new_substitutions: Dict[FNode, FNode] = {}
         new_keys = self.manager.auto_promote(substitutions.keys())
         new_values = self.manager.auto_promote(substitutions.values())
-        new_substitutions = dict(zip(new_keys, new_values))
-        for k, v in new_substitutions.items():
-            if not self.type_checker.is_compatible_type(k, v):
+        for k, v in zip(new_keys, new_values):
+            if self.type_checker.is_compatible_type(k, v):
+                new_substitutions[k] = v
+            else:
                 raise UPFTypeError(
                     f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}")
         return self.walk(expression, subs = new_substitutions)
 
     @walkers.handles(op.ALL_TYPES)
     def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: dict = {}, **kwargs) -> FNode:
-        if expression in subs:
-            return subs[expression]
+        res = subs.get(expression, None)
+        if res is not None:
+            return res
         else:
             return IdentityDagWalker.super(self, expression, args, **kwargs)
