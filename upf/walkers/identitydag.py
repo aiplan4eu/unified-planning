@@ -19,7 +19,6 @@ import upf.walkers as walkers
 import upf.operators as op
 from upf.fnode import FNode
 from typing import List
-from fractions import Fraction
 
 class IdentityDagWalker(walkers.DagWalker):
     """This class traverses an expression and rebuilds it recursively
@@ -74,13 +73,13 @@ class IdentityDagWalker(walkers.DagWalker):
         return self.manager.FluentExp(expression.fluent(), tuple(args))
 
     def walk_bool_constant(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        return self.manager.Bool(expression.constant_value())
+        return self.manager.Bool(expression.bool_constant_value())
 
     def walk_int_constant(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        return self.manager.Int(expression.constant_value())
+        return self.manager.Int(expression.int_constant_value())
 
     def walk_real_constant(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        return self.manager.Real(expression.constant_value())
+        return self.manager.Real(expression.real_constant_value())
 
     def walk_param_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.ParameterExp(expression.parameter())

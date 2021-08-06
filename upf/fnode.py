@@ -115,6 +115,21 @@ class FNode(object):
         assert self.is_constant()
         return self._content.payload
 
+    def bool_constant_value(self) -> bool:
+        """Return the bool value of the Constant."""
+        assert self.is_bool_constant()
+        return self._content.payload
+
+    def int_constant_value(self) -> int:
+        """Return the int value of the Constant."""
+        assert self.is_int_constant()
+        return self._content.payload
+
+    def real_constant_value(self) -> Fraction:
+        """Return the real value of the Constant."""
+        assert self.is_real_constant()
+        return self._content.payload
+
     def fluent(self) -> 'upf.Fluent':
         """Return the fluent of the FluentExp."""
         assert self.is_fluent_exp()

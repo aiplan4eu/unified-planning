@@ -17,12 +17,13 @@
 from collections import OrderedDict
 import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
+import upf.walkers as walkers
 import upf.operators as op
 from upf.fnode import FNode
 from typing import List
 
 class Substituter(IdentityDagWalker):
-    """Performs substitution into an expression"""
+    """Performs substitution into an expression """
     def __init__(self, env: 'upf.environment.Environment'):
         IdentityDagWalker.__init__(self, env, True)
 
@@ -39,8 +40,9 @@ class Substituter(IdentityDagWalker):
         #         if not self._is_compatible_type():
         return self.walk(expression, subs = substitutions)
 
-    def walk_fluent_exp(self, expression: FNode, args: List[FNode], subs: OrderedDict = OrderedDict(), **kwargs) -> FNode:
-        for f in subs.keys():
-            if expression == f:
-                return subs[f]
-        return expression
+    @walkers.handles(op.ALL_TYPES)
+    def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: OrderedDict = OrderedDict(), **kwargs) -> FNode:
+        if expression in subs:
+            return subs[expression]
+        else:
+            return IdentityDagWalker.super(self, expression, args, **kwargs)
