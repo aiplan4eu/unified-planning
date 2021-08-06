@@ -71,7 +71,7 @@ class Substituter(IdentityDagWalker):
         return self.walk(expression, subs = new_substitutions)
 
     @walkers.handles(op.ALL_TYPES)
-    def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: Dict[Expression, Expression] = {}, **kwargs) -> FNode:
+    def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: Dict[FNode, FNode] = {}, **kwargs) -> FNode:
         res = subs.get(expression, None)
         if res is not None:
             return res
