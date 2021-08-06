@@ -61,11 +61,11 @@ class Substituter(IdentityDagWalker):
         if len(substitutions) == 0:
             return expression
         new_substitutions: Dict[FNode, FNode] = {}
-        new_keys = self.manager.auto_promote(substitutions.keys())
-        new_values = self.manager.auto_promote(substitutions.values())
-        for k, v in zip(new_keys, new_values):
-            if self.type_checker.is_compatible_type(k, v):
-                new_substitutions[k] = v
+        for k, v in substitutions.items():
+            new_k, = self.manager.auto_promote(k)
+            new_v, = self.manager.auto_promote(v)
+            if self.type_checker.is_compatible_type(new_k, new_v):
+                new_substitutions[new_k] = new_v
             else:
                 raise UPFTypeError(
                     f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}")
