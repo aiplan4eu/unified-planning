@@ -178,7 +178,7 @@ class ExpressionManager(object):
         """Return the boolean constant False."""
         return self.false_expression
 
-    def Bool(self, value: bool) -> FNode:
+    def Bool(self, value: Union[bool, int, Fraction]) -> FNode:
         """Return a boolean constant."""
         if type(value) != bool:
             raise UPFTypeError("Expecting bool, got %s" % type(value))
@@ -188,13 +188,13 @@ class ExpressionManager(object):
         else:
             return self.false_expression
 
-    def Int(self, value: int) -> FNode:
+    def Int(self, value: Union[bool, int, Fraction]) -> FNode:
         """Return an int constant."""
         if type(value) != int:
             raise UPFTypeError("Expecting int, got %s" % type(value))
         return self.create_node(node_type=op.INT_CONSTANT, args=tuple(), payload=value)
 
-    def Real(self, value: Fraction) -> FNode:
+    def Real(self, value: Union[bool, int, Fraction]) -> FNode:
         """Return a real constant."""
         if type(value) != Fraction:
             raise UPFTypeError("Expecting Fraction, got %s" % type(value))

@@ -80,7 +80,7 @@ class IdentityDagWalker(walkers.DagWalker):
         return self.manager.Int(expression.constant_value())
 
     def walk_real_constant(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        return self.manager.Real(Fraction(expression.constant_value()))
+        return self.manager.Real(expression.constant_value())
 
     def walk_param_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.ParameterExp(expression.parameter())
