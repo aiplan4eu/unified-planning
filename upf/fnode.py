@@ -17,7 +17,8 @@
 import upf
 import collections
 import upf.operators as op
-from typing import List
+from typing import List, Union
+from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent",
                                       ["node_type", "args", "payload"])
@@ -40,15 +41,12 @@ class FNode(object):
 
     def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
         p = []
-        first = True
-        for x in args:
-            if first:
-                p.append('(')
-                first = False
-            else:
-                p.append(op)
-            p.append(str(x))
         if len(args) > 0:
+            p.append('(')
+            p.append(str(args[0]))
+            for x in args[1:]:
+                p.append(op)
+                p.append(str(x))
             p.append(')')
         return ''.join(p)
 
@@ -112,7 +110,7 @@ class FNode(object):
             self.node_type() == op.INT_CONSTANT or \
             self.node_type() == op.REAL_CONSTANT
 
-    def constant_value(self) -> bool:
+    def constant_value(self) -> Union[bool, int, Fraction]:
         """Return the value of the Constant."""
         assert self.is_constant()
         return self._content.payload

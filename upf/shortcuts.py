@@ -66,14 +66,14 @@ def Int(value: int) -> FNode:
 def Real(value: Fraction) -> FNode:
     return get_env().expression_manager.Real(value)
 
-def Plus(left: Expression, right: Expression) -> FNode:
-    return get_env().expression_manager.Plus(left, right)
+def Plus(*args: Union[Expression, Iterable[Expression]]) -> FNode:
+    return get_env().expression_manager.Plus(*args)
 
 def Minus(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Minus(left, right)
 
-def Times(left: Expression, right: Expression) -> FNode:
-    return get_env().expression_manager.Times(left, right)
+def Times(*args: Union[Expression, Iterable[Expression]]) -> FNode:
+    return get_env().expression_manager.Times(*args)
 
 def Div(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Div(left, right)
