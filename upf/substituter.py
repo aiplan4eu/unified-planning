@@ -62,8 +62,7 @@ class Substituter(IdentityDagWalker):
             return expression
         new_substitutions: Dict[FNode, FNode] = {}
         for k, v in substitutions.items():
-            new_k, = self.manager.auto_promote(k)
-            new_v, = self.manager.auto_promote(v)
+            new_k, new_v = self.manager.auto_promote(k, v)
             if self.type_checker.is_compatible_type(new_k, new_v):
                 new_substitutions[new_k] = new_v
             else:
