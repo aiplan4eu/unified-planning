@@ -13,35 +13,52 @@
 # limitations under the License.
 #
 
-
-from collections import OrderedDict
+from upf.expression import Expression
 import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
 import upf.walkers as walkers
 import upf.operators as op
 from upf.fnode import FNode
 from typing import List
+import typing
+from upf.type_checker import TypeChecker
 
 class Substituter(IdentityDagWalker):
     """Performs substitution into an expression """
     def __init__(self, env: 'upf.environment.Environment'):
         IdentityDagWalker.__init__(self, env, True)
+        self.env = env
+        self.manager = env.expression_manager
+        self.type_checker = TypeChecker(env)
 
     def _get_key(self, expression, **kwargs):
         return expression
 
-    def substitute(self, expression: FNode, substitutions: OrderedDict = None) -> FNode:
-        """Performs substitution into the given expression."""
-        if substitutions is None:
+    def substitute(self, expression: FNode, substitutions: typing.Dict[Expression, Expression] = {}) -> FNode:
+        """Performs substitution into the given expression.
+
+        Lets consider the example:
+        f = (a & b)
+        subs = {a -> c, (c & b) -> d, (a & b) -> c}
+        f' = c
+        """
+
+        if len(substitutions) == 0:
             return expression
-        #CHECK CHE I TIPI SIANO COMPATIBILI!!!
-        # else:
-        #     for exp in substitutions.keys():
-        #         if not self._is_compatible_type():
-        return self.walk(expression, subs = substitutions)
+        new_substitutions: typing.Dict[FNode, FNode] = {}
+        new_keys = self.manager.auto_promote(substitutions.keys())
+        new_values = self.manager.auto_promote(substitutions.values())
+        new_substitutions = dict(zip(new_keys, new_values))
+        to_remove: typing.List[FNode] = []
+        for k, v in new_substitutions.items():
+            if not self.type_checker.is_compatible_type(k, v):
+                to_remove.append(k)
+        for d in to_remove:
+            del new_substitutions[d]
+        return self.walk(expression, subs = new_substitutions)
 
     @walkers.handles(op.ALL_TYPES)
-    def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: OrderedDict = OrderedDict(), **kwargs) -> FNode:
+    def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: dict = {}, **kwargs) -> FNode:
         if expression in subs:
             return subs[expression]
         else:

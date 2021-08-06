@@ -58,10 +58,10 @@ class IdentityDagWalker(walkers.DagWalker):
         return self.manager.LT(args[0], args[1])
 
     def walk_plus( self, expression: FNode, args: List[FNode], **kwargs):
-        return self.manager.Plus(args[0], args[1])
+        return self.manager.Plus(*args)
 
     def walk_times( self, expression: FNode, args: List[FNode], **kwargs):
-        return self.manager.Times(args[0], args[1])
+        return self.manager.Times(*args)
 
     def walk_minus( self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Minus(args[0], args[1])
