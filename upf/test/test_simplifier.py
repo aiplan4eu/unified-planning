@@ -13,14 +13,13 @@
 # limitations under the License.
 
 
-from fractions import Fraction
-import typing
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.simplifier import Simplifier
 from upf.environment import get_env
 from upf.substituter import Substituter
+from fractions import Fraction
 
 
 class TestBoolOperators(TestCase):

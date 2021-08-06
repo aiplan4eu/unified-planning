@@ -13,16 +13,17 @@
 # limitations under the License.
 #
 
-from upf.exceptions import UPFTypeError
-from upf.expression import Expression
-import upf.environment
-from upf.walkers.identitydag import IdentityDagWalker
+
 import upf.walkers as walkers
 import upf.operators as op
+import upf.environment
+from upf.walkers.identitydag import IdentityDagWalker
 from upf.fnode import FNode
-from typing import List
-import typing
 from upf.type_checker import TypeChecker
+from upf.exceptions import UPFTypeError
+from upf.expression import Expression
+from typing import List, Dict
+
 
 class Substituter(IdentityDagWalker):
     """Performs substitution into an expression """
@@ -35,7 +36,7 @@ class Substituter(IdentityDagWalker):
     def _get_key(self, expression, **kwargs):
         return expression
 
-    def substitute(self, expression: FNode, substitutions: typing.Dict[Expression, Expression] = {}) -> FNode:
+    def substitute(self, expression: FNode, substitutions: Dict[Expression, Expression] = {}) -> FNode:
         """Performs substitution into the given expression.
 
         Lets consider the examples:
@@ -59,7 +60,7 @@ class Substituter(IdentityDagWalker):
 
         if len(substitutions) == 0:
             return expression
-        new_substitutions: typing.Dict[FNode, FNode] = {}
+        new_substitutions: Dict[FNode, FNode] = {}
         new_keys = self.manager.auto_promote(substitutions.keys())
         new_values = self.manager.auto_promote(substitutions.values())
         new_substitutions = dict(zip(new_keys, new_values))
