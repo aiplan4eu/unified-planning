@@ -748,12 +748,8 @@ class TestWithSubstituter(TestCase):
         self.assertEqual(r4, t)
         sub5 = {Not(Equals(c, d)): GT(Plus(a, 5), b), y : False}
         s5 = su.substitute(e, sub5)
-        print(s5)
         r5 = s.simplify(s5)
         self.assertEqual(r5, t)
-
-
-
 
 
 if __name__ == "__main__":

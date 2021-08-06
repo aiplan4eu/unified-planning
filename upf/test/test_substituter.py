@@ -96,3 +96,7 @@ class TestSubstituter(TestCase):
             subst[And(c,b)] = Plus(1, 2)
             e6 = Int(1)
             s.substitute(e6, subst)
+
+
+if __name__ == "__main__":
+    main()
