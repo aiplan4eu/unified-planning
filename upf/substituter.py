@@ -39,7 +39,7 @@ class Substituter(IdentityDagWalker):
         #         if not self._is_compatible_type():
         return self.walk(expression, subs = substitutions)
 
-    def walk_fluent_exp(self, expression: FNode, args: List[FNode], subs: OrderedDict = OrderedDict()) -> FNode:
+    def walk_fluent_exp(self, expression: FNode, args: List[FNode], subs: OrderedDict = OrderedDict(), **kwargs) -> FNode:
         for f in subs.keys():
             if expression == f:
                 return subs[f]
