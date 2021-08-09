@@ -24,7 +24,7 @@ from upf.environment import get_env, Environment
 from upf.fnode import FNode
 from upf.exceptions import UPFTypeError
 from upf.expression import BoolExpression
-from upf.effect import Effect, ASSIGNMENT, INCREASE, DECREASE
+from upf.effect import Effect, ASSIGNMENT
 from collections import OrderedDict
 from typing import List, Union, Tuple
 
