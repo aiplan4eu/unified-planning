@@ -135,6 +135,13 @@ class Problem:
                 self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
             if op.OR in ops:
                 self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        for e in action.effects():
+            if e.is_conditional():
+                self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+            if e.is_increase():
+                self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+            if e.is_decrease():
+                self._kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.typing.Type]:
