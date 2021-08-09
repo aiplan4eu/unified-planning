@@ -13,12 +13,13 @@
 # limitations under the License.
 
 
-from fractions import Fraction
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.simplifier import Simplifier
 from upf.environment import get_env
+from upf.substituter import Substituter
+from fractions import Fraction
 
 
 class TestBoolOperators(TestCase):
@@ -535,8 +536,6 @@ class TestArithmeticOperators(TestCase):
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertEqual(fnode_simplified, Div(Fraction('6.4'), Div(x, Int(3))))
 
-
-class TestGeneralSimplifier(TestCase):
     def test_general(self):
         s = Simplifier(get_env())
         x = FluentExp(upf.Fluent('x'))
@@ -555,6 +554,201 @@ class TestGeneralSimplifier(TestCase):
         e3 = Or(e2, Implies(e1, x))
         r3 = s.simplify(e3)
         self.assertEqual(r3, t)
+
+class TestWithSubstituter(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+
+    def test_and_fluent(self):
+        s = Simplifier(get_env())
+        su = Substituter(get_env())
+        x = upf.Fluent('x')
+        y = FluentExp(upf.Fluent('y'))
+        t = Bool(True)
+        f = Bool(False)
+        e1 = And(x, f)
+        sub = {x : True}
+        s1 = su.substitute(e1, sub)
+        r1 = s.simplify(s1)
+        self.assertEqual(r1, f)
+        self.assertEqual(r1.constant_value(), False)
+        e2 = And(x, e1)
+        sub = {x : True}
+        s2 = su.substitute(e2, sub)
+        r2 = s.simplify(s2)
+        self.assertEqual(r2, f)
+        self.assertEqual(r2.constant_value(), False)
+        e3 = And(x, t, t)
+        e4 = And(e3, t)
+        sub = {x : True}
+        s4 = su.substitute(e4, sub)
+        r4 = s.simplify(s4)
+        self.assertEqual(t, r4)
+        e5 = And(x, x)
+        sub = {x : True}
+        s5 = su.substitute(e5, sub)
+        r5 = s.simplify(s5)
+        self.assertEqual(r5, t)
+        e6 = And(And(x, y), And(y, x))
+        sub = {x : True}
+        s6_1 = su.substitute(e6, sub)
+        r6_1 = s.simplify(s6_1)
+        self.assertEqual(r6_1, y)
+        sub = {x : True, y : True}
+        s6_2 = su.substitute(e6, sub)
+        r6_2 = s.simplify(s6_2)
+        self.assertEqual(r6_2, t)
+        e7 = And(And(x, y), And(y, Not(x)))
+        sub = {x : True, y : True}
+        s7 = su.substitute(e7, sub)
+        r7 = s.simplify(s7)
+        self.assertEqual(r7, f)
+
+    def test_or_fluent(self):
+        s = Simplifier(get_env())
+        su = Substituter(get_env())
+        x = upf.Fluent('x')
+        y = FluentExp(upf.Fluent('y'))
+        t = Bool(True)
+        f = Bool(False)
+        e1 = Or(x, t)
+        sub = {x : False}
+        s1 = su.substitute(e1, sub)
+        r1 = s.simplify(s1)
+        self.assertEqual(r1, t)
+        self.assertEqual(r1.constant_value(), True)
+        e2 = Or(x, e1)
+        sub = {x : False}
+        s2 = su.substitute(e2, sub)
+        r2 = s.simplify(s2)
+        self.assertEqual(r2, t)
+        self.assertEqual(r2.constant_value(), True)
+        e3 = Or(x, f, f)
+        e4 = Or(e3, f)
+        sub = {x : False}
+        s4_1 = su.substitute(e4, sub)
+        r4_1 = s.simplify(s4_1)
+        self.assertEqual(r4_1, f)
+        sub = {x : True}
+        s4_2 = su.substitute(e4, sub)
+        r4_2 = s.simplify(s4_2)
+        self.assertEqual(r4_2, t)
+        e5 = Or(x, x)
+        sub = {x : False}
+        s5 = su.substitute(e5, sub)
+        r5 = s.simplify(s5)
+        self.assertEqual(r5, f)
+        e6 = Or(Or(x, y), Or(y, x))
+        sub = {x : False}
+        s6 = su.substitute(e6, sub)
+        r6 = s.simplify(s6)
+        self.assertEqual(r6, y)
+        e7 = Or(Or(x, y), Or(y, Not(x)))
+        sub = {y : False}
+        s7 = su.substitute(e7, sub)
+        r7 = s.simplify(s7)
+        self.assertEqual(r7, t)
+        e8 = Or(Or(x, y), Not(x))
+        sub = {y : False}
+        s8 = su.substitute(e8, sub)
+        r8 = s.simplify(s8)
+        self.assertEqual(r8, t)
+        sub = {x : False}
+        s9 = su.substitute(e7, sub)
+        r9 = s.simplify(s9)
+        self.assertEqual(r9, t)
+
+    def test_not(self):
+        s = Simplifier(get_env())
+        su = Substituter(get_env())
+        x = upf.Fluent('x')
+        t = Bool(True)
+        f = Bool(False)
+        e1 = Or(x, Not(t))
+        sub = {x : False}
+        s1 = su.substitute(e1, sub)
+        r1 = s.simplify(s1)
+        self.assertEqual(r1, f)
+        e2 = Not(Or(x, e1))
+        sub = {x : False}
+        s2 = su.substitute(e2, sub)
+        r2 = s.simplify(s2)
+        self.assertEqual(r2, t)
+
+    def test_iff(self):
+        s = Simplifier(get_env())
+        su = Substituter(get_env())
+        x = FluentExp(upf.Fluent('x'))
+        y = FluentExp(upf.Fluent('y'))
+        t = Bool(True)
+        f = Bool(False)
+        e1 = Iff(x, y)
+        sub = {x : False}
+        s1 = su.substitute(e1, sub)
+        r1 = s.simplify(s1)
+        self.assertEqual(r1, Not(y))
+        e4 = Iff(And(x, y), And(y, x))
+        sub = {x : False}
+        s4 = su.substitute(e4, sub)
+        r4 = s.simplify(s4)
+        self.assertEqual(r4, t)
+        e5 = Iff(And(x, t), f)
+        sub = {x : False}
+        s5 = su.substitute(e5, sub)
+        r5 = s.simplify(s5)
+        self.assertEqual(r5, t)
+
+    def test_implies(self):
+        s = Simplifier(get_env())
+        su = Substituter(get_env())
+        x = FluentExp(upf.Fluent('x'))
+        y = FluentExp(upf.Fluent('y'))
+        t = Bool(True)
+        f = Bool(False)
+        e1 = Implies(x, y)
+        sub = {x : False}
+        s1 = su.substitute(e1, sub)
+        r1 = s.simplify(s1)
+        self.assertEqual(r1, t)
+        e3 = Implies(And(t, y), x)
+        sub = {y : x, x : False}
+        s3 = su.substitute(e3, sub)
+        r3 = s.simplify(s3)
+        self.assertEqual(r3, Not(x))
+
+    def test_num_to_bools_operators(self):
+        s = Simplifier(get_env())
+        su = Substituter(get_env())
+        a = FluentExp(upf.Fluent("a", IntType()))
+        b = FluentExp(upf.Fluent("b", IntType()))
+        c = FluentExp(upf.Fluent("c", IntType()))
+        d = FluentExp(upf.Fluent("d", IntType()))
+        x = FluentExp(upf.Fluent("x"))
+        y = FluentExp(upf.Fluent("y"))
+        t = Bool(True)
+        f = Bool(False)
+        #[(a+5 > b iff c != d) & x] iff (x xor y)
+        e = Iff(And(x, Iff(GT(Plus(a, 5), b), Not(Equals(c, d)))), Or(And(x, Not(y)), And(Not(x), y)))
+        sub1 = {x : False, y : False, a : 0, b : 5, c : 0, d : 1}
+        s1 = su.substitute(e, sub1)
+        r1 = s.simplify(s1)
+        self.assertEqual(r1, t)
+        sub2 = {x : True, y : False, a : 0, b : 5, c : 0, d : 1}
+        s2 = su.substitute(e, sub2)
+        r2 = s.simplify(s2)
+        self.assertEqual(r2, f)
+        sub3 = {y : False, a : 0, b : 5, c : 0, d : 1}
+        s3 = su.substitute(e, sub3)
+        r3 = s.simplify(s3)
+        self.assertEqual(r3, Not(x))
+        sub4 = {y : False, a : 1, b : 5, c : 0, d : 1}
+        s4 = su.substitute(e, sub4)
+        r4 = s.simplify(s4)
+        self.assertEqual(r4, t)
+        sub5 = {Not(Equals(c, d)): GT(Plus(a, 5), b), y : False}
+        s5 = su.substitute(e, sub5)
+        r5 = s.simplify(s5)
+        self.assertEqual(r5, t)
 
 
 if __name__ == "__main__":
