@@ -102,7 +102,7 @@ def get_example_problems():
     move.add_precondition(Not(robot_at(l_to)))
     move.add_effect(robot_at(l_from), False)
     move.add_effect(robot_at(l_to), True)
-    move.add_effect(battery_charge, 10, kind = Decrease())
+    move.add_decrease_effect(battery_charge, 10)
     l1 = upf.Object('l1', Location)
     l2 = upf.Object('l2', Location)
     problem = upf.Problem('robot_decrease')

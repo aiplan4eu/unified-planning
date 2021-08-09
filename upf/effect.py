@@ -30,11 +30,11 @@ from typing import List, Union, Tuple, Optional
 KINDS = list(range(0, 3))
 
 (
-    ASSIGNMENT, INCREASE, DECREASE
+    ASSIGN, INCREASE, DECREASE
 ) = KINDS
 
 class Effect:
-    def __init__(self, fluent: FNode, value: FNode, condition: FNode = None, kind: int = ASSIGNMENT):
+    def __init__(self, fluent: FNode, value: FNode, condition: FNode, kind: int = ASSIGN):
         self._fluent = fluent
         self._value = value
         self._condition = condition
@@ -55,7 +55,7 @@ class Effect:
         return ' '.join(s)
 
     def is_conditional(self) -> bool:
-        return self._condition is not None
+        return not self._condition.is_true()
 
     def fluent(self) -> FNode:
         return self._fluent
@@ -68,7 +68,7 @@ class Effect:
         return self._condition
 
     def is_assignment(self) -> bool:
-        return self._kind == ASSIGNMENT
+        return self._kind == ASSIGN
 
     def is_increase(self) -> bool:
         return self._kind == INCREASE
