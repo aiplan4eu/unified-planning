@@ -46,11 +46,11 @@ class TestProblem(TestCase):
         self.assertEqual(len(a.preconditions()), 1)
         self.assertEqual(len(a.effects()), 1)
         a_str = str(a)
-        self.assertTrue('action a' in a_str)
-        self.assertTrue('preconditions' in a_str)
-        self.assertTrue('not x' in a_str)
-        self.assertTrue('effects' in a_str)
-        self.assertTrue('x := true' in a_str)
+        self.assertIn('action a', a_str)
+        self.assertIn('preconditions', a_str)
+        self.assertIn('not x', a_str)
+        self.assertIn('effects', a_str)
+        self.assertIn('x := true', a_str)
 
         self.assertEqual(problem.name(), 'basic')
         self.assertEqual(len(problem.fluents()), 1)
@@ -58,10 +58,10 @@ class TestProblem(TestCase):
         self.assertTrue(problem.initial_value(x) is not None)
         self.assertEqual(len(problem.goals()), 1)
         problem_str = str(problem)
-        self.assertTrue('fluents' in problem_str)
-        self.assertTrue('actions' in problem_str)
-        self.assertTrue('initial values' in problem_str)
-        self.assertTrue('goals' in problem_str)
+        self.assertIn('fluents', problem_str)
+        self.assertIn('actions', problem_str)
+        self.assertIn('initial values', problem_str)
+        self.assertIn('goals', problem_str)
 
     def test_robot(self):
         problem = self.problems['robot'].problem
