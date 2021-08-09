@@ -19,7 +19,7 @@ are represented by the same object.
 """
 
 import upf
-import upf.typing
+import upf.types
 import upf.operators as op
 from upf.fnode import FNodeContent, FNode
 from upf.exceptions import UPFTypeError

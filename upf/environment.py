@@ -21,14 +21,14 @@ such as the ExpressionManager, TypeChecker, TypeManager.
 
 import upf.expression
 import upf.factory
-import upf.typing
+import upf.types
 import upf.type_checker
 
 
 class Environment:
     """Represents the environment."""
     def __init__(self):
-        self._type_manager = upf.typing.TypeManager()
+        self._type_manager = upf.types.TypeManager()
         self._factory = upf.factory.Factory()
         self._tc = upf.type_checker.TypeChecker(self)
         self._expression_manager = upf.expression.ExpressionManager(self)
@@ -38,7 +38,7 @@ class Environment:
         return self._expression_manager
 
     @property
-    def type_manager(self) -> upf.typing.TypeManager:
+    def type_manager(self) -> upf.types.TypeManager:
         return self._type_manager
 
     @property

@@ -19,7 +19,7 @@ and a list of effects.
 """
 
 import upf
-import upf.typing
+import upf.types
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
 from upf.exceptions import UPFTypeError
@@ -29,7 +29,7 @@ from typing import List, Union, Tuple
 
 class ActionParameter:
     """Represents an action parameter."""
-    def __init__(self, name: str, typename: upf.typing.Type):
+    def __init__(self, name: str, typename: upf.types.Type):
         self._name = name
         self._typename = typename
 
@@ -40,15 +40,15 @@ class ActionParameter:
         """Returns the parameter name."""
         return self._name
 
-    def type(self) -> upf.typing.Type:
+    def type(self) -> upf.types.Type:
         """Returns the parameter type."""
         return self._typename
 
 
 class Action:
     """Represents an instantaneous action."""
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.typing.Type]' = None,
-                 _env: Environment = None, **kwargs: upf.typing.Type):
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
+                 _env: Environment = None, **kwargs: upf.types.Type):
         self._env = get_env(_env)
         self._name = _name
         self._preconditions: List[FNode] = []

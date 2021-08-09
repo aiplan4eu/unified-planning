@@ -17,12 +17,12 @@ This module defines an Object of a planning problem.
 An Object is represented by a name and by its type.
 """
 
-import upf.typing
+import upf.types
 
 
 class Object:
     """Represents an object."""
-    def __init__(self, name: str, typename: upf.typing.Type):
+    def __init__(self, name: str, typename: upf.types.Type):
         self._name = name
         self._typename = typename
 
@@ -33,6 +33,6 @@ class Object:
         """Returns the fluent name."""
         return self._name
 
-    def type(self) -> upf.typing.Type:
+    def type(self) -> upf.types.Type:
         """Returns the fluent type."""
         return self._typename
