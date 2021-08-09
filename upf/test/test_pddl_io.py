@@ -36,17 +36,41 @@ class TestPddlIO(TestCase):
         w = PDDLWriter(problem)
 
         pddl_domain = w.get_domain()
-        self.assertTrue('(:requirements :strips :negative-preconditions)' in pddl_domain)
-        self.assertTrue('(:predicates (x))' in pddl_domain)
-        self.assertTrue('(:action a' in pddl_domain)
-        self.assertTrue(':parameters()')
-        self.assertTrue(':precondition (and (not (x)))' in pddl_domain)
-        self.assertTrue(':effect (and (x))' in pddl_domain)
+        self.assertIn('(:requirements :strips :negative-preconditions)', pddl_domain)
+        self.assertIn('(:predicates (x))', pddl_domain)
+        self.assertIn('(:action a', pddl_domain)
+        self.assertIn(':parameters ()', pddl_domain)
+        self.assertIn(':precondition (and (not (x)))', pddl_domain)
+        self.assertIn(':effect (and (x))', pddl_domain)
 
         pddl_problem = w.get_problem()
-        self.assertTrue('(:domain basic-domain)' in pddl_problem)
-        self.assertTrue('(:init)' in pddl_problem)
-        self.assertTrue('(:goal (and (x)))' in pddl_problem)
+        self.assertIn('(:domain basic-domain)', pddl_problem)
+        self.assertIn('(:init)', pddl_problem)
+        self.assertIn('(:goal (and (x)))', pddl_problem)
+
+
+    def test_basic_conditional_writer(self):
+        problem = self.problems['basic_conditional'].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = w.get_domain()
+        self.assertIn('(:requirements :strips :negative-preconditions :conditional-effects)', pddl_domain)
+        self.assertIn('(:predicates (x) (y))', pddl_domain)
+        self.assertIn('(:action a_x\n', pddl_domain)
+        self.assertIn(':parameters ()', pddl_domain)
+        self.assertIn(':precondition (and (not (x)))', pddl_domain)
+        self.assertIn(':effect (and (when ((y) (x))))\n', pddl_domain)
+        self.assertIn('(:action a_y\n', pddl_domain)
+        self.assertIn(':parameters ()', pddl_domain)
+        self.assertIn(':precondition (and (not (y)))\n', pddl_domain)
+        self.assertIn(':effect (and (y)))\n)\n', pddl_domain)
+
+        pddl_problem = w.get_problem()
+        self.assertIn('(:domain basic_conditional-domain)', pddl_problem)
+        self.assertIn('(:init)', pddl_problem)
+        self.assertIn('(:goal (and (x)))', pddl_problem)
+
 
     def test_robot_writer(self):
         problem = self.problems['robot'].problem
@@ -65,6 +89,28 @@ class TestPddlIO(TestCase):
 
         pddl_problem = w.get_problem()
         self.assertIn('(:domain robot-domain)', pddl_problem)
+        self.assertIn('(:objects', pddl_problem)
+        self.assertIn('l1 l2 - Location', pddl_problem)
+        self.assertIn('(:init (robot_at l1) (= (battery_charge) 100))', pddl_problem)
+        self.assertIn('(:goal (and (robot_at l2)))', pddl_problem)
+
+    def test_robot_writer(self):
+        problem = self.problems['robot_decrease'].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = w.get_domain()
+        self.assertIn('(:requirements :strips :typing :negative-preconditions :equality :numeric-fluents)', pddl_domain)
+        self.assertIn('(:types Location)', pddl_domain)
+        self.assertIn('(:predicates (robot_at ?p0 - Location))', pddl_domain)
+        self.assertIn('(:functions (battery_charge))', pddl_domain)
+        self.assertIn('(:action move', pddl_domain)
+        self.assertIn(':parameters ( ?l_from - Location ?l_to - Location)', pddl_domain)
+        self.assertIn(':precondition (and (<= 10 (battery_charge)) (not (= ?l_from ?l_to)) (robot_at ?l_from) (not (robot_at ?l_to)))', pddl_domain)
+        self.assertIn(':effect (and (not (robot_at ?l_from)) (robot_at ?l_to) (decrease (battery_charge) 10))', pddl_domain)
+
+        pddl_problem = w.get_problem()
+        self.assertIn('(:domain robot_decrease-domain)', pddl_problem)
         self.assertIn('(:objects', pddl_problem)
         self.assertIn('l1 l2 - Location', pddl_problem)
         self.assertIn('(:init (robot_at l1) (= (battery_charge) 100))', pddl_problem)

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import upf
 from upf.shortcuts import *
 
@@ -36,6 +37,27 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(a)])
     basic = Example(problem=problem, plan=plan)
     problems['basic'] = basic
+
+    # basic conditional
+    x = upf.Fluent('x')
+    y = upf.Fluent('y')
+    a_x = upf.Action('a_x')
+    a_y = upf.Action('a_y')
+    a_x.add_precondition(Not(x))
+    a_x.add_effect(x, True, y)
+    a_y.add_precondition(Not(y))
+    a_y.add_effect(y, True)
+    problem = upf.Problem('basic_conditional')
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(a_x)
+    problem.add_action(a_y)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, False)
+    problem.add_goal(x)
+    plan = upf.SequentialPlan([upf.ActionInstance(a_y), upf.ActionInstance(a_x)])
+    basic_conditional = Example(problem=problem, plan=plan)
+    problems['basic_conditional'] = basic_conditional
 
     # robot
     Location = UserType('Location')
@@ -66,6 +88,36 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
     robot = Example(problem=problem, plan=plan)
     problems['robot'] = robot
+
+    # robot decrease
+    Location = UserType('Location')
+    robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+    battery_charge = upf.Fluent('battery_charge', RealType(0, 100))
+    move = upf.Action('move', l_from=Location, l_to=Location)
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(GE(battery_charge, 10))
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(robot_at(l_from))
+    move.add_precondition(Not(robot_at(l_to)))
+    move.add_effect(robot_at(l_from), False)
+    move.add_effect(robot_at(l_to), True)
+    move.add_effect(battery_charge, 10, kind = Decrease())
+    l1 = upf.Object('l1', Location)
+    l2 = upf.Object('l2', Location)
+    problem = upf.Problem('robot_decrease')
+    problem.add_fluent(robot_at)
+    problem.add_fluent(battery_charge)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.set_initial_value(robot_at(l1), True)
+    problem.set_initial_value(robot_at(l2), False)
+    problem.set_initial_value(battery_charge, 100)
+    problem.add_goal(robot_at(l2))
+    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
+    robot_decrease = Example(problem=problem, plan=plan)
+    problems['robot_decrease'] = robot_decrease
 
     # robot_loader
     Location = UserType('Location')

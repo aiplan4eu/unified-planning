@@ -23,10 +23,15 @@ from upf.expression import BoolExpression, Expression
 from upf.problem_kind import ProblemKind
 from upf.solver import Solver
 from upf.fnode import FNode
+from upf.effect import INCREASE, DECREASE
 from typing import Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
 
+def Increase() -> int:
+    return INCREASE
+def Decrease() -> int:
+    return DECREASE
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     return get_env().expression_manager.And(*args)
 
