@@ -94,7 +94,7 @@ class TestPddlIO(TestCase):
         self.assertIn('(:init (robot_at l1) (= (battery_charge) 100))', pddl_problem)
         self.assertIn('(:goal (and (robot_at l2)))', pddl_problem)
 
-    def test_robot_writer(self):
+    def test_robot_decrease_writer(self):
         problem = self.problems['robot_decrease'].problem
 
         w = PDDLWriter(problem)

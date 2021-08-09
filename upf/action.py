@@ -101,13 +101,21 @@ class Action:
         """Returns the list of the action effects."""
         return self._effects
 
-    # def conditional_effects(self) -> List[Effect]:
-    #     """Returns the list of the action conditional effects."""
-    #     return self._conditional_effects
+    def conditional_effects(self) -> List[Effect]:
+        """Returns the list of the action conditional effects."""
+        conditional_effects: List[Effect] = []
+        for e in self._effects:
+            if e.is_conditional():
+                conditional_effects.append(e)
+        return conditional_effects
 
-    # def all_effects(self) -> List[Effect]:
-    #     """Returns the list of the action conditional effects."""
-    #     return self._effects + self._conditional_effects
+    def unconditional_effects(self) -> List[Effect]:
+        """Returns the list of the action unconditional effects."""
+        unconditional_effects: List[Effect] = []
+        for e in self._effects:
+            if not e.is_conditional():
+                unconditional_effects.append(e)
+        return unconditional_effects
 
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""

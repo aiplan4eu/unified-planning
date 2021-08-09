@@ -19,7 +19,7 @@ A condition can be added to make it a conditional effect.
 """
 
 import upf
-import upf.typing
+import upf.types
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
 from upf.exceptions import UPFTypeError
