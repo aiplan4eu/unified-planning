@@ -136,6 +136,8 @@ class PDDLWriter:
             if (self.problem.kind().has_continuous_numbers() or # type: ignore
                 self.problem.kind().has_discrete_numbers()): # type: ignore
                 out.write(' :numeric-fluents')
+            if self.problem.kind().has_conditional_effects(): # type: ignore
+                out.write(' :conditional-effects')
             out.write(')\n')
 
         out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')
