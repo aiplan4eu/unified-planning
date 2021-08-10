@@ -87,8 +87,8 @@ class ConditionalEffectsRemover():
             new_problem.add_fluent(f)
         for o in self._problem.all_objects():
             new_problem.add_object(o)
-        for f, v in self._problem.initial_values().items():
-            new_problem.set_initial_value(f, v)
+        for fl, v in self._problem.initial_values().items():
+            new_problem.set_initial_value(fl, v)
         for g in self._problem.goals():
             new_problem.add_goal(g)
         for n, a in self._problem.actions().items():
