@@ -15,13 +15,6 @@
 """This module defines the conditional effects remover class."""
 
 from collections import OrderedDict
-import upf.types
-import upf.operators as op
-from upf.environment import get_env, Environment
-from upf.fnode import FNode
-from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
-from upf.problem_kind import ProblemKind
-from upf.operators_extractor import OperatorsExtractor
 from upf.problem import Problem
 from upf.action import Action
 from upf.effect import Effect
