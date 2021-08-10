@@ -24,10 +24,10 @@ import upf.types
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
 from upf.exceptions import UPFTypeError
-from upf.expression import BoolExpression
+from upf.expression import BoolExpression, Expression
 from upf.effect import Effect, INCREASE, DECREASE
 from collections import OrderedDict
-from typing import List, Union, Tuple
+from typing import List, Union
 
 
 class ActionParameter:
@@ -111,18 +111,11 @@ class Action:
         return conditional_effects
 
     def has_conditional_effects(self) -> bool:
-        for e in self._effects:
-            if e.is_conditional():
-                return True
-        return False
+        return any(e.is_conditional() for e in self._effects)
 
     def unconditional_effects(self) -> List[Effect]:
         """Returns the list of the action unconditional effects."""
-        unconditional_effects: List[Effect] = []
-        for e in self._effects:
-            if not e.is_conditional():
-                unconditional_effects.append(e)
-        return unconditional_effects
+        return [e for e in self._effects if not e.is_conditional()]
 
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
@@ -139,39 +132,34 @@ class Action:
         self._preconditions.append(precondition_exp)
 
     def add_effect(self, fluent: Union[FNode, 'upf.Fluent'],
-                   value: Union[FNode, 'upf.Fluent', 'upf.Object', ActionParameter, bool],
-                   condition: Union[FNode, BoolExpression] = True):
+                   value: Expression, condition: BoolExpression = True):
         """Adds the given action effect."""
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
-            raise UPFTypeError('Action condition is not a Boolean condition!')
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp))
 
     def add_increase_effect(self, fluent: Union[FNode, 'upf.Fluent'],
-                   value: Union[FNode, 'upf.Fluent', 'upf.Object', ActionParameter, bool],
-                   condition: Union[FNode, BoolExpression] = True):
+                   value: Expression, condition: BoolExpression = True):
         """Adds the given action increase effect."""
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        #Note that this assert is in conflict with the possibility of assigning x+3 with a fresh variable y while the substituter supports this.
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
-            raise UPFTypeError('Action condition is not a Boolean condition!')
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = INCREASE))
 
     def add_decrease_effect(self, fluent: Union[FNode, 'upf.Fluent'],
-                   value: Union[FNode, 'upf.Fluent', 'upf.Object', ActionParameter, bool],
-                   condition: Union[FNode, BoolExpression] = True):
-        """Adds the given action increase effect."""
+                   value: Expression, condition: BoolExpression = True):
+        """Adds the given action decrease effect."""
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        #Note that this assert is in conflict with the possibility of assigning x+3 with a fresh variable y while the substituter supports this.
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
-            raise UPFTypeError('Action condition is not a Boolean condition!')
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = DECREASE))

@@ -18,12 +18,8 @@ A basic Effect has a fluent and an expression.
 A condition can be added to make it a conditional effect.
 """
 
-import upf
-import upf.types
-from upf.environment import get_env, Environment
+
 from upf.fnode import FNode
-from upf.exceptions import UPFTypeError
-from upf.expression import BoolExpression
 from collections import OrderedDict
 from typing import List, Union, Tuple, Optional
 
