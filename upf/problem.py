@@ -170,6 +170,10 @@ class Problem:
                 res.append(obj)
         return res
 
+    def all_objects(self) -> List[upf.Object]:
+        """Returns all the objects."""
+        return [o for o in self._objects.values()]
+
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
                           value: Union[FNode, upf.Fluent, upf.Object, bool]):
         """Sets the initial value for the given fluent."""

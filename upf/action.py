@@ -104,11 +104,7 @@ class Action:
 
     def conditional_effects(self) -> List[Effect]:
         """Returns the list of the action conditional effects."""
-        conditional_effects: List[Effect] = []
-        for e in self._effects:
-            if e.is_conditional():
-                conditional_effects.append(e)
-        return conditional_effects
+        return [e for e in self._effects if e.is_conditional()]
 
     def has_conditional_effects(self) -> bool:
         return any(e.is_conditional() for e in self._effects)
@@ -163,3 +159,6 @@ class Action:
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = DECREASE))
+
+    def add_effect_class(self, effect: Effect):
+        self._effects.append(effect)

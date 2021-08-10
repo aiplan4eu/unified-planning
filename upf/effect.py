@@ -59,9 +59,12 @@ class Effect:
     def value(self) -> FNode:
         return self._value
 
-    def condition(self) -> Optional[FNode]:
+    def condition(self) -> FNode:
         assert self.is_conditional()
         return self._condition
+
+    def kind(self) -> int:
+        return self._kind
 
     def is_assignment(self) -> bool:
         return self._kind == ASSIGN
