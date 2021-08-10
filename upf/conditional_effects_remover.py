@@ -48,11 +48,16 @@ class ConditionalEffectsRemover():
             new_action_t.add_precondition(effect_changed.condition())
             new_effect = Effect(effect_changed.fluent(), effect_changed.value(),
                     self._env.expression_manager.TRUE(), effect_changed.kind())
-            new_action_t.add_effect_class(new_effect)
+            new_action_t.add_effect(new_effect)
             new_action_f.add_precondition(self._env.expression_manager.Not(effect_changed.condition()))
             if new_action_t.has_conditional_effects():
                 action_stack.append((original_action_name, new_action_t, number))
                 action_stack.append((original_action_name, new_action_f, number+2))
+            else:
+                new_problem.add_action(new_action_t)
+                new_problem.add_action(new_action_f)
+                self._action_mapping[new_action_t.name()] = original_action_name
+                self._action_mapping[new_action_f.name()] = original_action_name
 
         return new_problem
 
@@ -62,13 +67,12 @@ class ConditionalEffectsRemover():
         for ap in action.parameters():
             new_parameters[ap.name()] = ap.type()
         new_action = Action(new_action_name, new_parameters, self._env)
-        self._action_mapping[new_action_name] = original_action_name
 
 
         for p in action.preconditions():
             new_action.add_precondition(p)
         for e in unchanged_effects:
-            new_action.add_effect_class(e)
+            new_action.add_effect(e)
         return new_action
 
     def _create_problem_copy(self, action_stack) -> Problem:

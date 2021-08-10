@@ -159,14 +159,14 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         for eff in a.effects:
             if isinstance(eff, AddEffect):
                 f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
-                action.add_effect(f, True)
+                action.add_assign_effect(f, True)
             elif isinstance(eff, DelEffect):
                 f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
-                action.add_effect(f, False)
+                action.add_assign_effect(f, False)
             elif isinstance(eff, FunctionalEffect):
                 lhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.lhs)
                 rhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.rhs)
-                action.add_effect(lhs, rhs)
+                action.add_assign_effect(lhs, rhs)
             else:
                 raise UPFProblemDefinitionError(eff + ' not supported!')
         problem.add_action(action)

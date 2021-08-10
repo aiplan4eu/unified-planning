@@ -127,7 +127,7 @@ class Action:
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         self._preconditions.append(precondition_exp)
 
-    def add_effect(self, fluent: Union[FNode, 'upf.Fluent'],
+    def add_assign_effect(self, fluent: Union[FNode, 'upf.Fluent'],
                    value: Expression, condition: BoolExpression = True):
         """Adds the given action effect."""
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
@@ -160,5 +160,5 @@ class Action:
             raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = DECREASE))
 
-    def add_effect_class(self, effect: Effect):
+    def add_effect(self, effect: Effect):
         self._effects.append(effect)
