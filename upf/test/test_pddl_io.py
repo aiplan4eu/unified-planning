@@ -60,7 +60,7 @@ class TestPddlIO(TestCase):
         self.assertIn('(:action a_x\n', pddl_domain)
         self.assertIn(':parameters ()', pddl_domain)
         self.assertIn(':precondition (and (not (x)))', pddl_domain)
-        self.assertIn(':effect (and (when ((y) (x))))\n', pddl_domain)
+        self.assertIn(':effect (and (when (y) (x))))\n', pddl_domain)
         self.assertIn('(:action a_y\n', pddl_domain)
         self.assertIn(':parameters ()', pddl_domain)
         self.assertIn(':precondition (and (not (y)))\n', pddl_domain)

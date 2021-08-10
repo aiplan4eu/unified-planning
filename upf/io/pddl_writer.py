@@ -186,7 +186,7 @@ class PDDLWriter:
                 out.write('\n  :effect (and')
                 for e in a.effects():
                     if e.is_conditional():
-                        out.write(f' (when ({converter.convert(e.condition())}')
+                        out.write(f' (when {converter.convert(e.condition())}')
                     if e.value().is_true():
                         out.write(f' {converter.convert(e.fluent())}')
                     elif e.value().is_false():

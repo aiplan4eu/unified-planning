@@ -110,6 +110,12 @@ class Action:
                 conditional_effects.append(e)
         return conditional_effects
 
+    def has_conditional_effects(self) -> bool:
+        for e in self._effects:
+            if e.is_conditional():
+                return True
+        return False
+
     def unconditional_effects(self) -> List[Effect]:
         """Returns the list of the action unconditional effects."""
         unconditional_effects: List[Effect] = []
