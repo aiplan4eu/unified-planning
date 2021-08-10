@@ -17,6 +17,9 @@ The first item in our taxonomy concerns the characterization of the planning pro
     * **No**
     * **Discrete**
     * **Continuous**
+  * **Presence of conditional effects**
+    * **No**
+    * **Yes**
   * **Hierarchical structure**
     * **No**
     * **Yes**
