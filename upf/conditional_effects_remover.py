@@ -22,7 +22,8 @@ from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
 from upf.operators_extractor import OperatorsExtractor
 from upf.problem import Problem
-from typing import List, Dict, Union, Optional
+from upf.action import Action
+from typing import List, Dict, Tuple
 
 
 class ConditionalEffectsRemover():
@@ -32,5 +33,24 @@ class ConditionalEffectsRemover():
 
     def get_unconditional_problem():
         #cycle over all the actions
-        new_problem: Problem = self._problem
-        for n, a in self._problem.actions():
+        #Note that a different environment might be needed when multy-threading
+        new_problem: Problem = Problem("unconditional_" + self._problem.name(), self._problem.env())
+        action_stack: List[Tuple(str, Action)] = []
+        for f in self._problem.fluents().values():
+            new_problem.add_fluent(f)
+        for o in self._problem.objects().values():
+            new_problem.add_object(o)
+        for f, v in self._problem.initial_values().items():
+            new_problem.set_initial_value(f, v)
+        for g in self._problem.goals():
+            new_problem.add_goal(g)
+        for n, a in self._problem.actions().items():
+            if a.has_conditional_effects():
+                action_stack.append((n, a))
+            else:
+                new_problem.add_action(a)
+
+        while len(action_stack) > 0:
+            original_action_name, action = action_stack.pop()
+            for e in action.effects():
+            non_conditional_effects
