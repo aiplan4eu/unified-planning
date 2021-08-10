@@ -52,6 +52,9 @@ class TestPddlIO(TestCase):
     def test_basic_conditional_writer(self):
         problem = self.problems['basic_conditional'].problem
 
+        self.assertTrue(problem.action('a_x').has_conditional_effects())
+        self.assertFalse(problem.action('a_y').has_conditional_effects())
+
         w = PDDLWriter(problem)
 
         pddl_domain = w.get_domain()
@@ -69,7 +72,7 @@ class TestPddlIO(TestCase):
         pddl_problem = w.get_problem()
         self.assertIn('(:domain basic_conditional-domain)', pddl_problem)
         self.assertIn('(:init)', pddl_problem)
-        self.assertIn('(:goal (and (x))', pddl_problem)
+        self.assertIn('(:goal (and (x)))', pddl_problem)
 
 
     def test_robot_writer(self):
