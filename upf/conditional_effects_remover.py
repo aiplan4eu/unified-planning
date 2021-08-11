@@ -15,6 +15,7 @@
 """This module defines the conditional effects remover class."""
 
 from collections import OrderedDict
+from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
 from upf.action import Action
 from upf.effect import Effect
@@ -104,3 +105,18 @@ class ConditionalEffectsRemover():
             else:
                 new_problem.add_action(a)
         return new_problem
+
+    def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
+        uncond_actions = unconditional_sequential_plan.actions()
+        cond_actions = []
+        for ai in uncond_actions:
+            if ai.action().name() in self._action_mapping:
+                cond_actions.append(self._new_action_instance_original_name(ai))
+            else:
+                cond_actions.append(ai)
+        return SequentialPlan(cond_actions)
+
+    def _new_action_instance_original_name(self, action_instance: ActionInstance) -> ActionInstance:
+        action_name = self._action_mapping[action_instance.action().name()]
+        action = self._problem.action(action_name)
+        return ActionInstance(action, action_instance.parameters())
