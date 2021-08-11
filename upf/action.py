@@ -160,5 +160,5 @@ class Action:
             raise UPFTypeError('Action effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = DECREASE))
 
-    def _add_effect_class(self, effect: Effect):
+    def _add_effect_instance(self, effect: Effect):
         self._effects.append(effect)

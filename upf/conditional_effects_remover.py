@@ -64,7 +64,7 @@ class ConditionalEffectsRemover():
             new_action_t.add_precondition(effect_changed.condition())
             new_effect = Effect(effect_changed.fluent(), effect_changed.value(),
                     self._env.expression_manager.TRUE(), effect_changed.kind())
-            new_action_t._add_effect_class(new_effect)
+            new_action_t._add_effect_instance(new_effect)
             #set up "new_action_f", that represents the 'else' branch of the conditional effect "effect_changed"
             new_action_f = self._create_action_copy(action, original_action_name, unchanged_effects, uncond_actions)
             new_action_f.add_precondition(self._env.expression_manager.Not(effect_changed.condition()))
@@ -129,7 +129,7 @@ class ConditionalEffectsRemover():
         for p in action.preconditions():
             new_action.add_precondition(p)
         for e in unchanged_effects:
-            new_action._add_effect_class(e)
+            new_action._add_effect_instance(e)
         return new_action
 
     def _create_problem_copy(self, action_stack) -> Problem:
