@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+
 import upf
 from upf.shortcuts import *
 
@@ -58,6 +59,72 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(a_y), upf.ActionInstance(a_x)])
     basic_conditional = Example(problem=problem, plan=plan)
     problems['basic_conditional'] = basic_conditional
+
+    # complex conditional
+    a = upf.Fluent('a')
+    b = upf.Fluent('b')
+    c = upf.Fluent('c')
+    d = upf.Fluent('d')
+    k = upf.Fluent('k')
+    x = upf.Fluent('x')
+    y = upf.Fluent('y')
+    z = upf.Fluent('z')
+    a_act = upf.Action('A')
+    a_0_act = upf.Action('A_0')
+    a_1_act = upf.Action('A_1')
+    a_2_act = upf.Action('A_2')
+    a_act.add_precondition(Not(a))
+    a_act.add_effect(a, TRUE())
+    a_act.add_effect(k, TRUE(), b)
+    a_act.add_effect(x, TRUE(), Not(c))
+    a_act.add_effect(y, FALSE(), d)
+    a_0_act.add_precondition(Not(a))
+    a_0_act.add_precondition(d)
+    a_0_act.add_effect(b, TRUE())
+    a_1_act.add_precondition(Not(a))
+    a_1_act.add_precondition(d)
+    a_1_act.add_precondition(b)
+    a_1_act.add_effect(c, FALSE(), c)
+    a_1_act.add_effect(c, TRUE(), Not(c))
+    a_2_act.add_effect(a, FALSE())
+    a_2_act.add_effect(d, TRUE())
+    a_2_act.add_effect(z, FALSE(), z)
+    a_2_act.add_effect(z, TRUE(), Not(z))
+    problem = upf.Problem('complex_conditional')
+    problem.add_fluent(a)
+    problem.add_fluent(b)
+    problem.add_fluent(c)
+    problem.add_fluent(d)
+    problem.add_fluent(k)
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_fluent(z)
+    problem.add_action(a_act)
+    problem.add_action(a_0_act)
+    problem.add_action(a_1_act)
+    problem.add_action(a_2_act)
+    problem.set_initial_value(a, True)
+    problem.set_initial_value(b, False)
+    problem.set_initial_value(c, True)
+    problem.set_initial_value(d, False)
+    problem.set_initial_value(k, False)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, True)
+    problem.set_initial_value(z, False)
+    problem.add_goal(a)
+    problem.add_goal(b)
+    problem.add_goal(Not(c))
+    problem.add_goal(d)
+    problem.add_goal(k)
+    problem.add_goal(x)
+    problem.add_goal(Not(y))
+    problem.add_goal(z)
+    plan = upf.SequentialPlan([upf.ActionInstance(a_2_act),
+                                upf.ActionInstance(a_0_act),
+                                upf.ActionInstance(a_1_act),
+                                upf.ActionInstance(a_act)])
+    basic_conditional = Example(problem=problem, plan=plan)
+    problems['complex_conditional'] = basic_conditional
 
     # robot
     Location = UserType('Location')
