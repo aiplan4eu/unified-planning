@@ -49,18 +49,24 @@ class ConditionalEffectsRemover():
             #therefore inserted into the problem
             uncond_actions = (len(cond_effects) == 0)
             unchanged_effects.extend(cond_effects)
+            #set up "new_action_t", that represents the 'then' branch of the conditional effect "effect_changed"
             new_action_t = self._create_action_copy(action, original_action_name, unchanged_effects, uncond_actions)
-            new_action_f = self._create_action_copy(action, original_action_name, unchanged_effects, uncond_actions)
             new_action_t.add_precondition(effect_changed.condition())
             new_effect = Effect(effect_changed.fluent(), effect_changed.value(),
                     self._env.expression_manager.TRUE(), effect_changed.kind())
             new_action_t._add_effect_class(new_effect)
+            #set up "new_action_f", that represents the 'else' branch of the conditional effect "effect_changed"
+            new_action_f = self._create_action_copy(action, original_action_name, unchanged_effects, uncond_actions)
             new_action_f.add_precondition(self._env.expression_manager.Not(effect_changed.condition()))
+            #If the action should be added, check if it's preconditions can be simplified and if it's preconditions
+            #are in contraddiction with eachother
+
+            #NOTE: This simplification can be also done on the actions before appending them to the stack.
             if uncond_actions:
-                if self._check_preconditions(new_action_t):
+                if self._check_and_simplify_preconditions(new_action_t):
                     new_problem.add_action(new_action_t)
                     self._action_mapping[new_action_t.name()] = original_action_name
-                if self._check_preconditions(new_action_f):
+                if self._check_and_simplify_preconditions(new_action_f):
                     if len(new_action_f.effects()) > 0:
                         new_problem.add_action(new_action_f)
                         self._action_mapping[new_action_f.name()] = original_action_name
@@ -69,23 +75,30 @@ class ConditionalEffectsRemover():
                 action_stack.append((original_action_name, new_action_f))
         return new_problem
 
-    def _check_preconditions(self, action: Action) -> bool:
-        act_prec = action.preconditions()
-        if len(act_prec) == 0:
+    def _check_and_simplify_preconditions(self, action: Action) -> bool:
+        '''Simplifies preconditions and if it False (a contraddiction)
+        returns False, otherwise returns True.
+        If the simplification is True (a tautology) removes all preconditions.
+        If the simplification is still an AND rewrites back every "arg" of the AND
+        in the preconditions
+        If the simplification is not an AND sets the simplification as the only
+        precondition.'''
+        action_preconditions = action.preconditions()
+        if len(action_preconditions) == 0:
             return True
-        precondition = self._env.expression_manager.And(act_prec)
+        precondition = self._env.expression_manager.And(action_preconditions)
         precondition_simplified = self._simplifier.simplify(precondition)
         if precondition_simplified.is_bool_constant():
             if precondition_simplified.bool_constant_value():
-                act_prec.clear()
+                action_preconditions.clear()
             else:
                 return False
         else:
-            act_prec.clear()
+            action_preconditions.clear()
             if precondition_simplified.is_and():
-                act_prec.extend(precondition_simplified.args())
+                action_preconditions.extend(precondition_simplified.args())
             else:
-                act_prec.append(precondition_simplified)
+                action_preconditions.append(precondition_simplified)
         return True
 
     def _create_action_copy(self, action, original_action_name, unchanged_effects, uncond_action) -> Action:
