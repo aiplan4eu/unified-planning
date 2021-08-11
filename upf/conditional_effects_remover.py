@@ -24,6 +24,12 @@ from typing import List, Dict, Tuple
 
 
 class ConditionalEffectsRemover():
+    '''Conditional effect remover class:
+    this class requires a problem and offers the capability
+    to transform a conditional problem into an unconditional one.
+
+    This is done by substituting every conditional action with different
+    actions representing every possible branch of the original action.'''
     def __init__(self, problem: Problem):
         self._problem = problem
         self._action_mapping: Dict[str, str] = {}
@@ -33,6 +39,10 @@ class ConditionalEffectsRemover():
         self._simplifier = Simplifier(self._env)
 
     def get_unconditional_problem(self) -> Problem:
+        '''Creates a problem that is a copy of the original problem
+        but every conditional action is removed and all the possible
+        branches of the conditional action are added as non-conditional
+        actions.'''
         if self._unconditional_problem is not None:
             return self._unconditional_problem
         #cycle over all the actions
@@ -143,6 +153,9 @@ class ConditionalEffectsRemover():
         return new_problem
 
     def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
+        '''Takes the sequential plan of the non-conditional problem (created with
+        the method "self.get_unconditional_problem()" and translates the plan back
+        to be a plan of the original problem.'''
         uncond_actions = unconditional_sequential_plan.actions()
         cond_actions = []
         for ai in uncond_actions:
