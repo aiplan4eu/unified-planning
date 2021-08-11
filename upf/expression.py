@@ -166,6 +166,11 @@ class ExpressionManager(object):
         """Returns an expression for the given action parameter."""
         return self.create_node(node_type=op.PARAM_EXP, args=tuple(), payload=param)
 
+    def VariableExp(self, var: 'upf.Variable') -> FNode:
+        """Returns an expression for the given variable."""
+        return self.create_node(node_type=op.VARIABLE_EXP, args=tuple(), payload=var)
+    #TODO
+
     def ObjectExp(self, obj: 'upf.Object') -> FNode:
         """Returns an expression for the given object."""
         return self.create_node(node_type=op.OBJECT_EXP, args=tuple(), payload=obj)

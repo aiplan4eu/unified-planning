@@ -61,6 +61,8 @@ class FNode(object):
             return self.fluent().name() + self.get_nary_expression_string(', ', self.args())
         elif self.is_parameter_exp():
             return self.parameter().name()
+        elif self.is_variable_exp():
+            return self.variable().name()
         elif self.is_object_exp():
             return self.object().name()
         elif self.is_and():
@@ -140,6 +142,11 @@ class FNode(object):
         assert self.is_parameter_exp()
         return self._content.payload
 
+    def variable(self) -> 'upf.Variable':
+        """Return the variable of the VariableExp."""
+        assert self.is_variable_exp()
+        return self._content.payload
+
     def object(self) -> 'upf.Object':
         """Return the object of the ObjectExp."""
         assert self.is_object_exp()
@@ -185,6 +192,14 @@ class FNode(object):
         """Test whether the node is the Iff operator."""
         return self.node_type() == op.IFF
 
+    def is_exists(self) -> bool:
+        """Test whether the node is the Exists operator."""
+        return self.node_type() == op.EXISTS
+
+    def is_forall(self) -> bool:
+        """Test whether the node is the Forall operator."""
+        return self.node_type() == op.FORALL
+
     def is_fluent_exp(self) -> bool:
         """Test whether the node is a fluent."""
         return self.node_type() == op.FLUENT_EXP
@@ -192,6 +207,10 @@ class FNode(object):
     def is_parameter_exp(self) -> bool:
         """Test whether the node is an action parameter."""
         return self.node_type() == op.PARAM_EXP
+
+    def is_variable_exp(self) -> bool:
+        """Test whether the node is a variable."""
+        return self.node_type() == op.VARIABLE_EXP
 
     def is_object_exp(self) -> bool:
         """Test whether the node is an action object."""
