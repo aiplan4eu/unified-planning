@@ -47,7 +47,7 @@ class TestConditionalEffectsRemover(TestCase):
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         cer = ConditionalEffectsRemover(problem)
-        unconditional_problem = cer.get_unconditional_problem()
+        unconditional_problem = cer.get_rewritten_problem()
         u_actions = list(unconditional_problem.actions().values())
         a_x = problem.action("a_x")
         a_x_0 = unconditional_problem.action("a_x_0")
@@ -79,7 +79,7 @@ class TestConditionalEffectsRemover(TestCase):
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
         cer = ConditionalEffectsRemover(problem)
-        unconditional_problem = cer.get_unconditional_problem()
+        unconditional_problem = cer.get_rewritten_problem()
 
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)

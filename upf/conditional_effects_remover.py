@@ -38,7 +38,7 @@ class ConditionalEffectsRemover():
         self._unconditional_problem = None
         self._simplifier = Simplifier(self._env)
 
-    def get_unconditional_problem(self) -> Problem:
+    def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every conditional action is removed and all the possible
         branches of the conditional action are added as non-conditional
@@ -154,7 +154,7 @@ class ConditionalEffectsRemover():
 
     def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
         '''Takes the sequential plan of the non-conditional problem (created with
-        the method "self.get_unconditional_problem()" and translates the plan back
+        the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
         uncond_actions = unconditional_sequential_plan.actions()
         cond_actions = []
