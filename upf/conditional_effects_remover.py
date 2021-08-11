@@ -19,6 +19,7 @@ from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
 from upf.action import Action
 from upf.effect import Effect
+from upf.simplifier import Simplifier
 from typing import List, Dict, Tuple
 
 
@@ -29,6 +30,7 @@ class ConditionalEffectsRemover():
         self._env = problem.env
         self._counter: int = 0
         self._unconditional_problem = None
+        self._simplifier = Simplifier(self._env)
 
     def get_unconditional_problem(self) -> Problem:
         if self._unconditional_problem is not None:
@@ -55,15 +57,36 @@ class ConditionalEffectsRemover():
             new_action_t._add_effect_class(new_effect)
             new_action_f.add_precondition(self._env.expression_manager.Not(effect_changed.condition()))
             if uncond_actions:
-                new_problem.add_action(new_action_t)
-                self._action_mapping[new_action_t.name()] = original_action_name
-                if len(new_action_f.effects()) > 0:
-                    new_problem.add_action(new_action_f)
-                    self._action_mapping[new_action_f.name()] = original_action_name
+                if self._check_preconditions(new_action_t):
+                    new_problem.add_action(new_action_t)
+                    self._action_mapping[new_action_t.name()] = original_action_name
+                if self._check_preconditions(new_action_f):
+                    if len(new_action_f.effects()) > 0:
+                        new_problem.add_action(new_action_f)
+                        self._action_mapping[new_action_f.name()] = original_action_name
             else:
                 action_stack.append((original_action_name, new_action_t))
                 action_stack.append((original_action_name, new_action_f))
         return new_problem
+
+    def _check_preconditions(self, action: Action) -> bool:
+        act_prec = action.preconditions()
+        if len(act_prec) == 0:
+            return True
+        precondition = self._env.expression_manager.And(act_prec)
+        precondition_simplified = self._simplifier.simplify(precondition)
+        if precondition_simplified.is_bool_constant():
+            if precondition_simplified.bool_constant_value():
+                act_prec.clear()
+            else:
+                return False
+        else:
+            act_prec.clear()
+            if precondition_simplified.is_and():
+                act_prec.extend(precondition_simplified.args())
+            else:
+                act_prec.append(precondition_simplified)
+        return True
 
     def _create_action_copy(self, action, original_action_name, unchanged_effects, uncond_action) -> Action:
         if uncond_action: #search for a free name
