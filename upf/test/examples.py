@@ -122,8 +122,8 @@ def get_example_problems():
                                 upf.ActionInstance(a_0_act),
                                 upf.ActionInstance(a_1_act),
                                 upf.ActionInstance(a_act)])
-    basic_conditional = Example(problem=problem, plan=plan)
-    problems['complex_conditional'] = basic_conditional
+    complex_conditional = Example(problem=problem, plan=plan)
+    problems['complex_conditional'] = complex_conditional
 
     # robot
     Location = UserType('Location')
