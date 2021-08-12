@@ -48,6 +48,12 @@ class IdentityDagWalker(walkers.DagWalker):
     def walk_iff( self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Iff(args[0], args[1])
 
+    def walk_exists( self, expression: FNode, args: List[FNode], **kwargs):
+        return self.manager.Exists(args[0], expression.variables())
+
+    def walk_forall( self, expression: FNode, args: List[FNode], **kwargs):
+        return self.manager.Exists(args[0], expression.variables())
+
     def walk_equals( self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Equals(args[0], args[1])
 
@@ -83,6 +89,9 @@ class IdentityDagWalker(walkers.DagWalker):
 
     def walk_param_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.ParameterExp(expression.parameter())
+
+    def walk_variable_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        return self.manager.VariableExp(expression.variable())
 
     def walk_object_exp(self, expression: FNode, args: List[FNode],**kwargs) -> FNode:
         return self.manager.ObjectExp(expression.object())
