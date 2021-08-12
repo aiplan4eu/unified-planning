@@ -18,11 +18,12 @@ An Action has a name, a list of ActionParameter, a list of preconditions
 and a list of effects.
 """
 
+
 import upf
 import upf.types
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
-from upf.exceptions import UPFTypeError
+from upf.exceptions import UPFTypeError, UPFUnboundedVariablesError
 from collections import OrderedDict
 from typing import List, Union, Tuple
 
@@ -111,6 +112,9 @@ class Action:
         """Adds the given action precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
+        free_vars = self._env._free_vars_oracle.get_free_variables(precondition_exp)
+        if len(free_vars) != 0:
+            raise UPFUnboundedVariablesError(f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}")
         self._preconditions.append(precondition_exp)
 
     def add_effect(self, fluent: Union[FNode, 'upf.Fluent'],
@@ -119,4 +123,7 @@ class Action:
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Action effect has not compatible types!')
+        free_vars = self._env._free_vars_oracle.get_free_variables(value)
+        if len(free_vars) != 0:
+            raise UPFUnboundedVariablesError(f"The precondition {str(value_exp)} has unbounded variables:\n{str(free_vars)}")
         self._effects.append((fluent_exp, value_exp))
