@@ -536,15 +536,6 @@ class TestArithmeticOperators(TestCase):
         fnode_simplified = s.simplify(fnode_of_data_list)
         self.assertEqual(fnode_simplified, Div(Fraction('6.4'), Div(x, Int(3))))
 
-    def test_exists():
-        s = Simplifier(get_env())
-        Location = UserType("Location")
-        Robot = UserType("Robot")
-        r = upf.Variable('r', Robot)
-        l = upf.Variable('l', Location)
-        t = Bool(True)
-        f = Bool(False)
-
     def test_general(self):
         s = Simplifier(get_env())
         x = FluentExp(upf.Fluent('x'))
