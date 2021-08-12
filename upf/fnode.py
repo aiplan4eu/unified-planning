@@ -147,7 +147,7 @@ class FNode(object):
         assert self.is_variable_exp()
         return self._content.payload
 
-    def variables(self) -> List['FNode']:
+    def variables(self) -> List['upf.Variable']:
         """Return the variable of the Exists or Forall."""
         assert self.is_exists() or self.is_forall()
         return self._content.payload

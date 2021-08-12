@@ -42,10 +42,10 @@ def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
 def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
     return get_env().expression_manager.Iff(left, right)
 
-def Exists(expression: BoolExpression, *vars: Union[FNode, 'upf.Variable', Iterable[Union[FNode, 'upf.Variable']]]) -> FNode:
+def Exists(expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
     return get_env().expression_manager.Exists(expression, *vars)
 
-def Forall(expression: BoolExpression, *vars: Union[FNode, 'upf.Variable', Iterable[Union[FNode, 'upf.Variable']]]) -> FNode:
+def Forall(expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
     return get_env().expression_manager.Forall(expression, *vars)
 
 def FluentExp(fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
