@@ -47,8 +47,7 @@ class Variable:
 class FreeVarsOracle(walkers.DagWalker):
     # We have only few categories for this walker.
     #
-    # - Simple Args simply need to combine the cone/dependencies
-    #   of the children.
+   
     # - Quantifiers need to exclude bounded variables
     # - Constants have no impact
 
