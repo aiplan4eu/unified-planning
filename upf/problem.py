@@ -115,6 +115,10 @@ class Problem:
         assert name in self._actions
         return self._actions[name]
 
+    def has_action(self, name: str) -> bool:
+        """Returns True if the problem has the action with the given name ."""
+        return name in self._actions
+
     def add_action(self, action: upf.Action):
         """Adds the given action."""
         if action.name() in self._actions:
@@ -169,6 +173,10 @@ class Problem:
             if obj.type() == typename:
                 res.append(obj)
         return res
+
+    def all_objects(self) -> List[upf.Object]:
+        """Returns all the objects."""
+        return [o for o in self._objects.values()]
 
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
                           value: Union[FNode, upf.Fluent, upf.Object, bool]):

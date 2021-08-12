@@ -14,17 +14,18 @@
 #
 """This module defines all the operators used by the UPF."""
 
-ALL_TYPES = list(range(0, 18))
+ALL_TYPES = list(range(0, 20))
 
 (
 AND, OR, NOT, IMPLIES, IFF,
+EXISTS, FORALL,
 FLUENT_EXP, PARAM_EXP, OBJECT_EXP,
 BOOL_CONSTANT, INT_CONSTANT, REAL_CONSTANT,
 PLUS, MINUS, TIMES, DIV,
 LE, LT, EQUALS
 ) = ALL_TYPES
 
-BOOL_OPERATORS = frozenset([AND, OR, NOT, IMPLIES, IFF])
+BOOL_OPERATORS = frozenset([AND, OR, NOT, IMPLIES, IFF, EXISTS, FORALL])
 
 CONSTANTS = frozenset([BOOL_CONSTANT, REAL_CONSTANT, INT_CONSTANT])
 
@@ -46,6 +47,8 @@ __OP_STR__ = {
     NOT : "NOT",
     IMPLIES : "IMPLIES",
     IFF : "IFF",
+    EXISTS : "EXISTS",
+    FORALL : "FORALL",
     FLUENT_EXP : "FLUENT_EXP",
     PARAM_EXP: "PARAM_EXP",
     OBJECT_EXP: "OBJECT_EXP",
