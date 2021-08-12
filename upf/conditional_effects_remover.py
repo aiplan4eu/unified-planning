@@ -48,14 +48,14 @@ class ConditionalEffectsRemover():
         #cycle over all the actions
         #Note that a different environment might be needed when multy-threading
         action_stack: List[Tuple[str, Action]] = []
-        new_problem = self._create_problem_copy(action_stack)
+        new_problem, action_stack = self._create_problem_copy()
 
         while len(action_stack) > 0:
             original_action_name, action = action_stack.pop()
-            unchanged_effects = action.unconditional_effects()
-            cond_effects = action.conditional_effects()
+            unchanged_effects = [action.unconditional_effects().iter()]
+            cond_effects = [action.conditional_effects().iter()]
             effect_changed = cond_effects.pop()
-            #boolean that represents if the 2 action created will be unconditional,
+            #boolean that represents if the 2 actions created will be unconditional,
             #therefore inserted into the problem
             uncond_actions = (len(cond_effects) == 0)
             unchanged_effects.extend(cond_effects)
@@ -132,10 +132,11 @@ class ConditionalEffectsRemover():
             new_action._add_effect_instance(e)
         return new_action
 
-    def _create_problem_copy(self, action_stack) -> Problem:
+    def _create_problem_copy(self):
         '''Creates the shallow copy of a problem, without adding the conditional actions
         and by pushing them to the stack
         '''
+        action_stack = []
         new_problem: Problem = Problem("unconditional_" + str(self._problem.name()), self._env)
         for f in self._problem.fluents().values():
             new_problem.add_fluent(f)
@@ -150,7 +151,7 @@ class ConditionalEffectsRemover():
                 action_stack.append((n, a))
             else:
                 new_problem.add_action(a)
-        return new_problem
+        return (new_problem, action_stack)
 
     def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
         '''Takes the sequential plan of the non-conditional problem (created with
