@@ -85,7 +85,7 @@ class ExpressionManager(object):
         return res
 
     def create_node(self, node_type: int, args: Iterable[FNode],
-                    payload: Union['upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, Fraction, Iterable[FNode]] = None) -> FNode:
+                    payload: Union['upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, Fraction, List['upf.Variable']] = None) -> FNode:
         content = FNodeContent(node_type, args, payload)
         if content in self.expressions:
             return self.expressions[content]
@@ -156,35 +156,29 @@ class ExpressionManager(object):
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IFF, args=(left, right))
 
-    def Exists(self, expression: BoolExpression, *vars: Union[Expression, Iterable[Expression]]) -> FNode:
+    def Exists(self, expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
         """ Creates an expression of the form:
             Exists (var[0]... var[n]) | expression
         Restriction: Expression must be of boolean type and
                     vars must be of 'upf.Variable type'
         """
-        fnodes = self.auto_promote(expression, *vars)
-        #NOTE could this be done with:
-        # return self.create_node(.., args=(fnodes[0]), payload=fnodes[1:]) ??
-        exp = fnodes.pop(0)
-        for v in fnodes:
-            if not v.is_variable_exp():
-                raise UPFTypeError("Expecting 'upf.Variable', got %s", v.node_type())
-        return self.create_node(node_type=op.EXISTS, args=[exp], payload=fnodes)
+        expressions = self.auto_promote(expression)
+        for v in vars:
+            if type(v) != 'upf.Variable':
+                raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
+        return self.create_node(node_type=op.EXISTS, args=expressions, payload=[*vars])
 
-    def Forall(self, expression: BoolExpression, *vars: Union[Expression, Iterable[Expression]]) -> FNode:
+    def Forall(self, expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
         """ Creates an expression of the form:
             Forall (var[0]... var[n]) | expression
         Restriction: Expression must be of boolean type and
                     vars must be of 'upf.Variable type'
         """
-        fnodes = self.auto_promote(expression, *vars)
-        #NOTE could this be done with:
-        # return self.create_node(.., args=(fnodes[0]), payload=fnodes[1:]) ??
-        exp = fnodes.pop(0)
-        for v in fnodes:
-            if not v.is_variable_exp():
-                raise UPFTypeError("Expecting 'upf.Variable', got %s", v.node_type())
-        return self.create_node(node_type=op.FORALL, args=[exp], payload=fnodes)
+        expressions = self.auto_promote(expression)
+        for v in vars:
+            if type(v) != 'upf.Variable':
+                raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
+        return self.create_node(node_type=op.FORALL, args=expressions, payload=[*vars])
 
     def FluentExp(self, fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
         """ Creates an expression for the given fluent and parameters.
