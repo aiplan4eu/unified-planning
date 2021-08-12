@@ -17,8 +17,13 @@ This module defines the Variable class.
 A Variable has a name and a type.
 """
 
+
+from typing import List, Set
+from upf.fnode import FNode
 import upf
 import upf.types
+import upf.walkers as walkers
+import upf.operators as op
 
 
 class Variable:
@@ -38,3 +43,36 @@ class Variable:
     def type(self) -> upf.types.Type:
         """Returns the variable type."""
         return self._typename
+
+class FreeVarsOracle(walkers.DagWalker):
+    # We have only few categories for this walker.
+    #
+    # - Simple Args simply need to combine the cone/dependencies
+    #   of the children.
+    # - Quantifiers need to exclude bounded variables
+    # - Constants have no impact
+
+    def get_free_variables(self, expression: FNode) -> Set[Variable]:
+        """Returns the set of Symbols appearing free in the expression."""
+        return self.walk(expression)
+
+    @walkers.handles(op.VARIABLE_EXP)
+    def walk_variable_exp(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
+        #pylint: disable=unused-argument
+        return {expression.variable()}
+
+    @walkers.handles(op.EXISTS, op.FORALL)
+    def walk_quantifier(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
+        #pylint: disable=unused-argument
+        return args.difference(expression.variables())
+
+    @walkers.handles(op.CONSTANTS)
+    def walk_constant(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
+        #pylint: disable=unused-argument
+        return Set()
+
+    @walkers.handles(set(op.ALL_TYPES) - {op.VARIABLE_EXP, op.CONSTANTS, op.EXISTS, op.FORALL})
+    def walk_all(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
+        return args
+
+# EOC FreeVarsOracle
