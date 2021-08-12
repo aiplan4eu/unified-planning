@@ -52,7 +52,7 @@ class IdentityDagWalker(walkers.DagWalker):
         return self.manager.Exists(args[0], *expression.variables())
 
     def walk_forall( self, expression: FNode, args: List[FNode], **kwargs):
-        return self.manager.Exists(args[0], *expression.variables())
+        return self.manager.Forall(args[0], *expression.variables())
 
     def walk_equals( self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Equals(args[0], args[1])

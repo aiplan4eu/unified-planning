@@ -154,6 +154,12 @@ class Simplifier(walkers.DagWalker):
         else:
             return self.manager.Implies(sl, sr)
 
+    def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
+        return self.manager.Exists(args[0], *expression.variables())
+
+    def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
+        return self.manager.Forall(args[0], *expression.variables())
+
     def walk_equals(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
 
@@ -195,7 +201,7 @@ class Simplifier(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.FluentExp(expression.fluent(), tuple(args))
-        
+
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()
         accumulator = 0
@@ -216,7 +222,7 @@ class Simplifier(walkers.DagWalker):
         if accumulator != 0:
             fnode_acc = self.manager.Plus(*new_args_plus,self._number_to_fnode(accumulator))
             return fnode_acc
-        else: 
+        else:
             if len(new_args_plus) == 0:
                 return self.manager.Int(0)
             else:
@@ -239,7 +245,7 @@ class Simplifier(walkers.DagWalker):
                 return self.manager.Minus(left, right)
         else:
             return self.manager.Minus(left, right)
-    
+
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
         accumulator = 1
@@ -266,12 +272,12 @@ class Simplifier(walkers.DagWalker):
         if accumulator != 1:
             fnode_acc = self._number_to_fnode(accumulator)
             return self.manager.Times(*new_args_times, fnode_acc)
-        else: 
+        else:
             if len(new_args_times) == 0:
                 return self.manager.Int(1)
             else:
                 return self.manager.Times(new_args_times)
-                  
+
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
         left, right = args
@@ -289,6 +295,6 @@ class Simplifier(walkers.DagWalker):
         return self._number_to_fnode(value)
 
     @walkers.handles(op.CONSTANTS)
-    @walkers.handles(op.PARAM_EXP, op.OBJECT_EXP)
+    @walkers.handles(op.PARAM_EXP, op.VARIABLE_EXP, op.OBJECT_EXP)
     def walk_identity(self, expression: FNode, args: List[FNode]) -> FNode:
         return expression
