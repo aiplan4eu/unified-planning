@@ -23,6 +23,7 @@ import upf.types
 
 class Variable:
     """Represents a varible."""
+    #NOTE Does this class really need a name?
     def __init__(self, name: str, typename: upf.types.Type):
         self._name = name
         self._typename = typename
