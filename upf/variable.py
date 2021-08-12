@@ -47,9 +47,8 @@ class Variable:
 class FreeVarsOracle(walkers.DagWalker):
     # We have only few categories for this walker.
     #
-    # - Simple Args simply need to combine the cone/dependencies
-    #   of the children.
     # - Quantifiers need to exclude bounded variables
+    # - Other operators need to return the union of all their sons
     # - Constants have no impact
 
     def get_free_variables(self, expression: FNode) -> Set[Variable]:
@@ -74,5 +73,3 @@ class FreeVarsOracle(walkers.DagWalker):
     @walkers.handles(set(op.ALL_TYPES) - {op.VARIABLE_EXP, op.CONSTANTS, op.EXISTS, op.FORALL})
     def walk_all(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
         return args
-
-# EOC FreeVarsOracle
