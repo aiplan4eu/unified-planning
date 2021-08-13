@@ -55,8 +55,36 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].parameters()), 0)
 
+    def test_basic_conditional(self):
+        problem = self.problems['basic_conditional'].problem
+        a_x = problem.action('a_x')
+        a_y = problem.action('a_y')
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+
+            plan = planner.solve(problem)
+            self.assertEqual(len(plan.actions()), 2)
+            self.assertEqual(plan.actions()[0].action(), a_y)
+            self.assertEqual(plan.actions()[1].action(), a_x)
+            self.assertEqual(len(plan.actions()[0].parameters()), 0)
+            self.assertEqual(len(plan.actions()[1].parameters()), 0)
+
     def test_robot(self):
         problem = self.problems['robot'].problem
+        move = problem.action('move')
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+
+            plan = planner.solve(problem)
+            self.assertNotEqual(plan, None)
+            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(plan.actions()[0].action(), move)
+            self.assertEqual(len(plan.actions()[0].parameters()), 2)
+
+    def test_robot_decrease(self):
+        problem = self.problems['robot_decrease'].problem
         move = problem.action('move')
 
         with OneshotPlanner(name='enhsp') as planner:
