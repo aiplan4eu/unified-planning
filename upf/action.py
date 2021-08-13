@@ -162,3 +162,6 @@ class Action:
 
     def _add_effect_instance(self, effect: Effect):
         self._effects.append(effect)
+
+    def _set_preconditions(self, preconditions: List[FNode]):
+        self._preconditions = preconditions
