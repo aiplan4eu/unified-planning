@@ -147,6 +147,10 @@ class Problem:
                 self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
             if op.OR in ops:
                 self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+            if op.EXISTS in ops:
+                self._kind.set_conditions_kind('EXISTENTIAL_PRECONDITIONS') # type: ignore
+            if op.FORALL in ops:
+                self._kind.set_conditions_kind('UNIVERSAL_PRECONDITIONS') # type: ignore
         for e in action.effects():
             if e.is_conditional():
                 self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
@@ -218,6 +222,10 @@ class Problem:
             self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
         if op.OR in ops:
             self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        if op.EXISTS in ops:
+            self._kind.set_conditions_kind('EXISTENTIAL_PRECONDITIONS') # type: ignore
+        if op.FORALL in ops:
+            self._kind.set_conditions_kind('UNIVERSAL_PRECONDITIONS') # type: ignore
         self._goals.append(goal_exp)
 
     def goals(self) -> List[FNode]:

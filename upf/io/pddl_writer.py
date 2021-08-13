@@ -34,6 +34,34 @@ class ConverterToPDDLString(walkers.DagWalker):
         """Converts the given expression to a PDDL string."""
         return self.walk(self.simplifier.simplify(expression))
 
+    def walk_exists(self, expression, args):
+        assert len(args) == 1
+        vars = expression.variables()
+        vars_string = "("
+        for v in vars:
+            vars_string = vars_string + "?"
+            vars_string = vars_string + v.name()
+            vars_string = vars_string + " - "
+            vars_string = vars_string + str(v.type())
+        vars_string = vars_string + ")"
+        return f'(exists {vars_string}\n {args[0]})'
+
+    def walk_forall(self, expression, args):
+        assert len(args) == 1
+        vars = expression.variables()
+        vars_string = "("
+        for v in vars:
+            vars_string = vars_string + "?"
+            vars_string = vars_string + v.name()
+            vars_string = vars_string + " - "
+            vars_string = vars_string + str(v.type())
+        vars_string = vars_string + ")"
+        return f'(forall {vars_string}\n {args[0]})'
+
+    def walk_variable_exp(self, expression, args):
+        assert len(args) == 0
+        return f'?{expression.variable().name()}'
+
     def walk_and(self, expression, args):
         assert len(args) > 1
         return f'(and {" ".join(args)})'
@@ -138,6 +166,10 @@ class PDDLWriter:
                 out.write(' :numeric-fluents')
             if self.problem.kind().has_conditional_effects(): # type: ignore
                 out.write(' :conditional-effects')
+            if self.problem.kind().has_existential_preconditions(): # type: ignore
+                out.write(' :existential-preconditions')
+            if self.problem.kind().has_universal_preconditions(): # type: ignore
+                out.write(' :universal-preconditions')
             out.write(')\n')
 
         out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')
