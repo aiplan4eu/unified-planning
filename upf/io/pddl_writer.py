@@ -136,6 +136,8 @@ class PDDLWriter:
             if (self.problem.kind().has_continuous_numbers() or # type: ignore
                 self.problem.kind().has_discrete_numbers()): # type: ignore
                 out.write(' :numeric-fluents')
+            if self.problem.kind().has_conditional_effects(): # type: ignore
+                out.write(' :conditional-effects')
             out.write(')\n')
 
         out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')
@@ -182,13 +184,22 @@ class PDDLWriter:
                 out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions()])})')
             if len(a.effects()) > 0:
                 out.write('\n  :effect (and')
-                for k, v in a.effects():
-                    if v.is_true():
-                        out.write(f' {converter.convert(k)}')
-                    elif v.is_false():
-                        out.write(f' (not {converter.convert(k)})')
+                for e in a.effects():
+                    if e.is_conditional():
+                        out.write(f' (when {converter.convert(e.condition())}')
+                    if e.value().is_true():
+                        out.write(f' {converter.convert(e.fluent())}')
+                    elif e.value().is_false():
+                        out.write(f' (not {converter.convert(e.fluent())})')
+                    elif e.is_increase():
+                        out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                    elif e.is_decrease():
+                        out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
                     else:
-                        out.write(f' (assign {converter.convert(k)} {converter.convert(v)})')
+                        out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                    if e.is_conditional():
+                        out.write(f')')
+
                 out.write(')')
             out.write(')\n')
         out.write(')\n')

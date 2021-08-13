@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import upf
 from upf.shortcuts import *
 
@@ -36,6 +37,93 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(a)])
     basic = Example(problem=problem, plan=plan)
     problems['basic'] = basic
+
+    # basic conditional
+    x = upf.Fluent('x')
+    y = upf.Fluent('y')
+    a_x = upf.Action('a_x')
+    a_y = upf.Action('a_y')
+    a_x.add_precondition(Not(x))
+    a_x.add_effect(x, True, y)
+    a_y.add_precondition(Not(y))
+    a_y.add_effect(y, True)
+    problem = upf.Problem('basic_conditional')
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(a_x)
+    problem.add_action(a_y)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, False)
+    problem.add_goal(x)
+    plan = upf.SequentialPlan([upf.ActionInstance(a_y), upf.ActionInstance(a_x)])
+    basic_conditional = Example(problem=problem, plan=plan)
+    problems['basic_conditional'] = basic_conditional
+
+    # complex conditional
+    a = upf.Fluent('a')
+    b = upf.Fluent('b')
+    c = upf.Fluent('c')
+    d = upf.Fluent('d')
+    k = upf.Fluent('k')
+    x = upf.Fluent('x')
+    y = upf.Fluent('y')
+    z = upf.Fluent('z')
+    a_act = upf.Action('A')
+    a_0_act = upf.Action('A_0')
+    a_1_act = upf.Action('A_1')
+    a_2_act = upf.Action('A_2')
+    a_act.add_precondition(Not(a))
+    a_act.add_effect(a, TRUE())
+    a_act.add_effect(k, TRUE(), b)
+    a_act.add_effect(x, TRUE(), Not(c))
+    a_act.add_effect(y, FALSE(), d)
+    a_0_act.add_precondition(Not(a))
+    a_0_act.add_precondition(d)
+    a_0_act.add_effect(b, TRUE())
+    a_1_act.add_precondition(Not(a))
+    a_1_act.add_precondition(d)
+    a_1_act.add_precondition(b)
+    a_1_act.add_effect(c, FALSE(), c)
+    a_1_act.add_effect(c, TRUE(), Not(c))
+    a_2_act.add_effect(a, FALSE())
+    a_2_act.add_effect(d, TRUE())
+    a_2_act.add_effect(z, FALSE(), z)
+    a_2_act.add_effect(z, TRUE(), Not(z))
+    problem = upf.Problem('complex_conditional')
+    problem.add_fluent(a)
+    problem.add_fluent(b)
+    problem.add_fluent(c)
+    problem.add_fluent(d)
+    problem.add_fluent(k)
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_fluent(z)
+    problem.add_action(a_act)
+    problem.add_action(a_0_act)
+    problem.add_action(a_1_act)
+    problem.add_action(a_2_act)
+    problem.set_initial_value(a, True)
+    problem.set_initial_value(b, False)
+    problem.set_initial_value(c, True)
+    problem.set_initial_value(d, False)
+    problem.set_initial_value(k, False)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, True)
+    problem.set_initial_value(z, False)
+    problem.add_goal(a)
+    problem.add_goal(b)
+    problem.add_goal(Not(c))
+    problem.add_goal(d)
+    problem.add_goal(k)
+    problem.add_goal(x)
+    problem.add_goal(Not(y))
+    problem.add_goal(z)
+    plan = upf.SequentialPlan([upf.ActionInstance(a_2_act),
+                                upf.ActionInstance(a_0_act),
+                                upf.ActionInstance(a_1_act),
+                                upf.ActionInstance(a_act)])
+    complex_conditional = Example(problem=problem, plan=plan)
+    problems['complex_conditional'] = complex_conditional
 
     # robot
     Location = UserType('Location')
@@ -66,6 +154,36 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
     robot = Example(problem=problem, plan=plan)
     problems['robot'] = robot
+
+    # robot decrease
+    Location = UserType('Location')
+    robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+    battery_charge = upf.Fluent('battery_charge', RealType(0, 100))
+    move = upf.Action('move', l_from=Location, l_to=Location)
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(GE(battery_charge, 10))
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(robot_at(l_from))
+    move.add_precondition(Not(robot_at(l_to)))
+    move.add_effect(robot_at(l_from), False)
+    move.add_effect(robot_at(l_to), True)
+    move.add_decrease_effect(battery_charge, 10)
+    l1 = upf.Object('l1', Location)
+    l2 = upf.Object('l2', Location)
+    problem = upf.Problem('robot_decrease')
+    problem.add_fluent(robot_at)
+    problem.add_fluent(battery_charge)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.set_initial_value(robot_at(l1), True)
+    problem.set_initial_value(robot_at(l2), False)
+    problem.set_initial_value(battery_charge, 100)
+    problem.add_goal(robot_at(l2))
+    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
+    robot_decrease = Example(problem=problem, plan=plan)
+    problems['robot_decrease'] = robot_decrease
 
     # robot_loader
     Location = UserType('Location')

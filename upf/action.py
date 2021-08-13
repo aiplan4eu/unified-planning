@@ -23,9 +23,10 @@ import upf
 import upf.types
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
-from upf.exceptions import UPFTypeError, UPFUnboundedVariablesError
-from collections import OrderedDict
-from typing import List, Union, Tuple
+from upf.exceptions import UPFTypeError
+from upf.expression import BoolExpression, Expression
+from upf.effect import Effect, INCREASE, DECREASE
+from typing import List, Union
 
 
 class ActionParameter:
@@ -53,7 +54,7 @@ class Action:
         self._env = get_env(_env)
         self._name = _name
         self._preconditions: List[FNode] = []
-        self._effects: List[Tuple[FNode, FNode]] = []
+        self._effects: List[Effect] = []
         self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
         if _parameters is not None:
             assert len(kwargs) == 0
@@ -82,8 +83,8 @@ class Action:
             s.append(f'      {str(c)}\n')
         s.append('    ]\n')
         s.append('    effects = [\n')
-        for f, v in self.effects():
-            s.append(f'      {str(f)} := {str(v)}\n')
+        for e in self.effects():
+            s.append(f'      {str(e)}\n')
         s.append('    ]\n')
         s.append('  }')
         return ''.join(s)
@@ -96,9 +97,20 @@ class Action:
         """Returns the list of the action preconditions."""
         return self._preconditions
 
-    def effects(self) -> List[Tuple[FNode, FNode]]:
+    def effects(self) -> List[Effect]:
         """Returns the list of the action effects."""
         return self._effects
+
+    def conditional_effects(self) -> List[Effect]:
+        """Returns the list of the action conditional effects."""
+        return [e for e in self._effects if e.is_conditional()]
+
+    def is_conditional(self) -> bool:
+        return any(e.is_conditional() for e in self._effects)
+
+    def unconditional_effects(self) -> List[Effect]:
+        """Returns the list of the action unconditional effects."""
+        return [e for e in self._effects if not e.is_conditional()]
 
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
@@ -118,12 +130,40 @@ class Action:
         self._preconditions.append(precondition_exp)
 
     def add_effect(self, fluent: Union[FNode, 'upf.Fluent'],
-                   value: Union[FNode, 'upf.Fluent', 'upf.Object', ActionParameter, bool]):
+                   value: Expression, condition: BoolExpression = True):
         """Adds the given action effect."""
-        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
+        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
+        assert fluent_exp.is_fluent_exp()
+        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Action effect has not compatible types!')
-        free_vars = self._env._free_vars_oracle.get_free_variables(value)
-        if len(free_vars) != 0:
-            raise UPFUnboundedVariablesError(f"The precondition {str(value_exp)} has unbounded variables:\n{str(free_vars)}")
-        self._effects.append((fluent_exp, value_exp))
+        self._effects.append(Effect(fluent_exp, value_exp, condition_exp))
+
+    def add_increase_effect(self, fluent: Union[FNode, 'upf.Fluent'],
+                   value: Expression, condition: BoolExpression = True):
+        """Adds the given action increase effect."""
+        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
+        assert fluent_exp.is_fluent_exp()
+        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Action effect has not compatible types!')
+        self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = INCREASE))
+
+    def add_decrease_effect(self, fluent: Union[FNode, 'upf.Fluent'],
+                   value: Expression, condition: BoolExpression = True):
+        """Adds the given action decrease effect."""
+        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
+        assert fluent_exp.is_fluent_exp()
+        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Action effect has not compatible types!')
+        self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = DECREASE))
+
+    def _add_effect_instance(self, effect: Effect):
+        self._effects.append(effect)
+
+    def _set_preconditions(self, preconditions: List[FNode]):
+        self._preconditions = preconditions

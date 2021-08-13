@@ -110,10 +110,22 @@ class Problem:
         """Returns the actions."""
         return self._actions
 
+    def conditional_actions(self) -> List[upf.Action]:
+        """Returns the conditional actions."""
+        return [a for a in self._actions.values() if a.is_conditional()]
+
+    def unconditional_actions(self) -> List[upf.Action]:
+        """Returns the conditional actions."""
+        return [a for a in self._actions.values() if not a.is_conditional()]
+
     def action(self, name: str) -> upf.Action:
         """Returns the action with the given name."""
         assert name in self._actions
         return self._actions[name]
+
+    def has_action(self, name: str) -> bool:
+        """Returns True if the problem has the action with the given name ."""
+        return name in self._actions
 
     def add_action(self, action: upf.Action):
         """Adds the given action."""
@@ -135,6 +147,13 @@ class Problem:
                 self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
             if op.OR in ops:
                 self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        for e in action.effects():
+            if e.is_conditional():
+                self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+            if e.is_increase():
+                self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+            if e.is_decrease():
+                self._kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.types.Type]:
@@ -162,6 +181,10 @@ class Problem:
             if obj.type() == typename:
                 res.append(obj)
         return res
+
+    def all_objects(self) -> List[upf.Object]:
+        """Returns all the objects."""
+        return [o for o in self._objects.values()]
 
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
                           value: Union[FNode, upf.Fluent, upf.Object, bool]):
