@@ -25,8 +25,10 @@ from upf.action import Action
 from upf.object import Object
 from upf.effect import Effect
 from upf.fnode import FNode
+from upf.variable import Variable
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
+from upf.expression import Expression
 
 
 from typing import Iterable, List, Dict, Tuple
@@ -45,7 +47,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
 
     @walkers.handles(op.EXISTS)
     def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        vars = expression.variables()
+        vars: List[Variable] = expression.variables()
         type_list = []
         name_list = []
         for v in vars:
@@ -59,7 +61,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         subs_results = []
         for o in possible_combinations:
             ol: List[Object] = list(o)
-            subs = dict(zip(vars, ol))
+            subs: Dict[Expression, Expression] = dict(zip(vars, ol))
             subs_results.append(self._substituter.substitute(args[0], subs))
         return self._env.expression_manager.Or(subs_results)
 
@@ -79,7 +81,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         subs_results = []
         for o in possible_combinations:
             ol: List[Object] = list(o)
-            subs = dict(zip(vars, ol))
+            subs: Dict[Expression, Expression] = dict(zip(vars, ol))
             subs_results.append(self._substituter.substitute(args[0], subs))
         return self._env.expression_manager.And(subs_results)
 
@@ -153,7 +155,7 @@ class QuantifierRemover():
         return new_action
 
     def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
-        '''Takes the sequential plan of the non-conditional problem (created with
+        '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
         uncond_actions = unconditional_sequential_plan.actions()
