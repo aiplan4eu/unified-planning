@@ -23,6 +23,7 @@ import upf.expression
 import upf.factory
 import upf.types
 import upf.type_checker
+import upf.variable
 
 
 class Environment:
@@ -32,7 +33,7 @@ class Environment:
         self._factory = upf.factory.Factory()
         self._tc = upf.type_checker.TypeChecker(self)
         self._expression_manager = upf.expression.ExpressionManager(self)
-        self._free_vars_oracle = upf.FreeVarsOracle()
+        self._free_vars_oracle = upf.variable.FreeVarsOracle()
 
     @property
     def expression_manager(self) -> upf.expression.ExpressionManager:
