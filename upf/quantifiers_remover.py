@@ -84,8 +84,6 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         return self._env.expression_manager.And(subs_results)
 
 
-
-
 class QuantifierRemover():
     '''Conditional effect remover class:
     this class requires a problem and offers the capability
@@ -97,9 +95,9 @@ class QuantifierRemover():
         self._env = problem.env
         self._counter: int = 0
         self._noquantifier_problem = None
+        #NOTE no simplification are made. But it's possible to add them in key points
         self._simplifier = Simplifier(self._env)
-        self._sustituter = Substituter(self._env)
-
+        self._expression_quantifier_remover = ExpressionQuantifierRemover(self._problem, self._env)
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every quantifier is removed.'''
@@ -117,7 +115,6 @@ class QuantifierRemover():
         '''Creates the shallow copy of a problem, without adding the actions
         with quantifiers and by pushing them to the stack
         '''
-        qa = []
         new_problem: Problem = Problem("noquantifiers_" + str(self._problem.name()), self._env)
         for f in self._problem.fluents().values():
             new_problem.add_fluent(f)
@@ -130,8 +127,29 @@ class QuantifierRemover():
         return new_problem
 
     def _action_without_quantifiers(self, action) -> Action:
-        for e in action.effects():
+        #emulates a do-while loop: searching for an available name
+        is_unavailable_name = True
+        while is_unavailable_name:
+            new_action_name = action.name()+ "_" +str(self._counter)
+            self._counter = self._counter + 1
+            is_unavailable_name = self._problem.has_action(new_action_name)
+        new_parameters = OrderedDict()
+        for ap in action.parameters():
+            new_parameters[ap.name()] = ap.type()
+        new_action = Action(new_action_name, new_parameters, self._env)
 
+        for p in action.preconditions():
+            np = self._expression_quantifier_remover.remove_quantifiers(p)
+            new_action.add_precondition(np)
+        for e in action.effects():
+            if e.is_conditional():
+                nc = self._expression_quantifier_remover.remove_quantifiers(e.condition())
+            else:
+                nc = self._env.expression_manager.TRUE()
+            nv = self._expression_quantifier_remover.remove_quantifiers(e.value())
+            ne = Effect(e.fluent(), nv, nc, e.kind())
+            new_action._add_effect_instance(ne)
+        return new_action
 
     def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
         '''Takes the sequential plan of the non-conditional problem (created with
