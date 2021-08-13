@@ -146,7 +146,7 @@ class ConditionalEffectsRemover():
         uncond_actions = unconditional_sequential_plan.actions()
         cond_actions = []
         for ai in uncond_actions:
-            if ai.action().name() in self._action_mapping:
+            if ai.action() in self._action_mapping:
                 cond_actions.append(self._new_action_instance_original_name(ai))
             else:
                 cond_actions.append(ai)
