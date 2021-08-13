@@ -56,20 +56,20 @@ class FreeVarsOracle(walkers.DagWalker):
         return self.walk(expression)
 
     @walkers.handles(op.VARIABLE_EXP)
-    def walk_variable_exp(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
+    def walk_variable_exp(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
         #pylint: disable=unused-argument
         return {expression.variable()}
 
     @walkers.handles(op.EXISTS, op.FORALL)
-    def walk_quantifier(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
+    def walk_quantifier(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
         #pylint: disable=unused-argument
-        return args.difference(expression.variables())
+        return args[0].difference(expression.variables())
 
     @walkers.handles(op.CONSTANTS)
-    def walk_constant(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
+    def walk_constant(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
         #pylint: disable=unused-argument
         return Set()
 
     @walkers.handles(set(op.ALL_TYPES) - {op.VARIABLE_EXP, op.CONSTANTS, op.EXISTS, op.FORALL})
-    def walk_all(self, expression: FNode, args: Set[Variable], **kwargs) -> Set[Variable]:
-        return args
+    def walk_all(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
+        return {v for s in args for v in s}
