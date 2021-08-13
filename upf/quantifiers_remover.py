@@ -58,7 +58,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         possible_combinations = list(product(*possible_objects))
         subs_results = []
         for o in possible_combinations:
-            ol = list(o)
+            ol: List[Object] = list(o)
             subs = dict(zip(vars, ol))
             subs_results.append(self._substituter.substitute(args[0], subs))
         return self._env.expression_manager.Or(subs_results)
@@ -78,7 +78,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         possible_combinations = list(product(*possible_objects))
         subs_results = []
         for o in possible_combinations:
-            ol = list(o)
+            ol: List[Object] = list(o)
             subs = dict(zip(vars, ol))
             subs_results.append(self._substituter.substitute(args[0], subs))
         return self._env.expression_manager.And(subs_results)
@@ -98,6 +98,7 @@ class QuantifierRemover():
         #NOTE no simplification are made. But it's possible to add them in key points
         self._simplifier = Simplifier(self._env)
         self._expression_quantifier_remover = ExpressionQuantifierRemover(self._problem, self._env)
+
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every quantifier is removed.'''
@@ -105,7 +106,7 @@ class QuantifierRemover():
             return self._noquantifier_problem
         #NOTE that a different environment might be needed when multy-threading
         new_problem = self._create_problem_copy_without_actions()
-        for a in self._problem.actions():
+        for a in self._problem.actions().values():
             na = self._action_without_quantifiers(a)
             new_problem.add_action(na)
             self._action_mapping[na] = a
