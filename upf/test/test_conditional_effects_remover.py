@@ -57,9 +57,9 @@ class TestConditionalEffectsRemover(TestCase):
 
         self.assertEqual(len(u_actions), 2)
         self.assertEqual(problem.action("a_y"), unconditional_problem.action("a_y"))
-        self.assertTrue(a_x.has_conditional_effects())
+        self.assertTrue(a_x.is_conditional())
         self.assertFalse(unconditional_problem.has_action("a_x"))
-        self.assertFalse(a_x_1.has_conditional_effects())
+        self.assertFalse(a_x_1.is_conditional())
         self.assertFalse(problem.has_action("a_x_0"))
         self.assertIn(y, a_x_1.preconditions())
         self.assertNotIn(y, a_x.preconditions())

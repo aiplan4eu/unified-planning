@@ -52,8 +52,8 @@ class TestPddlIO(TestCase):
     def test_basic_conditional_writer(self):
         problem = self.problems['basic_conditional'].problem
 
-        self.assertTrue(problem.action('a_x').has_conditional_effects())
-        self.assertFalse(problem.action('a_y').has_conditional_effects())
+        self.assertTrue(problem.action('a_x').is_conditional())
+        self.assertFalse(problem.action('a_y').is_conditional())
 
         w = PDDLWriter(problem)
 

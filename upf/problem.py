@@ -110,6 +110,14 @@ class Problem:
         """Returns the actions."""
         return self._actions
 
+    def conditional_actions(self) -> List[upf.Action]:
+        """Returns the conditional actions."""
+        return [a for a in self._actions.values() if a.is_conditional()]
+
+    def unconditional_actions(self) -> List[upf.Action]:
+        """Returns the conditional actions."""
+        return [a for a in self._actions.values() if not a.is_conditional()]
+
     def action(self, name: str) -> upf.Action:
         """Returns the action with the given name."""
         assert name in self._actions

@@ -54,11 +54,9 @@ class ConditionalEffectsRemover():
             return self._unconditional_problem
         #cycle over all the actions
         #NOTE that a different environment might be needed when multy-threading
-        action_stack: List[Action] = []
-        new_problem, action_stack = self._create_problem_copy()
+        new_problem = self._create_problem_copy()
 
-        while len(action_stack) > 0:
-            action = action_stack.pop()
+        for action in self._problem.conditional_actions():
             cond_effects = list(action.conditional_effects())
             for p in self.powerset(range(len(cond_effects))):
                 na = self._shallow_copy_action_without_conditional_effects(action)
@@ -128,7 +126,6 @@ class ConditionalEffectsRemover():
         '''Creates the shallow copy of a problem, without adding the conditional actions
         and by pushing them to the stack
         '''
-        action_stack = []
         new_problem: Problem = Problem("unconditional_" + str(self._problem.name()), self._env)
         for f in self._problem.fluents().values():
             new_problem.add_fluent(f)
@@ -138,12 +135,9 @@ class ConditionalEffectsRemover():
             new_problem.set_initial_value(fl, v)
         for g in self._problem.goals():
             new_problem.add_goal(g)
-        for n, a in self._problem.actions().items():
-            if a.has_conditional_effects():
-                action_stack.append(a)
-            else:
-                new_problem.add_action(a)
-        return (new_problem, action_stack)
+        for ua in self._problem.unconditional_actions():
+                new_problem.add_action(ua)
+        return new_problem
 
     def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
         '''Takes the sequential plan of the non-conditional problem (created with

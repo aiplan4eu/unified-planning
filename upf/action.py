@@ -106,7 +106,7 @@ class Action:
         """Returns the list of the action conditional effects."""
         return [e for e in self._effects if e.is_conditional()]
 
-    def has_conditional_effects(self) -> bool:
+    def is_conditional(self) -> bool:
         return any(e.is_conditional() for e in self._effects)
 
     def unconditional_effects(self) -> List[Effect]:
