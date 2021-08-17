@@ -125,6 +125,24 @@ def get_example_problems():
     complex_conditional = Example(problem=problem, plan=plan)
     problems['complex_conditional'] = complex_conditional
 
+    # basic exists
+    x = upf.Fluent('x')
+    y = upf.Fluent('y')
+    bool_var = upf.Variable("Bool", BoolType())
+    a = upf.Action('a')
+    a.add_precondition(Exists(bool_var, bool_var))
+    a.add_effect(x, True)
+    problem = upf.Problem('basic_exists')
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(a)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(x, True)
+    problem.add_goal(x)
+    plan = upf.SequentialPlan([upf.ActionInstance(a)])
+    basic_exists = Example(problem=problem, plan=plan)
+    problems['basic_exists'] = basic_exists
+
     # robot
     Location = UserType('Location')
     robot_at = upf.Fluent('robot_at', BoolType(), [Location])

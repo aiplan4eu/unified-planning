@@ -23,6 +23,7 @@ import upf.types
 import upf.operators as op
 from upf.fnode import FNodeContent, FNode
 from upf.exceptions import UPFTypeError
+from upf.variable import Variable
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
@@ -156,7 +157,7 @@ class ExpressionManager(object):
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IFF, args=(left, right))
 
-    def Exists(self, expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
+    def Exists(self, expression: BoolExpression, *vars: Variable) -> FNode:
         """ Creates an expression of the form:
             Exists (var[0]... var[n]) | expression
         Restriction: Expression must be of boolean type and
@@ -164,11 +165,11 @@ class ExpressionManager(object):
         """
         expressions = self.auto_promote(expression)
         for v in vars:
-            if type(v) != 'upf.Variable':
+            if type(v) != Variable:
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
         return self.create_node(node_type=op.EXISTS, args=expressions, payload=[*vars])
 
-    def Forall(self, expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
+    def Forall(self, expression: BoolExpression, *vars: Variable) -> FNode:
         """ Creates an expression of the form:
             Forall (var[0]... var[n]) | expression
         Restriction: Expression must be of boolean type and
@@ -176,7 +177,7 @@ class ExpressionManager(object):
         """
         expressions = self.auto_promote(expression)
         for v in vars:
-            if type(v) != 'upf.Variable':
+            if type(v) != Variable:
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
         return self.create_node(node_type=op.FORALL, args=expressions, payload=[*vars])
 
