@@ -22,9 +22,10 @@ from upf.problem import Problem
 from upf.plan import Plan, ActionInstance, SequentialPlan
 from upf.fluent import Fluent
 from upf.fnode import FNode
+from upf.expression import Expression
 
 
-class PlanValidator():
+class PlanValidator(object):
     """Performs plan validation."""
     def __init__(self, env: 'upf.environment.Environment'):
         self._env = env
@@ -32,9 +33,7 @@ class PlanValidator():
         self.type_checker = env.type_checker
         self._simplifier = Simplifier(self._env)
         self._substituter = Substituter(self._env)
-        self._problem: Problem = None
-        self._plan: SequentialPlan = None
-        self._subst: Dict[FNode, FNode] = {}
+        self._subst: Dict[Expression, Expression] = {}
 
     def is_valid_plan(self, problem, plan) -> bool:
         self._problem = problem
@@ -58,7 +57,11 @@ class PlanValidator():
                         self._subst[e.fluent()] = self._subs_simplify(self.manager.Plus(e.fluent(), e.value()))
                     elif e.is_decrease():
                         self._subst[e.fluent()] = self._subs_simplify(self.manager.Minus(e.fluent(), e.value()))
-        #TODO
+        for g in self._problem.goals():
+            gs = self._subs_simplify(g)
+            if not (gs.is_bool_constant() and gs.bool_constant_value()):
+                    return False
+        return True
 
     def _subs_simplify(self, expression: FNode) -> FNode:
         es = self._substituter.substitute(expression, self._subst)
