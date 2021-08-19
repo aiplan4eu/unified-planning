@@ -19,9 +19,7 @@ import upf.operators as op
 import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.fnode import FNode
-from upf.type_checker import TypeChecker
-from upf.exceptions import UPFTypeError
-from upf.expression import Expression
+from upf.simplifier import Simplifier
 from typing import List, Dict, Mapping
 from itertools import product
 
@@ -34,8 +32,15 @@ class Nnf(IdentityDagWalker):
         self.manager = env.expression_manager
         self.type_checker = env.type_checker
 
+
     def get_nnf_expression(self, expression: FNode) -> FNode:
-        return self.walk(expression)
+        self._walk_again = True
+        ret_val = expression
+        while self._walk_again:
+            self._walk_again = False
+            ret_val = self.walk(ret_val)
+        return ret_val
+
 
     def walk_iff(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         assert len(args) == 2
@@ -59,17 +64,25 @@ class Nnf(IdentityDagWalker):
             else:
                 return self.manager.TRUE()
         elif args[0].is_not():
-            return args[0].args()[0]
+            new_exp_l = args[0].args()
+            return new_exp_l[0]
         elif args[0].is_or():
             for a in args[0].args():
                 new_args.append(self.manager.Not(a))
             new_exp = self.manager.And(new_args)
-            return self.walk(new_exp)
+            ##########################
+            # self.walk inside walk not working..
+            self._walk_again = True
+            return new_exp
+            #return self.walk(new_exp)
         elif args[0].is_and():
             for a in args[0].args():
                 new_args.append(self.manager.Not(a))
             new_exp = self.manager.Or(new_args)
-            return self.walk(new_exp)
+            ########################################
+            self._walk_again = True
+            return new_exp
+            #return self.walk(new_exp)
         else:
             return self.manager.Not(args[0])
 
@@ -81,26 +94,17 @@ class Dnf(IdentityDagWalker):
         self.manager = env.expression_manager
         self.type_checker = env.type_checker
         self._nnf = Nnf(self.env)
+        self._simplifier = Simplifier(self.env)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
         nnf_exp = self._nnf.get_nnf_expression(expression)
-        return self.walk(nnf_exp)
+        return self._simplifier.simplify(self.walk(nnf_exp))
 
     def walk_and(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         new_args: List[List[FNode]] = []
         for a in args:
             if a.is_or():
-                for ag in a.args():
-                    if ag.is_and():
-                        to_add = True
-                        for and_arg in ag.args():
-                            if self.manager.Not(and_arg) in ag.args():
-                                to_add = False
-                                break
-                        if to_add:
-                            new_args.append(ag.args())
-                    else:
-                        new_args.append([ag])
+                new_args.append(a.args())
             else:
                 new_args.append([a])
         tuples = list(product(*new_args))
