@@ -20,7 +20,7 @@ import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
-from typing import List, Dict, Mapping
+from typing import List, Dict, Mapping, Tuple
 from itertools import product
 
 
@@ -30,17 +30,69 @@ class Nnf(IdentityDagWalker):
         IdentityDagWalker.__init__(self, env, True)
         self.env = env
         self.manager = env.expression_manager
-        self.type_checker = env.type_checker
-
 
     def get_nnf_expression(self, expression: FNode) -> FNode:
-        self._walk_again = True
-        ret_val = expression
-        while self._walk_again:
-            self._walk_again = False
-            ret_val = self.walk(ret_val)
-        return ret_val
+        ex = self._remove_iff_and_implies(expression)
+        mapping_list = self._fill_mapping_list(ex)
+        new_exp = self._recreate_expression(mapping_list)
+        return new_exp
 
+    def _recreate_expression(self, mapping_list: Dict[int, List[Tuple[bool, FNode, int]]]) -> FNode:
+        #iterating a dict "d" from len(d) to 0
+        x = range(0, len(mapping_list))
+        l = list(x)
+        l.reverse()
+        #mapping_fnode contains "mapping_list" converted to expressions.
+        mapping_fnode: Dict[int, List[FNode]] = {}
+        for i in l:
+            mapping_fnode[i] = []
+            (mapping_list[i]).reverse()
+            for p, e, s in mapping_list[i]:
+                if e.is_and():
+                    if p:
+                        mapping_fnode[i].append(self.manager.Or(mapping_fnode[s]))
+                    else:
+                        mapping_fnode[i].append(self.manager.And(mapping_fnode[s]))
+                elif e.is_or():
+                    if p:
+                        mapping_fnode[i].append(self.manager.And(mapping_fnode[s]))
+                    else:
+                        mapping_fnode[i].append(self.manager.Or(mapping_fnode[s]))
+                else:
+                    if p:
+                        mapping_fnode[i].append(self.manager.Not(e))
+                    else:
+                        mapping_fnode[i].append(e)
+        return mapping_fnode[0].pop(0)
+
+    def _fill_mapping_list(self, expression:FNode) -> Dict[int, List[Tuple[bool, FNode, int]]]:
+        #Polarity, expression, father
+        stack: List[Tuple[bool, FNode, int]] = []
+        #stack is a list containing the tuple(polarity, expression, father, sons)
+        #where polarity indicates whether the whole expression is positive or negative
+        #expression is used to keep track of the expression type
+        #father indicates the number of the father (used to re-create the expression in nnf form)
+        stack.append((False, expression, 0))
+        mapping_list: Dict[int, List[Tuple[bool, FNode, int]]] = {}
+        mapping_list[0] = []
+        count = 1
+        while len(stack) > 0:
+            p, e, f = stack.pop()
+            if e.is_not():
+                stack.append((not p, e.args()[0], f))
+                continue
+            elif e.is_and() or e.is_or():
+                for arg in e.args():
+                    stack.append((p, arg, count))
+                    mapping_list[count] = []
+                mapping_list[f].append((p, e, count))
+                count = count + 1
+            else:
+                mapping_list[f].append((p, e, -1))
+        return mapping_list
+
+    def _remove_iff_and_implies(self, expression: FNode) -> FNode:
+        return self.walk(expression)
 
     def walk_iff(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         assert len(args) == 2
@@ -55,36 +107,6 @@ class Nnf(IdentityDagWalker):
         na1 = self.manager.Not(args[0])
         return self.manager.Or(na1, args[1])
 
-    def walk_not(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        assert len(args) == 1
-        new_args: List[FNode] = []
-        if args[0].is_bool_constant():
-            if args[0].bool_constant_value():
-                return self.manager.FALSE()
-            else:
-                return self.manager.TRUE()
-        elif args[0].is_not():
-            new_exp_l = args[0].args()
-            return new_exp_l[0]
-        elif args[0].is_or():
-            for a in args[0].args():
-                new_args.append(self.manager.Not(a))
-            new_exp = self.manager.And(new_args)
-            ##########################
-            # self.walk inside walk not working..
-            self._walk_again = True
-            return new_exp
-            #return self.walk(new_exp)
-        elif args[0].is_and():
-            for a in args[0].args():
-                new_args.append(self.manager.Not(a))
-            new_exp = self.manager.Or(new_args)
-            ########################################
-            self._walk_again = True
-            return new_exp
-            #return self.walk(new_exp)
-        else:
-            return self.manager.Not(args[0])
 
 class Dnf(IdentityDagWalker):
     """Performs substitution into an expression """
@@ -92,7 +114,6 @@ class Dnf(IdentityDagWalker):
         IdentityDagWalker.__init__(self, env, True)
         self.env = env
         self.manager = env.expression_manager
-        self.type_checker = env.type_checker
         self._nnf = Nnf(self.env)
         self._simplifier = Simplifier(self.env)
 
