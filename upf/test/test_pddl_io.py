@@ -81,16 +81,16 @@ class TestPddlIO(TestCase):
 
         pddl_domain = w.get_domain()
         print(pddl_domain)
-        self.assertIn('(:requirements :strips :negative-preconditions)', pddl_domain)
-        self.assertIn('(:predicates (x))', pddl_domain)
+        self.assertIn('(:requirements :strips :existential-preconditions)', pddl_domain)
+        self.assertIn('(:predicates (x) (y))', pddl_domain)
         self.assertIn('(:action a', pddl_domain)
         self.assertIn(':parameters ()', pddl_domain)
-        self.assertIn(':precondition (and (not (x)))', pddl_domain)
+        self.assertIn(':precondition (and (exists (?Bool - bool)', pddl_domain)
         self.assertIn(':effect (and (x))', pddl_domain)
 
         pddl_problem = w.get_problem()
-        self.assertIn('(:domain basic-domain)', pddl_problem)
-        self.assertIn('(:init)', pddl_problem)
+        self.assertIn('(:domain basic_exists-domain)', pddl_problem)
+        self.assertIn('(:init (y))', pddl_problem)
         self.assertIn('(:goal (and (x)))', pddl_problem)
 
     def test_robot_writer(self):

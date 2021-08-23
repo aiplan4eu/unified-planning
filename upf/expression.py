@@ -86,7 +86,7 @@ class ExpressionManager(object):
         return res
 
     def create_node(self, node_type: int, args: Iterable[FNode],
-                    payload: Union['upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, Fraction, List['upf.Variable']] = None) -> FNode:
+                    payload: Union['upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, Fraction, Tuple['upf.Variable', ...]] = None) -> FNode:
         content = FNodeContent(node_type, args, payload)
         if content in self.expressions:
             return self.expressions[content]
@@ -163,11 +163,11 @@ class ExpressionManager(object):
         Restriction: Expression must be of boolean type and
                     vars must be of 'upf.Variable type'
         """
-        expressions = self.auto_promote(expression)
+        expressions = tuple(self.auto_promote(expression))
         for v in vars:
             if type(v) != Variable:
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
-        return self.create_node(node_type=op.EXISTS, args=expressions, payload=[*vars])
+        return self.create_node(node_type=op.EXISTS, args=expressions, payload=vars)
 
     def Forall(self, expression: BoolExpression, *vars: Variable) -> FNode:
         """ Creates an expression of the form:
@@ -175,11 +175,11 @@ class ExpressionManager(object):
         Restriction: Expression must be of boolean type and
                     vars must be of 'upf.Variable type'
         """
-        expressions = self.auto_promote(expression)
+        expressions = tuple(self.auto_promote(expression))
         for v in vars:
             if type(v) != Variable:
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
-        return self.create_node(node_type=op.FORALL, args=expressions, payload=[*vars])
+        return self.create_node(node_type=op.FORALL, args=expressions, payload=vars)
 
     def FluentExp(self, fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
         """ Creates an expression for the given fluent and parameters.

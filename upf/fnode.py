@@ -150,7 +150,7 @@ class FNode(object):
     def variables(self) -> List['upf.Variable']:
         """Return the variable of the Exists or Forall."""
         assert self.is_exists() or self.is_forall()
-        return self._content.payload
+        return list(self._content.payload)
 
     def object(self) -> 'upf.Object':
         """Return the object of the ObjectExp."""
