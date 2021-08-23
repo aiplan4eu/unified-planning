@@ -40,29 +40,51 @@ class PlanValidator(object):
         self._plan = plan
         self._subst = self._problem.initial_values()
         for ai in self._plan.actions():
+            new_subst: Dict[Expression, Expression] = {}
+            for ap, oe in zip(ai.action().parameters(), ai.parameters()):
+                self._subst[ap] = oe
             for p in ai.action().preconditions():
                 ps = self._subs_simplify(p)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
+                    print("a")
                     return False
             for e in ai.action().effects():
                 cond = True
                 if e.is_conditional():
                     ec = self._subs_simplify(e.condition())
-                if not (ec.is_bool_constant() and ec.bool_constant_value()):
-                    cond = False
+                    if not (ec.is_bool_constant() and ec.bool_constant_value()):
+                        cond = False
                 if cond:
+                    ge = self._get_ground_fluent(e.fluent())
                     if e.is_assignment():
-                        self._subst[e.fluent()] = self._subs_simplify(e.value())
+                        new_subst[ge] = self._subs_simplify(e.value())
                     elif e.is_increase():
-                        self._subst[e.fluent()] = self._subs_simplify(self.manager.Plus(e.fluent(), e.value()))
+                        new_subst[ge] = self._subs_simplify(self.manager.Plus(e.fluent(), e.value()))
                     elif e.is_decrease():
-                        self._subst[e.fluent()] = self._subs_simplify(self.manager.Minus(e.fluent(), e.value()))
+                        new_subst[ge] = self._subs_simplify(self.manager.Minus(e.fluent(), e.value()))
+            self._subst.update(new_subst)
+            for ap in ai.action().parameters():
+                del self._subst[ap]
         for g in self._problem.goals():
             gs = self._subs_simplify(g)
             if not (gs.is_bool_constant() and gs.bool_constant_value()):
                     return False
         return True
 
+    def _get_ground_fluent(self, fluent:FNode) -> FNode:
+        assert fluent.is_fluent_exp()
+        new_args = []
+        for p in fluent.args():
+            new_args.append(self._subs_simplify(p)) #NOTE Might be better just to substitute once(?)
+        return self.manager.FluentExp(fluent.fluent(), tuple(new_args))
+
     def _subs_simplify(self, expression: FNode) -> FNode:
-        es = self._substituter.substitute(expression, self._subst)
-        return self._simplifier.simplify(es)
+        to_subst = True
+        new_exp = expression
+        while to_subst:
+            old_exp = new_exp
+            new_exp = self._substituter.substitute(new_exp, self._subst)
+            to_subst = not (old_exp == new_exp)
+        r = self._simplifier.simplify(new_exp)
+        assert r.is_constant()
+        return r

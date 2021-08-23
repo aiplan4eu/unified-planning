@@ -14,7 +14,6 @@
 
 
 import upf
-from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
 from upf.plan_validator import PlanValidator
@@ -29,3 +28,19 @@ class TestProblem(TestCase):
         problem, plan = self.problems['basic'].problem, self.problems['basic'].plan
         pv = PlanValidator(get_env())
         self.assertTrue(pv.is_valid_plan(problem, plan))
+
+    def test_robot(self):
+        problem, plan = self.problems['robot'].problem, self.problems['robot'].plan
+        pv = PlanValidator(get_env())
+        self.assertTrue(pv.is_valid_plan(problem, plan))
+
+    def test_complex_conditional(self):
+        problem, plan = self.problems['complex_conditional'].problem, self.problems['complex_conditional'].plan
+        pv = PlanValidator(get_env())
+        self.assertTrue(pv.is_valid_plan(problem, plan))
+
+    def test_all(self):
+        pv = PlanValidator(get_env())
+        for p in self.problems.values():
+            problem, plan = p.problem, p.plan
+            self.assertTrue(pv.is_valid_plan(problem, plan))
