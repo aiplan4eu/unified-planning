@@ -15,6 +15,7 @@
 
 
 import upf.environment
+import upf.operators as op
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
@@ -97,16 +98,26 @@ class Nnf():
                 mapping_list[f].append((p, e, count))
                 count = count + 1
             elif e.is_implies():
-                na1 = self.manager.Not(e.args()[0])
-                ne = self.manager.Or(na1, e.args()[1])
-                stack.append((p, ne, f))
+                ne = self.manager.create_node(node_type=op.OR, args=())
+                mapping_list[count] = []
+                mapping_list[f].append((p, ne, count))
+                stack.append((not p, e.args()[0], count))
+                stack.append((p, e.args()[1], count))
+                count = count + 1
             elif e.is_iff():
-                e1 = self.manager.And(e.args()[0], e.args()[1])
-                na1 = self.manager.Not(e.args()[0])
-                na2 = self.manager.Not(e.args()[1])
-                e2 = self.manager.And(na1, na2)
-                ne = self.manager.Or(e1, e2)
-                stack.append((p, ne, f))
+                ne_or = self.manager.create_node(node_type=op.OR, args=())
+                ne_and = self.manager.create_node(node_type=op.AND, args=())
+                mapping_list[count] = []
+                mapping_list[count+1] = []
+                mapping_list[count+2] = []
+                mapping_list[f].append((p, ne_or, count))
+                mapping_list[count].append((p, ne_and, count + 2))
+                mapping_list[count].append((p, ne_and, count + 1))
+                stack.append((p, e.args()[0], count+1))
+                stack.append((p, e.args()[1], count+1))
+                stack.append((not p, e.args()[0], count+2))
+                stack.append((not p, e.args()[1], count+2))
+                count = count + 3
             else:
                 mapping_list[f].append((p, e, -1))
         return mapping_list
