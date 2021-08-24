@@ -39,7 +39,7 @@ class FNode(object):
     def __hash__(self) -> int:
         return self._node_id
 
-    def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
+    def get_nary_expression_string(self, op: str, args: Union[List['FNode'], List['upf.Variable']]) -> str:
         p = []
         if len(args) > 0:
             p.append('(')
@@ -75,6 +75,12 @@ class FNode(object):
             return self.get_nary_expression_string(' implies ', self.args())
         elif self.is_iff():
             return self.get_nary_expression_string(' iff ', self.args())
+        elif self.is_exists():
+            s = self.get_nary_expression_string(' , ', self.variables())
+            return "Exists " + s + "  " + str(self.arg(0))
+        elif self.is_forall():
+            s = self.get_nary_expression_string(' forall ', self.variables())
+            return "Forall " + s + "  " + str(self.arg(0))
         elif self.is_plus():
             return self.get_nary_expression_string(' + ', self.args())
         elif self.is_minus():

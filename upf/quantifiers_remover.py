@@ -86,7 +86,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         return self._env.expression_manager.And(subs_results)
 
 
-class QuantifierRemover():
+class QuantifiersRemover():
     '''Conditional effect remover class:
     this class requires a problem and offers the capability
     to transform a problem with quantifiers into a problem without.
