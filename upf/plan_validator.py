@@ -18,9 +18,6 @@ from typing import Dict
 import upf.environment
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
-from upf.problem import Problem
-from upf.plan import Plan, ActionInstance, SequentialPlan
-from upf.fluent import Fluent
 from upf.fnode import FNode
 from upf.expression import Expression
 
@@ -33,20 +30,18 @@ class PlanValidator(object):
         self.type_checker = env.type_checker
         self._simplifier = Simplifier(self._env)
         self._substituter = Substituter(self._env)
-        self._subst: Dict[Expression, Expression] = {}
 
     def is_valid_plan(self, problem, plan) -> bool:
         self._problem = problem
         self._plan = plan
-        self._subst = self._problem.initial_values()
+        self._assignments = self._problem.initial_values()
         for ai in self._plan.actions():
             new_subst: Dict[Expression, Expression] = {}
             for ap, oe in zip(ai.action().parameters(), ai.parameters()):
-                self._subst[ap] = oe
+                self._assignments[ap] = oe
             for p in ai.action().preconditions():
                 ps = self._subs_simplify(p)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
-                    print("a")
                     return False
             for e in ai.action().effects():
                 cond = True
@@ -62,9 +57,9 @@ class PlanValidator(object):
                         new_subst[ge] = self._subs_simplify(self.manager.Plus(e.fluent(), e.value()))
                     elif e.is_decrease():
                         new_subst[ge] = self._subs_simplify(self.manager.Minus(e.fluent(), e.value()))
-            self._subst.update(new_subst)
+            self._assignments.update(new_subst)
             for ap in ai.action().parameters():
-                del self._subst[ap]
+                del self._assignments[ap]
         for g in self._problem.goals():
             gs = self._subs_simplify(g)
             if not (gs.is_bool_constant() and gs.bool_constant_value()):
@@ -75,15 +70,20 @@ class PlanValidator(object):
         assert fluent.is_fluent_exp()
         new_args = []
         for p in fluent.args():
-            new_args.append(self._subs_simplify(p)) #NOTE Might be better just to substitute once(?)
+            new_args.append(self._subs_simplify(p))
         return self.manager.FluentExp(fluent.fluent(), tuple(new_args))
 
     def _subs_simplify(self, expression: FNode) -> FNode:
         to_subst = True
         new_exp = expression
         while to_subst:
+        #This do-while loop is necessary because when we have a FluentExp with
+        #  some parameters, the first substitution substitutes the parameters with
+        #  the object: then every ground fluent is substituted with it's value.
+        #  It is a while loop because sometimes more than 2 substitutions can be
+        #  required.
             old_exp = new_exp
-            new_exp = self._substituter.substitute(new_exp, self._subst)
+            new_exp = self._substituter.substitute(new_exp, self._assignments)
             to_subst = not (old_exp == new_exp)
         r = self._simplifier.simplify(new_exp)
         assert r.is_constant()
