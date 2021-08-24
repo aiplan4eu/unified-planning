@@ -14,26 +14,35 @@
 #
 
 
-import upf.walkers as walkers
-import upf.operators as op
 import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
-from typing import List, Dict, Mapping, Tuple
+from typing import List, Dict, Tuple
 from itertools import product
 
 
-class Nnf(IdentityDagWalker):
-    """Performs substitution into an expression """
+class Nnf():
+    """Class used to transform a logic expression into the equivalent
+    Negational Normal Form expression.
+
+    This is done first by removing all the Implications and Equalities,
+    then by pushing all the not to the leaves of the Tree representing the expression."""
+
     def __init__(self, env: 'upf.environment.Environment'):
-        IdentityDagWalker.__init__(self, env, True)
         self.env = env
         self.manager = env.expression_manager
 
     def get_nnf_expression(self, expression: FNode) -> FNode:
-        ex = self._remove_iff_and_implies(expression)
-        mapping_list = self._fill_mapping_list(ex)
+        """Function used to transform a logic expression into the equivalent
+        Negational Normal Form expression.
+
+        This is done first by removing all the Implications and Equalities,
+        and by pushing all the not to the leaves of the Tree representing the expression.
+
+        For example, the form: !(a => (b && c)) becomes:
+        a && (!b || !c), therefore it is a NNF."""
+        mapping_list = self._fill_mapping_list(expression)
         new_exp = self._recreate_expression(mapping_list)
         return new_exp
 
@@ -87,29 +96,31 @@ class Nnf(IdentityDagWalker):
                     mapping_list[count] = []
                 mapping_list[f].append((p, e, count))
                 count = count + 1
+            elif e.is_implies():
+                na1 = self.manager.Not(e.args()[0])
+                ne = self.manager.Or(na1, e.args()[1])
+                stack.append((p, ne, f))
+            elif e.is_iff():
+                e1 = self.manager.And(e.args()[0], e.args()[1])
+                na1 = self.manager.Not(e.args()[0])
+                na2 = self.manager.Not(e.args()[1])
+                e2 = self.manager.And(na1, na2)
+                ne = self.manager.Or(e1, e2)
+                stack.append((p, ne, f))
             else:
                 mapping_list[f].append((p, e, -1))
         return mapping_list
 
-    def _remove_iff_and_implies(self, expression: FNode) -> FNode:
-        return self.walk(expression)
-
-    def walk_iff(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        assert len(args) == 2
-        e1 = self.manager.And(args[0], args[1])
-        na1 = self.manager.Not(args[0])
-        na2 = self.manager.Not(args[1])
-        e2 = self.manager.And(na1, na2)
-        return self.manager.Or(e1, e2)
-
-    def walk_implies(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        assert len(args) == 2
-        na1 = self.manager.Not(args[0])
-        return self.manager.Or(na1, args[1])
-
 
 class Dnf(IdentityDagWalker):
-    """Performs substitution into an expression """
+    """Class used to transform a logic expression into the equivalent
+    Disjunctive Normal Form expression.
+
+    This is done first by transforming the expression into a NNF expression,
+    and then every And and Or are propagated to be a unique equivalent Or of
+    Ands or Atomic expressions, where 'atomic expressions' could also be a
+    Not of an atomic expression.
+    """
     def __init__(self, env: 'upf.environment.Environment'):
         IdentityDagWalker.__init__(self, env, True)
         self.env = env
@@ -118,6 +129,17 @@ class Dnf(IdentityDagWalker):
         self._simplifier = Simplifier(self.env)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
+        """Function used to transform a logic expression into the equivalent
+        Disjunctive Normal Form expression.
+
+        This is done first by transforming the expression into a NNF expression,
+        and then every And and Or are propagated to be a unique equivalent Or of
+        Ands or Atomic expressions, where 'atomic expressions' could also be a
+        Not of an atomic expression.
+
+        For example, the form: !(a => (b && c)) becomes:
+        a && (!b || !c), in NNF form, and then:
+        (a && !b) || (a && !c), therefore a DNF expression."""
         nnf_exp = self._nnf.get_nnf_expression(expression)
         return self._simplifier.simplify(self.walk(nnf_exp))
 
