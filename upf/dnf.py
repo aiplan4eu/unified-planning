@@ -16,7 +16,8 @@
 
 import upf.environment
 import upf.operators as op
-from upf.walkers.identitydag import IdentityDagWalker
+import upf.walkers as walkers
+from upf.walkers.dag import DagWalker
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
 from typing import List, Dict, Tuple
@@ -105,14 +106,22 @@ class Nnf():
                 stack.append((p, e.args()[1], count))
                 count = count + 1
             elif e.is_iff():
+                #creates 2 fake operations Or and And used to reconstruct back the formula.
                 ne_or = self.manager.create_node(node_type=op.OR, args=())
                 ne_and = self.manager.create_node(node_type=op.AND, args=())
+                #Initializes the 3 lists of mapping_list[count, cpunt+1, count+2] that will
+                #be used into the algorithm later.
                 mapping_list[count] = []
                 mapping_list[count+1] = []
                 mapping_list[count+2] = []
+                #Appends in mapping_list[f] -> (The position of the father of the IFF operation)
+                #the or operation, and the sons of the or will be the 2 ands in position
+                #mapping_list[count].
                 mapping_list[f].append((p, ne_or, count))
                 mapping_list[count].append((p, ne_and, count + 2))
                 mapping_list[count].append((p, ne_and, count + 1))
+                #The sons of the positive And will be in mapping_list[count+1], while the sons
+                #sons of the negative And will be in position mapping_list[count+2].
                 stack.append((p, e.args()[0], count+1))
                 stack.append((p, e.args()[1], count+1))
                 stack.append((not p, e.args()[0], count+2))
@@ -123,7 +132,7 @@ class Nnf():
         return mapping_list
 
 
-class Dnf(IdentityDagWalker):
+class Dnf(DagWalker):
     """Class used to transform a logic expression into the equivalent
     Disjunctive Normal Form expression.
 
@@ -133,7 +142,7 @@ class Dnf(IdentityDagWalker):
     Not of an atomic expression.
     """
     def __init__(self, env: 'upf.environment.Environment'):
-        IdentityDagWalker.__init__(self, env, True)
+        DagWalker.__init__(self, True)
         self.env = env
         self.manager = env.expression_manager
         self._nnf = Nnf(self.env)
@@ -152,17 +161,42 @@ class Dnf(IdentityDagWalker):
         a && (!b || !c), in NNF form, and then:
         (a && !b) || (a && !c), therefore a DNF expression."""
         nnf_exp = self._nnf.get_nnf_expression(expression)
-        return self._simplifier.simplify(self.walk(nnf_exp))
-
-    def walk_and(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        new_args: List[List[FNode]] = []
-        for a in args:
-            if a.is_or():
-                new_args.append(a.args())
-            else:
-                new_args.append([a])
-        tuples = list(product(*new_args))
+        tuples = self.walk(nnf_exp)
         and_list: List[FNode] = []
         for and_args in tuples:
             and_list.append(self.manager.And(and_args))
         return self.manager.Or(and_list)
+
+    def walk_and(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
+        res: List[List[FNode]] = []
+        tuples = product(*args)
+        for na in tuples:
+            nl: List[FNode] = []
+            to_add = True
+            for nat in na:
+                for ne in nat:
+                    if ne.is_not():
+                        if ne.arg(0) in nl:
+                            to_add = False
+                            break
+                    else:
+                        if self.manager.Not(ne) in nl:
+                            to_add = False
+                            break
+                    if ne not in nl:
+                        nl.append(ne)
+                if not to_add:
+                    break
+            if to_add:
+                res.append(nl)
+        return res
+
+    def walk_or(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
+        res: List[List[FNode]] = []
+        for a1 in args:
+            res.extend(a1)
+        return res
+
+    @walkers.handles(set(op.ALL_TYPES) - set({op.AND, op.OR}))
+    def walk_all(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
+        return [[expression]]

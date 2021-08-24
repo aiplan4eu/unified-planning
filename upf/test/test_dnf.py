@@ -17,7 +17,7 @@ import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.environment import get_env
-from upf.dnf_copy import Dnf, Nnf
+from upf.dnf import Dnf, Nnf
 
 
 class TestDnf(TestCase):
