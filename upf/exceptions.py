@@ -30,3 +30,6 @@ class UPFUnboundedVariablesError(UPFException):
 
 class UPFExpressionDefinitionError(UPFException):
     pass
+
+class UPFUnraisableError(UPFException):
+    pass

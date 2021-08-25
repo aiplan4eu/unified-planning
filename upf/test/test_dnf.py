@@ -32,30 +32,52 @@ class TestDnf(TestCase):
         ne = self.sub.substitute(exp, subs)
         return self.simp.simplify(ne)
 
-    def test_simple_nnf_dnf(self):
+    def test_nnf_dnf_1(self):
         n = Nnf(get_env())
         dnf = Dnf(get_env())
 
         a = FluentExp(upf.Fluent('a'))
         b = FluentExp(upf.Fluent('b'))
         c = FluentExp(upf.Fluent('c'))
-        d = FluentExp(upf.Fluent('d'))
         # !(a => (b && c))
         e1 = Not(Implies(a, And(b, c)))
         nnf1 = n.get_nnf_expression(e1)
         self.assertIn("(a and ((not b) or (not c)))", str(nnf1))
         dnf1 = dnf.get_dnf_expression(e1)
         self.assertIn("((a and (not b)) or (a and (not c)))", str(dnf1))
+
+    def test_dnf_2(self):
+        dnf = Dnf(get_env())
+
+        a = FluentExp(upf.Fluent('a'))
+        b = FluentExp(upf.Fluent('b'))
+        c = FluentExp(upf.Fluent('c'))
+        d = FluentExp(upf.Fluent('d'))
         # a && (!b || (!c && d))
         e2 = And(a, Or(Not(b), And(Not(c), d)))
         dnf2 = dnf.get_dnf_expression(e2)
         self.assertIn("((a and (not b)) or (a and (not c) and d))", str(dnf2))
+
+    def test_nnf_dnf_3(self):
+        n = Nnf(get_env())
+        dnf = Dnf(get_env())
+
+        a = FluentExp(upf.Fluent('a'))
+        b = FluentExp(upf.Fluent('b'))
+        c = FluentExp(upf.Fluent('c'))
         # (a => b) Iff (a => c)
         e3 = Iff(Implies(a, b), Implies(a, c))
         nnf3 = n.get_nnf_expression(e3)
         dnf3 = dnf.get_dnf_expression(e3)
         self.assertIn("(((not a) or b) and ((not a) or c)) or ((a and (not b)) and (a and (not c)))", str(nnf3))
         self.assertIn("(not a) or ((not a) and c) or (b and (not a)) or (b and c) or (a and (not b) and (not c)", str(dnf3))
+
+    def test_nnf_dnf_4(self):
+        n = Nnf(get_env())
+        dnf = Dnf(get_env())
+
+        a = FluentExp(upf.Fluent('a'))
+        b = FluentExp(upf.Fluent('b'))
         # (a && ( a => b)) Iff (b || ( ((a => b ) && (b => a)) Iff ( a Iff b)))
         e4 = Iff(And(a, Implies(a, b)), Or(b, Iff(And(Implies(a, b), Implies(b, a)), Iff(a, b))))
         nnf4 = n.get_nnf_expression(e4)
@@ -72,6 +94,15 @@ class TestDnf(TestCase):
         subs = {a : False, b : True}
         self.assertEqual(self._subs_simp(e4, subs), self._subs_simp(nnf4, subs))
         self.assertEqual(self._subs_simp(e4, subs), self._subs_simp(dnf4, subs))
+
+    def test_nnf_dnf_5(self):
+        n = Nnf(get_env())
+        dnf = Dnf(get_env())
+
+        a = FluentExp(upf.Fluent('a'))
+        b = FluentExp(upf.Fluent('b'))
+        c = FluentExp(upf.Fluent('c'))
+        d = FluentExp(upf.Fluent('d'))
         #((a && (c => a)) => d) Iff (( b => d) => c)
         e5 = Iff(Implies(And(a, Implies(c, a)), d), Implies(Implies(b, d), c))
         nnf5 = n.get_nnf_expression(e5)

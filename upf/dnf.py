@@ -17,6 +17,7 @@
 import upf.environment
 import upf.operators as op
 import upf.walkers as walkers
+from upf.exceptions import UPFUnraisableError
 from upf.walkers.dag import DagWalker
 from upf.fnode import FNode
 from typing import List, Tuple
@@ -64,7 +65,7 @@ class Nnf():
                         new_e = self.manager.And(args)
                     solved.append(new_e)
                 else:
-                    assert False
+                    raise UPFUnraisableError("This code branch should never be reached!")
             else:
                 if e.is_not():
                     stack.append((not p, e.arg(0), False))
@@ -75,14 +76,30 @@ class Nnf():
                 elif e.is_implies():
                     na1 = self.manager.Not(e.arg(0))
                     new_e = self.manager.Or(na1, e.arg(1))
+                    #stack.append((p, new_e, False)) would be enough.
+                    # but this requires more iterations on the stack
+                    # while the arguments can be expanded in this
+                    # iteration.
                     stack.append((p, new_e, True))
                     stack.append((not p, e.arg(0), False))
                     stack.append((p, e.arg(1), False))
                 elif e.is_iff():
-                    new_e = self.manager.Or(self.manager.And(e.arg(0), e.arg(1)),
-                                            self.manager.And(self.manager.Not(e.arg(0)),
-                                                             self.manager.Not(e.arg(1))))
-                    stack.append((p, new_e, False))
+                    na1 = self.manager.Not(e.arg(0))
+                    na2 = self.manager.Not(e.arg(1))
+                    e1 = self.manager.And(e.arg(0), e.arg(1))
+                    e2 = self.manager.And(na1, na2)
+                    new_e = self.manager.Or(e1, e2)
+                    #stack.append((p, new_e, False)) would be enough.
+                    # but this requires more iterations on the stack
+                    # while the arguments can be expanded in this
+                    # iteration.
+                    stack.append((p, new_e, True))
+                    stack.append((p, e1, True))
+                    stack.append((p, e.arg(0), False))
+                    stack.append((p, e.arg(1), False))
+                    stack.append((p, e2, True))
+                    stack.append((not p, e.arg(0), False))
+                    stack.append((not p, e.arg(1), False))
                 else:
                     if p:
                         solved.append(e)
