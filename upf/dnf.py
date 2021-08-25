@@ -19,8 +19,7 @@ import upf.operators as op
 import upf.walkers as walkers
 from upf.walkers.dag import DagWalker
 from upf.fnode import FNode
-from upf.simplifier import Simplifier
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 from itertools import product
 
 
@@ -44,92 +43,54 @@ class Nnf():
 
         For example, the form: !(a => (b && c)) becomes:
         a && (!b || !c), therefore it is a NNF."""
-        mapping_list = self._fill_mapping_list(expression)
-        new_exp = self._recreate_expression(mapping_list)
-        return new_exp
-
-    def _recreate_expression(self, mapping_list: Dict[int, List[Tuple[bool, FNode, int]]]) -> FNode:
-        #iterating a dict "d" from len(d) to 0
-        x = range(0, len(mapping_list))
-        l = list(x)
-        l.reverse()
-        #mapping_fnode contains "mapping_list" converted to expressions.
-        mapping_fnode: Dict[int, List[FNode]] = {}
-        for i in l:
-            mapping_fnode[i] = []
-            (mapping_list[i]).reverse()
-            for p, e, s in mapping_list[i]:
+        stack: List[Tuple[bool, FNode, bool]] = []
+        stack.append((True, expression, False))
+        solved: List[FNode] = []
+        while len(stack) > 0:
+            p, e, status = stack.pop()
+            if status:
                 if e.is_and():
+                    args = [solved.pop() for i in range(len(e.args()))]
                     if p:
-                        mapping_fnode[i].append(self.manager.Or(mapping_fnode[s]))
+                        new_e = self.manager.And(args)
                     else:
-                        mapping_fnode[i].append(self.manager.And(mapping_fnode[s]))
+                        new_e = self.manager.Or(args)
+                    solved.append(new_e)
                 elif e.is_or():
+                    args = [solved.pop() for i in range(len(e.args()))]
                     if p:
-                        mapping_fnode[i].append(self.manager.And(mapping_fnode[s]))
+                        new_e = self.manager.Or(args)
                     else:
-                        mapping_fnode[i].append(self.manager.Or(mapping_fnode[s]))
+                        new_e = self.manager.And(args)
+                    solved.append(new_e)
+                else:
+                    assert False
+            else:
+                if e.is_not():
+                    stack.append((not p, e.arg(0), False))
+                elif e.is_and() or e.is_or():
+                    stack.append((p, e, True))
+                    for arg in e.args():
+                        stack.append((p, arg, False))
+                elif e.is_implies():
+                    na1 = self.manager.Not(e.arg(0))
+                    new_e = self.manager.Or(na1, e.arg(1))
+                    stack.append((p, new_e, True))
+                    stack.append((not p, e.arg(0), False))
+                    stack.append((p, e.arg(1), False))
+                elif e.is_iff():
+                    new_e = self.manager.Or(self.manager.And(e.arg(0), e.arg(1)),
+                                            self.manager.And(self.manager.Not(e.arg(0)),
+                                                             self.manager.Not(e.arg(1))))
+                    stack.append((p, new_e, False))
                 else:
                     if p:
-                        mapping_fnode[i].append(self.manager.Not(e))
+                        solved.append(e)
                     else:
-                        mapping_fnode[i].append(e)
-        return mapping_fnode[0].pop(0)
+                        solved.append(self.manager.Not(e))
+        return solved.pop()
 
-    def _fill_mapping_list(self, expression:FNode) -> Dict[int, List[Tuple[bool, FNode, int]]]:
-        #Polarity, expression, father
-        stack: List[Tuple[bool, FNode, int]] = []
-        #stack is a list containing the tuple(polarity, expression, father, sons)
-        #where polarity indicates whether the whole expression is positive or negative
-        #expression is used to keep track of the expression type
-        #father indicates the number of the father (used to re-create the expression in nnf form)
-        stack.append((False, expression, 0))
-        mapping_list: Dict[int, List[Tuple[bool, FNode, int]]] = {}
-        mapping_list[0] = []
-        count = 1
-        while len(stack) > 0:
-            p, e, f = stack.pop()
-            if e.is_not():
-                stack.append((not p, e.args()[0], f))
-                continue
-            elif e.is_and() or e.is_or():
-                for arg in e.args():
-                    stack.append((p, arg, count))
-                    mapping_list[count] = []
-                mapping_list[f].append((p, e, count))
-                count = count + 1
-            elif e.is_implies():
-                ne = self.manager.create_node(node_type=op.OR, args=())
-                mapping_list[count] = []
-                mapping_list[f].append((p, ne, count))
-                stack.append((not p, e.args()[0], count))
-                stack.append((p, e.args()[1], count))
-                count = count + 1
-            elif e.is_iff():
-                #creates 2 fake operations Or and And used to reconstruct back the formula.
-                ne_or = self.manager.create_node(node_type=op.OR, args=())
-                ne_and = self.manager.create_node(node_type=op.AND, args=())
-                #Initializes the 3 lists of mapping_list[count, cpunt+1, count+2] that will
-                #be used into the algorithm later.
-                mapping_list[count] = []
-                mapping_list[count+1] = []
-                mapping_list[count+2] = []
-                #Appends in mapping_list[f] -> (The position of the father of the IFF operation)
-                #the or operation, and the sons of the or will be the 2 ands in position
-                #mapping_list[count].
-                mapping_list[f].append((p, ne_or, count))
-                mapping_list[count].append((p, ne_and, count + 2))
-                mapping_list[count].append((p, ne_and, count + 1))
-                #The sons of the positive And will be in mapping_list[count+1], while the sons
-                #sons of the negative And will be in position mapping_list[count+2].
-                stack.append((p, e.args()[0], count+1))
-                stack.append((p, e.args()[1], count+1))
-                stack.append((not p, e.args()[0], count+2))
-                stack.append((not p, e.args()[1], count+2))
-                count = count + 3
-            else:
-                mapping_list[f].append((p, e, -1))
-        return mapping_list
+
 
 
 class Dnf(DagWalker):
@@ -146,7 +107,6 @@ class Dnf(DagWalker):
         self.env = env
         self.manager = env.expression_manager
         self._nnf = Nnf(self.env)
-        self._simplifier = Simplifier(self.env)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
         """Function used to transform a logic expression into the equivalent
