@@ -19,6 +19,7 @@ from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
 from upf.quantifiers_remover import QuantifiersRemover
 from upf.pddl_solver import PDDLSolver
+from upf.io.pddl_writer import PDDLWriter
 from upf.environment import get_env
 from upf.shortcuts import *
 from typing import List
@@ -49,6 +50,33 @@ class TestQuantifiersRemover(TestCase):
 
     def test_basic_exists(self):
         problem = self.problems['basic_exists'].problem
+        qr = QuantifiersRemover(problem)
+        uq_problem = qr.get_rewritten_problem()
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem)
+            uq_plan = planner.solve(uq_problem)
+            self.assertNotEqual(str(plan), str(uq_plan))
+            new_plan = qr.rewrite_back_plan(uq_plan)
+            self.assertEqual(str(plan), str(new_plan))
+
+
+    def test_basic_forall(self):
+        problem = self.problems['basic_forall'].problem
+        qr = QuantifiersRemover(problem)
+        uq_problem = qr.get_rewritten_problem()
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem)
+            uq_plan = planner.solve(uq_problem)
+            self.assertNotEqual(str(plan), str(uq_plan))
+            new_plan = qr.rewrite_back_plan(uq_plan)
+            self.assertEqual(str(plan), str(new_plan))
+
+    def test_robot_locations_connected(self):
+        problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
 

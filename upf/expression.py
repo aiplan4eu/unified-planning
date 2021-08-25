@@ -99,7 +99,7 @@ class ExpressionManager(object):
 
     def And(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
         """ Returns a conjunction of terms.
-        This function has polimorphic arguments:
+        This function has polimorphic n-arguments:
           - And(a,b,c)
           - And([a,b,c])
         Restriction: Arguments must be boolean
@@ -134,7 +134,7 @@ class ExpressionManager(object):
     def Not(self, expression: BoolExpression) -> FNode:
         """ Creates an expression of the form:
                 not expression
-        Restriction: Expression must be of boolean type
+        Restriction: expression must be of boolean type
         """
         expression, = self.auto_promote(expression)
         if expression.is_not():
@@ -160,8 +160,8 @@ class ExpressionManager(object):
     def Exists(self, expression: BoolExpression, *vars: Variable) -> FNode:
         """ Creates an expression of the form:
             Exists (var[0]... var[n]) | expression
-        Restriction: Expression must be of boolean type and
-                    vars must be of 'upf.Variable type'
+        Restriction: expression must be of boolean type and
+                    vars must be of 'upf.Variable' type
         """
         expressions = tuple(self.auto_promote(expression))
         for v in vars:
@@ -172,8 +172,8 @@ class ExpressionManager(object):
     def Forall(self, expression: BoolExpression, *vars: Variable) -> FNode:
         """ Creates an expression of the form:
             Forall (var[0]... var[n]) | expression
-        Restriction: Expression must be of boolean type and
-                    vars must be of 'upf.Variable type'
+        Restriction: expression must be of boolean type and
+                    vars must be of 'upf.Variable' type
         """
         expressions = tuple(self.auto_promote(expression))
         for v in vars:

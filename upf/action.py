@@ -31,7 +31,10 @@ from collections import OrderedDict
 
 
 class ActionParameter:
-    """Represents an action parameter."""
+    """Represents an action parameter.
+    An action parameter has a name, used to retrieve the parameter
+    from the action, and a type, used to represent that the action
+    parameter is of the given type."""
     def __init__(self, name: str, typename: upf.types.Type):
         self._name = name
         self._typename = typename
@@ -107,6 +110,7 @@ class Action:
         return [e for e in self._effects if e.is_conditional()]
 
     def is_conditional(self) -> bool:
+        """Returns True if the action has conditional effects."""
         return any(e.is_conditional() for e in self._effects)
 
     def unconditional_effects(self) -> List[Effect]:
