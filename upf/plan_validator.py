@@ -36,7 +36,7 @@ class PlanValidator(object):
         self._plan = plan
         self._assignments = self._problem.initial_values()
         for ai in self._plan.actions():
-            new_subst: Dict[Expression, Expression] = {}
+            new_assignments: Dict[FNode, FNode] = {}
             for ap, oe in zip(ai.action().parameters(), ai.parameters()):
                 self._assignments[ap] = oe
             for p in ai.action().preconditions():
@@ -52,12 +52,12 @@ class PlanValidator(object):
                 if cond:
                     ge = self._get_ground_fluent(e.fluent())
                     if e.is_assignment():
-                        new_subst[ge] = self._subs_simplify(e.value())
+                        new_assignments[ge] = self._subs_simplify(e.value())
                     elif e.is_increase():
-                        new_subst[ge] = self._subs_simplify(self.manager.Plus(e.fluent(), e.value()))
+                        new_assignments[ge] = self._subs_simplify(self.manager.Plus(e.fluent(), e.value()))
                     elif e.is_decrease():
-                        new_subst[ge] = self._subs_simplify(self.manager.Minus(e.fluent(), e.value()))
-            self._assignments.update(new_subst)
+                        new_assignments[ge] = self._subs_simplify(self.manager.Minus(e.fluent(), e.value()))
+            self._assignments.update(new_assignments)
             for ap in ai.action().parameters():
                 del self._assignments[ap]
         for g in self._problem.goals():
