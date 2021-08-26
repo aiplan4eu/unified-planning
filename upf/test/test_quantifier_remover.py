@@ -52,6 +52,8 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['basic_exists'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
+        self.assertIn("Exists", str(problem))
+        self.assertNotIn("Exists", str(uq_problem))
 
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
@@ -66,6 +68,8 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['basic_forall'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
+        self.assertIn("Forall", str(problem))
+        self.assertNotIn("Forall", str(uq_problem))
 
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
@@ -79,6 +83,8 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
+        self.assertIn("Exists", str(problem))
+        self.assertNotIn("Exists", str(uq_problem))
 
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
@@ -93,6 +99,10 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['robot_locations_visited'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
+        self.assertIn("Exists", str(problem))
+        self.assertNotIn("Exists", str(uq_problem))
+        self.assertIn("Forall", str(problem))
+        self.assertNotIn("Forall", str(uq_problem))
 
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
