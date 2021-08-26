@@ -87,3 +87,17 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
+
+
+    def test_robot_locations_visited(self):
+        problem = self.problems['robot_locations_visited'].problem
+        qr = QuantifiersRemover(problem)
+        uq_problem = qr.get_rewritten_problem()
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem)
+            uq_plan = planner.solve(uq_problem)
+            self.assertNotEqual(str(plan), str(uq_plan))
+            new_plan = qr.rewrite_back_plan(uq_plan)
+            self.assertEqual(str(plan), str(new_plan))
