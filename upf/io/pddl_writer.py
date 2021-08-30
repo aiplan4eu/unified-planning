@@ -37,26 +37,21 @@ class ConverterToPDDLString(walkers.DagWalker):
     def walk_exists(self, expression, args):
         assert len(args) == 1
         vars = expression.variables()
-        vars_string = "("
+        vars_string_list = []
         for v in vars:
-            vars_string = vars_string + "?"
-            vars_string = vars_string + v.name()
-            vars_string = vars_string + " - "
-            vars_string = vars_string + str(v.type())
-        vars_string = vars_string + ")"
-        return f'(exists {vars_string}\n {args[0]})'
+            vars_string = f"?{v.name()} - {str(v.type())}"
+            vars_string_list.append(vars_string)
+        return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
         vars = expression.variables()
-        vars_string = "("
+        vars_string_list = []
         for v in vars:
-            vars_string = vars_string + "?"
-            vars_string = vars_string + v.name()
-            vars_string = vars_string + " - "
-            vars_string = vars_string + str(v.type())
-        vars_string = vars_string + ")"
-        return f'(forall {vars_string}\n {args[0]})'
+            vars_string = f"?{v.name()} - {str(v.type())}"
+            vars_string_list.append(vars_string)
+        return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
+
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
