@@ -36,20 +36,12 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars = expression.variables()
-        vars_string_list = []
-        for v in vars:
-            vars_string = f"?{v.name()} - {str(v.type())}"
-            vars_string_list.append(vars_string)
+        vars_string_list = [f"?{v.name()} - {str(v.type())}" for v in expression.variables()]
         return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars = expression.variables()
-        vars_string_list = []
-        for v in vars:
-            vars_string = f"?{v.name()} - {str(v.type())}"
-            vars_string_list.append(vars_string)
+        vars_string_list = [f"?{v.name()} - {str(v.type())}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
 

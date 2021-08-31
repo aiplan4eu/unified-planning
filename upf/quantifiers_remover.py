@@ -18,7 +18,6 @@
 import upf.operators as op
 import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
-from collections import OrderedDict
 from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
 from upf.action import Action
@@ -29,10 +28,9 @@ from upf.variable import Variable
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
 from upf.expression import Expression
-
-
-from typing import Iterable, List, Dict, Tuple
-from itertools import chain, combinations, product
+from typing import List, Dict
+from itertools import product
+from collections import OrderedDict
 
 
 class ExpressionQuantifierRemover(IdentityDagWalker):
@@ -48,11 +46,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
     @walkers.handles(op.EXISTS)
     def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         vars: List[Variable] = expression.variables()
-        type_list = []
-        name_list = []
-        for v in vars:
-            type_list.append(v.type())
-            name_list.append(v.name())
+        type_list = [v.type() for v in vars]
         possible_objects: List[List[Object]] = []
         for t in type_list:
             possible_objects.append(self._problem.objects(t))
@@ -68,11 +62,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
     @walkers.handles(op.FORALL)
     def walk_forall(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         vars = expression.variables()
-        type_list = []
-        name_list = []
-        for v in vars:
-            type_list.append(v.type())
-            name_list.append(v.name())
+        type_list = [v.type() for v in vars]
         possible_objects: List[List[Object]] = []
         for t in type_list:
             possible_objects.append(self._problem.objects(t))

@@ -165,7 +165,7 @@ class ExpressionManager(object):
         """
         expressions = tuple(self.auto_promote(expression))
         for v in vars:
-            if type(v) != Variable:
+            if not isinstance(v, Variable):
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
         return self.create_node(node_type=op.EXISTS, args=expressions, payload=vars)
 
@@ -177,7 +177,7 @@ class ExpressionManager(object):
         """
         expressions = tuple(self.auto_promote(expression))
         for v in vars:
-            if type(v) != Variable:
+            if not isinstance(v, Variable):
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
         return self.create_node(node_type=op.FORALL, args=expressions, payload=vars)
 
