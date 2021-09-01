@@ -198,19 +198,15 @@ class Simplifier(walkers.DagWalker):
 
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()
-        accumulator = 0
+        accumulator : Union[Fraction, int] = 0
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
-            if a.is_int_constant():
-                accumulator += a.int_constant_value()
-            elif a.is_real_constant():
-                accumulator += a.real_constant_value()
+            if a.is_int_constant() or a.is_real_constant():
+                accumulator += a.constant_value()
             elif a.is_plus():
                 for s in a.args():
-                    if s.is_int_constant():
-                        accumulator += s.int_constant_value()
-                    elif s.is_real_constant():
-                        accumulator += s.real_constant_value()
+                    if s.is_int_constant() or s.is_real_constant():
+                        accumulator += s.constant_value()
                     else:
                         new_args_plus.append(s)
             else:
@@ -246,21 +242,21 @@ class Simplifier(walkers.DagWalker):
 
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
-        accumulator = 1
+        accumulator : Union[Fraction, int] = 1
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
             if a.is_int_constant() or a.is_real_constant():
                 if a.constant_value() == 0:
                     return self.manager.Int(0)
                 else:
-                    accumulator = accumulator * a.constant_value()
+                    accumulator *= a.constant_value()
             elif a.is_times():
                 for s in a.args():
                     if s.is_int_constant() or s.is_real_constant():
                         if s.constant_value() == 0:
                             return self.manager.Int(0)
                         else:
-                            accumulator = accumulator * s.constant_value()
+                            accumulator *= s.constant_value()
                     else:
                         new_args_times.append(s)
             else:
