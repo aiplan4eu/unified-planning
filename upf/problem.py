@@ -229,44 +229,37 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Initial value not set!')
 
-    def domain_size(self, typename: upf.typing.Type) -> Optional[int]:
+    def _domain_size(self, typename: upf.typing.Type) -> int:
         """Returns the domain size of the given type."""
         if typename.is_bool_type():
             return 2
         elif typename.is_user_type():
             return len(self.objects(typename))
-        elif typename.is_real_type():
-            lb = typename.lower_bound() # type: ignore
-            ub = typename.upper_bound() # type: ignore
-            if lb is not None and lb == ub:
-                return 1
         elif typename.is_int_type():
             lb = typename.lower_bound() # type: ignore
             ub = typename.upper_bound() # type: ignore
-            if lb is not None and ub is not None:
-                return ub - lb
-        return None
+            if lb is None or ub is None:
+                raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
+            return ub - lb
+        else:
+            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
-    def domain_item(self, typename: upf.typing.Type, idx: int) -> FNode:
+    def _domain_item(self, typename: upf.typing.Type, idx: int) -> FNode:
         """Returns the ith domain item of the given type."""
         if typename.is_bool_type():
             return self._env.expression_manager.Bool(idx == 0)
         elif typename.is_user_type():
             return self._env.expression_manager.ObjectExp(self.objects(typename)[idx])
-        elif typename.is_real_type():
-            lb = typename.lower_bound() # type: ignore
-            ub = typename.upper_bound() # type: ignore
-            assert (lb is not None and lb == ub)
-            return self._env.expression_manager.Real(lb)
         elif typename.is_int_type():
             lb = typename.lower_bound() # type: ignore
             ub = typename.upper_bound() # type: ignore
-            assert (lb is not None and ub is not None)
+            if lb is None or ub is None:
+                raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
             return self._env.expression_manager.Int(lb + idx)
         else:
-            raise
+            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
-    def get_ith_fluent_exp(self, fluent: upf.Fluent, domain_sizes: List[int], idx: int) -> FNode:
+    def _get_ith_fluent_exp(self, fluent: upf.Fluent, domain_sizes: List[int], idx: int) -> FNode:
         """Returns the ith ground fluent expression."""
         quot = idx
         rem = 0
@@ -275,7 +268,7 @@ class Problem:
             ds = domain_sizes[i];
             rem = quot % ds
             quot //= ds
-            v = self.domain_item(fluent.signature()[i], rem)
+            v = self._domain_item(fluent.signature()[i], rem)
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
@@ -291,15 +284,12 @@ class Problem:
                 domain_sizes = []
                 is_groundable = True
                 for p in f.signature():
-                    ds = self.domain_size(p)
-                    if ds is None:
-                        is_groundable = False
-                        break
+                    ds = self._domain_size(p)
                     domain_sizes.append(ds)
                     ground_size *= ds
                 if is_groundable:
                     for i in range(ground_size):
-                        f_exp = self.get_ith_fluent_exp(f, domain_sizes, i)
+                        f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                         res[f_exp] = self.initial_value(f_exp)
         return res
 
