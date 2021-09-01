@@ -36,7 +36,7 @@ class PlanValidator(object):
         assignments = problem.initial_values()
         for ai in plan.actions():
             new_assignments: Dict[Expression, Expression] = {}
-            for ap, oe in zip(ai.action().parameters(), ai.parameters()):
+            for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):
                 assignments[ap] = oe
             for p in ai.action().preconditions():
                 ps = self._subs_simplify(p, assignments)
@@ -46,8 +46,8 @@ class PlanValidator(object):
                 cond = True
                 if e.is_conditional():
                     ec = self._subs_simplify(e.condition(), assignments)
-                    if not (ec.is_bool_constant() and ec.bool_constant_value()):
-                        cond = False
+                    assert ec.is_bool_constant()
+                    cond = ec.constant_value()
                 if cond:
                     ge = self._get_ground_fluent(e.fluent(), assignments)
                     if e.is_assignment():
@@ -75,9 +75,9 @@ class PlanValidator(object):
         return self.manager.FluentExp(fluent.fluent(), tuple(new_args))
 
     def _subs_simplify(self, expression: FNode, assignments: Dict[Expression, Expression]) -> FNode:
-        to_subst = True
+        old_exp = None
         new_exp = expression
-        while to_subst:
+        while old_exp != new_exp:
         #This do-while loop is necessary because when we have a FluentExp with
         #  some parameters, the first substitution substitutes the parameters with
         #  the object: then every ground fluent is substituted with it's value.
@@ -85,7 +85,6 @@ class PlanValidator(object):
         #  required.
             old_exp = new_exp
             new_exp = self._substituter.substitute(new_exp, assignments)
-            to_subst = not (old_exp == new_exp)
         r = self._simplifier.simplify(new_exp)
         assert r.is_constant()
         return r
