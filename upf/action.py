@@ -129,7 +129,7 @@ class Action:
         """Adds the given action precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
-        free_vars = self._env._free_vars_oracle.get_free_variables(precondition_exp)
+        free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)
         if len(free_vars) != 0:
             raise UPFUnboundedVariablesError(f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}")
         self._preconditions.append(precondition_exp)

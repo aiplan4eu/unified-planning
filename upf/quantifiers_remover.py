@@ -127,10 +127,7 @@ class QuantifiersRemover():
             new_action_name = action.name()+ "_" +str(self._counter)
             self._counter = self._counter + 1
             is_unavailable_name = self._problem.has_action(new_action_name)
-        new_parameters = OrderedDict()
-        for ap in action.parameters():
-            new_parameters[ap.name()] = ap.type()
-        new_action = Action(new_action_name, new_parameters, self._env)
+        new_action = Action(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
         for p in action.preconditions():
             np = self._expression_quantifier_remover.remove_quantifiers(p)

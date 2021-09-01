@@ -35,6 +35,11 @@ class Environment:
         self._expression_manager = upf.expression.ExpressionManager(self)
         self._free_vars_oracle = upf.variable.FreeVarsOracle()
 
+
+    @property
+    def free_vars_oracle(self) -> upf.variable.FreeVarsOracle:
+        return self._free_vars_oracle
+
     @property
     def expression_manager(self) -> upf.expression.ExpressionManager:
         return self._expression_manager
