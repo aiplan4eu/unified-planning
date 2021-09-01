@@ -229,7 +229,7 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Initial value not set!')
 
-    def _domain_size(self, typename: upf.typing.Type) -> int:
+    def _domain_size(self, typename: upf.types.Type) -> int:
         """Returns the domain size of the given type."""
         if typename.is_bool_type():
             return 2
@@ -244,7 +244,7 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
-    def _domain_item(self, typename: upf.typing.Type, idx: int) -> FNode:
+    def _domain_item(self, typename: upf.types.Type, idx: int) -> FNode:
         """Returns the ith domain item of the given type."""
         if typename.is_bool_type():
             return self._env.expression_manager.Bool(idx == 0)
