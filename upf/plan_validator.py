@@ -47,7 +47,7 @@ class PlanValidator(object):
                 if e.is_conditional():
                     ec = self._subs_simplify(e.condition(), assignments)
                     assert ec.is_bool_constant()
-                    cond = ec.constant_value()
+                    cond = ec.bool_constant_value()
                 if cond:
                     ge = self._get_ground_fluent(e.fluent(), assignments)
                     if e.is_assignment():
