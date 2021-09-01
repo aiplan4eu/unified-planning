@@ -69,6 +69,6 @@ class FreeVarsOracle(walkers.DagWalker):
         #pylint: disable=unused-argument
         return set()
 
-    @walkers.handles(set(op.ALL_TYPES) - {op.VARIABLE_EXP, op.CONSTANTS, op.EXISTS, op.FORALL})
+    @walkers.handles(set(op.ALL_TYPES) - {op.VARIABLE_EXP, op.EXISTS, op.FORALL})
     def walk_all(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
         return {v for s in args for v in s}
