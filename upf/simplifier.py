@@ -99,7 +99,7 @@ class Simplifier(walkers.DagWalker):
         assert len(args) == 1
         child = args[0]
         if child.is_bool_constant():
-            l = child.constant_value()
+            l = child.bool_constant_value()
             return self.manager.Bool(not l)
         elif child.is_not():
             return child.arg(0)
@@ -113,16 +113,16 @@ class Simplifier(walkers.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant() and sr.is_bool_constant():
-            l = sl.constant_value()
-            r = sr.constant_value()
+            l = sl.bool_constant_value()
+            r = sr.bool_constant_value()
             return self.manager.Bool(l == r)
         elif sl.is_bool_constant():
-            if sl.constant_value():
+            if sl.bool_constant_value():
                 return sr
             else:
                 return self.manager.Not(sr)
         elif sr.is_bool_constant():
-            if sr.constant_value():
+            if sr.bool_constant_value():
                 return sl
             else:
                 return self.manager.Not(sl)
@@ -138,13 +138,13 @@ class Simplifier(walkers.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant():
-            l = sl.constant_value()
+            l = sl.bool_constant_value()
             if l:
                 return sr
             else:
                 return self.manager.TRUE()
         elif sr.is_bool_constant():
-            r = sr.constant_value()
+            r = sr.bool_constant_value()
             if r:
                 return self.manager.TRUE()
             else:
@@ -195,18 +195,22 @@ class Simplifier(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.FluentExp(expression.fluent(), tuple(args))
-        
+
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()
         accumulator = 0
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
-            if a.is_int_constant() or a.is_real_constant():
-                accumulator = accumulator + a.constant_value()
+            if a.is_int_constant():
+                accumulator += a.int_constant_value()
+            elif a.is_real_constant():
+                accumulator += a.real_constant_value()
             elif a.is_plus():
                 for s in a.args():
-                    if s.is_int_constant() or s.is_real_constant():
-                        accumulator = accumulator + s.constant_value()
+                    if s.is_int_constant():
+                        accumulator += s.int_constant_value()
+                    elif s.is_real_constant():
+                        accumulator += s.real_constant_value()
                     else:
                         new_args_plus.append(s)
             else:
@@ -216,7 +220,7 @@ class Simplifier(walkers.DagWalker):
         if accumulator != 0:
             fnode_acc = self.manager.Plus(*new_args_plus,self._number_to_fnode(accumulator))
             return fnode_acc
-        else: 
+        else:
             if len(new_args_plus) == 0:
                 return self.manager.Int(0)
             else:
@@ -239,7 +243,7 @@ class Simplifier(walkers.DagWalker):
                 return self.manager.Minus(left, right)
         else:
             return self.manager.Minus(left, right)
-    
+
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
         accumulator = 1
@@ -266,12 +270,12 @@ class Simplifier(walkers.DagWalker):
         if accumulator != 1:
             fnode_acc = self._number_to_fnode(accumulator)
             return self.manager.Times(*new_args_times, fnode_acc)
-        else: 
+        else:
             if len(new_args_times) == 0:
                 return self.manager.Int(1)
             else:
                 return self.manager.Times(new_args_times)
-                  
+
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
         left, right = args
