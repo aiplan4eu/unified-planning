@@ -14,7 +14,7 @@
 #
 
 
-from typing import Dict
+from typing import Dict, Union
 import upf.environment
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
@@ -31,7 +31,7 @@ class PlanValidator(object):
         self._simplifier = Simplifier(self._env)
 
         self._substituter = Substituter(self._env)
-        self._last_error: str = None
+        self._last_error: Union[str, None] = None
 
     def is_valid_plan(self, problem, plan) -> bool:
         self._last_error = None
@@ -45,7 +45,7 @@ class PlanValidator(object):
             for p in ai.action().preconditions():
                 ps = self._subs_simplify(p, assignments)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
-                    self._last_error = f'Precondition: {p} of action number: {str(count)} of plan: {str(plan)} is not satisfied.'
+                    self._last_error = f'Precondition {p} of {str(count)}-th action instance {str(ai)} is not satisfied.'
                     return False
             for e in ai.action().effects():
                 cond = True
@@ -69,7 +69,7 @@ class PlanValidator(object):
         for g in problem.goals():
             gs = self._subs_simplify(g, assignments)
             if not (gs.is_bool_constant() and gs.bool_constant_value()):
-                    self._last_error = f'Goal: {str(g)} of the problem is not reached.'
+                    self._last_error = f'Goal {str(g)} is not reached by the plan.'
                     return False
         return True
 
