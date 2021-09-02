@@ -31,16 +31,21 @@ class PlanValidator(object):
         self._simplifier = Simplifier(self._env)
 
         self._substituter = Substituter(self._env)
+        self._last_error: str = None
 
     def is_valid_plan(self, problem, plan) -> bool:
+        self._last_error = None
         assignments = problem.initial_values()
+        count = 0 #used for better error indexing
         for ai in plan.actions():
+            count = count + 1
             new_assignments: Dict[Expression, Expression] = {}
             for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):
                 assignments[ap] = oe
             for p in ai.action().preconditions():
                 ps = self._subs_simplify(p, assignments)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
+                    self._last_error = f'Precondition: {p} of action number: {str(count)} of plan: {str(plan)} is not satisfied.'
                     return False
             for e in ai.action().effects():
                 cond = True
@@ -64,8 +69,13 @@ class PlanValidator(object):
         for g in problem.goals():
             gs = self._subs_simplify(g, assignments)
             if not (gs.is_bool_constant() and gs.bool_constant_value()):
+                    self._last_error = f'Goal: {str(g)} of the problem is not reached.'
                     return False
         return True
+
+    def get_last_error_info(self):
+        assert not self._last_error is None
+        return self._last_error
 
     def _get_ground_fluent(self, fluent:FNode, assignments: Dict[Expression, Expression]) -> FNode:
         assert fluent.is_fluent_exp()
