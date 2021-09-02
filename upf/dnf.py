@@ -26,7 +26,7 @@ from itertools import product
 
 class Nnf():
     """Class used to transform a logic expression into the equivalent
-    Negational Normal Form expression.
+    Negation Normal Form expression.
 
     This is done first by removing all the Implications and Equalities,
     then by pushing all the not to the leaves of the Tree representing the expression."""
@@ -51,14 +51,14 @@ class Nnf():
             p, e, status = stack.pop()
             if status:
                 if e.is_and():
-                    args = [solved.pop() for i in range(len(e.args()))]
+                    args = [solved.pop() for _ in range(len(e.args()))]
                     if p:
                         new_e = self.manager.And(args)
                     else:
                         new_e = self.manager.Or(args)
                     solved.append(new_e)
                 elif e.is_or():
-                    args = [solved.pop() for i in range(len(e.args()))]
+                    args = [solved.pop() for _ in range(len(e.args()))]
                     if p:
                         new_e = self.manager.Or(args)
                     else:
@@ -105,6 +105,7 @@ class Nnf():
                         solved.append(e)
                     else:
                         solved.append(self.manager.Not(e))
+        assert len(solved) == 1 #sanity check
         return solved.pop()
 
 
@@ -139,40 +140,44 @@ class Dnf(DagWalker):
         (a && !b) || (a && !c), therefore a DNF expression."""
         nnf_exp = self._nnf.get_nnf_expression(expression)
         tuples = self.walk(nnf_exp)
-        and_list: List[FNode] = []
-        for and_args in tuples:
-            and_list.append(self.manager.And(and_args))
-        return self.manager.Or(and_list)
+        return self.manager.Or(self.manager.And(and_args) for and_args in tuples)
 
     def walk_and(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
         res: List[List[FNode]] = []
         tuples = product(*args)
-        for na in tuples:
-            nl: List[FNode] = []
-            to_add = True
-            for nat in na:
-                for ne in nat:
-                    if ne.is_not():
-                        if ne.arg(0) in nl:
+        #tuples is an iterable of tuples, where each tuple
+        # represents one son of the resulting Or.
+        # list will contain each son of the resulting And.
+        #for example:
+        # tuples = ([a, b], [c]) ([d])
+        # this will result in
+        # Or(And(a, b, c), And(d))
+        for args_tuple in tuples:
+            list: List[FNode] = []
+            to_add = True #represents if the tuple currently iterating contains
+                            #contraddictions or if it can be added
+            for args_list in args_tuple:
+                for element in args_list:
+                    #Before this for we just go in deep to reach the single element
+                    # Then it's all simplifications.
+                    if element.is_not():
+                        if element.arg(0) in list:
                             to_add = False
                             break
                     else:
-                        if self.manager.Not(ne) in nl:
+                        if self.manager.Not(element) in list:
                             to_add = False
                             break
-                    if ne not in nl:
-                        nl.append(ne)
+                    if element not in list:
+                        list.append(element)
                 if not to_add:
                     break
             if to_add:
-                res.append(nl)
+                res.append(list)
         return res
 
     def walk_or(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
-        res: List[List[FNode]] = []
-        for a1 in args:
-            res.extend(a1)
-        return res
+        return [conjunction for disjunction in args for conjunction in disjunction]
 
     @walkers.handles(set(op.ALL_TYPES) - set({op.AND, op.OR}))
     def walk_all(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
