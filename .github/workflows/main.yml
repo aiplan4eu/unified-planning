@@ -35,6 +35,16 @@ jobs:
 
       - name: Install Tamer UPF
         run: bash tamer-upf/install.sh
+        
+      - name: Checkout Pyperplan UPF
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/pyperplan-upf
+          path: pyperplan-upf
+          ref: "0954e9a0bf236dfbb14a34628543bbd3f92c591b"
+
+      - name: Install Pyperplan UPF
+        run: bash pyperplan-upf/install.sh
 
       - name: Download ENHSP
         run: |
