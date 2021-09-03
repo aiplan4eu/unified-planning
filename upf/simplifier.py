@@ -100,7 +100,7 @@ class Simplifier(walkers.DagWalker):
         assert len(args) == 1
         child = args[0]
         if child.is_bool_constant():
-            l = child.constant_value()
+            l = child.bool_constant_value()
             return self.manager.Bool(not l)
         elif child.is_not():
             return child.arg(0)
@@ -114,16 +114,16 @@ class Simplifier(walkers.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant() and sr.is_bool_constant():
-            l = sl.constant_value()
-            r = sr.constant_value()
+            l = sl.bool_constant_value()
+            r = sr.bool_constant_value()
             return self.manager.Bool(l == r)
         elif sl.is_bool_constant():
-            if sl.constant_value():
+            if sl.bool_constant_value():
                 return sr
             else:
                 return self.manager.Not(sr)
         elif sr.is_bool_constant():
-            if sr.constant_value():
+            if sr.bool_constant_value():
                 return sl
             else:
                 return self.manager.Not(sl)
@@ -139,13 +139,13 @@ class Simplifier(walkers.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant():
-            l = sl.constant_value()
+            l = sl.bool_constant_value()
             if l:
                 return sr
             else:
                 return self.manager.TRUE()
         elif sr.is_bool_constant():
-            r = sr.constant_value()
+            r = sr.bool_constant_value()
             if r:
                 return self.manager.TRUE()
             else:
@@ -223,11 +223,11 @@ class Simplifier(walkers.DagWalker):
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
             if a.is_int_constant() or a.is_real_constant():
-                accumulator = accumulator + a.constant_value()
+                accumulator += a.constant_value()
             elif a.is_plus():
                 for s in a.args():
                     if s.is_int_constant() or s.is_real_constant():
-                        accumulator = accumulator + s.constant_value()
+                        accumulator += s.constant_value()
                     else:
                         new_args_plus.append(s)
             else:
@@ -270,14 +270,14 @@ class Simplifier(walkers.DagWalker):
                 if a.constant_value() == 0:
                     return self.manager.Int(0)
                 else:
-                    accumulator = accumulator * a.constant_value()
+                    accumulator *= a.constant_value()
             elif a.is_times():
                 for s in a.args():
                     if s.is_int_constant() or s.is_real_constant():
                         if s.constant_value() == 0:
                             return self.manager.Int(0)
                         else:
-                            accumulator = accumulator * s.constant_value()
+                            accumulator *= s.constant_value()
                     else:
                         new_args_times.append(s)
             else:

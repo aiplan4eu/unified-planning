@@ -27,7 +27,7 @@ from upf.variable import Variable
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
-Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, float]
+Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, float, Fraction]
 BoolExpression = Union[FNode, 'upf.Fluent', 'upf.ActionParameter', bool]
 
 class ExpressionManager(object):
