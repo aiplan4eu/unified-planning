@@ -155,4 +155,4 @@ class ConditionalEffectsRemover():
     def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:
         #original action
         oa = self._action_mapping[ai.action()]
-        return ActionInstance(oa, ai.parameters())
+        return ActionInstance(oa, ai.actual_parameters())
