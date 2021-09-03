@@ -33,6 +33,7 @@ class TestPyperplan(TestCase):
         problem.add_fluent(x)
         problem.add_fluent(y)
         problem.add_action(a)
+        problem.set_initial_value(x, False)
         problem.set_initial_value(y, True)
         problem.add_goal(x)
         plan = upf.SequentialPlan([upf.ActionInstance(a)])
