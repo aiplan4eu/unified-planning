@@ -198,11 +198,7 @@ class Simplifier(walkers.DagWalker):
 
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()
-<<<<<<< HEAD
-        accumulator : Union[Fraction, int] = 0
-=======
         accumulator: Union[int, Fraction] = 0
->>>>>>> Implemented all requsted changes -1. Almost ready
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
             if a.is_int_constant() or a.is_real_constant():
