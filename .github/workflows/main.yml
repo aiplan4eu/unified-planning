@@ -41,7 +41,7 @@ jobs:
         with:
           repository: aiplan4eu/pyperplan-upf
           path: pyperplan-upf
-          ref: "0954e9a0bf236dfbb14a34628543bbd3f92c591b"
+          ref: "2fef3698b6c5f2660667b5cd46f378b9ff395306"
 
       - name: Install Pyperplan UPF
         run: bash pyperplan-upf/install.sh
