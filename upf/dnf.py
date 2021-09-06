@@ -20,6 +20,7 @@ import upf.walkers as walkers
 from upf.exceptions import UPFUnraisableError
 from upf.walkers.dag import DagWalker
 from upf.fnode import FNode
+from upf.simplifier import Simplifier
 from typing import List, Tuple
 from itertools import product
 
@@ -125,6 +126,7 @@ class Dnf(DagWalker):
         self.env = env
         self.manager = env.expression_manager
         self._nnf = Nnf(self.env)
+        self._simplifier = Simplifier(self.env)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
         """Function used to transform a logic expression into the equivalent
@@ -145,35 +147,24 @@ class Dnf(DagWalker):
     def walk_and(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
         res: List[List[FNode]] = []
         tuples = product(*args)
-        #tuples is an iterable of tuples, where each tuple
+        # tuples is an iterable of tuples, where each tuple
         # represents one son of the resulting Or.
         # list will contain each son of the resulting And.
-        #for example:
-        # tuples = ([a, b], [c]) ([d])
-        # this will result in
-        # Or(And(a, b, c), And(d))
-        for args_tuple in tuples:
-            list: List[FNode] = []
-            to_add = True #represents if the tuple currently iterating contains
-                            #contraddictions or if it can be added
-            for args_list in args_tuple:
-                for element in args_list:
-                    #Before this for we just go in deep to reach the single element
-                    # Then it's all simplifications.
-                    if element.is_not():
-                        if element.arg(0) in list:
-                            to_add = False
-                            break
-                    else:
-                        if self.manager.Not(element) in list:
-                            to_add = False
-                            break
-                    if element not in list:
-                        list.append(element)
-                if not to_add:
-                    break
-            if to_add:
-                res.append(list)
+        # for example:
+        #   tuples = ([a, b], [c]) ([d])
+        # will result in
+        #   Or(And(a, b, c), And(d))
+        for conj_list in tuples:
+            big_conjunction = [lit for conj in conj_list for lit in conj]
+            simp = self._simplifier.simplify(self.manager.And(big_conjunction))
+            if simp.is_true():
+                return []
+            elif simp.is_false():
+                pass
+            elif simp.is_and():
+                res.append(simp.args())
+            else:
+               res.append([simp])
         return res
 
     def walk_or(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
