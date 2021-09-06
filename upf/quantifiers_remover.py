@@ -43,36 +43,29 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
     def remove_quantifiers(self, expression: FNode):
         return self.walk(expression)
 
-    @walkers.handles(op.EXISTS)
-    def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+    def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
         vars: List[Variable] = expression.variables()
         type_list = [v.type() for v in vars]
-        possible_objects: List[List[Object]] = []
-        for t in type_list:
-            possible_objects.append(self._problem.objects(t))
-        #product([1,2], [3,4]) = (1,3) (1,4) (2,3) (2,4)
-        possible_combinations = list(product(*possible_objects))
+        possible_objects: List[List[Object]] = [self._problem.objects(t) for t in type_list]
+        #product of n iterables returns a generator of tuples where
+        # every tuple has n elements and the tuples make every possible
+        # combination of 1 item for each iterable. For example:
+        #product([1,2], [3,4], [5,6], [7]) =
+        # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         subs_results = []
-        for o in possible_combinations:
-            ol: List[Object] = list(o)
-            subs: Dict[Expression, Expression] = dict(zip(vars, ol))
+        for o in product(*possible_objects):
+            subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
             subs_results.append(self._substituter.substitute(args[0], subs))
+        return subs_results
+
+    @walkers.handles(op.EXISTS)
+    def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        subs_results = self._help_walk_quantifiers(expression, args)
         return self._env.expression_manager.Or(subs_results)
 
     @walkers.handles(op.FORALL)
     def walk_forall(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        vars = expression.variables()
-        type_list = [v.type() for v in vars]
-        possible_objects: List[List[Object]] = []
-        for t in type_list:
-            possible_objects.append(self._problem.objects(t))
-        #product([1,2], [3,4]) = (1,3) (1,4) (2,3) (2,4)
-        possible_combinations = list(product(*possible_objects))
-        subs_results = []
-        for o in possible_combinations:
-            ol: List[Object] = list(o)
-            subs: Dict[Expression, Expression] = dict(zip(vars, ol))
-            subs_results.append(self._substituter.substitute(args[0], subs))
+        subs_results = self._help_walk_quantifiers(expression, args)
         return self._env.expression_manager.And(subs_results)
 
 
@@ -83,9 +76,7 @@ class QuantifiersRemover():
     '''
     def __init__(self, problem: Problem):
         self._problem = problem
-        self._action_mapping: Dict[Action, Action] = {}
         self._env = problem.env
-        self._counter: int = 0
         self._noquantifier_problem = None
         #NOTE no simplification are made. But it's possible to add them in key points
         self._simplifier = Simplifier(self._env)
@@ -101,7 +92,6 @@ class QuantifiersRemover():
         for a in self._problem.actions().values():
             na = self._action_without_quantifiers(a)
             new_problem.add_action(na)
-            self._action_mapping[na] = a
         for g in self._problem.goals():
             ng = self._expression_quantifier_remover.remove_quantifiers(g)
             new_problem.add_goal(ng)
@@ -121,13 +111,7 @@ class QuantifiersRemover():
         return new_problem
 
     def _action_without_quantifiers(self, action) -> Action:
-        #emulates a do-while loop: searching for an available name
-        is_unavailable_name = True
-        while is_unavailable_name:
-            new_action_name = action.name()+ "_" +str(self._counter)
-            self._counter = self._counter + 1
-            is_unavailable_name = self._problem.has_action(new_action_name)
-        new_action = Action(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+        new_action = Action(action.name(), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
         for p in action.preconditions():
             np = self._expression_quantifier_remover.remove_quantifiers(p)
@@ -142,20 +126,9 @@ class QuantifiersRemover():
             new_action._add_effect_instance(ne)
         return new_action
 
-    def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
+    def rewrite_back_plan(self, unquantified_sequential_plan: SequentialPlan) -> SequentialPlan:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
-        uncond_actions = unconditional_sequential_plan.actions()
-        cond_actions = []
-        for ai in uncond_actions:
-            if ai.action() in self._action_mapping:
-                cond_actions.append(self._new_action_instance_original_name(ai))
-            else:
-                cond_actions.append(ai)
-        return SequentialPlan(cond_actions)
-
-    def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:
-        #original action
-        oa = self._action_mapping[ai.action()]
-        return ActionInstance(oa, ai.parameters())
+        quantified_actions = [ActionInstance(self._problem.action(ai.action().name()), ai.parameters()) for ai in unquantified_sequential_plan.actions()]
+        return SequentialPlan(quantified_actions)

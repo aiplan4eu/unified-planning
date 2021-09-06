@@ -59,7 +59,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertNotEqual(str(plan), str(uq_plan))
+            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
@@ -75,7 +75,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertNotEqual(str(plan), str(uq_plan))
+            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
@@ -90,7 +90,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertNotEqual(str(plan), str(uq_plan))
+            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
@@ -108,6 +108,6 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertNotEqual(str(plan), str(uq_plan))
+            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
