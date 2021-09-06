@@ -130,5 +130,5 @@ class QuantifiersRemover():
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
-        quantified_actions = [ActionInstance(self._problem.action(ai.action().name()), ai.parameters()) for ai in unquantified_sequential_plan.actions()]
+        quantified_actions = [ActionInstance(self._problem.action(ai.action().name()), ai.actual_parameters()) for ai in unquantified_sequential_plan.actions()]
         return SequentialPlan(quantified_actions)
