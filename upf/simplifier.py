@@ -263,7 +263,7 @@ class Simplifier(walkers.DagWalker):
 
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
-        accumulator: Union[Fraction, int] = 1
+        accumulator: Union[int, Fraction] = 1
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
             if a.is_int_constant() or a.is_real_constant():

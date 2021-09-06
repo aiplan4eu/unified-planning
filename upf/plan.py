@@ -48,7 +48,7 @@ class ActionInstance:
         """Returns the action."""
         return self._action
 
-    def parameters(self) -> Tuple[FNode, ...]:
+    def actual_parameters(self) -> Tuple[FNode, ...]:
         """Returns the actual parameters."""
         return self._params
 
