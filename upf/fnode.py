@@ -108,7 +108,8 @@ class FNode(object):
         """Test whether the expression is a constant."""
         return self.node_type() == op.BOOL_CONSTANT or \
             self.node_type() == op.INT_CONSTANT or \
-            self.node_type() == op.REAL_CONSTANT
+            self.node_type() == op.REAL_CONSTANT or \
+            self.node_type() == op.OBJECT_EXP
 
     def constant_value(self) -> Union[bool, int, Fraction]:
         """Return the value of the Constant."""
