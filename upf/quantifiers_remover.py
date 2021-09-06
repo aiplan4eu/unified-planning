@@ -34,13 +34,13 @@ from collections import OrderedDict
 
 
 class ExpressionQuantifierRemover(IdentityDagWalker):
-    def __init__(self, problem: Problem, env):
+    def __init__(self, env):
         self._env = env
         IdentityDagWalker.__init__(self, self._env, True)
-        self._problem = problem
         self._substituter = Substituter(self._env)
 
-    def remove_quantifiers(self, expression: FNode):
+    def remove_quantifiers(self, expression: FNode, problem: Problem):
+        self._problem = problem
         return self.walk(expression)
 
     def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
@@ -80,7 +80,7 @@ class QuantifiersRemover():
         self._noquantifier_problem = None
         #NOTE no simplification are made. But it's possible to add them in key points
         self._simplifier = Simplifier(self._env)
-        self._expression_quantifier_remover = ExpressionQuantifierRemover(self._problem, self._env)
+        self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
@@ -93,7 +93,7 @@ class QuantifiersRemover():
             na = self._action_without_quantifiers(a)
             new_problem.add_action(na)
         for g in self._problem.goals():
-            ng = self._expression_quantifier_remover.remove_quantifiers(g)
+            ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
             new_problem.add_goal(ng)
         return new_problem
 
@@ -114,14 +114,14 @@ class QuantifiersRemover():
         new_action = Action(action.name(), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
         for p in action.preconditions():
-            np = self._expression_quantifier_remover.remove_quantifiers(p)
+            np = self._expression_quantifier_remover.remove_quantifiers(p, self._problem)
             new_action.add_precondition(np)
         for e in action.effects():
             if e.is_conditional():
-                nc = self._expression_quantifier_remover.remove_quantifiers(e.condition())
+                nc = self._expression_quantifier_remover.remove_quantifiers(e.condition(), self._problem)
             else:
                 nc = self._env.expression_manager.TRUE()
-            nv = self._expression_quantifier_remover.remove_quantifiers(e.value())
+            nv = self._expression_quantifier_remover.remove_quantifiers(e.value(), self._problem)
             ne = Effect(e.fluent(), nv, nc, e.kind())
             new_action._add_effect_instance(ne)
         return new_action

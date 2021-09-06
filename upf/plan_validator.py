@@ -14,12 +14,14 @@
 #
 
 
-from typing import Dict, Union
+from typing import Dict, Union, List, Set
 import upf.environment
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
 from upf.fnode import FNode
 from upf.expression import Expression
+from upf.quantifiers_remover import ExpressionQuantifierRemover
+from upf.problem import Problem
 
 
 class PlanValidator(object):
@@ -29,8 +31,8 @@ class PlanValidator(object):
         self.manager = env.expression_manager
         self.type_checker = env.type_checker
         self._simplifier = Simplifier(self._env)
-
         self._substituter = Substituter(self._env)
+        self._eqr = ExpressionQuantifierRemover(self._env)
         self._last_error: Union[str, None] = None
 
     def is_valid_plan(self, problem, plan) -> bool:
@@ -43,31 +45,31 @@ class PlanValidator(object):
             for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):
                 assignments[ap] = oe
             for p in ai.action().preconditions():
-                ps = self._subs_simplify(p, assignments)
+                ps = self._subs_simplify(p, assignments, problem)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
                     self._last_error = f'Precondition {p} of {str(count)}-th action instance {str(ai)} is not satisfied.'
                     return False
             for e in ai.action().effects():
                 cond = True
                 if e.is_conditional():
-                    ec = self._subs_simplify(e.condition(), assignments)
+                    ec = self._subs_simplify(e.condition(), assignments, problem)
                     assert ec.is_bool_constant()
                     cond = ec.bool_constant_value()
                 if cond:
-                    ge = self._get_ground_fluent(e.fluent(), assignments)
+                    ge = self._get_ground_fluent(e.fluent(), assignments, problem)
                     if e.is_assignment():
-                        new_assignments[ge] = self._subs_simplify(e.value(), assignments)
+                        new_assignments[ge] = self._subs_simplify(e.value(), assignments, problem)
                     elif e.is_increase():
                         new_assignments[ge] = self._subs_simplify(self.manager.Plus(e.fluent(),
-                                                e.value()), assignments)
+                                                e.value()), assignments, problem)
                     elif e.is_decrease():
                         new_assignments[ge] = self._subs_simplify(self.manager.Minus(e.fluent(),
-                                                e.value()), assignments)
+                                                e.value()), assignments, problem)
             assignments.update(new_assignments)
             for ap in ai.action().parameters():
                 del assignments[ap]
         for g in problem.goals():
-            gs = self._subs_simplify(g, assignments)
+            gs = self._subs_simplify(g, assignments, problem)
             if not (gs.is_bool_constant() and gs.bool_constant_value()):
                     self._last_error = f'Goal {str(g)} is not reached by the plan.'
                     return False
@@ -77,16 +79,16 @@ class PlanValidator(object):
         assert not self._last_error is None
         return self._last_error
 
-    def _get_ground_fluent(self, fluent:FNode, assignments: Dict[Expression, Expression]) -> FNode:
+    def _get_ground_fluent(self, fluent:FNode, assignments: Dict[Expression, Expression], problem: Problem) -> FNode:
         assert fluent.is_fluent_exp()
         new_args = []
         for p in fluent.args():
-            new_args.append(self._subs_simplify(p, assignments))
+            new_args.append(self._subs_simplify(p, assignments, problem))
         return self.manager.FluentExp(fluent.fluent(), tuple(new_args))
 
-    def _subs_simplify(self, expression: FNode, assignments: Dict[Expression, Expression]) -> FNode:
+    def _subs_simplify(self, expression: FNode, assignments: Dict[Expression, Expression], problem: Problem) -> FNode:
         old_exp = None
-        new_exp = expression
+        new_exp = self._eqr.remove_quantifiers(expression, problem)
         while old_exp != new_exp:
         #This do-while loop is necessary because when we have a FluentExp with
         #  some parameters, the first substitution substitutes the parameters with
