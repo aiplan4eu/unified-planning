@@ -177,6 +177,10 @@ class Problem:
         """Returns the user type with the given name."""
         return self._user_types[name]
 
+    def has_type(self, name: str) -> bool:
+        """Returns True iff the type 'name' is defined."""
+        return name in self._user_types
+
     def add_object(self, obj: upf.Object):
         """Adds the given object."""
         if obj.name() in self._objects:

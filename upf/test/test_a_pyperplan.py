@@ -50,6 +50,8 @@ class TestPyperplan(TestCase):
             new_plan = planner.solve(problem)
             self.assertEqual(str(plan), str(new_plan))
 
+        assert False
+
     def test_pyperplan_2(self):
         x = upf.Fluent('x')
         y = upf.Fluent('y')
