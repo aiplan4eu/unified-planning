@@ -28,27 +28,23 @@ from upf.plan import SequentialPlan
 
 class QuantifierSimplifier(Simplifier):
     """Same to the upf.Simplifier, but does not expand quantifiers and solves them locally."""
-    def __init__(self, env: 'upf.environment.Environment', simplifier: Simplifier = None, substituter: Substituter = None):
+    def __init__(self, env: 'upf.environment.Environment', problem: Problem):
         walkers.DagWalker.__init__(self, True)
         self._env = env
         self.manager = env.expression_manager
-        if simplifier is None:
-            self._simplifier = Simplifier(self._env)
-        else:
-            self._simplifier = simplifier
-        if substituter is None:
-            self._substituer = Substituter(self._env)
-        else:
-            self._substituter = substituter
-        self._problem: Optional[Problem] = None
-
-    def set_problem(self, problem: Problem):
         self._problem = problem
+        self._assignments = None
 
-    def qsimplify(self, expression: FNode, assignments: Dict[Expression, Expression]):
+    def qsimplify(self, expression: FNode, assignments: Dict[Expression, Expression], variable_assignments: Dict[Expression, Expression]):
         assert self._problem is not None
-        self._assignments = assignments.copy() #make a copy so it can be modified
-        return self.walk(expression)
+        assert self._assignments is None
+        assert self._variable_assignments is None
+        self._assignments = assignments
+        self._variable_assignments = variable_assignments
+        r = self.walk(expression)
+        self._assignments = None
+        self._variable_assignments = None
+        return r
 
     def _push_with_children_to_stack(self, expression: FNode, **kwargs):
         """Add children to the stack."""
@@ -82,18 +78,8 @@ class QuantifierSimplifier(Simplifier):
             pass
 
     def _deep_subs_simplify(self, expression: FNode, variables_assignments: Dict[Expression, Expression]) -> FNode:
-        self._assignments.update(variables_assignments)
-        old_exp = None
-        new_exp = expression
-        while old_exp != new_exp:
-        #This do-while loop is necessary because when we have a FluentExp with
-        #  some parameters, the first substitution substitutes the parameters with
-        #  the object: then every ground fluent is substituted with it's value.
-        #  It is a while loop because sometimes more than 2 substitutions can be
-        #  required.
-            old_exp = new_exp
-            new_exp = self._substituter.substitute(new_exp, self._assignments)
-        r = self._simplifier.simplify(new_exp)
+        new_qsimplifier = QuantifierSimplifier(self._env, self._problem)
+        r = new_qsimplifier.qsimplify(expression, self._assignments, variables_assignments)
         assert r.is_constant()
         return r
 
@@ -114,6 +100,7 @@ class QuantifierSimplifier(Simplifier):
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         for o in product(*possible_objects):
             subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
+            #NOTE HERE
             result = self._deep_subs_simplify(args[0], subs)
             assert result.is_bool_constant()
             if result.bool_constant_value():
@@ -206,16 +193,6 @@ class PlanValidator(object):
         return self.manager.FluentExp(fluent.fluent(), tuple(new_args))
 
     def _subs_simplify(self, expression: FNode, assignments: Dict[Expression, Expression]) -> FNode:
-        old_exp = None
-        new_exp = expression
-        while old_exp != new_exp:
-        #This do-while loop is necessary because when we have a FluentExp with
-        #  some parameters, the first substitution substitutes the parameters with
-        #  the object: then every ground fluent is substituted with it's value.
-        #  It is a while loop because sometimes more than 2 substitutions can be
-        #  required.
-            old_exp = new_exp
-            new_exp = self._substituter.substitute(new_exp, assignments)
-        r = self._qsimplifier.qsimplify(new_exp, assignments)
+        r = self._qsimplifier.qsimplify(expression, assignments, {})
         assert r.is_constant()
         return r
