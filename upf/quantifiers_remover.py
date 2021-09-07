@@ -44,7 +44,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         return self.walk(expression)
 
     def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
-        vars: List[Variable] = expression.variables()
+        vars = expression.variables()
         type_list = [v.type() for v in vars]
         possible_objects: List[List[Object]] = [self._problem.objects(t) for t in type_list]
         #product of n iterables returns a generator of tuples where
