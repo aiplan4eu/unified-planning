@@ -17,7 +17,7 @@
 import upf.environment
 import upf.operators as op
 import upf.walkers as walkers
-from upf.exceptions import UPFUnraisableError
+from upf.exceptions import UPFUnreachableCodeError
 from upf.walkers.dag import DagWalker
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
@@ -66,7 +66,7 @@ class Nnf():
                         new_e = self.manager.And(args)
                     solved.append(new_e)
                 else:
-                    raise UPFUnraisableError("This code branch should never be reached!")
+                    raise UPFUnreachableCodeError("This code branch should never be reached!")
             else:
                 if e.is_not():
                     stack.append((not p, e.arg(0), False))
