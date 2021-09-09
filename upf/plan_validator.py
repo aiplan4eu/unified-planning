@@ -16,11 +16,13 @@
 
 from typing import Dict, Union, List, Set, Optional
 from itertools import product
+
 import upf.environment
 import upf.walkers as walkers
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
 from upf.fnode import FNode
+from upf.exceptions import UPFProblemDefinitionError
 from upf.expression import Expression
 from upf.problem import Problem
 from upf.object import Object
@@ -49,13 +51,11 @@ class QuantifierSimplifier(Simplifier):
 
     def _push_with_children_to_stack(self, expression: FNode, **kwargs):
         """Add children to the stack."""
-        self.stack.append((True, expression))
-        if not (expression.is_forall() or expression.is_exists()):
-            for s in self._get_children(expression):
-                # Add only if not memoized already
-                key = self._get_key(s, **kwargs)
-                if key not in self.memoization:
-                    self.stack.append((False, s))
+        if expression.is_forall() or expression.is_exists():
+            self.stack.append((True, expression))
+        else:
+            super(Simplifier, self)._push_with_children_to_stack(expression, **kwargs)
+
 
     def _compute_node_result(self, expression: FNode, **kwargs):
         """Apply function to the node and memoize the result.
@@ -143,8 +143,7 @@ class QuantifierSimplifier(Simplifier):
             assert type(res) is FNode
             return res
         else:
-            #NOTE should this ever happen?
-            return Simplifier.super(self, expression, args)
+            raise UPFProblemDefinitionError(f"Value of Fluent {str(expression)} not found in {str(self._assignments)}")
 
     def walk_variable_exp(self, expression: FNode, args: List[FNode]) -> FNode:
         assert self._variable_assignments is not None
@@ -154,8 +153,7 @@ class QuantifierSimplifier(Simplifier):
             assert type(res) is FNode
             return res
         else:
-            #NOTE should this ever happen?
-            return Simplifier.super(self, expression, args)
+            raise UPFProblemDefinitionError(f"Value of Variable {str(expression)} not found in {str(self._variable_assignments)}")
 
     def walk_param_exp(self, expression: FNode, args: List[FNode]) -> FNode:
         assert self._assignments is not None
@@ -165,8 +163,7 @@ class QuantifierSimplifier(Simplifier):
             assert type(res) is FNode
             return res
         else:
-            #NOTE should this ever happen?
-            return Simplifier.super(self, expression, args)
+            raise UPFProblemDefinitionError(f"Value of ActionParameter {str(expression)} not found in {str(self._assignments)}")
 
 
 class PlanValidator(object):
@@ -231,11 +228,5 @@ class PlanValidator(object):
 
     def _subs_simplify(self, expression: FNode, assignments: Dict[Expression, Expression]) -> FNode:
         r = self._qsimplifier.qsimplify(expression, assignments, {})
-        print("Inizio")
-        print(expression)
-        print(r)
-        print(assignments)
-
-        print("Fine")
         assert r.is_constant()
         return r

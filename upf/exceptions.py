@@ -27,3 +27,6 @@ class UPFTypeError(UPFException, TypeError):
 
 class UPFUnboundedVariablesError(UPFException):
     pass
+
+class UPFExpressionDefinitionError(UPFException):
+    pass

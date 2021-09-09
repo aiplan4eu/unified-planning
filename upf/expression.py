@@ -22,7 +22,7 @@ import upf
 import upf.types
 import upf.operators as op
 from upf.fnode import FNodeContent, FNode
-from upf.exceptions import UPFTypeError
+from upf.exceptions import UPFTypeError, UPFExpressionDefinitionError
 from upf.variable import Variable
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
@@ -164,6 +164,8 @@ class ExpressionManager(object):
                     vars must be of 'upf.Variable' type
         """
         expressions = tuple(self.auto_promote(expression))
+        if len(vars) == 0:
+            raise UPFExpressionDefinitionError(f"Exists of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed.")
         for v in vars:
             if not isinstance(v, Variable):
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
@@ -176,6 +178,8 @@ class ExpressionManager(object):
                     vars must be of 'upf.Variable' type
         """
         expressions = tuple(self.auto_promote(expression))
+        if len(vars) == 0:
+            raise UPFExpressionDefinitionError(f"Forall of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed.")
         for v in vars:
             if not isinstance(v, Variable):
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))

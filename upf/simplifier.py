@@ -157,22 +157,18 @@ class Simplifier(walkers.DagWalker):
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        if args[0].is_bool_constant():
-            if args[0].bool_constant_value():
-                return self.manager.TRUE()
-            return self.manager.FALSE()
         free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
+        if len(vars) == 0:
+            return args[0]
         return self.manager.Exists(args[0], *vars)
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        if args[0].is_bool_constant():
-            if args[0].bool_constant_value():
-                return self.manager.TRUE()
-            return self.manager.FALSE()
         free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
+        if len(vars) == 0:
+            return args[0]
         return self.manager.Forall(args[0], *vars)
 
     def walk_equals(self, expression: FNode, args: List[FNode]) -> FNode:
