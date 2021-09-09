@@ -80,9 +80,11 @@ class QuantifierSimplifier(Simplifier):
 
     def _deep_subs_simplify(self, expression: FNode, variables_assignments: Dict[Expression, Expression]) -> FNode:
         new_qsimplifier = QuantifierSimplifier(self._env, self._problem)
+        assert self._variable_assignments is not None
+        assert self._assignments is not None
         copy = self._variable_assignments.copy()
         copy.update(variables_assignments)
-        r = new_qsimplifier.qsimplify(expression, self._assignments, copy) # type: ignore
+        r = new_qsimplifier.qsimplify(expression, self._assignments, copy)
         assert r.is_constant()
         return r
 
