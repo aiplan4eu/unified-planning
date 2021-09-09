@@ -33,7 +33,8 @@ class QuantifierSimplifier(Simplifier):
         self._env = env
         self.manager = env.expression_manager
         self._problem = problem
-        self._assignments = None
+        self._assignments: Optional[Dict[Expression, Expression]] = None
+        self._variable_assignments: Optional[Dict[Expression, Expression]] = None
 
     def qsimplify(self, expression: FNode, assignments: Dict[Expression, Expression], variable_assignments: Dict[Expression, Expression]):
         assert self._problem is not None
@@ -79,7 +80,9 @@ class QuantifierSimplifier(Simplifier):
 
     def _deep_subs_simplify(self, expression: FNode, variables_assignments: Dict[Expression, Expression]) -> FNode:
         new_qsimplifier = QuantifierSimplifier(self._env, self._problem)
-        r = new_qsimplifier.qsimplify(expression, self._assignments, variables_assignments)
+        copy = self._variable_assignments.copy()
+        copy.update(variables_assignments)
+        r = new_qsimplifier.qsimplify(expression, self._assignments, copy) # type: ignore
         assert r.is_constant()
         return r
 
@@ -100,7 +103,6 @@ class QuantifierSimplifier(Simplifier):
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         for o in product(*possible_objects):
             subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
-            #NOTE HERE
             result = self._deep_subs_simplify(args[0], subs)
             assert result.is_bool_constant()
             if result.bool_constant_value():
@@ -130,6 +132,40 @@ class QuantifierSimplifier(Simplifier):
                 return self.manager.FALSE()
         return self.manager.TRUE()
 
+    def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
+        new_exp = self.manager.FluentExp(expression.fluent(), tuple(args))
+        assert self._assignments is not None
+        res = self._assignments.get(new_exp, None)
+        if res is not None:
+            res, = self.manager.auto_promote(res)
+            assert type(res) is FNode
+            return res
+        else:
+            #NOTE should this ever happen?
+            return Simplifier.super(self, expression, args)
+
+    def walk_variable_exp(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert self._variable_assignments is not None
+        res = self._variable_assignments.get(expression.variable(), None)
+        if res is not None:
+            res, = self.manager.auto_promote(res)
+            assert type(res) is FNode
+            return res
+        else:
+            #NOTE should this ever happen?
+            return Simplifier.super(self, expression, args)
+
+    def walk_param_exp(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert self._assignments is not None
+        res = self._assignments.get(expression.parameter(), None)
+        if res is not None:
+            res, = self.manager.auto_promote(res)
+            assert type(res) is FNode
+            return res
+        else:
+            #NOTE should this ever happen?
+            return Simplifier.super(self, expression, args)
+
 
 class PlanValidator(object):
     """Performs plan validation."""
@@ -137,11 +173,10 @@ class PlanValidator(object):
         self._env = env
         self.manager = env.expression_manager
         self._substituter = Substituter(self._env)
-        self._qsimplifier = QuantifierSimplifier(self._env, substituter=self._substituter)
         self._last_error: Union[str, None] = None
 
     def is_valid_plan(self, problem: Problem, plan: SequentialPlan) -> bool:
-        self._qsimplifier.set_problem(problem)
+        self._qsimplifier = QuantifierSimplifier(self._env, problem)
         self._last_error = None
         assignments: Dict[Expression, Expression] = problem.initial_values() # type: ignore
         count = 0 #used for better error indexing
@@ -194,5 +229,11 @@ class PlanValidator(object):
 
     def _subs_simplify(self, expression: FNode, assignments: Dict[Expression, Expression]) -> FNode:
         r = self._qsimplifier.qsimplify(expression, assignments, {})
+        print("Inizio")
+        print(expression)
+        print(r)
+        print(assignments)
+
+        print("Fine")
         assert r.is_constant()
         return r
