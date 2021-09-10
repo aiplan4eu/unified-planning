@@ -29,7 +29,7 @@ class TypeChecker(walkers.DagWalker):
         self.env = env
 
     def get_type(self, expression: FNode) -> upf.types.Type:
-        """ Returns the pysmt.types type of the expression """
+        """ Returns the upf.types type of the expression """
         res = self.walk(expression)
         if res is None:
             raise UPFTypeError("The expression '%s' is not well-formed" \
@@ -55,7 +55,7 @@ class TypeChecker(walkers.DagWalker):
         else:
             return True
 
-    @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF)
+    @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF, op.EXISTS, op.FORALL)
     def walk_bool_to_bool(self, expression: FNode,
                           args: List[upf.types.Type]) -> Optional[upf.types.Type]:
         assert expression is not None
@@ -78,6 +78,11 @@ class TypeChecker(walkers.DagWalker):
         assert expression is not None
         assert len(args) == 0
         return expression.parameter().type()
+
+    def walk_variable_exp(self, expression: FNode, args: List[upf.types.Type]) -> upf.types.Type:
+        assert expression is not None
+        assert len(args) == 0
+        return expression.variable().type()
 
     def walk_object_exp(self, expression: FNode, args: List[upf.types.Type]) -> upf.types.Type:
         assert expression is not None

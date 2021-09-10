@@ -19,7 +19,8 @@ import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
 from upf.fnode import FNode
-from typing import List, Union
+from upf.variable import Variable
+from typing import List, Set, Union
 
 
 class Simplifier(walkers.DagWalker):
@@ -153,6 +154,22 @@ class Simplifier(walkers.DagWalker):
             return self.manager.TRUE()
         else:
             return self.manager.Implies(sl, sr)
+
+    def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 1
+        free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
+        vars = tuple(var for var in expression.variables() if var in free_vars)
+        if len(vars) == 0:
+            return args[0]
+        return self.manager.Exists(args[0], *vars)
+
+    def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 1
+        free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
+        vars = tuple(var for var in expression.variables() if var in free_vars)
+        if len(vars) == 0:
+            return args[0]
+        return self.manager.Forall(args[0], *vars)
 
     def walk_equals(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
@@ -289,6 +306,6 @@ class Simplifier(walkers.DagWalker):
         return self._number_to_fnode(value)
 
     @walkers.handles(op.CONSTANTS)
-    @walkers.handles(op.PARAM_EXP, op.OBJECT_EXP)
+    @walkers.handles(op.PARAM_EXP, op.VARIABLE_EXP, op.OBJECT_EXP)
     def walk_identity(self, expression: FNode, args: List[FNode]) -> FNode:
         return expression

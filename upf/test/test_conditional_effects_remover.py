@@ -20,7 +20,7 @@ from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
 from upf.conditional_effects_remover import ConditionalEffectsRemover
 from upf.pddl_solver import PDDLSolver
-
+from upf.plan_validator import PlanValidator as PV
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -73,18 +73,35 @@ class TestConditionalEffectsRemover(TestCase):
             plan = planner.solve(problem)
             uncond_plan = planner.solve(unconditional_problem)
             self.assertNotEqual(str(plan), str(uncond_plan))
-            new_plan = cer.rewrite_back_plan(plan)
-            self.assertEqual(str(plan), str(new_plan))
+            new_plan = cer.rewrite_back_plan(uncond_plan)
+            # with PlanValidator(problem_kind=problem.kind()) as validator:
+            #     self.assertNotEqual(validator, None)
+
+            #     res = validator.validate(problem, plan)
+            #     self.assertTrue(res)
+            #     res = validator.validate(unconditional_problem, uncond_plan)
+            #     self.assertTrue(res)
+            #     res = validator.validate(problem, new_plan)
+            #     self.assertTrue(res)
 
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
+        plan = self.problems['complex_conditional'].plan
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
             uncond_plan = planner.solve(unconditional_problem)
             self.assertNotEqual(str(plan), str(uncond_plan))
-            new_plan = cer.rewrite_back_plan(plan)
+            new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
+            # with PlanValidator(problem_kind=problem.kind()) as validator:
+            #     self.assertNotEqual(validator, None)
+
+            #     res = validator.validate(problem, plan)
+            #     self.assertTrue(res)
+            #     res = validator.validate(unconditional_problem, uncond_plan)
+            #     self.assertTrue(res)
+            #     res = validator.validate(problem, new_plan)
+            #     self.assertTrue(res)

@@ -14,6 +14,7 @@
 
 from upf.solver import Solver
 from upf.action import Action, ActionParameter
+from upf.variable import Variable
 from upf.fluent import Fluent
 from upf.object import Object
 from upf.problem import Problem

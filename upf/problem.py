@@ -99,21 +99,9 @@ class Problem:
         """Adds the given fluent."""
         if fluent.name() in self._fluents:
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
-        if fluent.type().is_user_type():
-            self._kind.set_typing('FLAT_TYPING') # type: ignore
-            self._user_types[fluent.type().name()] = fluent.type() # type: ignore
-        elif fluent.type().is_int_type():
-            self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        elif fluent.type().is_real_type():
-            self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+        self._update_problem_kind_type(fluent.type())
         for t in fluent.signature():
-            if t.is_user_type():
-                self._kind.set_typing('FLAT_TYPING') # type: ignore
-                self._user_types[t.name()] = t # type: ignore
-            elif t.is_int_type():
-                self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-            elif t.is_real_type():
-                self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+            self._update_problem_kind_type(t)
         self._fluents[fluent.name()] = fluent
         if not default_initial_value is None:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
@@ -145,21 +133,9 @@ class Problem:
         if action.name() in self._actions:
             raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
         for p in action.parameters():
-            if p.type().is_user_type():
-                self._kind.set_typing('FLAT_TYPING') # type: ignore
-                self._user_types[p.type().name()] = p.type() # type: ignore
-            elif p.type().is_int_type():
-                self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-            elif p.type().is_real_type():
-                self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+            self._update_problem_kind_type(p.type())
         for c in action.preconditions():
-            ops = self._operators_extractor.get(c)
-            if op.EQUALS in ops:
-                self._kind.set_conditions_kind('EQUALITY') # type: ignore
-            if op.NOT in ops:
-                self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-            if op.OR in ops:
-                self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+            self._update_problem_kind_goal_and_precondition(c)
         for e in action.effects():
             if e.is_conditional():
                 self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
@@ -297,13 +273,7 @@ class Problem:
         """Adds a goal."""
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        ops = self._operators_extractor.get(goal_exp)
-        if op.EQUALS in ops:
-            self._kind.set_conditions_kind('EQUALITY') # type: ignore
-        if op.NOT in ops:
-            self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        if op.OR in ops:
-            self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        self._update_problem_kind_goal_and_precondition(goal_exp)
         self._goals.append(goal_exp)
 
     def goals(self) -> List[FNode]:
@@ -313,3 +283,25 @@ class Problem:
     def kind(self) -> ProblemKind:
         """Returns the problem kind of this planning problem."""
         return self._kind
+
+    def _update_problem_kind_goal_and_precondition(self, exp):
+        ops = self._operators_extractor.get(exp)
+        if op.EQUALS in ops:
+            self._kind.set_conditions_kind('EQUALITY') # type: ignore
+        if op.NOT in ops:
+            self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+        if op.OR in ops:
+            self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        if op.EXISTS in ops:
+            self._kind.set_conditions_kind('EXISTENTIAL_PRECONDITIONS') # type: ignore
+        if op.FORALL in ops:
+            self._kind.set_conditions_kind('UNIVERSAL_PRECONDITIONS') # type: ignore
+
+    def _update_problem_kind_type(self, type):
+        if type.is_user_type():
+                self._kind.set_typing('FLAT_TYPING') # type: ignore
+                self._user_types[type.name()] = type # type: ignore
+        elif type.is_int_type():
+            self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        elif type.is_real_type():
+            self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore

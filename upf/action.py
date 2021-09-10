@@ -23,15 +23,18 @@ import upf
 import upf.types
 from upf.environment import get_env, Environment
 from upf.fnode import FNode
-from upf.exceptions import UPFTypeError
+from upf.exceptions import UPFTypeError, UPFUnboundedVariablesError
 from upf.expression import BoolExpression, Expression
 from upf.effect import Effect, INCREASE, DECREASE
-from collections import OrderedDict
 from typing import List, Union
+from collections import OrderedDict
 
 
 class ActionParameter:
-    """Represents an action parameter."""
+    """Represents an action parameter.
+    An action parameter has a name, used to retrieve the parameter
+    from the action, and a type, used to represent that the action
+    parameter is of the given type."""
     def __init__(self, name: str, typename: upf.types.Type):
         self._name = name
         self._typename = typename
@@ -107,6 +110,7 @@ class Action:
         return [e for e in self._effects if e.is_conditional()]
 
     def is_conditional(self) -> bool:
+        """Returns True if the action has conditional effects."""
         return any(e.is_conditional() for e in self._effects)
 
     def unconditional_effects(self) -> List[Effect]:
@@ -125,6 +129,9 @@ class Action:
         """Adds the given action precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
+        free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)
+        if len(free_vars) != 0:
+            raise UPFUnboundedVariablesError(f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}")
         self._preconditions.append(precondition_exp)
 
     def add_effect(self, fluent: Union[FNode, 'upf.Fluent'],
