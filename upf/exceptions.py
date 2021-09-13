@@ -24,3 +24,6 @@ class UPFProblemDefinitionError(UPFException):
 
 class UPFTypeError(UPFException, TypeError):
     pass
+
+class UPFUnsupportedProblemTypeError(UPFException):
+    pass

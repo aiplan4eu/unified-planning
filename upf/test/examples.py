@@ -125,6 +125,23 @@ def get_example_problems():
     complex_conditional = Example(problem=problem, plan=plan)
     problems['complex_conditional'] = complex_conditional
 
+    # basic pyperplan test
+    x = upf.Fluent('x')
+    y = upf.Fluent('y')
+    a = upf.Action('a')
+    a.add_precondition(y)
+    a.add_effect(x, True)
+    problem = upf.Problem('basic')
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(a)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, True)
+    problem.add_goal(x)
+    plan = upf.SequentialPlan([upf.ActionInstance(a)])
+    basic_pyperplan_test = Example(problem=problem, plan=plan)
+    problems['basic_pyperplan_test'] = basic_pyperplan_test
+
     # robot
     Location = UserType('Location')
     robot_at = upf.Fluent('robot_at', BoolType(), [Location])
@@ -154,6 +171,29 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
     robot = Example(problem=problem, plan=plan)
     problems['robot'] = robot
+
+    # robot no negative preconditions
+    Location = UserType('location')
+    robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+    move = upf.Action('move', l_from=Location, l_to=Location)
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(robot_at(l_from))
+    move.add_effect(robot_at(l_from), False)
+    move.add_effect(robot_at(l_to), True)
+    l1 = upf.Object('l1', Location)
+    l2 = upf.Object('l2', Location)
+    problem = upf.Problem('robot')
+    problem.add_fluent(robot_at)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.set_initial_value(robot_at(l1), True)
+    problem.set_initial_value(robot_at(l2), False)
+    problem.add_goal(robot_at(l2))
+    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
+    robot_no_negative_preconditions = Example(problem=problem, plan=plan)
+    problems['robot_no_negative_preconditions'] = robot_no_negative_preconditions
 
     # robot decrease
     Location = UserType('Location')
