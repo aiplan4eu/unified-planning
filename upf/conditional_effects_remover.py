@@ -124,7 +124,6 @@ class ConditionalEffectsRemover():
 
     def _create_problem_copy(self):
         '''Creates the shallow copy of a problem, without adding the conditional actions
-        and by pushing them to the stack
         '''
         new_problem: Problem = Problem("unconditional_" + str(self._problem.name()), self._env)
         for f in self._problem.fluents().values():
@@ -136,7 +135,7 @@ class ConditionalEffectsRemover():
         for g in self._problem.goals():
             new_problem.add_goal(g)
         for ua in self._problem.unconditional_actions():
-                new_problem.add_action(ua)
+            new_problem.add_action(ua)
         return new_problem
 
     def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:

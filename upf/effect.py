@@ -43,34 +43,42 @@ class Effect:
         s.append(f'{str(self._fluent)}')
         if self.is_assignment():
             s.append(':=')
-        elif self.is_increase:
+        elif self.is_increase():
             s.append('+=')
-        elif self.is_decrease:
+        elif self.is_decrease():
             s.append('-=')
         s.append(f'{str(self._value)}')
         return ' '.join(s)
 
     def is_conditional(self) -> bool:
+        """Returns True if the Effect condition is not True."""
         return not self._condition.is_true()
 
     def fluent(self) -> FNode:
+        """Returns the Fluent that is modified by this effect."""
         return self._fluent
 
     def value(self) -> FNode:
+        """Returns the value given to the Fluent by this Effect."""
         return self._value
 
     def condition(self) -> FNode:
+        """Returns the condition required for this Effect to be applied"""
         assert self.is_conditional()
         return self._condition
 
     def kind(self) -> int:
+        """Returns the kind of this Effect."""
         return self._kind
 
     def is_assignment(self) -> bool:
+        """Returns True if the kind of this Effect is an assignment."""
         return self._kind == ASSIGN
 
     def is_increase(self) -> bool:
+        """Returns True if the kind of this Effect is an increase."""
         return self._kind == INCREASE
 
     def is_decrease(self) -> bool:
+        """Returns True if the kind of this Effect is a decrease."""
         return self._kind == DECREASE
