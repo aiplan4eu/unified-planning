@@ -14,23 +14,13 @@
 #
 """This module defines the dnf remover class."""
 
-
-import upf.operators as op
-import upf.walkers as walkers
-from upf.walkers.identitydag import IdentityDagWalker
 from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
 from upf.action import Action
-from upf.object import Object
-from upf.effect import Effect
-from upf.fnode import FNode
-from upf.variable import Variable
+from upf.dnf import Dnf
+from upf.exceptions import UPFProblemDefinitionError
 from upf.simplifier import Simplifier
-from upf.substituter import Substituter
-from upf.expression import Expression
-from typing import List, Dict
-from itertools import product
-from collections import OrderedDict
+from typing import Dict
 
 
 class DnfRemover():
@@ -49,24 +39,50 @@ class DnfRemover():
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
-        but every quantifier is removed.'''
+        but every precondition is compiled into one with preconditions in DNF.'''
         if self._dnf_problem is not None:
             return self._dnf_problem
         #NOTE that a different environment might be needed when multy-threading
         new_problem = self._create_problem_copy_without_actions()
-        for a in self._problem.actions().values():
-            na = self._action_without_quantifiers(a)
-            new_problem.add_action(na)
+        self._handle_actions(new_problem)
+
         for g in self._problem.goals():
-            ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
-            new_problem.add_goal(ng)
+            new_problem.add_goal(g)
         return new_problem
+
+    def _handle_actions(self, new_problem):
+        dnf = Dnf(self._env)
+        for a in self._problem.actions().values():
+            self.count = 0
+            new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
+            if new_precond.is_or():
+                for and_exp in new_precond.args():
+                    na = self._create_new_action_with_given_precond(and_exp, a)
+                    new_problem.add_action(na)
+            else:
+                na = self._create_new_action_with_given_precond(new_precond, a)
+                new_problem.add_action(na)
+
+    def _create_new_action_with_given_precond(self, precond, original_action):
+        new_action = Action(f"{original_action.name()}__{self.count}__", {ap.name(): ap.type() for ap in original_action.parameters()}, self._env)
+        self.count = self.count + 1
+        if self._problem.has_action(new_action.name()):
+            raise UPFProblemDefinitionError(f"Action: {new_action.name()} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        if precond.is_and():
+            for leaf in precond.args():
+                new_action.add_precondition(leaf)
+        else:
+            new_action.add_precondition(precond)
+
+        for e in original_action.effects():
+            new_action._add_effect_instance(e)
+        self._action_mapping[new_action] = original_action
+        return new_action
 
     def _create_problem_copy_without_actions(self):
         '''Creates the shallow copy of a problem, without adding the actions
-        with quantifiers and by pushing them to the stack
         '''
-        new_problem: Problem = Problem("noquantifiers_" + str(self._problem.name()), self._env)
+        new_problem: Problem = Problem("dnf_" + str(self._problem.name()), self._env)
         for f in self._problem.fluents().values():
             new_problem.add_fluent(f)
         for o in self._problem.all_objects():
@@ -77,26 +93,20 @@ class DnfRemover():
             new_problem.add_goal(g)
         return new_problem
 
-    def _shallow_copy_action_without_conditional_effects(self, action: Action) -> Action:
-        #emulates a do-while loop: searching for an available name
-        is_unavailable_name = True
-        while is_unavailable_name:
-            new_action_name = action.name()+ "_" +str(self._counter)
-            self._counter = self._counter + 1
-            is_unavailable_name = self._problem.has_action(new_action_name)
-        new_parameters = OrderedDict()
-        for ap in action.parameters():
-            new_parameters[ap.name()] = ap.type()
-        new_action = Action(new_action_name, new_parameters, self._env)
-        for p in action.preconditions():
-            new_action.add_precondition(p)
-        for e in action.unconditional_effects():
-            new_action._add_effect_instance(e)
-        return new_action
-
-    def rewrite_back_plan(self, unquantified_sequential_plan: SequentialPlan) -> SequentialPlan:
-        '''Takes the sequential plan of the problem (created with
+    def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
+        '''Takes the sequential plan of the DNF problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
-        quantified_actions = [ActionInstance(self._problem.action(ai.action().name()), ai.actual_parameters()) for ai in unquantified_sequential_plan.actions()]
-        return SequentialPlan(quantified_actions)
+        uncond_actions = unconditional_sequential_plan.actions()
+        cond_actions = []
+        for ai in uncond_actions:
+            if ai.action() in self._action_mapping:
+                cond_actions.append(self._new_action_instance_original_name(ai))
+            else:
+                cond_actions.append(ai)
+        return SequentialPlan(cond_actions)
+
+    def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:
+        #original action
+        oa = self._action_mapping[ai.action()]
+        return ActionInstance(oa, ai.actual_parameters())
