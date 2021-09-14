@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the quantifiers remover class."""
+"""This module defines the dnf remover class."""
 
 
 import upf.operators as op
@@ -33,62 +33,27 @@ from itertools import product
 from collections import OrderedDict
 
 
-class ExpressionQuantifierRemover(IdentityDagWalker):
-    def __init__(self, env):
-        self._env = env
-        IdentityDagWalker.__init__(self, self._env, True)
-        self._substituter = Substituter(self._env)
-
-    def remove_quantifiers(self, expression: FNode, problem: Problem):
-        self._problem = problem
-        return self.walk(expression)
-
-    def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
-        vars = expression.variables()
-        type_list = [v.type() for v in vars]
-        possible_objects: List[List[Object]] = [self._problem.objects(t) for t in type_list]
-        #product of n iterables returns a generator of tuples where
-        # every tuple has n elements and the tuples make every possible
-        # combination of 1 item for each iterable. For example:
-        #product([1,2], [3,4], [5,6], [7]) =
-        # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
-        subs_results = []
-        for o in product(*possible_objects):
-            subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
-            subs_results.append(self._substituter.substitute(args[0], subs))
-        return subs_results
-
-    @walkers.handles(op.EXISTS)
-    def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        subs_results = self._help_walk_quantifiers(expression, args)
-        return self._env.expression_manager.Or(subs_results)
-
-    @walkers.handles(op.FORALL)
-    def walk_forall(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        subs_results = self._help_walk_quantifiers(expression, args)
-        return self._env.expression_manager.And(subs_results)
-
-
-class QuantifiersRemover():
-    '''Conditional effect remover class:
+class DnfRemover():
+    '''Dnf remover class:
     this class requires a problem and offers the capability
-    to transform a problem with quantifiers into a problem without.
+    to transform a problem with preconditions not in the DNF form
+    into one with all the preconditions in DNF form.
     '''
     def __init__(self, problem: Problem):
         self._problem = problem
         self._env = problem.env
-        self._noquantifier_problem = None
+        self._dnf_problem = None
+        self._action_mapping: Dict[Action, Action] = {}
         #NOTE no simplification are made. But it's possible to add them in key points
         self._simplifier = Simplifier(self._env)
-        self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every quantifier is removed.'''
-        if self._noquantifier_problem is not None:
-            return self._noquantifier_problem
+        if self._dnf_problem is not None:
+            return self._dnf_problem
         #NOTE that a different environment might be needed when multy-threading
-        new_problem = self._create_problem_copy_without_actions_and_goals()
+        new_problem = self._create_problem_copy_without_actions()
         for a in self._problem.actions().values():
             na = self._action_without_quantifiers(a)
             new_problem.add_action(na)
@@ -97,7 +62,7 @@ class QuantifiersRemover():
             new_problem.add_goal(ng)
         return new_problem
 
-    def _create_problem_copy_without_actions_and_goals(self):
+    def _create_problem_copy_without_actions(self):
         '''Creates the shallow copy of a problem, without adding the actions
         with quantifiers and by pushing them to the stack
         '''
@@ -108,22 +73,25 @@ class QuantifiersRemover():
             new_problem.add_object(o)
         for fl, v in self._problem.initial_values().items():
             new_problem.set_initial_value(fl, v)
+        for g in self._problem.goals():
+            new_problem.add_goal(g)
         return new_problem
 
-    def _action_without_quantifiers(self, action) -> Action:
-        new_action = Action(action.name(), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
-
+    def _shallow_copy_action_without_conditional_effects(self, action: Action) -> Action:
+        #emulates a do-while loop: searching for an available name
+        is_unavailable_name = True
+        while is_unavailable_name:
+            new_action_name = action.name()+ "_" +str(self._counter)
+            self._counter = self._counter + 1
+            is_unavailable_name = self._problem.has_action(new_action_name)
+        new_parameters = OrderedDict()
+        for ap in action.parameters():
+            new_parameters[ap.name()] = ap.type()
+        new_action = Action(new_action_name, new_parameters, self._env)
         for p in action.preconditions():
-            np = self._expression_quantifier_remover.remove_quantifiers(p, self._problem)
-            new_action.add_precondition(np)
-        for e in action.effects():
-            if e.is_conditional():
-                nc = self._expression_quantifier_remover.remove_quantifiers(e.condition(), self._problem)
-            else:
-                nc = self._env.expression_manager.TRUE()
-            nv = self._expression_quantifier_remover.remove_quantifiers(e.value(), self._problem)
-            ne = Effect(e.fluent(), nv, nc, e.kind())
-            new_action._add_effect_instance(ne)
+            new_action.add_precondition(p)
+        for e in action.unconditional_effects():
+            new_action._add_effect_instance(e)
         return new_action
 
     def rewrite_back_plan(self, unquantified_sequential_plan: SequentialPlan) -> SequentialPlan:
