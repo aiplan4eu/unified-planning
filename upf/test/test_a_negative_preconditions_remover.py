@@ -48,6 +48,9 @@ class TestNegativePreconditionsRemover(TestCase):
         positive_problem = npr.get_rewritten_problem()
         with OneshotPlanner(name='tamer') as planner:
             self.assertNotEqual(planner, None)
+            print(problem)
+            plan = planner.solve(problem)
+            print(positive_problem)
             positive_plan = planner.solve(positive_problem)
             self.assertNotEqual(str(plan), str(positive_plan))
             new_plan = npr.rewrite_back_plan(positive_plan)
