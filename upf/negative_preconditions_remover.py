@@ -21,7 +21,7 @@ from upf.problem import Problem
 from upf.action import Action
 from upf.fnode import FNode
 from upf.walkers.identitydag import IdentityDagWalker
-from upf.exceptions import UPFExpressionDefinitionError
+from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
 from typing import Iterable, List, Dict, Tuple
 from itertools import chain, combinations
 
@@ -71,40 +71,71 @@ class NegativePreconditionsRemover():
         if self._positive_problem is not None:
             return self._positive_problem
         #NOTE that a different environment might be needed when multy-threading
-        new_problem = self._create_problem_copy_without_actions_init_and_goals()
+        new_problem = self._create_problem_copy_without_fluents_actions_init_and_goals()
         self._modify_actions_and_goals(new_problem)
         self._positive_problem = new_problem
         return new_problem
 
     def _modify_actions_and_goals(self, new_problem):
         name_action_map: Dict[str, Action] = {}
+
         for name, action in self._problem.actions().items():
             new_action = Action(name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
             for p in action.preconditions():
                 np = self._fluent_remover.remove_negative_fluents(p)
                 new_action.add_precondition(np)
             name_action_map[name] = new_action
+
         for g in self._problem.goals():
             ng = self._fluent_remover.remove_negative_fluents(g)
             new_problem.add_goal(ng)
+
         fluent_mapping = self._fluent_remover._fluent_mapping
+        for f in self._problem.fluents().values():
+            new_problem.add_fluent(f)
+            fneg = fluent_mapping.get(f, None)
+            if fneg is not None:
+                new_problem.add_fluent(fneg)
+
         for fl, v in self._problem.initial_values().items():
             fneg = fluent_mapping.get(fl.fluent(), None)
-            if fneg is not None:
-                #HERE
-            new_problem.set_initial_value(fl, v)
+            if v.is_bool_constant():
+                new_problem.set_initial_value(fl, v)
+                if fneg is not None:
+                    if v.bool_constant_value():
+                        new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
+                        tuple(fl.args())), self._env.expression_manager.FALSE())
+                    else:
+                        new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
+                        tuple(fl.args())), self._env.expression_manager.TRUE())
+            else:
+                raise UPFProblemDefinitionError(f"Initial value: {v} of fluent: {fl} is not a boolean constant. An initial value MUST be a Boolean constant.")
 
+        for name, action in self._problem.actions().items():
+            new_action = name_action_map[name]
+            for e in action.effects():
+                if e.is_conditional():
+                    raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.")
+                fl, v = e.fluent(), e.value()
+                fneg = fluent_mapping.get(fl.fluent(), None)
+                if v.is_bool_constant():
+                    new_action.add_effect(fl, v)
+                    if fneg is not None:
+                        if v.bool_constant_value():
+                            new_action.add_effect(self._env.expression_manager.FluentExp(fneg,
+                            tuple(fl.args())), self._env.expression_manager.FALSE())
+                        else:
+                            new_action.add_effect(self._env.expression_manager.FluentExp(fneg,
+                            tuple(fl.args())), self._env.expression_manager.TRUE())
+                else:
+                    raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+            new_problem.add_action(new_action)
 
-
-
-
-    def _create_problem_copy_without_actions_init_and_goals(self):
+    def _create_problem_copy_without_fluents_actions_init_and_goals(self):
         '''Creates the shallow copy of a problem, without adding the actions
         with quantifiers and by pushing them to the stack
         '''
-        new_problem: Problem = Problem("noquantifiers_" + str(self._problem.name()), self._env)
-        for f in self._problem.fluents().values():
-            new_problem.add_fluent(f)
+        new_problem: Problem = Problem("no_negative_preconditions_" + str(self._problem.name()), self._env)
         for o in self._problem.all_objects():
             new_problem.add_object(o)
         return new_problem
