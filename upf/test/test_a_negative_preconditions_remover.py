@@ -25,7 +25,9 @@ from upf.plan_validator import PlanValidator as PV
 class TestNegativePreconditionsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+        self.env = get_env()
         self.problems = get_example_problems()
+        self.env.factory.add_solver('pyperplan', 'upf_pyperplan', 'SolverImpl')
 
     def test_basic(self):
         problem = self.problems['basic'].problem
@@ -46,12 +48,9 @@ class TestNegativePreconditionsRemover(TestCase):
         plan = self.problems['robot_loader_mod'].plan
         npr = NegativePreconditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
-        with OneshotPlanner(name='tamer') as planner:
+        with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            print(problem)
-            plan = planner.solve(problem)
-            print(positive_problem)
             positive_plan = planner.solve(positive_problem)
-            self.assertNotEqual(str(plan), str(positive_plan))
+            self.assertNotEqual(plan, positive_plan)
             new_plan = npr.rewrite_back_plan(positive_plan)
-            self.assertEqual(plan, new_plan)
+            self.assertEqual(str(plan), str(new_plan))
