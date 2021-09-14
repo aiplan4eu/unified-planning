@@ -30,9 +30,9 @@ class Object:
         return self.name()
 
     def name(self) -> str:
-        """Returns the fluent name."""
+        """Returns the object name."""
         return self._name
 
     def type(self) -> upf.types.Type:
-        """Returns the fluent type."""
+        """Returns the object type."""
         return self._typename
