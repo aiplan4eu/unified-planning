@@ -46,8 +46,6 @@ class DnfRemover():
         new_problem = self._create_problem_copy_without_actions()
         self._handle_actions(new_problem)
 
-        for g in self._problem.goals():
-            new_problem.add_goal(g)
         return new_problem
 
     def _handle_actions(self, new_problem):

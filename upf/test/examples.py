@@ -419,7 +419,7 @@ def get_example_problems():
     robot_locations_connected = Example(problem=problem, plan=plan)
     problems['robot_locations_connected'] = robot_locations_connected
 
-    #robot visited locations
+    #robot locations visited
     Location = UserType('Location')
     Robot = UserType('Robot')
     is_at = upf.Fluent('is_at', BoolType(), [Location, Robot])
@@ -464,7 +464,7 @@ def get_example_problems():
     l4 = upf.Object('l4', Location)
     l5 = upf.Object('l5', Location)
     r1 = upf.Object('r1', Robot)
-    problem = upf.Problem('robot_visited_locations')
+    problem = upf.Problem('robot_locations_visited')
     problem.add_fluent(is_at, default_initial_value=False)
     problem.add_fluent(battery_charge)
     problem.add_fluent(is_connected, default_initial_value=False)

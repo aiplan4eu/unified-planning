@@ -57,3 +57,54 @@ class TestConditionalEffectsRemover(TestCase):
             new_plan = dnfr.rewrite_back_plan(dnf_plan)
             self.assertEqual(str(plan), str(new_plan))
             #self.assertEqual(plan, new_plan)# -> shouldn't they be Equal?
+
+    def test_robot_locations_visited(self):
+        problem = self.problems['robot_locations_visited'].problem
+        dnfr = DnfRemover(problem)
+        dnf_problem = dnfr.get_rewritten_problem()
+        is_connected = problem.fluent("is_connected")
+        robot, l_from, l_to = problem.action("move").parameters()
+        self.assertEqual(len(problem.actions()), 2)
+        self.assertEqual(len(dnf_problem.actions()), 3)
+        self.assertIn(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)), problem.action("move").preconditions())
+        self.assertNotIn(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)), dnf_problem.action("move__0__").preconditions())
+        self.assertNotIn(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)), dnf_problem.action("move__1__").preconditions())
+        self.assertIn(is_connected(l_from, l_to), dnf_problem.action("move__0__").preconditions())
+        self.assertIn(is_connected(l_to, l_from), dnf_problem.action("move__1__").preconditions())
+
+    def test_ad_hoc(self):
+
+        #mockup problem
+        a = upf.Fluent('a')
+        b = upf.Fluent('b')
+        c = upf.Fluent('c')
+        d = upf.Fluent('d')
+        act = upf.Action('act')
+        # (a <-> (b -> c)) -> (a & d)
+        # In Dnf:
+        # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
+        act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
+        act.add_effect(a, TRUE())
+        problem = upf.Problem('complex_conditional')
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_fluent(d)
+        problem.add_action(act)
+        problem.set_initial_value(a, True)
+        problem.set_initial_value(b, False)
+        problem.set_initial_value(c, True)
+        problem.set_initial_value(d, False)
+        problem.add_goal(a)
+        dnfr = DnfRemover(problem)
+        dnf_problem = dnfr.get_rewritten_problem()
+
+        self.assertEqual(len(dnf_problem.actions()), 4)
+        self.assertEqual([Not(a), Not(b)], dnf_problem.action("act__0__").preconditions())
+        self.assertEqual([Not(a), FluentExp(c)], dnf_problem.action("act__1__").preconditions())
+        self.assertEqual([FluentExp(b), Not(c), FluentExp(a)], dnf_problem.action("act__2__").preconditions())
+        self.assertEqual([FluentExp(a), FluentExp(d)], dnf_problem.action("act__3__").preconditions())
+        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__0__").effects())
+        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__1__").effects())
+        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__2__").effects())
+        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__3__").effects())
