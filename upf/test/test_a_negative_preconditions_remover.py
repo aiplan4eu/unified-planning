@@ -91,11 +91,14 @@ class TestNegativePreconditionsRemover(TestCase):
         self.assertIn(f"Initial value: {str(problem.initial_value(r))} of fluent: {FluentExp(r)} is not a boolean constant. An initial value MUST be a Boolean constant.", str(e.exception))
 
     def test_ad_hoc_3(self):
+        loc = UserType('loc')
         x = upf.Fluent('x')
-        y = upf.Fluent('y')
+        y = upf.Fluent('y', BoolType(), [loc])
         a = upf.Action('a')
+        l1 = upf.Object('l1', loc)
+        l2 = upf.Object('l2', loc)
         a.add_precondition(x)
-        a.add_effect(y, True, Not(y))
+        a.add_effect(y(l1), True, Not(y(l2)))
         problem = upf.Problem('ad_hoc_3')
         problem.add_fluent(x, default_initial_value=False)
         problem.add_fluent(y, default_initial_value=False)
