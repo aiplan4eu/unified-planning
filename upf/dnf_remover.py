@@ -45,7 +45,7 @@ class DnfRemover():
         #NOTE that a different environment might be needed when multy-threading
         new_problem = self._create_problem_copy_without_actions()
         self._handle_actions(new_problem)
-
+        self._dnf_problem = new_problem
         return new_problem
 
     def _handle_actions(self, new_problem):
@@ -91,18 +91,15 @@ class DnfRemover():
             new_problem.add_goal(g)
         return new_problem
 
-    def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
+    def rewrite_back_plan(self, dnf_sequential_plan: SequentialPlan) -> SequentialPlan:
         '''Takes the sequential plan of the DNF problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
-        uncond_actions = unconditional_sequential_plan.actions()
-        cond_actions = []
-        for ai in uncond_actions:
-            if ai.action() in self._action_mapping:
-                cond_actions.append(self._new_action_instance_original_name(ai))
-            else:
-                cond_actions.append(ai)
-        return SequentialPlan(cond_actions)
+        dnf_actions = dnf_sequential_plan.actions()
+        original_actions = []
+        for ai in dnf_actions:
+            original_actions.append(self._new_action_instance_original_name(ai))
+        return SequentialPlan(original_actions)
 
     def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:
         #original action

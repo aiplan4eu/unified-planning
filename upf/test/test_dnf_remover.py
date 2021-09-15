@@ -21,6 +21,7 @@ from upf.test.examples import get_example_problems
 from upf.dnf_remover import DnfRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
+from upf.exceptions import UPFProblemDefinitionError
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -62,6 +63,7 @@ class TestConditionalEffectsRemover(TestCase):
         problem = self.problems['robot_locations_visited'].problem
         dnfr = DnfRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
+        dnf_problem_2 = dnfr.get_rewritten_problem()
         is_connected = problem.fluent("is_connected")
         robot, l_from, l_to = problem.action("move").parameters()
         self.assertEqual(len(problem.actions()), 2)
@@ -71,6 +73,7 @@ class TestConditionalEffectsRemover(TestCase):
         self.assertNotIn(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)), dnf_problem.action("move__1__").preconditions())
         self.assertIn(is_connected(l_from, l_to), dnf_problem.action("move__0__").preconditions())
         self.assertIn(is_connected(l_to, l_from), dnf_problem.action("move__1__").preconditions())
+        self.assertEqual(dnf_problem, dnf_problem_2)
 
     def test_ad_hoc(self):
 
@@ -85,7 +88,7 @@ class TestConditionalEffectsRemover(TestCase):
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
         act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act.add_effect(a, TRUE())
-        problem = upf.Problem('complex_conditional')
+        problem = upf.Problem('mockup')
         problem.add_fluent(a)
         problem.add_fluent(b)
         problem.add_fluent(c)
@@ -108,3 +111,37 @@ class TestConditionalEffectsRemover(TestCase):
         self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__1__").effects())
         self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__2__").effects())
         self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__3__").effects())
+
+    def test_raise_exceptions(self):
+
+        #mockup problem
+        a = upf.Fluent('a')
+        b = upf.Fluent('b')
+        c = upf.Fluent('c')
+        d = upf.Fluent('d')
+        act = upf.Action('act')
+        # (a <-> (b -> c)) -> (a & d)
+        # In Dnf:
+        # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
+        act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
+        act.add_effect(a, TRUE())
+        act_2 = upf.Action('act__1__')
+        act_2.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
+        act_2.add_effect(a, TRUE())
+        problem = upf.Problem('mockup')
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_fluent(d)
+        problem.add_action(act)
+        problem.add_action(act_2)
+        problem.set_initial_value(a, True)
+        problem.set_initial_value(b, False)
+        problem.set_initial_value(c, True)
+        problem.set_initial_value(d, False)
+        problem.add_goal(a)
+        dnfr = DnfRemover(problem)
+        with self.assertRaises(UPFProblemDefinitionError) as e:
+            dnf_problem = dnfr.get_rewritten_problem()
+        self.assertIn("Action: act__1__ of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
+        str(e.exception))
