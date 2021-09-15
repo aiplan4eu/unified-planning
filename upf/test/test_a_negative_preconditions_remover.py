@@ -54,8 +54,9 @@ class TestNegativePreconditionsRemover(TestCase):
         positive_problem = npr.get_rewritten_problem()
         positive_problem_2 = npr.get_rewritten_problem()
         self.assertEqual(positive_problem, positive_problem_2)
-        with OneshotPlanner(name='pyperplan') as planner:
+        with OneshotPlanner(name='tamer') as planner:
             self.assertNotEqual(planner, None)
+            plan = planner.solve(problem)
             positive_plan = planner.solve(positive_problem)
             self.assertNotEqual(plan, positive_plan)
             new_plan = npr.rewrite_back_plan(positive_plan)
