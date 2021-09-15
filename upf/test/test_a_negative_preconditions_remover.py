@@ -98,6 +98,8 @@ class TestNegativePreconditionsRemover(TestCase):
         l1 = upf.Object('l1', loc)
         l2 = upf.Object('l2', loc)
         a.add_precondition(x)
+        a.add_precondition(Not(y(l1)))
+        a.add_precondition(Not(y(l2)))
         a.add_effect(y(l1), True, Not(y(l2)))
         problem = upf.Problem('ad_hoc_3')
         problem.add_fluent(x, default_initial_value=False)
