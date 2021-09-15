@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+from fractions import Fraction
 import os
 import upf
 from upf.environment import get_env
@@ -20,6 +22,8 @@ from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
 from upf.negative_preconditions_remover import NegativePreconditionsRemover
 from upf.plan_validator import PlanValidator as PV
+from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
+from upf.effect import Effect
 
 
 class TestNegativePreconditionsRemover(TestCase):
@@ -48,6 +52,8 @@ class TestNegativePreconditionsRemover(TestCase):
         plan = self.problems['robot_loader_mod'].plan
         npr = NegativePreconditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
+        positive_problem_2 = npr.get_rewritten_problem()
+        self.assertEqual(positive_problem, positive_problem_2)
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
@@ -57,11 +63,59 @@ class TestNegativePreconditionsRemover(TestCase):
 
     def test_ad_hoc(self):
         x = upf.Fluent('x')
+        y = upf.Fluent('y')
         a = upf.Action('a')
-        a.add_precondition(Not(x))
+        a.add_precondition(And(Not(x), Not(y)))
         a.add_effect(x, True)
-        problem = upf.Problem('basic')
+        problem = upf.Problem('ad_hoc')
         problem.add_fluent(x)
+        problem.add_fluent(y)
         problem.add_action(a)
         problem.set_initial_value(x, False)
+        problem.set_initial_value(y, False)
         problem.add_goal(x)
+        problem.add_goal(Not(y))
+        problem.add_goal(Not(Iff(x, y)))
+        npr = NegativePreconditionsRemover(problem)
+        with self.assertRaises(UPFExpressionDefinitionError) as e:
+            positive_problem = npr.get_rewritten_problem()
+        self.assertIn(f"Expression: {Not(Iff(x, y))} is not in NNF.", str(e.exception))
+
+    def test_ad_hoc_2(self):
+        r = upf.Fluent('r', RealType())
+        problem = upf.Problem('ad_hoc_2')
+        problem.set_initial_value(r, 5.1)
+        npr = NegativePreconditionsRemover(problem)
+        with self.assertRaises(UPFProblemDefinitionError) as e:
+            positive_problem = npr.get_rewritten_problem()
+        self.assertIn(f"Initial value: {str(problem.initial_value(r))} of fluent: {FluentExp(r)} is not a boolean constant. An initial value MUST be a Boolean constant.", str(e.exception))
+
+    def test_ad_hoc_3(self):
+        x = upf.Fluent('x')
+        y = upf.Fluent('y')
+        a = upf.Action('a')
+        a.add_precondition(x)
+        a.add_effect(y, True, Not(y))
+        problem = upf.Problem('ad_hoc_3')
+        problem.add_fluent(x, default_initial_value=False)
+        problem.add_fluent(y, default_initial_value=False)
+        problem.add_action(a)
+        npr = NegativePreconditionsRemover(problem)
+        with self.assertRaises(UPFProblemDefinitionError) as e:
+            positive_problem = npr.get_rewritten_problem()
+        self.assertIn(f"Effect: {a.effects()[0]} of action: {a} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.", str(e.exception))
+
+    def test_ad_hoc_4(self):
+        x = upf.Fluent('x')
+        y = upf.Fluent('y')
+        a = upf.Action('a')
+        a.add_precondition(x)
+        a._add_effect_instance(Effect(FluentExp(y), Real(Fraction(5.1)), get_env().expression_manager.TRUE()))
+        problem = upf.Problem('ad_hoc_4')
+        problem.add_fluent(x, default_initial_value=False)
+        problem.add_fluent(y, default_initial_value=False)
+        problem.add_action(a)
+        npr = NegativePreconditionsRemover(problem)
+        with self.assertRaises(UPFProblemDefinitionError) as e:
+            positive_problem = npr.get_rewritten_problem()
+        self.assertIn(f"Effect; {a.effects()[0]} assigns value: {a.effects()[0].value()} to fluent: {a.effects()[0].fluent()}, but value is not a boolean constant.", str(e.exception))

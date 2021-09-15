@@ -138,18 +138,6 @@ class NegativePreconditionsRemover():
             new_problem.add_object(o)
         return new_problem
 
-    def _action_without_negative_preconditions(self, action) -> Action:
-        new_action = Action(action.name(), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
-
-        for p in action.preconditions():
-            np = self._fluent_remover.remove_negative_fluents(p)
-            new_action.add_precondition(np)
-        for e in action.effects():
-            if e.is_conditional():
-                raise
-            new_action._add_effect_instance(e)
-        return new_action
-
     def rewrite_back_plan(self, unquantified_sequential_plan: SequentialPlan) -> SequentialPlan:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
