@@ -22,9 +22,7 @@ from upf.action import Action
 from upf.fnode import FNode
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
-from typing import Iterable, List, Dict, Tuple
-from itertools import chain, combinations
-
+from typing import List, Dict
 
 class NegativeFluentRemover(IdentityDagWalker):
     def __init__(self, env):

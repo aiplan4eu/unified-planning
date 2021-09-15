@@ -54,3 +54,14 @@ class TestNegativePreconditionsRemover(TestCase):
             self.assertNotEqual(plan, positive_plan)
             new_plan = npr.rewrite_back_plan(positive_plan)
             self.assertEqual(str(plan), str(new_plan))
+
+    def test_ad_hoc(self):
+        x = upf.Fluent('x')
+        a = upf.Action('a')
+        a.add_precondition(Not(x))
+        a.add_effect(x, True)
+        problem = upf.Problem('basic')
+        problem.add_fluent(x)
+        problem.add_action(a)
+        problem.set_initial_value(x, False)
+        problem.add_goal(x)
