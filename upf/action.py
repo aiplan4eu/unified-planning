@@ -51,7 +51,7 @@ class ActionParameter:
         return self._typename
 
     def __eq__(self, oth: object) -> bool:
-        return self.name() == oth.name() and self.type() == oth.type()
+        return self.name() == oth.name() and self.type() == oth.type() # type: ignore
 
     def __hash__(self) -> int:
         return hash(self.name()) + hash(self.type())
