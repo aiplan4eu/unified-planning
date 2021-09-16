@@ -35,14 +35,13 @@ class DnfRemover():
         self._dnf_problem = None
         self._action_mapping: Dict[Action, Action] = {}
         #NOTE no simplification are made. But it's possible to add them in key points
-        self._simplifier = Simplifier(self._env)
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every precondition is compiled into one with preconditions in DNF.'''
         if self._dnf_problem is not None:
             return self._dnf_problem
-        #NOTE that a different environment might be needed when multy-threading
+        #NOTE that a different environment might be needed when multi-threading
         new_problem = self._create_problem_copy_without_actions()
         self._handle_actions(new_problem)
         self._dnf_problem = new_problem
