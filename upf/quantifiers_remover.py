@@ -70,7 +70,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
 
 
 class QuantifiersRemover():
-    '''Conditional effect remover class:
+    '''Quantifiers remover class:
     this class requires a problem and offers the capability
     to transform a problem with quantifiers into a problem without.
     '''
@@ -95,6 +95,7 @@ class QuantifiersRemover():
         for g in self._problem.goals():
             ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
             new_problem.add_goal(ng)
+        self._noquantifier_problem = new_problem
         return new_problem
 
     def _create_problem_copy_without_actions_and_goals(self):

@@ -74,6 +74,7 @@ class ConditionalEffectsRemover():
                     if self._check_and_simplify_preconditions(na):
                         self._action_mapping[na] = action
                         new_problem.add_action(na)
+        self._unconditional_problem = new_problem
         return new_problem
 
     def _check_and_simplify_preconditions(self, action: Action) -> bool:
