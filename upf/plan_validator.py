@@ -175,6 +175,9 @@ class PlanValidator(object):
         self._last_error: Union[str, None] = None
 
     def is_valid_plan(self, problem: Problem, plan: SequentialPlan) -> bool:
+        """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
+        This means that from the initial state of the problem, by following the plan, you can reach the
+        problem goal. Otherwise False is returned."""
         self._qsimplifier = QuantifierSimplifier(self._env, problem)
         self._last_error = None
         assignments: Dict[Expression, Expression] = problem.initial_values() # type: ignore
@@ -215,7 +218,9 @@ class PlanValidator(object):
                     return False
         return True
 
-    def get_last_error_info(self):
+    def get_last_error_info(self) -> str:
+        """When the function 'is_valid_plan()' is called, if the result is false
+        this function returns a string containing information on why the plan is not valid."""
         assert not self._last_error is None
         return self._last_error
 

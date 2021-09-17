@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the conditional effects remover class."""
+"""This module defines the quantifiers remover class."""
 
 
 import upf.operators as op
@@ -84,7 +84,16 @@ class QuantifiersRemover():
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
-        but every quantifier is removed.'''
+        but every quantifier is compiled away by it's respective logic formula
+        instantiated on object.
+        For example the formula:
+            Forall (s-sempahore) is_green(s)
+        in a problem with 3 objects of type semaphores {s1, s2, s3} is compiled in:
+            And(is_green(s1), is_green(s2), is_green(s3)).
+        While the respective formula on the same problem:
+            Exists (s-semaphore) is_green(s)
+        becomes:
+            Or(is_green(s1), is_green(s2), is_green(s3)).'''
         if self._noquantifier_problem is not None:
             return self._noquantifier_problem
         #NOTE that a different environment might be needed when multy-threading

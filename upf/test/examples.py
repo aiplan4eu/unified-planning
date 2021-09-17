@@ -511,7 +511,7 @@ def get_example_problems():
     robot_locations_connected = Example(problem=problem, plan=plan)
     problems['robot_locations_connected'] = robot_locations_connected
 
-    #robot visited locations
+    #robot locations visited
     Location = UserType('Location')
     Robot = UserType('Robot')
     is_at = upf.Fluent('is_at', BoolType(), [Location, Robot])
@@ -556,7 +556,7 @@ def get_example_problems():
     l4 = upf.Object('l4', Location)
     l5 = upf.Object('l5', Location)
     r1 = upf.Object('r1', Robot)
-    problem = upf.Problem('robot_visited_locations')
+    problem = upf.Problem('robot_locations_visited')
     problem.add_fluent(is_at, default_initial_value=False)
     problem.add_fluent(battery_charge)
     problem.add_fluent(is_connected, default_initial_value=False)
@@ -585,5 +585,43 @@ def get_example_problems():
                                 upf.ActionInstance(move, [ObjectExp(r1), ObjectExp(l4), ObjectExp(l5)])])
     robot_locations_visited = Example(problem=problem, plan=plan)
     problems['robot_locations_visited'] = robot_locations_visited
+
+    # charger_discharger
+    charger = upf.Fluent('charger')
+    b_1 = upf.Fluent('b_1')
+    b_2 = upf.Fluent('b_2')
+    b_3 = upf.Fluent('b_3')
+    charge = upf.Action('charge')
+    discharge = upf.Action('discharge')
+    charge.add_precondition(Not(charger))
+    charge.add_effect(charger, True)
+    # !(charger => (b_1 && b_2 && b_3)) in dnf:
+    # (charger and !b_1 ) or (charger and !b_2) or (charger and !b_3)
+    # which represents the charger is full and at least one battery is not
+    discharge.add_precondition(Not(Implies(charger, And(b_1, b_2, b_3))))
+    discharge.add_effect(charger, False)
+    discharge.add_effect(b_1, True, Not(b_1))
+    discharge.add_effect(b_2, True, And(b_1, Not(b_2)))
+    discharge.add_effect(b_3, True, And(b_1, b_2, Not(b_3)))
+    problem = upf.Problem('charger_discharger')
+    problem.add_fluent(charger)
+    problem.add_fluent(b_1)
+    problem.add_fluent(b_2)
+    problem.add_fluent(b_3)
+    problem.add_action(charge)
+    problem.add_action(discharge)
+    problem.set_initial_value(charger, False)
+    problem.set_initial_value(b_1, False)
+    problem.set_initial_value(b_2, False)
+    problem.set_initial_value(b_3, False)
+    problem.add_goal(b_1)
+    problem.add_goal(b_2)
+    problem.add_goal(b_3)
+    plan = upf.SequentialPlan([upf.ActionInstance(charge), upf.ActionInstance(discharge),
+                upf.ActionInstance(charge), upf.ActionInstance(discharge),
+                upf.ActionInstance(charge), upf.ActionInstance(discharge)])
+    charge_discharge = Example(problem=problem, plan=plan)
+    problems['charge_discharge'] = charge_discharge
+
 
     return problems
