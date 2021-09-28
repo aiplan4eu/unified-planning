@@ -5,34 +5,32 @@ import logging
 
 import grpc
 
-import upf_pb2
-import upf_pb2_grpc
+import upf.grpc.upf_pb2_grpc as upf_pb2_grpc
 
-import upf
 from upf.shortcuts import *
-from upf.expression import ExpressionManager
-
-from upf.pb_factory import message2problem
+from upf.grpc.factory import ProtoFactory
 
 
-class UpfServicer(upf_pb2_grpc.UpfServicer):
+class UpfGrpcServer(upf_pb2_grpc.UpfServicer):
     def __init__(self, port):
+        self.server = None
         self.port = port
+        self.factory = ProtoFactory()
 
-    def Plan(self, request, context):
-        problem = message2problem(request)
+    def plan(self, request, context):
+        problem = self.factory.message2problem(request)
         
         with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
             plan = planner.solve(problem)
-
-        result = upf_pb2.SequentialPlan(status=0, result=action_list)
-        return result
+            answer = self.factory.plan2message(plan)
+            return answer
+        return None
 
     def start(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         upf_pb2_grpc.add_UpfServicer_to_server(
             self, self.server)
-        self.server.add_insecure_port('0.0.0.0:%d' % (self.port))
+        self.server.add_insecure_port('0.0.0.0:%d' % self.port)
         self.server.start()
 
     def wait_for_termination(self):

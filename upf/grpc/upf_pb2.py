@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\tupf.proto\x12\x08upf_plan\"<\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tvalueType\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x03(\t\"$\n\x06Object\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"b\n\nExpression\x12\x0c\n\x04type\x18\x01 \x01(\x03\x12\"\n\x04\x61rgs\x18\x02 \x03(\x0b\x32\x14.upf_plan.Expression\x12\"\n\x07payload\x18\x03 \x01(\x0b\x32\x11.upf_plan.Payload\"N\n\nAssignment\x12\x1f\n\x01x\x18\x01 \x01(\x0b\x32\x14.upf_plan.Expression\x12\x1f\n\x01v\x18\x02 \x01(\x0b\x32\x14.upf_plan.Expression\"&\n\x07Payload\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x96\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nparameters\x18\x02 \x03(\t\x12\x16\n\x0eparameterTypes\x18\x03 \x03(\t\x12+\n\rpreconditions\x18\x04 \x03(\x0b\x32\x14.upf_plan.Expression\x12%\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x14.upf_plan.Assignment\"\xd1\x01\n\x07Problem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07\x66luents\x18\x02 \x03(\x0b\x32\x10.upf_plan.Fluent\x12!\n\x07objects\x18\x03 \x03(\x0b\x32\x10.upf_plan.Object\x12!\n\x07\x61\x63tions\x18\x04 \x03(\x0b\x32\x10.upf_plan.Action\x12*\n\x0cinitialState\x18\x05 \x03(\x0b\x32\x14.upf_plan.Assignment\x12#\n\x05goals\x18\x06 \x03(\x0b\x32\x14.upf_plan.Expression\">\n\x0e\x41\x63tionInstance\x12\n\n\x02id\x18\x01 \x01(\r\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x12\n\nparameters\x18\x03 \x03(\t\";\n\x0eSequentialPlan\x12)\n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x18.upf_plan.ActionInstance\"D\n\x06\x41nswer\x12\x12\n\nplanExists\x18\x01 \x01(\x08\x12&\n\x04plan\x18\x02 \x01(\x0b\x32\x18.upf_plan.SequentialPlan2:\n\x03Upf\x12\x33\n\x04plan\x12\x11.upf_plan.Problem\x1a\x18.upf_plan.SequentialPlanb\x06proto3'
+  serialized_pb=b'\n\tupf.proto\x12\x08upf_plan\"<\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tvalueType\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x03(\t\"$\n\x06Object\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"b\n\nExpression\x12\x0c\n\x04type\x18\x01 \x01(\x03\x12\"\n\x04\x61rgs\x18\x02 \x03(\x0b\x32\x14.upf_plan.Expression\x12\"\n\x07payload\x18\x03 \x01(\x0b\x32\x11.upf_plan.Payload\"N\n\nAssignment\x12\x1f\n\x01x\x18\x01 \x01(\x0b\x32\x14.upf_plan.Expression\x12\x1f\n\x01v\x18\x02 \x01(\x0b\x32\x14.upf_plan.Expression\"&\n\x07Payload\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x96\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nparameters\x18\x02 \x03(\t\x12\x16\n\x0eparameterTypes\x18\x03 \x03(\t\x12+\n\rpreconditions\x18\x04 \x03(\x0b\x32\x14.upf_plan.Expression\x12%\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x14.upf_plan.Assignment\"\xd1\x01\n\x07Problem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07\x66luents\x18\x02 \x03(\x0b\x32\x10.upf_plan.Fluent\x12!\n\x07objects\x18\x03 \x03(\x0b\x32\x10.upf_plan.Object\x12!\n\x07\x61\x63tions\x18\x04 \x03(\x0b\x32\x10.upf_plan.Action\x12*\n\x0cinitialState\x18\x05 \x03(\x0b\x32\x14.upf_plan.Assignment\x12#\n\x05goals\x18\x06 \x03(\x0b\x32\x14.upf_plan.Expression\"\\\n\x0e\x41\x63tionInstance\x12 \n\x06\x61\x63tion\x18\x01 \x01(\x0b\x32\x10.upf_plan.Action\x12(\n\nparameters\x18\x02 \x03(\x0b\x32\x14.upf_plan.Expression\";\n\x0eSequentialPlan\x12)\n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x18.upf_plan.ActionInstance\"@\n\x06\x41nswer\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12&\n\x04plan\x18\x02 \x01(\x0b\x32\x18.upf_plan.SequentialPlan22\n\x03Upf\x12+\n\x04plan\x12\x11.upf_plan.Problem\x1a\x10.upf_plan.Answerb\x06proto3'
 )
 
 
@@ -370,22 +370,15 @@ _ACTIONINSTANCE = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='id', full_name='upf_plan.ActionInstance.id', index=0,
-      number=1, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
+      name='action', full_name='upf_plan.ActionInstance.action', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='name', full_name='upf_plan.ActionInstance.name', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='parameters', full_name='upf_plan.ActionInstance.parameters', index=2,
-      number=3, type=9, cpp_type=9, label=3,
+      name='parameters', full_name='upf_plan.ActionInstance.parameters', index=1,
+      number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -403,7 +396,7 @@ _ACTIONINSTANCE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=708,
-  serialized_end=770,
+  serialized_end=800,
 )
 
 
@@ -434,8 +427,8 @@ _SEQUENTIALPLAN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=772,
-  serialized_end=831,
+  serialized_start=802,
+  serialized_end=861,
 )
 
 
@@ -448,9 +441,9 @@ _ANSWER = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='planExists', full_name='upf_plan.Answer.planExists', index=0,
-      number=1, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
+      name='status', full_name='upf_plan.Answer.status', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -473,8 +466,8 @@ _ANSWER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=833,
-  serialized_end=901,
+  serialized_start=863,
+  serialized_end=927,
 )
 
 _EXPRESSION.fields_by_name['args'].message_type = _EXPRESSION
@@ -488,6 +481,8 @@ _PROBLEM.fields_by_name['objects'].message_type = _OBJECT
 _PROBLEM.fields_by_name['actions'].message_type = _ACTION
 _PROBLEM.fields_by_name['initialState'].message_type = _ASSIGNMENT
 _PROBLEM.fields_by_name['goals'].message_type = _EXPRESSION
+_ACTIONINSTANCE.fields_by_name['action'].message_type = _ACTION
+_ACTIONINSTANCE.fields_by_name['parameters'].message_type = _EXPRESSION
 _SEQUENTIALPLAN.fields_by_name['actions'].message_type = _ACTIONINSTANCE
 _ANSWER.fields_by_name['plan'].message_type = _SEQUENTIALPLAN
 DESCRIPTOR.message_types_by_name['Fluent'] = _FLUENT
@@ -581,8 +576,8 @@ _UPF = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=903,
-  serialized_end=961,
+  serialized_start=929,
+  serialized_end=979,
   methods=[
   _descriptor.MethodDescriptor(
     name='plan',
@@ -590,7 +585,7 @@ _UPF = _descriptor.ServiceDescriptor(
     index=0,
     containing_service=None,
     input_type=_PROBLEM,
-    output_type=_SEQUENTIALPLAN,
+    output_type=_ANSWER,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
