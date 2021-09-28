@@ -4,6 +4,7 @@ from upf.test.examples import get_example_problems
 
 from upf.grpc.factory import ProtoFactory
 
+
 class TestProtobufFactory(TestCase):
     def setUp(self):
         TestCase.setUp(self)
