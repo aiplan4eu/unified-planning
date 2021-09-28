@@ -1,9 +1,9 @@
-import upf.grpc.upf_pb2 as upf_pb2
+import upf.grpc.generated as upf_pb2
 import upf
 from upf.shortcuts import *
 from upf.plan import ActionInstance
 from upf.plan import SequentialPlan
-
+import upf.grpc.generated.upf_pb2 as upf_pb2
 
 class ProtoFactory:
     def __init__(self):
