@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import upf.grpc.upf_pb2 as upf__pb2
+import upf.grpc.generated.upf_pb2 as upf__pb2
 
 
 class UpfStub(object):
