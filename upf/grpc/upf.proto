@@ -56,10 +56,10 @@ message SequentialPlan {
 }
 
 message Answer {
-    bool planExists = 1;
+    int32 status = 1;
     SequentialPlan plan = 2;
 }
 
 service Upf {
-    rpc plan(Problem) returns(SequentialPlan);
+    rpc plan(Problem) returns(Answer);
 }

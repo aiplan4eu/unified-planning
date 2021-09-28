@@ -17,7 +17,7 @@ class UpfStub(object):
         self.plan = channel.unary_unary(
                 '/upf_plan.Upf/plan',
                 request_serializer=upf__pb2.Problem.SerializeToString,
-                response_deserializer=upf__pb2.SequentialPlan.FromString,
+                response_deserializer=upf__pb2.Answer.FromString,
                 )
 
 
@@ -36,7 +36,7 @@ def add_UpfServicer_to_server(servicer, server):
             'plan': grpc.unary_unary_rpc_method_handler(
                     servicer.plan,
                     request_deserializer=upf__pb2.Problem.FromString,
-                    response_serializer=upf__pb2.SequentialPlan.SerializeToString,
+                    response_serializer=upf__pb2.Answer.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -61,6 +61,6 @@ class Upf(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/upf_plan.Upf/plan',
             upf__pb2.Problem.SerializeToString,
-            upf__pb2.SequentialPlan.FromString,
+            upf__pb2.Answer.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
