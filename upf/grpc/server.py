@@ -1,15 +1,9 @@
 from concurrent import futures
-import time
-import math
-import logging
-
 import grpc
 
-import upf.grpc.upf_pb2_grpc as upf_pb2_grpc
-
 from upf.shortcuts import *
+import upf.grpc.upf_pb2_grpc as upf_pb2_grpc
 from upf.grpc.factory import ProtoFactory
-
 
 class UpfGrpcServer(upf_pb2_grpc.UpfServicer):
     def __init__(self, port):

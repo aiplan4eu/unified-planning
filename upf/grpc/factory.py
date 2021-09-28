@@ -1,21 +1,8 @@
-from concurrent import futures
-import time
-import math
-import logging
-
-import grpc
-
 import upf.grpc.upf_pb2 as upf_pb2
-import upf.grpc.upf_pb2_grpc as upf_pb2_grpc
-
 import upf
 from upf.shortcuts import *
 from upf.plan import ActionInstance
 from upf.plan import SequentialPlan
-from upf.expression import ExpressionManager
-
-from upf.test.examples import get_example_problems
-
 
 class ProtoFactory:
     def __init__(self):
@@ -55,74 +42,69 @@ class ProtoFactory:
         return [self.fluent2message(f) for f in fluents]
 
     def message2payload(self, msg, param_map):
-        type = msg.type
-        data = msg.value
-        if type == "none":
+        p_type = msg.type
+        p_data = msg.value
+        if p_type == "none":
             return None
-        elif type == "bool":
-            return data == "True"
-        elif type == "int":
-            return int(data)
-        elif type == "real":
-            return float(data)
-        elif "real" in type:
-            return float(data)
-        elif type == "fluent":
-            return self.fluent_map[data]
-        elif type == "obj":
-            return self.object_map[data]
-        elif type == "aparam":
-            return param_map[data]
+        elif p_type == "bool":
+            return p_data == "True"
+        elif p_type == "int":
+            return int(p_data)
+        elif p_type == "real":
+            return float(p_data)
+        elif "real" in p_type:
+            return float(p_data)
+        elif p_type == "fluent":
+            return self.fluent_map[p_data]
+        elif p_type == "obj":
+            return self.object_map[p_data]
+        elif p_type == "aparam":
+            return param_map[p_data]
         else:
-            return data
-
+            return p_data
 
     def payload2message(self, payload):
         value = None
         if payload is None:
-            type = "none"
+            p_type = "none"
             value = "-"
         elif isinstance(payload, bool):
-            type = "bool"
+            p_type = "bool"
         elif isinstance(payload, int):
-            type = "int"
+            p_type = "int"
         elif isinstance(payload, float):
-            type = "real"
+            p_type = "real"
         elif isinstance(payload, upf.Fluent):
-            type = "fluent"
+            p_type = "fluent"
             value = payload.name()
         elif isinstance(payload, upf.Object):
-            type = "obj"
+            p_type = "obj"
             value = payload.name()
         elif isinstance(payload, upf.ActionParameter):
-            type = "aparam"
+            p_type = "aparam"
             value = payload.name()
         else:
-            type = "str"
+            p_type = "str"
         if value is None:
             value = str(payload)
 
-        return upf_pb2.Payload(type=type, value=value)
-
+        return upf_pb2.Payload(type=p_type, value=value)
 
     def message2object(self, msg):
         obj = upf.Object(msg.name, self.type_map[msg.type])
         self.object_map[msg.name] = obj
         return obj
 
-
     def object2message(self, obj):
         return upf_pb2.Object(name=obj.name(), type=obj.type().name())
 
-
     def message2expression(self, msg, param_map):
-        expType = msg.type
+        exp_type = msg.type
         args = []
-        for argMsg in msg.args:
-            args.append(self.message2expression(argMsg, param_map))
+        for arg_msg in msg.args:
+            args.append(self.message2expression(arg_msg, param_map))
         payload = self.message2payload(msg.payload, param_map)
-        return self.p_env.expression_manager.create_node(expType, tuple(args), payload)
-
+        return self.p_env.expression_manager.create_node(exp_type, tuple(args), payload)
 
     def expression2message(self, exp):
         return upf_pb2.Expression(
@@ -131,11 +113,10 @@ class ProtoFactory:
             payload=self.payload2message(exp._content.payload)
         )
 
-
     def message2assignment(self, msg, param_map):
         x = self.message2expression(msg.x, param_map)
         v = self.message2expression(msg.v, param_map)
-        return (x, v)
+        return x, v
 
     def assignment2message(self, x, v):
         return upf_pb2.Assignment(
@@ -227,7 +208,7 @@ class ProtoFactory:
 
     def message2action_instance(self, m):
         a = self.message2action(m.action)
-        ps = [self.message2expression(p, {}) for p in m.parameters]
+        ps = tuple([self.message2expression(p, {}) for p in m.parameters])
         return ActionInstance(a, ps)
 
     def message2plan(self, p):
