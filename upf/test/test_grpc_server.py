@@ -24,7 +24,7 @@ class TestProtobufFactory(TestCase):
         with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
             plan_b = planner.solve(problem)
 
-        assert(str(plan_a) == str(plan_b)) # TODO: Should this work without str()?
+        self.assertEqual(str(plan_a), str(plan_b)) # TODO: Should this work without str()?
 
     def test_robot(self):
         problem = self.ps['robot'].problem
