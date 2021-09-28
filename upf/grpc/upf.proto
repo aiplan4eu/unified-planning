@@ -47,9 +47,8 @@ message Problem {
 }
 
 message ActionInstance {
-    uint32 id = 1;
-    string name = 2;
-    repeated string parameters = 3;
+    Action action = 1;
+    repeated Expression parameters = 2;
 }
 
 message SequentialPlan {
