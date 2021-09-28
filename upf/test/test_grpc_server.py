@@ -1,16 +1,18 @@
 from upf.test import TestCase
-
-from upf.test.examples import get_example_problems
-
-from upf.grpc.server import UpfGrpcServer
-from upf.grpc.client import UpfGrpcClient
-
 from upf.shortcuts import *
+from upf.test.examples import get_example_problems
 
 
 class TestProtobufFactory(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+        try:
+            import grpc
+        except ImportError:
+            self.skipTest("grpc module not found")
+        from upf.grpc.server import UpfGrpcServer
+        from upf.grpc.client import UpfGrpcClient
+
         self.ps = get_example_problems()
         self.server = UpfGrpcServer(30000)
         self.server.start()
