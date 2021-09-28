@@ -20,34 +20,29 @@ class TestProtobufFactory(TestCase):
 
     def test_basic(self):
         problem = self.ps['basic'].problem
-        plan_a = self.client(problem)
-        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
-            plan_b = planner.solve(problem)
-
-        self.assertEqual(str(plan_a), str(plan_b)) # TODO: Should this work without str()?
+        plan = self.client(problem)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
     def test_robot(self):
         problem = self.ps['robot'].problem
-        plan_a = self.client(problem)
-        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
-            plan_b = planner.solve(problem)
-
-        assert(str(plan_a) == str(plan_b)) # TODO: Should this work without str()?
+        plan = self.client(problem)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
     def test_robot_loader(self):
         problem = self.ps['robot_loader'].problem
-        plan_a = self.client(problem)
-        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
-            plan_b = planner.solve(problem)
-
-        assert(str(plan_a) == str(plan_b)) # TODO: Should this work without str()?
+        plan = self.client(problem)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
     def test_robot_loader_adv(self):
         problem = self.ps['robot_loader_adv'].problem
-        plan_a = self.client(problem)
-        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
-            plan_b = planner.solve(problem)
-
-        assert(str(plan_a) == str(plan_b)) # TODO: Should this work without str()?
-
+        plan = self.client(problem)
+        with PlanValidator(problem_kind=problem.kind()) as validator:
+            res = validator.validate(problem, plan)
+            self.assertTrue(res)
 
