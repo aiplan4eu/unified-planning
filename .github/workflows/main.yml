@@ -17,14 +17,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Mypy check
-        uses: jpetrucciani/mypy-check@master
-
       - name: Install Python dependencies
         run: python3 -mpip install -r requirements.txt
 
       - name: Install Development Python dependencies
         run: python3 -mpip install -r dev-requirements.txt
+
+      - name: MyPy check
+        run: python3 -m mypy upf
 
       - name: Checkout Tamer UPF
         uses: actions/checkout@v2
