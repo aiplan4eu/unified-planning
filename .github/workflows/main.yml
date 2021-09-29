@@ -22,7 +22,9 @@ jobs:
         run: python3 -mpip install -r dev-requirements.txt
 
       - name: MyPy check
-        run: python3 -m mypy upf
+        run: |
+          python3 -m mypy --version
+          python3 -m mypy upf
 
       - name: Checkout Tamer UPF
         uses: actions/checkout@v2
