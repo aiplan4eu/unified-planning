@@ -153,7 +153,7 @@ class ProtoFactory:
             parameters=[p.name() for p in a.parameters()],
             parameterTypes=[p.type().name() for p in a.parameters()],
             preconditions=[self.expression2message(p) for p in a.preconditions()],
-            effects=[self.assignment2message(*t) for t in a.effects()]
+            effects=[self.assignment2message(t.fluent(), t.value()) for t in a.effects()]
         )
 
     def message2problem(self, msg):
@@ -195,7 +195,7 @@ class ProtoFactory:
 
     def action_instance2msg(self, ai):
         a_msg = self.action2message(ai.action())
-        p_msg = [self.expression2message(p) for p in ai.parameters()]
+        p_msg = [self.expression2message(p) for p in ai.actual_parameters()]
         return upf_pb2.ActionInstance(action=a_msg, parameters=p_msg)
 
     def plan2message(self, p):
