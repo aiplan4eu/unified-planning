@@ -3,4 +3,3 @@ git+https://github.com/aig-upf/tarski.git@ebfda1c13ac908904d5b74587971cc7149e73d
 grpcio
 grpcio-tools
 grpc-stubs
-types-protobuf
