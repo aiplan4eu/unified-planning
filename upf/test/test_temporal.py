@@ -12,18 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from upf.solver import Solver
-from upf.action import ActionInterface, Action, ActionParameter
-from upf.temporal import DurativeAction
-from upf.variable import Variable
-from upf.fluent import Fluent
-from upf.object import Object
-from upf.problem import Problem
-from upf.plan import ActionInstance, SequentialPlan, Plan, TimeTriggeredPlan
+import upf
+from upf.shortcuts import *
+from upf.test import TestCase, main
+from upf.test.examples import get_example_problems
 
-__all__ = [
-    "Action",
-    "Problem",
-    "Fluent",
-    "Planner"
-]
+
+class TestTemporalPlanner(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        self.problems = get_example_problems()
+
+    def test_matchcellar(self):
+        problem = self.problems['matchcellar'].problem
+
+        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem)
+            self.assertEqual(len(plan.actions()), 6)

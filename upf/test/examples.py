@@ -15,6 +15,7 @@
 
 import upf
 from upf.shortcuts import *
+from upf.temporal import *
 
 from collections import namedtuple
 
@@ -141,7 +142,7 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(a)])
     basic_pyperplan_test = Example(problem=problem, plan=plan)
     problems['basic_pyperplan_test'] = basic_pyperplan_test
-    
+
     # basic exists
     sem = UserType("Semaphore")
     x = upf.Fluent('x')
@@ -190,7 +191,7 @@ def get_example_problems():
     plan = upf.SequentialPlan([upf.ActionInstance(a)])
     basic_forall = Example(problem=problem, plan=plan)
     problems['basic_forall'] = basic_forall
-    
+
     # robot
     Location = UserType('Location')
     robot_at = upf.Fluent('robot_at', BoolType(), [Location])
@@ -623,5 +624,59 @@ def get_example_problems():
     charge_discharge = Example(problem=problem, plan=plan)
     problems['charge_discharge'] = charge_discharge
 
+    # matchcellar
+    Match = UserType('Match')
+    Fuse = UserType('Fuse')
+    handfree = upf.Fluent('handfree')
+    light = upf.Fluent('light')
+    match_used = upf.Fluent('match_used', BoolType(), [Match])
+    fuse_mended = upf.Fluent('fuse_mended', BoolType(), [Fuse])
+    light_match = upf.DurativeAction('light_match', m=Match)
+    m = light_match.parameter('m')
+    light_match.set_duration_constraint(CloseInterval(ConstantTiming(6), ConstantTiming(6)))
+    light_match.add_condition(StartTiming(), Not(match_used(m)))
+    light_match.add_effect(StartTiming(), match_used(m), True)
+    light_match.add_effect(StartTiming(), light, True)
+    light_match.add_effect(EndTiming(), light, False)
+    mend_fuse = upf.DurativeAction('mend_fuse', f=Fuse)
+    f = mend_fuse.parameter('f')
+    mend_fuse.set_duration_constraint(CloseInterval(ConstantTiming(5), ConstantTiming(5)))
+    mend_fuse.add_condition(StartTiming(), handfree)
+    mend_fuse.add_durative_condition(CloseInterval(StartTiming(), EndTiming()), light)
+    mend_fuse.add_effect(StartTiming(), handfree, False)
+    mend_fuse.add_effect(EndTiming(), fuse_mended(f), True)
+    mend_fuse.add_effect(EndTiming(), handfree, True)
+    f1 = upf.Object('f1', Fuse)
+    f2 = upf.Object('f2', Fuse)
+    f3 = upf.Object('f3', Fuse)
+    m1 = upf.Object('m1', Match)
+    m2 = upf.Object('m2', Match)
+    m3 = upf.Object('m3', Match)
+    problem = upf.Problem('MatchCellar')
+    problem.add_fluent(handfree)
+    problem.add_fluent(light)
+    problem.add_fluent(match_used, default_initial_value=False)
+    problem.add_fluent(fuse_mended, default_initial_value=False)
+    problem.add_action(light_match)
+    problem.add_action(mend_fuse)
+    problem.add_object(f1)
+    problem.add_object(f2)
+    problem.add_object(f3)
+    problem.add_object(m1)
+    problem.add_object(m2)
+    problem.add_object(m3)
+    problem.set_initial_value(light, False)
+    problem.set_initial_value(handfree, True)
+    problem.add_goal(fuse_mended(f1))
+    problem.add_goal(fuse_mended(f2))
+    problem.add_goal(fuse_mended(f3))
+    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(light_match, [ObjectExp(m1)]), Fraction(6, 1)),
+                                  (Fraction(1, 100), upf.ActionInstance(mend_fuse, [ObjectExp(f1)]), Fraction(5, 1)),
+                                  (Fraction(601, 100), upf.ActionInstance(light_match, [ObjectExp(m2)]), Fraction(6, 1)),
+                                  (Fraction(602, 100), upf.ActionInstance(mend_fuse, [ObjectExp(f2)]), Fraction(5, 1)),
+                                  (Fraction(1202, 100), upf.ActionInstance(light_match, [ObjectExp(m3)]), Fraction(6, 1)),
+                                  (Fraction(1203, 100), upf.ActionInstance(mend_fuse, [ObjectExp(f3)]), Fraction(5, 1))])
+    matchcellar = Example(problem=problem, plan=plan)
+    problems['matchcellar'] = matchcellar
 
     return problems

@@ -17,7 +17,7 @@
 from collections import OrderedDict
 from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
-from upf.action import Action
+from upf.action import ActionInterface, Action
 from upf.effect import Effect
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
@@ -34,7 +34,7 @@ class ConditionalEffectsRemover():
     actions representing every possible branch of the original action.'''
     def __init__(self, problem: Problem):
         self._problem = problem
-        self._action_mapping: Dict[Action, Action] = {}
+        self._action_mapping: Dict[ActionInterface, ActionInterface] = {}
         self._env = problem.env
         self._counter: int = 0
         self._unconditional_problem = None
@@ -57,23 +57,26 @@ class ConditionalEffectsRemover():
         new_problem = self._create_problem_copy()
 
         for action in self._problem.conditional_actions():
-            cond_effects = list(action.conditional_effects())
-            for p in self.powerset(range(len(cond_effects))):
-                na = self._shallow_copy_action_without_conditional_effects(action)
-                for i, e in enumerate(cond_effects):
-                    if i in p:
-                        # positive precondition
-                        na.add_precondition(e.condition())
-                        ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
-                        na._add_effect_instance(ne)
-                    else:
-                        #negative precondition
-                        na.add_precondition(self._env.expression_manager.Not(e.condition()))
-                #new action is created, then is checked if it has any impact and if it can be simplified
-                if len(na.effects()) > 0:
-                    if self._check_and_simplify_preconditions(na):
-                        self._action_mapping[na] = action
-                        new_problem.add_action(na)
+            if isinstance(action, Action):
+                cond_effects = list(action.conditional_effects())
+                for p in self.powerset(range(len(cond_effects))):
+                    na = self._shallow_copy_action_without_conditional_effects(action)
+                    for i, e in enumerate(cond_effects):
+                        if i in p:
+                            # positive precondition
+                            na.add_precondition(e.condition())
+                            ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
+                            na._add_effect_instance(ne)
+                        else:
+                            #negative precondition
+                            na.add_precondition(self._env.expression_manager.Not(e.condition()))
+                    #new action is created, then is checked if it has any impact and if it can be simplified
+                    if len(na.effects()) > 0:
+                        if self._check_and_simplify_preconditions(na):
+                            self._action_mapping[na] = action
+                            new_problem.add_action(na)
+            else:
+                raise NotImplementedError
         self._unconditional_problem = new_problem
         return new_problem
 

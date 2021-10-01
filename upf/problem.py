@@ -17,6 +17,7 @@
 import upf.types
 import upf.operators as op
 from upf.environment import get_env, Environment
+from upf.effect import Effect
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.problem_kind import ProblemKind
@@ -35,7 +36,7 @@ class Problem:
         self._kind = ProblemKind()
         self._name = name
         self._fluents: Dict[str, upf.Fluent] = {}
-        self._actions: Dict[str, upf.Action] = {}
+        self._actions: Dict[str, upf.ActionInterface] = {}
         self._user_types: Dict[str, upf.types.Type] = {}
         self._objects: Dict[str, upf.Object] = {}
         self._initial_value: Dict[FNode, FNode] = {}
@@ -107,19 +108,19 @@ class Problem:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
 
-    def actions(self) -> Dict[str, upf.Action]:
+    def actions(self) -> Dict[str, upf.ActionInterface]:
         """Returns the actions."""
         return self._actions
 
-    def conditional_actions(self) -> List[upf.Action]:
+    def conditional_actions(self) -> List[upf.ActionInterface]:
         """Returns the conditional actions."""
         return [a for a in self._actions.values() if a.is_conditional()]
 
-    def unconditional_actions(self) -> List[upf.Action]:
+    def unconditional_actions(self) -> List[upf.ActionInterface]:
         """Returns the conditional actions."""
         return [a for a in self._actions.values() if not a.is_conditional()]
 
-    def action(self, name: str) -> upf.Action:
+    def action(self, name: str) -> upf.ActionInterface:
         """Returns the action with the given name."""
         assert name in self._actions
         return self._actions[name]
@@ -128,21 +129,25 @@ class Problem:
         """Returns True if the problem has the action with the given name ."""
         return name in self._actions
 
-    def add_action(self, action: upf.Action):
+    def add_action(self, action: upf.ActionInterface):
         """Adds the given action."""
         if action.name() in self._actions:
             raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
         for p in action.parameters():
             self._update_problem_kind_type(p.type())
-        for c in action.preconditions():
-            self._update_problem_kind_goal_and_precondition(c)
-        for e in action.effects():
-            if e.is_conditional():
-                self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-            if e.is_increase():
-                self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-            if e.is_decrease():
-                self._kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+        if isinstance(action, upf.Action):
+            for c in action.preconditions():
+                self._update_problem_kind_condition(c)
+            for e in action.effects():
+                self._update_problem_kind_effect(e)
+        elif isinstance(action, upf.DurativeAction):
+            for t, l in action.conditions().items():
+                for c in l:
+                    self._update_problem_kind_condition(c)
+            for t, l in action.effects().items():
+                for e in l:
+                    self._update_problem_kind_effect(e)
+            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.types.Type]:
@@ -277,7 +282,7 @@ class Problem:
         """Adds a goal."""
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        self._update_problem_kind_goal_and_precondition(goal_exp)
+        self._update_problem_kind_condition(goal_exp)
         self._goals.append(goal_exp)
 
     def goals(self) -> List[FNode]:
@@ -288,7 +293,15 @@ class Problem:
         """Returns the problem kind of this planning problem."""
         return self._kind
 
-    def _update_problem_kind_goal_and_precondition(self, exp):
+    def _update_problem_kind_effect(self, e: Effect):
+        if e.is_conditional():
+            self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+        elif e.is_increase():
+            self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+        elif e.is_decrease():
+            self._kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+
+    def _update_problem_kind_condition(self, exp: FNode):
         ops = self._operators_extractor.get(exp)
         if op.EQUALS in ops:
             self._kind.set_conditions_kind('EQUALITY') # type: ignore
@@ -301,10 +314,10 @@ class Problem:
         if op.FORALL in ops:
             self._kind.set_conditions_kind('UNIVERSAL_PRECONDITIONS') # type: ignore
 
-    def _update_problem_kind_type(self, type):
+    def _update_problem_kind_type(self, type: upf.types.Type):
         if type.is_user_type():
-                self._kind.set_typing('FLAT_TYPING') # type: ignore
-                self._user_types[type.name()] = type # type: ignore
+            self._kind.set_typing('FLAT_TYPING') # type: ignore
+            self._user_types[type.name()] = type # type: ignore
         elif type.is_int_type():
             self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
         elif type.is_real_type():

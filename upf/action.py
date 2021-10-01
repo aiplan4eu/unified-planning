@@ -57,14 +57,12 @@ class ActionParameter:
         return hash(self.name()) + hash(self.type())
 
 
-class Action:
-    """Represents an instantaneous action."""
+class ActionInterface:
+    """This is the action interface."""
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
                  _env: Environment = None, **kwargs: upf.types.Type):
         self._env = get_env(_env)
         self._name = _name
-        self._preconditions: List[FNode] = []
-        self._effects: List[Effect] = []
         self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
         if _parameters is not None:
             assert len(kwargs) == 0
@@ -73,6 +71,31 @@ class Action:
         else:
             for n, t in kwargs.items():
                 self._parameters[n] = ActionParameter(n, t)
+
+    def name(self) -> str:
+        """Returns the action name."""
+        return self._name
+
+    def parameters(self) -> List[ActionParameter]:
+        """Returns the list of the action parameters."""
+        return list(self._parameters.values())
+
+    def parameter(self, name: str) -> ActionParameter:
+        """Returns the parameter of the action with the given name."""
+        return self._parameters[name]
+
+    def is_conditional(self) -> bool:
+        """Returns True if the action has conditional effects."""
+        raise NotImplementedError
+
+
+class Action(ActionInterface):
+    """Represents an instantaneous action."""
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
+                 _env: Environment = None, **kwargs: upf.types.Type):
+        ActionInterface.__init__(self, _name, _parameters, _env, **kwargs)
+        self._preconditions: List[FNode] = []
+        self._effects: List[Effect] = []
 
     def __repr__(self) -> str:
         s = []
@@ -99,10 +122,6 @@ class Action:
         s.append('  }')
         return ''.join(s)
 
-    def name(self) -> str:
-        """Returns the action name."""
-        return self._name
-
     def preconditions(self) -> List[FNode]:
         """Returns the list of the action preconditions."""
         return self._preconditions
@@ -122,14 +141,6 @@ class Action:
     def unconditional_effects(self) -> List[Effect]:
         """Returns the list of the action unconditional effects."""
         return [e for e in self._effects if not e.is_conditional()]
-
-    def parameters(self) -> List[ActionParameter]:
-        """Returns the list of the action parameters."""
-        return list(self._parameters.values())
-
-    def parameter(self, name: str) -> ActionParameter:
-        """Returns the parameter of the action with the given name."""
-        return self._parameters[name]
 
     def add_precondition(self, precondition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
         """Adds the given action precondition."""

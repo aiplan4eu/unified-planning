@@ -27,5 +27,7 @@ class TestProblem(TestCase):
     def test_all(self):
         pv = PlanValidator(get_env())
         for p in self.problems.values():
+            if p.problem.kind().has_continuous_time():
+                continue
             problem, plan = p.problem, p.plan
             self.assertTrue(pv.is_valid_plan(problem, plan))

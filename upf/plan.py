@@ -26,7 +26,7 @@ class Plan:
 
 class ActionInstance:
     """Represents an action instance with the actual parameters."""
-    def __init__(self, action: upf.Action, params: Tuple[FNode, ...] = tuple()):
+    def __init__(self, action: 'upf.ActionInterface', params: Tuple[FNode, ...] = tuple()):
         assert len(action.parameters()) == len(params)
         self._action = action
         self._params = params
@@ -44,7 +44,7 @@ class ActionInstance:
             s.append(')')
         return self._action.name() + ''.join(s)
 
-    def action(self) -> upf.Action:
+    def action(self) -> 'upf.ActionInterface':
         """Returns the action."""
         return self._action
 
@@ -62,5 +62,18 @@ class SequentialPlan(Plan):
         return str(self._actions)
 
     def actions(self) -> List[ActionInstance]:
+        """Returns the sequence of action instances."""
+        return self._actions
+
+
+class TimeTriggeredPlan(Plan):
+    """Represents a time triggered plan."""
+    def __init__(self, actions: List[Tuple[float, ActionInstance, float]]):
+        self._actions = actions
+
+    def __repr__(self) -> str:
+        return str(self._actions)
+
+    def actions(self) -> List[Tuple[float, ActionInstance, float]]:
         """Returns the sequence of action instances."""
         return self._actions

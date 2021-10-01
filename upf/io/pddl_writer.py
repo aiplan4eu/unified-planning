@@ -14,6 +14,7 @@
 #
 
 import sys
+import upf
 import upf.environment
 import upf.walkers as walkers
 from upf.simplifier import Simplifier
@@ -191,36 +192,39 @@ class PDDLWriter:
 
         converter = ConverterToPDDLString(self.problem.env)
         for a in self.problem.actions().values():
-            out.write(f' (:action {a.name()}')
-            out.write(f'\n  :parameters (')
-            for ap in a.parameters():
-                if ap.type().is_user_type():
-                    out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
-                else:
-                    raise UPFTypeError('PDDL supports only user type parameters')
-            out.write(')')
-            if len(a.preconditions()) > 0:
-                out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions()])})')
-            if len(a.effects()) > 0:
-                out.write('\n  :effect (and')
-                for e in a.effects():
-                    if e.is_conditional():
-                        out.write(f' (when {converter.convert(e.condition())}')
-                    if e.value().is_true():
-                        out.write(f' {converter.convert(e.fluent())}')
-                    elif e.value().is_false():
-                        out.write(f' (not {converter.convert(e.fluent())})')
-                    elif e.is_increase():
-                        out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                    elif e.is_decrease():
-                        out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+            if isinstance(a, upf.Action):
+                out.write(f' (:action {a.name()}')
+                out.write(f'\n  :parameters (')
+                for ap in a.parameters():
+                    if ap.type().is_user_type():
+                        out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
                     else:
-                        out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                    if e.is_conditional():
-                        out.write(f')')
-
+                        raise UPFTypeError('PDDL supports only user type parameters')
                 out.write(')')
-            out.write(')\n')
+                if len(a.preconditions()) > 0:
+                    out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions()])})')
+                if len(a.effects()) > 0:
+                    out.write('\n  :effect (and')
+                    for e in a.effects():
+                        if e.is_conditional():
+                            out.write(f' (when {converter.convert(e.condition())}')
+                        if e.value().is_true():
+                            out.write(f' {converter.convert(e.fluent())}')
+                        elif e.value().is_false():
+                            out.write(f' (not {converter.convert(e.fluent())})')
+                        elif e.is_increase():
+                            out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                        elif e.is_decrease():
+                            out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                        else:
+                            out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                        if e.is_conditional():
+                            out.write(f')')
+
+                    out.write(')')
+                out.write(')\n')
+            else:
+                raise NotImplementedError
         out.write(')\n')
 
     def _write_problem(self, out: IO[str]):

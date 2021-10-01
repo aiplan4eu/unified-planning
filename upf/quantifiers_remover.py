@@ -99,8 +99,11 @@ class QuantifiersRemover():
         #NOTE that a different environment might be needed when multy-threading
         new_problem = self._create_problem_copy_without_actions_and_goals()
         for a in self._problem.actions().values():
-            na = self._action_without_quantifiers(a)
-            new_problem.add_action(na)
+            if isinstance(a, Action):
+                na = self._action_without_quantifiers(a)
+                new_problem.add_action(na)
+            else:
+                raise NotImplementedError
         for g in self._problem.goals():
             ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
             new_problem.add_goal(ng)

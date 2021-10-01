@@ -78,11 +78,14 @@ class NegativePreconditionsRemover():
         name_action_map: Dict[str, Action] = {}
 
         for name, action in self._problem.actions().items():
-            new_action = Action(name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
-            for p in action.preconditions():
-                np = self._fluent_remover.remove_negative_fluents(p)
-                new_action.add_precondition(np)
-            name_action_map[name] = new_action
+            if isinstance(action, Action):
+                new_action = Action(name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+                for p in action.preconditions():
+                    np = self._fluent_remover.remove_negative_fluents(p)
+                    new_action.add_precondition(np)
+                name_action_map[name] = new_action
+            else:
+                raise NotImplementedError
 
         for g in self._problem.goals():
             ng = self._fluent_remover.remove_negative_fluents(g)
@@ -110,24 +113,25 @@ class NegativePreconditionsRemover():
                 raise UPFProblemDefinitionError(f"Initial value: {v} of fluent: {fl} is not a boolean constant. An initial value MUST be a Boolean constant.")
 
         for name, action in self._problem.actions().items():
-            new_action = name_action_map[name]
-            for e in action.effects():
-                if e.is_conditional():
-                    raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.")
-                fl, v = e.fluent(), e.value()
-                fneg = fluent_mapping.get(fl.fluent(), None)
-                if v.is_bool_constant():
-                    new_action.add_effect(fl, v)
-                    if fneg is not None:
-                        if v.bool_constant_value():
-                            new_action.add_effect(self._env.expression_manager.FluentExp(fneg,
-                            tuple(fl.args())), self._env.expression_manager.FALSE())
-                        else:
-                            new_action.add_effect(self._env.expression_manager.FluentExp(fneg,
-                            tuple(fl.args())), self._env.expression_manager.TRUE())
-                else:
-                    raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
-            new_problem.add_action(new_action)
+            if isinstance(action, Action):
+                new_action = name_action_map[name]
+                for e in action.effects():
+                    if e.is_conditional():
+                        raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.")
+                    fl, v = e.fluent(), e.value()
+                    fneg = fluent_mapping.get(fl.fluent(), None)
+                    if v.is_bool_constant():
+                        new_action.add_effect(fl, v)
+                        if fneg is not None:
+                            if v.bool_constant_value():
+                                new_action.add_effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.FALSE())
+                            else:
+                                new_action.add_effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
+                    else:
+                        raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+                new_problem.add_action(new_action)
+            else:
+                raise NotImplementedError
 
     def _create_problem_copy_without_fluents_actions_init_and_goals(self):
         '''Creates the shallow copy of a problem, without adding the actions
