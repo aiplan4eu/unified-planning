@@ -17,6 +17,8 @@
 import upf.types
 import upf.operators as op
 from upf.environment import get_env, Environment
+from upf.expression import Expression
+from upf.temporal import Interval, Timing
 from upf.effect import Effect
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
@@ -40,6 +42,9 @@ class Problem:
         self._user_types: Dict[str, upf.types.Type] = {}
         self._objects: Dict[str, upf.Object] = {}
         self._initial_value: Dict[FNode, FNode] = {}
+        self._timed_effects: Dict[Timing, List[Effect]] = {}
+        self._timed_goals: Dict[Timing, List[FNode]] = {}
+        self._mantain_goals: Dict[Interval, List[FNode]] = {}
         self._goals: List[FNode] = list()
         self._initial_defaults: Dict[upf.types.Type, FNode] = {}
         for k, v in initial_defaults.items():
@@ -277,6 +282,54 @@ class Problem:
                         f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                         res[f_exp] = self.initial_value(f_exp)
         return res
+
+    def add_timed_goal(self, timing: Timing, goal: Union[FNode, upf.Fluent, bool]):
+        """Adds a timed goal."""
+        goal_exp, = self._env.expression_manager.auto_promote(goal)
+        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        self._update_problem_kind_condition(goal_exp)
+        if timing in self._timed_goals:
+            self._timed_goals[timing].append(goal_exp)
+        else:
+            self._timed_goals[timing] = [goal_exp]
+        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+
+    def timed_goals(self) -> Dict[Timing, List[FNode]]:
+        """Returns the timed goals."""
+        return self._timed_goals
+
+    def add_timed_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'], value: Expression):
+        """Adds the given timed effect."""
+        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, True)
+        assert fluent_exp.is_fluent_exp()
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Timed effect has not compatible types!')
+        effect = Effect(fluent_exp, value_exp, condition_exp)
+        self._update_problem_kind_effect(effect)
+        if timing in self._timed_effects:
+            self._timed_effects[timing].append(effect)
+        else:
+            self._timed_effects[timing] = [effect]
+        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+
+    def timed_effects(self) -> Dict[Timing, List[Effect]]:
+        """Returns the timed effects."""
+        return self._timed_effects
+
+    def add_maintain_goal(self, interval: Interval, goal: Union[FNode, 'upf.Fluent', bool]):
+        """Adds a mantain goal."""
+        goal_exp, = self._env.expression_manager.auto_promote(goal)
+        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        self._update_problem_kind_condition(goal_exp)
+        if interval in self._mantain_goals:
+            self._mantain_goals[interval].append(goal_exp)
+        else:
+            self._mantain_goals[interval] = [goal_exp]
+        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+
+    def mantain_goals(self) -> Dict[Interval, List[FNode]]:
+        """Returns the mantain goals."""
+        return self._mantain_goals
 
     def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
         """Adds a goal."""
