@@ -166,6 +166,24 @@ class DurativeAction(ActionInterface):
         """Returns the action effects."""
         return self._effects
 
+    def conditional_effects(self):
+        """Return the action conditional effects."""
+        retval: Dict[Timing, List[Effect]] = {}
+        for timing, effect_list in self._effects.items():
+            cond_effect_list = [e for e in effect_list if e.is_conditional()]
+            if len(cond_effect_list) > 0:
+                retval[timing] = cond_effect_list
+        return retval
+
+    def unconditional_effects(self):
+        """Return the action unconditional effects."""
+        retval: Dict[Timing, List[Effect]] = {}
+        for timing, effect_list in self._effects.items():
+            uncond_effect_list = [e for e in effect_list if not e.is_conditional()]
+            if len(uncond_effect_list) > 0:
+                retval[timing] = uncond_effect_list
+        return retval
+
     def is_conditional(self) -> bool:
         """Returns True if the action has conditional effects."""
         return any(e.is_conditional() for t, l in self._effects.items() for e in l)

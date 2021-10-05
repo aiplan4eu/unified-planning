@@ -15,13 +15,14 @@
 """This module defines the conditional effects remover class."""
 
 from collections import OrderedDict
+from upf.temporal import DurativeAction
 from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
 from upf.action import ActionInterface, Action
 from upf.effect import Effect
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
-from typing import Iterable, List, Dict, Tuple
+from typing import Iterable, List, Dict
 from itertools import chain, combinations
 
 
@@ -58,7 +59,7 @@ class ConditionalEffectsRemover():
 
         for action in self._problem.conditional_actions():
             if isinstance(action, Action):
-                cond_effects = list(action.conditional_effects())
+                cond_effects = action.conditional_effects()
                 for p in self.powerset(range(len(cond_effects))):
                     na = self._shallow_copy_action_without_conditional_effects(action)
                     for i, e in enumerate(cond_effects):
@@ -75,6 +76,8 @@ class ConditionalEffectsRemover():
                         if self._check_and_simplify_preconditions(na):
                             self._action_mapping[na] = action
                             new_problem.add_action(na)
+            elif isinstance(action, DurativeAction):
+                pass
             else:
                 raise NotImplementedError
         self._unconditional_problem = new_problem
