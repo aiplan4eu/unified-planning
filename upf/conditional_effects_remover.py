@@ -77,7 +77,23 @@ class ConditionalEffectsRemover():
                             self._action_mapping[na] = action
                             new_problem.add_action(na)
             elif isinstance(action, DurativeAction):
-                pass
+                timing_cond_effects = action.conditional_effects()
+                for p in self.powerset(range(len(cond_effects))):
+                    na = self._shallow_copy_action_without_conditional_effects(action)
+                    for i, e in enumerate(cond_effects):
+                        if i in p:
+                            # positive precondition
+                            na.add_precondition(e.condition())
+                            ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
+                            na._add_effect_instance(ne)
+                        else:
+                            #negative precondition
+                            na.add_precondition(self._env.expression_manager.Not(e.condition()))
+                    #new action is created, then is checked if it has any impact and if it can be simplified
+                    if len(na.effects()) > 0:
+                        if self._check_and_simplify_preconditions(na):
+                            self._action_mapping[na] = action
+                            new_problem.add_action(na)
             else:
                 raise NotImplementedError
         self._unconditional_problem = new_problem
@@ -127,6 +143,28 @@ class ConditionalEffectsRemover():
             new_action.add_precondition(p)
         for e in action.unconditional_effects():
             new_action._add_effect_instance(e)
+        return new_action
+
+    def _shallow_copy_durative_action_without_conditional_effects(self, action: DurativeAction) -> DurativeAction:
+        #emulates a do-while loop: searching for an available name
+        is_unavailable_name = True
+        while is_unavailable_name:
+            new_action_name = action.name()+ "_" +str(self._counter)
+            self._counter = self._counter + 1
+            is_unavailable_name = self._problem.has_action(new_action_name)
+        new_parameters = OrderedDict()
+        for ap in action.parameters():
+            new_parameters[ap.name()] = ap.type()
+        new_action = DurativeAction(new_action_name, new_parameters, self._env)
+        new_action.set_duration_constaint(action.duration())
+        for t, c in action.conditions().items():
+            new_action.add_condition(t, c)
+        for i, dc in action.durative_conditions().items():
+            new_action.add_durative_condition(i, dc)
+        for t, e in action.unconditional_effects():
+            new_action._add_effect_instance(t, e)
+
+        # HERE
         return new_action
 
     def _create_problem_copy(self):
