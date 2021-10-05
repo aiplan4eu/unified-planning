@@ -298,19 +298,53 @@ class Problem:
         """Returns the timed goals."""
         return self._timed_goals
 
-    def add_timed_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'], value: Expression):
+    def add_timed_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
+                         value: Expression, condition: BoolExpression = True):
         """Adds the given timed effect."""
-        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, True)
+        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
+                                                                                         condition)
         assert fluent_exp.is_fluent_exp()
+        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Timed effect has not compatible types!')
-        effect = Effect(fluent_exp, value_exp, condition_exp)
+        self._add_effect_instance(timing, Effect(fluent_exp, value_exp, condition_exp))
+
+    def add_increase_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
+                            value: Expression, condition: BoolExpression = True):
+        """Adds the given timed increase effect."""
+        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
+                                                                                         condition)
+        assert fluent_exp.is_fluent_exp()
+        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Timed effect has not compatible types!')
+        self._add_effect_instance(timing,
+                                  Effect(fluent_exp, value_exp,
+                                         condition_exp, kind = INCREASE))
+
+    def add_decrease_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
+                            value: Expression, condition: BoolExpression = True):
+        """Adds the given timed decrease effect."""
+        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
+                                                                                         condition)
+        assert fluent_exp.is_fluent_exp()
+        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+            raise UPFTypeError('Effect condition is not a Boolean condition!')
+        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPFTypeError('Timed effect has not compatible types!')
+        self._add_effect_instance(timing,
+                                  Effect(fluent_exp, value_exp,
+                                         condition_exp, kind = DECREASE))
+
+    def _add_effect_instance(self, timing: Timing, effect: Effect):
         self._update_problem_kind_effect(effect)
+        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         if timing in self._timed_effects:
             self._timed_effects[timing].append(effect)
         else:
             self._timed_effects[timing] = [effect]
-        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
 
     def timed_effects(self) -> Dict[Timing, List[Effect]]:
         """Returns the timed effects."""

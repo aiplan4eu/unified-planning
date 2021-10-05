@@ -151,15 +151,19 @@ class DurativeAction(ActionInterface):
         self._effects: Dict[Timing, List[Effect]] = {}
 
     def duration(self):
+        """Returns the action duration interval."""
         return self._duration
 
     def conditions(self):
+        """Returns the action conditions."""
         return self._conditions
 
     def durative_conditions(self):
+        """Returns the action durative conditions."""
         return self._durative_conditions
 
     def effects(self):
+        """Returns the action effects."""
         return self._effects
 
     def is_conditional(self) -> bool:
@@ -167,10 +171,12 @@ class DurativeAction(ActionInterface):
         return any(e.is_conditional() for t, l in self._effects.items() for e in l)
 
     def set_duration_constraint(self, interval: Interval):
+        """Sets the duration interval."""
         self._duration = interval
 
     def add_condition(self, timing: Timing,
                       condition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
+        """Adds the given condition."""
         condition_exp, = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
         if timing in self._conditions:
@@ -180,6 +186,7 @@ class DurativeAction(ActionInterface):
 
     def add_durative_condition(self, interval: Interval,
                                condition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
+        """Adds the given durative condition."""
         condition_exp, = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
         if interval in self._durative_conditions:
