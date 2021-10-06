@@ -202,6 +202,9 @@ class DurativeAction(ActionInterface):
         else:
             self._conditions[timing] = [condition_exp]
 
+    def _set_conditions(self, timing: Timing, conditions: List[FNode]):
+        self._conditions[timing] = conditions
+
     def add_durative_condition(self, interval: Interval,
                                condition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
         """Adds the given durative condition."""

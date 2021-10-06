@@ -15,14 +15,14 @@
 """This module defines the conditional effects remover class."""
 
 from collections import OrderedDict
-from upf.temporal import DurativeAction
+from upf.temporal import DurativeAction, Timing
 from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
 from upf.action import ActionInterface, Action
 from upf.effect import Effect
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
-from typing import Iterable, List, Dict
+from typing import Iterable, List, Dict, Tuple
 from itertools import chain, combinations
 
 
@@ -77,27 +77,60 @@ class ConditionalEffectsRemover():
                             self._action_mapping[na] = action
                             new_problem.add_action(na)
             elif isinstance(action, DurativeAction):
-                timing_cond_effects = action.conditional_effects()
-                for p in self.powerset(range(len(cond_effects))):
-                    na = self._shallow_copy_action_without_conditional_effects(action)
-                    for i, e in enumerate(cond_effects):
+                timing_cond_effects: Dict[Timing, List[Effect]] = action.conditional_effects()
+                cond_effects_timing: List[Tuple[Effect, Timing]] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
+                for p in self.powerset(range(len(cond_effects_timing))):
+                    nda = self._shallow_copy_durative_action_without_conditional_effects(action)
+                    for i, (e, t) in enumerate(cond_effects_timing):
                         if i in p:
                             # positive precondition
-                            na.add_precondition(e.condition())
+                            nda.add_condition(t, e.condition())
                             ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
-                            na._add_effect_instance(ne)
+                            nda._add_effect_instance(t, ne)
                         else:
                             #negative precondition
-                            na.add_precondition(self._env.expression_manager.Not(e.condition()))
+                            nda.add_condition(t, self._env.expression_manager.Not(e.condition()))
                     #new action is created, then is checked if it has any impact and if it can be simplified
-                    if len(na.effects()) > 0:
-                        if self._check_and_simplify_preconditions(na):
-                            self._action_mapping[na] = action
-                            new_problem.add_action(na)
+                    if len(nda.effects()) > 0:
+                        if self._check_and_simplify_conditions(nda):
+                            self._action_mapping[nda] = action
+                            new_problem.add_action(nda)
             else:
                 raise NotImplementedError
         self._unconditional_problem = new_problem
         return new_problem
+
+    def _check_and_simplify_conditions(self, action: DurativeAction) -> bool:
+        '''Simplifies conditions and if it False (a contraddiction)
+        returns False, otherwise returns True.
+        If the simplification is True (a tautology) removes all conditions at the given timing.
+        If the simplification is still an AND rewrites back every "arg" of the AND
+        in the conditions
+        If the simplification is not an AND sets the simplification as the only
+        condition at the given timing.'''
+        #action conditions
+        #tlc = timing list condition
+        tlc: Dict[Timing, List[FNode]] = action.conditions()
+        if len(tlc) == 0:
+            return True
+        # t = timing, lc = list condition
+        for t, lc in tlc.items():
+            #conditions (as an And FNode)
+            c = self._env.expression_manager.And(lc)
+            #conditions simplified
+            cs = self._simplifier.simplify(c)
+            #new action conditions
+            nac: List[FNode] = []
+            if cs.is_bool_constant():
+                if not cs.bool_constant_value():
+                    return False
+            else:
+                if cs.is_and():
+                    nac.extend(cs.args())
+                else:
+                    nac.append(cs)
+            action._set_conditions(t, nac)
+        return True
 
     def _check_and_simplify_preconditions(self, action: Action) -> bool:
         '''Simplifies preconditions and if it False (a contraddiction)
@@ -156,15 +189,13 @@ class ConditionalEffectsRemover():
         for ap in action.parameters():
             new_parameters[ap.name()] = ap.type()
         new_action = DurativeAction(new_action_name, new_parameters, self._env)
-        new_action.set_duration_constaint(action.duration())
+        new_action.set_duration_constraint(action.duration())
         for t, c in action.conditions().items():
             new_action.add_condition(t, c)
         for i, dc in action.durative_conditions().items():
             new_action.add_durative_condition(i, dc)
         for t, e in action.unconditional_effects():
             new_action._add_effect_instance(t, e)
-
-        # HERE
         return new_action
 
     def _create_problem_copy(self):
