@@ -729,4 +729,37 @@ def get_example_problems():
     timed_connected_locations = Example(problem=problem, plan=plan)
     problems['timed_connected_locations'] = timed_connected_locations
 
+    # timed conditional
+    Obj = UserType('Obj')
+    is_ok = upf.Fluent('is_ok', BoolType(), [Obj])
+    is_ok_giver = upf.Fluent('is_ok_giver', BoolType(), [Obj])
+    set_giver = upf.DurativeAction('set_giver', y=Obj)
+    y = set_giver.parameter('y')
+    set_giver.set_duration_constraint(CloseInterval(ConstantTiming(2), ConstantTiming(2)))
+    set_giver.add_condition(StartTiming(), Not(is_ok_giver(y)))
+    set_giver.add_effect(StartTiming(), is_ok_giver(y), True)
+    set_giver.add_effect(EndTiming(), is_ok_giver(y), False)
+    take_ok = upf.DurativeAction('take_ok', x=Obj, y=Obj)
+    x = take_ok.parameter('x')
+    y = take_ok.parameter('y')
+    take_ok.set_duration_constraint(CloseInterval(ConstantTiming(3), ConstantTiming(3)))
+    take_ok.add_condition(StartTiming(), Not(is_ok(x)))
+    take_ok.add_condition(StartTiming(), Not(is_ok_giver(y)))
+    take_ok.add_condition(StartTiming(), Not(Equals(x, y)))
+    take_ok.add_effect(StartTiming(3), is_ok(x), True, is_ok_giver(y))
+    o1 = upf.Object('o1', Obj)
+    o2 = upf.Object('o2', Obj)
+    problem = upf.Problem('temporal_conditional')
+    problem.add_fluent(is_ok, default_initial_value=False)
+    problem.add_fluent(is_ok_giver, default_initial_value=False)
+    problem.add_action(set_giver)
+    problem.add_action(take_ok)
+    problem.add_object(o1)
+    problem.add_object(o2)
+    problem.add_goal(is_ok(o1))
+    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(take_ok, [ObjectExp(o1), ObjectExp(o2)]), Fraction(3, 1)),
+                                  (Fraction(1, 1), upf.ActionInstance(set_giver, [ObjectExp(o2)]), Fraction(2, 1))])
+    temporal_conditional = Example(problem=problem, plan=plan)
+    problems['temporal_conditional'] = temporal_conditional
+
     return problems

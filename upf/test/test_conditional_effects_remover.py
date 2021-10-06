@@ -105,3 +105,17 @@ class TestConditionalEffectsRemover(TestCase):
             #     self.assertTrue(res)
             #     res = validator.validate(problem, new_plan)
             #     self.assertTrue(res)
+
+    def test_temporal_conditional(self):
+        problem = self.problems['temporal_conditional'].problem
+        plan = self.problems['temporal_conditional'].plan
+
+        cer = ConditionalEffectsRemover(problem)
+        unconditional_problem = cer.get_rewritten_problem()
+
+        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
+            self.assertNotEqual(planner, None)
+            unconditional_plan = planner.solve(unconditional_problem)
+            self.assertNotEqual(str(plan), str(unconditional_plan))
+            conditional_plan = cer.rewrite_back_plan()
+            self.assertEqual(str(plan), str(conditional_plan))

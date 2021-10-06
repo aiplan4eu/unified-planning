@@ -150,6 +150,41 @@ class DurativeAction(ActionInterface):
         self._durative_conditions: Dict[Interval, List[FNode]] = {}
         self._effects: Dict[Timing, List[Effect]] = {}
 
+    def __repr__(self) -> str:
+        s = []
+        s.append(f'durative action {self.name()}')
+        first = True
+        for p in self.parameters():
+            if first:
+                s.append('(')
+                first = False
+            else:
+                s.append(', ')
+            s.append(str(p))
+        if not first:
+            s.append(')')
+        s.append(' {\n')
+        s.append('    conditions = [\n')
+        for t, cl in self.conditions().items():
+            s.append(f'      {str(t)}:\n')
+            for c in cl:
+                s.append(f'        {str(c)}\n')
+        s.append('    ]\n')
+        s.append('    durative conditions = [\n')
+        for i, cl in self.durative_conditions().items():
+            s.append(f'      {str(i)}:\n')
+            for c in cl:
+                s.append(f'        {str(c)}\n')
+        s.append('    ]\n')
+        s.append('    effects = [\n')
+        for t, el in self.effects().items():
+            s.append(f'      {str(t)}:\n')
+            for e in el:
+                s.append(f'        {str(e)}:\n')
+        s.append('    ]\n')
+        s.append('  }')
+        return ''.join(s)
+
     def duration(self):
         """Returns the action duration interval."""
         return self._duration
