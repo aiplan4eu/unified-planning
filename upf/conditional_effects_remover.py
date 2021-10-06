@@ -16,13 +16,13 @@
 
 from collections import OrderedDict
 from upf.temporal import DurativeAction, Timing
-from upf.plan import SequentialPlan, ActionInstance
+from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
 from upf.action import ActionInterface, Action
 from upf.effect import Effect
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
-from typing import Iterable, List, Dict, Tuple
+from typing import Iterable, List, Dict, Tuple, Union
 from itertools import chain, combinations
 
 
@@ -214,18 +214,30 @@ class ConditionalEffectsRemover():
             new_problem.add_action(ua)
         return new_problem
 
-    def rewrite_back_plan(self, unconditional_sequential_plan: SequentialPlan) -> SequentialPlan:
+    def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
         '''Takes the sequential plan of the non-conditional problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
-        uncond_actions = unconditional_sequential_plan.actions()
-        cond_actions = []
-        for ai in uncond_actions:
-            if ai.action() in self._action_mapping:
-                cond_actions.append(self._new_action_instance_original_name(ai))
-            else:
-                cond_actions.append(ai)
-        return SequentialPlan(cond_actions)
+        if isinstance(plan, SequentialPlan):
+            uncond_actions = plan.actions()
+            cond_actions = []
+            for ai in uncond_actions:
+                if ai.action() in self._action_mapping:
+                    cond_actions.append(self._new_action_instance_original_name(ai))
+                else:
+                    cond_actions.append(ai)
+            return SequentialPlan(cond_actions)
+        elif isinstance(plan, TimeTriggeredPlan):
+            uncond_durative_actions = plan.actions()
+            cond_durative_actions = []
+            for s, ai, d in uncond_durative_actions:
+                if ai.action() in self._action_mapping:
+                    cond_durative_actions.append((s, self._new_action_instance_original_name(ai), d))
+                else:
+                    cond_durative_actions.append((s, ai, d))
+            return TimeTriggeredPlan(cond_durative_actions)
+        else:
+            raise NotImplementedError
 
     def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:
         #original action

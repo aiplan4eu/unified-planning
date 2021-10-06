@@ -117,5 +117,5 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertNotEqual(planner, None)
             unconditional_plan = planner.solve(unconditional_problem)
             self.assertNotEqual(str(plan), str(unconditional_plan))
-            conditional_plan = cer.rewrite_back_plan()
+            conditional_plan = cer.rewrite_back_plan(unconditional_plan)
             self.assertEqual(str(plan), str(conditional_plan))
