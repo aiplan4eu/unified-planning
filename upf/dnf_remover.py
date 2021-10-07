@@ -20,6 +20,7 @@ from upf.action import ActionInterface, Action
 from upf.dnf import Dnf
 from upf.exceptions import UPFProblemDefinitionError
 from upf.simplifier import Simplifier
+from upf.temporal import DurativeAction
 from typing import Dict
 
 
@@ -52,6 +53,21 @@ class DnfRemover():
         for a in self._problem.actions().values():
             if isinstance(a, Action):
                 self.count = 0
+                new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
+                if new_precond.is_or():
+                    for and_exp in new_precond.args():
+                        na = self._create_new_action_with_given_precond(and_exp, a)
+                        new_problem.add_action(na)
+                else:
+                    na = self._create_new_action_with_given_precond(new_precond, a)
+                    new_problem.add_action(na)
+            elif isinstance(a, DurativeAction):
+                self.count = 0
+                # HERE
+                # Problem example:
+                #       Action a, with condition a or b or c at time 0
+                #                  and condition a or b or c at time 1
+                #       should result into 9 actions?
                 new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
                 if new_precond.is_or():
                     for and_exp in new_precond.args():
