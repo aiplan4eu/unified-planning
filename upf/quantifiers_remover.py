@@ -15,6 +15,7 @@
 """This module defines the quantifiers remover class."""
 
 
+from upf.temporal import DurativeAction
 import upf.operators as op
 import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
@@ -102,8 +103,22 @@ class QuantifiersRemover():
             if isinstance(a, Action):
                 na = self._action_without_quantifiers(a)
                 new_problem.add_action(na)
+            elif isinstance(a, DurativeAction):
+                nda = self._durative_action_without_quantifiers(a)
+                new_problem.add_action(nda)
             else:
                 raise NotImplementedError
+        for t, el in self._problem.timed_effects().items():
+            for e in el:
+                new_problem._add_effect_instance(t, self._effect_without_quantifiers(e))
+        for t, gl in self._problem.timed_goals().items():
+            for g in gl:
+                ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
+                new_problem.add_timed_goal(t, ng)
+        for i, gl in self._problem.mantain_goals().items():
+            for g in gl:
+                ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
+                new_problem.add_mantain_goal(i, ng)
         for g in self._problem.goals():
             ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
             new_problem.add_goal(ng)
@@ -123,6 +138,31 @@ class QuantifiersRemover():
             new_problem.set_initial_value(fl, v)
         return new_problem
 
+    def _durative_action_without_quantifiers(self, action) -> DurativeAction:
+        new_action = DurativeAction(action.name(), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+        new_action.set_duration_constraint(action.duration())
+
+        for t, cl in action.conditions().items():
+            for c in cl:
+                nc = self._expression_quantifier_remover.remove_quantifiers(c, self._problem)
+                new_action.add_condition(t, nc)
+        for i, cl in action.durative_conditions().items():
+            for c in cl:
+                nc = self._expression_quantifier_remover.remove_quantifiers(c, self._problem)
+                new_action.add_condition(i, nc)
+        for t, el in action.effects():
+            for e in el:
+                new_action._add_effect_instance(t, self._effect_without_quantifiers(e))
+        return new_action
+
+    def _effect_without_quantifiers(self, effect):
+        if effect.is_conditional():
+            nc = self._expression_quantifier_remover.remove_quantifiers(effect.condition(), self._problem)
+        else:
+            nc = self._env.expression_manager.TRUE()
+        nv = self._expression_quantifier_remover.remove_quantifiers(effect.value(), self._problem)
+        return Effect(effect.fluent(), nv, nc, effect.kind())
+
     def _action_without_quantifiers(self, action) -> Action:
         new_action = Action(action.name(), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
@@ -130,13 +170,7 @@ class QuantifiersRemover():
             np = self._expression_quantifier_remover.remove_quantifiers(p, self._problem)
             new_action.add_precondition(np)
         for e in action.effects():
-            if e.is_conditional():
-                nc = self._expression_quantifier_remover.remove_quantifiers(e.condition(), self._problem)
-            else:
-                nc = self._env.expression_manager.TRUE()
-            nv = self._expression_quantifier_remover.remove_quantifiers(e.value(), self._problem)
-            ne = Effect(e.fluent(), nv, nc, e.kind())
-            new_action._add_effect_instance(ne)
+            new_action._add_effect_instance(self._effect_without_quantifiers(e))
         return new_action
 
     def rewrite_back_plan(self, unquantified_sequential_plan: SequentialPlan) -> SequentialPlan:
