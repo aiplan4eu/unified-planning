@@ -19,7 +19,7 @@ from upf.temporal import DurativeAction
 import upf.operators as op
 import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
-from upf.plan import SequentialPlan, ActionInstance
+from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
 from upf.action import Action
 from upf.object import Object
@@ -29,7 +29,7 @@ from upf.variable import Variable
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
 from upf.expression import Expression
-from typing import List, Dict
+from typing import List, Dict, Union
 from itertools import product
 from collections import OrderedDict
 
@@ -173,9 +173,16 @@ class QuantifiersRemover():
             new_action._add_effect_instance(self._effect_without_quantifiers(e))
         return new_action
 
-    def rewrite_back_plan(self, unquantified_sequential_plan: SequentialPlan) -> SequentialPlan:
+    def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
-        quantified_actions = [ActionInstance(self._problem.action(ai.action().name()), ai.actual_parameters()) for ai in unquantified_sequential_plan.actions()]
-        return SequentialPlan(quantified_actions)
+        if isinstance(plan, SequentialPlan):
+            quantified_actions = [ActionInstance(self._problem.action(ai.action().name()),
+                            ai.actual_parameters()) for ai in plan.actions()]
+            return SequentialPlan(quantified_actions)
+        elif isinstance(plan, TimeTriggeredPlan):
+            s_quantified_actions_d = [(s,
+                            ActionInstance(self._problem.action(ai.action().name()),
+                            ai.actual_parameters()), d) for s, ai, d in plan.actions()]
+            return TimeTriggeredPlan(s_quantified_actions_d)
