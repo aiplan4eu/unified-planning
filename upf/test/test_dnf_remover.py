@@ -22,6 +22,7 @@ from upf.dnf_remover import DnfRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
 from upf.exceptions import UPFProblemDefinitionError
+from upf.temporal import StartTiming, DurativeAction, CloseInterval
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -145,3 +146,38 @@ class TestConditionalEffectsRemover(TestCase):
             dnf_problem = dnfr.get_rewritten_problem()
         self.assertIn("Action: act__1__ of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
         str(e.exception))
+
+    def test_temproal_mockup(self):
+
+        # temporal mockup
+        a = upf.Fluent('a')
+        b = upf.Fluent('b')
+        c = upf.Fluent('c')
+        d = upf.Fluent('d')
+        act = upf.DurativeAction('act')
+        # !a => (b | ((c <-> d) & d))
+        # In Dnf:
+        # a | b | (c & d)
+        exp = Implies(Not(a), Or(b, And(Iff(c, d),d)))
+        act.add_condition(StartTiming(), exp)
+        act.add_condition(StartTiming(1), exp)
+        act.add_durative_condition(CloseInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_durative_condition(CloseInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_effect(StartTiming(6), a, TRUE())
+
+        problem = upf.Problem('temporal_mockup')
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_fluent(d)
+        problem.add_action(act)
+        problem.set_initial_value(a, False)
+        problem.set_initial_value(b, False)
+        problem.set_initial_value(c, True)
+        problem.set_initial_value(d, False)
+        problem.add_goal(a)
+        dnfr = DnfRemover(problem)
+        dnf_problem = dnfr.get_rewritten_problem()
+        self.assertEqual(len(dnf_problem.actions()), 81)
+        print(dnf_problem)
+        assert False

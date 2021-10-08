@@ -17,7 +17,7 @@
 
 from itertools import product
 from upf.fnode import FNode
-from upf.plan import SequentialPlan, ActionInstance
+from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
 from upf.action import ActionInterface, Action
 from upf.dnf import Dnf
@@ -144,15 +144,24 @@ class DnfRemover():
             new_problem.add_goal(g)
         return new_problem
 
-    def rewrite_back_plan(self, dnf_sequential_plan: SequentialPlan) -> SequentialPlan:
+    def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
         '''Takes the sequential plan of the DNF problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
-        dnf_actions = dnf_sequential_plan.actions()
-        original_actions = []
-        for ai in dnf_actions:
-            original_actions.append(self._new_action_instance_original_name(ai))
-        return SequentialPlan(original_actions)
+        if isinstance(plan, SequentialPlan):
+            dnf_actions = plan.actions()
+            original_actions = []
+            for ai in dnf_actions:
+                original_actions.append(self._new_action_instance_original_name(ai))
+            return SequentialPlan(original_actions)
+        elif isinstance(plan, TimeTriggeredPlan):
+            dnf_temporal_actions = plan.actions()
+            original_temporal_actions = []
+            for s, ai, d in dnf_temporal_actions:
+                original_temporal_actions.append((s, self._new_action_instance_original_name(ai), d))
+            return TimeTriggeredPlan(original_temporal_actions)
+        else:
+            raise NotImplementedError
 
     def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:
         #original action
