@@ -150,7 +150,7 @@ class QuantifiersRemover():
             for c in cl:
                 nc = self._expression_quantifier_remover.remove_quantifiers(c, self._problem)
                 new_action.add_condition(i, nc)
-        for t, el in action.effects():
+        for t, el in action.effects().items():
             for e in el:
                 new_action._add_effect_instance(t, self._effect_without_quantifiers(e))
         return new_action
