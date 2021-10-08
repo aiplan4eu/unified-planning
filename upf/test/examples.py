@@ -696,8 +696,9 @@ def get_example_problems():
     # move.add_durative_condition(CloseInterval(StartTiming(), EndTiming()), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
     #                         Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
     #                         Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
-    #
+
     # NOTE: The add_durative_condition wants an interval, but the converter has problems converting it
+    # EDIT: It looks like the "action.conditions()" method also uses the durative conditions
     move.add_condition(StartTiming(), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
                             Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
                             Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
