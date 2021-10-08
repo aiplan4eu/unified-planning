@@ -208,6 +208,12 @@ class ConditionalEffectsRemover():
             new_problem.add_object(o)
         for fl, v in self._problem.initial_values().items():
             new_problem.set_initial_value(fl, v)
+        for t, gl in self._problem.timed_goals():
+            for g in gl:
+                new_problem.add_timed_goal(t, g)
+        for i, gl in self._problem.mantain_goals():
+            for g in gl:
+                new_problem.add_mantain_goal(i, g)
         for g in self._problem.goals():
             new_problem.add_goal(g)
         for ua in self._problem.unconditional_actions():

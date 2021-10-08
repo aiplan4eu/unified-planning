@@ -221,7 +221,7 @@ class DurativeAction(ActionInterface):
 
     def is_conditional(self) -> bool:
         """Returns True if the action has conditional effects."""
-        return any(e.is_conditional() for t, l in self._effects.items() for e in l)
+        return any(e.is_conditional() for l in self._effects.values() for e in l)
 
     def set_duration_constraint(self, interval: Interval):
         """Sets the duration interval."""
