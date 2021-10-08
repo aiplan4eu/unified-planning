@@ -14,14 +14,17 @@
 #
 """This module defines the dnf remover class."""
 
+
+from itertools import product
+from upf.fnode import FNode
 from upf.plan import SequentialPlan, ActionInstance
 from upf.problem import Problem
 from upf.action import ActionInterface, Action
 from upf.dnf import Dnf
 from upf.exceptions import UPFProblemDefinitionError
 from upf.simplifier import Simplifier
-from upf.temporal import DurativeAction
-from typing import Dict
+from upf.temporal import DurativeAction, Interval, Timing
+from typing import Dict, List, Tuple, Union
 
 
 class DnfRemover():
@@ -63,21 +66,53 @@ class DnfRemover():
                     new_problem.add_action(na)
             elif isinstance(a, DurativeAction):
                 self.count = 0
-                # HERE
-                # Problem example:
-                #       Action a, with condition a or b or c at time 0
-                #                  and condition a or b or c at time 1
-                #       should result into 9 actions?
-                new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
-                if new_precond.is_or():
-                    for and_exp in new_precond.args():
-                        na = self._create_new_action_with_given_precond(and_exp, a)
-                        new_problem.add_action(na)
-                else:
-                    na = self._create_new_action_with_given_precond(new_precond, a)
-                    new_problem.add_action(na)
+                temporal_list: List[Union[Timing, Interval]] = []
+                conditions: List[List[FNode]] = []
+                # save the timing, calculate the dnf of the and of all the conditions at the same time
+                # and then save it in conditions.
+                # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
+                for t, cl in a.conditions().items():
+                    temporal_list.append(t)
+                    new_cond = dnf.get_dnf_expression(self._env.expression_manager.And(cl))
+                    if new_cond.is_or():
+                        conditions.append(new_cond.args())
+                    else:
+                        conditions.append([new_cond])
+                for i, cl in a.durative_conditions().items():
+                    temporal_list.append(i)
+                    new_cond = dnf.get_dnf_expression(self._env.expression_manager.And(cl))
+                    if new_cond.is_or():
+                        conditions.append(new_cond.args())
+                    else:
+                        conditions.append([new_cond])
+                conditions_tuple: Tuple[List[FNode], ...] = product(*conditions)
+                for cond_list in conditions_tuple:
+                    nda = self._create_new_durative_action_with_given_conds_at_given_times(temporal_list, cond_list, a)
+                    new_problem.add_action(nda)
             else:
                 raise NotImplementedError
+
+    def _create_new_durative_action_with_given_conds_at_given_times(self, temporal_list, cond_list, original_action) -> DurativeAction:
+        new_action = DurativeAction(f"{original_action.name()}__{self.count}__", {ap.name(): ap.type() for ap in original_action.parameters()}, self._env) # type: ignore
+        self.count = self.count + 1
+        if self._problem.has_action(new_action.name()):
+            raise UPFProblemDefinitionError(f"DurativeAction: {new_action.name()} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        for t, c in zip(temporal_list, cond_list):
+            if c.is_and():
+                for co in c.args():
+                    self._add_condition(new_action, t, co)
+            else:
+                self._add_condition(new_action, t, c)
+        self._action_mapping[new_action] = original_action
+        return new_action
+
+    def _add_condition(self, new_action, time, condition):
+        if isinstance(time, Timing):
+            new_action.add_condition(time, condition)
+        elif isinstance(time, Interval):
+            new_action.add_durative_condition(time, condition)
+        else:
+            raise NotImplementedError
 
     def _create_new_action_with_given_precond(self, precond, original_action):
         new_action = Action(f"{original_action.name()}__{self.count}__", {ap.name(): ap.type() for ap in original_action.parameters()}, self._env)
