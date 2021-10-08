@@ -103,6 +103,9 @@ class DnfRemover():
                     self._add_condition(new_action, t, co)
             else:
                 self._add_condition(new_action, t, c)
+        for t, el in original_action.effects().items():
+            for e in el:
+                new_action._add_effect_instance(t, e)
         self._action_mapping[new_action] = original_action
         return new_action
 

@@ -227,7 +227,10 @@ class DurativeAction(ActionInterface):
         if not first:
             s.append(')')
         s.append(' {\n')
+<<<<<<< HEAD
         s.append(f'    duration = {str(self._duration)}')
+=======
+>>>>>>> Small fix
         s.append('    conditions = [\n')
         for t, cl in self.conditions().items():
             s.append(f'      {str(t)}:\n')
@@ -266,7 +269,11 @@ class DurativeAction(ActionInterface):
         return self._effects
 
     def conditional_effects(self):
+<<<<<<< HEAD
         '''Return the action conditional effects.'''
+=======
+        """Return the action conditional effects."""
+>>>>>>> Small fix
         retval: Dict[Timing, List[Effect]] = {}
         for timing, effect_list in self._effects.items():
             cond_effect_list = [e for e in effect_list if e.is_conditional()]
@@ -275,7 +282,11 @@ class DurativeAction(ActionInterface):
         return retval
 
     def unconditional_effects(self):
+<<<<<<< HEAD
         '''Return the action unconditional effects.'''
+=======
+        """Return the action unconditional effects."""
+>>>>>>> Small fix
         retval: Dict[Timing, List[Effect]] = {}
         for timing, effect_list in self._effects.items():
             uncond_effect_list = [e for e in effect_list if not e.is_conditional()]
@@ -284,7 +295,11 @@ class DurativeAction(ActionInterface):
         return retval
 
     def is_conditional(self) -> bool:
+<<<<<<< HEAD
         '''Returns True if the action has conditional effects.'''
+=======
+        """Returns True if the action has conditional effects."""
+>>>>>>> Small fix
         return any(e.is_conditional() for l in self._effects.values() for e in l)
 
     def set_duration_constraint(self, interval: Interval):

@@ -179,5 +179,4 @@ class TestConditionalEffectsRemover(TestCase):
         dnfr = DnfRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
         self.assertEqual(len(dnf_problem.actions()), 81)
-        print(dnf_problem)
-        assert False
+        self.assertEqual(len(problem.actions()), 1)
