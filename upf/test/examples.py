@@ -693,9 +693,9 @@ def get_example_problems():
     #(E (location mid_location)
     # !((mid_location == l_from) || (mid_location == l_to)) && (is_connected(l_from, mid_location) || is_connected(mid_location, l_from)) &&
     # && (is_connected(l_to, mid_location) || is_connected(mid_location, l_to)))
-    # move.add_durative_condition(CloseInterval(StartTiming(), EndTiming()), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
-    #                         Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
-    #                         Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
+    move.add_durative_condition(CloseInterval(StartTiming(), EndTiming()), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
+                            Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
+                            Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
 
     # NOTE: The add_durative_condition wants an interval, but the converter has problems converting it
     # EDIT: It looks like the "action.conditions()" method also uses the durative conditions
@@ -703,7 +703,7 @@ def get_example_problems():
                             Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
                             Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
     move.add_effect(StartTiming(1), is_at(l_from), False)
-    move.add_effect(EndTiming(1), is_at(l_to), True)
+    move.add_effect(EndTiming(5), is_at(l_to), True)
     l1 = upf.Object('l1', Location)
     l2 = upf.Object('l2', Location)
     l3 = upf.Object('l3', Location)
@@ -725,7 +725,7 @@ def get_example_problems():
     problem.set_initial_value(is_connected(l4, l5), True)
     problem.add_goal(is_at(l5))
     plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l3)]), Fraction(6, 1)),
-                                  (Fraction(501, 100), upf.ActionInstance(move, [ObjectExp(l3), ObjectExp(l5)]), Fraction(6, 1))])
+                                  (Fraction(6, 1), upf.ActionInstance(move, [ObjectExp(l3), ObjectExp(l5)]), Fraction(6, 1))])
     timed_connected_locations = Example(problem=problem, plan=plan)
     problems['timed_connected_locations'] = timed_connected_locations
 
