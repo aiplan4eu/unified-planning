@@ -208,6 +208,11 @@ class ConditionalEffectsRemover():
             new_problem.add_object(o)
         for fl, v in self._problem.initial_values().items():
             new_problem.set_initial_value(fl, v)
+        for t, el in self._problem.timed_effects():
+            for e in el:
+                if e.is_conditional():
+                    raise # NOTE is it a problem if a timed_effect is conditional? It should be if this class is used!
+                new_problem.add_timed_effect(t, e)
         for t, gl in self._problem.timed_goals():
             for g in gl:
                 new_problem.add_timed_goal(t, g)
