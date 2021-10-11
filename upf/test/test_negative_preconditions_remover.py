@@ -89,9 +89,6 @@ class TestNegativePreconditionsRemover(TestCase):
             self.assertIn("), mend_fuse(f2)", str(new_plan))
             self.assertIn("), mend_fuse(f3)", str(new_plan))
 
-
-
-
     def test_ad_hoc(self):
         x = upf.Fluent('x')
         y = upf.Fluent('y')
