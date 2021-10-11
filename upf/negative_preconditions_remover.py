@@ -15,7 +15,7 @@
 """This module defines the negative preconditions remover class."""
 
 from collections import OrderedDict
-from temporal import DurativeAction
+from upf.temporal import DurativeAction
 from upf.fluent import Fluent
 from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
@@ -153,7 +153,8 @@ class NegativePreconditionsRemover():
                 new_problem.add_action(new_action)
             elif isinstance(action, DurativeAction):
                 new_durative_action = name_action_map[name]
-                for t, el in action.effects():
+                new_durative_action.set_duration_constraint(action.duration())
+                for t, el in action.effects().items():
                     for e in el:
                         if e.is_conditional():
                             raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.")
@@ -168,6 +169,7 @@ class NegativePreconditionsRemover():
                                     new_durative_action.add_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
                         else:
                             raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+                new_problem.add_action(new_durative_action)
             else:
                 raise NotImplementedError
 

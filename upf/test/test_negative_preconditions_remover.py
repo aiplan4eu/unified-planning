@@ -61,6 +61,35 @@ class TestNegativePreconditionsRemover(TestCase):
             new_plan = npr.rewrite_back_plan(positive_plan)
             self.assertEqual(str(plan), str(new_plan))
 
+    def test_matchcellar(self):
+        problem = self.problems['matchcellar'].problem
+        plan = self.problems['matchcellar'].plan
+        npr = NegativePreconditionsRemover(problem)
+        positive_problem = npr.get_rewritten_problem()
+        self.assertTrue(problem.kind().has_negative_conditions())
+        self.assertFalse(positive_problem.kind().has_negative_conditions())
+        with OneshotPlanner(name='tamer') as planner:
+            self.assertNotEqual(planner, None)
+            positive_plan = planner.solve(positive_problem)
+            self.assertNotEqual(plan, positive_plan)
+            new_plan = npr.rewrite_back_plan(positive_plan)
+            self.assertIn("[(Fraction(0, 1), light_match(m", str(new_plan))
+            self.assertIn("), Fraction(6, 1)), (Fraction(1, 100), mend_fuse(f", str(new_plan))
+            self.assertIn("), Fraction(5, 1)), (Fraction(601, 100), light_match(m", str(new_plan))
+            self.assertIn("), Fraction(6, 1)), (Fraction(701, 100), mend_fuse(f", str(new_plan))
+            self.assertIn("), Fraction(5, 1)), (Fraction(601, 50), light_match(m", str(new_plan))
+            self.assertIn("), Fraction(6, 1)), (Fraction(1203, 100), mend_fuse(f", str(new_plan))
+            self.assertIn("), Fraction(5, 1))]", str(new_plan))
+            self.assertIn("), light_match(m1)", str(new_plan))
+            self.assertIn("), light_match(m2)", str(new_plan))
+            self.assertIn("), light_match(m3)", str(new_plan))
+            self.assertIn("), mend_fuse(f1)", str(new_plan))
+            self.assertIn("), mend_fuse(f2)", str(new_plan))
+            self.assertIn("), mend_fuse(f3)", str(new_plan))
+
+
+
+
     def test_ad_hoc(self):
         x = upf.Fluent('x')
         y = upf.Fluent('y')
