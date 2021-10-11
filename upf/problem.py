@@ -380,6 +380,10 @@ class Problem:
         """Returns the problem kind of this planning problem."""
         return self._kind
 
+    def has_quantifiers(self) -> bool:
+        """Returns True only if the problem has quantifiers"""
+        return self._kind.has_existential_preconditions() or self._kind.has_universal_preconditions() # type: ignore
+
     def _update_problem_kind_effect(self, e: Effect):
         if e.is_conditional():
             self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore

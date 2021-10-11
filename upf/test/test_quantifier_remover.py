@@ -117,9 +117,8 @@ class TestQuantifiersRemover(TestCase):
         plan = self.problems['timed_connected_locations'].plan
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        # Temporal problem still missing a __repr__ function
-        # self.assertIn("Exists", str(problem))
-        # self.assertNotIn("Exists", str(uq_problem))
+        self.assertTrue(problem.has_quantifiers())
+        self.assertFalse(uq_problem.has_quantifiers())
 
         with OneshotPlanner(name='tamer') as planner:
             self.assertNotEqual(planner, None)
