@@ -77,6 +77,8 @@ class TestNegativePreconditionsRemover(TestCase):
             self.assertIn("), Fraction(6, 1)), (Fraction(1, 100), mend_fuse(f", str(new_plan))
             self.assertIn("), Fraction(5, 1)), (Fraction(601, 100), light_match(m", str(new_plan))
             self.assertIn("), Fraction(6, 1)), (Fraction(701, 100), mend_fuse(f", str(new_plan))
+            self.assertTrue(("), Fraction(6, 1)), (Fraction(701, 100), mend_fuse(f" in str(new_plan))
+                        or ("), Fraction(6, 1)), (Fraction(301, 50), mend_fuse(f" in str(new_plan)))
             self.assertIn("), Fraction(5, 1)), (Fraction(601, 50), light_match(m", str(new_plan))
             self.assertIn("), Fraction(6, 1)), (Fraction(1203, 100), mend_fuse(f", str(new_plan))
             self.assertIn("), Fraction(5, 1))]", str(new_plan))
