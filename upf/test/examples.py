@@ -729,7 +729,7 @@ def get_example_problems():
     timed_connected_locations = Example(problem=problem, plan=plan)
     problems['timed_connected_locations'] = timed_connected_locations
 
-    # timed conditional
+    # temporal conditional
     Obj = UserType('Obj')
     is_ok = upf.Fluent('is_ok', BoolType(), [Obj])
     is_ok_giver = upf.Fluent('is_ok_giver', BoolType(), [Obj])

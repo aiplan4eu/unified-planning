@@ -101,7 +101,7 @@ class ConditionalEffectsRemover():
         return new_problem
 
     def _check_and_simplify_conditions(self, action: DurativeAction) -> bool:
-        '''Simplifies conditions and if it False (a contraddiction)
+        '''Simplifies conditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all conditions at the given timing.
         If the simplification is still an AND rewrites back every "arg" of the AND
@@ -114,7 +114,7 @@ class ConditionalEffectsRemover():
         if len(tlc) == 0:
             return True
         # t = timing, lc = list condition
-        for t, lc in tlc.items():
+        for t, lc in tlc.copy().items():
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
@@ -133,7 +133,7 @@ class ConditionalEffectsRemover():
         return True
 
     def _check_and_simplify_preconditions(self, action: Action) -> bool:
-        '''Simplifies preconditions and if it False (a contraddiction)
+        '''Simplifies preconditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all preconditions.
         If the simplification is still an AND rewrites back every "arg" of the AND
@@ -163,11 +163,11 @@ class ConditionalEffectsRemover():
 
     def _shallow_copy_action_without_conditional_effects(self, action: Action) -> Action:
         #emulates a do-while loop: searching for an available name
-        is_unavailable_name = True
-        while is_unavailable_name:
+        while True:
             new_action_name = action.name()+ "_" +str(self._counter)
             self._counter = self._counter + 1
-            is_unavailable_name = self._problem.has_action(new_action_name)
+            if not self._problem.has_action(new_action_name):
+                break
         new_parameters = OrderedDict()
         for ap in action.parameters():
             new_parameters[ap.name()] = ap.type()
@@ -180,11 +180,11 @@ class ConditionalEffectsRemover():
 
     def _shallow_copy_durative_action_without_conditional_effects(self, action: DurativeAction) -> DurativeAction:
         #emulates a do-while loop: searching for an available name
-        is_unavailable_name = True
-        while is_unavailable_name:
+        while True:
             new_action_name = action.name()+ "_" +str(self._counter)
             self._counter = self._counter + 1
-            is_unavailable_name = self._problem.has_action(new_action_name)
+            if not self._problem.has_action(new_action_name):
+                break
         new_parameters = OrderedDict()
         for ap in action.parameters():
             new_parameters[ap.name()] = ap.type()
