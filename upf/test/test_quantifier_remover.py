@@ -17,7 +17,7 @@ import os
 import upf
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.quantifiers_remover import QuantifiersRemover
+from upf.removers.quantifiers_remover import QuantifiersRemover
 from upf.pddl_solver import PDDLSolver
 from upf.io.pddl_writer import PDDLWriter
 from upf.environment import get_env
