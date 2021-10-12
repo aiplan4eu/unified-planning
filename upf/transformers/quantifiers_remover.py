@@ -19,7 +19,7 @@ from upf.temporal import DurativeAction
 import upf.operators as op
 import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
-from upf.removers.remover import Remover
+from upf.transformers.remover import Remover
 from upf.problem import Problem
 from upf.action import Action
 from upf.object import Object
