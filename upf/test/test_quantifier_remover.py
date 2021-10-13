@@ -52,6 +52,8 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['basic_exists'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
+        uq_problem_2 = qr.get_rewritten_problem()
+        self.assertEqual(uq_problem, uq_problem_2)
         self.assertIn("Exists", str(problem))
         self.assertNotIn("Exists", str(uq_problem))
 
