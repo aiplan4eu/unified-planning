@@ -679,4 +679,54 @@ def get_example_problems():
     matchcellar = Example(problem=problem, plan=plan)
     problems['matchcellar'] = matchcellar
 
+    # timed connected locations
+    Location = UserType('Location')
+    is_connected = upf.Fluent('is_connected', BoolType(), [Location, Location])
+    is_at = upf.Fluent('is_at', BoolType(), [Location])
+    move = upf.DurativeAction('move', l_from=Location, l_to=Location)
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.set_duration_constraint(CloseInterval(ConstantTiming(6), ConstantTiming(6)))
+    move.add_condition(StartTiming(), is_at(l_from))
+    move.add_condition(StartTiming(), Not(is_at(l_to)))
+    mid_location = upf.Variable('mid_loc', Location)
+    #(E (location mid_location)
+    # !((mid_location == l_from) || (mid_location == l_to)) && (is_connected(l_from, mid_location) || is_connected(mid_location, l_from)) &&
+    # && (is_connected(l_to, mid_location) || is_connected(mid_location, l_to)))
+    move.add_durative_condition(CloseInterval(StartTiming(), EndTiming()), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
+                            Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
+                            Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
+
+    # NOTE: The add_durative_condition wants an interval, but the converter has problems converting it
+    # EDIT: It looks like the "action.conditions()" method also uses the durative conditions
+    move.add_condition(StartTiming(), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
+                            Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
+                            Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
+    move.add_effect(StartTiming(1), is_at(l_from), False)
+    move.add_effect(EndTiming(5), is_at(l_to), True)
+    l1 = upf.Object('l1', Location)
+    l2 = upf.Object('l2', Location)
+    l3 = upf.Object('l3', Location)
+    l4 = upf.Object('l4', Location)
+    l5 = upf.Object('l5', Location)
+    problem = upf.Problem('timed_connected_locations')
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.add_object(l3)
+    problem.add_object(l4)
+    problem.add_object(l5)
+    problem.set_initial_value(is_at(l1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.add_goal(is_at(l5))
+    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l3)]), Fraction(6, 1)),
+                                  (Fraction(6, 1), upf.ActionInstance(move, [ObjectExp(l3), ObjectExp(l5)]), Fraction(6, 1))])
+    timed_connected_locations = Example(problem=problem, plan=plan)
+    problems['timed_connected_locations'] = timed_connected_locations
+
     return problems
