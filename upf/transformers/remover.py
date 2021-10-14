@@ -92,7 +92,26 @@ class Remover:
         for fl, v in self._problem.initial_values().items():
             self._new_problem.set_initial_value(fl, v)
 
-    def _create_action_copy(self, action: Action, id: Optional[int] = None):
+    def _new_problem_add_timed_effects(self):
+        for t, el in self._problem.timed_effects():
+            for e in el:
+                self._new_problem.add_timed_effect(t, e)
+
+    def _new_problem_add_timed_goals(self):
+        for t, gl in self._problem.timed_goals():
+            for g in gl:
+                self._new_problem.add_timed_goal(t, g)
+
+    def _new_problem_add_mantain_goals(self):
+        for i, gl in self._problem.mantain_goals():
+            for g in gl:
+                self._new_problem.add_mantain_goal(i, g)
+
+    def _new_problem_add_goals(self):
+        for g in self._problem.goals():
+            self._new_problem.add_goal(g)
+
+    def _create_action_copy(self, action: Action, id: Optional[int] = None) -> Action:
         if id is not None:
             new_action_name = f'{action.name()}__{str(id)}__'
             if self._problem.has_action(new_action_name):
@@ -103,7 +122,11 @@ class Remover:
         # the mapping in the remover and not in every single other remover who needs it.
         return Action(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
-    def _create_durative_action_copy(self, action: DurativeAction, id: Optional[int] = None):
+    def _action_add_preconditions(self, original_action: Action, new_action: Action):
+        for p in original_action.preconditions():
+            new_action.add_precondition(p)
+
+    def _create_durative_action_copy(self, action: DurativeAction, id: Optional[int] = None) -> DurativeAction:
         if id is not None:
             new_action_name = f'{action.name()}__{str(id)}__'
             if self._problem.has_action(new_action_name):
@@ -115,3 +138,11 @@ class Remover:
         nda = DurativeAction(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
         nda.set_duration_constraint(action.duration())
         return nda
+
+    def _durative_action_add_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
+        for t, c in original_action.conditions().items():
+            new_action.add_condition(t, c)
+
+    def _durative_action_add_durative_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
+        for i, dc in original_action.durative_conditions().items():
+            new_action.add_durative_condition(i, dc)
