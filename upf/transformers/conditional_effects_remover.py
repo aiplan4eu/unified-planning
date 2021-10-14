@@ -20,6 +20,7 @@ from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
 from upf.action import ActionInterface, Action
 from upf.effect import Effect
+from upf.exceptions import UPFProblemDefinitionError
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
 from upf.transformers.remover import Remover
@@ -60,8 +61,16 @@ class ConditionalEffectsRemover(Remover):
         for t, el in self._problem.timed_effects():
             for e in el:
                 if e.is_conditional():
-                    raise # NOTE is it a problem if a timed_effect is conditional? It should be if this class is used!
-                self._new_problem.add_timed_effect(t, e)
+                    f, v = e.fluent(), e.value()
+                    if f.type() != self._env.type_manager.BoolType() or self._env.type_checker.get_type(v) != self._env.type_manager.BoolType():
+                        raise UPFProblemDefinitionError(f'The condition of effect: {e}\ncould not be removed without changing the problem.')
+                    else:
+                        em = self._env.expression_manager
+                        c = e.condition()
+                        nv = em.Or(em.And(c, v), em.And(em.Not(c), f))
+                        self._new_problem.add_timed_effect(t, Effect(f, nv))
+                else:
+                    self._new_problem.add_timed_effect(t, e)
         self._new_problem_add_timed_goals()
         self._new_problem_add_mantain_goals()
         self._new_problem_add_goals()
