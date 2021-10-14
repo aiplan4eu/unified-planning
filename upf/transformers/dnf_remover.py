@@ -24,48 +24,52 @@ from upf.dnf import Dnf
 from upf.exceptions import UPFProblemDefinitionError
 from upf.simplifier import Simplifier
 from upf.temporal import DurativeAction, Interval, Timing
+from upf.transformers.remover import Remover
 from typing import Dict, List, Tuple, Union
 
 
-class DnfRemover():
+class DnfRemover(Remover):
     '''Dnf remover class:
     this class requires a problem and offers the capability
     to transform a problem with preconditions not in the DNF form
     into one with all the preconditions in DNF form.
     '''
     def __init__(self, problem: Problem):
-        self._problem = problem
-        self._env = problem.env
-        self._dnf_problem = None
-        self._action_mapping: Dict[ActionInterface, ActionInterface] = {}
+        Remover.__init__(problem)
+        self._action_mapping = {}
         #NOTE no simplification are made. But it's possible to add them in key points
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every precondition is compiled into one with preconditions in DNF.'''
-        if self._dnf_problem is not None:
-            return self._dnf_problem
+        if self._new_problem is not None:
+            return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
-        new_problem = self._create_problem_copy_without_actions()
-        self._handle_actions(new_problem)
-        self._dnf_problem = new_problem
-        return new_problem
+        self._new_problem = self._create_problem_copy_without_actions()
+        self._create_problem_copy("dnf")
+        self._new_problem_add_fluents()
+        self._new_problem_add_objects()
+        self._new_problem_add_initial_values()
+        self._new_problem_add_goals()
 
-    def _handle_actions(self, new_problem):
+        self._handle_actions()
+
+        return self._new_problem
+
+    def _handle_actions(self):
         dnf = Dnf(self._env)
         for a in self._problem.actions().values():
+            self.count = 0
             if isinstance(a, Action):
-                self.count = 0
                 new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
                 if new_precond.is_or():
                     for and_exp in new_precond.args():
                         na = self._create_new_action_with_given_precond(and_exp, a)
-                        new_problem.add_action(na)
+                        self._new_problem.add_action(na)
                 else:
                     na = self._create_new_action_with_given_precond(new_precond, a)
-                    new_problem.add_action(na)
+                    self._new_problem.add_action(na)
             elif isinstance(a, DurativeAction):
-                self.count = 0
                 temporal_list: List[Union[Timing, Interval]] = []
                 conditions: List[List[FNode]] = []
                 # save the timing, calculate the dnf of the and of all the conditions at the same time
@@ -88,7 +92,7 @@ class DnfRemover():
                 conditions_tuple: Tuple[List[FNode], ...] = product(*conditions)
                 for cond_list in conditions_tuple:
                     nda = self._create_new_durative_action_with_given_conds_at_given_times(temporal_list, cond_list, a)
-                    new_problem.add_action(nda)
+                    self._new_problem.add_action(nda)
             else:
                 raise NotImplementedError
 
@@ -118,16 +122,13 @@ class DnfRemover():
             raise NotImplementedError
 
     def _create_new_action_with_given_precond(self, precond, original_action):
-        new_action = Action(f"{original_action.name()}__{self.count}__", {ap.name(): ap.type() for ap in original_action.parameters()}, self._env)
-        self.count = self.count + 1
-        if self._problem.has_action(new_action.name()):
-            raise UPFProblemDefinitionError(f"Action: {new_action.name()} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        new_action = self._create_action_copy(original_action, self.count)
+        self.count += 1
         if precond.is_and():
             for leaf in precond.args():
                 new_action.add_precondition(leaf)
         else:
             new_action.add_precondition(precond)
-
         for e in original_action.effects():
             new_action._add_effect_instance(e)
         self._action_mapping[new_action] = original_action
@@ -136,16 +137,16 @@ class DnfRemover():
     def _create_problem_copy_without_actions(self):
         '''Creates the shallow copy of a problem, without adding the actions
         '''
-        new_problem: Problem = Problem("dnf_" + str(self._problem.name()), self._env)
+        self._new_problem: Problem = Problem("dnf_" + str(self._problem.name()), self._env)
         for f in self._problem.fluents().values():
-            new_problem.add_fluent(f)
+            self._new_problem.add_fluent(f)
         for o in self._problem.all_objects():
-            new_problem.add_object(o)
+            self._new_problem.add_object(o)
         for fl, v in self._problem.initial_values().items():
-            new_problem.set_initial_value(fl, v)
+            self._new_problem.set_initial_value(fl, v)
         for g in self._problem.goals():
-            new_problem.add_goal(g)
-        return new_problem
+            self._new_problem.add_goal(g)
+        return self._new_problem
 
     def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
         '''Takes the sequential plan of the DNF problem (created with
