@@ -99,11 +99,9 @@ class DisjunctiveConditionsRemover(Remover):
             else:
                 raise NotImplementedError
 
-    def _create_new_durative_action_with_given_conds_at_given_times(self, temporal_list, cond_list, original_action) -> DurativeAction:
-        new_action = DurativeAction(f"{original_action.name()}__{self.count}__", {ap.name(): ap.type() for ap in original_action.parameters()}, self._env) # type: ignore
+    def _create_new_durative_action_with_given_conds_at_given_times(self, temporal_list: List[Union[Timing, Interval]], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
+        new_action = self._create_durative_action_copy(original_action, self.count)
         self.count = self.count + 1
-        if self._problem.has_action(new_action.name()):
-            raise UPFProblemDefinitionError(f"DurativeAction: {new_action.name()} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
         for t, c in zip(temporal_list, cond_list):
             if c.is_and():
                 for co in c.args():
