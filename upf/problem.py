@@ -75,6 +75,27 @@ class Problem:
         for k, v in self.initial_values().items():
             s.append(f'  {str(k)} := {str(v)}\n')
         s.append(']\n\n')
+        if len(self.timed_effects()) > 0:
+            s.append('timed effects = [\n')
+            for k, el in self.timed_effects().items():
+                s.append(f'  {str(k)} :\n')
+                for e in el:
+                    s.append(f'    {str(e)}\n')
+            s.append(']\n\n')
+        if len(self.timed_goals()) > 0:
+            s.append('timed goals = [\n')
+            for k, gl in self.timed_goals().items():
+                s.append(f'  {str(k)} :\n')
+                for g in gl:
+                    s.append(f'    {str(g)}\n')
+            s.append(']\n\n')
+        if len(self.mantain_goals()) > 0:
+            s.append('mantain goals = [\n')
+            for k, gl in self.timed_goals().items():
+                s.append(f'  {str(k)} :\n')
+                for g in gl:
+                    s.append(f'    {str(g)}\n')
+            s.append(']\n\n')
         s.append('goals = [\n')
         for g in self.goals():
             s.append(f'  {str(g)}\n')
