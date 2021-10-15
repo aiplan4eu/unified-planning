@@ -17,7 +17,7 @@
 from collections import OrderedDict
 from upf.temporal import DurativeAction
 from upf.fluent import Fluent
-from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
+from upf.transformers.remover import Remover
 from upf.problem import Problem
 from upf.action import Action
 from upf.fnode import FNode
@@ -47,7 +47,7 @@ class NegativeFluentRemover(IdentityDagWalker):
         return self._env.expression_manager.FluentExp(nf, tuple(args[0].args()))
 
 
-class NegativeConditionsRemover():
+class NegativeConditionsRemover(Remover):
     '''Negative conditions remover class:
     this class requires a problem and offers the capability
     to transform a problem with negative conditions into one
@@ -56,9 +56,7 @@ class NegativeConditionsRemover():
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
     def __init__(self, problem: Problem):
-        self._problem = problem
-        self._env = problem.env
-        self._positive_problem = None
+        Remover.__init__(self, problem)
         self._count = 0
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self._env)
@@ -67,26 +65,26 @@ class NegativeConditionsRemover():
         '''Creates a problem that is a copy of the original problem
         but every ngeative fluent into action preconditions or overall
         goal is replaced by the fluent representing his negative.'''
-        if self._positive_problem is not None:
-            return self._positive_problem
+        if self._new_problem is not None:
+            return self._new_problem
         #NOTE that a different environment might be needed when multy-threading
-        new_problem = self._create_problem_copy_without_fluents_actions_init_and_goals()
-        self._modify_actions_and_goals(new_problem)
-        self._positive_problem = new_problem
-        return new_problem
+        self._create_problem_copy('no_negative_conditions')
+        self._new_problem_add_objects()
+        assert self._new_problem is not None
+        self._modify_actions_and_goals()
+        return self._new_problem
 
-    def _modify_actions_and_goals(self, new_problem):
+    def _modify_actions_and_goals(self):
         name_action_map: Dict[str, Union[Action, DurativeAction]] = {}
-
         for name, action in self._problem.actions().items():
             if isinstance(action, Action):
-                new_action = Action(name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+                new_action = self._create_action_copy(action)
                 for p in action.preconditions():
                     np = self._fluent_remover.remove_negative_fluents(p)
                     new_action.add_precondition(np)
                 name_action_map[name] = new_action
             elif isinstance(action, DurativeAction):
-                new_durative_action = DurativeAction(name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+                new_durative_action = self._create_durative_action_copy(action)
                 for t, cl in action.conditions().items():
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
@@ -102,33 +100,33 @@ class NegativeConditionsRemover():
         for t, gl in self._problem.timed_goals().items():
             for g in gl:
                 ng = self._fluent_remover.remove_negative_fluents(g)
-                new_problem.add_timed_goal(t, ng)
+                self._new_problem.add_timed_goal(t, ng)
         for i, gl in self._problem.mantain_goals().items():
             for g in gl:
                 ng = self._fluent_remover.remove_negative_fluents(g)
-                new_problem.add_mantain_goal(i, ng)
+                self._new_problem.add_mantain_goal(i, ng)
 
         for g in self._problem.goals():
             ng = self._fluent_remover.remove_negative_fluents(g)
-            new_problem.add_goal(ng)
+            self._new_problem.add_goal(ng)
 
         fluent_mapping = self._fluent_remover._fluent_mapping
         for f in self._problem.fluents().values():
-            new_problem.add_fluent(f)
+            self._new_problem.add_fluent(f)
             fneg = fluent_mapping.get(f, None)
             if fneg is not None:
-                new_problem.add_fluent(fneg)
+                self._new_problem.add_fluent(fneg)
 
         for fl, v in self._problem.initial_values().items():
             fneg = fluent_mapping.get(fl.fluent(), None)
             if v.is_bool_constant():
-                new_problem.set_initial_value(fl, v)
+                self._new_problem.set_initial_value(fl, v)
                 if fneg is not None:
                     if v.bool_constant_value():
-                        new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
+                        self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
                         tuple(fl.args())), self._env.expression_manager.FALSE())
                     else:
-                        new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
+                        self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
                         tuple(fl.args())), self._env.expression_manager.TRUE())
             else:
                 raise UPFProblemDefinitionError(f"Initial value: {v} of fluent: {fl} is not a boolean constant. An initial value MUST be a Boolean constant.")
@@ -150,14 +148,14 @@ class NegativeConditionsRemover():
                                 new_action.add_effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
                     else:
                         raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
-                new_problem.add_action(new_action)
+                self._new_problem.add_action(new_action)
             elif isinstance(action, DurativeAction):
                 new_durative_action = name_action_map[name]
                 new_durative_action.set_duration_constraint(action.duration())
                 for t, el in action.effects().items():
                     for e in el:
                         if e.is_conditional():
-                            raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.")
+                            raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.")
                         fl, v = e.fluent(), e.value()
                         fneg = fluent_mapping.get(fl.fluent(), None)
                         if v.is_bool_constant():
@@ -169,28 +167,22 @@ class NegativeConditionsRemover():
                                     new_durative_action.add_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
                         else:
                             raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
-                new_problem.add_action(new_durative_action)
+                self._new_problem.add_action(new_durative_action)
             else:
                 raise NotImplementedError
 
-    def _create_problem_copy_without_fluents_actions_init_and_goals(self):
-        '''Creates the shallow copy of a problem, without adding the actions
-        with quantifiers and by pushing them to the stack
-        '''
-        new_problem: Problem = Problem("no_negative_preconditions_" + str(self._problem.name()), self._env)
-        for o in self._problem.all_objects():
-            new_problem.add_object(o)
-        return new_problem
-
-    def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
-        '''Takes the sequential plan of the problem (created with
-        the method "self.get_rewritten_problem()" and translates the plan back
-        to be a plan of the original problem.'''
-        if isinstance(plan, SequentialPlan):
-            return SequentialPlan([ActionInstance(self._problem.action(ai.action().name()),
-                            ai.actual_parameters()) for ai in plan.actions()])
-        elif isinstance(plan, TimeTriggeredPlan):
-            return TimeTriggeredPlan([(s, ActionInstance(self._problem.action(ai.action().name()),
-                            ai.actual_parameters()), d) for s, ai, d in plan.actions()])
-        else:
-            raise NotImplementedError
+        for t, el in self._problem.timed_effects().items():
+            for e in el:
+                if e.is_conditional():
+                    raise UPFProblemDefinitionError(f"Timed effect: {e} at time {t} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.")
+                fl, v = e.fluent(), e.value()
+                fneg = fluent_mapping.get(fl.fluent(), None)
+                if v.is_bool_constant():
+                    self._new_problem.add_timed_effect(t, f, v)
+                    if fneg is not None:
+                        if v.bool_constant_value():
+                            self._new_problem.add_timed_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.FALSE())
+                        else:
+                            self._new_problem.add_timed_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
+                else:
+                    raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
