@@ -138,7 +138,7 @@ class NegativeConditionsRemover():
                 new_action = name_action_map[name]
                 for e in action.effects():
                     if e.is_conditional():
-                        raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.")
+                        raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.")
                     fl, v = e.fluent(), e.value()
                     fneg = fluent_mapping.get(fl.fluent(), None)
                     if v.is_bool_constant():
