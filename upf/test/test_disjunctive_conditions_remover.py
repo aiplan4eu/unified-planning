@@ -18,7 +18,7 @@ from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.transformers.disjunctive_conditions_remover import DisjunctiveConditionsRemover
+from upf.transformers import DisjunctiveConditionsRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
 from upf.exceptions import UPFProblemDefinitionError

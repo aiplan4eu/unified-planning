@@ -18,7 +18,7 @@ from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.transformers.conditional_effects_remover import ConditionalEffectsRemover
+from upf.transformers import ConditionalEffectsRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
 
