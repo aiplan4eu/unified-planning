@@ -68,13 +68,34 @@ class Problem:
         s.append(']\n\n')
         if len(self.user_types()) > 0:
             s.append('objects = [\n')
-            for t in self.user_types().values():
-                s.append(f'  {str(t)}: {str(self.objects(t))}\n')
+            for ty in self.user_types().values():
+                s.append(f'  {str(ty)}: {str(self.objects(ty))}\n')
             s.append(']\n\n')
         s.append('initial values = [\n')
         for k, v in self.initial_values().items():
             s.append(f'  {str(k)} := {str(v)}\n')
         s.append(']\n\n')
+        if len(self.timed_effects()) > 0:
+            s.append('timed effects = [\n')
+            for t, el in self.timed_effects().items():
+                s.append(f'  {str(t)} :\n')
+                for e in el:
+                    s.append(f'    {str(e)}\n')
+            s.append(']\n\n')
+        if len(self.timed_goals()) > 0:
+            s.append('timed goals = [\n')
+            for t, gl in self.timed_goals().items():
+                s.append(f'  {str(t)} :\n')
+                for g in gl:
+                    s.append(f'    {str(g)}\n')
+            s.append(']\n\n')
+        if len(self.mantain_goals()) > 0:
+            s.append('mantain goals = [\n')
+            for i, gl in self.timed_goals().items():
+                s.append(f'  {str(i)} :\n')
+                for g in gl:
+                    s.append(f'    {str(g)}\n')
+            s.append(']\n\n')
         s.append('goals = [\n')
         for g in self.goals():
             s.append(f'  {str(g)}\n')

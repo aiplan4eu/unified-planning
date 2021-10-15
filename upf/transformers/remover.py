@@ -127,6 +127,10 @@ class Remover:
         for p in original_action.preconditions():
             new_action.add_precondition(p)
 
+    def _action_add_effects(self, original_action: Action, new_action: Action):
+        for e in original_action.effects():
+            new_action._add_effect_instance(e)
+
     def _create_durative_action_copy(self, action: DurativeAction, id: Optional[int] = None) -> DurativeAction:
         if id is not None:
             new_action_name = f'{action.name()}__{str(id)}__'
@@ -147,6 +151,11 @@ class Remover:
     def _durative_action_add_durative_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
         for i, dc in original_action.durative_conditions().items():
             new_action.add_durative_condition(i, dc)
+
+    def _durative_action_add_effects(self, original_action: DurativeAction, new_action: DurativeAction):
+        for t, el in original_action.effects().items():
+            for e in el:
+                new_action._add_effect_instance(t, e)
 
     def _check_and_simplify_conditions(self, action: DurativeAction) -> bool:
         '''Simplifies conditions and if it is False (a contraddiction)
