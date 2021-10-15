@@ -18,7 +18,7 @@ from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.conditional_effects_remover import ConditionalEffectsRemover
+from upf.transformers.conditional_effects_remover import ConditionalEffectsRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
 
@@ -50,20 +50,20 @@ class TestConditionalEffectsRemover(TestCase):
         unconditional_problem = cer.get_rewritten_problem()
         u_actions = list(unconditional_problem.actions().values())
         a_x = problem.action("a_x")
-        a_x_1 = unconditional_problem.action("a_x_1")
+        a_x__0__ = unconditional_problem.action("a_x__0__")
         y = FluentExp(problem.fluent("y"))
         a_x_e = a_x.effects()
-        a_x_1_e = a_x_1.effects()
+        a_x__0__e = a_x__0__.effects()
 
         self.assertEqual(len(u_actions), 2)
         self.assertEqual(problem.action("a_y"), unconditional_problem.action("a_y"))
         self.assertTrue(a_x.is_conditional())
         self.assertFalse(unconditional_problem.has_action("a_x"))
-        self.assertFalse(a_x_1.is_conditional())
+        self.assertFalse(a_x__0__.is_conditional())
         self.assertFalse(problem.has_action("a_x_0"))
-        self.assertIn(y, a_x_1.preconditions())
+        self.assertIn(y, a_x__0__.preconditions())
         self.assertNotIn(y, a_x.preconditions())
-        for e, ue in zip(a_x_e, a_x_1_e):
+        for e, ue in zip(a_x_e, a_x__0__e):
             self.assertEqual(e.fluent(), ue.fluent())
             self.assertEqual(e.value(), ue.value())
             self.assertFalse(ue.is_conditional())
@@ -105,3 +105,17 @@ class TestConditionalEffectsRemover(TestCase):
             #     self.assertTrue(res)
             #     res = validator.validate(problem, new_plan)
             #     self.assertTrue(res)
+
+    def test_temporal_conditional(self):
+        problem = self.problems['temporal_conditional'].problem
+        plan = self.problems['temporal_conditional'].plan
+
+        cer = ConditionalEffectsRemover(problem)
+        unconditional_problem = cer.get_rewritten_problem()
+
+        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
+            self.assertNotEqual(planner, None)
+            unconditional_plan = planner.solve(unconditional_problem)
+            self.assertNotEqual(str(plan), str(unconditional_plan))
+            conditional_plan = cer.rewrite_back_plan(unconditional_plan)
+            self.assertEqual(str(plan), str(conditional_plan))

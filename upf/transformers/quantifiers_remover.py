@@ -77,7 +77,6 @@ class QuantifiersRemover(Remover):
     '''
     def __init__(self, problem: Problem):
         Remover.__init__(self, problem)
-        self._noquantifier_problem = None
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
 

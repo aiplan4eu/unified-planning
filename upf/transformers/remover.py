@@ -15,13 +15,14 @@
 """This module defines the different remover classes."""
 
 
+from upf.fnode import FNode
 from upf.action import ActionInterface, Action
 from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.problem import Problem
 from upf.simplifier import Simplifier
-from upf.temporal import DurativeAction
-from typing import Dict, Optional, OrderedDict, Union
+from upf.temporal import DurativeAction, Timing
+from typing import Dict, List, Optional, OrderedDict, Union
 
 
 class Remover:
@@ -92,7 +93,26 @@ class Remover:
         for fl, v in self._problem.initial_values().items():
             self._new_problem.set_initial_value(fl, v)
 
-    def _create_action_copy(self, action: Action, id: Optional[int] = None):
+    def _new_problem_add_timed_effects(self):
+        for t, el in self._problem.timed_effects():
+            for e in el:
+                self._new_problem.add_timed_effect(t, e)
+
+    def _new_problem_add_timed_goals(self):
+        for t, gl in self._problem.timed_goals():
+            for g in gl:
+                self._new_problem.add_timed_goal(t, g)
+
+    def _new_problem_add_mantain_goals(self):
+        for i, gl in self._problem.mantain_goals():
+            for g in gl:
+                self._new_problem.add_mantain_goal(i, g)
+
+    def _new_problem_add_goals(self):
+        for g in self._problem.goals():
+            self._new_problem.add_goal(g)
+
+    def _create_action_copy(self, action: Action, id: Optional[int] = None) -> Action:
         if id is not None:
             new_action_name = f'{action.name()}__{str(id)}__'
             if self._problem.has_action(new_action_name):
@@ -103,7 +123,11 @@ class Remover:
         # the mapping in the remover and not in every single other remover who needs it.
         return Action(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
-    def _create_durative_action_copy(self, action: DurativeAction, id: Optional[int] = None):
+    def _action_add_preconditions(self, original_action: Action, new_action: Action):
+        for p in original_action.preconditions():
+            new_action.add_precondition(p)
+
+    def _create_durative_action_copy(self, action: DurativeAction, id: Optional[int] = None) -> DurativeAction:
         if id is not None:
             new_action_name = f'{action.name()}__{str(id)}__'
             if self._problem.has_action(new_action_name):
@@ -115,3 +139,72 @@ class Remover:
         nda = DurativeAction(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
         nda.set_duration_constraint(action.duration())
         return nda
+
+    def _durative_action_add_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
+        for t, c in original_action.conditions().items():
+            new_action.add_condition(t, c)
+
+    def _durative_action_add_durative_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
+        for i, dc in original_action.durative_conditions().items():
+            new_action.add_durative_condition(i, dc)
+
+    def _check_and_simplify_conditions(self, action: DurativeAction) -> bool:
+        '''Simplifies conditions and if it is False (a contraddiction)
+        returns False, otherwise returns True.
+        If the simplification is True (a tautology) removes all conditions at the given timing.
+        If the simplification is still an AND rewrites back every "arg" of the AND
+        in the conditions
+        If the simplification is not an AND sets the simplification as the only
+        condition at the given timing.'''
+        #action conditions
+        #tlc = timing list condition
+        tlc: Dict[Timing, List[FNode]] = action.conditions()
+        if len(tlc) == 0:
+            return True
+        # t = timing, lc = list condition
+        for t, lc in tlc.copy().items():
+            #conditions (as an And FNode)
+            c = self._env.expression_manager.And(lc)
+            #conditions simplified
+            cs = self._simplifier.simplify(c)
+            #new action conditions
+            nac: List[FNode] = []
+            if cs.is_bool_constant():
+                if not cs.bool_constant_value():
+                    return False
+            else:
+                if cs.is_and():
+                    nac.extend(cs.args())
+                else:
+                    nac.append(cs)
+            action._set_conditions(t, nac)
+        return True
+
+    def _check_and_simplify_preconditions(self, action: Action) -> bool:
+        '''Simplifies preconditions and if it is False (a contraddiction)
+        returns False, otherwise returns True.
+        If the simplification is True (a tautology) removes all preconditions.
+        If the simplification is still an AND rewrites back every "arg" of the AND
+        in the preconditions
+        If the simplification is not an AND sets the simplification as the only
+        precondition.'''
+        #action preconditions
+        ap = action.preconditions()
+        if len(ap) == 0:
+            return True
+        #preconditions (as an And FNode)
+        p = self._env.expression_manager.And(ap)
+        #preconditions simplified
+        ps = self._simplifier.simplify(p)
+        #new action preconditions
+        nap: List[FNode] = []
+        if ps.is_bool_constant():
+            if not ps.bool_constant_value():
+                return False
+        else:
+            if ps.is_and():
+                nap.extend(ps.args())
+            else:
+                nap.append(ps)
+        action._set_preconditions(nap)
+        return True
