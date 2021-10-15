@@ -113,7 +113,7 @@ class DisjunctiveConditionsRemover(Remover):
         self._action_mapping[new_action] = original_action # type: ignore
         return new_action
 
-    def _add_condition(self, new_action, time, condition):
+    def _add_condition(self, new_action: DurativeAction, time: Union[Timing, Interval], condition: FNode):
         if isinstance(time, Timing):
             new_action.add_condition(time, condition)
         elif isinstance(time, Interval):
@@ -121,7 +121,7 @@ class DisjunctiveConditionsRemover(Remover):
         else:
             raise NotImplementedError
 
-    def _create_new_action_with_given_precond(self, precond, original_action):
+    def _create_new_action_with_given_precond(self, precond: FNode, original_action: Action) -> Action:
         new_action = self._create_action_copy(original_action, self.count)
         self.count += 1
         if precond.is_and():
@@ -130,5 +130,6 @@ class DisjunctiveConditionsRemover(Remover):
         else:
             new_action.add_precondition(precond)
         self._action_add_effects(original_action, new_action)
+        assert self._action_mapping is not None
         self._action_mapping[new_action] = original_action
         return new_action
