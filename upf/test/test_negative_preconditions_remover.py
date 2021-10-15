@@ -18,15 +18,15 @@ import os
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main
+from upf.test import TestCase
 from upf.test.examples import get_example_problems
-from upf.negative_preconditions_remover import NegativePreconditionsRemover
+from upf.transformers import NegativeConditionsRemover
 from upf.plan_validator import PlanValidator as PV
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
 from upf.effect import Effect
 
 
-class TestNegativePreconditionsRemover(TestCase):
+class TestNegativeConditionsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.env = get_env()
@@ -35,7 +35,7 @@ class TestNegativePreconditionsRemover(TestCase):
 
     def test_basic(self):
         problem = self.problems['basic'].problem
-        npr = NegativePreconditionsRemover(problem)
+        npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         with OneshotPlanner(name='tamer') as planner:
             self.assertNotEqual(planner, None)
@@ -50,7 +50,7 @@ class TestNegativePreconditionsRemover(TestCase):
     def test_robot_loader_mod(self):
         problem = self.problems['robot_loader_mod'].problem
         plan = self.problems['robot_loader_mod'].plan
-        npr = NegativePreconditionsRemover(problem)
+        npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         positive_problem_2 = npr.get_rewritten_problem()
         self.assertEqual(positive_problem, positive_problem_2)
@@ -64,7 +64,7 @@ class TestNegativePreconditionsRemover(TestCase):
     def test_matchcellar(self):
         problem = self.problems['matchcellar'].problem
         plan = self.problems['matchcellar'].plan
-        npr = NegativePreconditionsRemover(problem)
+        npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         self.assertTrue(problem.kind().has_negative_conditions())
         self.assertFalse(positive_problem.kind().has_negative_conditions())
@@ -104,7 +104,7 @@ class TestNegativePreconditionsRemover(TestCase):
         problem.add_goal(x)
         problem.add_goal(Not(y))
         problem.add_goal(Not(Iff(x, y)))
-        npr = NegativePreconditionsRemover(problem)
+        npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPFExpressionDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
         self.assertIn(f"Expression: {Not(Iff(x, y))} is not in NNF.", str(e.exception))
@@ -113,7 +113,7 @@ class TestNegativePreconditionsRemover(TestCase):
         r = upf.Fluent('r', RealType())
         problem = upf.Problem('ad_hoc_2')
         problem.set_initial_value(r, 5.1)
-        npr = NegativePreconditionsRemover(problem)
+        npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPFProblemDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
         self.assertIn(f"Initial value: {str(problem.initial_value(r))} of fluent: {FluentExp(r)} is not a boolean constant. An initial value MUST be a Boolean constant.", str(e.exception))
@@ -133,10 +133,10 @@ class TestNegativePreconditionsRemover(TestCase):
         problem.add_fluent(x, default_initial_value=False)
         problem.add_fluent(y, default_initial_value=False)
         problem.add_action(a)
-        npr = NegativePreconditionsRemover(problem)
+        npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPFProblemDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
-        self.assertIn(f"Effect: {a.effects()[0]} of action: {a} is conditional. Try using the ConditionalEffectsRemover before the NegativePreconditionsRemover.", str(e.exception))
+        self.assertIn(f"Effect: {a.effects()[0]} of action: {a} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.", str(e.exception))
 
     def test_ad_hoc_4(self):
         x = upf.Fluent('x')
@@ -148,7 +148,7 @@ class TestNegativePreconditionsRemover(TestCase):
         problem.add_fluent(x, default_initial_value=False)
         problem.add_fluent(y, default_initial_value=False)
         problem.add_action(a)
-        npr = NegativePreconditionsRemover(problem)
+        npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPFProblemDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
         self.assertIn(f"Effect; {a.effects()[0]} assigns value: {a.effects()[0].value()} to fluent: {a.effects()[0].fluent()}, but value is not a boolean constant.", str(e.exception))

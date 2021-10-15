@@ -47,13 +47,13 @@ class NegativeFluentRemover(IdentityDagWalker):
         return self._env.expression_manager.FluentExp(nf, tuple(args[0].args()))
 
 
-class NegativePreconditionsRemover():
-    '''Negative preconditions remover class:
+class NegativeConditionsRemover():
+    '''Negative conditions remover class:
     this class requires a problem and offers the capability
-    to transform a problem with negative preconditions into one
-    without negative preconditions.
+    to transform a problem with negative conditions into one
+    without negative conditions.
 
-    This is done by substituting every fluent that appears with a Not into the preconditions
+    This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
     def __init__(self, problem: Problem):
         self._problem = problem
