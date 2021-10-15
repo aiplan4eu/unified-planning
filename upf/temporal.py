@@ -164,6 +164,7 @@ class DurativeAction(ActionInterface):
         if not first:
             s.append(')')
         s.append(' {\n')
+        s.append(f'    duration = {str(self._duration)}')
         s.append('    conditions = [\n')
         for t, cl in self.conditions().items():
             s.append(f'      {str(t)}:\n')
