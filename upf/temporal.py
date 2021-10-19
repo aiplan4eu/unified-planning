@@ -18,7 +18,7 @@ import upf.types
 from upf.action import ActionInterface, ActionParameter
 from upf.environment import Environment
 from upf.fnode import FNode
-from upf.exceptions import UPFTypeError
+from upf.exceptions import UPFTypeError, UPFProblemDefinitionError
 from upf.expression import BoolExpression, Expression
 from upf.effect import Effect, INCREASE, DECREASE
 from fractions import Fraction
@@ -317,6 +317,8 @@ class DurativeAction(ActionInterface):
     def add_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
                    value: Expression, condition: BoolExpression = True):
         '''Adds the given action effect.'''
+        if not (isinstance(timing, StartTiming) or isinstance(timing, EndTiming)):
+            raise UPFProblemDefinitionError(f'The timing of an effect into an action must be a StartTiming or an EndTiming.\n Timing {timing} is none of those.')
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():

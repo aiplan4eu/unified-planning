@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the problem class."""
+'''This module defines the problem class.'''
 
 import upf.types
 import upf.operators as op
@@ -29,7 +29,7 @@ from typing import List, Dict, Set, Union, Optional
 
 
 class Problem:
-    """Represents a planning problem."""
+    '''Represents a planning problem.'''
     def __init__(self, name: str = None, env: Environment = None, *,
                  initial_defaults: Dict[upf.types.Type, Union[FNode, 'upf.Object', bool,
                                                               int, float, Fraction]] = {}):
@@ -104,26 +104,26 @@ class Problem:
 
     @property
     def env(self) -> Environment:
-        """Returns the problem environment."""
+        '''Returns the problem environment.'''
         return self._env
 
     def name(self) -> Optional[str]:
-        """Returns the problem name."""
+        '''Returns the problem name.'''
         return self._name
 
     def fluents(self) -> Dict[str, upf.Fluent]:
-        """Returns the fluents."""
+        '''Returns the fluents.'''
         return self._fluents
 
     def fluent(self, name: str) -> upf.Fluent:
-        """Returns the fluent with the given name."""
+        '''Returns the fluent with the given name.'''
         assert name in self._fluents
         return self._fluents[name]
 
     def add_fluent(self, fluent: upf.Fluent, *,
                    default_initial_value: Union[FNode, 'upf.Object', bool,
                                                 int, float, Fraction] = None):
-        """Adds the given fluent."""
+        '''Adds the given fluent.'''
         if fluent.name() in self._fluents:
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
         self._update_problem_kind_type(fluent.type())
@@ -135,28 +135,28 @@ class Problem:
             self._fluents_defaults[fluent] = v_exp
 
     def actions(self) -> Dict[str, upf.ActionInterface]:
-        """Returns the actions."""
+        '''Returns the actions.'''
         return self._actions
 
     def conditional_actions(self) -> List[upf.ActionInterface]:
-        """Returns the conditional actions."""
+        '''Returns the conditional actions.'''
         return [a for a in self._actions.values() if a.is_conditional()]
 
     def unconditional_actions(self) -> List[upf.ActionInterface]:
-        """Returns the conditional actions."""
+        '''Returns the conditional actions.'''
         return [a for a in self._actions.values() if not a.is_conditional()]
 
     def action(self, name: str) -> upf.ActionInterface:
-        """Returns the action with the given name."""
+        '''Returns the action with the given name.'''
         assert name in self._actions
         return self._actions[name]
 
     def has_action(self, name: str) -> bool:
-        """Returns True if the problem has the action with the given name ."""
+        '''Returns True if the problem has the action with the given name .'''
         return name in self._actions
 
     def add_action(self, action: upf.ActionInterface):
-        """Adds the given action."""
+        '''Adds the given action.'''
         if action.name() in self._actions:
             raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
         for p in action.parameters():
@@ -168,45 +168,49 @@ class Problem:
                 self._update_problem_kind_effect(e)
         elif isinstance(action, upf.DurativeAction):
             for t, l in action.conditions().items():
+                if t.bound() != 0:
+                    self._kind.set_time('ICE') # type: ignore
                 for c in l:
                     self._update_problem_kind_condition(c)
             for t, l in action.effects().items():
+                if t.bound() != 0:
+                    self._kind.set_time('ICE') # type: ignore
                 for e in l:
                     self._update_problem_kind_effect(e)
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, upf.types.Type]:
-        """Returns the user types."""
+        '''Returns the user types.'''
         return self._user_types
 
     def user_type(self, name: str) -> upf.types.Type:
-        """Returns the user type with the given name."""
+        '''Returns the user type with the given name.'''
         return self._user_types[name]
 
     def has_type(self, name: str) -> bool:
-        """Returns True iff the type 'name' is defined."""
+        '''Returns True iff the type 'name' is defined.'''
         return name in self._user_types
 
     def add_object(self, obj: upf.Object):
-        """Adds the given object."""
+        '''Adds the given object.'''
         if obj.name() in self._objects:
             raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
         self._objects[obj.name()] = obj
 
     def add_objects(self, objs: List[upf.Object]):
-        """Adds the given objects."""
+        '''Adds the given objects.'''
         for obj in objs:
             if obj.name() in self._objects:
                 raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
             self._objects[obj.name()] = obj
 
     def object(self, name: str) -> upf.Object:
-        """Returns the object with the given name."""
+        '''Returns the object with the given name.'''
         return self._objects[name]
 
     def objects(self, typename: upf.types.Type) -> List[upf.Object]:
-        """Returns the objects of the given user types."""
+        '''Returns the objects of the given user types.'''
         res = []
         for obj in self._objects.values():
             if obj.type() == typename:
@@ -214,13 +218,13 @@ class Problem:
         return res
 
     def all_objects(self) -> List[upf.Object]:
-        """Returns all the objects."""
+        '''Returns all the objects.'''
         return [o for o in self._objects.values()]
 
     def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
                           value: Union[FNode, upf.Fluent, upf.Object, bool,
                                        int, float, Fraction]):
-        """Sets the initial value for the given fluent."""
+        '''Sets the initial value for the given fluent.'''
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('Initial value assignment has not compatible types!')
@@ -229,7 +233,7 @@ class Problem:
         self._initial_value[fluent_exp] = value_exp
 
     def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
-        """Gets the initial value of the given fluent."""
+        '''Gets the initial value of the given fluent.'''
         fluent_exp, = self._env.expression_manager.auto_promote(fluent)
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
@@ -241,7 +245,7 @@ class Problem:
             raise UPFProblemDefinitionError('Initial value not set!')
 
     def _domain_size(self, typename: upf.types.Type) -> int:
-        """Returns the domain size of the given type."""
+        '''Returns the domain size of the given type.'''
         if typename.is_bool_type():
             return 2
         elif typename.is_user_type():
@@ -256,7 +260,7 @@ class Problem:
             raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
     def _domain_item(self, typename: upf.types.Type, idx: int) -> FNode:
-        """Returns the ith domain item of the given type."""
+        '''Returns the ith domain item of the given type.'''
         if typename.is_bool_type():
             return self._env.expression_manager.Bool(idx == 0)
         elif typename.is_user_type():
@@ -271,7 +275,7 @@ class Problem:
             raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
     def _get_ith_fluent_exp(self, fluent: upf.Fluent, domain_sizes: List[int], idx: int) -> FNode:
-        """Returns the ith ground fluent expression."""
+        '''Returns the ith ground fluent expression.'''
         quot = idx
         rem = 0
         actual_parameters = []
@@ -284,7 +288,7 @@ class Problem:
         return fluent(*actual_parameters)
 
     def initial_values(self) -> Dict[FNode, FNode]:
-        """Gets the initial value of the fluents."""
+        '''Gets the initial value of the fluents.'''
         res = self._initial_value
         for f in self._fluents.values():
             if f.arity() == 0:
@@ -305,7 +309,7 @@ class Problem:
         return res
 
     def add_timed_goal(self, timing: Timing, goal: Union[FNode, upf.Fluent, bool]):
-        """Adds a timed goal."""
+        '''Adds a timed goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
@@ -316,12 +320,12 @@ class Problem:
         self._kind.set_time('CONTINUOUS_TIME') # type: ignore
 
     def timed_goals(self) -> Dict[Timing, List[FNode]]:
-        """Returns the timed goals."""
+        '''Returns the timed goals.'''
         return self._timed_goals
 
     def add_timed_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
                          value: Expression, condition: BoolExpression = True):
-        """Adds the given timed effect."""
+        '''Adds the given timed effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
                                                                                          condition)
         assert fluent_exp.is_fluent_exp()
@@ -333,7 +337,7 @@ class Problem:
 
     def add_increase_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
                             value: Expression, condition: BoolExpression = True):
-        """Adds the given timed increase effect."""
+        '''Adds the given timed increase effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
                                                                                          condition)
         assert fluent_exp.is_fluent_exp()
@@ -347,7 +351,7 @@ class Problem:
 
     def add_decrease_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
                             value: Expression, condition: BoolExpression = True):
-        """Adds the given timed decrease effect."""
+        '''Adds the given timed decrease effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
                                                                                          condition)
         assert fluent_exp.is_fluent_exp()
@@ -368,11 +372,11 @@ class Problem:
             self._timed_effects[timing] = [effect]
 
     def timed_effects(self) -> Dict[Timing, List[Effect]]:
-        """Returns the timed effects."""
+        '''Returns the timed effects.'''
         return self._timed_effects
 
     def add_maintain_goal(self, interval: Interval, goal: Union[FNode, 'upf.Fluent', bool]):
-        """Adds a mantain goal."""
+        '''Adds a mantain goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
@@ -383,26 +387,26 @@ class Problem:
         self._kind.set_time('CONTINUOUS_TIME') # type: ignore
 
     def mantain_goals(self) -> Dict[Interval, List[FNode]]:
-        """Returns the mantain goals."""
+        '''Returns the mantain goals.'''
         return self._mantain_goals
 
     def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
-        """Adds a goal."""
+        '''Adds a goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
         self._goals.append(goal_exp)
 
     def goals(self) -> List[FNode]:
-        """Returns the goals."""
+        '''Returns the goals.'''
         return self._goals
 
     def kind(self) -> ProblemKind:
-        """Returns the problem kind of this planning problem."""
+        '''Returns the problem kind of this planning problem.'''
         return self._kind
 
     def has_quantifiers(self) -> bool:
-        """Returns True only if the problem has quantifiers"""
+        '''Returns True only if the problem has quantifiers'''
         return self._kind.has_existential_preconditions() or self._kind.has_universal_preconditions() # type: ignore
 
     def _update_problem_kind_effect(self, e: Effect):
