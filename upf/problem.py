@@ -168,11 +168,11 @@ class Problem:
             for e in action.effects():
                 self._update_problem_kind_effect(e)
         elif isinstance(action, upf.DurativeAction):
-            for i in action.durative_conditions().keys():
-                if i.lower().bound() != 0:
+            for i, l in action.durative_conditions().items():
+                if i.lower().bound() != 0 or i.upper().bound() != 0:
                     self._kind.set_time('ICE') # type: ignore
-                if i.upper().bound() != 0:
-                    self._kind.set_time('ICE') # type: ignore
+                for c in l:
+                    self._update_problem_kind_condition(c)
             for t, l in action.conditions().items():
                 if t.bound() != 0:
                     self._kind.set_time('ICE') # type: ignore
