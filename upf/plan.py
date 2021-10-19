@@ -12,20 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the different plan classes."""
+'''This module defines the different plan classes.'''
+
 
 import upf
 from upf.fnode import FNode
 from typing import Tuple, List
+from fractions import Fraction
 
 
 class Plan:
-    """Represents a generic plan."""
+    '''Represents a generic plan.'''
     pass
 
 
 class ActionInstance:
-    """Represents an action instance with the actual parameters."""
+    '''Represents an action instance with the actual parameters.'''
     def __init__(self, action: 'upf.ActionInterface', params: Tuple[FNode, ...] = tuple()):
         assert len(action.parameters()) == len(params)
         self._action = action
@@ -51,16 +53,16 @@ class ActionInstance:
             return False
 
     def action(self) -> 'upf.ActionInterface':
-        """Returns the action."""
+        '''Returns the action.'''
         return self._action
 
     def actual_parameters(self) -> Tuple[FNode, ...]:
-        """Returns the actual parameters."""
+        '''Returns the actual parameters.'''
         return self._params
 
 
 class SequentialPlan(Plan):
-    """Represents a sequential plan."""
+    '''Represents a sequential plan.'''
     def __init__(self, actions: List[ActionInstance]):
         self._actions = actions
 
@@ -68,18 +70,18 @@ class SequentialPlan(Plan):
         return str(self._actions)
 
     def actions(self) -> List[ActionInstance]:
-        """Returns the sequence of action instances."""
+        '''Returns the sequence of action instances.'''
         return self._actions
 
 
 class TimeTriggeredPlan(Plan):
-    """Represents a time triggered plan."""
-    def __init__(self, actions: List[Tuple[float, ActionInstance, float]]):
+    '''Represents a time triggered plan.'''
+    def __init__(self, actions: List[Tuple[Fraction, ActionInstance, Fraction]]):
         self._actions = actions
 
     def __repr__(self) -> str:
         return str(self._actions)
 
     def actions(self) -> List[Tuple[Fraction, ActionInstance, Fraction]]:
-        """Returns the sequence of action instances."""
+        '''Returns the sequence of action instances.'''
         return self._actions

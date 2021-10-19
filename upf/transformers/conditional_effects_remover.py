@@ -58,17 +58,17 @@ class ConditionalEffectsRemover(Remover):
         self._new_problem_add_fluents()
         self._new_problem_add_objects()
         self._new_problem_add_initial_values()
-        for t, el in self._problem.timed_effects():
+        for t, el in self._problem.timed_effects().items():
             for e in el:
                 if e.is_conditional():
-                    f, v = e.fluent(), e.value()
+                    f, v = e.fluent().fluent(), e.value()
                     if f.type() != self._env.type_manager.BoolType() or self._env.type_checker.get_type(v) != self._env.type_manager.BoolType():
                         raise UPFProblemDefinitionError(f'The condition of effect: {e}\ncould not be removed without changing the problem.')
                     else:
                         em = self._env.expression_manager
                         c = e.condition()
-                        nv = em.Or(em.And(c, v), em.And(em.Not(c), f))
-                        self._new_problem.add_timed_effect(t, Effect(f, nv))
+                        nv = self._simplifier.simplify(em.Or(em.And(c, v), em.And(em.Not(c), f)))
+                        self._new_problem.add_timed_effect(t, f, nv)
                 else:
                     self._new_problem.add_timed_effect(t, e)
         self._new_problem_add_timed_goals()
