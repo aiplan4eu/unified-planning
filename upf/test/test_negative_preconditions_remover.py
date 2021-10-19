@@ -19,6 +19,7 @@ from upf.plan import ActionInstance
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
+from upf.temporal import ConstantTiming, CloseInterval
 from upf.test import TestCase
 from upf.test.examples import get_example_problems
 from upf.transformers import NegativeConditionsRemover
@@ -114,6 +115,8 @@ class TestNegativeConditionsRemover(TestCase):
         problem.add_goal(x)
         problem.add_goal(Not(y))
         problem.add_goal(Not(Iff(x, y)))
+        problem.add_timed_goal(ConstantTiming(5), x)
+        problem.add_maintain_goal(CloseInterval(ConstantTiming(3), ConstantTiming(4)), x)
         npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPFExpressionDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
