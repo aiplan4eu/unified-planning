@@ -377,6 +377,7 @@ class Problem:
     def _add_effect_instance(self, timing: Timing, effect: Effect):
         self._update_problem_kind_effect(effect)
         self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+        self._kind.set_time('TIMED_EFFECT') # type: ignore
         if timing in self._timed_effects:
             self._timed_effects[timing].append(effect)
         else:
