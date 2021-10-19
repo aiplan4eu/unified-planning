@@ -53,7 +53,7 @@ class DisjunctiveConditionsRemover(Remover):
         self._new_problem_add_initial_values()
         self._new_problem_add_timed_effects()
         self._new_problem_add_timed_goals()
-        self._new_problem_add_mantain_goals()
+        self._new_problem_add_maintain_goals()
         self._new_problem_add_goals()
         self._handle_actions()
 

@@ -45,7 +45,7 @@ class Problem:
         self._initial_value: Dict[FNode, FNode] = {}
         self._timed_effects: Dict[Timing, List[Effect]] = {}
         self._timed_goals: Dict[Timing, List[FNode]] = {}
-        self._mantain_goals: Dict[Interval, List[FNode]] = {}
+        self._maintain_goals: Dict[Interval, List[FNode]] = {}
         self._goals: List[FNode] = list()
         self._initial_defaults: Dict[upf.types.Type, FNode] = {}
         for k, v in initial_defaults.items():
@@ -90,8 +90,8 @@ class Problem:
                 for g in gl:
                     s.append(f'    {str(g)}\n')
             s.append(']\n\n')
-        if len(self.mantain_goals()) > 0:
-            s.append('mantain goals = [\n')
+        if len(self.maintain_goals()) > 0:
+            s.append('maintain goals = [\n')
             for i, gl in self.timed_goals().items():
                 s.append(f'  {str(i)} :\n')
                 for g in gl:
@@ -388,22 +388,22 @@ class Problem:
         return self._timed_effects
 
     def add_maintain_goal(self, interval: Interval, goal: Union[FNode, 'upf.Fluent', bool]):
-        '''Adds a mantain goal.'''
+        '''Adds a maintain goal.'''
         if not (isinstance(interval.upper(), ConstantTiming) and isinstance(interval.lower(), ConstantTiming)):
-            raise UPFProblemDefinitionError(f'Interval {interval} used in add_mantain_goal must have ConstantTiming as lower and upper bounds.')
-        self._kind.set_time('MANTAIN_GOALS') # type: ignore
+            raise UPFProblemDefinitionError(f'Interval {interval} used in add_maintain_goal must have ConstantTiming as lower and upper bounds.')
+        self._kind.set_time('MAINTAIN_GOALS') # type: ignore
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
-        if interval in self._mantain_goals:
-            self._mantain_goals[interval].append(goal_exp)
+        if interval in self._maintain_goals:
+            self._maintain_goals[interval].append(goal_exp)
         else:
-            self._mantain_goals[interval] = [goal_exp]
+            self._maintain_goals[interval] = [goal_exp]
         self._kind.set_time('CONTINUOUS_TIME') # type: ignore
 
-    def mantain_goals(self) -> Dict[Interval, List[FNode]]:
-        '''Returns the mantain goals.'''
-        return self._mantain_goals
+    def maintain_goals(self) -> Dict[Interval, List[FNode]]:
+        '''Returns the maintain goals.'''
+        return self._maintain_goals
 
     def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
         '''Adds a goal.'''

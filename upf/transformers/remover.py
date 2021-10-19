@@ -103,10 +103,10 @@ class Remover:
             for g in gl:
                 self._new_problem.add_timed_goal(t, g)
 
-    def _new_problem_add_mantain_goals(self):
-        for i, gl in self._problem.mantain_goals():
+    def _new_problem_add_maintain_goals(self):
+        for i, gl in self._problem.maintain_goals():
             for g in gl:
-                self._new_problem.add_mantain_goal(i, g)
+                self._new_problem.add_maintain_goal(i, g)
 
     def _new_problem_add_goals(self):
         for g in self._problem.goals():

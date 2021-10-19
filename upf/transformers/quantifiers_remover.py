@@ -117,10 +117,10 @@ class QuantifiersRemover(Remover):
             for g in gl:
                 ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
                 self._new_problem.add_timed_goal(t, ng)
-        for i, gl in self._problem.mantain_goals().items():
+        for i, gl in self._problem.maintain_goals().items():
             for g in gl:
                 ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
-                self._new_problem.add_mantain_goal(i, ng)
+                self._new_problem.add_maintain_goal(i, ng)
         for g in self._problem.goals():
             ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
             self._new_problem.add_goal(ng)

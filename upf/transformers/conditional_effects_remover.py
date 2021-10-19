@@ -72,7 +72,7 @@ class ConditionalEffectsRemover(Remover):
                 else:
                     self._new_problem.add_timed_effect(t, e)
         self._new_problem_add_timed_goals()
-        self._new_problem_add_mantain_goals()
+        self._new_problem_add_maintain_goals()
         self._new_problem_add_goals()
         for ua in self._problem.unconditional_actions():
             self._new_problem.add_action(ua)
