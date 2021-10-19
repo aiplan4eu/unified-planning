@@ -38,6 +38,7 @@ class TestNegativeConditionsRemover(TestCase):
         problem = self.problems['basic'].problem
         npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
+        self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
         with OneshotPlanner(name='tamer') as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
@@ -55,6 +56,7 @@ class TestNegativeConditionsRemover(TestCase):
         positive_problem = npr.get_rewritten_problem()
         positive_problem_2 = npr.get_rewritten_problem()
         self.assertEqual(positive_problem, positive_problem_2)
+        self.assertEqual(len(problem.fluents()) + 4, len(positive_problem.fluents()))
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
@@ -74,6 +76,7 @@ class TestNegativeConditionsRemover(TestCase):
             positive_plan = planner.solve(positive_problem)
             self.assertNotEqual(plan, positive_plan)
             new_plan = npr.rewrite_back_plan(positive_plan)
+        self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
         light_match = problem.action('light_match')
         mend_fuse = problem.action('mend_fuse')
         m1 = problem.object('m1')
