@@ -80,6 +80,6 @@ class TimeTriggeredPlan(Plan):
     def __repr__(self) -> str:
         return str(self._actions)
 
-    def actions(self) -> List[Tuple[float, ActionInstance, float]]:
+    def actions(self) -> List[Tuple[Fraction, ActionInstance, Fraction]]:
         """Returns the sequence of action instances."""
         return self._actions
