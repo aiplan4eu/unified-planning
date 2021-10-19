@@ -15,6 +15,7 @@
 
 from fractions import Fraction
 import os
+from upf.plan import ActionInstance
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
@@ -73,21 +74,27 @@ class TestNegativeConditionsRemover(TestCase):
             positive_plan = planner.solve(positive_problem)
             self.assertNotEqual(plan, positive_plan)
             new_plan = npr.rewrite_back_plan(positive_plan)
-            self.assertIn("[(Fraction(0, 1), light_match(m", str(new_plan))
-            self.assertIn("), Fraction(6, 1)), (Fraction(1, 100), mend_fuse(f", str(new_plan))
-            self.assertIn("), Fraction(5, 1)), (Fraction(601, 100), light_match(m", str(new_plan))
-            self.assertIn("), Fraction(6, 1)), (Fraction(701, 100), mend_fuse(f", str(new_plan))
-            self.assertTrue(("), Fraction(6, 1)), (Fraction(701, 100), mend_fuse(f" in str(new_plan))
-                        or ("), Fraction(6, 1)), (Fraction(301, 50), mend_fuse(f" in str(new_plan)))
-            self.assertIn("), Fraction(5, 1)), (Fraction(601, 50), light_match(m", str(new_plan))
-            self.assertIn("), Fraction(6, 1)), (Fraction(1203, 100), mend_fuse(f", str(new_plan))
-            self.assertIn("), Fraction(5, 1))]", str(new_plan))
-            self.assertIn("), light_match(m1)", str(new_plan))
-            self.assertIn("), light_match(m2)", str(new_plan))
-            self.assertIn("), light_match(m3)", str(new_plan))
-            self.assertIn("), mend_fuse(f1)", str(new_plan))
-            self.assertIn("), mend_fuse(f2)", str(new_plan))
-            self.assertIn("), mend_fuse(f3)", str(new_plan))
+        light_match = problem.action('light_match')
+        mend_fuse = problem.action('mend_fuse')
+        m1 = problem.object('m1')
+        m2 = problem.object('m2')
+        m3 = problem.object('m3')
+        f1 = problem.object('f1')
+        f2 = problem.object('f2')
+        f3 = problem.object('f3')
+        light_m1 = ActionInstance(light_match, (ObjectExp(m1), ))
+        light_m2 = ActionInstance(light_match, (ObjectExp(m2), ))
+        light_m3 = ActionInstance(light_match, (ObjectExp(m3), ))
+        mend_f1 = ActionInstance(mend_fuse, (ObjectExp(f1), ))
+        mend_f2 = ActionInstance(mend_fuse, (ObjectExp(f2), ))
+        mend_f3 = ActionInstance(mend_fuse, (ObjectExp(f3), ))
+        npa = [a for s, a, d in new_plan.actions()]
+        self.assertIn(light_m1, npa)
+        self.assertIn(light_m2, npa)
+        self.assertIn(light_m3, npa)
+        self.assertIn(mend_f1, npa)
+        self.assertIn(mend_f2, npa)
+        self.assertIn(mend_f3, npa)
 
     def test_ad_hoc(self):
         x = upf.Fluent('x')

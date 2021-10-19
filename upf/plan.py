@@ -44,6 +44,12 @@ class ActionInstance:
             s.append(')')
         return self._action.name() + ''.join(s)
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, ActionInstance):
+            return self.action() == oth.action() and self.actual_parameters() == oth.actual_parameters()
+        else:
+            return False
+
     def action(self) -> 'upf.ActionInterface':
         """Returns the action."""
         return self._action
