@@ -337,7 +337,6 @@ class Problem:
         '''Adds the given timed effect.'''
         if not isinstance(timing, ConstantTiming):
             raise UPFProblemDefinitionError(f'Timing {timing} used in add_timed_effect must be a ConstantTiming.')
-        self._kind.set_time('TIMED_EFFECT') # type: ignore
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
                                                                                          condition)
         assert fluent_exp.is_fluent_exp()
