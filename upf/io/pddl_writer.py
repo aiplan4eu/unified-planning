@@ -158,8 +158,6 @@ class PDDLWriter:
                 out.write(' :existential-preconditions')
             if self.problem.kind().has_universal_preconditions(): # type: ignore
                 out.write(' :universal-preconditions')
-            if self.problem.kind().has_ice(): # type: ignore
-                out.write(' :ice')
             out.write(')\n')
 
         out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')

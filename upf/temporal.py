@@ -307,6 +307,9 @@ class DurativeAction(ActionInterface):
     def add_durative_condition(self, interval: Interval,
                                condition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):
         '''Adds the given durative condition.'''
+        if not ((isinstance(interval.lower(), StartTiming) or isinstance(interval.lower(), EndTiming)) and
+                (isinstance(interval.upper(), StartTiming) or isinstance(interval.upper(), EndTiming))):
+            raise UPFProblemDefinitionError(f'The interval bounds of a durative condition in an action must be a StartTiming or an EndTiming.\n Interval {interval} does not respect this.')
         condition_exp, = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
         if interval in self._durative_conditions:
