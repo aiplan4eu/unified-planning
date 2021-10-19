@@ -89,6 +89,8 @@ class TestConditionalEffectsRemover(TestCase):
         plan = self.problems['complex_conditional'].plan
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
+        unconditional_problem_2 = cer.get_rewritten_problem()
+        self.assertEqual(unconditional_problem, unconditional_problem_2)
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
@@ -119,3 +121,6 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertNotEqual(str(plan), str(unconditional_plan))
             conditional_plan = cer.rewrite_back_plan(unconditional_plan)
             self.assertEqual(str(plan), str(conditional_plan))
+
+    def test_temporal_mockup(self):
+        pass
