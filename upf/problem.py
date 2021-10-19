@@ -14,12 +14,12 @@
 #
 '''This module defines the problem class.'''
 
-from temporal import ConstantTiming
+
 import upf.types
 import upf.operators as op
 from upf.environment import get_env, Environment
 from upf.expression import Expression, BoolExpression
-from upf.temporal import Interval, Timing
+from upf.temporal import Interval, Timing, ConstantTiming
 from upf.effect import Effect, INCREASE, DECREASE
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
@@ -316,6 +316,9 @@ class Problem:
 
     def add_timed_goal(self, timing: Timing, goal: Union[FNode, upf.Fluent, bool]):
         '''Adds a timed goal.'''
+        if not isinstance(timing, ConstantTiming):
+            raise UPFProblemDefinitionError(f'Timing {timing} used in add_timed_goal must be a ConstantTiming.')
+        self._kind.set_time('TIMED_GOALS') # type: ignore
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
@@ -334,7 +337,7 @@ class Problem:
         '''Adds the given timed effect.'''
         if not isinstance(timing, ConstantTiming):
             raise UPFProblemDefinitionError(f'Timing {timing} used in add_timed_effect must be a ConstantTiming.')
-        self._kind.set_time('TILS') # type: ignore
+        self._kind.set_time('TIMED_EFFECT') # type: ignore
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
                                                                                          condition)
         assert fluent_exp.is_fluent_exp()
@@ -386,6 +389,9 @@ class Problem:
 
     def add_maintain_goal(self, interval: Interval, goal: Union[FNode, 'upf.Fluent', bool]):
         '''Adds a mantain goal.'''
+        if not (isinstance(interval.upper(), ConstantTiming) and isinstance(interval.lower(), ConstantTiming)):
+            raise UPFProblemDefinitionError(f'Interval {interval} used in add_mantain_goal must have ConstantTiming as lower and upper bounds.')
+        self._kind.set_time('MANTAIN_GOALS') # type: ignore
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
