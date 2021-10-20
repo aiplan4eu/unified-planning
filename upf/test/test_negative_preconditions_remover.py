@@ -33,7 +33,6 @@ class TestNegativeConditionsRemover(TestCase):
         TestCase.setUp(self)
         self.env = get_env()
         self.problems = get_example_problems()
-        self.env.factory.add_solver('pyperplan', 'upf_pyperplan', 'SolverImpl')
 
     def test_basic(self):
         problem = self.problems['basic'].problem

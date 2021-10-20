@@ -25,7 +25,6 @@ class TestPyperplan(TestCase):
         TestCase.setUp(self)
         self.env = get_env()
         self.problems = get_example_problems()
-        self.env.factory.add_solver('pyperplan', 'upf_pyperplan', 'SolverImpl')
 
     def test_pyperplan(self):
         problem, plan = self.problems['robot_no_negative_preconditions'].problem, self.problems['robot_no_negative_preconditions'].plan
