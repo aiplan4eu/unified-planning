@@ -17,6 +17,7 @@ import sys
 import upf
 import upf.environment
 import upf.walkers as walkers
+from upf.temporal import DurativeAction
 from upf.simplifier import Simplifier
 from upf.exceptions import UPFTypeError
 from typing import IO
@@ -203,6 +204,49 @@ class PDDLWriter:
                 out.write(')')
                 if len(a.preconditions()) > 0:
                     out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions()])})')
+                if len(a.effects()) > 0:
+                    out.write('\n  :effect (and')
+                    for e in a.effects():
+                        if e.is_conditional():
+                            out.write(f' (when {converter.convert(e.condition())}')
+                        if e.value().is_true():
+                            out.write(f' {converter.convert(e.fluent())}')
+                        elif e.value().is_false():
+                            out.write(f' (not {converter.convert(e.fluent())})')
+                        elif e.is_increase():
+                            out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                        elif e.is_decrease():
+                            out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                        else:
+                            out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                        if e.is_conditional():
+                            out.write(f')')
+
+                    out.write(')')
+                out.write(')\n')
+            elif isinstance(a, DurativeAction):
+                out.write(f' (:durative-action {a.name()}')
+                out.write(f'\n  :parameters (')
+                for ap in a.parameters():
+                    if ap.type().is_user_type():
+                        out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
+                    else:
+                        raise UPFTypeError('PDDL supports only user type parameters')
+                out.write(')')
+                #DURATION HERE
+                if len(a.conditions()) + len(a.durative_conditions()) > 0:
+                    out.write(f'\n  :condition (and {" ".join([converter.convert(p) for p in a.conditions()])})')
+                    for t, cl in a.conditions().items():
+                        for c in cl:
+                            if t.is_from_start(): #CHECK if bound == 0 in problem kind (with ICE) or here?
+                                out.write(f'(at start {converter.convert(c)})')
+                            elif t.is_from_end():
+                                out.write(f'(at end {converter.convert(c)})')
+                    for i, cl in a.durative_conditions().items():
+                        for c in cl:
+                            #SAME CHECK; interval must be from StartTiming to EndTiming...
+                            out.write(f'(over all {converter.convert(c)})')
+                    out.write(')')
                 if len(a.effects()) > 0:
                     out.write('\n  :effect (and')
                     for e in a.effects():
