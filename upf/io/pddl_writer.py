@@ -162,6 +162,8 @@ class PDDLWriter:
                 out.write(' :existential-preconditions')
             if self.problem.kind().has_universal_preconditions(): # type: ignore
                 out.write(' :universal-preconditions')
+            if self.problem.kind().has_continuous_time(): # type: ignore
+                out.write(' :durative-actions')
             out.write(')\n')
 
         out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')
@@ -237,16 +239,19 @@ class PDDLWriter:
                         raise UPFTypeError('PDDL supports only user type parameters')
                 out.write(')')
                 l, r = a.duration().lower().bound(), a.duration().upper().bound()
-                out.write(f'\n  :duration (and ')
-                if a.duration().is_left_open():
-                    out.write(f'(> ?duration {str(l)})')
+                if l == r:
+                    out.write(f'\n  :duration (= ?duration {str(l)})')
                 else:
-                    out.write(f'(>= ?duration {str(l)})')
-                if a.duration().is_right_open():
-                    out.write(f'(< ?duration {str(r)})')
-                else:
-                    out.write(f'(<= ?duration {str(r)})')
-                out.write('))')
+                    out.write(f'\n  :duration (and ')
+                    if a.duration().is_left_open():
+                        out.write(f'(> ?duration {str(l)})')
+                    else:
+                        out.write(f'(>= ?duration {str(l)})')
+                    if a.duration().is_right_open():
+                        out.write(f'(< ?duration {str(r)})')
+                    else:
+                        out.write(f'(<= ?duration {str(r)})')
+                    out.write(')')
                 if len(a.conditions()) + len(a.durative_conditions()) > 0:
                     out.write(f'\n  :condition (and ')
                     for t, cl in a.conditions().items():
