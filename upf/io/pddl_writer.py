@@ -162,8 +162,11 @@ class PDDLWriter:
                 out.write(' :existential-preconditions')
             if self.problem.kind().has_universal_preconditions(): # type: ignore
                 out.write(' :universal-preconditions')
-            if self.problem.kind().has_continuous_time(): # type: ignore
+            if (self.problem.kind().has_continuous_time() or # type: ignore
+                self.problem.kind().has_discrete_time): # type: ignore
                 out.write(' :durative-actions')
+            if self.problem.kind().has_duration_inequalities(): # type: ignore
+                out.write(' :duration-inequalities')
             out.write(')\n')
 
         out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')

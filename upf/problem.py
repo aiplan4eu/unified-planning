@@ -168,6 +168,11 @@ class Problem:
             for e in action.effects():
                 self._update_problem_kind_effect(e)
         elif isinstance(action, upf.DurativeAction):
+            left, right = action.duration().lower(), action.duration().upper()
+            if left.bound() < right.bound():
+                self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
+            elif ((left.bound() == right.bound()) and (action.duration().is_left_open() or action.duration().is_right_open())) or left.bound() > right.bound():
+                raise UPFProblemDefinitionError(f'Interval: {action.duration()} of duration of action: {action.name()} is an empty interval.')
             for i, l in action.durative_conditions().items():
                 if i.lower().bound() != 0 or i.upper().bound() != 0:
                     self._kind.set_time('ICE') # type: ignore
