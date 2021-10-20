@@ -163,7 +163,7 @@ class PDDLWriter:
             if self.problem.kind().has_universal_preconditions(): # type: ignore
                 out.write(' :universal-preconditions')
             if (self.problem.kind().has_continuous_time() or # type: ignore
-                self.problem.kind().has_discrete_time): # type: ignore
+                self.problem.kind().has_discrete_time()): # type: ignore
                 out.write(' :durative-actions')
             if self.problem.kind().has_duration_inequalities(): # type: ignore
                 out.write(' :duration-inequalities')
