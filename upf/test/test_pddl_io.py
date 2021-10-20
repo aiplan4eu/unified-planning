@@ -234,3 +234,24 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.actions()), 8)
         self.assertEqual(len(problem.objects(problem.user_type('boat'))), 2)
         self.assertEqual(len(problem.objects(problem.user_type('person'))), 2)
+
+    def test_matchcellar_writer(self):
+        problem = self.problems['matchcellar'].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = w.get_domain()
+        self.assertIn('(define (domain MatchCellar-domain)', pddl_domain)
+        self.assertIn('(:requirements :strips :typing :negative-preconditions)', pddl_domain)
+        self.assertIn('(:types Match Fuse)', pddl_domain)
+        self.assertIn('(:predicates (handfree) (light) (match_used ?p0 - Match) (fuse_mended ?p0 - Fuse))', pddl_domain)
+        self.assertIn('(:durative-action light_match', pddl_domain)
+        self.assertIn(':parameters ( ?m - Match)', pddl_domain)
+        self.assertIn(':duration (and (>= ?duration 6)(<= ?duration 6)))', pddl_domain)
+        self.assertIn(':condition (and (at start (not (match_used ?m))))', pddl_domain)
+        self.assertIn(':effect (and (at start (match_used ?m)) (at start (light)) (at end (not (light)))))', pddl_domain)
+        self.assertIn('(:durative-action mend_fuse', pddl_domain)
+        self.assertIn(':parameters ( ?f - Fuse)', pddl_domain)
+        self.assertIn(':duration (and (>= ?duration 5)(<= ?duration 5)))', pddl_domain)
+        self.assertIn(':condition (and (at start (handfree))(at start (light))(over all (light))(at end (light)))', pddl_domain)
+        self.assertIn(':effect (and (at start (not (handfree))) (at end (fuse_mended ?f)) (at end (handfree))))', pddl_domain)

@@ -13,13 +13,14 @@
 # limitations under the License.
 #
 
+
 import sys
 import upf
 import upf.environment
 import upf.walkers as walkers
 from upf.temporal import DurativeAction
 from upf.simplifier import Simplifier
-from upf.exceptions import UPFTypeError
+from upf.exceptions import UPFTypeError, UPFProblemDefinitionError
 from typing import IO
 from io import StringIO
 from functools import reduce
@@ -133,6 +134,8 @@ class PDDLWriter:
         self.needs_requirements = needs_requirements
 
     def _write_domain(self, out: IO[str]):
+        if self.problem.kind().has_ice() or self.problem.kind().has_maintain_goals(): # type: ignore
+            raise UPFProblemDefinitionError('PDDL2.1 does not support ICE or maintained goals.')
         out.write('(define ')
         if self.problem.name() is None:
             name = 'pddl'
@@ -233,19 +236,32 @@ class PDDLWriter:
                     else:
                         raise UPFTypeError('PDDL supports only user type parameters')
                 out.write(')')
-                #DURATION HERE
+                l, r = a.duration().lower().bound(), a.duration().upper().bound()
+                out.write(f'\n  :duration (and ')
+                if a.duration().is_left_open():
+                    out.write(f'(> ?duration {str(l)})')
+                else:
+                    out.write(f'(>= ?duration {str(l)})')
+                if a.duration().is_right_open():
+                    out.write(f'(< ?duration {str(r)})')
+                else:
+                    out.write(f'(<= ?duration {str(r)})')
+                out.write('))')
                 if len(a.conditions()) + len(a.durative_conditions()) > 0:
-                    out.write(f'\n  :condition (and {" ".join([converter.convert(p) for p in a.conditions()])})')
+                    out.write(f'\n  :condition (and ')
                     for t, cl in a.conditions().items():
                         for c in cl:
-                            if t.is_from_start(): #CHECK if bound == 0 in problem kind (with ICE) or here?
+                            if t.is_from_start():
                                 out.write(f'(at start {converter.convert(c)})')
                             elif t.is_from_end():
                                 out.write(f'(at end {converter.convert(c)})')
-                    for i, cl in a.durative_conditions().items():
+                    for interval, cl in a.durative_conditions().items():
                         for c in cl:
-                            #SAME CHECK; interval must be from StartTiming to EndTiming...
+                            if not interval.is_left_open():
+                                out.write(f'(at start {converter.convert(c)})')
                             out.write(f'(over all {converter.convert(c)})')
+                            if not interval.is_right_open():
+                                out.write(f'(at end {converter.convert(c)})')
                     out.write(')')
                 if len(a.effects()) > 0:
                     out.write('\n  :effect (and')
@@ -253,7 +269,7 @@ class PDDLWriter:
                         for e in el:
                             if t.is_from_start():
                                 out.write(f' (at start')
-                            else: #HERE check the bound or the ICE?
+                            else:
                                 out.write(f' (at end')
                             if e.is_conditional():
                                 out.write(f' (when {converter.convert(e.condition())}')

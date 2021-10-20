@@ -762,4 +762,10 @@ def get_example_problems():
     temporal_conditional = Example(problem=problem, plan=plan)
     problems['temporal_conditional'] = temporal_conditional
 
+    #truck loader #NOTE still has to be finished
+    Location = UserType('Location')
+    Truck = UserType('Truck')
+    Cargo = UserType('Cargo')
+
+
     return problems
