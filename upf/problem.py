@@ -19,7 +19,7 @@ import upf.types
 import upf.operators as op
 from upf.environment import get_env, Environment
 from upf.expression import Expression, BoolExpression
-from upf.temporal import Interval, Timing, ConstantTiming
+from upf.temporal import Interval, Timing
 from upf.effect import Effect, INCREASE, DECREASE
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
@@ -168,11 +168,9 @@ class Problem:
             for e in action.effects():
                 self._update_problem_kind_effect(e)
         elif isinstance(action, upf.DurativeAction):
-            left, right = action.duration().lower(), action.duration().upper()
-            if left.bound() < right.bound():
+            lower, upper = action.duration().lower(), action.duration().upper()
+            if lower.constant_value() != upper.constant_value():
                 self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
-            elif ((left.bound() == right.bound()) and (action.duration().is_left_open() or action.duration().is_right_open())) or left.bound() > right.bound():
-                raise UPFProblemDefinitionError(f'Interval: {action.duration()} of duration of action: {action.name()} is an empty interval.')
             for i, l in action.durative_conditions().items():
                 if i.lower().bound() != 0 or i.upper().bound() != 0:
                     self._kind.set_time('ICE') # type: ignore
@@ -321,8 +319,8 @@ class Problem:
 
     def add_timed_goal(self, timing: Timing, goal: Union[FNode, upf.Fluent, bool]):
         '''Adds a timed goal.'''
-        if not isinstance(timing, ConstantTiming):
-            raise UPFProblemDefinitionError(f'Timing {timing} used in add_timed_goal must be a ConstantTiming.')
+        if timing.is_from_end() and timing.bound() > 0:
+            raise UPFProblemDefinitionError('Timing used in timed goal cannot be `end - k` with k > 0.')
         self._kind.set_time('TIMED_GOALS') # type: ignore
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
@@ -340,8 +338,8 @@ class Problem:
     def add_timed_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
                          value: Expression, condition: BoolExpression = True):
         '''Adds the given timed effect.'''
-        if not isinstance(timing, ConstantTiming):
-            raise UPFProblemDefinitionError(f'Timing {timing} used in add_timed_effect must be a ConstantTiming.')
+        if timing.is_from_end():
+            raise UPFProblemDefinitionError(f'Timing used in timed effect cannot be EndTiming.')
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
                                                                                          condition)
         assert fluent_exp.is_fluent_exp()
@@ -394,8 +392,9 @@ class Problem:
 
     def add_maintain_goal(self, interval: Interval, goal: Union[FNode, 'upf.Fluent', bool]):
         '''Adds a maintain goal.'''
-        if not (isinstance(interval.upper(), ConstantTiming) and isinstance(interval.lower(), ConstantTiming)):
-            raise UPFProblemDefinitionError(f'Interval {interval} used in add_maintain_goal must have ConstantTiming as lower and upper bounds.')
+        if ((interval.lower().is_from_end() and interval.lower().bound() > 0) or
+            (interval.upper().is_from_end() and interval.upper().bound() > 0)):
+            raise UPFProblemDefinitionError('Problem timing can not be `end - k` with k > 0.')
         self._kind.set_time('MAINTAIN_GOALS') # type: ignore
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()

@@ -241,7 +241,7 @@ class PDDLWriter:
                     else:
                         raise UPFTypeError('PDDL supports only user type parameters')
                 out.write(')')
-                l, r = a.duration().lower().bound(), a.duration().upper().bound()
+                l, r = a.duration().lower(), a.duration().upper()
                 if l == r:
                     out.write(f'\n  :duration (= ?duration {str(l)})')
                 else:

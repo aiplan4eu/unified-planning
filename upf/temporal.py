@@ -68,6 +68,10 @@ class StartTiming(Timing):
         return False
 
 
+def AbsoluteTiming(bound: Union[int, Fraction] = 0):
+    return StartTiming(bound)
+
+
 class EndTiming(Timing):
     '''Represents the end timing of an action.
     Created with a bound != 0 represents "bound" time
@@ -92,19 +96,100 @@ class EndTiming(Timing):
     def is_from_end(self):
         return True
 
-class ConstantTiming(Timing):
-    '''Represents an absolute time.'''
-    def __init__(self, bound: Union[int, Fraction]):
-        Timing.__init__(self, bound)
 
-    def __repr__(self):
-        return str(self._bound)
+class IntervalDuration:
+    def __init__(self, lower: FNode, upper: FNode):
+        self._lower = lower
+        self._upper = upper
 
-    def is_from_start(self):
+    def lower(self):
+        return self._lower
+
+    def upper(self):
+        return self._upper
+
+    def is_left_open(self):
+        raise NotImplementedError
+
+    def is_right_open(self):
+        raise NotImplementedError
+
+
+class ClosedIntervalDuration(IntervalDuration):
+    '''Represents the (closed) interval duration constraint:
+            [lower, upper]
+    '''
+    def __init__(self, lower: FNode, upper: FNode):
+        IntervalDuration.__init__(self, lower, upper)
+
+    def __repr__(self) -> str:
+        return f'[{str(self._lower)}, {str(self._upper)}]'
+
+    def is_left_open(self):
         return False
 
-    def is_from_end(self):
+    def is_right_open(self):
         return False
+
+
+class FixedDuration(ClosedIntervalDuration):
+    '''Represents a fixed duration constraint'''
+    def __init__(self, size: FNode):
+        ClosedIntervalDuration.__init__(self, size, size)
+
+    def __repr__(self) -> str:
+        return f'[{self._lower}]'
+
+
+class OpenIntervalDuration(IntervalDuration):
+    '''Represents the (open) interval duration constraint:
+            (lower, upper)
+    '''
+    def __init__(self, lower: FNode, upper: FNode):
+        IntervalDuration.__init__(self, lower, upper)
+
+    def __repr__(self) -> str:
+        return f'({self._lower}, {self._upper})'
+
+    def is_left_open(self):
+        return True
+
+    def is_right_open(self):
+        return True
+
+
+class LeftOpenIntervalDuration(IntervalDuration):
+    '''Represents the (left open, right closed) interval duration constraint:
+            (lower, upper]
+    '''
+    def __init__(self, lower: FNode, upper: FNode):
+        IntervalDuration.__init__(self, lower, upper)
+
+    def __repr__(self) -> str:
+        return f'({self._lower}, {self._upper}]'
+
+    def is_left_open(self):
+        return True
+
+    def is_right_open(self):
+        return False
+
+
+class RightOpenIntervalDuration(IntervalDuration):
+    '''Represents the (left closed, right open) interval duration constraint:
+            [lower, upper)
+    '''
+    def __init__(self, lower: FNode, upper: FNode):
+        IntervalDuration.__init__(self, lower, upper)
+
+    def __repr__(self) -> str:
+        return f'[{self._lower}, {self._upper})'
+
+    def is_left_open(self):
+        return False
+
+    def is_right_open(self):
+        return True
 
 
 class Interval:
@@ -125,7 +210,7 @@ class Interval:
         raise NotImplementedError
 
 
-class CloseInterval(Interval):
+class ClosedInterval(Interval):
     '''Represents the (closed) interval:
             [lower, upper]
     '''
@@ -141,16 +226,6 @@ class CloseInterval(Interval):
     def is_right_open(self):
         return False
 
-
-class PointInterval(CloseInterval):
-    '''Represents the point interval:
-            [size, size]
-    '''
-    def __init__(self, size: Timing):
-        CloseInterval.__init__(self, size, size)
-
-    def __repr__(self) -> str:
-        return f'[{self._lower}]'
 
 class OpenInterval(Interval):
     '''Represents the (open) interval:
@@ -208,7 +283,7 @@ class DurativeAction(ActionInterface):
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
                  _env: Environment = None, **kwargs: upf.types.Type):
         ActionInterface.__init__(self, _name, _parameters, _env, **kwargs)
-        self._duration: Interval = PointInterval(ConstantTiming(0))
+        self._duration: IntervalDuration = FixedDuration(self._env.expression_manager.Int(0))
         self._conditions: Dict[Timing, List[FNode]] = {}
         self._durative_conditions: Dict[Interval, List[FNode]] = {}
         self._effects: Dict[Timing, List[Effect]] = {}
@@ -287,9 +362,42 @@ class DurativeAction(ActionInterface):
         '''Returns True if the action has conditional effects.'''
         return any(e.is_conditional() for l in self._effects.values() for e in l)
 
-    def set_duration_constraint(self, interval: Interval):
+    def set_duration_constraint(self, duration: IntervalDuration):
         '''Sets the duration interval.'''
-        self._duration = interval
+        lower, upper = duration.lower(), duration.upper()
+        if not (lower.is_int_constant() or lower.is_real_constant()):
+            raise UPFProblemDefinitionError('Duration bound must be constant.')
+        elif not (upper.is_int_constant() or upper.is_real_constant()):
+            raise UPFProblemDefinitionError('Duration bound must be constant.')
+        elif (upper.constant_value() < lower.constant_value() or
+              (upper.constant_value() == lower.constant_value() and
+               (duration.is_left_open() or duration.is_right_open()))):
+            raise UPFProblemDefinitionError(f'{duration} is an empty interval duration of action: {self.name()}.')
+        self._duration = duration
+
+    def set_fixed_duration(self, value: Union[FNode, int, Fraction]):
+        value_exp, = self._env.expression_manager.auto_promote(value)
+        self.set_duration_constraint(FixedDuration(value_exp))
+
+    def set_closed_interval_duration(self, lower: Union[FNode, int, Fraction],
+                                     upper: Union[FNode, int, Fraction]):
+        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        self.set_duration_constraint(ClosedIntervalDuration(lower_exp, upper_exp))
+
+    def set_open_interval_duration(self, lower: Union[FNode, int, Fraction],
+                                   upper: Union[FNode, int, Fraction]):
+        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        self.set_duration_constraint(OpenIntervalDuration(lower_exp, upper_exp))
+
+    def set_left_open_interval_duration(self, lower: Union[FNode, int, Fraction],
+                                        upper: Union[FNode, int, Fraction]):
+        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        self.set_duration_constraint(LeftOpenIntervalDuration(lower_exp, upper_exp))
+
+    def set_right_open_interval_duration(self, lower: Union[FNode, int, Fraction],
+                                         upper: Union[FNode, int, Fraction]):
+        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        self.set_duration_constraint(RightOpenIntervalDuration(lower_exp, upper_exp))
 
     def add_condition(self, timing: Timing,
                       condition: Union[FNode, 'upf.Fluent', ActionParameter, bool]):

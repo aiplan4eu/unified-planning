@@ -17,7 +17,7 @@ import upf
 from upf.effect import Effect
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.temporal import ConstantTiming
+from upf.temporal import AbsoluteTiming
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
 from upf.transformers import ConditionalEffectsRemover
@@ -125,7 +125,7 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertEqual(str(plan), str(conditional_plan))
 
     def test_ad_hoc_1(self):
-        ct = ConstantTiming(2)
+        ct = AbsoluteTiming(2)
         x = upf.Fluent('x')
         y = upf.Fluent('y')
         problem = upf.Problem('ad_hoc_1')

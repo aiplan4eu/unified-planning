@@ -22,7 +22,7 @@ from upf.transformers import DisjunctiveConditionsRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
 from upf.exceptions import UPFProblemDefinitionError
-from upf.temporal import StartTiming, DurativeAction, CloseInterval
+from upf.temporal import StartTiming, DurativeAction, ClosedInterval
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -161,8 +161,8 @@ class TestConditionalEffectsRemover(TestCase):
         exp = Implies(Not(a), Or(b, And(Iff(c, d),d)))
         act.add_condition(StartTiming(), exp)
         act.add_condition(StartTiming(1), exp)
-        act.add_durative_condition(CloseInterval(StartTiming(2), StartTiming(3)), exp)
-        act.add_durative_condition(CloseInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_durative_condition(ClosedInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_durative_condition(ClosedInterval(StartTiming(4), StartTiming(5)), exp)
         act.add_effect(StartTiming(6), a, TRUE())
 
         problem = upf.Problem('temporal_mockup')
