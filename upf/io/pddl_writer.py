@@ -249,21 +249,27 @@ class PDDLWriter:
                     out.write(')')
                 if len(a.effects()) > 0:
                     out.write('\n  :effect (and')
-                    for e in a.effects():
-                        if e.is_conditional():
-                            out.write(f' (when {converter.convert(e.condition())}')
-                        if e.value().is_true():
-                            out.write(f' {converter.convert(e.fluent())}')
-                        elif e.value().is_false():
-                            out.write(f' (not {converter.convert(e.fluent())})')
-                        elif e.is_increase():
-                            out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                        elif e.is_decrease():
-                            out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                        else:
-                            out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                        if e.is_conditional():
-                            out.write(f')')
+                    for t, el in a.effects().items():
+                        for e in el:
+                            if t.is_from_start():
+                                out.write(f' (at start')
+                            else: #HERE check the bound or the ICE?
+                                out.write(f' (at end')
+                            if e.is_conditional():
+                                out.write(f' (when {converter.convert(e.condition())}')
+                            if e.value().is_true():
+                                out.write(f' {converter.convert(e.fluent())}')
+                            elif e.value().is_false():
+                                out.write(f' (not {converter.convert(e.fluent())})')
+                            elif e.is_increase():
+                                out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            elif e.is_decrease():
+                                out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            else:
+                                out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            if e.is_conditional():
+                                out.write(f')')
+                            out.write(')')
 
                     out.write(')')
                 out.write(')\n')
