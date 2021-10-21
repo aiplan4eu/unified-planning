@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from upf.problem_kind import ProblemKind
 from upf.environment import get_env
 from typing import List
 from upf.pddl_solver import PDDLSolver
@@ -29,6 +30,20 @@ class ENHSP(PDDLSolver):
         return ['java', '-jar',
                 os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
                 '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename]
+
+    @staticmethod
+    def supports(problem_kind: 'ProblemKind') -> bool:
+        supported_kind = ProblemKind()
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+        supported_kind.set_typing('FLAT_TYPING') # type: ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_PRECONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_PRECONDITIONS') # type: ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore # type: ignore
+        return problem_kind.features().issubset(supported_kind.features())
 
 
 env = get_env()
