@@ -62,7 +62,7 @@ class ConditionalEffectsRemover(Remover):
             for e in el:
                 if e.is_conditional():
                     f, v = e.fluent().fluent(), e.value()
-                    if f.type() != self._env.type_manager.BoolType() or self._env.type_checker.get_type(v) != self._env.type_manager.BoolType():
+                    if not f.type().is_bool_type():
                         raise UPFProblemDefinitionError(f'The condition of effect: {e}\ncould not be removed without changing the problem.')
                     else:
                         em = self._env.expression_manager

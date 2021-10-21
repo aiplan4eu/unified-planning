@@ -77,6 +77,10 @@ class SequentialPlan(Plan):
 class TimeTriggeredPlan(Plan):
     '''Represents a time triggered plan.'''
     def __init__(self, actions: List[Tuple[Fraction, ActionInstance, Fraction]]):
+        '''The first Fraction represents the absolute time in which the action
+        ActionInterface starts, while the last Fraction represents the duration
+        of the action to fullfill the problem goals.
+        '''
         self._actions = actions
 
     def __repr__(self) -> str:
