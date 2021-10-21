@@ -76,15 +76,7 @@ class TestConditionalEffectsRemover(TestCase):
             uncond_plan = planner.solve(unconditional_problem)
             self.assertNotEqual(str(plan), str(uncond_plan))
             new_plan = cer.rewrite_back_plan(uncond_plan)
-            # with PlanValidator(problem_kind=problem.kind()) as validator:
-            #     self.assertNotEqual(validator, None)
-
-            #     res = validator.validate(problem, plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(unconditional_problem, uncond_plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(problem, new_plan)
-            #     self.assertTrue(res)
+            self.assertEqual(str(plan), str(new_plan))
 
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
@@ -100,15 +92,6 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertNotEqual(str(plan), str(uncond_plan))
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
-            # with PlanValidator(problem_kind=problem.kind()) as validator:
-            #     self.assertNotEqual(validator, None)
-
-            #     res = validator.validate(problem, plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(unconditional_problem, uncond_plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(problem, new_plan)
-            #     self.assertTrue(res)
 
     def test_temporal_conditional(self):
         problem = self.problems['temporal_conditional'].problem
