@@ -426,7 +426,7 @@ class Problem:
 
     def has_quantifiers(self) -> bool:
         '''Returns True only if the problem has quantifiers'''
-        return self._kind.has_existential_preconditions() or self._kind.has_universal_preconditions() # type: ignore
+        return self._kind.has_existential_conditions() or self._kind.has_universal_conditions() # type: ignore
 
     def _update_problem_kind_effect(self, e: Effect):
         if e.is_conditional():
@@ -445,9 +445,9 @@ class Problem:
         if op.OR in ops:
             self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
         if op.EXISTS in ops:
-            self._kind.set_conditions_kind('EXISTENTIAL_PRECONDITIONS') # type: ignore
+            self._kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
         if op.FORALL in ops:
-            self._kind.set_conditions_kind('UNIVERSAL_PRECONDITIONS') # type: ignore
+            self._kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
 
     def _update_problem_kind_type(self, type: upf.types.Type):
         if type.is_user_type():

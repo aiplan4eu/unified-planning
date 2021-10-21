@@ -160,9 +160,9 @@ class PDDLWriter:
                 out.write(' :numeric-fluents')
             if self.problem.kind().has_conditional_effects(): # type: ignore
                 out.write(' :conditional-effects')
-            if self.problem.kind().has_existential_preconditions(): # type: ignore
+            if self.problem.kind().has_existential_conditions(): # type: ignore
                 out.write(' :existential-preconditions')
-            if self.problem.kind().has_universal_preconditions(): # type: ignore
+            if self.problem.kind().has_universal_conditions(): # type: ignore
                 out.write(' :universal-preconditions')
             if (self.problem.kind().has_continuous_time() or # type: ignore
                 self.problem.kind().has_discrete_time()): # type: ignore
