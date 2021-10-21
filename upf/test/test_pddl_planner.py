@@ -13,26 +13,10 @@
 # limitations under the License.
 #
 
-import os
 import upf
-from typing import List
-from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
-from upf.pddl_solver import PDDLSolver
-
-
-FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-
-
-class ENHSP(PDDLSolver):
-    def __init__(self):
-        PDDLSolver.__init__(self, False)
-
-    def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
-        return ['java', '-jar', os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
-                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename]
 
 
 class TestPDDLPlanner(TestCase):

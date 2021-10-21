@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import unittest
 from functools import wraps
 from upf.environment import get_env
-from upf.factory import DEFAULT_SOLVERS
+import upf.test.pddl.enhsp
+
 
 skipIf = unittest.skipIf
 SkipTest = unittest.SkipTest
+
 
 class skipIfSolverNotAvailable(object):
     """Skip a test if the given solver is not available."""
@@ -35,12 +36,6 @@ class skipIfSolverNotAvailable(object):
         def wrapper(*args, **kwargs):
             return test_fun(*args, **kwargs)
         return wrapper
-
-
-FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-env = get_env()
-if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-    env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
 
 TestCase = unittest.TestCase
