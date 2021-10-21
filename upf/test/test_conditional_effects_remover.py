@@ -17,7 +17,7 @@ import upf
 from upf.environment import get_env
 from upf.shortcuts import *
 from upf.timing import AbsoluteTiming
-from upf.test import TestCase, main
+from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
 from upf.transformers import ConditionalEffectsRemover
 from upf.pddl_solver import PDDLSolver
@@ -78,6 +78,7 @@ class TestConditionalEffectsRemover(TestCase):
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable("enhsp")
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
         plan = self.problems['complex_conditional'].plan

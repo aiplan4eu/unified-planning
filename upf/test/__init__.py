@@ -13,6 +13,28 @@
 # limitations under the License.
 
 import unittest
+from functools import wraps
+from upf.environment import get_env
+from upf.factory import DEFAULT_SOLVERS
+
+skipIf = unittest.skipIf
+SkipTest = unittest.SkipTest
+
+class skipIfSolverNotAvailable(object):
+    """Skip a test if the given solver is not available."""
+
+    def __init__(self, solver):
+        self.solver = solver
+
+    def __call__(self, test_fun):
+        msg = "%s not available" % self.solver
+        cond = self.solver not in DEFAULT_SOLVERS
+        @unittest.skipIf(cond, msg)
+        @wraps(test_fun)
+        def wrapper(*args, **kwargs):
+            return test_fun(*args, **kwargs)
+        return wrapper
+
 
 TestCase = unittest.TestCase
 main = unittest.main
