@@ -48,6 +48,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
 
+    @skipIfSolverNotAvailable('tamer')
     def test_robot(self):
         problem = self.problems['robot'].problem
         move = problem.action('move')
@@ -60,6 +61,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
 
+    @skipIfSolverNotAvailable('tamer')
     def test_robot_loader(self):
         problem = self.problems['robot_loader'].problem
         move = problem.action('move')
@@ -79,6 +81,7 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions()[2].actual_parameters()), 2)
             self.assertEqual(len(plan.actions()[3].actual_parameters()), 1)
 
+    @skipIfSolverNotAvailable('tamer')
     def test_robot_loader_adv(self):
         problem = self.problems['robot_loader_adv'].problem
         move = problem.action('move')

@@ -27,7 +27,7 @@ class TestTemporalPlanner(TestCase):
     def test_matchcellar(self):
         problem = self.problems['matchcellar'].problem
 
-        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             self.assertEqual(len(plan.actions()), 6)

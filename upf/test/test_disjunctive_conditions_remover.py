@@ -27,7 +27,7 @@ from upf.timing import ClosedInterval
 from upf.timing import StartTiming
 
 
-class TestConditionalEffectsRemover(TestCase):
+class TestDisjunctiveConditionsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
@@ -39,7 +39,7 @@ class TestConditionalEffectsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=dnf_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             dnf_plan = planner.solve(dnf_problem)
             self.assertNotEqual(str(plan), str(dnf_plan))

@@ -40,7 +40,7 @@ class TestNegativeConditionsRemover(TestCase):
         npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
-        with OneshotPlanner(name='tamer') as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             positive_plan = planner.solve(positive_problem)
@@ -49,7 +49,7 @@ class TestNegativeConditionsRemover(TestCase):
             new_plan = npr.rewrite_back_plan(positive_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('pyperplan')
+    @skipIfSolverNotAvailable('tamer')
     def test_robot_loader_mod(self):
         problem = self.problems['robot_loader_mod'].problem
         plan = self.problems['robot_loader_mod'].plan
@@ -58,7 +58,7 @@ class TestNegativeConditionsRemover(TestCase):
         positive_problem_2 = npr.get_rewritten_problem()
         self.assertEqual(positive_problem, positive_problem_2)
         self.assertEqual(len(problem.fluents()) + 4, len(positive_problem.fluents()))
-        with OneshotPlanner(name='pyperplan') as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
             self.assertNotEqual(plan, positive_plan)
@@ -73,7 +73,7 @@ class TestNegativeConditionsRemover(TestCase):
         positive_problem = npr.get_rewritten_problem()
         self.assertTrue(problem.kind().has_negative_conditions())
         self.assertFalse(positive_problem.kind().has_negative_conditions())
-        with OneshotPlanner(name='tamer') as planner:
+        with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
             self.assertNotEqual(plan, positive_plan)

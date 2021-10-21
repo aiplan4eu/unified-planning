@@ -53,7 +53,7 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertEqual(e.value(), ue.value())
             self.assertFalse(ue.is_conditional())
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uncond_plan = planner.solve(unconditional_problem)
@@ -61,6 +61,7 @@ class TestConditionalEffectsRemover(TestCase):
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable('tamer')
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
         plan = self.problems['complex_conditional'].plan
@@ -84,7 +85,7 @@ class TestConditionalEffectsRemover(TestCase):
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
 
-        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
+        with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             unconditional_plan = planner.solve(unconditional_problem)
             self.assertNotEqual(str(plan), str(unconditional_plan))

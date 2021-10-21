@@ -39,7 +39,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertIn("Exists", str(problem))
         self.assertNotIn("Exists", str(uq_problem))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
@@ -55,7 +55,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertIn("Forall", str(problem))
         self.assertNotIn("Forall", str(uq_problem))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
@@ -71,7 +71,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertIn("Exists", str(problem))
         self.assertNotIn("Exists", str(uq_problem))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
@@ -89,7 +89,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertIn("Forall", str(problem))
         self.assertNotIn("Forall", str(uq_problem))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
@@ -106,7 +106,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertTrue(problem.has_quantifiers())
         self.assertFalse(uq_problem.has_quantifiers())
 
-        with OneshotPlanner(name='tamer') as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             self.assertEqual(str(plan), str(uq_plan))
