@@ -12,35 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+
 import upf
-from upf.environment import get_env
 from upf.shortcuts import *
 from upf.timing import AbsoluteTiming
 from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
 from upf.transformers import ConditionalEffectsRemover
-from upf.pddl_solver import PDDLSolver
-
-FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-
-
-class ENHSP(PDDLSolver):
-    def __init__(self):
-        PDDLSolver.__init__(self, False)
-
-    def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
-        return ['java', '-jar', os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
-                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename]
 
 
 class TestConditionalEffectsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
-        env = get_env()
-        if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-            env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
     @skipIfSolverNotAvailable('enhsp')
     def test_basic_conditional(self):

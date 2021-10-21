@@ -15,6 +15,7 @@
 
 import os
 import upf
+from typing import List
 from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main, skipIfSolverNotAvailable
@@ -38,9 +39,6 @@ class TestPDDLPlanner(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
-        env = get_env()
-        if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-            env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
     @skipIfSolverNotAvailable('enhsp')
     def test_basic(self):

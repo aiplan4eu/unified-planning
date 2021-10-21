@@ -26,25 +26,11 @@ from upf.exceptions import UPFProblemDefinitionError
 from upf.timing import ClosedInterval
 from upf.timing import StartTiming
 
-FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-
-
-class ENHSP(PDDLSolver):
-    def __init__(self):
-        PDDLSolver.__init__(self, False)
-
-    def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
-        return ['java', '-jar', os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
-                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename]
-
 
 class TestConditionalEffectsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
-        self.env = get_env()
-        if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-            self.env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
     @skipIfSolverNotAvailable('enhsp')
     def test_charge_discharge(self):
