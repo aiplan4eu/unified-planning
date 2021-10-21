@@ -28,7 +28,7 @@ class skipIfSolverNotAvailable(object):
 
     def __call__(self, test_fun):
         msg = "%s not available" % self.solver
-        cond = self.solver not in DEFAULT_SOLVERS
+        cond = self.solver not in get_env().factory.solvers
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):

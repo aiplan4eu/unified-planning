@@ -15,7 +15,7 @@
 
 import os
 import upf
-from upf.test import TestCase, main
+from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
 from upf.transformers import QuantifiersRemover
 from upf.pddl_solver import PDDLSolver
@@ -47,7 +47,7 @@ class TestQuantifiersRemover(TestCase):
             self.skipTest('ENHSP not found!')
         env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
-
+    @skipIfSolverNotAvailable('enhsp')
     def test_basic_exists(self):
         problem = self.problems['basic_exists'].problem
         qr = QuantifiersRemover(problem)
@@ -65,7 +65,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-
+    @skipIfSolverNotAvailable('enhsp')
     def test_basic_forall(self):
         problem = self.problems['basic_forall'].problem
         qr = QuantifiersRemover(problem)
@@ -81,6 +81,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable('enhsp')
     def test_robot_locations_connected(self):
         problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover(problem)
@@ -96,7 +97,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-
+    @skipIfSolverNotAvailable('enhsp')
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
         qr = QuantifiersRemover(problem)
@@ -114,6 +115,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable('tamer')
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem
         plan = self.problems['timed_connected_locations'].plan

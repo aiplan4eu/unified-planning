@@ -14,7 +14,7 @@
 
 import upf
 from upf.shortcuts import *
-from upf.test import TestCase, main
+from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
 
 
@@ -23,6 +23,7 @@ class TestPlanner(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    @skipIfSolverNotAvailable('tamer')
     def test_basic(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
@@ -34,6 +35,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
 
+    @skipIfSolverNotAvailable('tamer')
     def test_basic_parallel(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')

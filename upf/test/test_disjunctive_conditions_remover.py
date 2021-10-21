@@ -17,7 +17,7 @@ import upf
 from upf.action import DurativeAction
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main
+from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
 from upf.transformers import DisjunctiveConditionsRemover
 from upf.pddl_solver import PDDLSolver
@@ -47,7 +47,7 @@ class TestConditionalEffectsRemover(TestCase):
             self.skipTest('ENHSP not found!')
         self.env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
-
+    @skipIfSolverNotAvailable('enhsp')
     def test_charge_discharge(self):
         problem = self.problems['charge_discharge'].problem
         plan = self.problems['charge_discharge'].plan

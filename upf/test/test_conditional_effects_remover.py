@@ -43,7 +43,7 @@ class TestConditionalEffectsRemover(TestCase):
             self.skipTest('ENHSP not found!')
         env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
-
+    @skipIfSolverNotAvailable('enhsp')
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         cer = ConditionalEffectsRemover(problem)
@@ -78,7 +78,6 @@ class TestConditionalEffectsRemover(TestCase):
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable("enhsp")
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
         plan = self.problems['complex_conditional'].plan
@@ -94,6 +93,7 @@ class TestConditionalEffectsRemover(TestCase):
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable('tamer')
     def test_temporal_conditional(self):
         problem = self.problems['temporal_conditional'].problem
         plan = self.problems['temporal_conditional'].plan

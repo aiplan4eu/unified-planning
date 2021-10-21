@@ -17,7 +17,7 @@ import os
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main
+from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
 from upf.pddl_solver import PDDLSolver
 
@@ -43,6 +43,7 @@ class TestPDDLPlanner(TestCase):
             self.skipTest('ENHSP not found!')
         env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
+    @skipIfSolverNotAvailable('enhsp')
     def test_basic(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
@@ -55,6 +56,7 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
 
+    @skipIfSolverNotAvailable('enhsp')
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         a_x = problem.action('a_x')
@@ -70,6 +72,7 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
             self.assertEqual(len(plan.actions()[1].actual_parameters()), 0)
 
+    @skipIfSolverNotAvailable('enhsp')
     def test_robot(self):
         problem = self.problems['robot'].problem
         move = problem.action('move')
@@ -83,6 +86,7 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
 
+    @skipIfSolverNotAvailable('enhsp')
     def test_robot_decrease(self):
         problem = self.problems['robot_decrease'].problem
         move = problem.action('move')
@@ -96,6 +100,7 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
 
+    @skipIfSolverNotAvailable('enhsp')
     def test_robot_loader(self):
         problem = self.problems['robot_loader'].problem
         move = problem.action('move')
@@ -116,6 +121,7 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions()[2].actual_parameters()), 2)
             self.assertEqual(len(plan.actions()[3].actual_parameters()), 1)
 
+    @skipIfSolverNotAvailable('enhsp')
     def test_robot_loader_adv(self):
         problem = self.problems['robot_loader_adv'].problem
         move = problem.action('move')
