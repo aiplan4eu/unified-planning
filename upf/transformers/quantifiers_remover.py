@@ -21,7 +21,7 @@ import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.transformers.remover import Remover
 from upf.problem import Problem
-from upf.action import Action
+from upf.action import InstantaneousAction
 from upf.object import Object
 from upf.effect import Effect
 from upf.fnode import FNode
@@ -102,7 +102,7 @@ class QuantifiersRemover(Remover):
         assert self._new_problem is not None
 
         for a in self._problem.actions().values():
-            if isinstance(a, Action):
+            if isinstance(a, InstantaneousAction):
                 na = self._action_without_quantifiers(a)
                 self._new_problem.add_action(na)
             elif isinstance(a, DurativeAction):
@@ -150,7 +150,7 @@ class QuantifiersRemover(Remover):
         nv = self._expression_quantifier_remover.remove_quantifiers(effect.value(), self._problem)
         return Effect(effect.fluent(), nv, nc, effect.kind())
 
-    def _action_without_quantifiers(self, action) -> Action:
+    def _action_without_quantifiers(self, action) -> InstantaneousAction:
         new_action = self._create_action_copy(action)
         for p in action.preconditions():
             np = self._expression_quantifier_remover.remove_quantifiers(p, self._problem)

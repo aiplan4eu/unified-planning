@@ -15,7 +15,7 @@
 
 import upf
 import upf.types
-from upf.action import ActionInterface, ActionParameter
+from upf.action import Action, ActionParameter
 from upf.environment import Environment
 from upf.fnode import FNode
 from upf.exceptions import UPFTypeError, UPFProblemDefinitionError
@@ -278,11 +278,11 @@ class RightOpenInterval(Interval):
         return True
 
 
-class DurativeAction(ActionInterface):
+class DurativeAction(Action):
     '''Represents a durative action.'''
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
                  _env: Environment = None, **kwargs: upf.types.Type):
-        ActionInterface.__init__(self, _name, _parameters, _env, **kwargs)
+        Action.__init__(self, _name, _parameters, _env, **kwargs)
         self._duration: IntervalDuration = FixedDuration(self._env.expression_manager.Int(0))
         self._conditions: Dict[Timing, List[FNode]] = {}
         self._durative_conditions: Dict[Interval, List[FNode]] = {}
@@ -435,7 +435,7 @@ class DurativeAction(ActionInterface):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPFTypeError('Action effect has not compatible types!')
+            raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing, Effect(fluent_exp, value_exp, condition_exp))
 
     def add_increase_effect(self, timing: Timing, fluent: Union[FNode, 'upf.Fluent'],
@@ -446,7 +446,7 @@ class DurativeAction(ActionInterface):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPFTypeError('Action effect has not compatible types!')
+            raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   Effect(fluent_exp, value_exp,
                                          condition_exp, kind = INCREASE))
@@ -459,7 +459,7 @@ class DurativeAction(ActionInterface):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPFTypeError('Action effect has not compatible types!')
+            raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   Effect(fluent_exp, value_exp,
                                          condition_exp, kind = DECREASE))

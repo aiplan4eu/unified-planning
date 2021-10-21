@@ -150,7 +150,7 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         parameters = OrderedDict()
         for p in a.parameters:
             parameters[p.symbol] = types[p.sort.name]
-        action = upf.Action(a_name, parameters)
+        action = upf.InstantaneousAction(a_name, parameters)
         action_parameters = {}
         for p in parameters.keys():
             action_parameters[p] = action.parameter(p)

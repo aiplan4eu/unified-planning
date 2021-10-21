@@ -83,7 +83,7 @@ class TestConditionalEffectsRemover(TestCase):
         b = upf.Fluent('b')
         c = upf.Fluent('c')
         d = upf.Fluent('d')
-        act = upf.Action('act')
+        act = upf.InstantaneousAction('act')
         # (a <-> (b -> c)) -> (a & d)
         # In Dnf:
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
@@ -120,13 +120,13 @@ class TestConditionalEffectsRemover(TestCase):
         b = upf.Fluent('b')
         c = upf.Fluent('c')
         d = upf.Fluent('d')
-        act = upf.Action('act')
+        act = upf.InstantaneousAction('act')
         # (a <-> (b -> c)) -> (a & d)
         # In Dnf:
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
         act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act.add_effect(a, TRUE())
-        act_2 = upf.Action('act__1__')
+        act_2 = upf.InstantaneousAction('act__1__')
         act_2.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act_2.add_effect(a, TRUE())
         problem = upf.Problem('mockup')
@@ -144,7 +144,7 @@ class TestConditionalEffectsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover(problem)
         with self.assertRaises(UPFProblemDefinitionError) as e:
             dnf_problem = dnfr.get_rewritten_problem()
-        self.assertIn("Action: act__1__ of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
+        self.assertIn("InstantaneousAction: act__1__ of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
         str(e.exception))
 
     def test_temproal_mockup(self):

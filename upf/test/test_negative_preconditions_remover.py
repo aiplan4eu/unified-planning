@@ -102,7 +102,7 @@ class TestNegativeConditionsRemover(TestCase):
     def test_ad_hoc(self):
         x = upf.Fluent('x')
         y = upf.Fluent('y')
-        a = upf.Action('a')
+        a = upf.InstantaneousAction('a')
         a.add_precondition(And(Not(x), Not(y)))
         a.add_effect(x, True)
         problem = upf.Problem('ad_hoc')
@@ -134,7 +134,7 @@ class TestNegativeConditionsRemover(TestCase):
         loc = UserType('loc')
         x = upf.Fluent('x')
         y = upf.Fluent('y', BoolType(), [loc])
-        a = upf.Action('a')
+        a = upf.InstantaneousAction('a')
         l1 = upf.Object('l1', loc)
         l2 = upf.Object('l2', loc)
         a.add_precondition(x)
@@ -153,7 +153,7 @@ class TestNegativeConditionsRemover(TestCase):
     def test_ad_hoc_4(self):
         x = upf.Fluent('x')
         y = upf.Fluent('y')
-        a = upf.Action('a')
+        a = upf.InstantaneousAction('a')
         a.add_precondition(x)
         a._add_effect_instance(Effect(FluentExp(y), Real(Fraction(5.1)), get_env().expression_manager.TRUE()))
         problem = upf.Problem('ad_hoc_4')

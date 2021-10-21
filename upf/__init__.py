@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from upf.solver import Solver
-from upf.action import ActionInterface, Action, ActionParameter
+from upf.action import Action, InstantaneousAction, ActionParameter
 from upf.temporal import DurativeAction
 from upf.variable import Variable
 from upf.fluent import Fluent
@@ -22,7 +22,7 @@ from upf.problem import Problem
 from upf.plan import ActionInstance, SequentialPlan, Plan, TimeTriggeredPlan
 
 __all__ = [
-    "Action",
+    "InstantaneousAction",
     "Problem",
     "Fluent",
     "Planner"

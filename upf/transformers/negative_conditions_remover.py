@@ -19,7 +19,7 @@ from upf.temporal import DurativeAction
 from upf.fluent import Fluent
 from upf.transformers.remover import Remover
 from upf.problem import Problem
-from upf.action import Action
+from upf.action import InstantaneousAction
 from upf.fnode import FNode
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
@@ -75,9 +75,9 @@ class NegativeConditionsRemover(Remover):
         return self._new_problem
 
     def _modify_actions_and_goals(self):
-        name_action_map: Dict[str, Union[Action, DurativeAction]] = {}
+        name_action_map: Dict[str, Union[InstantaneousAction, DurativeAction]] = {}
         for name, action in self._problem.actions().items():
-            if isinstance(action, Action):
+            if isinstance(action, InstantaneousAction):
                 new_action = self._create_action_copy(action)
                 for p in action.preconditions():
                     np = self._fluent_remover.remove_negative_fluents(p)
@@ -132,7 +132,7 @@ class NegativeConditionsRemover(Remover):
                 raise UPFProblemDefinitionError(f"Initial value: {v} of fluent: {fl} is not a boolean constant. An initial value MUST be a Boolean constant.")
 
         for name, action in self._problem.actions().items():
-            if isinstance(action, Action):
+            if isinstance(action, InstantaneousAction):
                 new_action = name_action_map[name]
                 for e in action.effects():
                     if e.is_conditional():

@@ -13,8 +13,8 @@
 # limitations under the License.
 #
 """
-This module defines the Action class and the ActionParameter class.
-An Action has a name, a list of ActionParameter, a list of preconditions
+This module defines the InstantaneousAction class and the ActionParameter class.
+An InstantaneousAction has a name, a list of ActionParameter, a list of preconditions
 and a list of effects.
 """
 
@@ -57,7 +57,7 @@ class ActionParameter:
         return hash(self.name()) + hash(self.type())
 
 
-class ActionInterface:
+class Action:
     """This is the action interface."""
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
                  _env: Environment = None, **kwargs: upf.types.Type):
@@ -89,11 +89,11 @@ class ActionInterface:
         raise NotImplementedError
 
 
-class Action(ActionInterface):
+class InstantaneousAction(Action):
     """Represents an instantaneous action."""
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
                  _env: Environment = None, **kwargs: upf.types.Type):
-        ActionInterface.__init__(self, _name, _parameters, _env, **kwargs)
+        Action.__init__(self, _name, _parameters, _env, **kwargs)
         self._preconditions: List[FNode] = []
         self._effects: List[Effect] = []
 
@@ -159,7 +159,7 @@ class Action(ActionInterface):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPFTypeError('Action effect has not compatible types!')
+            raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp))
 
     def add_increase_effect(self, fluent: Union[FNode, 'upf.Fluent'],
@@ -170,7 +170,7 @@ class Action(ActionInterface):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPFTypeError('Action effect has not compatible types!')
+            raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = INCREASE))
 
     def add_decrease_effect(self, fluent: Union[FNode, 'upf.Fluent'],
@@ -181,7 +181,7 @@ class Action(ActionInterface):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPFTypeError('Action effect has not compatible types!')
+            raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._effects.append(Effect(fluent_exp, value_exp, condition_exp, kind = DECREASE))
 
     def _add_effect_instance(self, effect: Effect):

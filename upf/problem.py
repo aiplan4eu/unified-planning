@@ -39,7 +39,7 @@ class Problem:
         self._kind = ProblemKind()
         self._name = name
         self._fluents: Dict[str, upf.Fluent] = {}
-        self._actions: Dict[str, upf.ActionInterface] = {}
+        self._actions: Dict[str, upf.Action] = {}
         self._user_types: Dict[str, upf.types.Type] = {}
         self._objects: Dict[str, upf.Object] = {}
         self._initial_value: Dict[FNode, FNode] = {}
@@ -135,19 +135,19 @@ class Problem:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
 
-    def actions(self) -> Dict[str, upf.ActionInterface]:
+    def actions(self) -> Dict[str, upf.Action]:
         '''Returns the actions.'''
         return self._actions
 
-    def conditional_actions(self) -> List[upf.ActionInterface]:
+    def conditional_actions(self) -> List[upf.Action]:
         '''Returns the conditional actions.'''
         return [a for a in self._actions.values() if a.is_conditional()]
 
-    def unconditional_actions(self) -> List[upf.ActionInterface]:
+    def unconditional_actions(self) -> List[upf.Action]:
         '''Returns the conditional actions.'''
         return [a for a in self._actions.values() if not a.is_conditional()]
 
-    def action(self, name: str) -> upf.ActionInterface:
+    def action(self, name: str) -> upf.Action:
         '''Returns the action with the given name.'''
         assert name in self._actions
         return self._actions[name]
@@ -156,13 +156,13 @@ class Problem:
         '''Returns True if the problem has the action with the given name .'''
         return name in self._actions
 
-    def add_action(self, action: upf.ActionInterface):
+    def add_action(self, action: upf.Action):
         '''Adds the given action.'''
         if action.name() in self._actions:
-            raise UPFProblemDefinitionError('Action ' + action.name() + ' already defined!')
+            raise UPFProblemDefinitionError('InstantaneousAction ' + action.name() + ' already defined!')
         for p in action.parameters():
             self._update_problem_kind_type(p.type())
-        if isinstance(action, upf.Action):
+        if isinstance(action, upf.InstantaneousAction):
             for c in action.preconditions():
                 self._update_problem_kind_condition(c)
             for e in action.effects():

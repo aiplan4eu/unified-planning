@@ -16,7 +16,7 @@
 
 
 from upf.fnode import FNode
-from upf.action import ActionInterface, Action
+from upf.action import Action, InstantaneousAction
 from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.problem import Problem
@@ -31,7 +31,7 @@ class Remover:
         self._problem = problem
         self._env = problem.env
         self._new_problem: Optional[Problem] = None
-        self._action_mapping: Optional[Dict[ActionInterface, ActionInterface]] = None
+        self._action_mapping: Optional[Dict[Action, Action]] = None
         self._simplifier = Simplifier(self._env)
 
     def get_rewritten_problem(self) -> Problem:
@@ -112,22 +112,22 @@ class Remover:
         for g in self._problem.goals():
             self._new_problem.add_goal(g)
 
-    def _create_action_copy(self, action: Action, id: Optional[int] = None) -> Action:
+    def _create_action_copy(self, action: InstantaneousAction, id: Optional[int] = None) -> InstantaneousAction:
         if id is not None:
             new_action_name = f'{action.name()}__{str(id)}__'
             if self._problem.has_action(new_action_name):
-                raise UPFProblemDefinitionError(f"Action: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                raise UPFProblemDefinitionError(f"InstantaneousAction: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
         else:
             new_action_name = action.name()
-        #here, if self._action_mapping is a Dict[str, ActionInterface] from name to action it would be possible to add
+        #here, if self._action_mapping is a Dict[str, Action] from name to action it would be possible to add
         # the mapping in the remover and not in every single other remover who needs it.
-        return Action(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+        return InstantaneousAction(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
-    def _action_add_preconditions(self, original_action: Action, new_action: Action):
+    def _action_add_preconditions(self, original_action: InstantaneousAction, new_action: InstantaneousAction):
         for p in original_action.preconditions():
             new_action.add_precondition(p)
 
-    def _action_add_effects(self, original_action: Action, new_action: Action):
+    def _action_add_effects(self, original_action: InstantaneousAction, new_action: InstantaneousAction):
         for e in original_action.effects():
             new_action._add_effect_instance(e)
 
@@ -135,10 +135,10 @@ class Remover:
         if id is not None:
             new_action_name = f'{action.name()}__{str(id)}__'
             if self._problem.has_action(new_action_name):
-                raise UPFProblemDefinitionError(f"Action: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                raise UPFProblemDefinitionError(f"InstantaneousAction: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
         else:
             new_action_name = action.name()
-        #here, if self._action_mapping is a Dict[str, ActionInterface] from name to action it would be possible to add
+        #here, if self._action_mapping is a Dict[str, Action] from name to action it would be possible to add
         # the mapping in the remover and not in every single other remover who needs it.
         nda = DurativeAction(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
         nda.set_duration_constraint(action.duration())
@@ -189,7 +189,7 @@ class Remover:
             action._set_conditions(t, nac)
         return True
 
-    def _check_and_simplify_preconditions(self, action: Action) -> bool:
+    def _check_and_simplify_preconditions(self, action: InstantaneousAction) -> bool:
         '''Simplifies preconditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all preconditions.

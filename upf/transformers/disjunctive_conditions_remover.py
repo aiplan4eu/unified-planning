@@ -18,7 +18,7 @@
 from itertools import product
 from upf.fnode import FNode
 from upf.problem import Problem
-from upf.action import Action
+from upf.action import InstantaneousAction
 from upf.dnf import Dnf
 from upf.exceptions import UPFProblemDefinitionError
 from upf.temporal import DurativeAction, Interval, Timing
@@ -63,7 +63,7 @@ class DisjunctiveConditionsRemover(Remover):
         dnf = Dnf(self._env)
         for a in self._problem.actions().values():
             self.count = 0
-            if isinstance(a, Action):
+            if isinstance(a, InstantaneousAction):
                 new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
                 if new_precond.is_or():
                     for and_exp in new_precond.args():
@@ -121,7 +121,7 @@ class DisjunctiveConditionsRemover(Remover):
         else:
             raise NotImplementedError
 
-    def _create_new_action_with_given_precond(self, precond: FNode, original_action: Action) -> Action:
+    def _create_new_action_with_given_precond(self, precond: FNode, original_action: InstantaneousAction) -> InstantaneousAction:
         new_action = self._create_action_copy(original_action, self.count)
         self.count += 1
         if precond.is_and():

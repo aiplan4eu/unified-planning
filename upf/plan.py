@@ -28,7 +28,7 @@ class Plan:
 
 class ActionInstance:
     '''Represents an action instance with the actual parameters.'''
-    def __init__(self, action: 'upf.ActionInterface', params: Tuple[FNode, ...] = tuple()):
+    def __init__(self, action: 'upf.Action', params: Tuple[FNode, ...] = tuple()):
         assert len(action.parameters()) == len(params)
         self._action = action
         self._params = params
@@ -52,7 +52,7 @@ class ActionInstance:
         else:
             return False
 
-    def action(self) -> 'upf.ActionInterface':
+    def action(self) -> 'upf.Action':
         '''Returns the action.'''
         return self._action
 
@@ -78,7 +78,7 @@ class TimeTriggeredPlan(Plan):
     '''Represents a time triggered plan.'''
     def __init__(self, actions: List[Tuple[Fraction, ActionInstance, Fraction]]):
         '''The first Fraction represents the absolute time in which the action
-        ActionInterface starts, while the last Fraction represents the duration
+        Action starts, while the last Fraction represents the duration
         of the action to fullfill the problem goals.
         '''
         self._actions = actions

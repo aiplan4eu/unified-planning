@@ -184,7 +184,7 @@ class PlanValidator(object):
         count = 0 #used for better error indexing
         for ai in plan.actions():
             action = ai.action()
-            assert isinstance(action, upf.Action)
+            assert isinstance(action, upf.InstantaneousAction)
             count = count + 1
             new_assignments: Dict[Expression, Expression] = {}
             for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):

@@ -18,7 +18,7 @@ from collections import OrderedDict
 from upf.temporal import DurativeAction, Timing
 from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
-from upf.action import ActionInterface, Action
+from upf.action import Action, InstantaneousAction
 from upf.effect import Effect
 from upf.exceptions import UPFProblemDefinitionError
 from upf.fnode import FNode
@@ -78,7 +78,7 @@ class ConditionalEffectsRemover(Remover):
             self._new_problem.add_action(ua)
         for action in self._problem.conditional_actions():
             self._counter = 0
-            if isinstance(action, Action):
+            if isinstance(action, InstantaneousAction):
                 cond_effects = action.conditional_effects()
                 for p in self.powerset(range(len(cond_effects))):
                     na = self._create_action_copy(action, self._counter)

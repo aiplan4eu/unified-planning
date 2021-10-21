@@ -203,7 +203,7 @@ class PDDLWriter:
 
         converter = ConverterToPDDLString(self.problem.env)
         for a in self.problem.actions().values():
-            if isinstance(a, upf.Action):
+            if isinstance(a, upf.InstantaneousAction):
                 out.write(f' (:action {a.name()}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
