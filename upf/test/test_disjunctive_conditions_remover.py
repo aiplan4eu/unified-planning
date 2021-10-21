@@ -43,9 +43,8 @@ class TestConditionalEffectsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
         self.env = get_env()
-        if not os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-            self.skipTest('ENHSP not found!')
-        self.env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
+        if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
+            self.env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
     @skipIfSolverNotAvailable('enhsp')
     def test_charge_discharge(self):
