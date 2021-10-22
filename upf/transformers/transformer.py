@@ -21,7 +21,7 @@ from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.problem import Problem
 from upf.simplifier import Simplifier
-from upf.temporal import Timing
+from upf.timing import Timing
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 

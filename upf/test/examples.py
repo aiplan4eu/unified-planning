@@ -15,7 +15,7 @@
 
 import upf
 from upf.shortcuts import *
-from upf.temporal import *
+from upf.timing import *
 from upf.timing import *
 
 from collections import namedtuple

@@ -19,7 +19,7 @@ from upf.plan import ActionInstance
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.temporal import ClosedInterval
+from upf.timing import ClosedInterval
 from upf.test import TestCase
 from upf.test.examples import get_example_problems
 from upf.timing import AbsoluteTiming

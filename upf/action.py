@@ -26,7 +26,7 @@ from upf.fnode import FNode
 from upf.exceptions import UPFTypeError, UPFUnboundedVariablesError, UPFProblemDefinitionError
 from upf.expression import BoolExpression, Expression
 from upf.effect import Effect, INCREASE, DECREASE
-from upf.temporal import ClosedIntervalDuration, FixedDuration, Interval, IntervalDuration, LeftOpenIntervalDuration, OpenIntervalDuration, RightOpenIntervalDuration
+from upf.timing import ClosedIntervalDuration, FixedDuration, Interval, IntervalDuration, LeftOpenIntervalDuration, OpenIntervalDuration, RightOpenIntervalDuration
 from upf.timing import EndTiming, StartTiming, Timing
 from fractions import Fraction
 from typing import Dict, List, Union

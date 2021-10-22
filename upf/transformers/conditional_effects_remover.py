@@ -15,7 +15,7 @@
 """This module defines the conditional effects remover class."""
 
 from collections import OrderedDict
-from upf.temporal import Timing
+from upf.timing import Timing
 from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
 from upf.action import Action, InstantaneousAction, DurativeAction

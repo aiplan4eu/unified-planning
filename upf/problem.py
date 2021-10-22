@@ -19,7 +19,7 @@ import upf.types
 import upf.operators as op
 from upf.environment import get_env, Environment
 from upf.expression import Expression, BoolExpression
-from upf.temporal import Interval, Timing
+from upf.timing import Interval, Timing
 from upf.effect import Effect, INCREASE, DECREASE
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError

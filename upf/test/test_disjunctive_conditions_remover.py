@@ -23,7 +23,7 @@ from upf.transformers import DisjunctiveConditionsRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
 from upf.exceptions import UPFProblemDefinitionError
-from upf.temporal import ClosedInterval
+from upf.timing import ClosedInterval
 from upf.timing import StartTiming
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))

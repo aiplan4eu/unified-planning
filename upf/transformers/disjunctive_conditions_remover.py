@@ -21,7 +21,7 @@ from upf.problem import Problem
 from upf.action import InstantaneousAction, DurativeAction
 from upf.dnf import Dnf
 from upf.exceptions import UPFProblemDefinitionError
-from upf.temporal import Interval, Timing
+from upf.timing import Interval, Timing
 from upf.transformers.transformer import Transformer
 from typing import List, Tuple, Union
 
