@@ -32,19 +32,19 @@ class Transformer:
         self._env = problem.env
         self._new_problem: Optional[Problem] = None
         #Represents the map from the new action to the old action
-        self._action_mapping: Optional[Dict[Action, Action]] = None
+        self._new_to_old: Optional[Dict[Action, Action]] = None
         #represents a mapping from the action of the original problem to action of the new one.
-        self._old_action_to_new: Optional[Dict[Action, List[Action]]] = None
+        self._old_to_new: Optional[Dict[Action, List[Action]]] = None
         self._simplifier = Simplifier(self._env)
 
-    def get_old_action_to_new(self) -> Optional[Dict[Action, List[Action]]]:
-        return self._old_action_to_new
+    def get_old_to_new_actions_mapping(self) -> Optional[Dict[Action, List[Action]]]:
+        return self._old_to_new
 
-    def _add_old_action_to_new(self, old_action, new_action):
-        if self._old_action_to_new.get(old_action, None) is None:
-            self._old_action_to_new[old_action] = [new_action]
+    def _map_old_to_new_action(self, old_action, new_action):
+        if old_action in self._old_to_new:
+            self._old_to_new[old_action].append(new_action)
         else:
-            self._old_action_to_new[old_action].append(new_action)
+            self._old_to_new[old_action] = [new_action]
 
     def get_rewritten_problem(self) -> Problem:
         raise NotImplementedError
@@ -54,7 +54,7 @@ class Transformer:
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.'''
         #if the remover does not change the name of the actions
-        if self._action_mapping is None:
+        if self._new_to_old is None:
             if isinstance(plan, SequentialPlan):
                 actions = [ActionInstance(self._problem.action(ai.action().name()),
                                 ai.actual_parameters()) for ai in plan.actions()]
@@ -65,12 +65,11 @@ class Transformer:
                                 ai.actual_parameters()), d) for s, ai, d in plan.actions()]
                 return TimeTriggeredPlan(s_actions_d)
         else:
-
             if isinstance(plan, SequentialPlan):
                 new_actions: List[ActionInstance] = plan.actions()
                 old_actions: List[ActionInstance] = []
                 for ai in new_actions:
-                    if ai.action() in self._action_mapping:
+                    if ai.action() in self._new_to_old:
                         old_actions.append(self._new_action_instance_original_name(ai))
                     else:
                         old_actions.append(ai)
@@ -79,7 +78,7 @@ class Transformer:
                 s_new_actions_d = plan.actions()
                 s_old_actions_d = []
                 for s, ai, d in s_new_actions_d:
-                    if ai.action() in self._action_mapping:
+                    if ai.action() in self._new_to_old:
                         s_old_actions_d.append((s, self._new_action_instance_original_name(ai), d))
                     else:
                         s_old_actions_d.append((s, ai, d))
@@ -88,7 +87,7 @@ class Transformer:
 
     def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:
         #original action
-        oa = self._action_mapping[ai.action()] # type: ignore
+        oa = self._new_to_old[ai.action()] # type: ignore
         return ActionInstance(oa, ai.actual_parameters())
 
     def _create_problem_copy(self, str_to_add: str):
@@ -132,7 +131,7 @@ class Transformer:
                 raise UPFProblemDefinitionError(f"InstantaneousAction: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
         else:
             new_action_name = action.name()
-        #here, if self._action_mapping is a Dict[str, Action] from name to action it would be possible to add
+        #here, if self._new_to_old is a Dict[str, Action] from name to action it would be possible to add
         # the mapping in the remover and not in every single other remover who needs it.
         return InstantaneousAction(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
 
@@ -151,7 +150,7 @@ class Transformer:
                 raise UPFProblemDefinitionError(f"InstantaneousAction: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
         else:
             new_action_name = action.name()
-        #here, if self._action_mapping is a Dict[str, Action] from name to action it would be possible to add
+        #here, if self._new_to_old is a Dict[str, Action] from name to action it would be possible to add
         # the mapping in the remover and not in every single other remover who needs it.
         nda = DurativeAction(new_action_name, OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
         nda.set_duration_constraint(action.duration())

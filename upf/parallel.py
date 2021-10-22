@@ -28,6 +28,10 @@ class Parallel(Solver):
         self.solvers = solvers
 
     @staticmethod
+    def name() -> str:
+        return 'Parallel'
+
+    @staticmethod
     def is_oneshot_planner() -> bool:
         raise UPFException('The Parallel solver type depends on its actual solvers')
 
