@@ -15,20 +15,20 @@
 """This module defines the conditional effects remover class."""
 
 from collections import OrderedDict
-from upf.temporal import DurativeAction, Timing
+from upf.temporal import Timing
 from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
 from upf.problem import Problem
-from upf.action import Action, InstantaneousAction
+from upf.action import Action, InstantaneousAction, DurativeAction
 from upf.effect import Effect
 from upf.exceptions import UPFProblemDefinitionError
 from upf.fnode import FNode
 from upf.simplifier import Simplifier
-from upf.transformers.remover import Remover
+from upf.transformers.transformer import Transformer
 from typing import Iterable, List, Dict, Tuple, Union
 from itertools import chain, combinations
 
 
-class ConditionalEffectsRemover(Remover):
+class ConditionalEffectsRemover(Transformer):
     '''Conditional effect remover class:
     this class requires a problem and offers the capability
     to transform a conditional problem into an unconditional one.
@@ -36,7 +36,7 @@ class ConditionalEffectsRemover(Remover):
     This is done by substituting every conditional action with different
     actions representing every possible branch of the original action.'''
     def __init__(self, problem: Problem):
-        Remover.__init__(self, problem)
+        Transformer.__init__(self, problem)
         self._action_mapping = {}
         self._counter: int = 0
 
@@ -52,7 +52,7 @@ class ConditionalEffectsRemover(Remover):
         actions.'''
         if self._new_problem is not None:
             return self._new_problem
-        #NOTE that a different environment might be needed when multy-threading
+        #NOTE that a different environment might be needed when multi-threading
         self._create_problem_copy("unconditional")
         assert self._new_problem is not None
         self._new_problem_add_fluents()

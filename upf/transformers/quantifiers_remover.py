@@ -15,13 +15,12 @@
 """This module defines the quantifiers remover class."""
 
 
-from upf.temporal import DurativeAction
 import upf.operators as op
 import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
-from upf.transformers.remover import Remover
+from upf.transformers.transformer import Transformer
 from upf.problem import Problem
-from upf.action import InstantaneousAction
+from upf.action import InstantaneousAction, DurativeAction
 from upf.object import Object
 from upf.effect import Effect
 from upf.fnode import FNode
@@ -70,13 +69,13 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
         return self._env.expression_manager.And(subs_results)
 
 
-class QuantifiersRemover(Remover):
+class QuantifiersRemover(Transformer):
     '''Quantifiers remover class:
     this class requires a problem and offers the capability
     to transform a problem with quantifiers into a problem without.
     '''
     def __init__(self, problem: Problem):
-        Remover.__init__(self, problem)
+        Transformer.__init__(self, problem)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
 
@@ -94,7 +93,7 @@ class QuantifiersRemover(Remover):
             Or(is_green(s1), is_green(s2), is_green(s3)).'''
         if self._new_problem is not None:
             return self._new_problem
-        #NOTE that a different environment might be needed when multy-threading
+        #NOTE that a different environment might be needed when multi-threading
         self._create_problem_copy("unquantified")
         self._new_problem_add_fluents()
         self._new_problem_add_objects()

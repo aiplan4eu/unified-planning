@@ -16,21 +16,22 @@
 
 
 from upf.fnode import FNode
-from upf.action import Action, InstantaneousAction
+from upf.action import Action, InstantaneousAction, DurativeAction
 from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.problem import Problem
 from upf.simplifier import Simplifier
-from upf.temporal import DurativeAction, Timing
-from typing import Dict, List, Optional, OrderedDict, Union
+from upf.temporal import Timing
+from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 
-class Remover:
+class Transformer:
     """Represents a generic remover with all the support methods shared among them."""
     def __init__(self, problem: Problem):
         self._problem = problem
         self._env = problem.env
         self._new_problem: Optional[Problem] = None
+        #Represents the map from the new action to the old action
         self._action_mapping: Optional[Dict[Action, Action]] = None
         self._simplifier = Simplifier(self._env)
 
@@ -53,9 +54,10 @@ class Remover:
                                 ai.actual_parameters()), d) for s, ai, d in plan.actions()]
                 return TimeTriggeredPlan(s_actions_d)
         else:
+
             if isinstance(plan, SequentialPlan):
-                new_actions = plan.actions()
-                old_actions = []
+                new_actions: List[ActionInstance] = plan.actions()
+                old_actions: List[ActionInstance] = []
                 for ai in new_actions:
                     if ai.action() in self._action_mapping:
                         old_actions.append(self._new_action_instance_original_name(ai))
@@ -63,14 +65,14 @@ class Remover:
                         old_actions.append(ai)
                 return SequentialPlan(old_actions)
             elif isinstance(plan, TimeTriggeredPlan):
-                new_durative_actions = plan.actions()
-                old_durative_actions = []
-                for s, ai, d in new_durative_actions:
+                s_new_actions_d = plan.actions()
+                s_old_actions_d = []
+                for s, ai, d in s_new_actions_d:
                     if ai.action() in self._action_mapping:
-                        old_durative_actions.append((s, self._new_action_instance_original_name(ai), d))
+                        s_old_actions_d.append((s, self._new_action_instance_original_name(ai), d))
                     else:
-                        old_durative_actions.append((s, ai, d))
-                return TimeTriggeredPlan(old_durative_actions)
+                        s_old_actions_d.append((s, ai, d))
+                return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
     def _new_action_instance_original_name(self, ai: ActionInstance) -> ActionInstance:

@@ -15,11 +15,10 @@
 """This module defines the negative preconditions remover class."""
 
 from collections import OrderedDict
-from upf.temporal import DurativeAction
 from upf.fluent import Fluent
-from upf.transformers.remover import Remover
+from upf.transformers.transformer import Transformer
 from upf.problem import Problem
-from upf.action import InstantaneousAction
+from upf.action import InstantaneousAction, DurativeAction
 from upf.fnode import FNode
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
@@ -47,7 +46,7 @@ class NegativeFluentRemover(IdentityDagWalker):
         return self._env.expression_manager.FluentExp(nf, tuple(args[0].args()))
 
 
-class NegativeConditionsRemover(Remover):
+class NegativeConditionsRemover(Transformer):
     '''Negative conditions remover class:
     this class requires a problem and offers the capability
     to transform a problem with negative conditions into one
@@ -56,7 +55,7 @@ class NegativeConditionsRemover(Remover):
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
     def __init__(self, problem: Problem):
-        Remover.__init__(self, problem)
+        Transformer.__init__(self, problem)
         self._count = 0
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self._env)
@@ -67,7 +66,7 @@ class NegativeConditionsRemover(Remover):
         goal is replaced by the fluent representing his negative.'''
         if self._new_problem is not None:
             return self._new_problem
-        #NOTE that a different environment might be needed when multy-threading
+        #NOTE that a different environment might be needed when multi-threading
         self._create_problem_copy('no_negative_conditions')
         self._new_problem_add_objects()
         assert self._new_problem is not None

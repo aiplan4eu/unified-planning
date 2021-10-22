@@ -173,17 +173,17 @@ class Problem:
                 self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
             for i, l in action.durative_conditions().items():
                 if i.lower().bound() != 0 or i.upper().bound() != 0:
-                    self._kind.set_time('ICE') # type: ignore
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
                 for c in l:
                     self._update_problem_kind_condition(c)
             for t, l in action.conditions().items():
                 if t.bound() != 0:
-                    self._kind.set_time('ICE') # type: ignore
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
                 for c in l:
                     self._update_problem_kind_condition(c)
             for t, l in action.effects().items():
                 if t.bound() != 0:
-                    self._kind.set_time('ICE') # type: ignore
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
                 for e in l:
                     self._update_problem_kind_effect(e)
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore

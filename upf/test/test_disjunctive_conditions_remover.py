@@ -14,6 +14,7 @@
 
 import os
 import upf
+from upf.action import DurativeAction
 from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main
@@ -22,7 +23,8 @@ from upf.transformers import DisjunctiveConditionsRemover
 from upf.pddl_solver import PDDLSolver
 from upf.plan_validator import PlanValidator as PV
 from upf.exceptions import UPFProblemDefinitionError
-from upf.temporal import StartTiming, DurativeAction, ClosedInterval
+from upf.temporal import ClosedInterval
+from upf.timing import StartTiming
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 

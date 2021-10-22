@@ -18,7 +18,7 @@ import sys
 import upf
 import upf.environment
 import upf.walkers as walkers
-from upf.temporal import DurativeAction
+from upf.action import DurativeAction
 from upf.simplifier import Simplifier
 from upf.exceptions import UPFTypeError, UPFProblemDefinitionError
 from typing import IO
@@ -134,7 +134,7 @@ class PDDLWriter:
         self.needs_requirements = needs_requirements
 
     def _write_domain(self, out: IO[str]):
-        if self.problem.kind().has_ice() or self.problem.kind().has_maintain_goals(): # type: ignore
+        if self.problem.kind().has_intermediate_conditions_and_effects() or self.problem.kind().has_maintain_goals(): # type: ignore
             raise UPFProblemDefinitionError('PDDL2.1 does not support ICE or maintained goals.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
         if self.problem.kind().has_timed_effect() or self.problem.kind().has_timed_goals(): # type: ignore
             raise UPFProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')

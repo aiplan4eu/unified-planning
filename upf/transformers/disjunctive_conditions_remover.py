@@ -18,15 +18,15 @@
 from itertools import product
 from upf.fnode import FNode
 from upf.problem import Problem
-from upf.action import InstantaneousAction
+from upf.action import InstantaneousAction, DurativeAction
 from upf.dnf import Dnf
 from upf.exceptions import UPFProblemDefinitionError
-from upf.temporal import DurativeAction, Interval, Timing
-from upf.transformers.remover import Remover
+from upf.temporal import Interval, Timing
+from upf.transformers.transformer import Transformer
 from typing import List, Tuple, Union
 
 
-class DisjunctiveConditionsRemover(Remover):
+class DisjunctiveConditionsRemover(Transformer):
     '''DisjunctiveConditions remover class:
     this class requires a problem and offers the capability
     to transform a problem with preconditions not in the DNF form
@@ -36,7 +36,7 @@ class DisjunctiveConditionsRemover(Remover):
     an AND of leaf nodes.
     '''
     def __init__(self, problem: Problem):
-        Remover.__init__(self, problem)
+        Transformer.__init__(self, problem)
         self._action_mapping = {}
         #NOTE no simplification are made. But it's possible to add them in key points
 
