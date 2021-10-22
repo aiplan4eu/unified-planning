@@ -89,10 +89,24 @@ class EndTiming(Timing):
     def is_from_end(self):
         return True
 
+
 class IntervalDuration:
-    def __init__(self, lower: FNode, upper: FNode):
+    def __init__(self, lower: FNode, upper: FNode, is_left_open: bool = False, is_right_open: bool = False):
         self._lower = lower
         self._upper = upper
+        self._is_left_open = is_left_open
+        self._is_right_open = is_right_open
+
+    def __repr__(self) -> str:
+        if self.is_left_open():
+            left_bound = '('
+        else:
+            left_bound = '['
+        if self.is_right_open():
+            right_bound = ')'
+        else:
+            right_bound = ']'
+        return f'{left_bound}{str(self.lower())}, {str(self.upper())}{right_bound}'
 
     def lower(self):
         return self._lower
@@ -100,94 +114,57 @@ class IntervalDuration:
     def upper(self):
         return self._upper
 
-    def is_left_open(self):
-        raise NotImplementedError
+    def is_left_open(self) -> bool:
+        return self._is_left_open
 
-    def is_right_open(self):
-        raise NotImplementedError
+    def is_right_open(self) -> bool:
+        return self._is_right_open
 
-
-class ClosedIntervalDuration(IntervalDuration):
+def ClosedIntervalDuration(lower: FNode, upper: FNode) -> IntervalDuration:
     '''Represents the (closed) interval duration constraint:
             [lower, upper]
     '''
-    def __init__(self, lower: FNode, upper: FNode):
-        IntervalDuration.__init__(self, lower, upper)
+    return IntervalDuration(lower, upper)
 
-    def __repr__(self) -> str:
-        return f'[{str(self._lower)}, {str(self._upper)}]'
-
-    def is_left_open(self):
-        return False
-
-    def is_right_open(self):
-        return False
-
-
-class FixedDuration(ClosedIntervalDuration):
+def FixedDuration(size: FNode) -> IntervalDuration:
     '''Represents a fixed duration constraint'''
-    def __init__(self, size: FNode):
-        ClosedIntervalDuration.__init__(self, size, size)
+    return IntervalDuration(size, size)
 
-    def __repr__(self) -> str:
-        return f'[{self._lower}]'
-
-
-class OpenIntervalDuration(IntervalDuration):
+def OpenIntervalDuration(lower: FNode, upper: FNode) -> IntervalDuration:
     '''Represents the (open) interval duration constraint:
             (lower, upper)
     '''
-    def __init__(self, lower: FNode, upper: FNode):
-        IntervalDuration.__init__(self, lower, upper)
+    return IntervalDuration(lower, upper, True, True)
 
-    def __repr__(self) -> str:
-        return f'({self._lower}, {self._upper})'
-
-    def is_left_open(self):
-        return True
-
-    def is_right_open(self):
-        return True
-
-
-class LeftOpenIntervalDuration(IntervalDuration):
+def LeftOpenIntervalDuration(lower: FNode, upper: FNode) -> IntervalDuration:
     '''Represents the (left open, right closed) interval duration constraint:
             (lower, upper]
     '''
-    def __init__(self, lower: FNode, upper: FNode):
-        IntervalDuration.__init__(self, lower, upper)
+    return IntervalDuration(lower, upper, True, False)
 
-    def __repr__(self) -> str:
-        return f'({self._lower}, {self._upper}]'
-
-    def is_left_open(self):
-        return True
-
-    def is_right_open(self):
-        return False
-
-
-class RightOpenIntervalDuration(IntervalDuration):
+def RightOpenIntervalDuration(lower: FNode, upper: FNode) -> IntervalDuration:
     '''Represents the (left closed, right open) interval duration constraint:
             [lower, upper)
     '''
-    def __init__(self, lower: FNode, upper: FNode):
-        IntervalDuration.__init__(self, lower, upper)
-
-    def __repr__(self) -> str:
-        return f'[{self._lower}, {self._upper})'
-
-    def is_left_open(self):
-        return False
-
-    def is_right_open(self):
-        return True
-
+    return IntervalDuration(lower, upper, False, True)
 
 class Interval:
-    def __init__(self, lower: Timing, upper: Timing):
+    def __init__(self, lower: Timing, upper: Timing, is_left_open: bool = False, is_right_open: bool = False):
         self._lower = lower
         self._upper = upper
+        self._is_left_open = is_left_open
+        self._is_right_open = is_right_open
+
+    def __repr__(self) -> str:
+        if self.is_left_open():
+            left_bound = '('
+        else:
+            left_bound = '['
+        if self.is_right_open():
+            right_bound = ')'
+        else:
+            right_bound = ']'
+        return f'{left_bound}{str(self.lower())}, {str(self.upper())}{right_bound}'
 
     def lower(self):
         return self._lower
@@ -195,76 +172,32 @@ class Interval:
     def upper(self):
         return self._upper
 
-    def is_left_open(self):
-        raise NotImplementedError
+    def is_left_open(self) -> bool:
+        return self._is_left_open
 
-    def is_right_open(self):
-        raise NotImplementedError
+    def is_right_open(self) -> bool:
+        return self._is_right_open
 
-
-class ClosedInterval(Interval):
-    '''Represents the (closed) interval:
+def ClosedInterval(lower: Timing, upper: Timing) -> Interval:
+    '''Represents the (closed) interval duration constraint:
             [lower, upper]
     '''
-    def __init__(self, lower: Timing, upper: Timing):
-        Interval.__init__(self, lower, upper)
+    return Interval(lower, upper)
 
-    def __repr__(self) -> str:
-        return f'[{str(self._lower)}, {str(self._upper)}]'
-
-    def is_left_open(self):
-        return False
-
-    def is_right_open(self):
-        return False
-
-
-class OpenInterval(Interval):
-    '''Represents the (open) interval:
+def OpenInterval(lower: Timing, upper: Timing) -> Interval:
+    '''Represents the (open) interval duration constraint:
             (lower, upper)
     '''
-    def __init__(self, lower: Timing, upper: Timing):
-        Interval.__init__(self, lower, upper)
+    return Interval(lower, upper, True, True)
 
-    def __repr__(self) -> str:
-        return f'({self._lower}, {self._upper})'
-
-    def is_left_open(self):
-        return True
-
-    def is_right_open(self):
-        return True
-
-
-class LeftOpenInterval(Interval):
-    '''Represents the (left open, right closed) interval:
+def LeftOpenInterval(lower: Timing, upper: Timing) -> Interval:
+    '''Represents the (left open, right closed) interval duration constraint:
             (lower, upper]
     '''
-    def __init__(self, lower: Timing, upper: Timing):
-        Interval.__init__(self, lower, upper)
+    return Interval(lower, upper, True, False)
 
-    def __repr__(self) -> str:
-        return f'({self._lower}, {self._upper}]'
-
-    def is_left_open(self):
-        return True
-
-    def is_right_open(self):
-        return False
-
-
-class RightOpenInterval(Interval):
-    '''Represents the (left closed, right open) interval:
+def RightOpenInterval(lower: Timing, upper: Timing) -> Interval:
+    '''Represents the (left closed, right open) interval duration constraint:
             [lower, upper)
     '''
-    def __init__(self, lower: Timing, upper: Timing):
-        Interval.__init__(self, lower, upper)
-
-    def __repr__(self) -> str:
-        return f'[{self._lower}, {self._upper})'
-
-    def is_left_open(self):
-        return False
-
-    def is_right_open(self):
-        return True
+    return Interval(lower, upper, False, True)

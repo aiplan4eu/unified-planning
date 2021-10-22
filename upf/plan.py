@@ -17,7 +17,7 @@
 
 import upf
 from upf.fnode import FNode
-from typing import Tuple, List
+from typing import Optional, Tuple, List
 from fractions import Fraction
 
 
@@ -76,16 +76,18 @@ class SequentialPlan(Plan):
 
 class TimeTriggeredPlan(Plan):
     '''Represents a time triggered plan.'''
-    def __init__(self, actions: List[Tuple[Fraction, ActionInstance, Fraction]]):
+    def __init__(self, actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]]):
         '''The first Fraction represents the absolute time in which the action
         Action starts, while the last Fraction represents the duration
         of the action to fullfill the problem goals.
+        The Action can be an InstantaneousAction, this is represented with a duration set
+        to None.
         '''
         self._actions = actions
 
     def __repr__(self) -> str:
         return str(self._actions)
 
-    def actions(self) -> List[Tuple[Fraction, ActionInstance, Fraction]]:
+    def actions(self) -> List[Tuple[Fraction, ActionInstance, Optional[Fraction]]]:
         '''Returns the sequence of action instances.'''
         return self._actions
