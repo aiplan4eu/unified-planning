@@ -26,6 +26,10 @@ class ENHSP(PDDLSolver):
     def __init__(self):
         PDDLSolver.__init__(self, False)
 
+    @staticmethod
+    def name() -> str:
+        return 'ENHSP'
+
     def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
         return ['java', '-jar',
                 os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),

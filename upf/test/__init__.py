@@ -15,6 +15,7 @@
 import unittest
 from functools import wraps
 from upf.environment import get_env
+from upf.problem_kind import ProblemKind
 import upf.test.pddl.enhsp
 
 
@@ -31,6 +32,38 @@ class skipIfSolverNotAvailable(object):
     def __call__(self, test_fun):
         msg = "%s not available" % self.solver
         cond = self.solver not in get_env().factory.solvers
+        @unittest.skipIf(cond, msg)
+        @wraps(test_fun)
+        def wrapper(*args, **kwargs):
+            return test_fun(*args, **kwargs)
+        return wrapper
+
+
+class skipIfNoOneshotPlannerForProblemKind(object):
+    """Skip a test if there are no oneshot planner for the given problem kind."""
+
+    def __init__(self, kind: ProblemKind):
+        self.kind = kind
+
+    def __call__(self, test_fun):
+        msg = "no oneshot planner available for the given problem kind"
+        cond = get_env().factory._get_solver_class('oneshot_planner', self.kind) is not None
+        @unittest.skipIf(cond, msg)
+        @wraps(test_fun)
+        def wrapper(*args, **kwargs):
+            return test_fun(*args, **kwargs)
+        return wrapper
+
+
+class skipIfNoPlanValidatorForProblemKind(object):
+    """Skip a test if there are no plan validator for the given problem kind."""
+
+    def __init__(self, kind: ProblemKind):
+        self.kind = kind
+
+    def __call__(self, test_fun):
+        msg = "no plan validator available for the given problem kind"
+        cond = get_env().factory._get_solver_class('plan_validator', self.kind) is not None
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
