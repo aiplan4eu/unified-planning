@@ -139,6 +139,16 @@ class Problem:
         '''Returns the actions.'''
         return self._actions
 
+    def instantaneous_actions(self):
+        for a in self._actions:
+            if isinstance(a, upf.InstantaneousAction):
+                yield a
+
+    def durative_actions(self):
+        for a in self._actions:
+            if isinstance(a, upf.DurativeAction):
+                yield a
+
     def conditional_actions(self) -> List[upf.Action]:
         '''Returns the conditional actions.'''
         return [a for a in self._actions.values() if a.is_conditional()]
