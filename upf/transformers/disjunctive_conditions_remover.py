@@ -38,6 +38,7 @@ class DisjunctiveConditionsRemover(Transformer):
     def __init__(self, problem: Problem):
         Transformer.__init__(self, problem)
         self._action_mapping = {}
+        self._old_action_to_new = {}
         #NOTE no simplification are made. But it's possible to add them in key points
 
     def get_rewritten_problem(self) -> Problem:
@@ -110,7 +111,8 @@ class DisjunctiveConditionsRemover(Transformer):
                 self._add_condition(new_action, t, c)
         self._durative_action_add_effects(original_action, new_action)
         assert self._action_mapping is not None
-        self._action_mapping[new_action] = original_action # type: ignore
+        self._action_mapping[new_action] = original_action
+        self._add_old_action_to_new(original_action, new_action)
         return new_action
 
     def _add_condition(self, new_action: DurativeAction, time: Union[Timing, Interval], condition: FNode):
@@ -132,4 +134,5 @@ class DisjunctiveConditionsRemover(Transformer):
         self._action_add_effects(original_action, new_action)
         assert self._action_mapping is not None
         self._action_mapping[new_action] = original_action
+        self._add_old_action_to_new(original_action, new_action)
         return new_action

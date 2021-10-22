@@ -38,6 +38,7 @@ class ConditionalEffectsRemover(Transformer):
     def __init__(self, problem: Problem):
         Transformer.__init__(self, problem)
         self._action_mapping = {}
+        self._old_action_to_new = {}
         self._counter: int = 0
 
     def powerset(self, iterable: Iterable) -> Iterable:
@@ -98,6 +99,7 @@ class ConditionalEffectsRemover(Transformer):
                     if len(na.effects()) > 0:
                         if self._check_and_simplify_preconditions(na):
                             self._action_mapping[na] = action
+                            self._add_old_action_to_new(action, na)
                             self._new_problem.add_action(na)
                             self._counter += 1
             elif isinstance(action, DurativeAction):
@@ -122,6 +124,7 @@ class ConditionalEffectsRemover(Transformer):
                     if len(nda.effects()) > 0:
                         if self._check_and_simplify_conditions(nda):
                             self._action_mapping[nda] = action
+                            self._add_old_action_to_new(action, nda)
                             self._new_problem.add_action(nda)
                             self._counter += 1
             else:

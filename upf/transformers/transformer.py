@@ -33,7 +33,18 @@ class Transformer:
         self._new_problem: Optional[Problem] = None
         #Represents the map from the new action to the old action
         self._action_mapping: Optional[Dict[Action, Action]] = None
+        #represents a mapping from the action of the original problem to action of the new one.
+        self._old_action_to_new: Optional[Dict[Action, List[Action]]] = None
         self._simplifier = Simplifier(self._env)
+
+    def get_old_action_to_new(self) -> Optional[Dict[Action, List[Action]]]:
+        return self._old_action_to_new
+
+    def _add_old_action_to_new(self, old_action, new_action):
+        if self._old_action_to_new.get(old_action, None) is None:
+            self._old_action_to_new[old_action] = [new_action]
+        else:
+            self._old_action_to_new[old_action].append(new_action)
 
     def get_rewritten_problem(self) -> Problem:
         raise NotImplementedError
