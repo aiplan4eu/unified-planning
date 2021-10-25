@@ -19,16 +19,16 @@ from typing import Set
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
-    'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME'],
+    'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME', 'INTERMEDIATE_CONDITIONS_AND_EFFECTS', 'TIMED_EFFECT', 'TIMED_GOALS', 'MAINTAIN_GOALS', 'DURATION_INEQUALITIES'],
     'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
-    'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_PRECONDITIONS', 'UNIVERSAL_PRECONDITIONS'],
+    'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
     'EFFECTS_KIND' : ['CONDITIONAL_EFFECTS', 'INCREASE_EFFECTS', 'DECREASE_EFFECTS'],
     'TYPING' : ['FLAT_TYPING']
 }
 
 
 class ProblemKindMeta(type):
-    """Meta class used to interpret the nodehandler decorator. """
+    '''Meta class used to interpret the nodehandler decorator.'''
     def __new__(cls, name, bases, dct):
         def _set(self, feature, possible_features):
             assert feature in possible_features

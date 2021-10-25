@@ -20,7 +20,8 @@ from upf.parallel import Parallel
 from typing import Dict, Tuple, Optional, List, Union, Type
 
 
-DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl')}
+DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl'),
+                   'pyperplan' : ('upf_pyperplan', 'SolverImpl')}
 
 
 class Factory:

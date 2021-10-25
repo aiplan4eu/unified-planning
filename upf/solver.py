@@ -23,7 +23,12 @@ class Solver:
     """Represents the solver interface."""
 
     def __init__(self, **kwargs):
-        pass
+        if len(kwargs) > 0:
+            raise
+
+    @staticmethod
+    def name() -> str:
+        raise NotImplementedError
 
     @staticmethod
     def is_oneshot_planner() -> bool:

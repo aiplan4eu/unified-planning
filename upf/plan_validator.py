@@ -183,16 +183,18 @@ class PlanValidator(object):
         assignments: Dict[Expression, Expression] = problem.initial_values() # type: ignore
         count = 0 #used for better error indexing
         for ai in plan.actions():
+            action = ai.action()
+            assert isinstance(action, upf.InstantaneousAction)
             count = count + 1
             new_assignments: Dict[Expression, Expression] = {}
             for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):
                 assignments[ap] = oe
-            for p in ai.action().preconditions():
+            for p in action.preconditions():
                 ps = self._subs_simplify(p, assignments)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
                     self._last_error = f'Precondition {p} of {str(count)}-th action instance {str(ai)} is not satisfied.'
                     return False
-            for e in ai.action().effects():
+            for e in action.effects():
                 cond = True
                 if e.is_conditional():
                     ec = self._subs_simplify(e.condition(), assignments)
@@ -209,7 +211,7 @@ class PlanValidator(object):
                         new_assignments[ge] = self._subs_simplify(self.manager.Minus(e.fluent(),
                                                 e.value()), assignments)
             assignments.update(new_assignments)
-            for ap in ai.action().parameters():
+            for ap in action.parameters():
                 del assignments[ap]
         for g in problem.goals():
             gs = self._subs_simplify(g, assignments)

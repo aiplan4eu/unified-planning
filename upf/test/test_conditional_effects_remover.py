@@ -16,11 +16,11 @@ import os
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
+from upf.timing import AbsoluteTiming
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.conditional_effects_remover import ConditionalEffectsRemover
+from upf.transformers import ConditionalEffectsRemover
 from upf.pddl_solver import PDDLSolver
-from upf.plan_validator import PlanValidator as PV
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -50,20 +50,22 @@ class TestConditionalEffectsRemover(TestCase):
         unconditional_problem = cer.get_rewritten_problem()
         u_actions = list(unconditional_problem.actions().values())
         a_x = problem.action("a_x")
-        a_x_1 = unconditional_problem.action("a_x_1")
+        a_x_new_list = cer.get_old_to_new_actions_mapping()[a_x]
+        self.assertEqual(len(a_x_new_list), 1)
+        a_x__0__ = unconditional_problem.action(a_x_new_list[0].name())
         y = FluentExp(problem.fluent("y"))
         a_x_e = a_x.effects()
-        a_x_1_e = a_x_1.effects()
+        a_x__0__e = a_x__0__.effects()
 
         self.assertEqual(len(u_actions), 2)
         self.assertEqual(problem.action("a_y"), unconditional_problem.action("a_y"))
         self.assertTrue(a_x.is_conditional())
         self.assertFalse(unconditional_problem.has_action("a_x"))
-        self.assertFalse(a_x_1.is_conditional())
+        self.assertFalse(a_x__0__.is_conditional())
         self.assertFalse(problem.has_action("a_x_0"))
-        self.assertIn(y, a_x_1.preconditions())
+        self.assertIn(y, a_x__0__.preconditions())
         self.assertNotIn(y, a_x.preconditions())
-        for e, ue in zip(a_x_e, a_x_1_e):
+        for e, ue in zip(a_x_e, a_x__0__e):
             self.assertEqual(e.fluent(), ue.fluent())
             self.assertEqual(e.value(), ue.value())
             self.assertFalse(ue.is_conditional())
@@ -74,21 +76,15 @@ class TestConditionalEffectsRemover(TestCase):
             uncond_plan = planner.solve(unconditional_problem)
             self.assertNotEqual(str(plan), str(uncond_plan))
             new_plan = cer.rewrite_back_plan(uncond_plan)
-            # with PlanValidator(problem_kind=problem.kind()) as validator:
-            #     self.assertNotEqual(validator, None)
-
-            #     res = validator.validate(problem, plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(unconditional_problem, uncond_plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(problem, new_plan)
-            #     self.assertTrue(res)
+            self.assertEqual(str(plan), str(new_plan))
 
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
         plan = self.problems['complex_conditional'].plan
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
+        unconditional_problem_2 = cer.get_rewritten_problem()
+        self.assertEqual(unconditional_problem, unconditional_problem_2)
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
@@ -96,12 +92,33 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertNotEqual(str(plan), str(uncond_plan))
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
-            # with PlanValidator(problem_kind=problem.kind()) as validator:
-            #     self.assertNotEqual(validator, None)
 
-            #     res = validator.validate(problem, plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(unconditional_problem, uncond_plan)
-            #     self.assertTrue(res)
-            #     res = validator.validate(problem, new_plan)
-            #     self.assertTrue(res)
+    def test_temporal_conditional(self):
+        problem = self.problems['temporal_conditional'].problem
+        plan = self.problems['temporal_conditional'].plan
+
+        cer = ConditionalEffectsRemover(problem)
+        unconditional_problem = cer.get_rewritten_problem()
+
+        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
+            self.assertNotEqual(planner, None)
+            unconditional_plan = planner.solve(unconditional_problem)
+            self.assertNotEqual(str(plan), str(unconditional_plan))
+            conditional_plan = cer.rewrite_back_plan(unconditional_plan)
+            self.assertEqual(str(plan), str(conditional_plan))
+
+    def test_ad_hoc_1(self):
+        ct = AbsoluteTiming(2)
+        x = upf.Fluent('x')
+        y = upf.Fluent('y')
+        problem = upf.Problem('ad_hoc_1')
+        problem.add_fluent(x, default_initial_value=True)
+        problem.add_fluent(y, default_initial_value=True)
+        problem.add_timed_effect(ct, y, Not(x), x)
+        problem.add_goal(Not(y))
+        cer = ConditionalEffectsRemover(problem)
+        uncond_problem = cer.get_rewritten_problem()
+        eff = uncond_problem.timed_effects()[ct][0]
+        self.assertFalse(eff.is_conditional())
+        self.assertEqual(FluentExp(y), eff.fluent())
+        self.assertEqual(And(Not(x), y), eff.value())

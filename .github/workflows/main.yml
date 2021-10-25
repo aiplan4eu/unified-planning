@@ -31,17 +31,17 @@ jobs:
         with:
           repository: aiplan4eu/tamer-upf
           path: tamer-upf
-          ref: "1887e041bcb5f6541fa0710481d9c3581458a86e"
+          ref: "5759540ea1ade86a821d65d104588f7f8bdc1591"
 
       - name: Install Tamer UPF
         run: bash tamer-upf/install.sh
-        
+
       - name: Checkout Pyperplan UPF
         uses: actions/checkout@v2
         with:
           repository: aiplan4eu/pyperplan-upf
           path: pyperplan-upf
-          ref: "61de115fb7120e45174b69a8bcab4b491b1929a5"
+          ref: "5ddd2d225747729c055a2fa95eb24c90521d17eb"
 
       - name: Install Pyperplan UPF
         run: bash pyperplan-upf/install.sh

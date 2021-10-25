@@ -17,7 +17,7 @@ import os
 import upf
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.quantifiers_remover import QuantifiersRemover
+from upf.transformers import QuantifiersRemover
 from upf.pddl_solver import PDDLSolver
 from upf.io.pddl_writer import PDDLWriter
 from upf.environment import get_env
@@ -52,6 +52,8 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['basic_exists'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
+        uq_problem_2 = qr.get_rewritten_problem()
+        self.assertEqual(uq_problem, uq_problem_2)
         self.assertIn("Exists", str(problem))
         self.assertNotIn("Exists", str(uq_problem))
 
@@ -107,6 +109,21 @@ class TestQuantifiersRemover(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem)
+            uq_plan = planner.solve(uq_problem)
+            self.assertEqual(str(plan), str(uq_plan))
+            new_plan = qr.rewrite_back_plan(uq_plan)
+            self.assertEqual(str(plan), str(new_plan))
+
+    def test_timed_connected_locations(self):
+        problem = self.problems['timed_connected_locations'].problem
+        plan = self.problems['timed_connected_locations'].plan
+        qr = QuantifiersRemover(problem)
+        uq_problem = qr.get_rewritten_problem()
+        self.assertTrue(problem.has_quantifiers())
+        self.assertFalse(uq_problem.has_quantifiers())
+
+        with OneshotPlanner(name='tamer') as planner:
+            self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
