@@ -4,6 +4,7 @@ from upf.shortcuts import *
 from upf.plan import ActionInstance
 from upf.plan import SequentialPlan
 
+
 class ProtoFactory:
     def __init__(self):
         self.p_env = None
