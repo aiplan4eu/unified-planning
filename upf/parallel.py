@@ -71,7 +71,7 @@ class Parallel(Solver):
         for a in plan.actions():
             new_a = problem.action(a.action().name())
             params = []
-            for p in a.parameters():
+            for p in a.actual_parameters():
                 if p.is_object_exp():
                     obj = objects[p.object().name()]
                     params.append(em.ObjectExp(obj))

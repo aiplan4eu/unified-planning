@@ -53,7 +53,22 @@ class TestPDDLPlanner(TestCase):
             plan = planner.solve(problem)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
-            self.assertEqual(len(plan.actions()[0].parameters()), 0)
+            self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
+
+    def test_basic_conditional(self):
+        problem = self.problems['basic_conditional'].problem
+        a_x = problem.action('a_x')
+        a_y = problem.action('a_y')
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+
+            plan = planner.solve(problem)
+            self.assertEqual(len(plan.actions()), 2)
+            self.assertEqual(plan.actions()[0].action(), a_y)
+            self.assertEqual(plan.actions()[1].action(), a_x)
+            self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
+            self.assertEqual(len(plan.actions()[1].actual_parameters()), 0)
 
     def test_robot(self):
         problem = self.problems['robot'].problem
@@ -66,7 +81,20 @@ class TestPDDLPlanner(TestCase):
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), move)
-            self.assertEqual(len(plan.actions()[0].parameters()), 2)
+            self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
+
+    def test_robot_decrease(self):
+        problem = self.problems['robot_decrease'].problem
+        move = problem.action('move')
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+
+            plan = planner.solve(problem)
+            self.assertNotEqual(plan, None)
+            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(plan.actions()[0].action(), move)
+            self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
 
     def test_robot_loader(self):
         problem = self.problems['robot_loader'].problem
@@ -83,10 +111,10 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions()[1].action(), load)
             self.assertEqual(plan.actions()[2].action(), move)
             self.assertEqual(plan.actions()[3].action(), unload)
-            self.assertEqual(len(plan.actions()[0].parameters()), 2)
-            self.assertEqual(len(plan.actions()[1].parameters()), 1)
-            self.assertEqual(len(plan.actions()[2].parameters()), 2)
-            self.assertEqual(len(plan.actions()[3].parameters()), 1)
+            self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
+            self.assertEqual(len(plan.actions()[1].actual_parameters()), 1)
+            self.assertEqual(len(plan.actions()[2].actual_parameters()), 2)
+            self.assertEqual(len(plan.actions()[3].actual_parameters()), 1)
 
     def test_robot_loader_adv(self):
         problem = self.problems['robot_loader_adv'].problem
@@ -104,8 +132,8 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions()[2].action(), move)
             self.assertEqual(plan.actions()[3].action(), unload)
             self.assertEqual(plan.actions()[4].action(), move)
-            self.assertEqual(len(plan.actions()[0].parameters()), 3)
-            self.assertEqual(len(plan.actions()[1].parameters()), 3)
-            self.assertEqual(len(plan.actions()[2].parameters()), 3)
-            self.assertEqual(len(plan.actions()[3].parameters()), 3)
-            self.assertEqual(len(plan.actions()[4].parameters()), 3)
+            self.assertEqual(len(plan.actions()[0].actual_parameters()), 3)
+            self.assertEqual(len(plan.actions()[1].actual_parameters()), 3)
+            self.assertEqual(len(plan.actions()[2].actual_parameters()), 3)
+            self.assertEqual(len(plan.actions()[3].actual_parameters()), 3)
+            self.assertEqual(len(plan.actions()[4].actual_parameters()), 3)

@@ -19,7 +19,8 @@ import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
 from upf.fnode import FNode
-from typing import List, Union
+from upf.variable import Variable
+from typing import List, Set, Union
 
 
 class Simplifier(walkers.DagWalker):
@@ -99,7 +100,7 @@ class Simplifier(walkers.DagWalker):
         assert len(args) == 1
         child = args[0]
         if child.is_bool_constant():
-            l = child.constant_value()
+            l = child.bool_constant_value()
             return self.manager.Bool(not l)
         elif child.is_not():
             return child.arg(0)
@@ -113,16 +114,16 @@ class Simplifier(walkers.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant() and sr.is_bool_constant():
-            l = sl.constant_value()
-            r = sr.constant_value()
+            l = sl.bool_constant_value()
+            r = sr.bool_constant_value()
             return self.manager.Bool(l == r)
         elif sl.is_bool_constant():
-            if sl.constant_value():
+            if sl.bool_constant_value():
                 return sr
             else:
                 return self.manager.Not(sr)
         elif sr.is_bool_constant():
-            if sr.constant_value():
+            if sr.bool_constant_value():
                 return sl
             else:
                 return self.manager.Not(sl)
@@ -138,13 +139,13 @@ class Simplifier(walkers.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant():
-            l = sl.constant_value()
+            l = sl.bool_constant_value()
             if l:
                 return sr
             else:
                 return self.manager.TRUE()
         elif sr.is_bool_constant():
-            r = sr.constant_value()
+            r = sr.bool_constant_value()
             if r:
                 return self.manager.TRUE()
             else:
@@ -153,6 +154,22 @@ class Simplifier(walkers.DagWalker):
             return self.manager.TRUE()
         else:
             return self.manager.Implies(sl, sr)
+
+    def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 1
+        free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
+        vars = tuple(var for var in expression.variables() if var in free_vars)
+        if len(vars) == 0:
+            return args[0]
+        return self.manager.Exists(args[0], *vars)
+
+    def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 1
+        free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
+        vars = tuple(var for var in expression.variables() if var in free_vars)
+        if len(vars) == 0:
+            return args[0]
+        return self.manager.Forall(args[0], *vars)
 
     def walk_equals(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
@@ -195,18 +212,18 @@ class Simplifier(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.FluentExp(expression.fluent(), tuple(args))
-        
+
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()
         accumulator: Union[int, Fraction] = 0
         #divide constant FNode and accumulate their value into accumulator
         for a in args:
             if a.is_int_constant() or a.is_real_constant():
-                accumulator = accumulator + a.constant_value()
+                accumulator += a.constant_value()
             elif a.is_plus():
                 for s in a.args():
                     if s.is_int_constant() or s.is_real_constant():
-                        accumulator = accumulator + s.constant_value()
+                        accumulator += s.constant_value()
                     else:
                         new_args_plus.append(s)
             else:
@@ -216,7 +233,7 @@ class Simplifier(walkers.DagWalker):
         if accumulator != 0:
             fnode_acc = self.manager.Plus(*new_args_plus,self._number_to_fnode(accumulator))
             return fnode_acc
-        else: 
+        else:
             if len(new_args_plus) == 0:
                 return self.manager.Int(0)
             else:
@@ -239,7 +256,7 @@ class Simplifier(walkers.DagWalker):
                 return self.manager.Minus(left, right)
         else:
             return self.manager.Minus(left, right)
-    
+
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
         accumulator: Union[int, Fraction] = 1
@@ -249,14 +266,14 @@ class Simplifier(walkers.DagWalker):
                 if a.constant_value() == 0:
                     return self.manager.Int(0)
                 else:
-                    accumulator = accumulator * a.constant_value()
+                    accumulator *= a.constant_value()
             elif a.is_times():
                 for s in a.args():
                     if s.is_int_constant() or s.is_real_constant():
                         if s.constant_value() == 0:
                             return self.manager.Int(0)
                         else:
-                            accumulator = accumulator * s.constant_value()
+                            accumulator *= s.constant_value()
                     else:
                         new_args_times.append(s)
             else:
@@ -266,12 +283,12 @@ class Simplifier(walkers.DagWalker):
         if accumulator != 1:
             fnode_acc = self._number_to_fnode(accumulator)
             return self.manager.Times(*new_args_times, fnode_acc)
-        else: 
+        else:
             if len(new_args_times) == 0:
                 return self.manager.Int(1)
             else:
                 return self.manager.Times(new_args_times)
-                  
+
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
         left, right = args
@@ -289,6 +306,6 @@ class Simplifier(walkers.DagWalker):
         return self._number_to_fnode(value)
 
     @walkers.handles(op.CONSTANTS)
-    @walkers.handles(op.PARAM_EXP, op.OBJECT_EXP)
+    @walkers.handles(op.PARAM_EXP, op.VARIABLE_EXP, op.OBJECT_EXP)
     def walk_identity(self, expression: FNode, args: List[FNode]) -> FNode:
         return expression

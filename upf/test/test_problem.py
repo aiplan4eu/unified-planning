@@ -46,11 +46,11 @@ class TestProblem(TestCase):
         self.assertEqual(len(a.preconditions()), 1)
         self.assertEqual(len(a.effects()), 1)
         a_str = str(a)
-        self.assertTrue('action a' in a_str)
-        self.assertTrue('preconditions' in a_str)
-        self.assertTrue('not x' in a_str)
-        self.assertTrue('effects' in a_str)
-        self.assertTrue('x := true' in a_str)
+        self.assertIn('action a', a_str)
+        self.assertIn('preconditions', a_str)
+        self.assertIn('not x', a_str)
+        self.assertIn('effects', a_str)
+        self.assertIn('x := true', a_str)
 
         self.assertEqual(problem.name(), 'basic')
         self.assertEqual(len(problem.fluents()), 1)
@@ -58,10 +58,59 @@ class TestProblem(TestCase):
         self.assertTrue(problem.initial_value(x) is not None)
         self.assertEqual(len(problem.goals()), 1)
         problem_str = str(problem)
-        self.assertTrue('fluents' in problem_str)
-        self.assertTrue('actions' in problem_str)
-        self.assertTrue('initial values' in problem_str)
-        self.assertTrue('goals' in problem_str)
+        self.assertIn('fluents', problem_str)
+        self.assertIn('actions', problem_str)
+        self.assertIn('initial values', problem_str)
+        self.assertIn('goals', problem_str)
+
+    def test_basic_conditional(self):
+        problem = self.problems['basic_conditional'].problem
+
+        x = problem.fluent('x')
+        self.assertEqual(x.name(), 'x')
+        self.assertEqual(str(x), 'bool x')
+        self.assertEqual(x.arity(), 0)
+        self.assertTrue(x.type().is_bool_type())
+
+        y = problem.fluent('y')
+        self.assertEqual(y.name(), 'y')
+        self.assertEqual(str(y), 'bool y')
+        self.assertEqual(y.arity(), 0)
+        self.assertTrue(y.type().is_bool_type())
+
+        a_x = problem.action('a_x')
+        self.assertEqual(a_x.name(), 'a_x')
+        self.assertEqual(len(a_x.preconditions()), 1)
+        self.assertEqual(len(a_x.effects()), 1)
+        ax_str = str(a_x)
+        self.assertIn('action a_x', ax_str)
+        self.assertIn('preconditions', ax_str)
+        self.assertIn('not x', ax_str)
+        self.assertIn('effects', ax_str)
+        self.assertIn('if y then x := true', ax_str)
+
+        a_y = problem.action('a_y')
+        self.assertEqual(a_y.name(), 'a_y')
+        self.assertEqual(len(a_y.preconditions()), 1)
+        self.assertEqual(len(a_y.effects()), 1)
+        ay_str = str(a_y)
+        self.assertIn('action a_y', ay_str)
+        self.assertIn('preconditions', ay_str)
+        self.assertIn('not y', ay_str)
+        self.assertIn('effects', ay_str)
+        self.assertIn('y := true', ay_str)
+
+        self.assertEqual(problem.name(), 'basic_conditional')
+        self.assertEqual(len(problem.fluents()), 2)
+        self.assertEqual(len(problem.actions()), 2)
+        self.assertTrue(problem.initial_value(x) is not None)
+        self.assertTrue(problem.initial_value(y) is not None)
+        self.assertEqual(len(problem.goals()), 1)
+        problem_str = str(problem)
+        self.assertIn('fluents', problem_str)
+        self.assertIn('actions', problem_str)
+        self.assertIn('initial values', problem_str)
+        self.assertIn('goals', problem_str)
 
     def test_robot(self):
         problem = self.problems['robot'].problem
@@ -340,6 +389,68 @@ class TestProblem(TestCase):
         self.assertTrue(problem.initial_value(cargo_at(c1, l3)) is not None)
         self.assertTrue(problem.initial_value(cargo_mounted(c1, r1)) is not None)
         self.assertEqual(len(problem.goals()), 2)
+
+    def test_fluents_defaults(self):
+        Location = UserType('Location')
+        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+        distance = upf.Fluent('distance', RealType(), [Location, Location])
+
+        N = 10
+        locations = [upf.Object(f'l{i}', Location) for i in range(N)]
+
+        problem = upf.Problem('robot')
+        problem.add_fluent(robot_at, default_initial_value=False)
+        problem.add_fluent(distance, default_initial_value=Fraction(-1))
+        problem.add_objects(locations)
+        problem.set_initial_value(robot_at(locations[0]), True)
+        for i in range(N-1):
+            problem.set_initial_value(distance(locations[i], locations[i+1]), Fraction(10))
+
+        self.assertEqual(problem.initial_value(robot_at(locations[0])), TRUE())
+        for i in range(1, N):
+            self.assertEqual(problem.initial_value(robot_at(locations[i])), FALSE())
+
+        for i in range(N):
+            for j in range(N):
+                if j == i+1:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])),
+                                     Real(Fraction(10)))
+                else:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])),
+                                     Real(Fraction(-1)))
+
+    def test_problem_defaults(self):
+        Location = UserType('Location')
+        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
+        distance = upf.Fluent('distance', IntType(), [Location, Location])
+        cost = upf.Fluent('cost', IntType(), [Location, Location])
+
+        N = 10
+        locations = [upf.Object(f'l{i}', Location) for i in range(N)]
+
+        problem = upf.Problem('robot', initial_defaults={IntType(): 0})
+        problem.add_fluent(robot_at, default_initial_value=False)
+        problem.add_fluent(distance, default_initial_value=-1)
+        problem.add_fluent(cost)
+        problem.add_objects(locations)
+        problem.set_initial_value(robot_at(locations[0]), True)
+        for i in range(N-1):
+            problem.set_initial_value(distance(locations[i], locations[i+1]), 10)
+            problem.set_initial_value(cost(locations[i], locations[i+1]), 100)
+
+        self.assertEqual(problem.initial_value(robot_at(locations[0])), TRUE())
+        for i in range(1, N):
+            self.assertEqual(problem.initial_value(robot_at(locations[i])), FALSE())
+
+        for i in range(N):
+            for j in range(N):
+                if j == i+1:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])), Int(10))
+                    self.assertEqual(problem.initial_value(cost(locations[i], locations[j])), Int(100))
+                else:
+                    self.assertEqual(problem.initial_value(distance(locations[i], locations[j])), Int(-1))
+                    self.assertEqual(problem.initial_value(cost(locations[i], locations[j])), Int(0))
+
 
 if __name__ == "__main__":
     main()

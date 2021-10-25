@@ -11,28 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-"""
-This module defines an Object of a planning problem.
-An Object is represented by a name and by its type.
-"""
-
-import upf.types
 
 
-class Object:
-    """Represents an object."""
-    def __init__(self, name: str, typename: upf.types.Type):
-        self._name = name
-        self._typename = typename
+import upf
+from upf.test import TestCase, main
+from upf.test.examples import get_example_problems
+from upf.plan_validator import PlanValidator
+from upf.environment import get_env
 
-    def __repr__(self) -> str:
-        return self.name()
+class TestProblem(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        self.problems = get_example_problems()
 
-    def name(self) -> str:
-        """Returns the object name."""
-        return self._name
-
-    def type(self) -> upf.types.Type:
-        """Returns the object type."""
-        return self._typename
+    def test_all(self):
+        pv = PlanValidator(get_env())
+        for p in self.problems.values():
+            problem, plan = p.problem, p.plan
+            self.assertTrue(pv.is_valid_plan(problem, plan))

@@ -61,6 +61,8 @@ class FNode(object):
             return self.fluent().name() + self.get_nary_expression_string(', ', self.args())
         elif self.is_parameter_exp():
             return self.parameter().name()
+        elif self.is_variable_exp():
+            return self.variable().name()
         elif self.is_object_exp():
             return self.object().name()
         elif self.is_and():
@@ -73,6 +75,12 @@ class FNode(object):
             return self.get_nary_expression_string(' implies ', self.args())
         elif self.is_iff():
             return self.get_nary_expression_string(' iff ', self.args())
+        elif self.is_exists():
+            s = ' , '.join(v.name() for v in self.variables())
+            return f"Exists ({s}) {str(self.arg(0))}"
+        elif self.is_forall():
+            s = ' , '.join(v.name() for v in self.variables())
+            return f"Forall ({s}) {str(self.arg(0))}"
         elif self.is_plus():
             return self.get_nary_expression_string(' + ', self.args())
         elif self.is_minus():
@@ -108,7 +116,8 @@ class FNode(object):
         """Test whether the expression is a constant."""
         return self.node_type() == op.BOOL_CONSTANT or \
             self.node_type() == op.INT_CONSTANT or \
-            self.node_type() == op.REAL_CONSTANT
+            self.node_type() == op.REAL_CONSTANT or \
+            self.node_type() == op.OBJECT_EXP
 
     def constant_value(self) -> Union[bool, int, Fraction]:
         """Return the value of the Constant."""
@@ -139,6 +148,16 @@ class FNode(object):
         """Return the parameter of the ParameterExp."""
         assert self.is_parameter_exp()
         return self._content.payload
+
+    def variable(self) -> 'upf.Variable':
+        """Return the variable of the VariableExp."""
+        assert self.is_variable_exp()
+        return self._content.payload
+
+    def variables(self) -> List['upf.Variable']:
+        """Return the variable of the Exists or Forall."""
+        assert self.is_exists() or self.is_forall()
+        return list(self._content.payload)
 
     def object(self) -> 'upf.Object':
         """Return the object of the ObjectExp."""
@@ -185,6 +204,14 @@ class FNode(object):
         """Test whether the node is the Iff operator."""
         return self.node_type() == op.IFF
 
+    def is_exists(self) -> bool:
+        """Test whether the node is the Exists operator."""
+        return self.node_type() == op.EXISTS
+
+    def is_forall(self) -> bool:
+        """Test whether the node is the Forall operator."""
+        return self.node_type() == op.FORALL
+
     def is_fluent_exp(self) -> bool:
         """Test whether the node is a fluent."""
         return self.node_type() == op.FLUENT_EXP
@@ -192,6 +219,10 @@ class FNode(object):
     def is_parameter_exp(self) -> bool:
         """Test whether the node is an action parameter."""
         return self.node_type() == op.PARAM_EXP
+
+    def is_variable_exp(self) -> bool:
+        """Test whether the node is a variable."""
+        return self.node_type() == op.VARIABLE_EXP
 
     def is_object_exp(self) -> bool:
         """Test whether the node is an action object."""
