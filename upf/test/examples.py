@@ -770,7 +770,7 @@ def get_example_problems():
     take_ok.add_condition(StartTiming(), Not(is_ok(x)))
     take_ok.add_condition(StartTiming(), Not(is_ok_giver(y)))
     take_ok.add_condition(StartTiming(), Not(Equals(x, y)))
-    take_ok.add_effect(StartTiming(3), is_ok(x), True, is_ok_giver(y))
+    take_ok.add_effect(EndTiming(), is_ok(x), True, is_ok_giver(y))
     o1 = upf.Object('o1', Obj)
     o2 = upf.Object('o2', Obj)
     problem = upf.Problem('temporal_conditional')

@@ -16,7 +16,9 @@
 import upf
 from upf.shortcuts import *
 from upf.timing import AbsoluteTiming
-from upf.test import TestCase, main, skipIfSolverNotAvailable
+from upf.test import TestCase, main
+from upf.test import skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
+from upf.test import classical_kind, full_classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import ConditionalEffectsRemover
 
@@ -26,7 +28,7 @@ class TestConditionalEffectsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('enhsp')
+    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         cer = ConditionalEffectsRemover(problem)
@@ -61,7 +63,7 @@ class TestConditionalEffectsRemover(TestCase):
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
         plan = self.problems['complex_conditional'].plan
@@ -77,7 +79,7 @@ class TestConditionalEffectsRemover(TestCase):
             new_plan = cer.rewrite_back_plan(uncond_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_temporal_conditional(self):
         problem = self.problems['temporal_conditional'].problem
         plan = self.problems['temporal_conditional'].plan

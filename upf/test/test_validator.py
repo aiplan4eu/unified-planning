@@ -14,7 +14,8 @@
 
 import upf
 from upf.shortcuts import *
-from upf.test import TestCase, main, skipIfSolverNotAvailable
+from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind
+from upf.test import classical_kind, basic_numeric_kind
 from upf.test.examples import get_example_problems
 
 
@@ -23,7 +24,7 @@ class TestPlanValidator(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_basic(self):
         problem, plan = self.problems['basic']
 
@@ -37,7 +38,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_numeric_kind))
     def test_robot(self):
         problem, plan = self.problems['robot']
 
@@ -51,7 +52,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader(self):
         problem, plan = self.problems['robot_loader']
 
@@ -65,7 +66,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader_adv(self):
         problem, plan = self.problems['robot_loader_adv']
 

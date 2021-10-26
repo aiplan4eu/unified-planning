@@ -46,8 +46,11 @@ class ProblemKindMeta(type):
 
 
 class ProblemKind(metaclass=ProblemKindMeta):
-    def __init__(self):
-        self._features: Set[str] = set()
+    def __init__(self, features: Set[str] = set()):
+        self._features = set().union(features)
 
     def features(self) -> Set[str]:
         return self._features
+
+    def union(self, oth: 'ProblemKind') -> 'ProblemKind':
+        return ProblemKind(self.features().union(oth.features()))

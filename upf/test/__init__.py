@@ -47,7 +47,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
 
     def __call__(self, test_fun):
         msg = "no oneshot planner available for the given problem kind"
-        cond = get_env().factory._get_solver_class('oneshot_planner', self.kind) is not None
+        cond = get_env().factory._get_solver_class('oneshot_planner', problem_kind=self.kind) is None
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
@@ -63,12 +63,56 @@ class skipIfNoPlanValidatorForProblemKind(object):
 
     def __call__(self, test_fun):
         msg = "no plan validator available for the given problem kind"
-        cond = get_env().factory._get_solver_class('plan_validator', self.kind) is not None
+        cond = get_env().factory._get_solver_class('plan_validator', problem_kind=self.kind) is None
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
             return test_fun(*args, **kwargs)
         return wrapper
+
+
+basic_classical_kind = ProblemKind()
+basic_classical_kind.set_typing('FLAT_TYPING') # type: ignore
+
+classical_kind = ProblemKind()
+classical_kind.set_typing('FLAT_TYPING') # type: ignore
+classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+classical_kind.set_conditions_kind('EQUALITY') # type: ignore
+
+full_classical_kind = ProblemKind()
+full_classical_kind.set_typing('FLAT_TYPING') # type: ignore
+full_classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+full_classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+full_classical_kind.set_conditions_kind('EQUALITY') # type: ignore
+full_classical_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
+full_classical_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
+full_classical_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+
+basic_numeric_kind = ProblemKind()
+basic_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
+basic_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+basic_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+
+full_numeric_kind = ProblemKind()
+full_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
+full_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+full_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+full_numeric_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+full_numeric_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore # type: ignore
+
+basic_temporal_kind = ProblemKind()
+basic_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
+basic_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
+
+full_temporal_kind = ProblemKind()
+full_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
+full_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
+full_temporal_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+full_temporal_kind.set_time('TIMED_EFFECT') # type: ignore
+full_temporal_kind.set_time('TIMED_GOALS') # type: ignore
+full_temporal_kind.set_time('MAINTAIN_GOALS') # type: ignore
+full_temporal_kind.set_time('DURATION_INEQUALITIES') # type: ignore
 
 
 TestCase = unittest.TestCase

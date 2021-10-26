@@ -19,7 +19,8 @@ from upf.plan import ActionInstance
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main, skipIfSolverNotAvailable
+from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
+from upf.test import classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.timing import AbsoluteTiming, ClosedInterval
 from upf.transformers import NegativeConditionsRemover
@@ -34,7 +35,7 @@ class TestNegativeConditionsRemover(TestCase):
         self.env = get_env()
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_basic(self):
         problem = self.problems['basic'].problem
         npr = NegativeConditionsRemover(problem)
@@ -49,7 +50,7 @@ class TestNegativeConditionsRemover(TestCase):
             new_plan = npr.rewrite_back_plan(positive_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_loader_mod(self):
         problem = self.problems['robot_loader_mod'].problem
         plan = self.problems['robot_loader_mod'].plan
@@ -65,7 +66,7 @@ class TestNegativeConditionsRemover(TestCase):
             new_plan = npr.rewrite_back_plan(positive_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_matchcellar(self):
         problem = self.problems['matchcellar'].problem
         plan = self.problems['matchcellar'].plan

@@ -15,7 +15,8 @@
 
 import os
 import upf
-from upf.test import TestCase, main, skipIfSolverNotAvailable
+from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
+from upf.test import full_classical_kind, classical_kind, basic_numeric_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import QuantifiersRemover
 from upf.pddl_solver import PDDLSolver
@@ -29,7 +30,7 @@ class TestQuantifiersRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('enhsp')
+    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     def test_basic_exists(self):
         problem = self.problems['basic_exists'].problem
         qr = QuantifiersRemover(problem)
@@ -47,7 +48,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('enhsp')
+    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     def test_basic_forall(self):
         problem = self.problems['basic_forall'].problem
         qr = QuantifiersRemover(problem)
@@ -63,7 +64,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('enhsp')
+    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_connected(self):
         problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover(problem)
@@ -79,7 +80,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('enhsp')
+    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
         qr = QuantifiersRemover(problem)
@@ -97,7 +98,7 @@ class TestQuantifiersRemover(TestCase):
             new_plan = qr.rewrite_back_plan(uq_plan)
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem
         plan = self.problems['timed_connected_locations'].plan
