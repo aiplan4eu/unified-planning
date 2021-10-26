@@ -14,9 +14,10 @@
 
 
 import upf
+from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.plan_validator import PlanValidator
+from upf.plan_validator import SequentialPlanValidator
 from upf.environment import get_env
 
 class TestProblem(TestCase):
@@ -25,9 +26,17 @@ class TestProblem(TestCase):
         self.problems = get_example_problems()
 
     def test_all(self):
-        pv = PlanValidator(get_env())
+        pv = SequentialPlanValidator(env=get_env())
         for p in self.problems.values():
             if p.problem.kind().has_continuous_time():
                 continue
             problem, plan = p.problem, p.plan
             self.assertTrue(pv.is_valid_plan(problem, plan))
+
+    def test_all_from_factory(self):
+        with PlanValidator(name='sequential_plan_validator') as pv:
+            for p in self.problems.values():
+                if p.problem.kind().has_continuous_time():
+                    continue
+                problem, plan = p.problem, p.plan
+                self.assertTrue(pv.is_valid_plan(problem, plan))

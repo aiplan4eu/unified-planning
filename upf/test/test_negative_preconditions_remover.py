@@ -24,7 +24,7 @@ from upf.test import TestCase
 from upf.test.examples import get_example_problems
 from upf.timing import AbsoluteTiming
 from upf.transformers import NegativeConditionsRemover
-from upf.plan_validator import PlanValidator as PV
+from upf.plan_validator import SequentialPlanValidator as PV
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
 from upf.effect import Effect
 

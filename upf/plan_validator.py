@@ -19,12 +19,14 @@ from itertools import product
 
 import upf.environment
 import upf.walkers as walkers
+from upf.environment import get_env
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
 from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError
 from upf.expression import Expression
 from upf.problem import Problem
+from upf.problem_kind import ProblemKind
 from upf.object import Object
 from upf.plan import SequentialPlan
 
@@ -166,10 +168,14 @@ class QuantifierSimplifier(Simplifier):
             raise UPFProblemDefinitionError(f"Value of ActionParameter {str(expression)} not found in {str(self._assignments)}")
 
 
-class PlanValidator(object):
+class SequentialPlanValidator(upf.Solver):
     """Performs plan validation."""
-    def __init__(self, env: 'upf.environment.Environment'):
-        self._env = env
+    def __init__(self, **options):
+        env = options.get('env', None)
+        if env is None:
+            self._env: 'upf.environment.Environment' = get_env()
+        else:
+            self._env: 'upf.environment.Environment' = env
         self.manager = env.expression_manager
         self._substituter = Substituter(self._env)
         self._last_error: Union[str, None] = None
@@ -237,3 +243,30 @@ class PlanValidator(object):
         r = self._qsimplifier.qsimplify(expression, assignments, {})
         assert r.is_constant()
         return r
+
+    @staticmethod
+    def name():
+        return 'upf_plan_validator'
+
+    @staticmethod
+    def supports(problem_kind):
+        supported_kind = ProblemKind()
+        supported_kind.set_typing('FLAT_TYPING')
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS')
+        supported_kind.set_numbers('DISCRETE_NUMBERS')
+        supported_kind.set_conditions('NEGATIVE_CONDITIONS')
+        supported_kind.set_conditions('DISJUNCTIVE_CONDITIONS')
+        supported_kind.set_conditions('EQUALITY')
+        supported_kind.set_conditions('EXISTENTIAL_CONDITIONS')
+        supported_kind.set_conditions('UNIVERSAL_CONDITIONS')
+        supported_kind.set_effects_kinds('CONDITIONAL_EFFECTS')
+        supported_kind.set_effects_kinds('INCREASE_EFFECTS')
+        supported_kind.set_effects_kinds('DECREASE_EFFECTS')
+        return problem_kind.features().issubset(supported_kind.features())
+
+    @staticmethod
+    def is_plan_validator():
+        return True
+
+    def destroy(self):
+        pass

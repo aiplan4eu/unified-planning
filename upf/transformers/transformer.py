@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the different remover classes."""
+'''This module defines the different remover classes.'''
 
 
 from upf.fnode import FNode
@@ -26,7 +26,7 @@ from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 
 class Transformer:
-    """Represents a generic remover with all the support methods shared among them."""
+    '''Represents a generic remover with all the support methods shared among them.'''
     def __init__(self, problem: Problem):
         self._problem = problem
         self._env = problem.env

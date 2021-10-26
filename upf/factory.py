@@ -21,7 +21,8 @@ from typing import Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl'),
-                   'pyperplan' : ('upf_pyperplan', 'SolverImpl')}
+                   'pyperplan' : ('upf_pyperplan', 'SolverImpl'),
+                   'sequential_plan_validator' : ('upf.plan_validator', 'SequentialPlanValidator')}
 
 
 class Factory:
@@ -40,6 +41,7 @@ class Factory:
 
     def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind()) -> Optional[Type[Solver]]:
+        print(self.solvers)
         if name is not None:
             return self.solvers[name]
         for SolverClass in self.solvers.values():
