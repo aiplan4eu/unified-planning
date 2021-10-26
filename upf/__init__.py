@@ -19,6 +19,7 @@ from upf.fluent import Fluent
 from upf.object import Object
 from upf.problem import Problem
 from upf.plan import ActionInstance, SequentialPlan, Plan, TimeTriggeredPlan
+from upf.environment import get_env, Environment
 
 __all__ = [
     "InstantaneousAction",

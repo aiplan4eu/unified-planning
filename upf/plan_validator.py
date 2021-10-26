@@ -19,7 +19,6 @@ from itertools import product
 
 import upf.environment
 import upf.walkers as walkers
-from upf.environment import get_env
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
 from upf.fnode import FNode
@@ -171,14 +170,15 @@ class QuantifierSimplifier(Simplifier):
 class SequentialPlanValidator(upf.Solver):
     """Performs plan validation."""
     def __init__(self, **options):
-        env = options.get('env', None)
-        if env is None:
-            self._env: 'upf.environment.Environment' = get_env()
-        else:
-            self._env: 'upf.environment.Environment' = env
-        self.manager = env.expression_manager
+        self._env: 'upf.environment.Environment' = upf.get_env(options.get('env', None))
+        self.manager = self._env.expression_manager
         self._substituter = Substituter(self._env)
         self._last_error: Union[str, None] = None
+
+    def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
+        if isinstance(plan, SequentialPlan):
+            return self.is_valid_plan(problem, plan)
+        raise
 
     def is_valid_plan(self, problem: Problem, plan: SequentialPlan) -> bool:
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
@@ -246,7 +246,7 @@ class SequentialPlanValidator(upf.Solver):
 
     @staticmethod
     def name():
-        return 'upf_plan_validator'
+        return 'sequential_plan_validator'
 
     @staticmethod
     def supports(problem_kind):

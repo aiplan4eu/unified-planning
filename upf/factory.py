@@ -41,7 +41,6 @@ class Factory:
 
     def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind()) -> Optional[Type[Solver]]:
-        print(self.solvers)
         if name is not None:
             return self.solvers[name]
         for SolverClass in self.solvers.values():
