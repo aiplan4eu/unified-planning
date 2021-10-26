@@ -35,8 +35,20 @@ class TestProblem(TestCase):
 
     def test_all_from_factory(self):
         with PlanValidator(name='sequential_plan_validator') as pv:
+            self.assertEqual(pv.name(), 'sequential_plan_validator')
             for p in self.problems.values():
                 if p.problem.kind().has_continuous_time():
                     continue
                 problem, plan = p.problem, p.plan
+                self.assertTrue(pv.validate(problem, plan))
+
+    def test_all_from_factory_with_problem_kind(self):
+        for p in self.problems.values():
+            problem, plan = p.problem, p.plan
+            if problem.kind().has_continuous_time():
+                continue
+            env = upf.Environment()
+            env.factory.solvers.pop('tamer')
+            with env.factory.PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertEqual(pv.name(), 'sequential_plan_validator')
                 self.assertTrue(pv.validate(problem, plan))
