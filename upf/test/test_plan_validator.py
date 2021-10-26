@@ -31,7 +31,7 @@ class TestProblem(TestCase):
             if p.problem.kind().has_continuous_time():
                 continue
             problem, plan = p.problem, p.plan
-            self.assertTrue(pv.is_valid_plan(problem, plan))
+            self.assertTrue(pv.validate(problem, plan))
 
     def test_all_from_factory(self):
         with PlanValidator(name='sequential_plan_validator') as pv:
@@ -39,4 +39,4 @@ class TestProblem(TestCase):
                 if p.problem.kind().has_continuous_time():
                     continue
                 problem, plan = p.problem, p.plan
-                self.assertTrue(pv.is_valid_plan(problem, plan))
+                self.assertTrue(pv.validate(problem, plan))

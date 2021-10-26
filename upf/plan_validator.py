@@ -176,14 +176,10 @@ class SequentialPlanValidator(upf.Solver):
         self._last_error: Union[str, None] = None
 
     def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
-        if isinstance(plan, SequentialPlan):
-            return self.is_valid_plan(problem, plan)
-        raise
-
-    def is_valid_plan(self, problem: Problem, plan: SequentialPlan) -> bool:
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""
+        assert isinstance(plan, SequentialPlan)
         self._qsimplifier = QuantifierSimplifier(self._env, problem)
         self._last_error = None
         assignments: Dict[Expression, Expression] = problem.initial_values() # type: ignore
