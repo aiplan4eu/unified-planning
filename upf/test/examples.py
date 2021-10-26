@@ -127,13 +127,13 @@ def get_example_problems():
     complex_conditional = Example(problem=problem, plan=plan)
     problems['complex_conditional'] = complex_conditional
 
-    # basic pyperplan test
+    # basic without negative preconditions
     x = upf.Fluent('x')
     y = upf.Fluent('y')
     a = upf.InstantaneousAction('a')
     a.add_precondition(y)
     a.add_effect(x, True)
-    problem = upf.Problem('basic')
+    problem = upf.Problem('basic_without_negative_preconditions')
     problem.add_fluent(x)
     problem.add_fluent(y)
     problem.add_action(a)
@@ -141,8 +141,31 @@ def get_example_problems():
     problem.set_initial_value(y, True)
     problem.add_goal(x)
     plan = upf.SequentialPlan([upf.ActionInstance(a)])
-    basic_pyperplan_test = Example(problem=problem, plan=plan)
-    problems['basic_pyperplan_test'] = basic_pyperplan_test
+    basic_without_negative_preconditions = Example(problem=problem, plan=plan)
+    problems['basic_without_negative_preconditions'] = basic_without_negative_preconditions
+
+    # basic without negative preconditions 2
+    x = upf.Fluent('x')
+    y = upf.Fluent('y')
+    z = upf.Fluent('z')
+    j = upf.Fluent('j')
+    k = upf.Fluent('k')
+    a = upf.InstantaneousAction('a')
+    a.add_precondition(And(y, And(z, j, k)))
+    a.add_effect(x, True)
+    problem = upf.Problem('basic_without_negative_preconditions_2')
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(a)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, True)
+    problem.set_initial_value(z, True)
+    problem.set_initial_value(j, True)
+    problem.set_initial_value(k, True)
+    problem.add_goal(And(x, And(y, z, And(j, k))))
+    plan = upf.SequentialPlan([upf.ActionInstance(a)])
+    basic_without_negative_preconditions_2 = Example(problem=problem, plan=plan)
+    problems['basic_without_negative_preconditions_2'] = basic_without_negative_preconditions_2
 
     # basic exists
     sem = UserType("Semaphore")
