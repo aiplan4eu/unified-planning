@@ -144,7 +144,7 @@ def get_example_problems():
     basic_without_negative_preconditions = Example(problem=problem, plan=plan)
     problems['basic_without_negative_preconditions'] = basic_without_negative_preconditions
 
-    # basic without negative preconditions 2
+    # basic nested conjunctions
     x = upf.Fluent('x')
     y = upf.Fluent('y')
     z = upf.Fluent('z')
@@ -153,7 +153,7 @@ def get_example_problems():
     a = upf.InstantaneousAction('a')
     a.add_precondition(And(y, And(z, j, k)))
     a.add_effect(x, True)
-    problem = upf.Problem('basic_without_negative_preconditions_2')
+    problem = upf.Problem('basic_nested_conjunctions')
     problem.add_fluent(x)
     problem.add_fluent(y)
     problem.add_action(a)
@@ -164,8 +164,8 @@ def get_example_problems():
     problem.set_initial_value(k, True)
     problem.add_goal(And(x, And(y, z, And(j, k))))
     plan = upf.SequentialPlan([upf.ActionInstance(a)])
-    basic_without_negative_preconditions_2 = Example(problem=problem, plan=plan)
-    problems['basic_without_negative_preconditions_2'] = basic_without_negative_preconditions_2
+    basic_nested_conjunctions = Example(problem=problem, plan=plan)
+    problems['basic_nested_conjunctions'] = basic_nested_conjunctions
 
     # basic exists
     sem = UserType("Semaphore")
