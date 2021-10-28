@@ -32,6 +32,20 @@ class TestDisjunctiveConditionsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    def test_charge_discharge(self):
+        problem = self.problems['charge_discharge'].problem
+        plan = self.problems['charge_discharge'].plan
+        dnfr = DisjunctiveConditionsRemover(problem)
+        dnf_problem = dnfr.get_rewritten_problem()
+
+        with OneshotPlanner(name='enhsp') as planner:
+            self.assertNotEqual(planner, None)
+            dnf_plan = planner.solve(dnf_problem)
+            self.assertNotEqual(str(plan), str(dnf_plan))
+            new_plan = dnfr.rewrite_back_plan(dnf_plan)
+            self.assertEqual(str(plan), str(new_plan))
+            self.assertEqual(plan, new_plan)
+
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
