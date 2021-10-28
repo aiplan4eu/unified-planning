@@ -242,7 +242,7 @@ def get_example_problems():
     problem.set_initial_value(robot_at(l2), False)
     problem.set_initial_value(battery_charge, 100)
     problem.add_goal(robot_at(l2))
-    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot = Example(problem=problem, plan=plan)
     problems['robot'] = robot
 
@@ -265,7 +265,7 @@ def get_example_problems():
     problem.set_initial_value(robot_at(l1), True)
     problem.set_initial_value(robot_at(l2), False)
     problem.add_goal(robot_at(l2))
-    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot_no_negative_preconditions = Example(problem=problem, plan=plan)
     problems['robot_no_negative_preconditions'] = robot_no_negative_preconditions
 
@@ -295,7 +295,7 @@ def get_example_problems():
     problem.set_initial_value(robot_at(l2), False)
     problem.set_initial_value(battery_charge, 100)
     problem.add_goal(robot_at(l2))
-    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot_decrease = Example(problem=problem, plan=plan)
     problems['robot_decrease'] = robot_decrease
 
@@ -343,10 +343,10 @@ def get_example_problems():
     problem.set_initial_value(cargo_at(l2), True)
     problem.set_initial_value(cargo_mounted, False)
     problem.add_goal(cargo_at(l1))
-    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)]),
-                               upf.ActionInstance(load, [ObjectExp(l2)]),
-                               upf.ActionInstance(move, [ObjectExp(l2), ObjectExp(l1)]),
-                               upf.ActionInstance(unload, [ObjectExp(l1)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                               upf.ActionInstance(load, (ObjectExp(l2), )),
+                               upf.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1))),
+                               upf.ActionInstance(unload, (ObjectExp(l1), ))])
     robot_loader = Example(problem=problem, plan=plan)
     problems['robot_loader'] = robot_loader
 
@@ -395,10 +395,10 @@ def get_example_problems():
     for o in problem.objects(Location):
         problem.set_initial_value(is_same_location(o, o), True)
     problem.add_goal(cargo_at(l1))
-    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2)]),
-                               upf.ActionInstance(load, [ObjectExp(l2)]),
-                               upf.ActionInstance(move, [ObjectExp(l2), ObjectExp(l1)]),
-                               upf.ActionInstance(unload, [ObjectExp(l1)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                               upf.ActionInstance(load, (ObjectExp(l2), )),
+                               upf.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1))),
+                               upf.ActionInstance(unload, (ObjectExp(l1), ))])
     robot_loader_mod = Example(problem=problem, plan=plan)
     problems['robot_loader_mod'] = robot_loader_mod
 
@@ -462,11 +462,11 @@ def get_example_problems():
     problem.set_initial_value(cargo_mounted(c1,r1), False)
     problem.add_goal(cargo_at(c1,l3))
     problem.add_goal(robot_at(r1,l1))
-    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l2), ObjectExp(r1)]),
-                               upf.ActionInstance(load, [ObjectExp(l2), ObjectExp(r1), ObjectExp(c1)]),
-                               upf.ActionInstance(move, [ObjectExp(l2), ObjectExp(l3), ObjectExp(r1)]),
-                               upf.ActionInstance(unload, [ObjectExp(l3), ObjectExp(r1), ObjectExp(c1)]),
-                               upf.ActionInstance(move, [ObjectExp(l3), ObjectExp(l1), ObjectExp(r1)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2), ObjectExp(r1))),
+                               upf.ActionInstance(load, (ObjectExp(l2), ObjectExp(r1), ObjectExp(c1))),
+                               upf.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3), ObjectExp(r1))),
+                               upf.ActionInstance(unload, (ObjectExp(l3), ObjectExp(r1), ObjectExp(c1))),
+                               upf.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1), ObjectExp(r1)))])
     robot_loader_adv = Example(problem=problem, plan=plan)
     problems['robot_loader_adv'] = robot_loader_adv
 
@@ -531,8 +531,8 @@ def get_example_problems():
     problem.set_initial_value(is_connected(l4, l5), True)
     problem.set_initial_value(battery_charge(r1), 100)
     problem.add_goal(is_at(l5, r1))
-    plan = upf.SequentialPlan([upf.ActionInstance(move_2, [ObjectExp(r1), ObjectExp(l1), ObjectExp(l3)]),
-                                upf.ActionInstance(move_2, [ObjectExp(r1), ObjectExp(l3), ObjectExp(l5)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move_2, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l3))),
+                                upf.ActionInstance(move_2, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l5)))])
     robot_locations_connected = Example(problem=problem, plan=plan)
     problems['robot_locations_connected'] = robot_locations_connected
 
@@ -604,10 +604,10 @@ def get_example_problems():
     problem.add_goal(is_at(l5, r1))
     visited_location = upf.Variable('visited_loc', Location)
     problem.add_goal(Forall(visited(visited_location) , visited_location))
-    plan = upf.SequentialPlan([upf.ActionInstance(move, [ObjectExp(r1), ObjectExp(l1), ObjectExp(l2)]),
-                                upf.ActionInstance(move, [ObjectExp(r1), ObjectExp(l2), ObjectExp(l3)]),
-                                upf.ActionInstance(move, [ObjectExp(r1), ObjectExp(l3), ObjectExp(l4)]),
-                                upf.ActionInstance(move, [ObjectExp(r1), ObjectExp(l4), ObjectExp(l5)])])
+    plan = upf.SequentialPlan([upf.ActionInstance(move, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l2))),
+                                upf.ActionInstance(move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))),
+                                upf.ActionInstance(move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))),
+                                upf.ActionInstance(move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5)))])
     robot_locations_visited = Example(problem=problem, plan=plan)
     problems['robot_locations_visited'] = robot_locations_visited
 
@@ -694,12 +694,12 @@ def get_example_problems():
     problem.add_goal(fuse_mended(f1))
     problem.add_goal(fuse_mended(f2))
     problem.add_goal(fuse_mended(f3))
-    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(light_match, [ObjectExp(m1)]), Fraction(6, 1)),
-                                  (Fraction(1, 100), upf.ActionInstance(mend_fuse, [ObjectExp(f1)]), Fraction(5, 1)),
-                                  (Fraction(601, 100), upf.ActionInstance(light_match, [ObjectExp(m2)]), Fraction(6, 1)),
-                                  (Fraction(602, 100), upf.ActionInstance(mend_fuse, [ObjectExp(f2)]), Fraction(5, 1)),
-                                  (Fraction(1202, 100), upf.ActionInstance(light_match, [ObjectExp(m3)]), Fraction(6, 1)),
-                                  (Fraction(1203, 100), upf.ActionInstance(mend_fuse, [ObjectExp(f3)]), Fraction(5, 1))])
+    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(light_match, (ObjectExp(m1), )), Fraction(6, 1)),
+                                  (Fraction(1, 100), upf.ActionInstance(mend_fuse, (ObjectExp(f1), )), Fraction(5, 1)),
+                                  (Fraction(601, 100), upf.ActionInstance(light_match, (ObjectExp(m2), )), Fraction(6, 1)),
+                                  (Fraction(602, 100), upf.ActionInstance(mend_fuse, (ObjectExp(f2), )), Fraction(5, 1)),
+                                  (Fraction(1202, 100), upf.ActionInstance(light_match, (ObjectExp(m3), )), Fraction(6, 1)),
+                                  (Fraction(1203, 100), upf.ActionInstance(mend_fuse, (ObjectExp(f3), )), Fraction(5, 1))])
     matchcellar = Example(problem=problem, plan=plan)
     problems['matchcellar'] = matchcellar
 
@@ -781,8 +781,8 @@ def get_example_problems():
     problem.add_object(o1)
     problem.add_object(o2)
     problem.add_goal(is_ok(o1))
-    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(take_ok, [ObjectExp(o1), ObjectExp(o2)]), Fraction(3, 1)),
-                                  (Fraction(1, 1), upf.ActionInstance(set_giver, [ObjectExp(o2)]), Fraction(2, 1))])
+    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(take_ok, (ObjectExp(o1), ObjectExp(o2))), Fraction(3, 1)),
+                                  (Fraction(1, 1), upf.ActionInstance(set_giver, (ObjectExp(o2), )), Fraction(2, 1))])
     temporal_conditional = Example(problem=problem, plan=plan)
     problems['temporal_conditional'] = temporal_conditional
 
