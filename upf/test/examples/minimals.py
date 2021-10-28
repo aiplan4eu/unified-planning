@@ -16,17 +16,14 @@
 import upf
 from upf.shortcuts import *
 from upf.timing import *
-from upf.timing import *
-
 from collections import namedtuple
-
 
 Example = namedtuple('Example', ['problem', 'plan'])
 
 def get_example_problems():
     problems = {}
 
-        # basic
+    # basic
     x = upf.Fluent('x')
     a = upf.InstantaneousAction('a')
     a.add_precondition(Not(x))
@@ -248,3 +245,5 @@ def get_example_problems():
                                   (Fraction(1, 1), upf.ActionInstance(set_giver, (ObjectExp(o2), )), Fraction(2, 1))])
     temporal_conditional = Example(problem=problem, plan=plan)
     problems['temporal_conditional'] = temporal_conditional
+
+    return problems

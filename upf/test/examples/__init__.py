@@ -13,12 +13,12 @@
 # limitations under the License.
 
 
-import upf
-from upf.shortcuts import *
-from upf.timing import *
-from upf.timing import *
-
-from collections import namedtuple
+import upf.test.examples.minimals as minimals
+import upf.test.examples.realistic as realistic
 
 
-Example = namedtuple('Example', ['problem', 'plan'])
+def get_example_problems():
+    problems = {}
+    problems.update(minimals.get_example_problems())
+    problems.update(realistic.get_example_problems())
+    return problems

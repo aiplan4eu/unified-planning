@@ -99,7 +99,7 @@ full_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
 full_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
 full_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
 full_numeric_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-full_numeric_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore # type: ignore
+full_numeric_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
 
 basic_temporal_kind = ProblemKind()
 basic_temporal_kind.set_typing('FLAT_TYPING') # type: ignore

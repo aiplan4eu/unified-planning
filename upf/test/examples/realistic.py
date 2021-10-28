@@ -16,10 +16,7 @@
 import upf
 from upf.shortcuts import *
 from upf.timing import *
-from upf.timing import *
-
 from collections import namedtuple
-
 
 Example = namedtuple('Example', ['problem', 'plan'])
 
@@ -562,3 +559,5 @@ def get_example_problems():
                                   (Fraction(6, 1), upf.ActionInstance(move, (ObjectExp(l3), ObjectExp(l5))), Fraction(6, 1))])
     timed_connected_locations = Example(problem=problem, plan=plan)
     problems['timed_connected_locations'] = timed_connected_locations
+
+    return problems
