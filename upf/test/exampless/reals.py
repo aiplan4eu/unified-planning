@@ -26,7 +26,7 @@ Example = namedtuple('Example', ['problem', 'plan'])
 def get_example_problems():
     problems = {}
 
-        # robot
+    # robot
     Location = UserType('Location')
     robot_at = upf.Fluent('robot_at', BoolType(), [Location])
     battery_charge = upf.Fluent('battery_charge', RealType(0, 100))
