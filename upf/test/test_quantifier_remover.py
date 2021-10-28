@@ -21,7 +21,6 @@ from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
 from upf.test import full_classical_kind, classical_kind, basic_numeric_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import QuantifiersRemover
-from upf.plan_validator import PlanValidator as PV
 
 
 
@@ -33,7 +32,6 @@ class TestQuantifiersRemover(TestCase):
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     def test_basic_exists(self):
         problem = self.problems['basic_exists'].problem
-        plan = self.problems['basic_exists'].plan
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
         uq_problem_2 = qr.get_rewritten_problem()
@@ -45,8 +43,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            pv = PV(get_env())
-            self.assertTrue(pv.is_valid_plan(problem, new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     def test_basic_forall(self):
@@ -60,8 +58,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            pv = PV(get_env())
-            self.assertTrue(pv.is_valid_plan(problem, new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_connected(self):
@@ -75,8 +73,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            pv = PV(get_env())
-            self.assertTrue(pv.is_valid_plan(problem, new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_visited(self):
@@ -92,8 +90,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            pv = PV(get_env())
-            self.assertTrue(pv.is_valid_plan(problem, new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
@@ -108,5 +106,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            self.assertNotEqual(plan, uq_plan)
-            self.assertEqual(plan, new_plan)
+            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uq_plan.actions()):
+                self.assertEqual(s, s_1)
+                self.assertEqual(d, d_1)
+                self.assertIn(a.action(), problem.actions().values())

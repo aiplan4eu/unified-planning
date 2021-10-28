@@ -71,8 +71,8 @@ class TestDisjunctiveConditionsRemover(TestCase):
             for ai in plan.actions():
                 a = ai.action()
                 self.assertEqual(a, problem.action(a.name()))
-            pv = PV(get_env())
-            self.assertTrue(pv.is_valid_plan(problem, plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, plan))
 
     def test_ad_hoc(self):
 

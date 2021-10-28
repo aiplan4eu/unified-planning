@@ -31,7 +31,7 @@ class ActionInstance:
     def __init__(self, action: 'upf.Action', params: Tuple[FNode, ...] = tuple()):
         assert len(action.parameters()) == len(params)
         self._action = action
-        self._params = params
+        self._params = tuple(params)
 
     def __repr__(self) -> str:
         s = []
