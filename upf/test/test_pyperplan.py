@@ -33,8 +33,15 @@ class TestPyperplan(TestCase):
             new_plan = planner.solve(problem)
             self.assertEqual(str(plan), str(new_plan))
 
-    def test_pyperplan_2(self):
-        problem, plan = self.problems['basic_pyperplan_test'].problem, self.problems['basic_pyperplan_test'].plan
+    def test_basic_without_negative_preconditions(self):
+        problem, plan = self.problems['basic_without_negative_preconditions'].problem, self.problems['basic_without_negative_preconditions'].plan
+        with OneshotPlanner(name='pyperplan') as planner:
+            self.assertNotEqual(planner, None)
+            new_plan = planner.solve(problem)
+            self.assertEqual(str(plan), str(new_plan))
+
+    def test_basic_nested_conjunctions(self):
+        problem, plan = self.problems['basic_nested_conjunctions'].problem, self.problems['basic_nested_conjunctions'].plan
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             new_plan = planner.solve(problem)

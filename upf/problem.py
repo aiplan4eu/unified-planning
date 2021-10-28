@@ -17,7 +17,6 @@
 
 import upf.types
 import upf.operators as op
-from upf.environment import get_env, Environment
 from upf.expression import Expression, BoolExpression
 from upf.timing import Interval, Timing
 from upf.effect import Effect, INCREASE, DECREASE
@@ -31,17 +30,17 @@ from typing import List, Dict, Set, Union, Optional
 
 class Problem:
     '''Represents a planning problem.'''
-    def __init__(self, name: str = None, env: Environment = None, *,
+    def __init__(self, name: str = None, env: 'upf.Environment' = None, *,
                  initial_defaults: Dict[upf.types.Type, Union[FNode, 'upf.Object', bool,
                                                               int, float, Fraction]] = {}):
-        self._env = get_env(env)
+        self._env = upf.get_env(env)
         self._operators_extractor = OperatorsExtractor()
         self._kind = ProblemKind()
         self._name = name
-        self._fluents: Dict[str, upf.Fluent] = {}
-        self._actions: Dict[str, upf.Action] = {}
+        self._fluents: Dict[str, 'upf.Fluent'] = {}
+        self._actions: Dict[str, 'upf.Action'] = {}
         self._user_types: Dict[str, upf.types.Type] = {}
-        self._objects: Dict[str, upf.Object] = {}
+        self._objects: Dict[str, 'upf.Object'] = {}
         self._initial_value: Dict[FNode, FNode] = {}
         self._timed_effects: Dict[Timing, List[Effect]] = {}
         self._timed_goals: Dict[Timing, List[FNode]] = {}
@@ -51,7 +50,7 @@ class Problem:
         for k, v in initial_defaults.items():
             v_exp, = self._env.expression_manager.auto_promote(v)
             self._initial_defaults[k] = v_exp
-        self._fluents_defaults: Dict[upf.Fluent, FNode] = {}
+        self._fluents_defaults: Dict['upf.Fluent', FNode] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -104,7 +103,7 @@ class Problem:
         return ''.join(s)
 
     @property
-    def env(self) -> Environment:
+    def env(self) -> 'upf.Environment':
         '''Returns the problem environment.'''
         return self._env
 
@@ -112,16 +111,16 @@ class Problem:
         '''Returns the problem name.'''
         return self._name
 
-    def fluents(self) -> Dict[str, upf.Fluent]:
+    def fluents(self) -> Dict[str, 'upf.Fluent']:
         '''Returns the fluents.'''
         return self._fluents
 
-    def fluent(self, name: str) -> upf.Fluent:
+    def fluent(self, name: str) -> 'upf.Fluent':
         '''Returns the fluent with the given name.'''
         assert name in self._fluents
         return self._fluents[name]
 
-    def add_fluent(self, fluent: upf.Fluent, *,
+    def add_fluent(self, fluent: 'upf.Fluent', *,
                    default_initial_value: Union[FNode, 'upf.Object', bool,
                                                 int, float, Fraction] = None):
         '''Adds the given fluent.'''
@@ -135,7 +134,7 @@ class Problem:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
 
-    def actions(self) -> Dict[str, upf.Action]:
+    def actions(self) -> Dict[str, 'upf.Action']:
         '''Returns the actions.'''
         return self._actions
 
@@ -149,15 +148,15 @@ class Problem:
             if isinstance(a, upf.DurativeAction):
                 yield a
 
-    def conditional_actions(self) -> List[upf.Action]:
+    def conditional_actions(self) -> List['upf.Action']:
         '''Returns the conditional actions.'''
         return [a for a in self._actions.values() if a.is_conditional()]
 
-    def unconditional_actions(self) -> List[upf.Action]:
+    def unconditional_actions(self) -> List['upf.Action']:
         '''Returns the conditional actions.'''
         return [a for a in self._actions.values() if not a.is_conditional()]
 
-    def action(self, name: str) -> upf.Action:
+    def action(self, name: str) -> 'upf.Action':
         '''Returns the action with the given name.'''
         assert name in self._actions
         return self._actions[name]
@@ -166,7 +165,7 @@ class Problem:
         '''Returns True if the problem has the action with the given name .'''
         return name in self._actions
 
-    def add_action(self, action: upf.Action):
+    def add_action(self, action: 'upf.Action'):
         '''Adds the given action.'''
         if action.name() in self._actions:
             raise UPFProblemDefinitionError('InstantaneousAction ' + action.name() + ' already defined!')
@@ -211,24 +210,24 @@ class Problem:
         '''Returns True iff the type 'name' is defined.'''
         return name in self._user_types
 
-    def add_object(self, obj: upf.Object):
+    def add_object(self, obj: 'upf.Object'):
         '''Adds the given object.'''
         if obj.name() in self._objects:
             raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
         self._objects[obj.name()] = obj
 
-    def add_objects(self, objs: List[upf.Object]):
+    def add_objects(self, objs: List['upf.Object']):
         '''Adds the given objects.'''
         for obj in objs:
             if obj.name() in self._objects:
                 raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
             self._objects[obj.name()] = obj
 
-    def object(self, name: str) -> upf.Object:
+    def object(self, name: str) -> 'upf.Object':
         '''Returns the object with the given name.'''
         return self._objects[name]
 
-    def objects(self, typename: upf.types.Type) -> List[upf.Object]:
+    def objects(self, typename: upf.types.Type) -> List['upf.Object']:
         '''Returns the objects of the given user types.'''
         res = []
         for obj in self._objects.values():
@@ -236,12 +235,12 @@ class Problem:
                 res.append(obj)
         return res
 
-    def all_objects(self) -> List[upf.Object]:
+    def all_objects(self) -> List['upf.Object']:
         '''Returns all the objects.'''
         return [o for o in self._objects.values()]
 
-    def set_initial_value(self, fluent: Union[FNode, upf.Fluent],
-                          value: Union[FNode, upf.Fluent, upf.Object, bool,
+    def set_initial_value(self, fluent: Union[FNode, 'upf.Fluent'],
+                          value: Union[FNode, 'upf.Fluent', 'upf.Object', bool,
                                        int, float, Fraction]):
         '''Sets the initial value for the given fluent.'''
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
@@ -251,7 +250,7 @@ class Problem:
             raise UPFProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
 
-    def initial_value(self, fluent: Union[FNode, upf.Fluent]) -> FNode:
+    def initial_value(self, fluent: Union[FNode, 'upf.Fluent']) -> FNode:
         '''Gets the initial value of the given fluent.'''
         fluent_exp, = self._env.expression_manager.auto_promote(fluent)
         if fluent_exp in self._initial_value:
@@ -293,7 +292,7 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
-    def _get_ith_fluent_exp(self, fluent: upf.Fluent, domain_sizes: List[int], idx: int) -> FNode:
+    def _get_ith_fluent_exp(self, fluent: 'upf.Fluent', domain_sizes: List[int], idx: int) -> FNode:
         '''Returns the ith ground fluent expression.'''
         quot = idx
         rem = 0
@@ -327,7 +326,7 @@ class Problem:
                         res[f_exp] = self.initial_value(f_exp)
         return res
 
-    def add_timed_goal(self, timing: Timing, goal: Union[FNode, upf.Fluent, bool]):
+    def add_timed_goal(self, timing: Timing, goal: Union[FNode, 'upf.Fluent', bool]):
         '''Adds a timed goal.'''
         if timing.is_from_end() and timing.bound() > 0:
             raise UPFProblemDefinitionError('Timing used in timed goal cannot be `end - k` with k > 0.')
@@ -419,7 +418,7 @@ class Problem:
         '''Returns the maintain goals.'''
         return self._maintain_goals
 
-    def add_goal(self, goal: Union[FNode, upf.Fluent, bool]):
+    def add_goal(self, goal: Union[FNode, 'upf.Fluent', bool]):
         '''Adds a goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
