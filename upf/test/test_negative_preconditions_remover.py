@@ -83,9 +83,9 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
             new_plan = npr.rewrite_back_plan(positive_plan)
-            # LINKED TO ISSUE OF TAMER_UPF NUMBER 5
-            # with PlanValidator(problem_kind=positive_problem.kind()) as PV:
-            #     self.assertTrue(PV.validate(problem, new_plan))
+            #LINKED TO ISSUE OF TAMER_UPF NUMBER 5
+            with PlanValidator(problem_kind=positive_problem.kind()) as PV:
+                self.assertTrue(PV.validate(problem, new_plan))
         self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
         light_match = problem.action('light_match')
         mend_fuse = problem.action('mend_fuse')

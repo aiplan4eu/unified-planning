@@ -15,11 +15,13 @@
 
 import os
 import upf
+from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
 from upf.test import full_classical_kind, classical_kind, basic_numeric_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import QuantifiersRemover
+from upf.plan_validator import PlanValidator as PV
 
 
 
@@ -43,8 +45,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=uq_problem.kind()) as PV:
-                self.assertTrue(PV.validate(problem, new_plan))
+            pv = PV(get_env())
+            self.assertTrue(pv.is_valid_plan(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     def test_basic_forall(self):
@@ -58,8 +60,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=uq_problem.kind()) as PV:
-                self.assertTrue(PV.validate(problem, new_plan))
+            pv = PV(get_env())
+            self.assertTrue(pv.is_valid_plan(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_connected(self):
@@ -73,8 +75,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=uq_problem.kind()) as PV:
-                self.assertTrue(PV.validate(problem, new_plan))
+            pv = PV(get_env())
+            self.assertTrue(pv.is_valid_plan(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_visited(self):
@@ -90,8 +92,8 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=uq_problem.kind()) as PV:
-                self.assertTrue(PV.validate(problem, new_plan))
+            pv = PV(get_env())
+            self.assertTrue(pv.is_valid_plan(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
@@ -106,6 +108,3 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
-            # LINKED TO ISSUE OF TAMER_UPF NUMBER 5
-            # with PlanValidator(problem_kind=uq_problem.kind()) as PV:
-            #     self.assertTrue(PV.validate(problem, new_plan))
