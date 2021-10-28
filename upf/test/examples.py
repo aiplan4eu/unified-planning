@@ -748,8 +748,8 @@ def get_example_problems():
     problem.set_initial_value(is_connected(l3, l4), True)
     problem.set_initial_value(is_connected(l4, l5), True)
     problem.add_goal(is_at(l5))
-    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(move, [ObjectExp(l1), ObjectExp(l3)]), Fraction(6, 1)),
-                                  (Fraction(6, 1), upf.ActionInstance(move, [ObjectExp(l3), ObjectExp(l5)]), Fraction(6, 1))])
+    plan = upf.TimeTriggeredPlan([(Fraction(0, 1), upf.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))), Fraction(6, 1)),
+                                  (Fraction(6, 1), upf.ActionInstance(move, (ObjectExp(l3), ObjectExp(l5))), Fraction(6, 1))])
     timed_connected_locations = Example(problem=problem, plan=plan)
     problems['timed_connected_locations'] = timed_connected_locations
 

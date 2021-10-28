@@ -108,3 +108,5 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
             new_plan = qr.rewrite_back_plan(uq_plan)
+            self.assertNotEqual(plan, uq_plan)
+            self.assertEqual(plan, new_plan)
