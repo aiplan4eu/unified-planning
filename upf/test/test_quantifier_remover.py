@@ -38,6 +38,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertEqual(uq_problem, uq_problem_2)
         self.assertTrue(problem.kind().has_existential_conditions())
         self.assertFalse(uq_problem.kind().has_existential_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
@@ -53,6 +54,7 @@ class TestQuantifiersRemover(TestCase):
         uq_problem = qr.get_rewritten_problem()
         self.assertTrue(problem.kind().has_universal_conditions())
         self.assertFalse(uq_problem.kind().has_universal_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
@@ -68,6 +70,7 @@ class TestQuantifiersRemover(TestCase):
         uq_problem = qr.get_rewritten_problem()
         self.assertTrue(problem.kind().has_existential_conditions())
         self.assertFalse(uq_problem.kind().has_existential_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
@@ -85,6 +88,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertFalse(uq_problem.kind().has_existential_conditions())
         self.assertTrue(problem.kind().has_universal_conditions())
         self.assertFalse(uq_problem.kind().has_universal_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
@@ -101,6 +105,7 @@ class TestQuantifiersRemover(TestCase):
         uq_problem = qr.get_rewritten_problem()
         self.assertTrue(problem.has_quantifiers())
         self.assertFalse(uq_problem.has_quantifiers())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)

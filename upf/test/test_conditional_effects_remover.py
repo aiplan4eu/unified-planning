@@ -37,31 +37,34 @@ class TestConditionalEffectsRemover(TestCase):
         a_x = problem.action("a_x")
         a_x_new_list = cer.get_old_to_new_actions_mapping()[a_x]
         self.assertEqual(len(a_x_new_list), 1)
-        a_x__0__ = unconditional_problem.action(a_x_new_list[0].name())
+        new_action = unconditional_problem.action(a_x_new_list[0].name())
         y = FluentExp(problem.fluent("y"))
         a_x_e = a_x.effects()
-        a_x__0__e = a_x__0__.effects()
+        new_action_e = new_action.effects()
 
         self.assertEqual(len(u_actions), 2)
         self.assertEqual(problem.action("a_y"), unconditional_problem.action("a_y"))
         self.assertTrue(a_x.is_conditional())
         self.assertFalse(unconditional_problem.has_action("a_x"))
-        self.assertFalse(a_x__0__.is_conditional())
-        self.assertFalse(problem.has_action("a_x_0"))
-        self.assertIn(y, a_x__0__.preconditions())
+        self.assertFalse(new_action.is_conditional())
+        self.assertIn(y, new_action.preconditions())
         self.assertNotIn(y, a_x.preconditions())
-        for e, ue in zip(a_x_e, a_x__0__e):
+        for e, ue in zip(a_x_e, new_action_e):
             self.assertEqual(e.fluent(), ue.fluent())
             self.assertEqual(e.value(), ue.value())
             self.assertFalse(ue.is_conditional())
 
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        self.assertTrue(problem.kind().has_conditional_effects())
+        self.assertFalse(unconditional_problem.kind().has_conditional_effects())
+        for a in unconditional_problem.actions().values():
+            self.assertFalse(a.is_conditional())
+
+        with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
             uncond_plan = planner.solve(unconditional_problem)
-            self.assertNotEqual(str(plan), str(uncond_plan))
             new_plan = cer.rewrite_back_plan(uncond_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_complex_conditional(self):
@@ -75,24 +78,25 @@ class TestConditionalEffectsRemover(TestCase):
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem)
-            self.assertNotEqual(str(plan), str(uncond_plan))
             new_plan = cer.rewrite_back_plan(uncond_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_temporal_conditional(self):
         problem = self.problems['temporal_conditional'].problem
-        plan = self.problems['temporal_conditional'].plan
 
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            unconditional_plan = planner.solve(unconditional_problem)
-            self.assertNotEqual(str(plan), str(unconditional_plan))
-            conditional_plan = cer.rewrite_back_plan(unconditional_plan)
-            self.assertEqual(str(plan), str(conditional_plan))
+            uncond_plan = planner.solve(unconditional_problem)
+            new_plan = cer.rewrite_back_plan(uncond_plan)
+            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uncond_plan.actions()):
+                self.assertEqual(s, s_1)
+                self.assertEqual(d, d_1)
+                self.assertIn(a.action(), problem.actions().values())
 
     def test_ad_hoc_1(self):
         ct = AbsoluteTiming(2)
