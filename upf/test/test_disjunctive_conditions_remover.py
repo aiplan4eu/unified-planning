@@ -32,20 +32,6 @@ class TestDisjunctiveConditionsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def test_charge_discharge(self):
-        problem = self.problems['charge_discharge'].problem
-        plan = self.problems['charge_discharge'].plan
-        dnfr = DisjunctiveConditionsRemover(problem)
-        dnf_problem = dnfr.get_rewritten_problem()
-
-        with OneshotPlanner(name='enhsp') as planner:
-            self.assertNotEqual(planner, None)
-            dnf_plan = planner.solve(dnf_problem)
-            self.assertNotEqual(str(plan), str(dnf_plan))
-            new_plan = dnfr.rewrite_back_plan(dnf_plan)
-            self.assertEqual(str(plan), str(new_plan))
-            self.assertEqual(plan, new_plan)
-
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
@@ -99,7 +85,10 @@ class TestDisjunctiveConditionsRemover(TestCase):
         # (a <-> (b -> c)) -> (a & d)
         # In Dnf:
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
-        act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
+        cond = Implies(Iff(a, Implies(b, c)), And(a, d))
+        possible_conditions = [{Not(a), Not(b)}, {Not(a), FluentExp(c)},
+            {FluentExp(b), Not(c), FluentExp(a)}, {FluentExp(a), FluentExp(d)}]
+        act.add_precondition(cond)
         act.add_effect(a, TRUE())
         problem = upf.Problem('mockup')
         problem.add_fluent(a)
@@ -114,16 +103,21 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_old_to_new_actions_mapping()[act]
 
         self.assertEqual(len(dnf_problem.actions()), 4)
-        self.assertEqual([Not(a), Not(b)], dnf_problem.action("act__0__").preconditions())
-        self.assertEqual([Not(a), FluentExp(c)], dnf_problem.action("act__1__").preconditions())
-        self.assertEqual([FluentExp(b), Not(c), FluentExp(a)], dnf_problem.action("act__2__").preconditions())
-        self.assertEqual([FluentExp(a), FluentExp(d)], dnf_problem.action("act__3__").preconditions())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__0__").effects())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__1__").effects())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__2__").effects())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__3__").effects())
+        self.assertEqual(len(new_act), 4)
+        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))
+        # Cycle over all actions. For every new action assume that the precondition is equivalent
+        # to one in the possible_preconditions and that no other action has the same precondition.
+        for i, new_action in enumerate(dnf_problem.actions().values()):
+            self.assertEqual(new_action.effects(), act.effects())
+            preconditions = set(new_action.preconditions())
+            self.assertIn(preconditions, possible_conditions)
+            for j, new_action_oth_acts in enumerate(dnf_problem.actions().values()):
+                preconditions_oth_acts = set(new_action_oth_acts.preconditions())
+                if i != j:
+                    self.assertNotEqual(preconditions, preconditions_oth_acts)
 
     def test_raise_exceptions(self):
 
@@ -190,5 +184,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_old_to_new_actions_mapping()[act]
         self.assertEqual(len(dnf_problem.actions()), 81)
-        self.assertEqual(len(problem.actions()), 1)
+        self.assertEqual(len(new_act), 81)
+        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))

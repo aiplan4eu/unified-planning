@@ -38,17 +38,18 @@ class TestNegativeConditionsRemover(TestCase):
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_basic(self):
         problem = self.problems['basic'].problem
+        plan = self.problems['basic'].plan
         npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        self.assertTrue(problem.kind().has_negative_conditions())
+        self.assertFalse(positive_problem.kind().has_negative_conditions())
+        with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
             positive_plan = planner.solve(positive_problem)
-            self.assertNotEqual(plan, positive_plan)
-            self.assertEqual(str(plan), str(positive_plan))
             new_plan = npr.rewrite_back_plan(positive_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=positive_problem.kind()) as PV:
+                self.assertTrue(PV.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_loader_mod(self):
@@ -59,12 +60,14 @@ class TestNegativeConditionsRemover(TestCase):
         positive_problem_2 = npr.get_rewritten_problem()
         self.assertEqual(positive_problem, positive_problem_2)
         self.assertEqual(len(problem.fluents()) + 4, len(positive_problem.fluents()))
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        self.assertTrue(problem.kind().has_negative_conditions())
+        self.assertFalse(positive_problem.kind().has_negative_conditions())
+        with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
-            self.assertNotEqual(plan, positive_plan)
             new_plan = npr.rewrite_back_plan(positive_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=positive_problem.kind()) as PV:
+                self.assertTrue(PV.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_matchcellar(self):
@@ -74,11 +77,15 @@ class TestNegativeConditionsRemover(TestCase):
         positive_problem = npr.get_rewritten_problem()
         self.assertTrue(problem.kind().has_negative_conditions())
         self.assertFalse(positive_problem.kind().has_negative_conditions())
+        self.assertTrue(problem.kind().has_negative_conditions())
+        self.assertFalse(positive_problem.kind().has_negative_conditions())
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
-            self.assertNotEqual(plan, positive_plan)
             new_plan = npr.rewrite_back_plan(positive_plan)
+            # LINKED TO ISSUE OF TAMER_UPF NUMBER 5
+            # with PlanValidator(problem_kind=positive_problem.kind()) as PV:
+            #     self.assertTrue(PV.validate(problem, new_plan))
         self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
         light_match = problem.action('light_match')
         mend_fuse = problem.action('mend_fuse')
