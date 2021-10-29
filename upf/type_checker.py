@@ -13,12 +13,12 @@
 # limitations under the License.
 #
 
-import upf.types
+import upf.model.types
 import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
-from upf.types import BOOL
-from upf.fnode import FNode
+from upf.model.types import BOOL
+from upf.model.fnode import FNode
 from upf.exceptions import UPFTypeError
 from typing import List, Optional
 
@@ -28,8 +28,8 @@ class TypeChecker(walkers.DagWalker):
         walkers.DagWalker.__init__(self)
         self.env = env
 
-    def get_type(self, expression: FNode) -> upf.types.Type:
-        """ Returns the upf.types type of the expression """
+    def get_type(self, expression: FNode) -> upf.model.types.Type:
+        """ Returns the upf.model.types type of the expression """
         res = self.walk(expression)
         if res is None:
             raise UPFTypeError("The expression '%s' is not well-formed" \
@@ -57,14 +57,14 @@ class TypeChecker(walkers.DagWalker):
 
     @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF, op.EXISTS, op.FORALL)
     def walk_bool_to_bool(self, expression: FNode,
-                          args: List[upf.types.Type]) -> Optional[upf.types.Type]:
+                          args: List[upf.model.types.Type]) -> Optional[upf.model.types.Type]:
         assert expression is not None
         for x in args:
             if x is None or x != BOOL:
                 return None
         return BOOL
 
-    def walk_fluent_exp(self, expression: FNode, args: List[upf.types.Type]) -> Optional[upf.types.Type]:
+    def walk_fluent_exp(self, expression: FNode, args: List[upf.model.types.Type]) -> Optional[upf.model.types.Type]:
         assert expression.is_fluent_exp()
         f = expression.fluent()
         if len(args) != len(f.signature()):
@@ -74,24 +74,24 @@ class TypeChecker(walkers.DagWalker):
                 return None
         return f.type()
 
-    def walk_param_exp(self, expression: FNode, args: List[upf.types.Type]) -> upf.types.Type:
+    def walk_param_exp(self, expression: FNode, args: List[upf.model.types.Type]) -> upf.model.types.Type:
         assert expression is not None
         assert len(args) == 0
         return expression.parameter().type()
 
-    def walk_variable_exp(self, expression: FNode, args: List[upf.types.Type]) -> upf.types.Type:
+    def walk_variable_exp(self, expression: FNode, args: List[upf.model.types.Type]) -> upf.model.types.Type:
         assert expression is not None
         assert len(args) == 0
         return expression.variable().type()
 
-    def walk_object_exp(self, expression: FNode, args: List[upf.types.Type]) -> upf.types.Type:
+    def walk_object_exp(self, expression: FNode, args: List[upf.model.types.Type]) -> upf.model.types.Type:
         assert expression is not None
         assert len(args) == 0
         return expression.object().type()
 
     @walkers.handles(op.BOOL_CONSTANT)
     def walk_identity_bool(self, expression: FNode,
-                           args: List[upf.types.Type]) -> Optional[upf.types.Type]:
+                           args: List[upf.model.types.Type]) -> Optional[upf.model.types.Type]:
         assert expression is not None
         assert len(args) == 0
         return BOOL
@@ -233,7 +233,7 @@ class TypeChecker(walkers.DagWalker):
         return BOOL
 
     def walk_equals(self, expression: FNode,
-                    args: List[upf.types.Type]) -> Optional[upf.types.Type]:
+                    args: List[upf.model.types.Type]) -> Optional[upf.model.types.Type]:
         t = args[0]
         if t is None:
             return None

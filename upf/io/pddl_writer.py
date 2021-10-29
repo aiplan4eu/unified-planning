@@ -18,7 +18,7 @@ import sys
 import upf
 import upf.environment
 import upf.walkers as walkers
-from upf.action import DurativeAction
+from upf.model.action import DurativeAction
 from upf.simplifier import Simplifier
 from upf.exceptions import UPFTypeError, UPFProblemDefinitionError
 from typing import IO

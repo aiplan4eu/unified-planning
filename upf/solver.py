@@ -15,7 +15,7 @@
 """This module defines the solver interface."""
 
 import upf
-from upf.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind
 from typing import Optional
 
 

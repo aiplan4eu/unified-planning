@@ -14,7 +14,7 @@
 #
 
 import importlib
-from upf.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind
 from upf.solver import Solver
 from upf.parallel import Parallel
 from typing import Dict, Tuple, Optional, List, Union, Type

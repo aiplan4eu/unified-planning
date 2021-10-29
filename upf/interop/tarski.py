@@ -30,7 +30,7 @@ from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type
 def convert_tarski_formula(env: Environment, fluents: Dict[str, upf.Fluent],
                            objects: Dict[str, upf.Object],
                            action_parameters: Dict[str, upf.ActionParameter],
-                           formula: Union[Formula, Term]) -> upf.fnode.FNode:
+                           formula: Union[Formula, Term]) -> upf.model.fnode.FNode:
     """Converts a tarski formula in a upf expression."""
     em = env.expression_manager
     if is_and(formula):

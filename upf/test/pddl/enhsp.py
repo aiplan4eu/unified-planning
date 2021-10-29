@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from upf.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind
 from upf.environment import get_env
 from typing import List
 from upf.pddl_solver import PDDLSolver

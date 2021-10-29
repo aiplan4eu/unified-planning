@@ -15,7 +15,7 @@
 import unittest
 from functools import wraps
 from upf.environment import get_env
-from upf.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind
 import upf.test.pddl.enhsp
 
 

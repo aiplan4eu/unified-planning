@@ -19,7 +19,7 @@ A condition can be added to make it a conditional effect.
 """
 
 
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from collections import OrderedDict
 from typing import List, Union, Tuple, Optional
 

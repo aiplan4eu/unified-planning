@@ -15,13 +15,13 @@
 '''This module defines the different remover classes.'''
 
 
-from upf.fnode import FNode
-from upf.action import Action, InstantaneousAction, DurativeAction
+from upf.model.fnode import FNode
+from upf.model.action import Action, InstantaneousAction, DurativeAction
 from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
-from upf.problem import Problem
+from upf.model.problem import Problem
 from upf.simplifier import Simplifier
-from upf.timing import Timing
+from upf.model.timing import Timing
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 

@@ -20,14 +20,14 @@ and a list of effects.
 
 
 import upf
-import upf.types
+import upf.model.types
 from upf.environment import get_env, Environment
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from upf.exceptions import UPFTypeError, UPFUnboundedVariablesError, UPFProblemDefinitionError
-from upf.expression import BoolExpression, Expression
-from upf.effect import Effect, INCREASE, DECREASE
-from upf.timing import ClosedIntervalDuration, FixedDuration, Interval, IntervalDuration, LeftOpenIntervalDuration, OpenIntervalDuration, RightOpenIntervalDuration
-from upf.timing import EndTiming, StartTiming, Timing
+from upf.model.expression import BoolExpression, Expression
+from upf.model.effect import Effect, INCREASE, DECREASE
+from upf.model.timing import ClosedIntervalDuration, FixedDuration, Interval, IntervalDuration, LeftOpenIntervalDuration, OpenIntervalDuration, RightOpenIntervalDuration
+from upf.model.timing import EndTiming, StartTiming, Timing
 from fractions import Fraction
 from typing import Dict, List, Union
 from collections import OrderedDict
@@ -38,7 +38,7 @@ class ActionParameter:
     An action parameter has a name, used to retrieve the parameter
     from the action, and a type, used to represent that the action
     parameter is of the given type."""
-    def __init__(self, name: str, typename: upf.types.Type):
+    def __init__(self, name: str, typename: upf.model.types.Type):
         self._name = name
         self._typename = typename
 
@@ -49,7 +49,7 @@ class ActionParameter:
         """Returns the parameter name."""
         return self._name
 
-    def type(self) -> upf.types.Type:
+    def type(self) -> upf.model.types.Type:
         """Returns the parameter type."""
         return self._typename
 
@@ -62,8 +62,8 @@ class ActionParameter:
 
 class Action:
     """This is the action interface."""
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
-                 _env: Environment = None, **kwargs: upf.types.Type):
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.model.types.Type]' = None,
+                 _env: Environment = None, **kwargs: upf.model.types.Type):
         self._env = get_env(_env)
         self._name = _name
         self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
@@ -94,8 +94,8 @@ class Action:
 
 class InstantaneousAction(Action):
     """Represents an instantaneous action."""
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
-                 _env: Environment = None, **kwargs: upf.types.Type):
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.model.types.Type]' = None,
+                 _env: Environment = None, **kwargs: upf.model.types.Type):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
         self._preconditions: List[FNode] = []
         self._effects: List[Effect] = []
@@ -196,8 +196,8 @@ class InstantaneousAction(Action):
 
 class DurativeAction(Action):
     '''Represents a durative action.'''
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.types.Type]' = None,
-                 _env: Environment = None, **kwargs: upf.types.Type):
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.model.types.Type]' = None,
+                 _env: Environment = None, **kwargs: upf.model.types.Type):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
         self._duration: IntervalDuration = FixedDuration(self._env.expression_manager.Int(0))
         self._conditions: Dict[Timing, List[FNode]] = {}

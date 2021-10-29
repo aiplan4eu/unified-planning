@@ -15,14 +15,14 @@
 '''This module defines the problem class.'''
 
 
-import upf.types
+import upf.model.types
 import upf.operators as op
-from upf.expression import Expression, BoolExpression
-from upf.timing import Interval, Timing
-from upf.effect import Effect, INCREASE, DECREASE
-from upf.fnode import FNode
+from upf.model.expression import Expression, BoolExpression
+from upf.model.timing import Interval, Timing
+from upf.model.effect import Effect, INCREASE, DECREASE
+from upf.model.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
-from upf.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind
 from upf.operators_extractor import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
@@ -31,7 +31,7 @@ from typing import List, Dict, Set, Union, Optional
 class Problem:
     '''Represents a planning problem.'''
     def __init__(self, name: str = None, env: 'upf.Environment' = None, *,
-                 initial_defaults: Dict[upf.types.Type, Union[FNode, 'upf.Object', bool,
+                 initial_defaults: Dict[upf.model.types.Type, Union[FNode, 'upf.Object', bool,
                                                               int, float, Fraction]] = {}):
         self._env = upf.get_env(env)
         self._operators_extractor = OperatorsExtractor()
@@ -39,14 +39,14 @@ class Problem:
         self._name = name
         self._fluents: Dict[str, 'upf.Fluent'] = {}
         self._actions: Dict[str, 'upf.Action'] = {}
-        self._user_types: Dict[str, upf.types.Type] = {}
+        self._user_types: Dict[str, upf.model.types.Type] = {}
         self._objects: Dict[str, 'upf.Object'] = {}
         self._initial_value: Dict[FNode, FNode] = {}
         self._timed_effects: Dict[Timing, List[Effect]] = {}
         self._timed_goals: Dict[Timing, List[FNode]] = {}
         self._maintain_goals: Dict[Interval, List[FNode]] = {}
         self._goals: List[FNode] = list()
-        self._initial_defaults: Dict[upf.types.Type, FNode] = {}
+        self._initial_defaults: Dict[upf.model.types.Type, FNode] = {}
         for k, v in initial_defaults.items():
             v_exp, = self._env.expression_manager.auto_promote(v)
             self._initial_defaults[k] = v_exp
@@ -198,11 +198,11 @@ class Problem:
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         self._actions[action.name()] = action
 
-    def user_types(self) -> Dict[str, upf.types.Type]:
+    def user_types(self) -> Dict[str, upf.model.types.Type]:
         '''Returns the user types.'''
         return self._user_types
 
-    def user_type(self, name: str) -> upf.types.Type:
+    def user_type(self, name: str) -> upf.model.types.Type:
         '''Returns the user type with the given name.'''
         return self._user_types[name]
 
@@ -227,7 +227,7 @@ class Problem:
         '''Returns the object with the given name.'''
         return self._objects[name]
 
-    def objects(self, typename: upf.types.Type) -> List['upf.Object']:
+    def objects(self, typename: upf.model.types.Type) -> List['upf.Object']:
         '''Returns the objects of the given user types.'''
         res = []
         for obj in self._objects.values():
@@ -262,7 +262,7 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Initial value not set!')
 
-    def _domain_size(self, typename: upf.types.Type) -> int:
+    def _domain_size(self, typename: upf.model.types.Type) -> int:
         '''Returns the domain size of the given type.'''
         if typename.is_bool_type():
             return 2
@@ -277,7 +277,7 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
-    def _domain_item(self, typename: upf.types.Type, idx: int) -> FNode:
+    def _domain_item(self, typename: upf.model.types.Type, idx: int) -> FNode:
         '''Returns the ith domain item of the given type.'''
         if typename.is_bool_type():
             return self._env.expression_manager.Bool(idx == 0)
@@ -458,7 +458,7 @@ class Problem:
         if op.FORALL in ops:
             self._kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
 
-    def _update_problem_kind_type(self, type: upf.types.Type):
+    def _update_problem_kind_type(self, type: upf.model.types.Type):
         if type.is_user_type():
             self._kind.set_typing('FLAT_TYPING') # type: ignore
             self._user_types[type.name()] = type # type: ignore

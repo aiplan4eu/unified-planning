@@ -15,7 +15,7 @@
 
 import upf
 from upf.solver import Solver
-from upf.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind
 from upf.exceptions import UPFException
 from typing import Dict, List, Tuple
 from multiprocessing import Process, Queue

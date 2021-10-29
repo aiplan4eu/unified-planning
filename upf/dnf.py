@@ -19,7 +19,7 @@ import upf.operators as op
 import upf.walkers as walkers
 from upf.exceptions import UPFUnreachableCodeError
 from upf.walkers.dag import DagWalker
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from upf.simplifier import Simplifier
 from typing import List, Tuple
 from itertools import product

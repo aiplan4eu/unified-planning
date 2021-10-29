@@ -20,7 +20,7 @@ else:
     from collections import Iterable
 
 import upf.operators as op
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 
 # NodeType to Function Name
 def nt_to_fun(o: int) -> str:

@@ -19,33 +19,33 @@ singleton objects that are used throughout the system,
 such as the ExpressionManager, TypeChecker, TypeManager.
 """
 
-import upf.expression
+import upf.model.expression
 import upf.factory
-import upf.types
+import upf.model.types
 import upf.type_checker
-import upf.variable
+import upf.model.variable
 
 
 class Environment:
     """Represents the environment."""
     def __init__(self):
-        self._type_manager = upf.types.TypeManager()
+        self._type_manager = upf.model.types.TypeManager()
         self._factory = upf.factory.Factory()
         self._tc = upf.type_checker.TypeChecker(self)
-        self._expression_manager = upf.expression.ExpressionManager(self)
-        self._free_vars_oracle = upf.variable.FreeVarsOracle()
+        self._expression_manager = upf.model.expression.ExpressionManager(self)
+        self._free_vars_oracle = upf.model.variable.FreeVarsOracle()
 
 
     @property
-    def free_vars_oracle(self) -> upf.variable.FreeVarsOracle:
+    def free_vars_oracle(self) -> upf.model.variable.FreeVarsOracle:
         return self._free_vars_oracle
 
     @property
-    def expression_manager(self) -> upf.expression.ExpressionManager:
+    def expression_manager(self) -> upf.model.expression.ExpressionManager:
         return self._expression_manager
 
     @property
-    def type_manager(self) -> upf.types.TypeManager:
+    def type_manager(self) -> upf.model.types.TypeManager:
         return self._type_manager
 
     @property

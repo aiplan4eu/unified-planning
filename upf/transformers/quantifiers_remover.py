@@ -19,15 +19,15 @@ import upf.operators as op
 import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.transformers.transformer import Transformer
-from upf.problem import Problem
-from upf.action import InstantaneousAction, DurativeAction
-from upf.object import Object
-from upf.effect import Effect
-from upf.fnode import FNode
-from upf.variable import Variable
+from upf.model.problem import Problem
+from upf.model.action import InstantaneousAction, DurativeAction
+from upf.model.object import Object
+from upf.model.effect import Effect
+from upf.model.fnode import FNode
+from upf.model.variable import Variable
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
-from upf.expression import Expression
+from upf.model.expression import Expression
 from typing import List, Dict, Union
 from itertools import product
 from collections import OrderedDict

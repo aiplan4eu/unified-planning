@@ -14,7 +14,7 @@
 #
 
 
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from fractions import Fraction
 from typing import List, Union, Dict
 from collections import OrderedDict

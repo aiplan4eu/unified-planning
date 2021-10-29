@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from upf.walkers.generic import Walker
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 
 
 class DagWalker(Walker):

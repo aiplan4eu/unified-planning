@@ -21,12 +21,12 @@ import upf.environment
 import upf.walkers as walkers
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError
-from upf.expression import Expression
-from upf.problem import Problem
-from upf.problem_kind import ProblemKind
-from upf.object import Object
+from upf.model.expression import Expression
+from upf.model.problem import Problem
+from upf.model.problem_kind import ProblemKind
+from upf.model.object import Object
 from upf.plan import SequentialPlan
 
 class QuantifierSimplifier(Simplifier):

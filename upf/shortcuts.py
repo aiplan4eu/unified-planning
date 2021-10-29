@@ -17,12 +17,12 @@ This module defines a global environment, so that most methods can be
 called without the need to specify an environment or a ExpressionManager.
 """
 
-import upf.types
+import upf.model.types
 from upf.environment import get_env
-from upf.expression import BoolExpression, Expression
-from upf.problem_kind import ProblemKind
+from upf.model.expression import BoolExpression, Expression
+from upf.model.problem_kind import ProblemKind
 from upf.solver import Solver
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from typing import Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
@@ -102,16 +102,16 @@ def GT(left: Expression, right: Expression) -> FNode:
 def Equals(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Equals(left, right)
 
-def BoolType() -> upf.types.Type:
+def BoolType() -> upf.model.types.Type:
     return get_env().type_manager.BoolType()
 
-def IntType(lower_bound: int = None, upper_bound: int = None) -> upf.types.Type:
+def IntType(lower_bound: int = None, upper_bound: int = None) -> upf.model.types.Type:
     return get_env().type_manager.IntType(lower_bound, upper_bound)
 
-def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.types.Type:
+def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.model.types.Type:
     return get_env().type_manager.RealType(lower_bound, upper_bound)
 
-def UserType(name: str) -> upf.types.Type:
+def UserType(name: str) -> upf.model.types.Type:
     return get_env().type_manager.UserType(name)
 
 def OneshotPlanner(*, name: Optional[str] = None,

@@ -16,12 +16,12 @@
 
 
 from itertools import product
-from upf.fnode import FNode
-from upf.problem import Problem
-from upf.action import InstantaneousAction, DurativeAction
+from upf.model.fnode import FNode
+from upf.model.problem import Problem
+from upf.model.action import InstantaneousAction, DurativeAction
 from upf.dnf import Dnf
 from upf.exceptions import UPFProblemDefinitionError
-from upf.timing import Interval, Timing
+from upf.model.timing import Interval, Timing
 from upf.transformers.transformer import Transformer
 from typing import List, Tuple, Union
 

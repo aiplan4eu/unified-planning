@@ -18,17 +18,17 @@ A Fluent has a name, a type and a signature
 that defines the types of its parameters.
 """
 
-import upf.types
+import upf.model.types
 from upf.environment import get_env, Environment
-from upf.expression import Expression
-from upf.fnode import FNode
+from upf.model.expression import Expression
+from upf.model.fnode import FNode
 from typing import List
 
 
 class Fluent:
     """Represents a fluent."""
-    def __init__(self, name: str, typename: upf.types.Type = None,
-                 signature: List[upf.types.Type] = [], env: Environment = None):
+    def __init__(self, name: str, typename: upf.model.types.Type = None,
+                 signature: List[upf.model.types.Type] = [], env: Environment = None):
         self._env = get_env(env)
         self._name = name
         if typename is None:
@@ -44,11 +44,11 @@ class Fluent:
         """Returns the fluent name."""
         return self._name
 
-    def type(self) -> upf.types.Type:
+    def type(self) -> upf.model.types.Type:
         """Returns the fluent type."""
         return self._typename
 
-    def signature(self) -> List[upf.types.Type]:
+    def signature(self) -> List[upf.model.types.Type]:
         """Returns the fluent signature.
         The signature is the list of types of the fluent parameters.
         """

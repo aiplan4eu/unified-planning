@@ -19,16 +19,16 @@ A Variable has a name and a type.
 
 
 from typing import List, Set
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 import upf
-import upf.types
+import upf.model.types
 import upf.walkers as walkers
 import upf.operators as op
 
 
 class Variable:
     """Represents a varible."""
-    def __init__(self, name: str, typename: upf.types.Type):
+    def __init__(self, name: str, typename: upf.model.types.Type):
         self._name = name
         self._typename = typename
 
@@ -39,7 +39,7 @@ class Variable:
         """Returns the variable name."""
         return self._name
 
-    def type(self) -> upf.types.Type:
+    def type(self) -> upf.model.types.Type:
         """Returns the variable type."""
         return self._typename
 

@@ -19,11 +19,11 @@ are represented by the same object.
 """
 
 import upf
-import upf.types
+import upf.model.types
 import upf.operators as op
-from upf.fnode import FNodeContent, FNode
+from upf.model.fnode import FNodeContent, FNode
 from upf.exceptions import UPFTypeError, UPFExpressionDefinitionError
-from upf.variable import Variable
+from upf.model.variable import Variable
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 

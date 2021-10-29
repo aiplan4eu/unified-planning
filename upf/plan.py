@@ -16,7 +16,7 @@
 
 
 import upf
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from typing import Optional, Tuple, List
 from fractions import Fraction
 

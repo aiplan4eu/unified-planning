@@ -22,11 +22,11 @@ from upf.shortcuts import *
 from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
 from upf.test import basic_classical_kind, classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
-from upf.timing import AbsoluteTiming, ClosedInterval
+from upf.model.timing import AbsoluteTiming, ClosedInterval
 from upf.transformers import NegativeConditionsRemover
 from upf.plan_validator import SequentialPlanValidator as PV
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
-from upf.effect import Effect
+from upf.model.effect import Effect
 
 
 class TestNegativeConditionsRemover(TestCase):

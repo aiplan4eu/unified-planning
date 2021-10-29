@@ -18,8 +18,8 @@ from collections import OrderedDict
 import upf.environment
 import upf.walkers as walkers
 import upf.operators as op
-from upf.fnode import FNode
-from upf.variable import Variable
+from upf.model.fnode import FNode
+from upf.model.variable import Variable
 from typing import List, Set, Union
 
 

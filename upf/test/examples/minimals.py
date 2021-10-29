@@ -15,7 +15,7 @@
 
 import upf
 from upf.shortcuts import *
-from upf.timing import *
+from upf.model.timing import *
 from collections import namedtuple
 
 Example = namedtuple('Example', ['problem', 'plan'])

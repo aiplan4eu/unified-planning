@@ -15,13 +15,13 @@
 """This module defines the conditional effects remover class."""
 
 from collections import OrderedDict
-from upf.timing import Timing
+from upf.model.timing import Timing
 from upf.plan import SequentialPlan, ActionInstance, TimeTriggeredPlan
-from upf.problem import Problem
-from upf.action import Action, InstantaneousAction, DurativeAction
-from upf.effect import Effect
+from upf.model.problem import Problem
+from upf.model.action import Action, InstantaneousAction, DurativeAction
+from upf.model.effect import Effect
 from upf.exceptions import UPFProblemDefinitionError
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 from upf.simplifier import Simplifier
 from upf.transformers.transformer import Transformer
 from typing import Iterable, List, Dict, Tuple, Union
