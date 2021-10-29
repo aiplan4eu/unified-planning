@@ -17,7 +17,7 @@ import upf
 from upf.shortcuts import *
 from upf.timing import AbsoluteTiming
 from upf.test import TestCase, main
-from upf.test import skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
+from upf.test import skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
 from upf.test import classical_kind, full_classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import ConditionalEffectsRemover
@@ -28,7 +28,8 @@ class TestConditionalEffectsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         cer = ConditionalEffectsRemover(problem)
@@ -67,9 +68,9 @@ class TestConditionalEffectsRemover(TestCase):
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
-        plan = self.problems['complex_conditional'].plan
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
         unconditional_problem_2 = cer.get_rewritten_problem()

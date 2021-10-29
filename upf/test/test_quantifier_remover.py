@@ -17,8 +17,8 @@ import os
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
-from upf.test import full_classical_kind, classical_kind, basic_numeric_kind, basic_temporal_kind
+from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
+from upf.test import classical_kind, full_classical_kind, basic_temporal_kind, basic_numeric_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import QuantifiersRemover
 
@@ -29,7 +29,8 @@ class TestQuantifiersRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_basic_exists(self):
         problem = self.problems['basic_exists'].problem
         qr = QuantifiersRemover(problem)
@@ -47,7 +48,8 @@ class TestQuantifiersRemover(TestCase):
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_basic_forall(self):
         problem = self.problems['basic_forall'].problem
         qr = QuantifiersRemover(problem)
@@ -63,7 +65,8 @@ class TestQuantifiersRemover(TestCase):
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_connected(self):
         problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover(problem)
@@ -79,7 +82,8 @@ class TestQuantifiersRemover(TestCase):
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind.union(basic_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(basic_numeric_kind))
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
         qr = QuantifiersRemover(problem)

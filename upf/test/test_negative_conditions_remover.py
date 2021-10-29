@@ -19,8 +19,8 @@ from upf.plan import ActionInstance
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
-from upf.test import classical_kind, basic_temporal_kind
+from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
+from upf.test import basic_classical_kind, classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.timing import AbsoluteTiming, ClosedInterval
 from upf.transformers import NegativeConditionsRemover
@@ -35,7 +35,8 @@ class TestNegativeConditionsRemover(TestCase):
         self.env = get_env()
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_basic(self):
         problem = self.problems['basic'].problem
         plan = self.problems['basic'].plan
@@ -48,10 +49,11 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
             new_plan = npr.rewrite_back_plan(positive_plan)
-            with PlanValidator(problem_kind=positive_problem.kind()) as PV:
+            with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader_mod(self):
         problem = self.problems['robot_loader_mod'].problem
         plan = self.problems['robot_loader_mod'].plan
@@ -66,10 +68,11 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
             new_plan = npr.rewrite_back_plan(positive_plan)
-            with PlanValidator(problem_kind=positive_problem.kind()) as PV:
+            with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(basic_temporal_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_matchcellar(self):
         problem = self.problems['matchcellar'].problem
         plan = self.problems['matchcellar'].plan
@@ -83,7 +86,7 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
             new_plan = npr.rewrite_back_plan(positive_plan)
-            with PlanValidator(problem_kind=positive_problem.kind()) as PV:
+            with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
         self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
         light_match = problem.action('light_match')

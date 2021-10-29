@@ -14,14 +14,11 @@
 
 import os
 import upf
-from upf.action import DurativeAction
-from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind, classical_kind
+from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
+from upf.test import classical_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import DisjunctiveConditionsRemover
-from upf.pddl_solver import PDDLSolver
-from upf.plan_validator import SequentialPlanValidator as PV
 from upf.exceptions import UPFProblemDefinitionError
 from upf.timing import ClosedInterval
 from upf.timing import StartTiming
@@ -33,6 +30,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
 
