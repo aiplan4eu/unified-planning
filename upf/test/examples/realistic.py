@@ -319,7 +319,7 @@ def get_example_problems():
     l4 = upf.Object('l4', Location)
     l5 = upf.Object('l5', Location)
     r1 = upf.Object('r1', Robot)
-    problem = upf.Problem('robot_connected_locations')
+    problem = upf.Problem('robot_locations_connected')
     problem.add_fluent(is_at, default_initial_value=False)
     problem.add_fluent(battery_charge)
     problem.add_fluent(is_connected, default_initial_value=False)

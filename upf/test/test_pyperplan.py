@@ -34,6 +34,7 @@ class TestPyperplan(TestCase):
             new_plan = planner.solve(problem)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable('pyperplan')
     def test_basic_without_negative_preconditions(self):
         problem, plan = self.problems['basic_without_negative_preconditions'].problem, self.problems['basic_without_negative_preconditions'].plan
         with OneshotPlanner(name='pyperplan') as planner:

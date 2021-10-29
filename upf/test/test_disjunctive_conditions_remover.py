@@ -16,7 +16,7 @@ import os
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
-from upf.test import classical_kind
+from upf.test import classical_kind, full_numeric_kind, full_classical_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import DisjunctiveConditionsRemover
 from upf.exceptions import UPFProblemDefinitionError
@@ -29,8 +29,8 @@ class TestDisjunctiveConditionsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
-    @skipIfNoPlanValidatorForProblemKind(classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(full_numeric_kind))
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
 

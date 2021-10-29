@@ -36,6 +36,7 @@ class TestPlanValidator(TestCase):
 
             plan = upf.SequentialPlan([])
             res = validator.validate(problem, plan)
+            print(validator.name())
             self.assertFalse(res)
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_numeric_kind))

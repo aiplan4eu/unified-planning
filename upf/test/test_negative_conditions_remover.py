@@ -48,6 +48,7 @@ class TestNegativeConditionsRemover(TestCase):
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
+            print(planner.name())
             new_plan = npr.rewrite_back_plan(positive_plan)
             with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
