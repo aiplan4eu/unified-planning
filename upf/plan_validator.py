@@ -167,7 +167,7 @@ class QuantifierSimplifier(Simplifier):
             raise UPFProblemDefinitionError(f"Value of ActionParameter {str(expression)} not found in {str(self._assignments)}")
 
 
-class SequentialPlanValidator(upf.Solver):
+class SequentialPlanValidator(upf.solver.Solver):
     """Performs plan validation."""
     def __init__(self, **options):
         self._env: 'upf.environment.Environment' = upf.get_env(options.get('env', None))
@@ -175,7 +175,7 @@ class SequentialPlanValidator(upf.Solver):
         self._substituter = Substituter(self._env)
         self._last_error: Union[str, None] = None
 
-    def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
+    def validate(self, problem: 'upf.model.problem.Problem', plan: 'upf.plan.Plan') -> bool:
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""
@@ -186,7 +186,7 @@ class SequentialPlanValidator(upf.Solver):
         count = 0 #used for better error indexing
         for ai in plan.actions():
             action = ai.action()
-            assert isinstance(action, upf.InstantaneousAction)
+            assert isinstance(action, upf.model.action.InstantaneousAction)
             count = count + 1
             new_assignments: Dict[Expression, Expression] = {}
             for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):

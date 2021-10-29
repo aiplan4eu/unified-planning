@@ -19,16 +19,18 @@ singleton objects that are used throughout the system,
 such as the ExpressionManager, TypeChecker, TypeManager.
 """
 
-import upf.model.expression
-import upf.factory
-import upf.model.types
-import upf.type_checker
-import upf.model.variable
+from typing import Optional
+import upf
 
 
 class Environment:
     """Represents the environment."""
     def __init__(self):
+        import upf.model.expression
+        import upf.factory
+        import upf.model.types
+        import upf.type_checker
+        import upf.model.variable
         self._type_manager = upf.model.types.TypeManager()
         self._factory = upf.factory.Factory()
         self._tc = upf.type_checker.TypeChecker(self)
@@ -37,31 +39,34 @@ class Environment:
 
 
     @property
-    def free_vars_oracle(self) -> upf.model.variable.FreeVarsOracle:
+    def free_vars_oracle(self) -> 'upf.model.variable.FreeVarsOracle':
         return self._free_vars_oracle
 
     @property
-    def expression_manager(self) -> upf.model.expression.ExpressionManager:
+    def expression_manager(self) -> 'upf.model.expression.ExpressionManager':
         return self._expression_manager
 
     @property
-    def type_manager(self) -> upf.model.types.TypeManager:
+    def type_manager(self) -> 'upf.model.types.TypeManager':
         return self._type_manager
 
     @property
-    def type_checker(self) -> upf.type_checker.TypeChecker:
+    def type_checker(self) -> 'upf.type_checker.TypeChecker':
         """ Get the Type Checker """
         return self._tc
 
     @property
-    def factory(self) -> upf.factory.Factory:
+    def factory(self) -> 'upf.factory.Factory':
         return self._factory
 
 
-GLOBAL_ENVIRONMENT = Environment()
+GLOBAL_ENVIRONMENT: Optional[Environment] = None
 
 def get_env(env: Environment = None) -> Environment:
+    global GLOBAL_ENVIRONMENT
     if env is None:
+        if GLOBAL_ENVIRONMENT is None:
+            GLOBAL_ENVIRONMENT = Environment()
         return GLOBAL_ENVIRONMENT
     else:
         return env

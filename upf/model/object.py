@@ -22,7 +22,7 @@ import upf.model.types
 
 class Object:
     """Represents an object."""
-    def __init__(self, name: str, typename: upf.model.types.Type):
+    def __init__(self, name: str, typename: 'upf.model.types.Type'):
         self._name = name
         self._typename = typename
 
@@ -33,6 +33,6 @@ class Object:
         """Returns the object name."""
         return self._name
 
-    def type(self) -> upf.model.types.Type:
+    def type(self) -> 'upf.model.types.Type':
         """Returns the object type."""
         return self._typename

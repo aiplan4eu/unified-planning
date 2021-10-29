@@ -27,10 +27,10 @@ from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol # type
 from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type: ignore
 
 
-def convert_tarski_formula(env: Environment, fluents: Dict[str, upf.Fluent],
-                           objects: Dict[str, upf.Object],
-                           action_parameters: Dict[str, upf.ActionParameter],
-                           formula: Union[Formula, Term]) -> upf.model.fnode.FNode:
+def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.fluent.Fluent'],
+                           objects: Dict[str, 'upf.model.object.Object'],
+                           action_parameters: Dict[str, 'upf.model.action.ActionParameter'],
+                           formula: Union[Formula, Term]) -> 'upf.model.fnode.FNode':
     """Converts a tarski formula in a upf expression."""
     em = env.expression_manager
     if is_and(formula):
@@ -104,12 +104,12 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, upf.Fluent],
         raise UPFProblemDefinitionError(str(formula) + ' not supported!')
 
 
-def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Problem) -> upf.Problem:
+def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'upf.model.problem.Problem':
     """Converts a tarski problem in a upf.Problem."""
     em = env.expression_manager
     tm = env.type_manager
     lang = tarski_problem.language
-    problem = upf.Problem(tarski_problem.name)
+    problem = upf.model.Problem(tarski_problem.name)
 
     # Convert types
     types = {}
@@ -124,7 +124,7 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         signature = []
         for t in p.sort:
             signature.append(types[str(t.name)])
-        fluent = upf.Fluent(p.name, tm.BoolType(), signature)
+        fluent = upf.model.Fluent(p.name, tm.BoolType(), signature)
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
     for p in lang.functions:
@@ -133,14 +133,14 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         signature = []
         for t in p.domain:
             signature.append(types[str(t.name)])
-        fluent = upf.Fluent(p.name, tm.RealType(), signature)
+        fluent = upf.model.Fluent(p.name, tm.RealType(), signature)
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
 
     # Convert objects
     objects = {}
     for c in lang.constants():
-        o = upf.Object(str(c.name), types[str(c.sort.name)])
+        o = upf.model.Object(str(c.name), types[str(c.sort.name)])
         objects[o.name()] = o
         problem.add_object(o)
 
@@ -150,7 +150,7 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         parameters = OrderedDict()
         for p in a.parameters:
             parameters[p.symbol] = types[p.sort.name]
-        action = upf.InstantaneousAction(a_name, parameters)
+        action = upf.model.action.InstantaneousAction(a_name, parameters)
         action_parameters = {}
         for p in parameters.keys():
             action_parameters[p] = action.parameter(p)
