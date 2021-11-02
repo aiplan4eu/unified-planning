@@ -25,8 +25,8 @@ from upf.exceptions import UPFTypeError, UPFExpressionDefinitionError
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
-Expression = Union['upf.model.fnode.FNode', 'upf.model.Fluent', 'upf.model.Object', 'upf.model.ActionParameter', 'upf.model.Variable', bool, int, float, Fraction]
-BoolExpression = Union['upf.model.fnode.FNode', 'upf.model.Fluent', 'upf.model.ActionParameter', bool]
+Expression = Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', 'upf.model.object.Object', 'upf.model.action.ActionParameter', 'upf.model.variable.Variable', bool, int, float, Fraction]
+BoolExpression = Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', 'upf.model.action.ActionParameter', bool]
 
 class ExpressionManager(object):
     """ExpressionManager is responsible for the creation of all expressions."""
@@ -195,11 +195,11 @@ class ExpressionManager(object):
         """Returns an expression for the given action parameter."""
         return self.create_node(node_type=op.PARAM_EXP, args=tuple(), payload=param)
 
-    def VariableExp(self, var: 'upf.model.Variable') ->'upf.model.fnode.FNode':
+    def VariableExp(self, var: 'upf.model.variable.Variable') ->'upf.model.fnode.FNode':
         """Returns an expression for the given variable."""
         return self.create_node(node_type=op.VARIABLE_EXP, args=tuple(), payload=var)
 
-    def ObjectExp(self, obj: 'upf.model.Object') ->'upf.model.fnode.FNode':
+    def ObjectExp(self, obj: 'upf.model.object.Object') ->'upf.model.fnode.FNode':
         """Returns an expression for the given object."""
         return self.create_node(node_type=op.OBJECT_EXP, args=tuple(), payload=obj)
 

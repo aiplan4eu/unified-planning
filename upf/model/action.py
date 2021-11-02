@@ -168,7 +168,7 @@ class InstantaneousAction(Action):
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
-        self._effects.append(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = upf.model.INCREASE))
+        self._effects.append(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = upf.model.effect.INCREASE))
 
     def add_decrease_effect(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                    value: 'upf.model.expression.Expression', condition: 'upf.model.expression.BoolExpression' = True):
@@ -193,7 +193,7 @@ class DurativeAction(Action):
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, upf.model.types.Type]' = None,
                  _env: Environment = None, **kwargs: 'upf.model.types.Type'):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
-        self._duration: upf.model.timing.IntervalDuration = upf.model.FixedDuration(self._env.expression_manager.Int(0))
+        self._duration: upf.model.timing.IntervalDuration = upf.model.timing.FixedDuration(self._env.expression_manager.Int(0))
         self._conditions: Dict[upf.model.timing.Timing, List[upf.model.fnode.FNode]] = {}
         self._durative_conditions: Dict[upf.model.timing.Interval, List[upf.model.fnode.FNode]] = {}
         self._effects: Dict[upf.model.timing.Timing, List[upf.model.effect.Effect]] = {}
@@ -287,27 +287,27 @@ class DurativeAction(Action):
 
     def set_fixed_duration(self, value: Union['upf.model.fnode.FNode', int, Fraction]):
         value_exp, = self._env.expression_manager.auto_promote(value)
-        self.set_duration_constraint(upf.model.FixedDuration(value_exp))
+        self.set_duration_constraint(upf.model.timing.FixedDuration(value_exp))
 
     def set_closed_interval_duration(self, lower: Union['upf.model.fnode.FNode', int, Fraction],
                                      upper: Union['upf.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(upf.model.ClosedIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(upf.model.timing.ClosedIntervalDuration(lower_exp, upper_exp))
 
     def set_open_interval_duration(self, lower: Union['upf.model.fnode.FNode', int, Fraction],
                                    upper: Union['upf.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(upf.model.OpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(upf.model.timing.OpenIntervalDuration(lower_exp, upper_exp))
 
     def set_left_open_interval_duration(self, lower: Union['upf.model.fnode.FNode', int, Fraction],
                                         upper: Union['upf.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(upf.model.LeftOpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(upf.model.timing.LeftOpenIntervalDuration(lower_exp, upper_exp))
 
     def set_right_open_interval_duration(self, lower: Union['upf.model.fnode.FNode', int, Fraction],
                                          upper: Union['upf.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(upf.model.RightOpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(upf.model.timing.RightOpenIntervalDuration(lower_exp, upper_exp))
 
     def add_condition(self, timing: 'upf.model.timing.Timing',
                       condition: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', ActionParameter, bool]):
@@ -359,7 +359,7 @@ class DurativeAction(Action):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = upf.model.INCREASE))
+                                         condition_exp, kind = upf.model.effect.INCREASE))
 
     def add_decrease_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                             value: 'upf.model.expression.Expression', condition: 'upf.model.expression.BoolExpression' = True):

@@ -18,7 +18,7 @@ import sys
 import upf
 import upf.environment
 import upf.walkers as walkers
-from upf.model.action import DurativeAction
+from upf.model import DurativeAction
 from upf.simplifier import Simplifier
 from upf.exceptions import UPFTypeError, UPFProblemDefinitionError
 from typing import IO
@@ -129,7 +129,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 class PDDLWriter:
     '''This class can be used to write a Problem in PDDL.'''
 
-    def __init__(self, problem: 'upf.model.problem.Problem', needs_requirements: bool = True):
+    def __init__(self, problem: 'upf.model.Problem', needs_requirements: bool = True):
         self.problem = problem
         self.needs_requirements = needs_requirements
 
@@ -203,7 +203,7 @@ class PDDLWriter:
 
         converter = ConverterToPDDLString(self.problem.env)
         for a in self.problem.actions().values():
-            if isinstance(a, upf.model.action.InstantaneousAction):
+            if isinstance(a, upf.model.InstantaneousAction):
                 out.write(f' (:action {a.name()}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():

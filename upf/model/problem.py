@@ -31,8 +31,8 @@ class Problem:
         self._operators_extractor = OperatorsExtractor()
         self._kind = upf.model.problem_kind.ProblemKind()
         self._name = name
-        self._fluents: Dict[str, 'upf.model.Fluent'] = {}
-        self._actions: Dict[str, 'upf.model.Action'] = {}
+        self._fluents: Dict[str, 'upf.model.fluent.Fluent'] = {}
+        self._actions: Dict[str, 'upf.model.action.Action'] = {}
         self._user_types: Dict[str, 'upf.model.types.Type'] = {}
         self._objects: Dict[str, 'upf.model.object.Object'] = {}
         self._initial_value: Dict['upf.model.fnode.FNode', 'upf.model.fnode.FNode'] = {}
@@ -44,7 +44,7 @@ class Problem:
         for k, v in initial_defaults.items():
             v_exp, = self._env.expression_manager.auto_promote(v)
             self._initial_defaults[k] = v_exp
-        self._fluents_defaults: Dict['upf.model.Fluent', 'upf.model.fnode.FNode'] = {}
+        self._fluents_defaults: Dict['upf.model.fluent.Fluent', 'upf.model.fnode.FNode'] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -105,16 +105,16 @@ class Problem:
         '''Returns the problem name.'''
         return self._name
 
-    def fluents(self) -> Dict[str, 'upf.model.Fluent']:
+    def fluents(self) -> Dict[str, 'upf.model.fluent.Fluent']:
         '''Returns the fluents.'''
         return self._fluents
 
-    def fluent(self, name: str) -> 'upf.model.Fluent':
+    def fluent(self, name: str) -> 'upf.model.fluent.Fluent':
         '''Returns the fluent with the given name.'''
         assert name in self._fluents
         return self._fluents[name]
 
-    def add_fluent(self, fluent: 'upf.model.Fluent', *,
+    def add_fluent(self, fluent: 'upf.model.fluent.Fluent', *,
                    default_initial_value: Union['upf.model.fnode.FNode', 'upf.model.object.Object', bool,
                                                 int, float, Fraction] = None):
         '''Adds the given fluent.'''
@@ -128,7 +128,7 @@ class Problem:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
 
-    def actions(self) -> Dict[str, 'upf.model.Action']:
+    def actions(self) -> Dict[str, 'upf.model.action.Action']:
         '''Returns the actions.'''
         return self._actions
 
@@ -233,8 +233,8 @@ class Problem:
         '''Returns all the objects.'''
         return [o for o in self._objects.values()]
 
-    def set_initial_value(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.Fluent'],
-                          value: Union['upf.model.fnode.FNode', 'upf.model.Fluent', 'upf.model.object.Object', bool,
+    def set_initial_value(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
+                          value: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', 'upf.model.object.Object', bool,
                                        int, float, Fraction]):
         '''Sets the initial value for the given fluent.'''
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
@@ -244,7 +244,7 @@ class Problem:
             raise UPFProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
 
-    def initial_value(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.Fluent']) -> 'upf.model.fnode.FNode':
+    def initial_value(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent']) -> 'upf.model.fnode.FNode':
         '''Gets the initial value of the given fluent.'''
         fluent_exp, = self._env.expression_manager.auto_promote(fluent)
         if fluent_exp in self._initial_value:
@@ -286,7 +286,7 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
-    def _get_ith_fluent_exp(self, fluent: 'upf.model.Fluent', domain_sizes: List[int], idx: int) -> 'upf.model.fnode.FNode':
+    def _get_ith_fluent_exp(self, fluent: 'upf.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'upf.model.fnode.FNode':
         '''Returns the ith ground fluent expression.'''
         quot = idx
         rem = 0
@@ -320,7 +320,7 @@ class Problem:
                         res[f_exp] = self.initial_value(f_exp)
         return res
 
-    def add_timed_goal(self, timing: 'upf.model.timing.Timing', goal: Union['upf.model.fnode.FNode', 'upf.model.Fluent', bool]):
+    def add_timed_goal(self, timing: 'upf.model.timing.Timing', goal: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', bool]):
         '''Adds a timed goal.'''
         if timing.is_from_end() and timing.bound() > 0:
             raise UPFProblemDefinitionError('Timing used in timed goal cannot be `end - k` with k > 0.')
@@ -338,7 +338,7 @@ class Problem:
         '''Returns the timed goals.'''
         return self._timed_goals
 
-    def add_timed_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.Fluent'],
+    def add_timed_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                          value: 'upf.model.expression.Expression', condition: 'upf.model.expression.BoolExpression' = True):
         '''Adds the given timed effect.'''
         if timing.is_from_end():
@@ -352,7 +352,7 @@ class Problem:
             raise UPFTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing, upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
-    def add_increase_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.Fluent'],
+    def add_increase_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                             value: 'upf.model.expression.Expression', condition: 'upf.model.expression.BoolExpression' = True):
         '''Adds the given timed increase effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
@@ -366,7 +366,7 @@ class Problem:
                                   upf.model.effect.Effect(fluent_exp, value_exp,
                                          condition_exp, kind = upf.model.effect.INCREASE))
 
-    def add_decrease_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.Fluent'],
+    def add_decrease_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                             value: 'upf.model.expression.Expression', condition: 'upf.model.expression.BoolExpression' = True):
         '''Adds the given timed decrease effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
@@ -393,7 +393,7 @@ class Problem:
         '''Returns the timed effects.'''
         return self._timed_effects
 
-    def add_maintain_goal(self, interval: 'upf.model.timing.Interval', goal: Union['upf.model.fnode.FNode', 'upf.model.Fluent', bool]):
+    def add_maintain_goal(self, interval: 'upf.model.timing.Interval', goal: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', bool]):
         '''Adds a maintain goal.'''
         if ((interval.lower().is_from_end() and interval.lower().bound() > 0) or
             (interval.upper().is_from_end() and interval.upper().bound() > 0)):

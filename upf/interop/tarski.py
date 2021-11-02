@@ -27,10 +27,10 @@ from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol # type
 from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type: ignore
 
 
-def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.fluent.Fluent'],
-                           objects: Dict[str, 'upf.model.object.Object'],
-                           action_parameters: Dict[str, 'upf.model.action.ActionParameter'],
-                           formula: Union[Formula, Term]) -> 'upf.model.fnode.FNode':
+def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.Fluent'],
+                           objects: Dict[str, 'upf.model.Object'],
+                           action_parameters: Dict[str, 'upf.model.ActionParameter'],
+                           formula: Union[Formula, Term]) -> 'upf.model.FNode':
     """Converts a tarski formula in a upf expression."""
     em = env.expression_manager
     if is_and(formula):
@@ -104,7 +104,7 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.fluen
         raise UPFProblemDefinitionError(str(formula) + ' not supported!')
 
 
-def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'upf.model.problem.Problem':
+def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'upf.model.Problem':
     """Converts a tarski problem in a upf.Problem."""
     em = env.expression_manager
     tm = env.type_manager
