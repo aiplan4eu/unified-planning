@@ -64,7 +64,7 @@ class Parallel(Solver):
             p.terminate()
         return res
 
-    def solve(self, problem: 'upf.Problem') -> 'upf.Plan':
+    def solve(self, problem: 'upf.model.Problem') -> 'upf.model.Plan':
         plan = self._run_parallel('solve', problem)
         actions = []
         objects = {}
@@ -87,10 +87,10 @@ class Parallel(Solver):
                     params.append(em.Real(p.constant_value()))
                 else:
                     raise
-            actions.append(upf.ActionInstance(new_a, tuple(params)))
-        return upf.SequentialPlan(actions)
+            actions.append(upf.model.ActionInstance(new_a, tuple(params)))
+        return upf.plan.SequentialPlan(actions)
 
-    def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
+    def validate(self, problem: 'upf.model.Problem', plan: 'upf.plan.Plan') -> bool:
         return self._run_parallel('validate', problem, plan)
 
     def destroy(self):

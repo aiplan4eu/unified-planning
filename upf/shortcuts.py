@@ -19,6 +19,7 @@ called without the need to specify an environment or a ExpressionManager.
 
 import upf.model.types
 from upf.environment import get_env
+from upf.model import *
 from upf.model.expression import BoolExpression, Expression
 from upf.model.problem_kind import ProblemKind
 from upf.solver import Solver

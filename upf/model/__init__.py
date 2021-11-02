@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-import upf.model.types
+
 from upf.model.action import ActionParameter, Action, InstantaneousAction, DurativeAction
 from upf.model.effect import Effect, ASSIGN, INCREASE, DECREASE
 from upf.model.expression import BoolExpression, Expression, ExpressionManager
@@ -27,3 +27,18 @@ from upf.model.timing import FixedDuration, OpenIntervalDuration, LeftOpenInterv
 from upf.model.timing import Interval, ClosedInterval, OpenInterval, LeftOpenInterval, RightOpenInterval
 from upf.model.types import Type, TypeManager
 from upf.model.variable import Variable
+
+__all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
+            'Effect', 'ASSIGN', 'INCREASE', 'DECREASE',
+            'BoolExpression', 'Expression', 'ExpressionManager',
+            'FNodeContent', 'FNode',
+            'Fluent',
+            'Object',
+            'Problem',
+            'ProblemKind',
+            'Timing', 'StartTiming', 'EndTiming', 'AbsoluteTiming', 'IntervalDuration', 'ClosedIntervalDuration',
+            'FixedDuration', 'OpenIntervalDuration', 'LeftOpenIntervalDuration', 'RightOpenIntervalDuration',
+            'Interval', 'ClosedInterval', 'OpenInterval', 'LeftOpenInterval', 'RightOpenInterval',
+            'Type', 'TypeManager',
+            'Variable'
+            ]

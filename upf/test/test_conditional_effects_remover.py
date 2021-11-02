@@ -101,9 +101,9 @@ class TestConditionalEffectsRemover(TestCase):
 
     def test_ad_hoc_1(self):
         ct = AbsoluteTiming(2)
-        x = upf.Fluent('x')
-        y = upf.Fluent('y')
-        problem = upf.Problem('ad_hoc_1')
+        x = upf.model.Fluent('x')
+        y = upf.model.Fluent('y')
+        problem = upf.model.Problem('ad_hoc_1')
         problem.add_fluent(x, default_initial_value=True)
         problem.add_fluent(y, default_initial_value=True)
         problem.add_timed_effect(ct, y, Not(x), x)

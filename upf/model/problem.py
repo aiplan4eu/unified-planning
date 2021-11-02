@@ -24,10 +24,10 @@ from typing import List, Dict, Union, Optional
 
 class Problem:
     '''Represents a planning problem.'''
-    def __init__(self, name: str = None, env: 'upf.Environment' = None, *,
+    def __init__(self, name: str = None, env: 'upf.environment.Environment' = None, *,
                  initial_defaults: Dict['upf.model.types.Type', Union['upf.model.fnode.FNode', 'upf.model.object.Object', bool,
                                                               int, float, Fraction]] = {}):
-        self._env = upf.get_env(env)
+        self._env = upf.environment.get_env(env)
         self._operators_extractor = OperatorsExtractor()
         self._kind = upf.model.problem_kind.ProblemKind()
         self._name = name
