@@ -27,12 +27,12 @@ class Environment:
     """Represents the environment."""
     def __init__(self):
         import upf.model.expression
-        import upf.factory
+        import upf.solvers.factory
         import upf.model.types
         import upf.type_checker
         import upf.model.variable
         self._type_manager = upf.model.types.TypeManager()
-        self._factory = upf.factory.Factory()
+        self._factory = upf.solvers.Factory()
         self._tc = upf.type_checker.TypeChecker(self)
         self._expression_manager = upf.model.expression.ExpressionManager(self)
         self._free_vars_oracle = upf.model.variable.FreeVarsOracle()
@@ -56,7 +56,7 @@ class Environment:
         return self._tc
 
     @property
-    def factory(self) -> 'upf.factory.Factory':
+    def factory(self) -> 'upf.solvers.Factory':
         return self._factory
 
 

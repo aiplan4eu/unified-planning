@@ -15,11 +15,13 @@
 
 
 from upf.solvers.solver import Solver
+from upf.solvers.factory import Factory
 from upf.solvers.parallel import Parallel
 from upf.solvers.pddl_solver import PDDLSolver
 from upf.solvers.plan_validator import SequentialPlanValidator
 
-__all__ = [ 'Parallel',
+__all__ = [ 'Fatory',
+            'Parallel',
             'PDDLSolver',
             'SequentialPlanValidator',
             'Solver'
