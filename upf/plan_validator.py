@@ -170,7 +170,7 @@ class QuantifierSimplifier(Simplifier):
 class SequentialPlanValidator(upf.solver.Solver):
     """Performs plan validation."""
     def __init__(self, **options):
-        self._env: 'upf.environment.Environment' = upf.get_env(options.get('env', None))
+        self._env: 'upf.environment.Environment' = upf.environment.get_env(options.get('env', None))
         self.manager = self._env.expression_manager
         self._substituter = Substituter(self._env)
         self._last_error: Union[str, None] = None

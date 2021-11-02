@@ -392,13 +392,13 @@ class TestProblem(TestCase):
 
     def test_fluents_defaults(self):
         Location = UserType('Location')
-        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
-        distance = upf.Fluent('distance', RealType(), [Location, Location])
+        robot_at = Fluent('robot_at', BoolType(), [Location])
+        distance = Fluent('distance', RealType(), [Location, Location])
 
         N = 10
-        locations = [upf.Object(f'l{i}', Location) for i in range(N)]
+        locations = [Object(f'l{i}', Location) for i in range(N)]
 
-        problem = upf.Problem('robot')
+        problem = Problem('robot')
         problem.add_fluent(robot_at, default_initial_value=False)
         problem.add_fluent(distance, default_initial_value=Fraction(-1))
         problem.add_objects(locations)
@@ -421,14 +421,14 @@ class TestProblem(TestCase):
 
     def test_problem_defaults(self):
         Location = UserType('Location')
-        robot_at = upf.Fluent('robot_at', BoolType(), [Location])
-        distance = upf.Fluent('distance', IntType(), [Location, Location])
-        cost = upf.Fluent('cost', IntType(), [Location, Location])
+        robot_at = Fluent('robot_at', BoolType(), [Location])
+        distance = Fluent('distance', IntType(), [Location, Location])
+        cost = Fluent('cost', IntType(), [Location, Location])
 
         N = 10
-        locations = [upf.Object(f'l{i}', Location) for i in range(N)]
+        locations = [Object(f'l{i}', Location) for i in range(N)]
 
-        problem = upf.Problem('robot', initial_defaults={IntType(): 0})
+        problem = Problem('robot', initial_defaults={IntType(): 0})
         problem.add_fluent(robot_at, default_initial_value=False)
         problem.add_fluent(distance, default_initial_value=-1)
         problem.add_fluent(cost)

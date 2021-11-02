@@ -34,7 +34,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             print(validator.name())
             self.assertFalse(res)
@@ -49,7 +49,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 
@@ -63,7 +63,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 
@@ -77,7 +77,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 

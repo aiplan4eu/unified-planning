@@ -87,7 +87,7 @@ class Parallel(Solver):
                     params.append(em.Real(p.constant_value()))
                 else:
                     raise
-            actions.append(upf.model.ActionInstance(new_a, tuple(params)))
+            actions.append(upf.plan.ActionInstance(new_a, tuple(params)))
         return upf.plan.SequentialPlan(actions)
 
     def validate(self, problem: 'upf.model.Problem', plan: 'upf.plan.Plan') -> bool:
