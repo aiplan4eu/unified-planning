@@ -17,9 +17,7 @@ import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.environment import get_env
-from upf.dnf import Dnf, Nnf
-from upf.simplifier import Simplifier
-from upf.substituter import Substituter
+from upf.walkers import Dnf, Nnf, Simplifier, Substituter
 
 
 class TestDnf(TestCase):

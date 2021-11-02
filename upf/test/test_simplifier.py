@@ -16,9 +16,8 @@
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
-from upf.simplifier import Simplifier
+from upf.walkers import Simplifier, Substituter
 from upf.environment import get_env
-from upf.substituter import Substituter
 from fractions import Fraction
 
 

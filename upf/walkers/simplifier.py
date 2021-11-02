@@ -17,7 +17,7 @@ from fractions import Fraction
 from collections import OrderedDict
 import upf.environment
 import upf.walkers as walkers
-from upf.model import FNode, operators as op, Variable
+from upf.model import FNode, operators as op
 from typing import List, Set, Union
 
 
@@ -155,7 +155,7 @@ class Simplifier(walkers.DagWalker):
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
+        free_vars: Set['upf.model.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]
@@ -163,7 +163,7 @@ class Simplifier(walkers.DagWalker):
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set[Variable] = self.env.free_vars_oracle.get_free_variables(args[0])
+        free_vars: Set['upf.model.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]

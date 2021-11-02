@@ -17,7 +17,7 @@
 import upf
 import upf.model.operators as op
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
-from upf.operators_extractor import OperatorsExtractor
+from upf.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Union, Optional
 

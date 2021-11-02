@@ -17,7 +17,7 @@ from collections import OrderedDict
 from upf.shortcuts import *
 from upf.test import TestCase, main
 import upf
-from upf.substituter import Substituter
+from upf.walkers import Substituter
 from upf.environment import get_env
 from upf.exceptions import UPFTypeError
 

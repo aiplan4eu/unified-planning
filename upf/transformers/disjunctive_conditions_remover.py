@@ -14,12 +14,12 @@
 #
 """This module defines the dnf remover class."""
 
-
+import upf
 from itertools import product
 from upf.model.fnode import FNode
 from upf.model.problem import Problem
 from upf.model.action import InstantaneousAction, DurativeAction
-from upf.dnf import Dnf
+from upf.walkers import Dnf
 from upf.exceptions import UPFProblemDefinitionError
 from upf.model.timing import Interval, Timing
 from upf.transformers.transformer import Transformer

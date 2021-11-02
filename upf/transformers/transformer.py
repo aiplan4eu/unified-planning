@@ -15,12 +15,12 @@
 '''This module defines the different remover classes.'''
 
 
+import upf
 from upf.model.fnode import FNode
 from upf.model.action import Action, InstantaneousAction, DurativeAction
 from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.model.problem import Problem
-from upf.simplifier import Simplifier
 from upf.model.timing import Timing
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
@@ -35,7 +35,7 @@ class Transformer:
         self._new_to_old: Optional[Dict[Action, Action]] = None
         #represents a mapping from the action of the original problem to action of the new one.
         self._old_to_new: Optional[Dict[Action, List[Action]]] = None
-        self._simplifier = Simplifier(self._env)
+        self._simplifier = upf.walkers.Simplifier(self._env)
 
     def get_old_to_new_actions_mapping(self) -> Optional[Dict[Action, List[Action]]]:
         return self._old_to_new

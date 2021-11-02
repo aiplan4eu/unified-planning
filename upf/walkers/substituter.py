@@ -19,7 +19,6 @@ import upf.walkers as walkers
 import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.model import FNode, operators as op
-from upf.type_checker import TypeChecker
 from upf.exceptions import UPFTypeError
 from upf.model import Expression
 from typing import List, Dict

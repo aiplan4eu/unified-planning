@@ -15,3 +15,8 @@
 
 from upf.walkers.dag import DagWalker
 from upf.walkers.generic import handles
+from upf.walkers.dnf import Dnf, Nnf
+from upf.walkers.operators_extractor import OperatorsExtractor
+from upf.walkers.simplifier import Simplifier
+from upf.walkers.substituter import Substituter
+from upf.walkers.type_checker import TypeChecker

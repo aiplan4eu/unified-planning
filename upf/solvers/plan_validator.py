@@ -21,12 +21,10 @@ import upf.environment
 import upf.walkers as walkers
 import upf.solvers as solvers
 from upf.exceptions import UPFProblemDefinitionError
-from upf.simplifier import Simplifier
-from upf.substituter import Substituter
 from upf.model import FNode, Expression, Problem, ProblemKind, Object
 from upf.plan import SequentialPlan
 
-class QuantifierSimplifier(Simplifier):
+class QuantifierSimplifier(walkers.Simplifier):
     """Same to the upf.Simplifier, but does not expand quantifiers and solves them locally."""
     def __init__(self, env: 'upf.environment.Environment', problem: Problem):
         walkers.DagWalker.__init__(self, True)
@@ -52,7 +50,7 @@ class QuantifierSimplifier(Simplifier):
         if expression.is_forall() or expression.is_exists():
             self.stack.append((True, expression))
         else:
-            super(Simplifier, self)._push_with_children_to_stack(expression, **kwargs)
+            super(walkers.Simplifier, self)._push_with_children_to_stack(expression, **kwargs)
 
 
     def _compute_node_result(self, expression: FNode, **kwargs):
@@ -169,7 +167,7 @@ class SequentialPlanValidator(solvers.Solver):
     def __init__(self, **options):
         self._env: 'upf.environment.Environment' = upf.environment.get_env(options.get('env', None))
         self.manager = self._env.expression_manager
-        self._substituter = Substituter(self._env)
+        self._substituter = walkers.Substituter(self._env)
         self._last_error: Union[str, None] = None
 
     def validate(self, problem: 'upf.model.problem.Problem', plan: 'upf.plan.Plan') -> bool:

@@ -20,8 +20,6 @@ import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.transformers.transformer import Transformer
 from upf.model import Problem, InstantaneousAction, DurativeAction, Object, Effect, FNode, Variable, operators as op
-from upf.simplifier import Simplifier
-from upf.substituter import Substituter
 from upf.model.expression import Expression
 from typing import List, Dict, Union
 from itertools import product
@@ -32,7 +30,7 @@ class ExpressionQuantifierRemover(IdentityDagWalker):
     def __init__(self, env):
         self._env = env
         IdentityDagWalker.__init__(self, self._env, True)
-        self._substituter = Substituter(self._env)
+        self._substituter = walkers.Substituter(self._env)
 
     def remove_quantifiers(self, expression: FNode, problem: Problem):
         self._problem = problem

@@ -29,11 +29,11 @@ class Environment:
         import upf.model.expression
         import upf.solvers.factory
         import upf.model.types
-        import upf.type_checker
+        import upf.walkers
         import upf.model.variable
         self._type_manager = upf.model.types.TypeManager()
         self._factory = upf.solvers.Factory()
-        self._tc = upf.type_checker.TypeChecker(self)
+        self._tc = upf.walkers.TypeChecker(self)
         self._expression_manager = upf.model.expression.ExpressionManager(self)
         self._free_vars_oracle = upf.model.variable.FreeVarsOracle()
 
@@ -51,7 +51,7 @@ class Environment:
         return self._type_manager
 
     @property
-    def type_checker(self) -> 'upf.type_checker.TypeChecker':
+    def type_checker(self) -> 'upf.walkers.TypeChecker':
         """ Get the Type Checker """
         return self._tc
 

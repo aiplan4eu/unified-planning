@@ -19,7 +19,6 @@ import upf
 import upf.environment
 import upf.walkers as walkers
 from upf.model import DurativeAction
-from upf.simplifier import Simplifier
 from upf.exceptions import UPFTypeError, UPFProblemDefinitionError
 from typing import IO
 from io import StringIO
@@ -31,7 +30,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def __init__(self, env: 'upf.environment.Environment'):
         walkers.DagWalker.__init__(self)
-        self.simplifier = Simplifier(env)
+        self.simplifier = walkers.Simplifier(env)
 
     def convert(self, expression):
         '''Converts the given expression to a PDDL string.'''
