@@ -19,14 +19,11 @@ from itertools import product
 
 import upf.environment
 import upf.walkers as walkers
+import upf.solvers as solvers
+from upf.exceptions import UPFProblemDefinitionError
 from upf.simplifier import Simplifier
 from upf.substituter import Substituter
-from upf.model.fnode import FNode
-from upf.exceptions import UPFProblemDefinitionError
-from upf.model.expression import Expression
-from upf.model.problem import Problem
-from upf.model.problem_kind import ProblemKind
-from upf.model.object import Object
+from upf.model import FNode, Expression, Problem, ProblemKind, Object
 from upf.plan import SequentialPlan
 
 class QuantifierSimplifier(Simplifier):
@@ -167,7 +164,7 @@ class QuantifierSimplifier(Simplifier):
             raise UPFProblemDefinitionError(f"Value of ActionParameter {str(expression)} not found in {str(self._assignments)}")
 
 
-class SequentialPlanValidator(upf.solver.Solver):
+class SequentialPlanValidator(solvers.Solver):
     """Performs plan validation."""
     def __init__(self, **options):
         self._env: 'upf.environment.Environment' = upf.environment.get_env(options.get('env', None))

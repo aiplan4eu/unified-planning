@@ -15,14 +15,13 @@
 
 import importlib
 from upf.model import ProblemKind
-from upf.solver import Solver
-from upf.parallel import Parallel
+from upf.solvers import Solver, Parallel
 from typing import Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl'),
                    'pyperplan' : ('upf_pyperplan', 'SolverImpl'),
-                   'sequential_plan_validator' : ('upf.plan_validator', 'SequentialPlanValidator')}
+                   'sequential_plan_validator' : ('upf.solvers', 'SequentialPlanValidator')}
 
 
 class Factory:

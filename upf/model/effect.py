@@ -20,8 +20,6 @@ A condition can be added to make it a conditional effect.
 
 
 from upf.model.fnode import FNode
-from collections import OrderedDict
-from typing import List, Union, Tuple, Optional
 
 KINDS = list(range(0, 3))
 

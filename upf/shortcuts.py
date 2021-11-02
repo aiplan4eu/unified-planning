@@ -22,7 +22,7 @@ from upf.environment import get_env
 from upf.model import *
 from upf.model.expression import BoolExpression, Expression
 from upf.model.problem_kind import ProblemKind
-from upf.solver import Solver
+from upf.solvers import Solver
 from upf.model.fnode import FNode
 from typing import Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction

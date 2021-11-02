@@ -16,7 +16,7 @@ import os
 from upf.model.problem_kind import ProblemKind
 from upf.environment import get_env
 from typing import List
-from upf.pddl_solver import PDDLSolver
+from upf.solvers import PDDLSolver
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))

@@ -13,16 +13,17 @@
 # limitations under the License.
 #
 
+
 import upf
+import upf.solvers as solvers
 from upf.plan import Plan, SequentialPlan, ActionInstance
-from upf.solver import Solver
-from upf.model.problem_kind import ProblemKind
+from upf.model import ProblemKind
 from upf.exceptions import UPFException
 from typing import Dict, List, Tuple
 from multiprocessing import Process, Queue
 
 
-class Parallel(Solver):
+class Parallel(solvers.Solver):
     """Create a parallel instance of multiple Solvers."""
 
     def __init__(self, solvers: List[Tuple[type, Dict[str, str]]]):

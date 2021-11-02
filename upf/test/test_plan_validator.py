@@ -17,7 +17,7 @@ import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
 from upf.test.examples import get_example_problems
-from upf.plan_validator import SequentialPlanValidator
+from upf.solvers import SequentialPlanValidator
 from upf.environment import get_env
 
 class TestProblem(TestCase):

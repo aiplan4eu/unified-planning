@@ -19,20 +19,21 @@ import os
 import re
 import upf
 import subprocess
+import upf.solvers as solvers
 from upf.shortcuts import *
 from upf.io.pddl_writer import PDDLWriter
 from upf.exceptions import UPFException
 from typing import Optional, List
 
 
-class PDDLSolver(upf.solver.Solver):
+class PDDLSolver(solvers.Solver):
     """
     This class is the interface of a generic PDDL solver
     that can be invocated through a subprocess call.
     """
 
     def __init__(self, needs_requirements=True):
-        upf.solver.Solver.__init__(self)
+        solvers.Solver.__init__(self)
         self._needs_requirements = needs_requirements
 
     @staticmethod
