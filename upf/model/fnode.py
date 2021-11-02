@@ -15,6 +15,7 @@
 """FNode are the building blocks of expressions."""
 
 import upf
+import upf.model.fluent
 import collections
 import upf.operators as op
 from typing import List, Union

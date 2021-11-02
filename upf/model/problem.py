@@ -97,7 +97,7 @@ class Problem:
         return ''.join(s)
 
     @property
-    def env(self) -> 'upf.Environment':
+    def env(self) -> 'upf.environment.Environment':
         '''Returns the problem environment.'''
         return self._env
 
