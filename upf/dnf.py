@@ -15,11 +15,10 @@
 
 
 import upf.environment
-import upf.operators as op
 import upf.walkers as walkers
 from upf.exceptions import UPFUnreachableCodeError
 from upf.walkers.dag import DagWalker
-from upf.model import FNode
+from upf.model import FNode, operators as op
 from upf.simplifier import Simplifier
 from typing import List, Tuple
 from itertools import product

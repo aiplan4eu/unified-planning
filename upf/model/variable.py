@@ -22,7 +22,7 @@ from typing import List, Set
 from upf.model.fnode import FNode
 import upf
 import upf.walkers as walkers
-import upf.operators as op
+import upf.model.operators as op
 
 
 class Variable:

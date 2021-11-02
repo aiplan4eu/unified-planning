@@ -16,9 +16,8 @@
 import upf.model.types
 import upf.environment
 import upf.walkers as walkers
-import upf.operators as op
 from upf.model.types import BOOL
-from upf.model.fnode import FNode
+from upf.model import FNode, operators as op
 from upf.exceptions import UPFTypeError
 from typing import List, Optional
 

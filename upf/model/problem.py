@@ -15,7 +15,7 @@
 '''This module defines the problem class.'''
 
 import upf
-import upf.operators as op
+import upf.model.operators as op
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
 from upf.operators_extractor import OperatorsExtractor
 from fractions import Fraction

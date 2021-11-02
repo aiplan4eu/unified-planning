@@ -16,8 +16,8 @@
 
 import upf
 import upf.model.fluent
+import upf.model.operators as op
 import collections
-import upf.operators as op
 from typing import List, Union
 from fractions import Fraction
 

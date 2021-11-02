@@ -16,7 +16,7 @@
 
 import upf.environment
 import upf.walkers as walkers
-import upf.operators as op
+import upf.model as op
 from upf.model.fnode import FNode
 from typing import List
 

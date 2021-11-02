@@ -20,7 +20,7 @@ are represented by the same object.
 
 import upf
 import upf.model.types
-import upf.operators as op
+import upf.model.operators as op
 from upf.exceptions import UPFTypeError, UPFExpressionDefinitionError
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
