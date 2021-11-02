@@ -85,7 +85,7 @@ class ExpressionManager(object):
 
     def create_node(self, node_type: int, args: Iterable['upf.model.fnode.FNode'],
                     payload: Union['upf.model.fluent.Fluent', 'upf.model.object.Object', 'upf.model.action.ActionParameter', 'upf.model.variable.Variable', bool, int, Fraction, Tuple['upf.model.variable.Variable', ...]] = None) ->'upf.model.fnode.FNode':
-        content =upf.model.fnode.FNodeContent(node_type, args, payload)
+        content = upf.model.fnode.FNodeContent(node_type, args, payload)
         if content in self.expressions:
             return self.expressions[content]
         else:
