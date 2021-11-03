@@ -14,7 +14,7 @@
 
 import upf
 from upf.shortcuts import *
-from upf.test import TestCase, main
+from upf.test import TestCase, main, skipIfSolverNotAvailable
 from upf.environment import get_env
 from upf.test.examples import get_example_problems
 
@@ -26,6 +26,7 @@ class TestPyperplan(TestCase):
         self.env = get_env()
         self.problems = get_example_problems()
 
+    @skipIfSolverNotAvailable('pyperplan')
     def test_pyperplan(self):
         problem, plan = self.problems['robot_no_negative_preconditions'].problem, self.problems['robot_no_negative_preconditions'].plan
         with OneshotPlanner(name='pyperplan') as planner:
@@ -33,6 +34,7 @@ class TestPyperplan(TestCase):
             new_plan = planner.solve(problem)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable('pyperplan')
     def test_basic_without_negative_preconditions(self):
         problem, plan = self.problems['basic_without_negative_preconditions'].problem, self.problems['basic_without_negative_preconditions'].plan
         with OneshotPlanner(name='pyperplan') as planner:
@@ -40,6 +42,7 @@ class TestPyperplan(TestCase):
             new_plan = planner.solve(problem)
             self.assertEqual(str(plan), str(new_plan))
 
+    @skipIfSolverNotAvailable('pyperplan')
     def test_basic_nested_conjunctions(self):
         problem, plan = self.problems['basic_nested_conjunctions'].problem, self.problems['basic_nested_conjunctions'].plan
         with OneshotPlanner(name='pyperplan') as planner:

@@ -14,7 +14,9 @@
 
 import upf
 from upf.shortcuts import *
-from upf.test import TestCase, main
+from upf.test import TestCase, main, skipIfSolverNotAvailable
+from upf.test import skipIfNoOneshotPlannerForProblemKind
+from upf.test import classical_kind, basic_numeric_kind
 from upf.test.examples import get_example_problems
 
 
@@ -23,6 +25,7 @@ class TestPlanner(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    @skipIfSolverNotAvailable('tamer')
     def test_basic(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
@@ -34,6 +37,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
 
+    @skipIfSolverNotAvailable('tamer')
     def test_basic_parallel(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
@@ -46,6 +50,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
 
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
     def test_robot(self):
         problem = self.problems['robot'].problem
         move = problem.action('move')
@@ -58,6 +63,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
 
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_loader(self):
         problem = self.problems['robot_loader'].problem
         move = problem.action('move')
@@ -77,6 +83,7 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions()[2].actual_parameters()), 2)
             self.assertEqual(len(plan.actions()[3].actual_parameters()), 1)
 
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_loader_adv(self):
         problem = self.problems['robot_loader_adv'].problem
         move = problem.action('move')

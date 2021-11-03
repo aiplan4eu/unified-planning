@@ -31,7 +31,7 @@ class ActionInstance:
     def __init__(self, action: 'upf.Action', params: Tuple[FNode, ...] = tuple()):
         assert len(action.parameters()) == len(params)
         self._action = action
-        self._params = params
+        self._params = tuple(params)
 
     def __repr__(self) -> str:
         s = []
@@ -69,6 +69,12 @@ class SequentialPlan(Plan):
     def __repr__(self) -> str:
         return str(self._actions)
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, SequentialPlan):
+            return self.actions() == oth.actions()
+        else:
+            return False
+
     def actions(self) -> List[ActionInstance]:
         '''Returns the sequence of action instances.'''
         return self._actions
@@ -87,6 +93,12 @@ class TimeTriggeredPlan(Plan):
 
     def __repr__(self) -> str:
         return str(self._actions)
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, TimeTriggeredPlan):
+            return self.actions() == oth.actions()
+        else:
+            return False
 
     def actions(self) -> List[Tuple[Fraction, ActionInstance, Optional[Fraction]]]:
         '''Returns the sequence of action instances.'''

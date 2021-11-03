@@ -14,69 +14,63 @@
 
 import os
 import upf
-from upf.action import DurativeAction
-from upf.environment import get_env
 from upf.shortcuts import *
-from upf.test import TestCase, main
+from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
+from upf.test import classical_kind, full_numeric_kind, full_classical_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import DisjunctiveConditionsRemover
-from upf.pddl_solver import PDDLSolver
-from upf.plan_validator import SequentialPlanValidator as PV
 from upf.exceptions import UPFProblemDefinitionError
 from upf.timing import ClosedInterval
 from upf.timing import StartTiming
 
-FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
-
-class ENHSP(PDDLSolver):
-    def __init__(self):
-        PDDLSolver.__init__(self, False)
-
-    def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
-        return ['java', '-jar', os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
-                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename]
-
-
-class TestConditionalEffectsRemover(TestCase):
+class TestDisjunctiveConditionsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
-        self.env = get_env()
-        if not os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-            self.skipTest('ENHSP not found!')
-        self.env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
-
-    def test_charge_discharge(self):
-        problem = self.problems['charge_discharge'].problem
-        plan = self.problems['charge_discharge'].plan
-        dnfr = DisjunctiveConditionsRemover(problem)
-        dnf_problem = dnfr.get_rewritten_problem()
-
-        with OneshotPlanner(name='enhsp') as planner:
-            self.assertNotEqual(planner, None)
-            dnf_plan = planner.solve(dnf_problem)
-            self.assertNotEqual(str(plan), str(dnf_plan))
-            new_plan = dnfr.rewrite_back_plan(dnf_plan)
-            self.assertEqual(str(plan), str(new_plan))
-            #self.assertEqual(plan, new_plan)# -> shouldn't they be Equal?
-
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(full_numeric_kind))
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
+
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
         dnf_problem_2 = dnfr.get_rewritten_problem()
+        self.assertEqual(dnf_problem, dnf_problem_2)
+
         is_connected = problem.fluent("is_connected")
-        robot, l_from, l_to = problem.action("move").parameters()
+        move = problem.action("move")
+        robot, l_from, l_to = move.parameters()
         self.assertEqual(len(problem.actions()), 2)
         self.assertEqual(len(dnf_problem.actions()), 3)
-        self.assertIn(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)), problem.action("move").preconditions())
-        self.assertNotIn(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)), dnf_problem.action("move__0__").preconditions())
-        self.assertNotIn(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)), dnf_problem.action("move__1__").preconditions())
-        self.assertIn(is_connected(l_from, l_to), dnf_problem.action("move__0__").preconditions())
-        self.assertIn(is_connected(l_to, l_from), dnf_problem.action("move__1__").preconditions())
-        self.assertEqual(dnf_problem, dnf_problem_2)
+
+        cond = Or(is_connected(l_from, l_to), is_connected(l_to, l_from))
+        self.assertIn(cond, move.preconditions())
+        new_moves = dnfr.get_old_to_new_actions_mapping()[move]
+        for m in new_moves:
+            self.assertNotIn(cond, m.preconditions())
+
+        self.assertTrue(is_connected(l_from, l_to) in new_moves[0].preconditions() or
+                        is_connected(l_from, l_to) in new_moves[1].preconditions())
+        if is_connected(l_from, l_to) in new_moves[0].preconditions():
+            self.assertIn(is_connected(l_to, l_from), new_moves[1].preconditions())
+            self.assertNotIn(is_connected(l_to, l_from), new_moves[0].preconditions())
+            self.assertNotIn(is_connected(l_from, l_to), new_moves[1].preconditions())
+        elif is_connected(l_from, l_to) in new_moves[1].preconditions():
+            self.assertIn(is_connected(l_to, l_from), new_moves[0].preconditions())
+            self.assertNotIn(is_connected(l_from, l_to), new_moves[0].preconditions())
+            self.assertNotIn(is_connected(l_to, l_from), new_moves[1].preconditions())
+
+        with OneshotPlanner(problem_kind=dnf_problem.kind()) as planner:
+            self.assertNotEqual(planner, None)
+            dnf_plan = planner.solve(dnf_problem)
+            plan = dnfr.rewrite_back_plan(dnf_plan)
+            for ai in plan.actions():
+                a = ai.action()
+                self.assertEqual(a, problem.action(a.name()))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, plan))
 
     def test_ad_hoc(self):
 
@@ -89,7 +83,10 @@ class TestConditionalEffectsRemover(TestCase):
         # (a <-> (b -> c)) -> (a & d)
         # In Dnf:
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
-        act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
+        cond = Implies(Iff(a, Implies(b, c)), And(a, d))
+        possible_conditions = [{Not(a), Not(b)}, {Not(a), FluentExp(c)},
+            {FluentExp(b), Not(c), FluentExp(a)}, {FluentExp(a), FluentExp(d)}]
+        act.add_precondition(cond)
         act.add_effect(a, TRUE())
         problem = upf.Problem('mockup')
         problem.add_fluent(a)
@@ -104,16 +101,21 @@ class TestConditionalEffectsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_old_to_new_actions_mapping()[act]
 
         self.assertEqual(len(dnf_problem.actions()), 4)
-        self.assertEqual([Not(a), Not(b)], dnf_problem.action("act__0__").preconditions())
-        self.assertEqual([Not(a), FluentExp(c)], dnf_problem.action("act__1__").preconditions())
-        self.assertEqual([FluentExp(b), Not(c), FluentExp(a)], dnf_problem.action("act__2__").preconditions())
-        self.assertEqual([FluentExp(a), FluentExp(d)], dnf_problem.action("act__3__").preconditions())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__0__").effects())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__1__").effects())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__2__").effects())
-        self.assertEqual(problem.action("act").effects(), dnf_problem.action("act__3__").effects())
+        self.assertEqual(len(new_act), 4)
+        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))
+        # Cycle over all actions. For every new action assume that the precondition is equivalent
+        # to one in the possible_preconditions and that no other action has the same precondition.
+        for i, new_action in enumerate(dnf_problem.actions().values()):
+            self.assertEqual(new_action.effects(), act.effects())
+            preconditions = set(new_action.preconditions())
+            self.assertIn(preconditions, possible_conditions)
+            for j, new_action_oth_acts in enumerate(dnf_problem.actions().values()):
+                preconditions_oth_acts = set(new_action_oth_acts.preconditions())
+                if i != j:
+                    self.assertNotEqual(preconditions, preconditions_oth_acts)
 
     def test_raise_exceptions(self):
 
@@ -180,5 +182,7 @@ class TestConditionalEffectsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_old_to_new_actions_mapping()[act]
         self.assertEqual(len(dnf_problem.actions()), 81)
-        self.assertEqual(len(problem.actions()), 1)
+        self.assertEqual(len(new_act), 81)
+        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))

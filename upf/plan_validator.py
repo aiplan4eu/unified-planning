@@ -182,7 +182,7 @@ class SequentialPlanValidator(upf.Solver):
         assert isinstance(plan, SequentialPlan)
         self._qsimplifier = QuantifierSimplifier(self._env, problem)
         self._last_error = None
-        assignments: Dict[Expression, Expression] = problem.initial_values() # type: ignore
+        assignments: Dict[Expression, Expression] = problem.initial_values().copy() # type: ignore
         count = 0 #used for better error indexing
         for ai in plan.actions():
             action = ai.action()

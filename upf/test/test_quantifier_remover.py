@@ -15,26 +15,12 @@
 
 import os
 import upf
-from upf.test import TestCase, main
-from upf.test.examples import get_example_problems
-from upf.transformers import QuantifiersRemover
-from upf.pddl_solver import PDDLSolver
-from upf.io.pddl_writer import PDDLWriter
 from upf.environment import get_env
 from upf.shortcuts import *
-from typing import List
-
-
-FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-
-
-class ENHSP(PDDLSolver):
-    def __init__(self):
-        PDDLSolver.__init__(self, False)
-
-    def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
-        return ['java', '-jar', os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
-                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename]
+from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
+from upf.test import classical_kind, full_classical_kind, basic_temporal_kind, full_numeric_kind
+from upf.test.examples import get_example_problems
+from upf.transformers import QuantifiersRemover
 
 
 
@@ -42,78 +28,80 @@ class TestQuantifiersRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
-        env = get_env()
-        if not os.path.isfile(os.path.join(FILE_PATH, '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-            self.skipTest('ENHSP not found!')
-        env.factory.add_solver('enhsp', 'upf.test.test_pddl_planner', 'ENHSP')
 
-
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_basic_exists(self):
         problem = self.problems['basic_exists'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
         uq_problem_2 = qr.get_rewritten_problem()
         self.assertEqual(uq_problem, uq_problem_2)
-        self.assertIn("Exists", str(problem))
-        self.assertNotIn("Exists", str(uq_problem))
+        self.assertTrue(problem.kind().has_existential_conditions())
+        self.assertFalse(uq_problem.kind().has_existential_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
-
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_basic_forall(self):
         problem = self.problems['basic_forall'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertIn("Forall", str(problem))
-        self.assertNotIn("Forall", str(uq_problem))
+        self.assertTrue(problem.kind().has_universal_conditions())
+        self.assertFalse(uq_problem.kind().has_universal_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(full_numeric_kind))
     def test_robot_locations_connected(self):
         problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertIn("Exists", str(problem))
-        self.assertNotIn("Exists", str(uq_problem))
+        self.assertTrue(problem.kind().has_existential_conditions())
+        self.assertFalse(uq_problem.kind().has_existential_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
-
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(full_numeric_kind))
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertIn("Exists", str(problem))
-        self.assertNotIn("Exists", str(uq_problem))
-        self.assertIn("Forall", str(problem))
-        self.assertNotIn("Forall", str(uq_problem))
+        self.assertTrue(problem.kind().has_existential_conditions())
+        self.assertFalse(uq_problem.kind().has_existential_conditions())
+        self.assertTrue(problem.kind().has_universal_conditions())
+        self.assertFalse(uq_problem.kind().has_universal_conditions())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
-        with OneshotPlanner(name='enhsp') as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
             uq_plan = planner.solve(uq_problem)
-            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, new_plan))
 
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem
         plan = self.problems['timed_connected_locations'].plan
@@ -121,10 +109,13 @@ class TestQuantifiersRemover(TestCase):
         uq_problem = qr.get_rewritten_problem()
         self.assertTrue(problem.has_quantifiers())
         self.assertFalse(uq_problem.has_quantifiers())
+        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
 
-        with OneshotPlanner(name='tamer') as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem)
-            self.assertEqual(str(plan), str(uq_plan))
             new_plan = qr.rewrite_back_plan(uq_plan)
-            self.assertEqual(str(plan), str(new_plan))
+            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uq_plan.actions()):
+                self.assertEqual(s, s_1)
+                self.assertEqual(d, d_1)
+                self.assertIn(a.action(), problem.actions().values())

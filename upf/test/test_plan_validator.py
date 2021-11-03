@@ -48,7 +48,7 @@ class TestProblem(TestCase):
             if problem.kind().has_continuous_time():
                 continue
             env = upf.Environment()
-            env.factory.solvers.pop('tamer')
+            env.factory.solvers.pop('tamer', None)
             with env.factory.PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertEqual(pv.name(), 'sequential_plan_validator')
                 self.assertTrue(pv.validate(problem, plan))
