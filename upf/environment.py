@@ -31,23 +31,23 @@ class Environment:
         import upf.model.types
         import upf.walkers
         import upf.model.variable
-        self._type_manager = upf.model.types.TypeManager()
+        self._type_manager = upf.model.TypeManager()
         self._factory = upf.solvers.Factory()
         self._tc = upf.walkers.TypeChecker(self)
-        self._expression_manager = upf.model.expression.ExpressionManager(self)
-        self._free_vars_oracle = upf.model.variable.FreeVarsOracle()
+        self._expression_manager = upf.model.ExpressionManager(self)
+        self._free_vars_oracle = upf.model.FreeVarsOracle()
 
 
     @property
-    def free_vars_oracle(self) -> 'upf.model.variable.FreeVarsOracle':
+    def free_vars_oracle(self) -> 'upf.model.FreeVarsOracle':
         return self._free_vars_oracle
 
     @property
-    def expression_manager(self) -> 'upf.model.expression.ExpressionManager':
+    def expression_manager(self) -> 'upf.model.ExpressionManager':
         return self._expression_manager
 
     @property
-    def type_manager(self) -> 'upf.model.types.TypeManager':
+    def type_manager(self) -> 'upf.model.TypeManager':
         return self._type_manager
 
     @property

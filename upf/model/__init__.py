@@ -17,7 +17,7 @@
 from upf.model.action import ActionParameter, Action, InstantaneousAction, DurativeAction
 from upf.model.effect import Effect, ASSIGN, INCREASE, DECREASE
 from upf.model.expression import BoolExpression, Expression, ExpressionManager
-from upf.model.fnode import FNodeContent, FNode
+from upf.model.fnode import FNode
 from upf.model.fluent import Fluent
 from upf.model.object import Object
 from upf.model.problem import Problem
@@ -26,12 +26,12 @@ from upf.model.timing import Timing, StartTiming, EndTiming, AbsoluteTiming, Int
 from upf.model.timing import FixedDuration, OpenIntervalDuration, LeftOpenIntervalDuration, RightOpenIntervalDuration
 from upf.model.timing import Interval, ClosedInterval, OpenInterval, LeftOpenInterval, RightOpenInterval
 from upf.model.types import Type, TypeManager
-from upf.model.variable import Variable
+from upf.model.variable import Variable, FreeVarsOracle
 
 __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
             'Effect', 'ASSIGN', 'INCREASE', 'DECREASE',
             'BoolExpression', 'Expression', 'ExpressionManager',
-            'FNodeContent', 'FNode',
+            'FNode',
             'Fluent',
             'Object',
             'Problem',
@@ -40,5 +40,5 @@ __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction'
             'FixedDuration', 'OpenIntervalDuration', 'LeftOpenIntervalDuration', 'RightOpenIntervalDuration',
             'Interval', 'ClosedInterval', 'OpenInterval', 'LeftOpenInterval', 'RightOpenInterval',
             'Type', 'TypeManager',
-            'Variable'
+            'Variable', 'FreeVarsOracle'
             ]

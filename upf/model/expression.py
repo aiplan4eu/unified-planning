@@ -95,7 +95,7 @@ class ExpressionManager(object):
             self.env.type_checker.get_type(n)
             return n
 
-    def And(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) ->'upf.model.fnode.FNode':
+    def And(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) -> 'upf.model.fnode.FNode':
         """ Returns a conjunction of terms.
         This function has polimorphic n-arguments:
           - And(a,b,c)
