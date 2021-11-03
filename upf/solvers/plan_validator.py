@@ -18,8 +18,8 @@ from typing import Dict, Union, List, Set, Optional
 from itertools import product
 
 import upf.environment
-import upf.walkers as walkers
 import upf.solvers as solvers
+import upf.walkers as walkers
 from upf.exceptions import UPFProblemDefinitionError
 from upf.model import FNode, Expression, Problem, ProblemKind, Object
 from upf.plan import SequentialPlan

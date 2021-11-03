@@ -23,7 +23,7 @@ from typing import Dict, List, Tuple
 from multiprocessing import Process, Queue
 
 
-class Parallel(solvers.Solver):
+class Parallel(solvers.solver.Solver):
     """Create a parallel instance of multiple Solvers."""
 
     def __init__(self, solvers: List[Tuple[type, Dict[str, str]]]):

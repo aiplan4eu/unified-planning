@@ -26,14 +26,14 @@ from upf.exceptions import UPFException
 from typing import Optional, List
 
 
-class PDDLSolver(solvers.Solver):
+class PDDLSolver(solvers.solver.Solver):
     """
     This class is the interface of a generic PDDL solver
     that can be invocated through a subprocess call.
     """
 
     def __init__(self, needs_requirements=True):
-        solvers.Solver.__init__(self)
+        solvers.solver.Solver.__init__(self)
         self._needs_requirements = needs_requirements
 
     @staticmethod
