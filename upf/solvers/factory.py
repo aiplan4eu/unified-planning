@@ -76,7 +76,7 @@ class Factory:
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solver.Solver']:
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solvers.solver.Solver']:
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
