@@ -69,12 +69,6 @@ class Action:
             for n, t in kwargs.items():
                 self._parameters[n] = ActionParameter(n, t)
 
-    def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, Action):
-            return self.name() == oth.name() and self.parameters() == oth.parameters()
-        else:
-            return False
-
     def name(self) -> str:
         """Returns the action name."""
         return self._name

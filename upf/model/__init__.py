@@ -15,7 +15,7 @@
 
 
 from upf.model.action import ActionParameter, Action, InstantaneousAction, DurativeAction
-from upf.model.effect import Effect, ASSIGN, INCREASE, DECREASE
+from upf.model.effect import Effect
 from upf.model.expression import BoolExpression, Expression, ExpressionManager
 from upf.model.fnode import FNode
 from upf.model.fluent import Fluent
@@ -29,7 +29,7 @@ from upf.model.types import Type, TypeManager
 from upf.model.variable import Variable, FreeVarsOracle
 
 __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
-            'Effect', 'ASSIGN', 'INCREASE', 'DECREASE',
+            'Effect',
             'BoolExpression', 'Expression', 'ExpressionManager',
             'FNode',
             'Fluent',
