@@ -29,6 +29,10 @@ class Object:
     def __repr__(self) -> str:
         return self.name()
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Object):
+            return self.name() == oth.name() and self.type() == oth.type()
+
     def name(self) -> str:
         """Returns the object name."""
         return self._name

@@ -26,6 +26,12 @@ class Timing:
     def __repr__(self):
         raise NotImplementedError
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Timing):
+            return self.bound() == oth.bound()
+        else:
+            return False
+
     def bound(self):
         return self._bound
 
@@ -53,6 +59,12 @@ class StartTiming(Timing):
             return 'start'
         else:
             return f'start + {self._bound}'
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, StartTiming):
+            return Timing.__eq__(oth)
+        else:
+            return False
 
     def is_from_start(self):
         return True
