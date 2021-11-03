@@ -18,7 +18,5 @@ import upf.test.examples.realistic as realistic
 
 
 def get_example_problems():
-    problems = {}
-    problems.update(minimals.get_example_problems())
-    problems.update(realistic.get_example_problems())
-    return problems
+    sub_modules = [minimals, realistic]
+    return dict(x for m in sub_modules for x in m.get_example_problems().items())
