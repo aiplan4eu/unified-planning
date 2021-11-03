@@ -26,11 +26,9 @@ import upf
 class Environment:
     """Represents the environment."""
     def __init__(self):
-        import upf.model.expression
-        import upf.solvers.factory
-        import upf.model.types
+        import upf.model
+        import upf.solvers
         import upf.walkers
-        import upf.model.variable
         self._type_manager = upf.model.TypeManager()
         self._factory = upf.solvers.Factory()
         self._tc = upf.walkers.TypeChecker(self)
