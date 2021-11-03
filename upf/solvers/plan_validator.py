@@ -162,7 +162,7 @@ class QuantifierSimplifier(walkers.Simplifier):
             raise UPFProblemDefinitionError(f"Value of ActionParameter {str(expression)} not found in {str(self._assignments)}")
 
 
-class SequentialPlanValidator(solvers.Solver):
+class SequentialPlanValidator(solvers.solver.Solver):
     """Performs plan validation."""
     def __init__(self, **options):
         self._env: 'upf.environment.Environment' = upf.environment.get_env(options.get('env', None))
