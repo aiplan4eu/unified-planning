@@ -38,6 +38,12 @@ class Fluent:
     def __repr__(self) -> str:
         return f'{str(self.type())} {self.name()}{str(self.signature()) if self.arity() > 0 else ""}'
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Fluent):
+            return self.name() == oth.name() and self.type() == oth.type() and self.signature() == oth.signature() and self._env == oth._env
+        else:
+            return False
+
     def name(self) -> str:
         """Returns the fluent name."""
         return self._name

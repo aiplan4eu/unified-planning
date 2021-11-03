@@ -48,6 +48,12 @@ class Effect:
         s.append(f'{str(self._value)}')
         return ' '.join(s)
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Effect):
+            return self.fluent() == oth.fluent() and self.value() == oth.value() and self._condition == oth._condition and self.kind() == oth.kind()
+        else:
+            return False
+
     def is_conditional(self) -> bool:
         """Returns True if the Effect condition is not True."""
         return not self._condition.is_true()
