@@ -90,7 +90,10 @@ class Action:
         new_params = {}
         for param_name, parameter in self._parameters.items():
             new_params[param_name] = parameter.clone()
-        return Action(self._name, new_params, self._env)
+        new_action = Action(self._name, new_params, self._env)
+        assert self == new_action
+        assert hash(self) == hash(new_action)
+        return new_action
 
     def name(self) -> str:
         """Returns the action name."""
@@ -164,8 +167,10 @@ class InstantaneousAction(Action):
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.clone()
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
-        new_instantaneous_action._preconditions = [*self._preconditions]
-        new_instantaneous_action._effects = [*self._effects]
+        new_instantaneous_action._preconditions = self._preconditions[:]
+        new_instantaneous_action._effects = self._effects[:]
+        assert self == new_instantaneous_action
+        assert hash(self) == hash(new_instantaneous_action)
         return new_instantaneous_action
 
     def preconditions(self) -> List['upf.model.fnode.FNode']:
@@ -323,6 +328,28 @@ class DurativeAction(Action):
             for e in el:
                 res += hash(e)
         return res
+
+    def clone(self):
+        new_params = {}
+        for param_name, param in self._parameters.items():
+            new_params[param_name] = param.clone()
+        new_durative_action = DurativeAction(self._name, new_params, self._env)
+        new_durative_action._duration = self._duration.clone()
+        new_conditions = {}
+        for t, cl in self._conditions.items():
+            new_conditions[t.clone()] = cl[:]
+        new_durative_action._conditions = new_conditions
+        new_durative_conditions = {}
+        for i, dcl in self._durative_conditions.items():
+            new_durative_conditions[i.clone()] = dcl[:]
+        new_durative_action._durative_conditions = new_durative_conditions
+        new_effects = {}
+        for t, el in self._effects.items():
+            new_effects[t.clone()] = [e.clone() for e in el]
+        new_durative_action._effects = new_effects
+        assert self == new_durative_action
+        assert hash(self) == hash(new_durative_action)
+        return new_durative_action
 
     def duration(self):
         '''Returns the action duration interval.'''

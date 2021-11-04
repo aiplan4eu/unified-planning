@@ -57,6 +57,12 @@ class Effect:
     def __hash__(self) -> int:
         return hash(self._fluent) + hash(self._value) + hash(self._condition) + hash(self._kind)
 
+    def clone(self):
+        new_effect = Effect(self._fluent, self._value, self._condition, self._kind)
+        assert self == new_effect
+        assert hash(self) == hash(new_effect)
+        return new_effect
+
     def is_conditional(self) -> bool:
         """Returns True if the Effect condition is not True."""
         return not self._condition.is_true()

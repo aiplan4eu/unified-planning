@@ -21,7 +21,7 @@ from typing import Dict, Tuple, Optional, List, Union, Type
 
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl'),
                    'pyperplan' : ('upf_pyperplan', 'SolverImpl'),
-                   'sequential_plan_validator' : ('upf.solvers', 'SequentialPlanValidator')}
+                   'sequential_plan_validator' : ('upf.solvers.plan_validator', 'SequentialPlanValidator')}
 
 
 class Factory:
@@ -62,7 +62,7 @@ class Factory:
                 if SolverClass is None:
                     raise
                 solvers.append((SolverClass, param))
-            return upf.solvers.Parallel(solvers)
+            return upf.solvers.parallel.Parallel(solvers)
         else:
             if params is None:
                 params = {}
