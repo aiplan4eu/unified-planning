@@ -99,7 +99,7 @@ class Problem:
     def __eq__(self, oth: object) -> bool:
         if not (isinstance(oth, Problem)) or self._env != oth._env:
             return False
-        if self._kind != oth._kind or self._name != oth._name or self._initial_value != oth._initial_value:
+        if self._kind != oth._kind or self._name != oth._name:
             return False
         if self._fluents != oth._fluents or self._actions != oth._actions or set(self._goals) != set(oth._goals):
             return False
