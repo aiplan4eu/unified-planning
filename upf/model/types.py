@@ -53,6 +53,9 @@ class _BoolType(Type):
     def __hash__(self) -> int:
         return hash('_BoolType')
 
+    def clone(self):
+        return self
+
     def is_bool_type(self) -> bool:
         """Returns true iff is boolean type."""
         return True
@@ -75,6 +78,12 @@ class _UserType(Type):
 
     def __hash__(self) -> int:
         return hash('_UserType') ^ hash(self._name)
+
+    def clone(self):
+        new_ut = _UserType(self._name)
+        assert self == new_ut
+        assert hash(self) == hash(new_ut)
+        return new_ut
 
     def name(self) -> str:
         """Returns the type name."""
@@ -110,6 +119,12 @@ class _IntType(Type):
     def __hash__(self) -> int:
         return hash(self._lower_bound) + hash(self._upper_bound) ^ hash('_IntType')
 
+    def clone(self):
+        new_it = _IntType(self._lower_bound, self._upper_bound)
+        assert self == new_it
+        assert hash(self) == hash(new_it)
+        return new_it
+
     def lower_bound(self) -> Optional[int]:
         return self._lower_bound
 
@@ -144,6 +159,12 @@ class _RealType(Type):
 
     def __hash__(self) -> int:
         return hash(self._lower_bound) + hash(self._upper_bound) ^ hash('_RealType')
+
+    def clone(self):
+        new_rt = _RealType(self._lower_bound, self._upper_bound)
+        assert self == new_rt
+        assert hash(self) == hash(new_rt)
+        return new_rt
 
     def lower_bound(self) -> Optional[Fraction]:
         return self._lower_bound

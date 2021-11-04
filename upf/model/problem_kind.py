@@ -61,6 +61,12 @@ class ProblemKind(metaclass=ProblemKindMeta):
             res += hash(f)
         return res
 
+    def clone(self):
+        new_pk = ProblemKind(self._features.copy())
+        assert self == new_pk
+        assert hash(self) == hash(new_pk)
+        return new_pk
+
     def features(self) -> Set[str]:
         return self._features
 

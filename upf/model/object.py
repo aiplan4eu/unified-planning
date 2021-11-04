@@ -38,6 +38,12 @@ class Object:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)
 
+    def clone(self):
+        new_object = Object(self._name, self._typename.clone())
+        assert self == new_object
+        assert hash(self) == hash(new_object)
+        return new_object
+
     def name(self) -> str:
         """Returns the object name."""
         return self._name

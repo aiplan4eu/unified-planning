@@ -43,6 +43,12 @@ class Variable:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)
 
+    def clone(self):
+        new_v = Variable(self._name, self._typename.clone())
+        assert self == new_v
+        assert hash(self) == hash(new_v)
+        return new_v
+
     def name(self) -> str:
         """Returns the variable name."""
         return self._name
