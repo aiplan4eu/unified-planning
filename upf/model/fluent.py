@@ -40,12 +40,15 @@ class Fluent:
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Fluent):
-            return self.name() == oth.name() and self.type() == oth.type() and self.signature() == oth.signature() and self._env == oth._env
+            return self._name == oth._name and self._typename == oth._typename and self._signature == oth._signature and self._env == oth._env
         else:
             return False
 
     def __hash__(self) -> int:
-        return self.name().__hash__()
+        res = hash(self._typename)
+        for _ in self._signature:
+            res += hash(_)
+        return res ^ hash(self._name)
 
     def name(self) -> str:
         """Returns the fluent name."""
