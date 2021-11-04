@@ -145,6 +145,27 @@ class Problem:
             res += hash(_)
         return res
 
+    def clone(self):
+        new_p = Problem(self._name, self._env)
+        new_p._kind = self._kind.clone()
+        new_p._fluents = {fn: f.clone() for fn, f in self._fluents.items()}
+        new_p._actions = {an: a.clone() for an, a in self._actions.items()}
+        new_p._user_types = self._user_types.copy()
+        new_p._objects = {on: o.clone() for on, o in self._objects.items()}
+        new_p._initial_value = self._initial_value.copy()
+        new_p._timed_effects = {t.clone(): [e.clone() for e in el] for t, el in self._timed_effects.items()}
+        new_p._timed_goals = {t.clone(): [g for g in gl] for t, gl in self._timed_goals.items()}
+        #HERE
+
+        self._maintain_goals: Dict['upf.model.timing.Interval', List['upf.model.fnode.FNode']] = {}
+        self._goals: List['upf.model.fnode.FNode'] = list()
+        self._initial_defaults: Dict['upf.model.types.Type', 'upf.model.fnode.FNode'] = {}
+        for k, v in initial_defaults.items():
+            v_exp, = self._env.expression_manager.auto_promote(v)
+            self._initial_defaults[k] = v_exp
+        self._fluents_defaults: Dict['upf.model.fluent.Fluent', 'upf.model.fnode.FNode'] = {}
+
+
     @property
     def env(self) -> 'upf.environment.Environment':
         '''Returns the problem environment.'''

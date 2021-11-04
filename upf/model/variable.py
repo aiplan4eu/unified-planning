@@ -44,7 +44,7 @@ class Variable:
         return hash(self._name) + hash(self._typename)
 
     def clone(self):
-        new_v = Variable(self._name, self._typename.clone())
+        new_v = Variable(self._name, self._typename)
         assert self == new_v
         assert hash(self) == hash(new_v)
         return new_v
