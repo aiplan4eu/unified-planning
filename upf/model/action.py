@@ -39,14 +39,6 @@ class ActionParameter:
     def __repr__(self) -> str:
         return f'{str(self.type())} {self.name()}'
 
-    def name(self) -> str:
-        """Returns the parameter name."""
-        return self._name
-
-    def type(self) -> 'upf.model.types.Type':
-        """Returns the parameter type."""
-        return self._typename
-
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ActionParameter):
             return self._name == oth._name and self._typename == oth._typename
@@ -56,6 +48,16 @@ class ActionParameter:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)
 
+    def clone(self):
+        return ActionParameter(self._name, self._typename)
+
+    def name(self) -> str:
+        """Returns the parameter name."""
+        return self._name
+
+    def type(self) -> 'upf.model.types.Type':
+        """Returns the parameter type."""
+        return self._typename
 
 class Action:
     """This is the action interface."""
@@ -83,6 +85,12 @@ class Action:
         for ap in self._parameters.items():
             res += hash(ap)
         return res
+
+    def clone(self):
+        new_params = {}
+        for param_name, parameter in self._parameters.items():
+            new_params[param_name] = parameter.clone()
+        return Action(self._name, new_params, self._env)
 
     def name(self) -> str:
         """Returns the action name."""
@@ -150,6 +158,15 @@ class InstantaneousAction(Action):
         for e in self._effects:
             res += hash(e)
         return res
+
+    def clone(self):
+        new_params = {}
+        for param_name, param in self._parameters.items():
+            new_params[param_name] = param.clone()
+        new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
+        new_instantaneous_action._preconditions = [*self._preconditions]
+        new_instantaneous_action._effects = [*self._effects]
+        return new_instantaneous_action
 
     def preconditions(self) -> List['upf.model.fnode.FNode']:
         """Returns the list of the action preconditions."""
