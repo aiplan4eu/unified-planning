@@ -155,16 +155,13 @@ class Problem:
         new_p._initial_value = self._initial_value.copy()
         new_p._timed_effects = {t.clone(): [e.clone() for e in el] for t, el in self._timed_effects.items()}
         new_p._timed_goals = {t.clone(): [g for g in gl] for t, gl in self._timed_goals.items()}
-        #HERE
-
-        self._maintain_goals: Dict['upf.model.timing.Interval', List['upf.model.fnode.FNode']] = {}
-        self._goals: List['upf.model.fnode.FNode'] = list()
-        self._initial_defaults: Dict['upf.model.types.Type', 'upf.model.fnode.FNode'] = {}
-        for k, v in initial_defaults.items():
-            v_exp, = self._env.expression_manager.auto_promote(v)
-            self._initial_defaults[k] = v_exp
-        self._fluents_defaults: Dict['upf.model.fluent.Fluent', 'upf.model.fnode.FNode'] = {}
-
+        new_p._maintain_goals = {i.clone(): [g for g in gl] for i, gl in self._maintain_goals.items()}
+        new_p._goals = self._goals[:]
+        new_p._initial_defaults = self._initial_defaults.copy()
+        new_p._fluents_defaults = {fl.clone(): fn for fl, fn in self._fluents_defaults.items()}
+        assert self == new_p
+        assert hash(self) == hash(new_p)
+        return new_p
 
     @property
     def env(self) -> 'upf.environment.Environment':
