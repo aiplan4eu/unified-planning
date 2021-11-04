@@ -105,7 +105,12 @@ class Problem:
             return False
         if self._user_types != oth._user_types or self._objects != oth._objects:
             return False
-        #not checking initia_defaults
+        oth_initial_values = oth.initial_values()
+        for fluent, value in self.initial_values().items():
+            if (oth_value := oth_initial_values.get(fluent, None)) is None:
+                return False
+            if value != oth_value:
+                return False
         for t, tel in self._timed_effects.items():
             if (oth_tel := oth._timed_effects.get(t, None)) is None:
                 return False
