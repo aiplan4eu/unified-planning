@@ -44,6 +44,9 @@ class Fluent:
         else:
             return False
 
+    def __hash__(self) -> int:
+        return self.name().__hash__()
+
     def name(self) -> str:
         """Returns the fluent name."""
         return self._name

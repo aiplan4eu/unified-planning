@@ -34,6 +34,15 @@ class Variable:
     def __repr__(self) -> str:
         return f'{str(self.type())} {self.name()}'
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Variable):
+            return self._name == oth._name and self._typename == oth._typename
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._name) + hash(self._typename)
+
     def name(self) -> str:
         """Returns the variable name."""
         return self._name

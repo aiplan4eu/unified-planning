@@ -16,8 +16,7 @@
 
 from upf.model.fnode import FNode
 from fractions import Fraction
-from typing import List, Union, Dict
-from collections import OrderedDict
+from typing import Union
 
 class Timing:
     def __init__(self, bound: Union[int, Fraction]):
@@ -27,10 +26,10 @@ class Timing:
         raise NotImplementedError
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, Timing):
-            return self.bound() == oth.bound()
-        else:
-            return False
+        raise NotImplementedError
+
+    def __hash__(self) -> int:
+        raise NotImplementedError
 
     def bound(self):
         return self._bound
@@ -62,9 +61,12 @@ class StartTiming(Timing):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, StartTiming):
-            return Timing.__eq__(oth)
+            return self._bound == oth._bound
         else:
             return False
+
+    def __hash__(self) -> int:
+        return hash(self._bound) ^ hash('StartTiming')
 
     def is_from_start(self):
         return True
@@ -95,6 +97,15 @@ class EndTiming(Timing):
         else:
             return f'end - {self._bound}'
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, EndTiming):
+            return self._bound == oth._bound
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._bound) ^ hash('EndTiming')
+
     def is_from_start(self):
         return False
 
@@ -119,6 +130,20 @@ class IntervalDuration:
         else:
             right_bound = ']'
         return f'{left_bound}{str(self.lower())}, {str(self.upper())}{right_bound}'
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, IntervalDuration):
+            return self._lower == oth._lower and self._upper == oth._upper and self._is_left_open == oth._is_left_open and self._is_right_open == oth._is_right_open
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = hash(self._lower) + hash(self._upper)
+        if self._is_left_open:
+            res ^= hash('is_left_open')
+        if self._is_right_open:
+            res ^= hash('is_right_open')
+        return res
 
     def lower(self):
         return self._lower
@@ -177,6 +202,20 @@ class Interval:
         else:
             right_bound = ']'
         return f'{left_bound}{str(self.lower())}, {str(self.upper())}{right_bound}'
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Interval):
+            return self._lower == oth._lower and self._upper == oth._upper and self._is_left_open == oth._is_left_open and self._is_right_open == oth._is_right_open
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = hash(self._lower) + hash(self._upper)
+        if self._is_left_open:
+            res ^= hash('is_left_open')
+        if self._is_right_open:
+            res ^= hash('is_right_open')
+        return res
 
     def lower(self):
         return self._lower

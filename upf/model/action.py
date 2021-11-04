@@ -69,6 +69,18 @@ class Action:
             for n, t in kwargs.items():
                 self._parameters[n] = ActionParameter(n, t)
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Action):
+            return self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = hash(self._name)
+        for ap in self._parameters.items():
+            res += hash(ap)
+        return res
+
     def name(self) -> str:
         """Returns the action name."""
         return self._name
@@ -118,6 +130,23 @@ class InstantaneousAction(Action):
         s.append('    ]\n')
         s.append('  }')
         return ''.join(s)
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, InstantaneousAction):
+            cond = self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
+            return cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects)
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = hash(self._name)
+        for ap in self._parameters.items():
+            res += hash(ap)
+        for p in self._preconditions:
+            res += hash(p)
+        for e in self._effects:
+            res += hash(e)
+        return res
 
     def preconditions(self) -> List['upf.model.fnode.FNode']:
         """Returns the list of the action preconditions."""
@@ -212,7 +241,7 @@ class DurativeAction(Action):
         if not first:
             s.append(')')
         s.append(' {\n')
-        s.append(f'    duration = {str(self._duration)}')
+        s.append(f'    duration = {str(self._duration)}\n')
         s.append('    conditions = [\n')
         for t, cl in self.conditions().items():
             s.append(f'      {str(t)}:\n')
@@ -233,6 +262,47 @@ class DurativeAction(Action):
         s.append('    ]\n')
         s.append('  }')
         return ''.join(s)
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, DurativeAction):
+            if self._env != oth._env or self._name != oth._name or self._parameters != oth._parameters or self._duration != oth._duration:
+                return False
+            for t, cl in self._conditions.items():
+                if (oth_cl := oth._conditions.get(t, None)) is None:
+                    return False
+                if set(cl) != set(oth_cl):
+                    return False
+            for i, dcl in self._durative_conditions.items():
+                if (oth_dcl := oth._durative_conditions.get(i, None)) is None:
+                    return False
+                if set(dcl) != set(oth_dcl):
+                    return False
+            for t, el in self._effects.items():
+                if (oth_el := oth._effects.get(t, None)) is None:
+                    return False
+                if set(el) != set(oth_el):
+                    return False
+            return True
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = hash(self._name) + hash(self._duration)
+        for ap in self._parameters.items():
+            res += hash(ap)
+        for t, cl in self._conditions.items():
+            res += hash(t)
+            for c in cl:
+                res += hash(c)
+        for i, dcl in self._durative_conditions.items():
+            res += hash(i)
+            for dc in dcl:
+                res += hash(dc)
+        for t, el in self._effects.items():
+            res += hash(t)
+            for e in el:
+                res += hash(e)
+        return res
 
     def duration(self):
         '''Returns the action duration interval.'''

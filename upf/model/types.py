@@ -44,6 +44,15 @@ class _BoolType(Type):
     def __repr__(self) -> str:
         return 'bool'
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, _BoolType):
+            return True
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash('_BoolType')
+
     def is_bool_type(self) -> bool:
         """Returns true iff is boolean type."""
         return True
@@ -57,6 +66,15 @@ class _UserType(Type):
 
     def __repr__(self) -> str:
         return self.name()
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, _UserType):
+            return self._name == oth._name
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash('_UserType') ^ hash(self._name)
 
     def name(self) -> str:
         """Returns the type name."""
@@ -83,6 +101,15 @@ class _IntType(Type):
             b.append(']')
         return 'integer' + ''.join(b)
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, _IntType):
+            return self._lower_bound == oth._lower_bound and self._upper_bound == oth._upper_bound
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._lower_bound) + hash(self._upper_bound) ^ hash('_IntType')
+
     def lower_bound(self) -> Optional[int]:
         return self._lower_bound
 
@@ -108,6 +135,15 @@ class _RealType(Type):
             b.append('inf' if self.upper_bound() is None else str(self.upper_bound()))
             b.append(']')
         return 'real' + ''.join(b)
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, _RealType):
+            return self._lower_bound == oth._lower_bound and self._upper_bound == oth._upper_bound
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._lower_bound) + hash(self._upper_bound) ^ hash('_RealType')
 
     def lower_bound(self) -> Optional[Fraction]:
         return self._lower_bound

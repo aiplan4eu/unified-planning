@@ -50,9 +50,12 @@ class Effect:
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Effect):
-            return self.fluent() == oth.fluent() and self.value() == oth.value() and self._condition == oth._condition and self.kind() == oth.kind()
+            return self._fluent == oth._fluent and self._value == oth._value and self._condition == oth._condition and self._kind == oth._kind
         else:
             return False
+
+    def __hash__(self) -> int:
+        return hash(self._fluent) + hash(self._value) + hash(self._condition) + hash(self._kind)
 
     def is_conditional(self) -> bool:
         """Returns True if the Effect condition is not True."""

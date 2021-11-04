@@ -96,6 +96,55 @@ class Problem:
         s.append(']\n\n')
         return ''.join(s)
 
+    def __eq__(self, oth: object) -> bool:
+        if not (isinstance(oth, Problem)) or self._env != oth._env:
+            return False
+        if self._kind != oth._kind or self._name != oth._name or self._initial_value != oth._initial_value:
+            return False
+        if self._fluents != oth._fluents or self._actions != oth._actions or set(self._goals) != set(oth._goals):
+            return False
+        if self._user_types != oth._user_types or self._objects != oth._objects:
+            return False
+        #not checking initia_defaults
+        for t, tel in self._timed_effects.items():
+            if (oth_tel := oth._timed_effects.get(t, None)) is None:
+                return False
+            if set(tel) != set(oth_tel):
+                return False
+        for t, tgl in self._timed_goals.items():
+            if (oth_tgl := oth._timed_goals.get(t, None)) is None:
+                return False
+            if set(tgl) != set(oth_tgl):
+                return False
+        for i, mgl in self._maintain_goals.items():
+            if (oth_mgl := oth._maintain_goals.get(i, None)) is None:
+                return False
+            if set(mgl) != set(oth_mgl):
+                return False
+        return True
+
+    def __hash__(self) -> int:
+        res = hash(self._kind) + hash(self._name)
+        for _ in self._fluents.items():
+            res += hash(_)
+        for _ in self._actions.items():
+            res += hash(_)
+        for _ in self._user_types.items():
+            res += hash(_)
+        for _ in self._objects.items():
+            res += hash(_)
+        for _ in self._initial_value.items():
+            res += hash(_)
+        for _ in self._timed_effects.items():
+            res += hash(_)
+        for _ in self._timed_goals.items():
+            res += hash(_)
+        for _ in self._maintain_goals.items():
+            res += hash(_)
+        for _ in self._goals:
+            res += hash(_)
+        return res
+
     @property
     def env(self) -> 'upf.environment.Environment':
         '''Returns the problem environment.'''

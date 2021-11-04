@@ -157,8 +157,9 @@ class Transformer:
         return nda
 
     def _durative_action_add_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
-        for t, c in original_action.conditions().items():
-            new_action.add_condition(t, c)
+        for t, cl in original_action.conditions().items():
+            for c in cl:
+                new_action.add_condition(t, c)
 
     def _durative_action_add_durative_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
         for i, dc in original_action.durative_conditions().items():

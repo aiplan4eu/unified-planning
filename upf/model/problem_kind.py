@@ -49,6 +49,18 @@ class ProblemKind(metaclass=ProblemKindMeta):
     def __init__(self, features: Set[str] = set()):
         self._features: Set[str] = set(features)
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, ProblemKind):
+            return self._features == oth._features
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = 0
+        for f in self._features:
+            res += hash(f)
+        return res
+
     def features(self) -> Set[str]:
         return self._features
 

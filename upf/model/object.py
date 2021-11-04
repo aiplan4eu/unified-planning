@@ -31,7 +31,12 @@ class Object:
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Object):
-            return self.name() == oth.name() and self.type() == oth.type()
+            return self._name == oth._name and self._typename == oth._typename
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._name) + hash(self._typename)
 
     def name(self) -> str:
         """Returns the object name."""
