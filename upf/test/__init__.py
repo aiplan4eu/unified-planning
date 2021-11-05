@@ -16,6 +16,7 @@ import unittest
 from functools import wraps
 from upf.environment import get_env
 from upf.model import ProblemKind
+from upf.test.pddl import enhsp
 
 
 skipIf = unittest.skipIf
