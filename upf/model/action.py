@@ -49,7 +49,10 @@ class ActionParameter:
         return hash(self._name) + hash(self._typename)
 
     def clone(self):
-        return ActionParameter(self._name, self._typename)
+        new_ap = ActionParameter(self._name, self._typename)
+        assert self == new_ap
+        assert hash(self) == hash(new_ap)
+        return new_ap
 
     def name(self) -> str:
         """Returns the parameter name."""
@@ -89,7 +92,7 @@ class Action:
     def clone(self):
         new_params = {}
         for param_name, parameter in self._parameters.items():
-            new_params[param_name] = parameter.clone()
+            new_params[param_name] = parameter.type()
         new_action = Action(self._name, new_params, self._env)
         assert self == new_action
         assert hash(self) == hash(new_action)
@@ -165,7 +168,7 @@ class InstantaneousAction(Action):
     def clone(self):
         new_params = {}
         for param_name, param in self._parameters.items():
-            new_params[param_name] = param.clone()
+            new_params[param_name] = param.type()
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = self._effects[:]
@@ -332,7 +335,7 @@ class DurativeAction(Action):
     def clone(self):
         new_params = {}
         for param_name, param in self._parameters.items():
-            new_params[param_name] = param.clone()
+            new_params[param_name] = param.type()
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration.clone()
         new_conditions = {}

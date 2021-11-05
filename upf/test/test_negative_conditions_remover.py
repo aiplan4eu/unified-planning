@@ -110,6 +110,8 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertIn(mend_f1, npa)
         self.assertIn(mend_f2, npa)
         self.assertIn(mend_f3, npa)
+        cloned = problem.clone()
+
 
     def test_ad_hoc(self):
         x = Fluent('x')

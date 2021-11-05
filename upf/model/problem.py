@@ -163,7 +163,7 @@ class Problem:
         new_p._maintain_goals = {i.clone(): [g for g in gl] for i, gl in self._maintain_goals.items()}
         new_p._goals = self._goals[:]
         new_p._initial_defaults = self._initial_defaults.copy()
-        new_p._fluents_defaults = {fl.clone(): fn for fl, fn in self._fluents_defaults.items()}
+        new_p._fluents_defaults = {new_p._fluents[fluent.name()]: exp for fluent, exp in self._fluents_defaults.items()}
         assert self == new_p
         assert hash(self) == hash(new_p)
         return new_p

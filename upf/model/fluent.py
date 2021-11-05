@@ -51,7 +51,7 @@ class Fluent:
         return res ^ hash(self._name)
 
     def clone(self):
-        new_fluent = Fluent(self._name, self._typename.clone(), self._signature[:], self._env)
+        new_fluent = Fluent(self._name, self._typename, self._signature[:], self._env)
         assert self == new_fluent
         assert hash(self) == hash(new_fluent)
         return new_fluent
