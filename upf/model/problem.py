@@ -135,24 +135,24 @@ class Problem:
 
     def __hash__(self) -> int:
         res = hash(self._kind) + hash(self._name)
-        for _ in self._fluents.items():
-            res += hash(_)
-        for _ in self._actions.items():
-            res += hash(_)
-        for _ in self._user_types.items():
-            res += hash(_)
-        for _ in self._objects.items():
-            res += hash(_)
-        for _ in self._initial_value.items():
-            res += hash(_)
-        for _ in self._timed_effects.items():
-            res += hash(_)
-        for _ in self._timed_goals.items():
-            res += hash(_)
-        for _ in self._maintain_goals.items():
-            res += hash(_)
-        for _ in self._goals:
-            res += hash(_)
+        for f in self._fluents.items():
+            res += hash(f)
+        for a in self._actions.items():
+            res += hash(a)
+        for ut in self._user_types.items():
+            res += hash(ut)
+        for o in self._objects.items():
+            res += hash(o)
+        for iv in self.initial_values().items():
+            res += hash(iv)
+        for te in self._timed_effects.items():
+            res += hash(te)
+        for tg in self._timed_goals.items():
+            res += hash(tg)
+        for mg in self._maintain_goals.items():
+            res += hash(mg)
+        for g in self._goals:
+            res += hash(g)
         return res
 
     def clone(self):
