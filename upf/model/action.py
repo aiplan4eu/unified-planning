@@ -78,25 +78,13 @@ class Action:
                 self._parameters[n] = ActionParameter(n, t)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, Action):
-            return self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
-        else:
-            return False
+        raise NotImplementedError
 
     def __hash__(self) -> int:
-        res = hash(self._name)
-        for ap in self._parameters.items():
-            res += hash(ap)
-        return res
+        raise NotImplementedError
 
     def clone(self):
-        new_params = {}
-        for param_name, parameter in self._parameters.items():
-            new_params[param_name] = parameter.type()
-        new_action = Action(self._name, new_params, self._env)
-        assert self == new_action
-        assert hash(self) == hash(new_action)
-        return new_action
+        raise NotImplementedError
 
     def name(self) -> str:
         """Returns the action name."""
