@@ -101,10 +101,15 @@ class Problem:
             return False
         if self._kind != oth._kind or self._name != oth._name:
             return False
-        if self._fluents != oth._fluents or self._actions != oth._actions or set(self._goals) != set(oth._goals):
+        if self._fluents != oth._fluents or set(self._goals) != set(oth._goals):
             return False
         if self._user_types != oth._user_types or self._objects != oth._objects:
             return False
+        for action_name, action in self._actions.items():
+            if (oth_action := oth._actions.get(action_name, None)) is None:
+                return False
+            if action != oth_action:
+                return False
         oth_initial_values = oth.initial_values()
         for fluent, value in self.initial_values().items():
             if (oth_value := oth_initial_values.get(fluent, None)) is None:
