@@ -20,9 +20,8 @@ import upf
 from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
-from upf.test import basic_classical_kind, classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
-from upf.model import AbsoluteTiming, ClosedInterval, Effect
+from upf.model import AbsoluteTiming, ClosedInterval, Effect, basic_classical_kind, classical_kind, basic_temporal_kind
 from upf.transformers import NegativeConditionsRemover
 from upf.solvers import SequentialPlanValidator as PV
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError

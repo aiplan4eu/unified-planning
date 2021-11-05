@@ -14,8 +14,8 @@
 
 import upf
 from upf.shortcuts import *
+from upf.model import classical_kind, basic_numeric_kind
 from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind
-from upf.test import classical_kind, basic_numeric_kind
 from upf.test.examples import get_example_problems
 
 

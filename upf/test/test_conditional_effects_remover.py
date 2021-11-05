@@ -15,10 +15,9 @@
 
 import upf
 from upf.shortcuts import *
-from upf.model import AbsoluteTiming
+from upf.model import AbsoluteTiming, classical_kind, full_classical_kind, basic_temporal_kind
 from upf.test import TestCase, main
 from upf.test import skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
-from upf.test import classical_kind, full_classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import ConditionalEffectsRemover
 

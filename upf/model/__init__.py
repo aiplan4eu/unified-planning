@@ -21,7 +21,7 @@ from upf.model.fnode import FNode
 from upf.model.fluent import Fluent
 from upf.model.object import Object
 from upf.model.problem import Problem
-from upf.model.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind, basic_classical_kind, classical_kind, full_classical_kind, basic_numeric_kind, full_numeric_kind, basic_temporal_kind, full_temporal_kind
 from upf.model.timing import Timing, StartTiming, EndTiming, AbsoluteTiming, IntervalDuration, ClosedIntervalDuration
 from upf.model.timing import FixedDuration, OpenIntervalDuration, LeftOpenIntervalDuration, RightOpenIntervalDuration
 from upf.model.timing import Interval, ClosedInterval, OpenInterval, LeftOpenInterval, RightOpenInterval
