@@ -24,8 +24,8 @@ class TestModel(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def test_clone_problem(self):
-        for name, (problem, plan) in self.problems.items():
+    def test_clone_problem_and_action(self):
+        for _, (problem, _) in self.problems.items():
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
             for action_1, action_2 in zip(problem_clone_1.actions().values(), problem_clone_2.actions().values()):
@@ -44,3 +44,19 @@ class TestModel(TestCase):
             self.assertEqual(problem_clone_1, problem)
             assert problem != problem_clone_2
             #self.assertNotEqual(problem_clone_2, problem)
+
+    def test_clone_action_parameter(self):
+        ap = ActionParameter('semaphore', Bool)
+        ap_clone_1 = ap.clone()
+        ap_clone_2 = ap.clone()
+        ap_clone_2._name = 'lock'
+        self.assertEqual(ap_clone_1, ap)
+        self.assertNotEqual(ap_clone_2, ap)
+
+    def test_clone_variable(self):
+        var = Variable('semaphore', Bool)
+        var_clone_1 = var.clone()
+        var_clone_2 = var.clone()
+        var_clone_2._name = 'lock'
+        self.assertEqual(var_clone_1, var)
+        self.assertNotEqual(var_clone_2, var)
