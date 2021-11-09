@@ -40,10 +40,15 @@ class TestModel(TestCase):
                 else:
                     raise NotImplementedError
                 self.assertEqual(action_2, action_1_clone)
+                self.assertEqual(action_1_clone, action_2)
                 self.assertNotEqual(action_1, action_1_clone)
+                self.assertNotEqual(action_1_clone, action_1)
+                self.assertNotEqual(action_1, action_1_clone.name())
+                self.assertNotEqual(action_1_clone.name(), action_1)
             self.assertEqual(problem_clone_1, problem)
-            assert problem != problem_clone_2
+            self.assertEqual(problem, problem_clone_1)
             self.assertNotEqual(problem_clone_2, problem)
+            self.assertNotEqual(problem, problem_clone_2)
 
     def test_clone_action_parameter(self):
         ap = ActionParameter('semaphore', Bool)
@@ -51,8 +56,54 @@ class TestModel(TestCase):
         ap_clone_2 = ap.clone()
         ap_clone_2._name = 'lock'
         self.assertEqual(ap_clone_1, ap)
+        self.assertEqual(ap, ap_clone_1)
         self.assertNotEqual(ap_clone_2, ap)
+        self.assertNotEqual(ap, ap_clone_2)
         self.assertNotEqual(ap, ap.name())
+        self.assertNotEqual(ap.name(), ap)
+
+    def test_clone_action(self):
+        Location = UserType('Location')
+        a = Action('move', l_from=Location, l_to=Location)
+        with self.assertRaises(NotImplementedError):
+            a.clone()
+        with self.assertRaises(NotImplementedError):
+            hash(a)
+        with self.assertRaises(NotImplementedError):
+            a == a.name()
+        with self.assertRaises(NotImplementedError):
+            a.is_conditional()
+
+    def test_clone_effect(self):
+        x = FluentExp(Fluent('x'))
+        y = FluentExp(Fluent('y'))
+        z = FluentExp(Fluent('z'))
+        e = Effect(x, z, y, upf.model.effect.ASSIGN)
+        e_clone_1 = e.clone()
+        e_clone_2 = e.clone()
+        e_clone_2._condition = TRUE()
+        self.assertEqual(e_clone_1, e)
+        self.assertEqual(e, e_clone_1)
+        self.assertNotEqual(e_clone_2, e)
+        self.assertNotEqual(e, e_clone_2)
+        self.assertNotEqual(e, e.value())
+        self.assertNotEqual(e.value(), e)
+
+    def test_clone_fluent(self):
+        location = UserType('Location')
+        is_connected = Fluent('is_connected', Bool, [location, location])
+        distance = Fluent('distance', Int, [location, location])
+        is_at = Fluent('is_at', Bool, [location])
+        # e = Effect(x, z, y, upf.model.effect.ASSIGN)
+        # e_clone_1 = e.clone()
+        # e_clone_2 = e.clone()
+        # e_clone_2._condition = TRUE()
+        # self.assertEqual(e_clone_1, e)
+        # self.assertEqual(e, e_clone_1)
+        # self.assertNotEqual(e_clone_2, e)
+        # self.assertNotEqual(e, e_clone_2)
+        # self.assertNotEqual(e, e.value())
+        # self.assertNotEqual(e.value(), e)
 
     def test_clone_variable(self):
         var = Variable('semaphore', Bool)
@@ -60,4 +111,8 @@ class TestModel(TestCase):
         var_clone_2 = var.clone()
         var_clone_2._name = 'lock'
         self.assertEqual(var_clone_1, var)
+        self.assertEqual(var, var_clone_1)
         self.assertNotEqual(var_clone_2, var)
+        self.assertNotEqual(var, var_clone_2)
+        self.assertNotEqual(var, var.name())
+        self.assertNotEqual(var.name(), var)
