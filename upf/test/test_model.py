@@ -52,6 +52,7 @@ class TestModel(TestCase):
         ap_clone_2._name = 'lock'
         self.assertEqual(ap_clone_1, ap)
         self.assertNotEqual(ap_clone_2, ap)
+        self.assertNotEqual(ap, ap.name())
 
     def test_clone_variable(self):
         var = Variable('semaphore', Bool)

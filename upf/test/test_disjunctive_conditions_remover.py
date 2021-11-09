@@ -15,7 +15,7 @@
 import os
 import upf
 from upf.shortcuts import *
-from upf.model import classical_kind, full_numeric_kind, full_classical_kind
+from upf.model.problem_kind import classical_kind, full_numeric_kind, full_classical_kind
 from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
 from upf.test.examples import get_example_problems
 from upf.transformers import DisjunctiveConditionsRemover
