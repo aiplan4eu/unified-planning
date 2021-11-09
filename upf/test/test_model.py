@@ -113,6 +113,62 @@ class TestModel(TestCase):
         self.assertEqual(is_connected_clone_2, security)
         self.assertEqual(security, is_connected_clone_2)
 
+    def test_clone_object(self):
+        ob = Object('semaphore', Bool)
+        ob_clone_1 = ob.clone()
+        ob_clone_2 = ob.clone()
+        ob_clone_2._name = 'lock'
+        self.assertEqual(ob_clone_1, ob)
+        self.assertEqual(ob, ob_clone_1)
+        self.assertNotEqual(ob_clone_2, ob)
+        self.assertNotEqual(ob, ob_clone_2)
+        self.assertNotEqual(ob, ob.name())
+        self.assertNotEqual(ob.name(), ob)
+
+    def test_clone_timing(self):
+        st = StartTiming(5)
+        st_clone_1 = st.clone()
+        st_clone_2 = st.clone()
+        st_clone_2._is_from_start = False
+        self.assertEqual(st_clone_1, st)
+        self.assertEqual(st, st_clone_1)
+        self.assertNotEqual(st_clone_2, st)
+        self.assertNotEqual(st, st_clone_2)
+        self.assertNotEqual(st, st.bound())
+        self.assertNotEqual(st.bound(), st)
+        et = EndTiming(5)
+        self.assertEqual(st_clone_2, et)
+        self.assertEqual(et, st_clone_2)
+
+    def test_clone_interval_duration(self):
+        interval = LeftOpenIntervalDuration(Int(5), Int(10))
+        interval_clone_1 = interval.clone()
+        interval_clone_2 = interval.clone()
+        interval_clone_2._is_left_open = False
+        self.assertEqual(interval_clone_1, interval)
+        self.assertEqual(interval, interval_clone_1)
+        self.assertNotEqual(interval_clone_2, interval)
+        self.assertNotEqual(interval, interval_clone_2)
+        self.assertNotEqual(interval, interval.lower())
+        self.assertNotEqual(interval.lower(), interval)
+        closed_interval = ClosedIntervalDuration(Int(5), Int(10))
+        self.assertEqual(interval_clone_2, closed_interval)
+        self.assertEqual(closed_interval, interval_clone_2)
+
+    def test_clone_interval(self):
+        interval = LeftOpenInterval(StartTiming(), EndTiming(5))
+        interval_clone_1 = interval.clone()
+        interval_clone_2 = interval.clone()
+        interval_clone_2._is_left_open = False
+        self.assertEqual(interval_clone_1, interval)
+        self.assertEqual(interval, interval_clone_1)
+        self.assertNotEqual(interval_clone_2, interval)
+        self.assertNotEqual(interval, interval_clone_2)
+        self.assertNotEqual(interval, interval.lower())
+        self.assertNotEqual(interval.lower(), interval)
+        closed_interval = ClosedInterval(StartTiming(), EndTiming(5))
+        self.assertEqual(interval_clone_2, closed_interval)
+        self.assertEqual(closed_interval, interval_clone_2)
 
     def test_clone_variable(self):
         var = Variable('semaphore', Bool)

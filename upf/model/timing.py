@@ -19,32 +19,50 @@ from fractions import Fraction
 from typing import Union
 
 class Timing:
-    def __init__(self, bound: Union[int, Fraction]):
+    def __init__(self, bound: Union[int, Fraction], is_from_start = True):
         self._bound = bound
+        self._is_from_start = is_from_start
 
     def __repr__(self):
-        raise NotImplementedError
+        if self._is_from_start:
+            if self._bound == 0:
+                return 'start'
+            else:
+                return f'start + {self._bound}'
+        else:
+            if self._bound == 0:
+                return 'end'
+            else:
+                return f'end - {self._bound}'
 
     def __eq__(self, oth: object) -> bool:
-        raise NotImplementedError
+        if isinstance(oth, Timing):
+            return self._bound == oth._bound and self._is_from_start == oth._is_from_start
+        else:
+            return False
 
     def __hash__(self) -> int:
-        raise NotImplementedError
+        if self._is_from_start:
+            return hash(self._bound) ^ hash('StartTiming')
+        else:
+            return hash(self._bound) ^ hash('EndTiming')
 
     def clone(self):
-        raise NotImplementedError
+        new_t = Timing(self._bound, self._is_from_start)
+        assert self == new_t
+        assert hash(self) == hash(new_t)
+        return new_t
 
     def bound(self):
         return self._bound
 
     def is_from_start(self):
-        raise NotImplementedError
+        return self._is_from_start
 
     def is_from_end(self):
-        raise NotImplementedError
+        return not self._is_from_start
 
-
-class StartTiming(Timing):
+def StartTiming(bound: Union[int, Fraction] = 0) -> Timing:
     '''Represents the start timing of an action.
     Created with a bound != 0 represents "bound" time
     after the start of an action.
@@ -53,42 +71,9 @@ class StartTiming(Timing):
     StartTiming() = 5
     StartTiming(3) = 5+3 = 8'''
 
-    def __init__(self, bound: Union[int, Fraction] = 0):
-        Timing.__init__(self, bound)
+    return Timing(bound, True)
 
-    def __repr__(self):
-        if self._bound == 0:
-            return 'start'
-        else:
-            return f'start + {self._bound}'
-
-    def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, StartTiming):
-            return self._bound == oth._bound
-        else:
-            return False
-
-    def __hash__(self) -> int:
-        return hash(self._bound) ^ hash('StartTiming')
-
-    def clone(self):
-        new_st = StartTiming(self._bound)
-        assert self == new_st
-        assert hash(self) == hash(new_st)
-        return new_st
-
-    def is_from_start(self):
-        return True
-
-    def is_from_end(self):
-        return False
-
-
-def AbsoluteTiming(bound: Union[int, Fraction] = 0):
-    return StartTiming(bound)
-
-
-class EndTiming(Timing):
+def EndTiming(bound: Union[int, Fraction] = 0) -> Timing:
     '''Represents the end timing of an action.
     Created with a bound != 0 represents "bound" time
     before the end of an action.
@@ -97,35 +82,10 @@ class EndTiming(Timing):
     EndTiming() = 10
     EndTiming(1.5) = 10-Fraction(3, 2) = Fraction(17, 2) = 8.5'''
 
-    def __init__(self, bound: Union[int, Fraction] = 0):
-        Timing.__init__(self, bound)
+    return Timing(bound, False)
 
-    def __repr__(self):
-        if self._bound == 0:
-            return 'end'
-        else:
-            return f'end - {self._bound}'
-
-    def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, EndTiming):
-            return self._bound == oth._bound
-        else:
-            return False
-
-    def __hash__(self) -> int:
-        return hash(self._bound) ^ hash('EndTiming')
-
-    def clone(self):
-        new_et = EndTiming(self._bound)
-        assert self == new_et
-        assert hash(self) == hash(new_et)
-        return new_et
-
-    def is_from_start(self):
-        return False
-
-    def is_from_end(self):
-        return True
+def AbsoluteTiming(bound: Union[int, Fraction] = 0):
+    return StartTiming(bound)
 
 
 class IntervalDuration:
@@ -205,6 +165,7 @@ def RightOpenIntervalDuration(lower: FNode, upper: FNode) -> IntervalDuration:
             [lower, upper)
     '''
     return IntervalDuration(lower, upper, False, True)
+
 
 class Interval:
     def __init__(self, lower: Timing, upper: Timing, is_left_open: bool = False, is_right_open: bool = False):

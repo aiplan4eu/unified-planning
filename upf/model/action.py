@@ -439,9 +439,6 @@ class DurativeAction(Action):
     def add_durative_condition(self, interval: 'upf.model.timing.Interval',
                                condition: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', ActionParameter, bool]):
         '''Adds the given durative condition.'''
-        if not ((isinstance(interval.lower(), upf.model.timing.StartTiming) or isinstance(interval.lower(), upf.model.timing.EndTiming)) and
-                (isinstance(interval.upper(), upf.model.timing.StartTiming) or isinstance(interval.upper(), upf.model.timing.EndTiming))):
-            raise UPFProblemDefinitionError(f'The interval bounds of a durative condition in an action must be a StartTiming or an EndTiming.\n Interval {interval} does not respect this.')
         condition_exp, = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
         if interval in self._durative_conditions:
@@ -452,8 +449,6 @@ class DurativeAction(Action):
     def add_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                    value: 'upf.model.expression.Expression', condition: 'upf.model.expression.BoolExpression' = True):
         '''Adds the given action effect.'''
-        if not (isinstance(timing, upf.model.timing.StartTiming) or isinstance(timing, upf.model.timing.EndTiming)):
-            raise UPFProblemDefinitionError(f'The timing of an effect into an action must be a StartTiming or an EndTiming.\n Timing {timing} is none of those.')
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
