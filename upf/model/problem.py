@@ -416,7 +416,8 @@ class Problem:
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
         if timing in self._timed_goals:
-            self._timed_goals[timing].append(goal_exp)
+            if goal_exp not in self._timed_goals[timing]:
+                self._timed_goals[timing].append(goal_exp)
         else:
             self._timed_goals[timing] = [goal_exp]
         self._kind.set_time('CONTINUOUS_TIME') # type: ignore
@@ -472,7 +473,8 @@ class Problem:
         self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         self._kind.set_time('TIMED_EFFECT') # type: ignore
         if timing in self._timed_effects:
-            self._timed_effects[timing].append(effect)
+            if effect not in self._timed_effects[timing]:
+                self._timed_effects[timing].append(effect)
         else:
             self._timed_effects[timing] = [effect]
 
@@ -490,7 +492,8 @@ class Problem:
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         self._update_problem_kind_condition(goal_exp)
         if interval in self._maintain_goals:
-            self._maintain_goals[interval].append(goal_exp)
+            if goal_exp not in self._maintain_goals[interval]:
+                self._maintain_goals[interval].append(goal_exp)
         else:
             self._maintain_goals[interval] = [goal_exp]
         self._kind.set_time('CONTINUOUS_TIME') # type: ignore
