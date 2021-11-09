@@ -93,17 +93,26 @@ class TestModel(TestCase):
         location = UserType('Location')
         is_connected = Fluent('is_connected', Bool, [location, location])
         distance = Fluent('distance', Int, [location, location])
-        is_at = Fluent('is_at', Bool, [location])
-        # e = Effect(x, z, y, upf.model.effect.ASSIGN)
-        # e_clone_1 = e.clone()
-        # e_clone_2 = e.clone()
-        # e_clone_2._condition = TRUE()
-        # self.assertEqual(e_clone_1, e)
-        # self.assertEqual(e, e_clone_1)
-        # self.assertNotEqual(e_clone_2, e)
-        # self.assertNotEqual(e, e_clone_2)
-        # self.assertNotEqual(e, e.value())
-        # self.assertNotEqual(e.value(), e)
+        security = Fluent('security', Int, [location])
+        is_connected_clone_1 = is_connected.clone()
+        is_connected_clone_2 = is_connected.clone()
+        is_connected_clone_2._name = 'distance'
+        is_connected_clone_2._typename = Int
+        self.assertEqual(is_connected_clone_2, distance)
+        self.assertEqual(distance, is_connected_clone_2)
+        self.assertEqual(is_connected_clone_1, is_connected)
+        self.assertEqual(is_connected, is_connected_clone_1)
+        self.assertNotEqual(is_connected_clone_2, is_connected)
+        self.assertNotEqual(is_connected, is_connected_clone_2)
+        self.assertNotEqual(is_connected, is_connected.name())
+        self.assertNotEqual(is_connected.name(), is_connected)
+        is_connected_clone_2._name = 'security'
+        self.assertNotEqual(is_connected_clone_2, security)
+        self.assertNotEqual(security, is_connected_clone_2)
+        is_connected_clone_2._signature = [location]
+        self.assertEqual(is_connected_clone_2, security)
+        self.assertEqual(security, is_connected_clone_2)
+
 
     def test_clone_variable(self):
         var = Variable('semaphore', Bool)
