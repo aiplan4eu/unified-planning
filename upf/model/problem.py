@@ -105,26 +105,36 @@ class Problem:
             return False
         if self._user_types != oth._user_types or self._objects != oth._objects:
             return False
+        if len(self._actions) != len(oth._actions):
+                return False
         for action_name, action in self._actions.items():
             if (oth_action := oth._actions.get(action_name, None)) is None:
                 return False
             if action != oth_action:
                 return False
         oth_initial_values = oth.initial_values()
+        if len(self.initial_values()) != len(oth_initial_values):
+                return False
         for fluent, value in self.initial_values().items():
             if (oth_value := oth_initial_values.get(fluent, None)) is None:
                 return False
             if value != oth_value:
+                return False
+        if len(self._timed_effects) != len(oth._timed_effects):
                 return False
         for t, tel in self._timed_effects.items():
             if (oth_tel := oth._timed_effects.get(t, None)) is None:
                 return False
             if set(tel) != set(oth_tel):
                 return False
+        if len(self._timed_goals) != len(oth._timed_goals):
+                return False
         for t, tgl in self._timed_goals.items():
             if (oth_tgl := oth._timed_goals.get(t, None)) is None:
                 return False
             if set(tgl) != set(oth_tgl):
+                return False
+        if len(self._maintain_goals) != len(oth._maintain_goals):
                 return False
         for i, mgl in self._maintain_goals.items():
             if (oth_mgl := oth._maintain_goals.get(i, None)) is None:

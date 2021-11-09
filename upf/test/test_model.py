@@ -43,7 +43,7 @@ class TestModel(TestCase):
                 self.assertNotEqual(action_1, action_1_clone)
             self.assertEqual(problem_clone_1, problem)
             assert problem != problem_clone_2
-            #self.assertNotEqual(problem_clone_2, problem)
+            self.assertNotEqual(problem_clone_2, problem)
 
     def test_clone_action_parameter(self):
         ap = ActionParameter('semaphore', Bool)
