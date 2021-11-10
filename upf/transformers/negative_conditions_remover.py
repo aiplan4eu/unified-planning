@@ -14,7 +14,7 @@
 #
 """This module defines the negative preconditions remover class."""
 
-from collections import OrderedDict
+
 from upf.model.fluent import Fluent
 from upf.transformers.transformer import Transformer
 from upf.model.problem import Problem
@@ -54,8 +54,8 @@ class NegativeConditionsRemover(Transformer):
 
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
-    def __init__(self, problem: Problem):
-        Transformer.__init__(self, problem)
+    def __init__(self, problem: Problem, name: str = 'negative_conditions_remover'):
+        Transformer.__init__(self, problem, name)
         self._count = 0
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self._env)

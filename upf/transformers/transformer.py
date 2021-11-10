@@ -27,7 +27,8 @@ from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 class Transformer:
     '''Represents a generic remover with all the support methods shared among them.'''
-    def __init__(self, problem: Problem):
+    def __init__(self, problem: Problem, name: str = 'transformer'):
+        self._name = name
         self._problem = problem
         self._env = problem.env
         self._new_problem: Optional[Problem] = None
@@ -126,9 +127,9 @@ class Transformer:
 
     def _create_action_copy(self, action: InstantaneousAction, id: Optional[int] = None) -> InstantaneousAction:
         if id is not None:
-            new_action_name = f'{action.name()}__{str(id)}__'
+            new_action_name = f'__{self._name}_{action.name()}_{str(id)}'
             if self._problem.has_action(new_action_name):
-                raise UPFProblemDefinitionError(f"InstantaneousAction: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                raise UPFProblemDefinitionError(f"Action: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
         else:
             new_action_name = action.name()
         #here, if self._new_to_old is a Dict[str, Action] from name to action it would be possible to add
@@ -145,9 +146,9 @@ class Transformer:
 
     def _create_durative_action_copy(self, action: DurativeAction, id: Optional[int] = None) -> DurativeAction:
         if id is not None:
-            new_action_name = f'{action.name()}__{str(id)}__'
+            new_action_name = f'__{self._name}_{action.name()}_{str(id)}'
             if self._problem.has_action(new_action_name):
-                raise UPFProblemDefinitionError(f"InstantaneousAction: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                raise UPFProblemDefinitionError(f"Action: {new_action_name} of problem: {self._problem.name()} has invalid name. Double underscore '__' is reserved by the naming convention.")
         else:
             new_action_name = action.name()
         #here, if self._new_to_old is a Dict[str, Action] from name to action it would be possible to add

@@ -29,8 +29,8 @@ class ConditionalEffectsRemover(Transformer):
 
     This is done by substituting every conditional action with different
     actions representing every possible branch of the original action.'''
-    def __init__(self, problem: Problem):
-        Transformer.__init__(self, problem)
+    def __init__(self, problem: Problem, name: str = 'conditional_effects_remover'):
+        Transformer.__init__(self, problem, name)
         self._new_to_old = {}
         self._old_to_new = {}
         self._counter: int = 0

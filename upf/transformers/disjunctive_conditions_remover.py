@@ -35,8 +35,8 @@ class DisjunctiveConditionsRemover(Transformer):
     remover is called, every action condition or precondition will be
     an AND of leaf nodes.
     '''
-    def __init__(self, problem: Problem):
-        Transformer.__init__(self, problem)
+    def __init__(self, problem: Problem, name: str = 'disjunctive_conditions_remover'):
+        Transformer.__init__(self, problem, name)
         self._new_to_old = {}
         self._old_to_new = {}
 

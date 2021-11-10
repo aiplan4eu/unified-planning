@@ -67,8 +67,8 @@ class QuantifiersRemover(Transformer):
     this class requires a problem and offers the capability
     to transform a problem with quantifiers into a problem without.
     '''
-    def __init__(self, problem: Problem):
-        Transformer.__init__(self, problem)
+    def __init__(self, problem: Problem, name: str = 'quantifiers_remover'):
+        Transformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
 

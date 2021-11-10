@@ -47,6 +47,7 @@ class PDDLSolver(solvers.solver.Solver):
         actions = []
         with open(plan_filename) as plan:
             for line in plan.readlines():
+                print(line)
                 if re.match(r'^\s*(;.*)?$', line):
                     continue
                 res = re.match(r'^\s*\(\s*([\w?-]+)((\s+[\w?-]+)*)\s*\)\s*$', line)

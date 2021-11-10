@@ -128,7 +128,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
         act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act.add_effect(a, TRUE())
-        act_2 = InstantaneousAction('act__1__')
+        act_2 = InstantaneousAction('__disjunctive_conditions_remover_act_1')
         act_2.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act_2.add_effect(a, TRUE())
         problem = Problem('mockup')
@@ -146,7 +146,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover(problem)
         with self.assertRaises(UPFProblemDefinitionError) as e:
             dnf_problem = dnfr.get_rewritten_problem()
-        self.assertIn("InstantaneousAction: act__1__ of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
+        self.assertIn("Action: __disjunctive_conditions_remover_act_1 of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
         str(e.exception))
 
     def test_temproal_mockup(self):
