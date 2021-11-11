@@ -36,7 +36,7 @@ class TestConditionalEffectsRemover(TestCase):
         unconditional_problem = cer.get_rewritten_problem()
         u_actions = list(unconditional_problem.actions().values())
         a_x = problem.action("a_x")
-        a_x_new_list = cer.get_old_to_new_actions_mapping()[a_x]
+        a_x_new_list = cer.get_transformed_actions(a_x)
         self.assertEqual(len(a_x_new_list), 1)
         new_action = unconditional_problem.action(a_x_new_list[0].name())
         y = FluentExp(problem.fluent("y"))

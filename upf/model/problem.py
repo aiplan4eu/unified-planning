@@ -154,8 +154,10 @@ class Problem:
             res += hash(o)
         for iv in self.initial_values().items():
             res += hash(iv)
-        for te in self._timed_effects.items():
-            res += hash(te)
+        for t, el in self._timed_effects.items():
+            res += hash(t)
+            for e in set(el):
+                res += hash(e)
         for tg in self._timed_goals.items():
             res += hash(tg)
         for mg in self._maintain_goals.items():
