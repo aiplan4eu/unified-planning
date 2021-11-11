@@ -45,7 +45,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         cond = Or(is_connected(l_from, l_to), is_connected(l_to, l_from))
         self.assertIn(cond, move.preconditions())
-        new_moves = dnfr.get_old_to_new_actions_mapping()[move]
+        new_moves = dnfr.get_transformed_actions(move)
         for m in new_moves:
             self.assertNotIn(cond, m.preconditions())
 
@@ -66,7 +66,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
             plan = dnfr.rewrite_back_plan(dnf_plan)
             for ai in plan.actions():
                 a = ai.action()
-                self.assertEqual(a, problem.action(a.name()))
+                self.assertEqual(a, problem.action(a.name))
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
@@ -99,7 +99,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
-        new_act = dnfr.get_old_to_new_actions_mapping()[act]
+        new_act = dnfr.get_transformed_actions(act)
 
         self.assertEqual(len(dnf_problem.actions()), 4)
         self.assertEqual(len(new_act), 4)
@@ -128,7 +128,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
         act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act.add_effect(a, TRUE())
-        act_2 = InstantaneousAction('__disjunctive_conditions_remover_act_1')
+        act_2 = InstantaneousAction('dnf_remover_act_1')
         act_2.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act_2.add_effect(a, TRUE())
         problem = Problem('mockup')
@@ -146,7 +146,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover(problem)
         with self.assertRaises(UPFProblemDefinitionError) as e:
             dnf_problem = dnfr.get_rewritten_problem()
-        self.assertIn("Action: __disjunctive_conditions_remover_act_1 of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
+        self.assertIn("Action: dnf_remover_act_1 of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
         str(e.exception))
 
     def test_temproal_mockup(self):
@@ -180,7 +180,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
-        new_act = dnfr.get_old_to_new_actions_mapping()[act]
+        new_act = dnfr.get_transformed_actions(act)
         self.assertEqual(len(dnf_problem.actions()), 81)
         self.assertEqual(len(new_act), 81)
         self.assertEqual(set(dnf_problem.actions().values()), set(new_act))

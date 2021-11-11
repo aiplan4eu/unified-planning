@@ -16,14 +16,11 @@
 
 import upf
 from itertools import product
-from upf.model.fnode import FNode
-from upf.model.problem import Problem
-from upf.model.action import InstantaneousAction, DurativeAction
-from upf.walkers import Dnf
 from upf.exceptions import UPFProblemDefinitionError
-from upf.model.timing import Interval, Timing
+from upf.model import FNode, Problem, InstantaneousAction, DurativeAction, Interval, Timing, Action
+from upf.walkers import Dnf
 from upf.transformers.transformer import Transformer
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 
 
 class DisjunctiveConditionsRemover(Transformer):
@@ -35,10 +32,13 @@ class DisjunctiveConditionsRemover(Transformer):
     remover is called, every action condition or precondition will be
     an AND of leaf nodes.
     '''
-    def __init__(self, problem: Problem, name: str = 'disjunctive_conditions_remover'):
-        Transformer.__init__(self, problem, name)
-        self._new_to_old = {}
-        self._old_to_new = {}
+    def __init__(self, problem: Problem, name: str = 'dnf_remover'):
+        Transformer.__init__(self, problem)
+        self._name = name
+        #Represents the map from the new action to the old action
+        self._new_to_old: Dict[Action, Action] = {}
+        #represents a mapping from the action of the original problem to action of the new one.
+        self._old_to_new: Dict[Action, List[Action]] = {}
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
@@ -46,7 +46,7 @@ class DisjunctiveConditionsRemover(Transformer):
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
-        self._create_problem_copy('dnf')
+        self._create_problem_copy(self._name)
         assert self._new_problem is not None
         self._new_problem_add_fluents()
         self._new_problem_add_objects()
@@ -62,7 +62,7 @@ class DisjunctiveConditionsRemover(Transformer):
     def _handle_actions(self):
         dnf = Dnf(self._env)
         for a in self._problem.actions().values():
-            self.count = 0
+            self._count = 0
             if isinstance(a, InstantaneousAction):
                 new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
                 if new_precond.is_or():
@@ -100,15 +100,22 @@ class DisjunctiveConditionsRemover(Transformer):
                 raise NotImplementedError
 
     def _create_new_durative_action_with_given_conds_at_given_times(self, temporal_list: List[Union[Timing, Interval]], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
-        new_action = self._create_durative_action_copy(original_action, self.count)
-        self.count = self.count + 1
+        new_action = original_action.clone()
+        new_action.name = f'{self._name}_{original_action.name}_{str(self._count)}'
+        if self._problem.has_action(new_action.name):
+            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        self._count += 1
+        new_action.clear_conditions()
+        new_action.clear_durative_conditions()
         for t, c in zip(temporal_list, cond_list):
             if c.is_and():
                 for co in c.args():
                     self._add_condition(new_action, t, co)
             else:
                 self._add_condition(new_action, t, c)
-        self._durative_action_add_effects(original_action, new_action)
+        for timing, effects in original_action.effects().items():
+            for effect in effects:
+                new_action._add_effect_instance(timing, effect)
         assert self._new_to_old is not None
         self._new_to_old[new_action] = original_action
         self._map_old_to_new_action(original_action, new_action)
@@ -123,15 +130,32 @@ class DisjunctiveConditionsRemover(Transformer):
             raise NotImplementedError
 
     def _create_new_action_with_given_precond(self, precond: FNode, original_action: InstantaneousAction) -> InstantaneousAction:
-        new_action = self._create_action_copy(original_action, self.count)
-        self.count += 1
+        new_action = original_action.clone()
+        new_action.name = f'{self._name}_{original_action.name}_{str(self._count)}'
+        if self._problem.has_action(new_action.name):
+            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        self._count += 1
+        new_action.clear_preconditions()
         if precond.is_and():
             for leaf in precond.args():
                 new_action.add_precondition(leaf)
         else:
             new_action.add_precondition(precond)
-        self._action_add_effects(original_action, new_action)
+        for effect in original_action.effects():
+            new_action._add_effect_instance(effect)
         assert self._new_to_old is not None
         self._new_to_old[new_action] = original_action
         self._map_old_to_new_action(original_action, new_action)
         return new_action
+
+    def _map_old_to_new_action(self, old_action, new_action):
+        if old_action in self._old_to_new:
+            self._old_to_new[old_action].append(new_action)
+        else:
+            self._old_to_new[old_action] = [new_action]
+
+    def get_original_action(self, action: Action) -> Action:
+        return self._new_to_old[action]
+
+    def get_transformed_actions(self, action: Action) -> List[Action]:
+        return self._old_to_new[action]

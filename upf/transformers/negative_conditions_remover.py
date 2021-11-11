@@ -15,11 +15,8 @@
 """This module defines the negative preconditions remover class."""
 
 
-from upf.model.fluent import Fluent
 from upf.transformers.transformer import Transformer
-from upf.model.problem import Problem
-from upf.model.action import InstantaneousAction, DurativeAction
-from upf.model.fnode import FNode
+from upf.model import Fluent, Problem, InstantaneousAction, DurativeAction, FNode, Action
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
 from typing import List, Dict, Union
@@ -45,6 +42,10 @@ class NegativeFluentRemover(IdentityDagWalker):
         self._fluent_mapping[f] = nf
         return self._env.expression_manager.FluentExp(nf, tuple(args[0].args()))
 
+    @property
+    def fluent_mapping(self) -> Dict[Fluent, Fluent]:
+        return self._fluent_mapping
+
 
 class NegativeConditionsRemover(Transformer):
     '''Negative conditions remover class:
@@ -54,11 +55,15 @@ class NegativeConditionsRemover(Transformer):
 
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
-    def __init__(self, problem: Problem, name: str = 'negative_conditions_remover'):
-        Transformer.__init__(self, problem, name)
-        self._count = 0
+    def __init__(self, problem: Problem, name: str = 'negative_conditions_removed'):
+        Transformer.__init__(self, problem)
+        self._name = name
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self._env)
+        #Represents the map from the new action to the old action
+        self._new_to_old: Dict[Action, Action] = {}
+        #represents a mapping from the action of the original problem to action of the new one.
+        self._old_to_new: Dict[Action, List[Action]] = {}
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
@@ -67,7 +72,7 @@ class NegativeConditionsRemover(Transformer):
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
-        self._create_problem_copy('no_negative_conditions')
+        self._create_problem_copy(self._name)
         self._new_problem_add_objects()
         assert self._new_problem is not None
         self._modify_actions_and_goals()
@@ -77,17 +82,26 @@ class NegativeConditionsRemover(Transformer):
         name_action_map: Dict[str, Union[InstantaneousAction, DurativeAction]] = {}
         for name, action in self._problem.actions().items():
             if isinstance(action, InstantaneousAction):
-                new_action = self._create_action_copy(action)
+                new_action = action.clone()
+                new_action.name = f'{self._name}_{action.name}'
+                if self._problem.has_action(new_action.name):
+                    raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                new_action.clear_preconditions()
                 for p in action.preconditions():
                     np = self._fluent_remover.remove_negative_fluents(p)
                     new_action.add_precondition(np)
                 name_action_map[name] = new_action
             elif isinstance(action, DurativeAction):
-                new_durative_action = self._create_durative_action_copy(action)
+                new_durative_action = action.clone()
+                new_durative_action.name = f'{self._name}_{action.name}'
+                if self._problem.has_action(new_durative_action.name):
+                    raise UPFProblemDefinitionError(f"Action: {new_durative_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                new_durative_action.clear_conditions()
                 for t, cl in action.conditions().items():
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
                         new_durative_action.add_condition(t, nc)
+                new_durative_action.clear_durative_conditions()
                 for i, cl in action.durative_conditions().items():
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
@@ -109,7 +123,7 @@ class NegativeConditionsRemover(Transformer):
             ng = self._fluent_remover.remove_negative_fluents(g)
             self._new_problem.add_goal(ng)
 
-        fluent_mapping = self._fluent_remover._fluent_mapping
+        fluent_mapping = self._fluent_remover.fluent_mapping
         for f in self._problem.fluents().values():
             self._new_problem.add_fluent(f)
             fneg = fluent_mapping.get(f, None)
@@ -133,6 +147,7 @@ class NegativeConditionsRemover(Transformer):
         for name, action in self._problem.actions().items():
             if isinstance(action, InstantaneousAction):
                 new_action = name_action_map[name]
+                new_action.clear_effects()
                 for e in action.effects():
                     if e.is_conditional():
                         raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.")
@@ -148,9 +163,12 @@ class NegativeConditionsRemover(Transformer):
                     else:
                         raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
                 self._new_problem.add_action(new_action)
+                self._old_to_new[action] = [new_action]
+                self._new_to_old[new_action] = action
             elif isinstance(action, DurativeAction):
                 new_durative_action = name_action_map[name]
                 new_durative_action.set_duration_constraint(action.duration())
+                new_durative_action.clear_effects()
                 for t, el in action.effects().items():
                     for e in el:
                         if e.is_conditional():
@@ -167,6 +185,8 @@ class NegativeConditionsRemover(Transformer):
                         else:
                             raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
                 self._new_problem.add_action(new_durative_action)
+                self._old_to_new[action] = [new_durative_action]
+                self._new_to_old[new_durative_action] = action
             else:
                 raise NotImplementedError
 
@@ -185,3 +205,10 @@ class NegativeConditionsRemover(Transformer):
                             self._new_problem.add_timed_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
                 else:
                     raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+
+
+    def get_original_action(self, action: Action) -> Action:
+        return self._new_to_old[action]
+
+    def get_transformed_actions(self, action: Action) -> List[Action]:
+        return self._old_to_new[action]

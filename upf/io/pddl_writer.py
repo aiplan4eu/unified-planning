@@ -138,10 +138,10 @@ class PDDLWriter:
         if self.problem.kind().has_timed_effect() or self.problem.kind().has_timed_goals(): # type: ignore
             raise UPFProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
         out.write('(define ')
-        if self.problem.name() is None:
+        if self.problem.name is None:
             name = 'pddl'
         else:
-            name = f'{self.problem.name()}'
+            name = f'{self.problem.name}'
         out.write(f'(domain {name}-domain)\n')
 
         if self.needs_requirements:
@@ -203,7 +203,7 @@ class PDDLWriter:
         converter = ConverterToPDDLString(self.problem.env)
         for a in self.problem.actions().values():
             if isinstance(a, upf.model.InstantaneousAction):
-                out.write(f' (:action {a.name()}')
+                out.write(f' (:action {a.name}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
                     if ap.type().is_user_type():
@@ -234,7 +234,7 @@ class PDDLWriter:
                     out.write(')')
                 out.write(')\n')
             elif isinstance(a, DurativeAction):
-                out.write(f' (:durative-action {a.name()}')
+                out.write(f' (:durative-action {a.name}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
                     if ap.type().is_user_type():
@@ -303,10 +303,10 @@ class PDDLWriter:
         out.write(')\n')
 
     def _write_problem(self, out: IO[str]):
-        if self.problem.name() is None:
+        if self.problem.name is None:
             name = 'pddl'
         else:
-            name = f'{self.problem.name()}'
+            name = f'{self.problem.name}'
         out.write(f'(define (problem {name}-problem)\n')
         out.write(f' (:domain {name}-domain)\n')
         if len(self.problem.user_types()) > 0:

@@ -19,8 +19,9 @@ import upf.model
 import upf.walkers as walkers
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.transformers.transformer import Transformer
-from upf.model import Problem, InstantaneousAction, DurativeAction, Object, Effect, FNode, Variable, operators as op
+from upf.model import Problem, InstantaneousAction, DurativeAction, Object, Effect, FNode, Action, operators as op
 from upf.model.expression import Expression
+from upf.exceptions import UPFProblemDefinitionError
 from typing import List, Dict, Union
 from itertools import product
 from collections import OrderedDict
@@ -68,9 +69,14 @@ class QuantifiersRemover(Transformer):
     to transform a problem with quantifiers into a problem without.
     '''
     def __init__(self, problem: Problem, name: str = 'quantifiers_remover'):
-        Transformer.__init__(self, problem, name)
+        Transformer.__init__(self, problem)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
+        self._name = name
+        #Represents the map from the new action to the old action
+        self._new_to_old: Dict[Action, Action] = {}
+        #represents a mapping from the action of the original problem to action of the new one.
+        self._old_to_new: Dict[Action, List[Action]] = {}
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
@@ -87,7 +93,7 @@ class QuantifiersRemover(Transformer):
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
-        self._create_problem_copy("unquantified")
+        self._create_problem_copy(self._name)
         self._new_problem_add_fluents()
         self._new_problem_add_objects()
         self._new_problem_add_initial_values()
@@ -97,9 +103,13 @@ class QuantifiersRemover(Transformer):
             if isinstance(a, InstantaneousAction):
                 na = self._action_without_quantifiers(a)
                 self._new_problem.add_action(na)
+                self._old_to_new[a] = [na]
+                self._new_to_old[na] = a
             elif isinstance(a, DurativeAction):
                 nda = self._durative_action_without_quantifiers(a)
                 self._new_problem.add_action(nda)
+                self._old_to_new[a] = [nda]
+                self._new_to_old[nda] = a
             else:
                 raise NotImplementedError
         for t, el in self._problem.timed_effects().items():
@@ -119,8 +129,10 @@ class QuantifiersRemover(Transformer):
         return self._new_problem
 
     def _durative_action_without_quantifiers(self, action) -> DurativeAction:
-        new_action = self._create_durative_action_copy(action)
-
+        new_action = DurativeAction(f'{self._name}_{action.name}', OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+        if self._problem.has_action(new_action.name):
+            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        new_action.set_duration_constraint(action.duration())
         for t, cl in action.conditions().items():
             for c in cl:
                 nc = self._expression_quantifier_remover.remove_quantifiers(c, self._problem)
@@ -143,10 +155,19 @@ class QuantifiersRemover(Transformer):
         return Effect(effect.fluent(), nv, nc, effect.kind())
 
     def _action_without_quantifiers(self, action) -> InstantaneousAction:
-        new_action = self._create_action_copy(action)
+        new_action = InstantaneousAction(f'{self._name}_{action.name}', OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
+        if self._problem.has_action(new_action.name):
+            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
         for p in action.preconditions():
             np = self._expression_quantifier_remover.remove_quantifiers(p, self._problem)
             new_action.add_precondition(np)
         for e in action.effects():
             new_action._add_effect_instance(self._effect_without_quantifiers(e))
         return new_action
+
+
+    def get_original_action(self, action: Action) -> Action:
+        return self._new_to_old[action]
+
+    def get_transformed_actions(self, action: Action) -> List[Action]:
+        return self._old_to_new[action]

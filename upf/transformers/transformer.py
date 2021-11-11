@@ -27,8 +27,7 @@ from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 class Transformer:
     '''Represents a generic remover with all the support methods shared among them.'''
-    def __init__(self, problem: Problem, name: str = 'transformer'):
-        self._name = name
+    def __init__(self, problem: Problem):
         self._problem = problem
         self._env = problem.env
         self._new_problem: Optional[Problem] = None
@@ -37,7 +36,7 @@ class Transformer:
     def get_original_action(self, action: Action) -> Action:
         raise NotImplementedError
 
-    def get_transformed_actions(self, action: Action) -> Action:
+    def get_transformed_actions(self, action: Action) -> List[Action]:
         raise NotImplementedError
 
     def get_rewritten_problem(self) -> Problem:
@@ -50,8 +49,6 @@ class Transformer:
         if isinstance(plan, SequentialPlan):
             new_actions: List[ActionInstance] = plan.actions()
             old_actions: List[ActionInstance] = []
-            print(new_actions)
-            print(self._new_to_old)
             for ai in new_actions:
                 old_actions.append(ActionInstance(self.get_original_action(ai.action()), ai.actual_parameters()))
             return SequentialPlan(old_actions)
@@ -125,7 +122,7 @@ class Transformer:
         return True
 
     def _create_problem_copy(self, str_to_add: str):
-        self._new_problem = Problem(str_to_add + "_" + str(self._problem.name()), self._env)
+        self._new_problem = Problem(str_to_add + "_" + str(self._problem.name), self._env)
 
     def _new_problem_add_fluents(self):
         for f in self._problem.fluents().values():

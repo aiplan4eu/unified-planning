@@ -43,8 +43,8 @@ class TestModel(TestCase):
                 self.assertEqual(action_1_clone, action_2)
                 self.assertNotEqual(action_1, action_1_clone)
                 self.assertNotEqual(action_1_clone, action_1)
-                self.assertNotEqual(action_1, action_1_clone.name())
-                self.assertNotEqual(action_1_clone.name(), action_1)
+                self.assertNotEqual(action_1, action_1_clone.name)
+                self.assertNotEqual(action_1_clone.name, action_1)
             self.assertEqual(problem_clone_1, problem)
             self.assertEqual(problem, problem_clone_1)
             self.assertNotEqual(problem_clone_2, problem)
@@ -58,7 +58,7 @@ class TestModel(TestCase):
         with self.assertRaises(NotImplementedError):
             hash(a)
         with self.assertRaises(NotImplementedError):
-            a == a.name()
+            a == a.name
         with self.assertRaises(NotImplementedError):
             a.is_conditional()
 

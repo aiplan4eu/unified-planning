@@ -44,7 +44,7 @@ class ActionInstance:
                 s.append(str(p))
                 first = False
             s.append(')')
-        return self._action.name() + ''.join(s)
+        return self._action.name + ''.join(s)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ActionInstance):

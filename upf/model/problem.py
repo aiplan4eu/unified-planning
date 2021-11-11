@@ -47,8 +47,8 @@ class Problem:
 
     def __repr__(self) -> str:
         s = []
-        if not self.name() is None:
-            s.append(f'problem name = {str(self.name())}\n\n')
+        if not self.name is None:
+            s.append(f'problem name = {str(self.name)}\n\n')
         if len(self.user_types()) > 0:
             s.append(f'types = {str(list(self.user_types().values()))}\n\n')
         s.append('fluents = [\n')
@@ -186,9 +186,15 @@ class Problem:
         '''Returns the problem environment.'''
         return self._env
 
+    @property
     def name(self) -> Optional[str]:
         '''Returns the problem name.'''
         return self._name
+
+    @name.setter
+    def name(self, new_name: str):
+        '''Sets the problem name.'''
+        self._name = new_name
 
     def fluents(self) -> Dict[str, 'upf.model.fluent.Fluent']:
         '''Returns the fluents.'''
@@ -248,9 +254,9 @@ class Problem:
 
     def add_action(self, action: 'upf.model.action.Action'):
         '''Adds the given action.'''
-        if action.name() in self._actions:
-            raise UPFProblemDefinitionError('InstantaneousAction ' + action.name() + ' already defined!')
-        self._actions[action.name()] = action
+        if action.name in self._actions:
+            raise UPFProblemDefinitionError('InstantaneousAction ' + action.name + ' already defined!')
+        self._actions[action.name] = action
 
     def user_types(self) -> Dict[str, 'upf.model.types.Type']:
         '''Returns the user types.'''
