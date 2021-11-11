@@ -29,7 +29,6 @@ class Problem:
                                                               int, float, Fraction]] = {}):
         self._env = upf.environment.get_env(env)
         self._operators_extractor = OperatorsExtractor()
-        self._kind = upf.model.problem_kind.ProblemKind()
         self._name = name
         self._fluents: Dict[str, 'upf.model.fluent.Fluent'] = {}
         self._actions: Dict[str, 'upf.model.action.Action'] = {}
@@ -99,7 +98,7 @@ class Problem:
     def __eq__(self, oth: object) -> bool:
         if not (isinstance(oth, Problem)) or self._env != oth._env:
             return False
-        if self._kind != oth._kind or self._name != oth._name:
+        if self.kind() != oth.kind() or self._name != oth._name:
             return False
         if self._fluents != oth._fluents or set(self._goals) != set(oth._goals):
             return False
@@ -167,18 +166,17 @@ class Problem:
 
     def clone(self):
         new_p = Problem(self._name, self._env)
-        new_p._kind = self._kind.clone()
-        new_p._fluents = {fn: f.clone() for fn, f in self._fluents.items()}
+        new_p._fluents = self._fluents.copy()
         new_p._actions = {an: a.clone() for an, a in self._actions.items()}
         new_p._user_types = self._user_types.copy()
-        new_p._objects = {on: o.clone() for on, o in self._objects.items()}
+        new_p._objects = self._objects.copy()
         new_p._initial_value = self._initial_value.copy()
-        new_p._timed_effects = {t.clone(): [e.clone() for e in el] for t, el in self._timed_effects.items()}
-        new_p._timed_goals = {t.clone(): [g for g in gl] for t, gl in self._timed_goals.items()}
-        new_p._maintain_goals = {i.clone(): [g for g in gl] for i, gl in self._maintain_goals.items()}
+        new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
+        new_p._timed_goals = {t: [g for g in gl] for t, gl in self._timed_goals.items()}
+        new_p._maintain_goals = {i: [g for g in gl] for i, gl in self._maintain_goals.items()}
         new_p._goals = self._goals[:]
         new_p._initial_defaults = self._initial_defaults.copy()
-        new_p._fluents_defaults = {new_p._fluents[fluent.name()]: exp for fluent, exp in self._fluents_defaults.items()}
+        new_p._fluents_defaults = self._fluents_defaults.copy()
         assert self == new_p
         assert hash(self) == hash(new_p)
         return new_p
@@ -207,13 +205,15 @@ class Problem:
         '''Adds the given fluent.'''
         if fluent.name() in self._fluents:
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
-        self._update_problem_kind_type(fluent.type())
-        for t in fluent.signature():
-            self._update_problem_kind_type(t)
         self._fluents[fluent.name()] = fluent
         if not default_initial_value is None:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
+        if fluent.type().is_user_type():
+            self._user_types[fluent.type().name()] = fluent.type() # type: ignore
+        for type in fluent.signature():
+            if type.is_user_type():
+                self._user_types[type.name()] = type # type: ignore
 
     def actions(self) -> Dict[str, 'upf.model.action.Action']:
         '''Returns the actions.'''
@@ -250,33 +250,6 @@ class Problem:
         '''Adds the given action.'''
         if action.name() in self._actions:
             raise UPFProblemDefinitionError('InstantaneousAction ' + action.name() + ' already defined!')
-        for p in action.parameters():
-            self._update_problem_kind_type(p.type())
-        if isinstance(action, upf.model.action.InstantaneousAction):
-            for c in action.preconditions():
-                self._update_problem_kind_condition(c)
-            for e in action.effects():
-                self._update_problem_kind_effect(e)
-        elif isinstance(action, upf.model.action.DurativeAction):
-            lower, upper = action.duration().lower(), action.duration().upper()
-            if lower.constant_value() != upper.constant_value():
-                self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
-            for i, l in action.durative_conditions().items():
-                if i.lower().bound() != 0 or i.upper().bound() != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for c in l:
-                    self._update_problem_kind_condition(c)
-            for t, l in action.conditions().items():
-                if t.bound() != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for c in l:
-                    self._update_problem_kind_condition(c)
-            for t, l in action.effects().items():
-                if t.bound() != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for e in l:
-                    self._update_problem_kind_effect(e)
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         self._actions[action.name()] = action
 
     def user_types(self) -> Dict[str, 'upf.model.types.Type']:
@@ -296,6 +269,8 @@ class Problem:
         if obj.name() in self._objects:
             raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
         self._objects[obj.name()] = obj
+        if obj.type().is_user_type():
+            self._user_types[obj.type().name()] = obj.type() # type: ignore
 
     def add_objects(self, objs: List['upf.model.object.Object']):
         '''Adds the given objects.'''
@@ -303,6 +278,8 @@ class Problem:
             if obj.name() in self._objects:
                 raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
             self._objects[obj.name()] = obj
+            if obj.type().is_user_type():
+                self._user_types[obj.type().name()] = obj.type() # type: ignore
 
     def object(self, name: str) -> 'upf.model.object.Object':
         '''Returns the object with the given name.'''
@@ -411,16 +388,13 @@ class Problem:
         '''Adds a timed goal.'''
         if timing.is_from_end() and timing.bound() > 0:
             raise UPFProblemDefinitionError('Timing used in timed goal cannot be `end - k` with k > 0.')
-        self._kind.set_time('TIMED_GOALS') # type: ignore
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        self._update_problem_kind_condition(goal_exp)
         if timing in self._timed_goals:
             if goal_exp not in self._timed_goals[timing]:
                 self._timed_goals[timing].append(goal_exp)
         else:
             self._timed_goals[timing] = [goal_exp]
-        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
 
     def timed_goals(self) -> Dict['upf.model.timing.Timing', List['upf.model.fnode.FNode']]:
         '''Returns the timed goals.'''
@@ -469,9 +443,6 @@ class Problem:
                                          condition_exp, kind = upf.model.effect.DECREASE))
 
     def _add_effect_instance(self, timing: 'upf.model.timing.Timing', effect: 'upf.model.effect.Effect'):
-        self._update_problem_kind_effect(effect)
-        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
-        self._kind.set_time('TIMED_EFFECT') # type: ignore
         if timing in self._timed_effects:
             if effect not in self._timed_effects[timing]:
                 self._timed_effects[timing].append(effect)
@@ -487,16 +458,13 @@ class Problem:
         if ((interval.lower().is_from_end() and interval.lower().bound() > 0) or
             (interval.upper().is_from_end() and interval.upper().bound() > 0)):
             raise UPFProblemDefinitionError('Problem timing can not be `end - k` with k > 0.')
-        self._kind.set_time('MAINTAIN_GOALS') # type: ignore
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        self._update_problem_kind_condition(goal_exp)
         if interval in self._maintain_goals:
             if goal_exp not in self._maintain_goals[interval]:
                 self._maintain_goals[interval].append(goal_exp)
         else:
             self._maintain_goals[interval] = [goal_exp]
-        self._kind.set_time('CONTINUOUS_TIME') # type: ignore
 
     def maintain_goals(self) -> Dict['upf.model.timing.Interval', List['upf.model.fnode.FNode']]:
         '''Returns the maintain goals.'''
@@ -506,7 +474,6 @@ class Problem:
         '''Adds a goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        self._update_problem_kind_condition(goal_exp)
         self._goals.append(goal_exp)
 
     def goals(self) -> List['upf.model.fnode.FNode']:
@@ -515,11 +482,36 @@ class Problem:
 
     def kind(self) -> 'upf.model.problem_kind.ProblemKind':
         '''Returns the problem kind of this planning problem.'''
+        self._kind = upf.model.problem_kind.ProblemKind()
+        for fluent in self._fluents.values():
+            self._update_problem_kind_fluent(fluent)
+        for action in self._actions.values():
+            self._update_problem_kind_action(action)
+        if len(self._timed_effects) > 0:
+            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+            self._kind.set_time('TIMED_EFFECT') # type: ignore
+        for effect_list in self._timed_effects.values():
+                for effect in effect_list:
+                    self._update_problem_kind_effect(effect)
+        if len(self._timed_goals) > 0:
+            self._kind.set_time('TIMED_GOALS') # type: ignore
+            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+        for goal_list in self._timed_goals.values():
+            for goal in goal_list:
+                self._update_problem_kind_condition(goal)
+        if len(self._maintain_goals) > 0:
+            self._kind.set_time('MAINTAIN_GOALS') # type: ignore
+            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+        for goal_list in self._maintain_goals.values():
+            for goal in goal_list:
+                self._update_problem_kind_condition(goal)
+        for goal in self._goals:
+            self._update_problem_kind_condition(goal)
         return self._kind
 
     def has_quantifiers(self) -> bool:
         '''Returns True only if the problem has quantifiers'''
-        return self._kind.has_existential_conditions() or self._kind.has_universal_conditions() # type: ignore
+        return self.kind().has_existential_conditions() or self.kind().has_universal_conditions() # type: ignore
 
     def _update_problem_kind_effect(self, e: 'upf.model.effect.Effect'):
         if e.is_conditional():
@@ -545,8 +537,43 @@ class Problem:
     def _update_problem_kind_type(self, type: 'upf.model.types.Type'):
         if type.is_user_type():
             self._kind.set_typing('FLAT_TYPING') # type: ignore
-            self._user_types[type.name()] = type # type: ignore
         elif type.is_int_type():
             self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
         elif type.is_real_type():
             self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+
+    def _update_problem_kind_fluent(self, fluent: 'upf.model.fluent.Fluent'):
+        self._update_problem_kind_type(fluent.type())
+        for t in fluent.signature():
+            self._update_problem_kind_type(t)
+
+    def _update_problem_kind_action(self, action: 'upf.model.action.Action'):
+        for p in action.parameters():
+            self._update_problem_kind_type(p.type())
+        if isinstance(action, upf.model.action.InstantaneousAction):
+            for c in action.preconditions():
+                self._update_problem_kind_condition(c)
+            for e in action.effects():
+                self._update_problem_kind_effect(e)
+        elif isinstance(action, upf.model.action.DurativeAction):
+            lower, upper = action.duration().lower(), action.duration().upper()
+            if lower.constant_value() != upper.constant_value():
+                self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
+            for i, l in action.durative_conditions().items():
+                if i.lower().bound() != 0 or i.upper().bound() != 0:
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+                for c in l:
+                    self._update_problem_kind_condition(c)
+            for t, l in action.conditions().items():
+                if t.bound() != 0:
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+                for c in l:
+                    self._update_problem_kind_condition(c)
+            for t, l in action.effects().items():
+                if t.bound() != 0:
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+                for e in l:
+                    self._update_problem_kind_effect(e)
+            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+        else:
+            raise NotImplementedError

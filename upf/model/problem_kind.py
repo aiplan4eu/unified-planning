@@ -71,12 +71,6 @@ class ProblemKind(metaclass=ProblemKindMeta):
             raise
         return oth._features.issubset(self._features)
 
-    def clone(self):
-        new_pk = ProblemKind(self._features.copy())
-        assert self == new_pk
-        assert hash(self) == hash(new_pk)
-        return new_pk
-
     def features(self) -> Set[str]:
         return self._features
 

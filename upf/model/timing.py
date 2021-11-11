@@ -47,12 +47,6 @@ class Timing:
         else:
             return hash(self._bound) ^ hash('EndTiming')
 
-    def clone(self):
-        new_t = Timing(self._bound, self._is_from_start)
-        assert self == new_t
-        assert hash(self) == hash(new_t)
-        return new_t
-
     def bound(self):
         return self._bound
 
@@ -119,12 +113,6 @@ class IntervalDuration:
         if self._is_right_open:
             res ^= hash('is_right_open')
         return res
-
-    def clone(self):
-        new_id = IntervalDuration(self._lower, self._upper, self._is_left_open, self._is_right_open)
-        assert self == new_id
-        assert hash(self) == hash(new_id)
-        return new_id
 
     def lower(self):
         return self._lower
@@ -198,12 +186,6 @@ class Interval:
         if self._is_right_open:
             res ^= hash('is_right_open')
         return res
-
-    def clone(self):
-        new_i = Interval(self._lower, self._upper, self._is_left_open, self._is_right_open)
-        assert self == new_i
-        assert hash(self) == hash(new_i)
-        return new_i
 
     def lower(self):
         return self._lower

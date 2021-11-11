@@ -48,12 +48,6 @@ class ActionParameter:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)
 
-    def clone(self):
-        new_ap = ActionParameter(self._name, self._typename)
-        assert self == new_ap
-        assert hash(self) == hash(new_ap)
-        return new_ap
-
     def name(self) -> str:
         """Returns the parameter name."""
         return self._name
@@ -333,19 +327,10 @@ class DurativeAction(Action):
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.type()
         new_durative_action = DurativeAction(self._name, new_params, self._env)
-        new_durative_action._duration = self._duration.clone()
-        new_conditions = {}
-        for t, cl in self._conditions.items():
-            new_conditions[t.clone()] = cl[:]
-        new_durative_action._conditions = new_conditions
-        new_durative_conditions = {}
-        for i, dcl in self._durative_conditions.items():
-            new_durative_conditions[i.clone()] = dcl[:]
-        new_durative_action._durative_conditions = new_durative_conditions
-        new_effects = {}
-        for t, el in self._effects.items():
-            new_effects[t.clone()] = [e.clone() for e in el]
-        new_durative_action._effects = new_effects
+        new_durative_action._duration = self._duration
+        new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
+        new_durative_action._durative_conditions = {i : dcl[:] for i, dcl in self._durative_conditions.items()}
+        new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
         assert self == new_durative_action
         assert hash(self) == hash(new_durative_action)
         return new_durative_action
