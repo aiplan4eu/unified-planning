@@ -511,7 +511,8 @@ class Problem:
 
     def has_quantifiers(self) -> bool:
         '''Returns True only if the problem has quantifiers'''
-        return self.kind().has_existential_conditions() or self.kind().has_universal_conditions() # type: ignore
+        kind = self.kind()
+        return kind.has_existential_conditions() or kind.has_universal_conditions() # type: ignore
 
     def _update_problem_kind_effect(self, e: 'upf.model.effect.Effect'):
         if e.is_conditional():
