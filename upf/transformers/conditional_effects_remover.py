@@ -70,6 +70,8 @@ class ConditionalEffectsRemover(Transformer):
         self._new_problem._actions = {}
         for ua in self._problem.unconditional_actions():
             self._new_problem.add_action(ua)
+            self._new_to_old[ua] = ua
+            self._map_old_to_new_action(ua, ua)
         for action in self._problem.conditional_actions():
             self._counter = 0
             if isinstance(action, InstantaneousAction):

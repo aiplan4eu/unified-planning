@@ -50,6 +50,8 @@ class Transformer:
         if isinstance(plan, SequentialPlan):
             new_actions: List[ActionInstance] = plan.actions()
             old_actions: List[ActionInstance] = []
+            print(new_actions)
+            print(self._new_to_old)
             for ai in new_actions:
                 old_actions.append(ActionInstance(self.get_original_action(ai.action()), ai.actual_parameters()))
             return SequentialPlan(old_actions)
