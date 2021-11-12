@@ -67,6 +67,7 @@ class TestNegativeConditionsRemover(TestCase):
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
+            print(positive_problem)
             new_plan = npr.rewrite_back_plan(positive_plan)
             with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
@@ -133,12 +134,3 @@ class TestNegativeConditionsRemover(TestCase):
         with self.assertRaises(UPFExpressionDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
         self.assertIn(f"Expression: {Not(Iff(x, y))} is not in NNF.", str(e.exception))
-
-    def test_ad_hoc_2(self):
-        r = Fluent('r', RealType())
-        problem = Problem('ad_hoc_2')
-        problem.set_initial_value(r, 5.1)
-        npr = NegativeConditionsRemover(problem)
-        with self.assertRaises(UPFProblemDefinitionError) as e:
-            positive_problem = npr.get_rewritten_problem()
-        self.assertIn(f"Initial value: {str(problem.initial_value(r))} of fluent: {FluentExp(r)} is not a boolean constant. An initial value MUST be a Boolean constant.", str(e.exception))

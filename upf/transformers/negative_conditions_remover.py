@@ -147,17 +147,14 @@ class NegativeConditionsRemover(Transformer):
 
         for fl, v in self._problem.initial_values().items():
             fneg = fluent_mapping.get(fl.fluent(), None)
-            if v.is_bool_constant():
-                self._new_problem.set_initial_value(fl, v)
-                if fneg is not None:
-                    if v.bool_constant_value():
-                        self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
-                        tuple(fl.args())), self._env.expression_manager.FALSE())
-                    else:
-                        self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
-                        tuple(fl.args())), self._env.expression_manager.TRUE())
-            else:
-                raise UPFProblemDefinitionError(f"Initial value: {v} of fluent: {fl} is not a boolean constant. An initial value MUST be a Boolean constant.")
+            self._new_problem.set_initial_value(fl, v)
+            if fneg is not None:
+                if v.bool_constant_value():
+                    self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
+                    tuple(fl.args())), self._env.expression_manager.FALSE())
+                else:
+                    self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
+                    tuple(fl.args())), self._env.expression_manager.TRUE())
 
         for name, action in self._problem.actions().items():
             if isinstance(action, InstantaneousAction):
@@ -166,17 +163,10 @@ class NegativeConditionsRemover(Transformer):
                 for e in new_action.effects():
                     fl, v = e.fluent(), e.value()
                     fneg = fluent_mapping.get(fl.fluent(), None)
-                    #NOTE: is this if correct?
-                    if v.is_bool_constant():
-                        if fneg is not None:
-                            if v.bool_constant_value():
-                                new_effects.append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
-                                                         self._env.expression_manager.FALSE(), e.condition(), e.kind()))
-                            else:
-                                new_effects.append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
-                                                         self._env.expression_manager.TRUE(), e.condition(), e.kind()))
-                    else:
-                        raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+                    if fneg is not None:
+                        simplified_not_v = self._simplifier.simplify(self._env.expression_manager.Not(v))
+                        new_effects.append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                simplified_not_v, e.condition(), e.kind()))
                 for ne in new_effects:
                     new_action._add_effect_instance(ne)
                 self._new_problem.add_action(new_action)
@@ -192,17 +182,10 @@ class NegativeConditionsRemover(Transformer):
                     for e in el:
                         fl, v = e.fluent(), e.value()
                         fneg = fluent_mapping.get(fl.fluent(), None)
-                        #NOTE: is this if correct?
-                        if v.is_bool_constant():
-                            if fneg is not None:
-                                if v.bool_constant_value():
-                                    new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
-                                                                 self._env.expression_manager.FALSE(), e.condition(), e.kind()))
-                                else:
-                                    new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
-                                                                 self._env.expression_manager.TRUE(), e.condition(), e.kind()))
-                        else:
-                            raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+                        if fneg is not None:
+                            simplified_not_v = self._simplifier.simplify(self._env.expression_manager.Not(v))
+                            new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                            simplified_not_v, e.condition(), e.kind()))
                 for t, nel in new_timing_effects.items():
                     for ne in nel:
                         new_durative_action._add_effect_instance(t, ne)
@@ -218,17 +201,10 @@ class NegativeConditionsRemover(Transformer):
             for e in el:
                 fl, v = e.fluent(), e.value()
                 fneg = fluent_mapping.get(fl.fluent(), None)
-                #NOTE: is this if correct?
-                if v.is_bool_constant():
-                    if fneg is not None:
-                        if v.bool_constant_value():
-                            new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
-                                                        self._env.expression_manager.FALSE(), e.condition(), e.kind()))
-                        else:
-                            new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
-                                                        self._env.expression_manager.TRUE(), e.condition(), e.kind()))
-                else:
-                    raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+                if fneg is not None:
+                    simplified_not_v = self._simplifier.simplify(self._env.expression_manager.Not(v))
+                    new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                    self._env.expression_manager.FALSE(), e.condition(), e.kind()))
         for t, el in new_timing_effects.items():
             for e in el:
                 self._new_problem._add_effect_instance(t, e)

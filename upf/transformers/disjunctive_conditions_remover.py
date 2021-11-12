@@ -66,20 +66,21 @@ class DisjunctiveConditionsRemover(Transformer):
                     na = self._create_new_action_with_given_precond(new_precond, a)
                     self._new_problem.add_action(na)
             elif isinstance(a, DurativeAction):
-                temporal_list: List[Union[Timing, Interval]] = []
+                timing_list: List[Timing] = []
+                interval_list: List[Interval] = []
                 conditions: List[List[FNode]] = []
                 # save the timing, calculate the dnf of the and of all the conditions at the same time
                 # and then save it in conditions.
                 # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
                 for t, cl in a.conditions().items():
-                    temporal_list.append(t)
+                    timing_list.append(t)
                     new_cond = dnf.get_dnf_expression(self._env.expression_manager.And(cl))
                     if new_cond.is_or():
                         conditions.append(new_cond.args())
                     else:
                         conditions.append([new_cond])
                 for i, cl in a.durative_conditions().items():
-                    temporal_list.append(i)
+                    interval_list.append(i)
                     new_cond = dnf.get_dnf_expression(self._env.expression_manager.And(cl))
                     if new_cond.is_or():
                         conditions.append(new_cond.args())
@@ -87,22 +88,28 @@ class DisjunctiveConditionsRemover(Transformer):
                         conditions.append([new_cond])
                 conditions_tuple: Tuple[List[FNode], ...] = product(*conditions)
                 for cond_list in conditions_tuple:
-                    nda = self._create_new_durative_action_with_given_conds_at_given_times(temporal_list, cond_list, a)
+                    nda = self._create_new_durative_action_with_given_conds_at_given_times(timing_list, interval_list, cond_list, a)
                     self._new_problem.add_action(nda)
             else:
                 raise NotImplementedError
 
-    def _create_new_durative_action_with_given_conds_at_given_times(self, temporal_list: List[Union[Timing, Interval]], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
+    def _create_new_durative_action_with_given_conds_at_given_times(self, timing_list: List[Timing], interval_list: List[Interval], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
         new_action = original_action.clone()
         new_action.name = self._get_fresh_action_name(original_action)
         new_action.clear_conditions()
         new_action.clear_durative_conditions()
-        for t, c in zip(temporal_list, cond_list):
+        for t, c in zip(timing_list, cond_list[:len(timing_list)]):
             if c.is_and():
                 for co in c.args():
-                    self._add_condition(new_action, t, co)
+                    new_action.add_condition(t, co)
             else:
-                self._add_condition(new_action, t, c)
+                new_action.add_condition(t, c)
+        for i, c in zip(interval_list, cond_list[len(interval_list):]):
+            if c.is_and():
+                for co in c.args():
+                    new_action.add_durative_condition(i, co)
+            else:
+                new_action.add_durative_condition(i, c)
         for timing, effects in original_action.effects().items():
             for effect in effects:
                 new_action._add_effect_instance(timing, effect)
@@ -110,14 +117,6 @@ class DisjunctiveConditionsRemover(Transformer):
         self._new_to_old[new_action] = original_action
         self._map_old_to_new_action(original_action, new_action)
         return new_action
-
-    def _add_condition(self, new_action: DurativeAction, time: Union[Timing, Interval], condition: FNode):
-        if isinstance(time, Timing):
-            new_action.add_condition(time, condition)
-        elif isinstance(time, Interval):
-            new_action.add_durative_condition(time, condition)
-        else:
-            raise NotImplementedError
 
     def _create_new_action_with_given_precond(self, precond: FNode, original_action: InstantaneousAction) -> InstantaneousAction:
         new_action = original_action.clone()
