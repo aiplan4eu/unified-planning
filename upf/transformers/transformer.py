@@ -120,37 +120,3 @@ class Transformer:
                 nap.append(ps)
         action._set_preconditions(nap)
         return True
-
-    def _create_problem_copy(self, str_to_add: str):
-        self._new_problem = Problem(str_to_add + "_" + str(self._problem.name), self._env)
-
-    def _new_problem_add_fluents(self):
-        for f in self._problem.fluents().values():
-            self._new_problem.add_fluent(f)
-
-    def _new_problem_add_objects(self):
-        for o in self._problem.all_objects():
-            self._new_problem.add_object(o)
-
-    def _new_problem_add_initial_values(self):
-        for fl, v in self._problem.initial_values().items():
-            self._new_problem.set_initial_value(fl, v)
-
-    def _new_problem_add_timed_effects(self):
-        for t, el in self._problem.timed_effects():
-            for e in el:
-                self._new_problem.add_timed_effect(t, e)
-
-    def _new_problem_add_timed_goals(self):
-        for t, gl in self._problem.timed_goals():
-            for g in gl:
-                self._new_problem.add_timed_goal(t, g)
-
-    def _new_problem_add_maintain_goals(self):
-        for i, gl in self._problem.maintain_goals():
-            for g in gl:
-                self._new_problem.add_maintain_goal(i, g)
-
-    def _new_problem_add_goals(self):
-        for g in self._problem.goals():
-            self._new_problem.add_goal(g)

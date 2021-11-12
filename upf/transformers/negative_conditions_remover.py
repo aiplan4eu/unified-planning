@@ -73,8 +73,10 @@ class NegativeConditionsRemover(Transformer):
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
-        self._create_problem_copy(self._name)
-        self._new_problem_add_objects()
+
+        self._new_problem = Problem(f'{self._name}_{self._problem.name}', self._env)
+        for o in self._problem.all_objects():
+            self._new_problem.add_object(o)
         assert self._new_problem is not None
         self._modify_actions_and_goals()
         return self._new_problem

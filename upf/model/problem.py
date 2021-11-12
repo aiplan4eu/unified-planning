@@ -225,6 +225,10 @@ class Problem:
         '''Returns the actions.'''
         return self._actions
 
+    def clear_actions(self):
+        '''Removes all the problem actions.'''
+        self._actions = {}
+
     def instantaneous_actions(self):
         for a in self._actions:
             if isinstance(a, upf.model.action.InstantaneousAction):
@@ -406,6 +410,10 @@ class Problem:
         '''Returns the timed goals.'''
         return self._timed_goals
 
+    def clear_timed_goals(self):
+        '''Removes the timed goals.'''
+        self._timed_goals = {}
+
     def add_timed_effect(self, timing: 'upf.model.timing.Timing', fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                          value: 'upf.model.expression.Expression', condition: 'upf.model.expression.BoolExpression' = True):
         '''Adds the given timed effect.'''
@@ -459,6 +467,10 @@ class Problem:
         '''Returns the timed effects.'''
         return self._timed_effects
 
+    def clear_timed_effects(self):
+        '''Removes the timed effects.'''
+        self._timed_effects = {}
+
     def add_maintain_goal(self, interval: 'upf.model.timing.Interval', goal: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', bool]):
         '''Adds a maintain goal.'''
         if ((interval.lower().is_from_end() and interval.lower().bound() > 0) or
@@ -476,6 +488,10 @@ class Problem:
         '''Returns the maintain goals.'''
         return self._maintain_goals
 
+    def clear_maintain_goals(self):
+        '''Removes the maintain goals.'''
+        self._maintain_goals = {}
+
     def add_goal(self, goal: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', bool]):
         '''Adds a goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
@@ -485,6 +501,10 @@ class Problem:
     def goals(self) -> List['upf.model.fnode.FNode']:
         '''Returns the goals.'''
         return self._goals
+
+    def clear_goals(self):
+        '''Removes the goals.'''
+        self._goals = []
 
     def kind(self) -> 'upf.model.problem_kind.ProblemKind':
         '''Returns the problem kind of this planning problem.'''

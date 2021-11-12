@@ -93,12 +93,13 @@ class QuantifiersRemover(Transformer):
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
-        self._create_problem_copy(self._name)
-        self._new_problem_add_fluents()
-        self._new_problem_add_objects()
-        self._new_problem_add_initial_values()
-        assert self._new_problem is not None
-
+        self._new_problem = self._problem.clone()
+        self._new_problem.name = f'{self._name}_{self._problem.name}'
+        self._new_problem.clear_actions()
+        self._new_problem.clear_timed_effects()
+        self._new_problem.clear_timed_goals()
+        self._new_problem.clear_maintain_goals()
+        self._new_problem.clear_goals()
         for a in self._problem.actions().values():
             if isinstance(a, InstantaneousAction):
                 na = self._action_without_quantifiers(a)

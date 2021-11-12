@@ -53,7 +53,7 @@ class ConditionalEffectsRemover(Transformer):
         #NOTE that a different environment might be needed when multi-threading
         self._new_problem = self._problem.clone()
         self._new_problem.name = f'{self._name}_{self._problem.name}'
-        self._new_problem._timed_effects = {}
+        self._new_problem.clear_timed_effects()
         for t, el in self._problem.timed_effects().items():
             for e in el:
                 if e.is_conditional():
@@ -67,7 +67,7 @@ class ConditionalEffectsRemover(Transformer):
                         self._new_problem.add_timed_effect(t, f, nv)
                 else:
                     self._new_problem._add_effect_instance(t, e)
-        self._new_problem._actions = {}
+        self._new_problem.clear_actions()
         for ua in self._problem.unconditional_actions():
             self._new_problem.add_action(ua)
             self._new_to_old[ua] = ua

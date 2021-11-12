@@ -46,15 +46,9 @@ class DisjunctiveConditionsRemover(Transformer):
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
-        self._create_problem_copy(self._name)
-        assert self._new_problem is not None
-        self._new_problem_add_fluents()
-        self._new_problem_add_objects()
-        self._new_problem_add_initial_values()
-        self._new_problem_add_timed_effects()
-        self._new_problem_add_timed_goals()
-        self._new_problem_add_maintain_goals()
-        self._new_problem_add_goals()
+        self._new_problem = self._problem.clone()
+        self._new_problem.name = f'{self._name}_{self._problem.name}'
+        self._new_problem.clear_actions()
         self._handle_actions()
 
         return self._new_problem
