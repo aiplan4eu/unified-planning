@@ -15,8 +15,9 @@
 """This module defines the negative preconditions remover class."""
 
 
+
 from upf.transformers.transformer import Transformer
-from upf.model import Fluent, Problem, InstantaneousAction, DurativeAction, FNode, Action
+from upf.model import Fluent, Problem, InstantaneousAction, DurativeAction, FNode, Action, Effect, Timing
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
 from typing import List, Dict, Union
@@ -90,6 +91,9 @@ class NegativeConditionsRemover(Transformer):
                 for p in action.preconditions():
                     np = self._fluent_remover.remove_negative_fluents(p)
                     new_action.add_precondition(np)
+                #NOTE: here effects are considered mutable. Easy to change the action's effects, but creates a dependency
+                for ce in new_action.conditional_effects():
+                    ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
                 name_action_map[name] = new_action
             elif isinstance(action, DurativeAction):
                 new_durative_action = action.clone()
@@ -106,9 +110,23 @@ class NegativeConditionsRemover(Transformer):
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
                         new_durative_action.add_durative_condition(i, nc)
+                #NOTE: here effects are considered mutable. Easy to change the action's effects, but creates a dependency
+                for t, cel in new_durative_action.conditional_effects():
+                    for ce in cel:
+                        ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
                 name_action_map[name] = new_durative_action
             else:
                 raise NotImplementedError
+
+        for t, el in self._problem.timed_effects().items():
+            for e in el:
+                self._new_problem._add_effect_instance(t, e.clone())
+
+        for t, el in self._new_problem.timed_effects().items():
+            for e in el:
+                #NOTE: here effects are considered mutable. Easy to change the action's effects, but creates a dependency
+                if e.is_conditional():
+                    e.set_condition(self._fluent_remover.remove_negative_fluents(e.condition()))
 
         for t, gl in self._problem.timed_goals().items():
             for g in gl:
@@ -147,65 +165,76 @@ class NegativeConditionsRemover(Transformer):
         for name, action in self._problem.actions().items():
             if isinstance(action, InstantaneousAction):
                 new_action = name_action_map[name]
-                new_action.clear_effects()
-                for e in action.effects():
-                    if e.is_conditional():
-                        raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.")
+                new_effects: List[Effect] = []
+                for e in new_action.effects():
                     fl, v = e.fluent(), e.value()
                     fneg = fluent_mapping.get(fl.fluent(), None)
+                    #NOTE: is this if correct?
                     if v.is_bool_constant():
-                        new_action.add_effect(fl, v)
                         if fneg is not None:
                             if v.bool_constant_value():
-                                new_action.add_effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.FALSE())
+                                new_effects.append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                         self._env.expression_manager.FALSE(), e.condition(), e.kind()))
                             else:
-                                new_action.add_effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
+                                new_effects.append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                         self._env.expression_manager.TRUE(), e.condition(), e.kind()))
                     else:
                         raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+                for ne in new_effects:
+                    new_action._add_effect_instance(ne)
                 self._new_problem.add_action(new_action)
                 self._old_to_new[action] = [new_action]
                 self._new_to_old[new_action] = action
             elif isinstance(action, DurativeAction):
                 new_durative_action = name_action_map[name]
                 new_durative_action.set_duration_constraint(action.duration())
-                new_durative_action.clear_effects()
-                for t, el in action.effects().items():
+                new_timing_effects: Dict[Timing, List[Effect]] = {}
+
+                for t, el in new_durative_action.effects().items():
+                    new_timing_effects[t] = []
                     for e in el:
-                        if e.is_conditional():
-                            raise UPFProblemDefinitionError(f"Effect: {e} of action: {action} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.")
                         fl, v = e.fluent(), e.value()
                         fneg = fluent_mapping.get(fl.fluent(), None)
+                        #NOTE: is this if correct?
                         if v.is_bool_constant():
-                            new_durative_action.add_effect(t, fl, v)
                             if fneg is not None:
                                 if v.bool_constant_value():
-                                    new_durative_action.add_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.FALSE())
+                                    new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                                 self._env.expression_manager.FALSE(), e.condition(), e.kind()))
                                 else:
-                                    new_durative_action.add_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
+                                    new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                                 self._env.expression_manager.TRUE(), e.condition(), e.kind()))
                         else:
                             raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
+                for t, nel in new_timing_effects.items():
+                    for ne in nel:
+                        new_durative_action._add_effect_instance(t, ne)
                 self._new_problem.add_action(new_durative_action)
                 self._old_to_new[action] = [new_durative_action]
                 self._new_to_old[new_durative_action] = action
             else:
                 raise NotImplementedError
 
-        for t, el in self._problem.timed_effects().items():
+        new_timing_effects = {}
+        for t, el in self._new_problem.timed_effects().items():
+            new_timing_effects[t] = []
             for e in el:
-                if e.is_conditional():
-                    raise UPFProblemDefinitionError(f"Timed effect: {e} at time {t} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.")
                 fl, v = e.fluent(), e.value()
                 fneg = fluent_mapping.get(fl.fluent(), None)
+                #NOTE: is this if correct?
                 if v.is_bool_constant():
-                    self._new_problem.add_timed_effect(t, f, v)
                     if fneg is not None:
                         if v.bool_constant_value():
-                            self._new_problem.add_timed_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.FALSE())
+                            new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                        self._env.expression_manager.FALSE(), e.condition(), e.kind()))
                         else:
-                            self._new_problem.add_timed_effect(t, self._env.expression_manager.FluentExp(fneg, tuple(fl.args())), self._env.expression_manager.TRUE())
+                            new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                                                        self._env.expression_manager.TRUE(), e.condition(), e.kind()))
                 else:
                     raise UPFProblemDefinitionError(f"Effect; {e} assigns value: {v} to fluent: {fl}, but value is not a boolean constant.")
-
+        for t, el in new_timing_effects.items():
+            for e in el:
+                self._new_problem._add_effect_instance(t, e)
 
     def get_original_action(self, action: Action) -> Action:
         return self._new_to_old[action]

@@ -159,7 +159,7 @@ class InstantaneousAction(Action):
             new_params[param_name] = param.type()
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
-        new_instantaneous_action._effects = self._effects[:]
+        new_instantaneous_action._effects = [e.clone() for e in self._effects]
         return new_instantaneous_action
 
     def preconditions(self) -> List['upf.model.fnode.FNode']:
