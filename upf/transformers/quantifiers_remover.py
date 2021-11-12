@@ -69,10 +69,9 @@ class QuantifiersRemover(Transformer):
     to transform a problem with quantifiers into a problem without.
     '''
     def __init__(self, problem: Problem, name: str = 'quantifiers_remover'):
-        Transformer.__init__(self, problem)
+        Transformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
-        self._name = name
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.
@@ -130,9 +129,7 @@ class QuantifiersRemover(Transformer):
         return self._new_problem
 
     def _durative_action_without_quantifiers(self, action) -> DurativeAction:
-        new_action = DurativeAction(f'{self._name}_{action.name}', OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
-        if self._problem.has_action(new_action.name):
-            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        new_action = DurativeAction(self._get_fresh_action_name(action), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
         new_action.set_duration_constraint(action.duration())
         for t, cl in action.conditions().items():
             for c in cl:
@@ -156,9 +153,7 @@ class QuantifiersRemover(Transformer):
         return Effect(effect.fluent(), nv, nc, effect.kind())
 
     def _action_without_quantifiers(self, action) -> InstantaneousAction:
-        new_action = InstantaneousAction(f'{self._name}_{action.name}', OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
-        if self._problem.has_action(new_action.name):
-            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+        new_action = InstantaneousAction(self._get_fresh_action_name(action), OrderedDict((ap.name(), ap.type()) for ap in action.parameters()), self._env)
         for p in action.preconditions():
             np = self._expression_quantifier_remover.remove_quantifiers(p, self._problem)
             new_action.add_precondition(np)

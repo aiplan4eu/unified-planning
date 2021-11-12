@@ -33,8 +33,7 @@ class DisjunctiveConditionsRemover(Transformer):
     an AND of leaf nodes.
     '''
     def __init__(self, problem: Problem, name: str = 'dnf_remover'):
-        Transformer.__init__(self, problem)
-        self._name = name
+        Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.
@@ -95,10 +94,7 @@ class DisjunctiveConditionsRemover(Transformer):
 
     def _create_new_durative_action_with_given_conds_at_given_times(self, temporal_list: List[Union[Timing, Interval]], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
         new_action = original_action.clone()
-        new_action.name = f'{self._name}_{original_action.name}_{str(self._count)}'
-        if self._problem.has_action(new_action.name):
-            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
-        self._count += 1
+        new_action.name = self._get_fresh_action_name(original_action)
         new_action.clear_conditions()
         new_action.clear_durative_conditions()
         for t, c in zip(temporal_list, cond_list):
@@ -125,10 +121,7 @@ class DisjunctiveConditionsRemover(Transformer):
 
     def _create_new_action_with_given_precond(self, precond: FNode, original_action: InstantaneousAction) -> InstantaneousAction:
         new_action = original_action.clone()
-        new_action.name = f'{self._name}_{original_action.name}_{str(self._count)}'
-        if self._problem.has_action(new_action.name):
-            raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
-        self._count += 1
+        new_action.name = self._get_fresh_action_name(original_action)
         new_action.clear_preconditions()
         if precond.is_and():
             for leaf in precond.args():

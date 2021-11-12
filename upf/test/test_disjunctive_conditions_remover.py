@@ -115,40 +115,6 @@ class TestDisjunctiveConditionsRemover(TestCase):
                 if i != j:
                     self.assertNotEqual(preconditions, preconditions_oth_acts)
 
-    def test_raise_exceptions(self):
-
-        #mockup problem
-        a = Fluent('a')
-        b = Fluent('b')
-        c = Fluent('c')
-        d = Fluent('d')
-        act = InstantaneousAction('act')
-        # (a <-> (b -> c)) -> (a & d)
-        # In Dnf:
-        # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
-        act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
-        act.add_effect(a, TRUE())
-        act_2 = InstantaneousAction('dnf_remover_act_1')
-        act_2.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
-        act_2.add_effect(a, TRUE())
-        problem = Problem('mockup')
-        problem.add_fluent(a)
-        problem.add_fluent(b)
-        problem.add_fluent(c)
-        problem.add_fluent(d)
-        problem.add_action(act)
-        problem.add_action(act_2)
-        problem.set_initial_value(a, True)
-        problem.set_initial_value(b, False)
-        problem.set_initial_value(c, True)
-        problem.set_initial_value(d, False)
-        problem.add_goal(a)
-        dnfr = DisjunctiveConditionsRemover(problem)
-        with self.assertRaises(UPFProblemDefinitionError) as e:
-            dnf_problem = dnfr.get_rewritten_problem()
-        self.assertIn("Action: dnf_remover_act_1 of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
-        str(e.exception))
-
     def test_temproal_mockup(self):
 
         # temporal mockup

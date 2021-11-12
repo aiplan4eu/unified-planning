@@ -27,11 +27,13 @@ from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 class Transformer:
     '''Represents a generic remover with all the support methods shared among them.'''
-    def __init__(self, problem: Problem):
+    def __init__(self, problem: Problem, name: str):
+        self._name = name
         self._problem = problem
         self._env = problem.env
         self._new_problem: Optional[Problem] = None
         self._simplifier = upf.walkers.Simplifier(self._env)
+        self._count = 0
 
     def get_original_action(self, action: Action) -> Action:
         raise NotImplementedError
@@ -120,3 +122,10 @@ class Transformer:
                 nap.append(ps)
         action._set_preconditions(nap)
         return True
+
+    def _get_fresh_action_name(self, original_action: Action) -> str:
+        while(True):
+            new_action_name = f'{self._name}_{original_action.name}_{str(self._count)}'
+            self._count += 1
+            if not self._problem.has_action(new_action_name):
+                return new_action_name

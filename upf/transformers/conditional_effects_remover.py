@@ -30,13 +30,11 @@ class ConditionalEffectsRemover(Transformer):
     This is done by substituting every conditional action with different
     actions representing every possible branch of the original action.'''
     def __init__(self, problem: Problem, name: str = 'unconditional'):
-        Transformer.__init__(self, problem)
+        Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.
         self._old_to_new: Dict[Action, List[Action]] = {}
-        self._name = name
-        self._counter: int = 0
 
     def powerset(self, iterable: Iterable) -> Iterable:
         "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
@@ -73,14 +71,12 @@ class ConditionalEffectsRemover(Transformer):
             self._new_to_old[ua] = ua
             self._map_old_to_new_action(ua, ua)
         for action in self._problem.conditional_actions():
-            self._counter = 0
+            self._count = 0
             if isinstance(action, InstantaneousAction):
                 cond_effects = action.conditional_effects()
                 for p in self.powerset(range(len(cond_effects))):
                     na = action.clone()
-                    na.name = f'{self._name}_{action.name}_{str(self._counter)}'
-                    if self._problem.has_action(na.name):
-                        raise UPFProblemDefinitionError(f"Action: {na.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                    na.name = self._get_fresh_action_name(action)
                     na.clear_effects()
                     for e in action.unconditional_effects():
                         na._add_effect_instance(e)
@@ -99,15 +95,12 @@ class ConditionalEffectsRemover(Transformer):
                             self._new_to_old[na] = action
                             self._map_old_to_new_action(action, na)
                             self._new_problem.add_action(na)
-                            self._counter += 1
             elif isinstance(action, DurativeAction):
                 timing_cond_effects: Dict[Timing, List[Effect]] = action.conditional_effects()
                 cond_effects_timing: List[Tuple[Effect, Timing]] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
                 for p in self.powerset(range(len(cond_effects_timing))):
                     nda = action.clone()
-                    nda.name = f'{self._name}_{action.name}_{str(self._counter)}'
-                    if self._problem.has_action(nda.name):
-                        raise UPFProblemDefinitionError(f"Action: {nda.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                    nda.name = self._get_fresh_action_name(action)
                     nda._effects = {}
                     for t, e in action.unconditional_effects():
                         nda._add_effect_instance(t, e)
@@ -126,7 +119,6 @@ class ConditionalEffectsRemover(Transformer):
                             self._new_to_old[nda] = action
                             self._map_old_to_new_action(action, nda)
                             self._new_problem.add_action(nda)
-                            self._counter += 1
             else:
                 raise NotImplementedError
         return self._new_problem

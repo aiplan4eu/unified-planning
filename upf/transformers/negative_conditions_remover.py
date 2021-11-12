@@ -57,8 +57,7 @@ class NegativeConditionsRemover(Transformer):
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
     def __init__(self, problem: Problem, name: str = 'negative_conditions_removed'):
-        Transformer.__init__(self, problem)
-        self._name = name
+        Transformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self._env)
         #Represents the map from the new action to the old action
@@ -86,9 +85,7 @@ class NegativeConditionsRemover(Transformer):
         for name, action in self._problem.actions().items():
             if isinstance(action, InstantaneousAction):
                 new_action = action.clone()
-                new_action.name = f'{self._name}_{action.name}'
-                if self._problem.has_action(new_action.name):
-                    raise UPFProblemDefinitionError(f"Action: {new_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                new_action.name = self._get_fresh_action_name(action)
                 new_action.clear_preconditions()
                 for p in action.preconditions():
                     np = self._fluent_remover.remove_negative_fluents(p)
@@ -99,9 +96,7 @@ class NegativeConditionsRemover(Transformer):
                 name_action_map[name] = new_action
             elif isinstance(action, DurativeAction):
                 new_durative_action = action.clone()
-                new_durative_action.name = f'{self._name}_{action.name}'
-                if self._problem.has_action(new_durative_action.name):
-                    raise UPFProblemDefinitionError(f"Action: {new_durative_action.name} of problem: {self._problem.name} has invalid name. Double underscore '__' is reserved by the naming convention.")
+                new_durative_action.name = self._get_fresh_action_name(action)
                 new_durative_action.clear_conditions()
                 for t, cl in action.conditions().items():
                     for c in cl:
