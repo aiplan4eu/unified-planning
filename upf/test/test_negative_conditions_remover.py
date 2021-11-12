@@ -142,39 +142,3 @@ class TestNegativeConditionsRemover(TestCase):
         with self.assertRaises(UPFProblemDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
         self.assertIn(f"Initial value: {str(problem.initial_value(r))} of fluent: {FluentExp(r)} is not a boolean constant. An initial value MUST be a Boolean constant.", str(e.exception))
-
-    # def test_ad_hoc_3(self):
-    #     loc = UserType('loc')
-    #     x = Fluent('x')
-    #     y = Fluent('y', BoolType(), [loc])
-    #     a = InstantaneousAction('a')
-    #     l1 = Object('l1', loc)
-    #     l2 = Object('l2', loc)
-    #     a.add_precondition(x)
-    #     a.add_precondition(Not(y(l1)))
-    #     a.add_precondition(Not(y(l2)))
-    #     a.add_effect(y(l1), True, Not(y(l2)))
-    #     problem = Problem('ad_hoc_3')
-    #     problem.add_fluent(x, default_initial_value=False)
-    #     problem.add_fluent(y, default_initial_value=False)
-    #     problem.add_action(a)
-    #     npr = NegativeConditionsRemover(problem)
-    #     positive_problem = npr.get_rewritten_problem()
-    #     print(problem)
-    #     print(positive_problem)
-    #     assert False
-
-    # def test_ad_hoc_4(self):
-    #     x = Fluent('x')
-    #     y = Fluent('y')
-    #     a = InstantaneousAction('a')
-    #     a.add_precondition(x)
-    #     a._add_effect_instance(Effect(FluentExp(y), Real(Fraction(5.1)), get_env().expression_manager.TRUE()))
-    #     problem = Problem('ad_hoc_4')
-    #     problem.add_fluent(x, default_initial_value=False)
-    #     problem.add_fluent(y, default_initial_value=False)
-    #     problem.add_action(a)
-    #     npr = NegativeConditionsRemover(problem)
-    #     with self.assertRaises(UPFProblemDefinitionError) as e:
-    #         positive_problem = npr.get_rewritten_problem()
-    #     self.assertIn(f"Effect; {a.effects()[0]} assigns value: {a.effects()[0].value()} to fluent: {a.effects()[0].fluent()}, but value is not a boolean constant.", str(e.exception))
