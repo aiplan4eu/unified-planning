@@ -18,7 +18,6 @@
 import upf
 from upf.model.fnode import FNode
 from upf.model.action import Action, InstantaneousAction, DurativeAction
-from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.model.problem import Problem
 from upf.model.timing import Timing

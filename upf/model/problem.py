@@ -218,7 +218,7 @@ class Problem:
                                                 int, float, Fraction] = None):
         '''Adds the given fluent.'''
         if self.has_name(fluent.name()):
-            raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
+            raise UPFProblemDefinitionError('Name ' + fluent.name() + ' already defined!')
         self._fluents[fluent.name()] = fluent
         if not default_initial_value is None:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
@@ -267,7 +267,7 @@ class Problem:
     def add_action(self, action: 'upf.model.action.Action'):
         '''Adds the given action.'''
         if self.has_name(action.name):
-            raise UPFProblemDefinitionError('InstantaneousAction ' + action.name + ' already defined!')
+            raise UPFProblemDefinitionError('Name ' + action.name + ' already defined!')
         self._actions[action.name] = action
 
     def user_types(self) -> Dict[str, 'upf.model.types.Type']:
@@ -285,7 +285,7 @@ class Problem:
     def add_object(self, obj: 'upf.model.object.Object'):
         '''Adds the given object.'''
         if self.has_name(obj.name()):
-            raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
+            raise UPFProblemDefinitionError('Name ' + obj.name() + ' already defined!')
         self._objects[obj.name()] = obj
         if obj.type().is_user_type():
             self._user_types[obj.type().name()] = obj.type() # type: ignore
@@ -294,7 +294,7 @@ class Problem:
         '''Adds the given objects.'''
         for obj in objs:
             if self.has_name(obj.name()):
-                raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
+                raise UPFProblemDefinitionError('Name ' + obj.name() + ' already defined!')
             self._objects[obj.name()] = obj
             if obj.type().is_user_type():
                 self._user_types[obj.type().name()] = obj.type() # type: ignore
