@@ -35,7 +35,6 @@ class TestConditionalEffectsRemover(TestCase):
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
         u_actions = list(unconditional_problem.actions().values())
-        print(problem.actions().keys())
         a_x = problem.action("a_x")
         a_x_new_list = cer.get_transformed_actions(a_x)
         self.assertEqual(len(a_x_new_list), 1)

@@ -73,6 +73,10 @@ class Effect:
         """Returns the value given to the Fluent by this Effect."""
         return self._value
 
+    def set_value(self, new_value: FNode):
+        """Sets the value given to the Fluent by this Effect."""
+        self._value = new_value
+
     def condition(self) -> FNode:
         """Returns the condition required for this Effect to be applied."""
         return self._condition
