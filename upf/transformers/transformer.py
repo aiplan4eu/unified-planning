@@ -62,6 +62,9 @@ class Transformer:
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
+    def _reset_counter(self):
+        self._count = 0
+
     def _check_and_simplify_conditions(self, action: DurativeAction) -> bool:
         '''Simplifies conditions and if it is False (a contraddiction)
         returns False, otherwise returns True.

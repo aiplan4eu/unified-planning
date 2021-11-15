@@ -55,7 +55,7 @@ class DisjunctiveConditionsRemover(Transformer):
     def _handle_actions(self):
         dnf = Dnf(self._env)
         for a in self._problem.actions().values():
-            self._count = 0
+            self._reset_counter()
             if isinstance(a, InstantaneousAction):
                 new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
                 if new_precond.is_or():

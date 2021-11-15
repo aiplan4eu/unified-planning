@@ -62,16 +62,16 @@ class ConditionalEffectsRemover(Transformer):
                         em = self._env.expression_manager
                         c = e.condition()
                         nv = self._simplifier.simplify(em.Or(em.And(c, v), em.And(em.Not(c), f)))
-                        self._new_problem.add_timed_effect(t, f, nv)
+                        self._new_problem.add_timed_effect(t, e.fluent(), nv)
                 else:
-                    self._new_problem._add_effect_instance(t, e)
+                    self._new_problem._add_effect_instance(t, e.clone())
         self._new_problem.clear_actions()
         for ua in self._problem.unconditional_actions():
             self._new_problem.add_action(ua)
             self._new_to_old[ua] = ua
             self._map_old_to_new_action(ua, ua)
         for action in self._problem.conditional_actions():
-            self._count = 0
+            self._reset_counter()
             if isinstance(action, InstantaneousAction):
                 cond_effects = action.conditional_effects()
                 for p in self.powerset(range(len(cond_effects))):
@@ -79,7 +79,7 @@ class ConditionalEffectsRemover(Transformer):
                     na.name = self._get_fresh_action_name(action)
                     na.clear_effects()
                     for e in action.unconditional_effects():
-                        na._add_effect_instance(e)
+                        na._add_effect_instance(e.clone())
                     for i, e in enumerate(cond_effects):
                         if i in p:
                             # positive precondition
@@ -101,9 +101,9 @@ class ConditionalEffectsRemover(Transformer):
                 for p in self.powerset(range(len(cond_effects_timing))):
                     nda = action.clone()
                     nda.name = self._get_fresh_action_name(action)
-                    nda._effects = {}
+                    nda.clear_effects()
                     for t, e in action.unconditional_effects():
-                        nda._add_effect_instance(t, e)
+                        nda._add_effect_instance(t, e.clone())
                     for i, (e, t) in enumerate(cond_effects_timing):
                         if i in p:
                             # positive precondition
