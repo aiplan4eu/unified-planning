@@ -102,7 +102,7 @@ class QuantifiersRemover(Transformer):
                 original_action = self._problem.action(action.name)
                 assert isinstance(original_action, InstantaneousAction)
                 #commented till the resolution of 2 ongoing discussions
-                #action.name = f'{self._name}_{action.name}' #NOTE: get_fresh_action_name
+                #action.name = f'{self._name}_{action.name}' #NOTE: get_fresh_name
                 action.clear_preconditions()
                 for p in original_action.preconditions():
                     action.add_precondition(self._expression_quantifier_remover.remove_quantifiers(p, self._problem))
@@ -116,7 +116,7 @@ class QuantifiersRemover(Transformer):
                 original_action = self._problem.action(action.name)
                 assert isinstance(original_action, DurativeAction)
                 #commented till the resolution of 2 ongoing discussions
-                #action.name = f'{self._name}_{action.name}' #NOTE: get_fresh_action_name
+                #action.name = f'{self._name}_{action.name}' #NOTE: get_fresh_name
                 action.clear_conditions()
                 for t, cl in original_action.conditions().items():
                     for c in cl:

@@ -33,7 +33,6 @@ class Transformer:
         self._env = problem.env
         self._new_problem: Optional[Problem] = None
         self._simplifier = upf.walkers.Simplifier(self._env)
-        self._count = 0
 
     def get_original_action(self, action: Action) -> Action:
         raise NotImplementedError
@@ -61,9 +60,6 @@ class Transformer:
                 s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action()), ai.actual_parameters()), d))
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
-
-    def _reset_counter(self):
-        self._count = 0
 
     def _check_and_simplify_conditions(self, action: DurativeAction) -> bool:
         '''Simplifies conditions and if it is False (a contraddiction)
@@ -126,9 +122,15 @@ class Transformer:
         action._set_preconditions(nap)
         return True
 
-    def _get_fresh_action_name(self, original_action: Action) -> str:
+    def get_fresh_name(self, original_name: str) -> str:
+        '''To use this method, the new problem returned by the transformer must be stored in the field
+        self._new_problem!
+        This method returns a fresh name for the problem, given name of the transformer and a name in input.'''
+        assert self._new_problem is not None
+        count = 0
         while(True):
-            new_action_name = f'{self._name}_{original_action.name}_{str(self._count)}'
-            self._count += 1
-            if not self._problem.has_action(new_action_name):
-                return new_action_name
+            new_name = f'{self._name}_{original_name}_{str(count)}'
+            if self._problem.has_name(new_name) or self._new_problem.has_name(new_name):
+                count += 1
+            else:
+                return new_name

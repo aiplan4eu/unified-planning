@@ -82,7 +82,7 @@ class NegativeConditionsRemover(Transformer):
         for name, action in self._problem.actions().items():
             if isinstance(action, InstantaneousAction):
                 new_action = action.clone()
-                new_action.name = self._get_fresh_action_name(action)
+                new_action.name = self.get_fresh_name(action.name)
                 new_action.clear_preconditions()
                 for p in action.preconditions():
                     np = self._fluent_remover.remove_negative_fluents(p)
@@ -92,7 +92,7 @@ class NegativeConditionsRemover(Transformer):
                 name_action_map[name] = new_action
             elif isinstance(action, DurativeAction):
                 new_durative_action = action.clone()
-                new_durative_action.name = self._get_fresh_action_name(action)
+                new_durative_action.name = self.get_fresh_name(action.name)
                 new_durative_action.clear_conditions()
                 for t, cl in action.conditions().items():
                     for c in cl:

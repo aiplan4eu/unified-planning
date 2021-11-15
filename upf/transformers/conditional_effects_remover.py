@@ -71,12 +71,11 @@ class ConditionalEffectsRemover(Transformer):
             self._new_to_old[ua] = ua
             self._map_old_to_new_action(ua, ua)
         for action in self._problem.conditional_actions():
-            self._reset_counter()
             if isinstance(action, InstantaneousAction):
                 cond_effects = action.conditional_effects()
                 for p in self.powerset(range(len(cond_effects))):
                     na = action.clone()
-                    na.name = self._get_fresh_action_name(action)
+                    na.name = self.get_fresh_name(action.name)
                     na.clear_effects()
                     for e in action.unconditional_effects():
                         na._add_effect_instance(e.clone())
@@ -100,7 +99,7 @@ class ConditionalEffectsRemover(Transformer):
                 cond_effects_timing: List[Tuple[Effect, Timing]] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
                 for p in self.powerset(range(len(cond_effects_timing))):
                     nda = action.clone()
-                    nda.name = self._get_fresh_action_name(action)
+                    nda.name = self.get_fresh_name(action.name)
                     nda.clear_effects()
                     for t, e in action.unconditional_effects():
                         nda._add_effect_instance(t, e.clone())

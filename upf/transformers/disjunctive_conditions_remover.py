@@ -55,7 +55,6 @@ class DisjunctiveConditionsRemover(Transformer):
     def _handle_actions(self):
         dnf = Dnf(self._env)
         for a in self._problem.actions().values():
-            self._reset_counter()
             if isinstance(a, InstantaneousAction):
                 new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
                 if new_precond.is_or():
@@ -95,7 +94,7 @@ class DisjunctiveConditionsRemover(Transformer):
 
     def _create_new_durative_action_with_given_conds_at_given_times(self, timing_list: List[Timing], interval_list: List[Interval], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
         new_action = original_action.clone()
-        new_action.name = self._get_fresh_action_name(original_action)
+        new_action.name = self.get_fresh_name(original_action.name)
         new_action.clear_conditions()
         new_action.clear_durative_conditions()
         for t, c in zip(timing_list, cond_list[:len(timing_list)]):
@@ -117,7 +116,7 @@ class DisjunctiveConditionsRemover(Transformer):
 
     def _create_new_action_with_given_precond(self, precond: FNode, original_action: InstantaneousAction) -> InstantaneousAction:
         new_action = original_action.clone()
-        new_action.name = self._get_fresh_action_name(original_action)
+        new_action.name = self.get_fresh_name(original_action.name)
         new_action.clear_preconditions()
         if precond.is_and():
             for leaf in precond.args():

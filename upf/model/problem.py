@@ -196,6 +196,10 @@ class Problem:
         '''Sets the problem name.'''
         self._name = new_name
 
+    def has_name(self, name: str) -> bool:
+        '''Returns true if the name is in the problem.'''
+        return self.has_action(name) or self.has_fluent(name) or self.has_object(name) or self.has_type(name)
+
     def fluents(self) -> Dict[str, 'upf.model.fluent.Fluent']:
         '''Returns the fluents.'''
         return self._fluents
@@ -205,11 +209,15 @@ class Problem:
         assert name in self._fluents
         return self._fluents[name]
 
+    def has_fluent(self, name: str) -> bool:
+        '''Returns true if the fluent with the given name is in the problem.'''
+        return name in self._fluents
+
     def add_fluent(self, fluent: 'upf.model.fluent.Fluent', *,
                    default_initial_value: Union['upf.model.fnode.FNode', 'upf.model.object.Object', bool,
                                                 int, float, Fraction] = None):
         '''Adds the given fluent.'''
-        if fluent.name() in self._fluents:
+        if self.has_name(fluent.name()):
             raise UPFProblemDefinitionError('Fluent ' + fluent.name() + ' already defined!')
         self._fluents[fluent.name()] = fluent
         if not default_initial_value is None:
@@ -258,7 +266,7 @@ class Problem:
 
     def add_action(self, action: 'upf.model.action.Action'):
         '''Adds the given action.'''
-        if action.name in self._actions:
+        if self.has_name(action.name):
             raise UPFProblemDefinitionError('InstantaneousAction ' + action.name + ' already defined!')
         self._actions[action.name] = action
 
@@ -276,7 +284,7 @@ class Problem:
 
     def add_object(self, obj: 'upf.model.object.Object'):
         '''Adds the given object.'''
-        if obj.name() in self._objects:
+        if self.has_name(obj.name()):
             raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
         self._objects[obj.name()] = obj
         if obj.type().is_user_type():
@@ -285,7 +293,7 @@ class Problem:
     def add_objects(self, objs: List['upf.model.object.Object']):
         '''Adds the given objects.'''
         for obj in objs:
-            if obj.name() in self._objects:
+            if self.has_name(obj.name()):
                 raise UPFProblemDefinitionError('Object ' + obj.name() + ' already defined!')
             self._objects[obj.name()] = obj
             if obj.type().is_user_type():
@@ -294,6 +302,10 @@ class Problem:
     def object(self, name: str) -> 'upf.model.object.Object':
         '''Returns the object with the given name.'''
         return self._objects[name]
+
+    def has_object(self, name: str) -> bool:
+        '''Returns true if the object with the given name is in the problem.'''
+        return name in self._objects
 
     def objects(self, typename: 'upf.model.types.Type') -> List['upf.model.object.Object']:
         '''Returns the objects of the given user types.'''
