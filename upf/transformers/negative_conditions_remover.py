@@ -77,10 +77,7 @@ class NegativeConditionsRemover(Transformer):
         for o in self._problem.all_objects():
             self._new_problem.add_object(o)
         assert self._new_problem is not None
-        self._modify_actions_and_goals()
-        return self._new_problem
 
-    def _modify_actions_and_goals(self):
         name_action_map: Dict[str, Union[InstantaneousAction, DurativeAction]] = {}
         for name, action in self._problem.actions().items():
             if isinstance(action, InstantaneousAction):
@@ -90,7 +87,6 @@ class NegativeConditionsRemover(Transformer):
                 for p in action.preconditions():
                     np = self._fluent_remover.remove_negative_fluents(p)
                     new_action.add_precondition(np)
-                #NOTE: here effects are considered mutable. Easy to change the action's effects, but creates a dependency
                 for ce in new_action.conditional_effects():
                     ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
                 name_action_map[name] = new_action
@@ -107,7 +103,6 @@ class NegativeConditionsRemover(Transformer):
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
                         new_durative_action.add_durative_condition(i, nc)
-                #NOTE: here effects are considered mutable. Easy to change the action's effects, but creates a dependency
                 for t, cel in new_durative_action.conditional_effects():
                     for ce in cel:
                         ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
@@ -121,7 +116,6 @@ class NegativeConditionsRemover(Transformer):
 
         for t, el in self._new_problem.timed_effects().items():
             for e in el:
-                #NOTE: here effects are considered mutable. Easy to change the action's effects, but creates a dependency
                 if e.is_conditional():
                     e.set_condition(self._fluent_remover.remove_negative_fluents(e.condition()))
 
@@ -138,6 +132,9 @@ class NegativeConditionsRemover(Transformer):
             ng = self._fluent_remover.remove_negative_fluents(g)
             self._new_problem.add_goal(ng)
 
+        #fluent_mapping is the map between a fluent and it's negation, when the
+        # negation is None it means the fluent is never found in a negation into
+        # every condititon analized before; therefore it does not need to exist.
         fluent_mapping = self._fluent_remover.fluent_mapping
         for f in self._problem.fluents().values():
             self._new_problem.add_fluent(f)
@@ -175,39 +172,32 @@ class NegativeConditionsRemover(Transformer):
             elif isinstance(action, DurativeAction):
                 new_durative_action = name_action_map[name]
                 new_durative_action.set_duration_constraint(action.duration())
-                new_timing_effects: Dict[Timing, List[Effect]] = {}
 
                 for t, el in new_durative_action.effects().items():
-                    new_timing_effects[t] = []
                     for e in el:
                         fl, v = e.fluent(), e.value()
                         fneg = fluent_mapping.get(fl.fluent(), None)
                         if fneg is not None:
                             simplified_not_v = self._simplifier.simplify(self._env.expression_manager.Not(v))
-                            new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                            new_durative_action._add_effect_instance(t, Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
                                                             simplified_not_v, e.condition(), e.kind()))
-                for t, nel in new_timing_effects.items():
-                    for ne in nel:
-                        new_durative_action._add_effect_instance(t, ne)
                 self._new_problem.add_action(new_durative_action)
                 self._old_to_new[action] = [new_durative_action]
                 self._new_to_old[new_durative_action] = action
             else:
                 raise NotImplementedError
 
-        new_timing_effects = {}
         for t, el in self._new_problem.timed_effects().items():
-            new_timing_effects[t] = []
             for e in el:
                 fl, v = e.fluent(), e.value()
                 fneg = fluent_mapping.get(fl.fluent(), None)
                 if fneg is not None:
                     simplified_not_v = self._simplifier.simplify(self._env.expression_manager.Not(v))
-                    new_timing_effects[t].append(Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
+                    self._new_problem._add_effect_instance(t, Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
                                                     self._env.expression_manager.FALSE(), e.condition(), e.kind()))
-        for t, el in new_timing_effects.items():
-            for e in el:
-                self._new_problem._add_effect_instance(t, e)
+
+        return self._new_problem
+
 
     def get_original_action(self, action: Action) -> Action:
         return self._new_to_old[action]

@@ -110,9 +110,6 @@ class DisjunctiveConditionsRemover(Transformer):
                     new_action.add_durative_condition(i, co)
             else:
                 new_action.add_durative_condition(i, c)
-        for timing, effects in original_action.effects().items():
-            for effect in effects:
-                new_action._add_effect_instance(timing, effect)
         assert self._new_to_old is not None
         self._new_to_old[new_action] = original_action
         self._map_old_to_new_action(original_action, new_action)
@@ -127,8 +124,6 @@ class DisjunctiveConditionsRemover(Transformer):
                 new_action.add_precondition(leaf)
         else:
             new_action.add_precondition(precond)
-        for effect in original_action.effects():
-            new_action._add_effect_instance(effect)
         assert self._new_to_old is not None
         self._new_to_old[new_action] = original_action
         self._map_old_to_new_action(original_action, new_action)
