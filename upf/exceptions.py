@@ -26,7 +26,7 @@ class UPFTypeError(UPFException, TypeError):
     pass
 
 class UPFUnsupportedProblemTypeError(UPFException):
-    pass 
+    pass
 
 class UPFUnboundedVariablesError(UPFException):
     pass
@@ -35,4 +35,7 @@ class UPFExpressionDefinitionError(UPFException):
     pass
 
 class UPFUnreachableCodeError(UPFException):
+    pass
+
+class UPFValueError(UPFException):
     pass

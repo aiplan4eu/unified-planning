@@ -16,7 +16,7 @@
 
 import upf
 import upf.model.operators as op
-from upf.exceptions import UPFProblemDefinitionError, UPFTypeError
+from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError
 from upf.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Union, Optional
@@ -30,10 +30,10 @@ class Problem:
         self._env = upf.environment.get_env(env)
         self._operators_extractor = OperatorsExtractor()
         self._name = name
-        self._fluents: Dict[str, 'upf.model.fluent.Fluent'] = {}
-        self._actions: Dict[str, 'upf.model.action.Action'] = {}
-        self._user_types: Dict[str, 'upf.model.types.Type'] = {}
-        self._objects: Dict[str, 'upf.model.object.Object'] = {}
+        self._fluents: List['upf.model.fluent.Fluent'] = []
+        self._actions: List['upf.model.action.Action'] = []
+        self._user_types: List['upf.model.types.Type'] = []
+        self._objects: List['upf.model.object.Object'] = []
         self._initial_value: Dict['upf.model.fnode.FNode', 'upf.model.fnode.FNode'] = {}
         self._timed_effects: Dict['upf.model.timing.Timing', List['upf.model.effect.Effect']] = {}
         self._timed_goals: Dict['upf.model.timing.Timing', List['upf.model.fnode.FNode']] = {}
@@ -100,16 +100,11 @@ class Problem:
             return False
         if self.kind() != oth.kind() or self._name != oth._name:
             return False
-        if self._fluents != oth._fluents or set(self._goals) != set(oth._goals):
+        if set(self._fluents) != set(oth._fluents) or set(self._goals) != set(oth._goals):
             return False
-        if self._user_types != oth._user_types or self._objects != oth._objects:
+        if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(oth._objects):
             return False
-        if len(self._actions) != len(oth._actions):
-                return False
-        for action_name, action in self._actions.items():
-            if (oth_action := oth._actions.get(action_name, None)) is None:
-                return False
-            elif action != oth_action:
+        if set(self._actions) != set(oth._actions):
                 return False
         oth_initial_values = oth.initial_values()
         if len(self.initial_values()) != len(oth_initial_values):
@@ -144,13 +139,13 @@ class Problem:
 
     def __hash__(self) -> int:
         res = hash(self._kind) + hash(self._name)
-        for f in self._fluents.items():
+        for f in self._fluents:
             res += hash(f)
-        for a in self._actions.items():
+        for a in self._actions:
             res += hash(a)
-        for ut in self._user_types.items():
+        for ut in self._user_types:
             res += hash(ut)
-        for o in self._objects.items():
+        for o in self._objects:
             res += hash(o)
         for iv in self.initial_values().items():
             res += hash(iv)
@@ -168,10 +163,10 @@ class Problem:
 
     def clone(self):
         new_p = Problem(self._name, self._env)
-        new_p._fluents = self._fluents.copy()
-        new_p._actions = {an: a.clone() for an, a in self._actions.items()}
-        new_p._user_types = self._user_types.copy()
-        new_p._objects = self._objects.copy()
+        new_p._fluents = self._fluents[:]
+        new_p._actions = [a.clone() for a in self._actions]
+        new_p._user_types = self._user_types[:]
+        new_p._objects = self._objects[:]
         new_p._initial_value = self._initial_value.copy()
         new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
         new_p._timed_goals = {t: [g for g in gl] for t, gl in self._timed_goals.items()}
@@ -202,16 +197,21 @@ class Problem:
 
     def fluents(self) -> Dict[str, 'upf.model.fluent.Fluent']:
         '''Returns the fluents.'''
-        return self._fluents
+        return {f.name(): f for f in self._fluents}
 
     def fluent(self, name: str) -> 'upf.model.fluent.Fluent':
         '''Returns the fluent with the given name.'''
-        assert name in self._fluents
-        return self._fluents[name]
+        for f in self._fluents:
+            if f.name() == name:
+                return f
+        raise UPFValueError(f'Fluent of name: {name} is not defined!')
 
     def has_fluent(self, name: str) -> bool:
         '''Returns true if the fluent with the given name is in the problem.'''
-        return name in self._fluents
+        for f in self._fluents:
+            if f.name() == name:
+                return True
+        return False
 
     def add_fluent(self, fluent: 'upf.model.fluent.Fluent', *,
                    default_initial_value: Union['upf.model.fnode.FNode', 'upf.model.object.Object', bool,
@@ -219,23 +219,23 @@ class Problem:
         '''Adds the given fluent.'''
         if self.has_name(fluent.name()):
             raise UPFProblemDefinitionError('Name ' + fluent.name() + ' already defined!')
-        self._fluents[fluent.name()] = fluent
+        self._fluents.append(fluent)
         if not default_initial_value is None:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
-        if fluent.type().is_user_type():
-            self._user_types[fluent.type().name()] = fluent.type() # type: ignore
+        if fluent.type().is_user_type() and fluent.type() not in self._user_types:
+            self._user_types.append(fluent.type()) # type: ignore
         for type in fluent.signature():
-            if type.is_user_type():
-                self._user_types[type.name()] = type # type: ignore
+            if type.is_user_type() and type not in self._user_types:
+                self._user_types.append(type) # type: ignore
 
     def actions(self) -> Dict[str, 'upf.model.action.Action']:
         '''Returns the actions.'''
-        return self._actions
+        return {a.name: a for a in self._actions}
 
     def clear_actions(self):
         '''Removes all the problem actions.'''
-        self._actions = {}
+        self._actions = []
 
     def instantaneous_actions(self):
         for a in self._actions:
@@ -249,75 +249,94 @@ class Problem:
 
     def conditional_actions(self) -> List['upf.model.action.Action']:
         '''Returns the conditional actions.'''
-        return [a for a in self._actions.values() if a.is_conditional()]
+        return [a for a in self._actions if a.is_conditional()]
 
     def unconditional_actions(self) -> List['upf.model.action.Action']:
         '''Returns the conditional actions.'''
-        return [a for a in self._actions.values() if not a.is_conditional()]
+        return [a for a in self._actions if not a.is_conditional()]
 
     def action(self, name: str) -> 'upf.model.action.Action':
         '''Returns the action with the given name.'''
-        assert name in self._actions
-        return self._actions[name]
+        for a in self._actions:
+            if a.name == name:
+                return a
+        raise UPFValueError(f'Action of name: {name} is not defined!')
 
     def has_action(self, name: str) -> bool:
         '''Returns True if the problem has the action with the given name .'''
-        return name in self._actions
+        for a in self._actions:
+            if a.name == name:
+                return True
+        return False
 
     def add_action(self, action: 'upf.model.action.Action'):
         '''Adds the given action.'''
         if self.has_name(action.name):
             raise UPFProblemDefinitionError('Name ' + action.name + ' already defined!')
-        self._actions[action.name] = action
+        self._actions.append(action)
 
     def user_types(self) -> Dict[str, 'upf.model.types.Type']:
         '''Returns the user types.'''
-        return self._user_types
+        return {ut.name(): ut for ut in self._user_types} # type: ignore
 
     def user_type(self, name: str) -> 'upf.model.types.Type':
         '''Returns the user type with the given name.'''
-        return self._user_types[name]
+        for ut in self._user_types:
+            assert ut.is_user_type()
+            if ut.name() == name: # type: ignore
+                return ut
+        raise UPFValueError(f'UserType {name} is not defined!')
 
     def has_type(self, name: str) -> bool:
         '''Returns True iff the type 'name' is defined.'''
-        return name in self._user_types
+        for ut in self._user_types:
+            assert ut.is_user_type()
+            if ut.name() == name: # type: ignore
+                return True
+        return False
 
     def add_object(self, obj: 'upf.model.object.Object'):
         '''Adds the given object.'''
         if self.has_name(obj.name()):
             raise UPFProblemDefinitionError('Name ' + obj.name() + ' already defined!')
-        self._objects[obj.name()] = obj
-        if obj.type().is_user_type():
-            self._user_types[obj.type().name()] = obj.type() # type: ignore
+        self._objects.append(obj)
+        if obj.type().is_user_type() and obj.type() not in self._user_types:
+            self._user_types.append(obj.type())
 
     def add_objects(self, objs: List['upf.model.object.Object']):
         '''Adds the given objects.'''
         for obj in objs:
             if self.has_name(obj.name()):
                 raise UPFProblemDefinitionError('Name ' + obj.name() + ' already defined!')
-            self._objects[obj.name()] = obj
-            if obj.type().is_user_type():
-                self._user_types[obj.type().name()] = obj.type() # type: ignore
+            self._objects.append(obj)
+            if obj.type().is_user_type() and obj.type() not in self._user_types:
+                self._user_types.append(obj.type())
 
     def object(self, name: str) -> 'upf.model.object.Object':
         '''Returns the object with the given name.'''
-        return self._objects[name]
+        for o in self._objects:
+            if o.name() == name:
+                return o
+        raise UPFValueError(f'Object of name: {name} is not defined!')
 
     def has_object(self, name: str) -> bool:
         '''Returns true if the object with the given name is in the problem.'''
-        return name in self._objects
+        for o in self._objects:
+            if o.name() == name:
+                return True
+        return False
 
     def objects(self, typename: 'upf.model.types.Type') -> List['upf.model.object.Object']:
         '''Returns the objects of the given user types.'''
         res = []
-        for obj in self._objects.values():
+        for obj in self._objects:
             if obj.type() == typename:
                 res.append(obj)
         return res
 
     def all_objects(self) -> List['upf.model.object.Object']:
         '''Returns all the objects.'''
-        return [o for o in self._objects.values()]
+        return [o for o in self._objects]
 
     def set_initial_value(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent'],
                           value: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', 'upf.model.object.Object', bool,
@@ -388,7 +407,7 @@ class Problem:
     def initial_values(self) -> Dict['upf.model.fnode.FNode', 'upf.model.fnode.FNode']:
         '''Gets the initial value of the fluents.'''
         res = self._initial_value
-        for f in self._fluents.values():
+        for f in self._fluents:
             if f.arity() == 0:
                 f_exp = self._env.expression_manager.FluentExp(f)
                 res[f_exp] = self.initial_value(f_exp)
@@ -521,9 +540,9 @@ class Problem:
     def kind(self) -> 'upf.model.problem_kind.ProblemKind':
         '''Returns the problem kind of this planning problem.'''
         self._kind = upf.model.problem_kind.ProblemKind()
-        for fluent in self._fluents.values():
+        for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
-        for action in self._actions.values():
+        for action in self._actions:
             self._update_problem_kind_action(action)
         if len(self._timed_effects) > 0:
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
