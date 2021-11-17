@@ -15,7 +15,9 @@
 
 import upf
 from upf.shortcuts import *
+from upf.exceptions import UPFProblemDefinitionError
 from upf.model import AbsoluteTiming
+from upf.model.effect import ASSIGN
 from upf.model.problem_kind import classical_kind, full_classical_kind, basic_temporal_kind
 from upf.test import TestCase, main
 from upf.test import skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
@@ -114,3 +116,17 @@ class TestConditionalEffectsRemover(TestCase):
         self.assertFalse(eff.is_conditional())
         self.assertEqual(FluentExp(y), eff.fluent())
         self.assertEqual(And(Not(x), y), eff.value())
+
+    def test_mockup_1(self):
+        ct = AbsoluteTiming(2)
+        x = upf.model.Fluent('x', IntType())
+        y = upf.model.Fluent('y')
+        problem = upf.model.Problem('mockup_1')
+        problem.add_fluent(x, default_initial_value=0)
+        problem.add_fluent(y, default_initial_value=True)
+        problem.add_timed_effect(ct, y, False)
+        problem.add_timed_effect(ct, x, 5, y)
+        cer = ConditionalEffectsRemover(problem)
+        with self.assertRaises(UPFProblemDefinitionError) as e:
+            cer.get_rewritten_problem()
+        self.assertIn('The condition of effect: if y then x := 5\ncould not be removed without changing the problem.', str(e.exception))

@@ -16,11 +16,10 @@
 
 import upf
 from itertools import product
-from upf.exceptions import UPFProblemDefinitionError
 from upf.model import FNode, Problem, InstantaneousAction, DurativeAction, Interval, Timing, Action
 from upf.walkers import Dnf
 from upf.transformers.transformer import Transformer
-from typing import List, Tuple, Union, Dict
+from typing import List, Tuple, Dict
 
 
 class DisjunctiveConditionsRemover(Transformer):
@@ -32,7 +31,7 @@ class DisjunctiveConditionsRemover(Transformer):
     remover is called, every action condition or precondition will be
     an AND of leaf nodes.
     '''
-    def __init__(self, problem: Problem, name: str = 'dnf_remover'):
+    def __init__(self, problem: Problem, name: str = 'djrm'):
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}

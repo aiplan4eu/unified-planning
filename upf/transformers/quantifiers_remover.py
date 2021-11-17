@@ -68,7 +68,7 @@ class QuantifiersRemover(Transformer):
     this class requires a problem and offers the capability
     to transform a problem with quantifiers into a problem without.
     '''
-    def __init__(self, problem: Problem, name: str = 'quantifiers_remover'):
+    def __init__(self, problem: Problem, name: str = 'qurm'):
         Transformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
@@ -101,8 +101,7 @@ class QuantifiersRemover(Transformer):
             if isinstance(action, InstantaneousAction):
                 original_action = self._problem.action(action.name)
                 assert isinstance(original_action, InstantaneousAction)
-                #commented till the resolution of 2 ongoing discussions
-                #action.name = f'{self._name}_{action.name}' #NOTE: get_fresh_name
+                action.name = self.get_fresh_name(action.name)
                 action.clear_preconditions()
                 for p in original_action.preconditions():
                     action.add_precondition(self._expression_quantifier_remover.remove_quantifiers(p, self._problem))
@@ -115,8 +114,7 @@ class QuantifiersRemover(Transformer):
             elif isinstance(action, DurativeAction):
                 original_action = self._problem.action(action.name)
                 assert isinstance(original_action, DurativeAction)
-                #commented till the resolution of 2 ongoing discussions
-                #action.name = f'{self._name}_{action.name}' #NOTE: get_fresh_name
+                action.name = self.get_fresh_name(action.name)
                 action.clear_conditions()
                 for t, cl in original_action.conditions().items():
                     for c in cl:

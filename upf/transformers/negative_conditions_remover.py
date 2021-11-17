@@ -56,7 +56,7 @@ class NegativeConditionsRemover(Transformer):
 
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
-    def __init__(self, problem: Problem, name: str = 'negative_conditions_removed'):
+    def __init__(self, problem: Problem, name: str = 'ncrm'):
         Transformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self._env)

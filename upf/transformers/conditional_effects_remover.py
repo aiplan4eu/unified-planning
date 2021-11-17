@@ -29,7 +29,7 @@ class ConditionalEffectsRemover(Transformer):
 
     This is done by substituting every conditional action with different
     actions representing every possible branch of the original action.'''
-    def __init__(self, problem: Problem, name: str = 'unconditional'):
+    def __init__(self, problem: Problem, name: str = 'cerm'):
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
@@ -67,57 +67,58 @@ class ConditionalEffectsRemover(Transformer):
                     self._new_problem._add_effect_instance(t, e.clone())
         self._new_problem.clear_actions()
         for ua in self._problem.unconditional_actions():
-            self._new_problem.add_action(ua)
-            self._new_to_old[ua] = ua
-            self._map_old_to_new_action(ua, ua)
+            new_uncond_action = ua.clone()
+            self._new_problem.add_action(new_uncond_action)
+            self._new_to_old[new_uncond_action] = ua
+            self._map_old_to_new_action(ua, new_uncond_action)
         for action in self._problem.conditional_actions():
             if isinstance(action, InstantaneousAction):
                 cond_effects = action.conditional_effects()
                 for p in self.powerset(range(len(cond_effects))):
-                    na = action.clone()
-                    na.name = self.get_fresh_name(action.name)
-                    na.clear_effects()
+                    new_action = action.clone()
+                    new_action.name = self.get_fresh_name(action.name)
+                    new_action.clear_effects()
                     for e in action.unconditional_effects():
-                        na._add_effect_instance(e.clone())
+                        new_action._add_effect_instance(e.clone())
                     for i, e in enumerate(cond_effects):
                         if i in p:
                             # positive precondition
-                            na.add_precondition(e.condition())
+                            new_action.add_precondition(e.condition())
                             ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
-                            na._add_effect_instance(ne)
+                            new_action._add_effect_instance(ne)
                         else:
                             #negative precondition
-                            na.add_precondition(self._env.expression_manager.Not(e.condition()))
+                            new_action.add_precondition(self._env.expression_manager.Not(e.condition()))
                     #new action is created, then is checked if it has any impact and if it can be simplified
-                    if len(na.effects()) > 0:
-                        if self._check_and_simplify_preconditions(na):
-                            self._new_to_old[na] = action
-                            self._map_old_to_new_action(action, na)
-                            self._new_problem.add_action(na)
+                    if len(new_action.effects()) > 0:
+                        if self._check_and_simplify_preconditions(new_action):
+                            self._new_to_old[new_action] = action
+                            self._map_old_to_new_action(action, new_action)
+                            self._new_problem.add_action(new_action)
             elif isinstance(action, DurativeAction):
                 timing_cond_effects: Dict[Timing, List[Effect]] = action.conditional_effects()
                 cond_effects_timing: List[Tuple[Effect, Timing]] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
                 for p in self.powerset(range(len(cond_effects_timing))):
-                    nda = action.clone()
-                    nda.name = self.get_fresh_name(action.name)
-                    nda.clear_effects()
+                    new_action = action.clone()
+                    new_action.name = self.get_fresh_name(action.name)
+                    new_action.clear_effects()
                     for t, e in action.unconditional_effects():
-                        nda._add_effect_instance(t, e.clone())
+                        new_action._add_effect_instance(t, e.clone())
                     for i, (e, t) in enumerate(cond_effects_timing):
                         if i in p:
                             # positive precondition
-                            nda.add_condition(t, e.condition())
+                            new_action.add_condition(t, e.condition())
                             ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
-                            nda._add_effect_instance(t, ne)
+                            new_action._add_effect_instance(t, ne)
                         else:
                             #negative precondition
-                            nda.add_condition(t, self._env.expression_manager.Not(e.condition()))
+                            new_action.add_condition(t, self._env.expression_manager.Not(e.condition()))
                     #new action is created, then is checked if it has any impact and if it can be simplified
-                    if len(nda.effects()) > 0:
-                        if self._check_and_simplify_conditions(nda):
-                            self._new_to_old[nda] = action
-                            self._map_old_to_new_action(action, nda)
-                            self._new_problem.add_action(nda)
+                    if len(new_action.effects()) > 0:
+                        if self._check_and_simplify_conditions(new_action):
+                            self._new_to_old[new_action] = action
+                            self._map_old_to_new_action(action, new_action)
+                            self._new_problem.add_action(new_action)
             else:
                 raise NotImplementedError
         return self._new_problem
