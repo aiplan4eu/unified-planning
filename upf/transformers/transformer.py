@@ -60,7 +60,7 @@ class Transformer:
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
-    def _check_and_simplify_conditions(self, action: DurativeAction) -> bool:
+    def _check_and_simplify_conditions(self, action: DurativeAction) -> Tuple[bool, List[Tuple[Timing, FNode]]]:
         '''Simplifies conditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all conditions at the given timing.
@@ -72,27 +72,27 @@ class Transformer:
         #tlc = timing list condition
         tlc: Dict[Timing, List[FNode]] = action.conditions()
         if len(tlc) == 0:
-            return True
+            return (True, [])
+        #new action conditions
+        nac: List[Tuple[Timing, FNode]] = []
         # t = timing, lc = list condition
         for t, lc in tlc.copy().items():
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
             cs = self._simplifier.simplify(c)
-            #new action conditions
-            nac: List[FNode] = []
             if cs.is_bool_constant():
                 if not cs.bool_constant_value():
-                    return False
+                    return (False, [])
             else:
                 if cs.is_and():
-                    nac.extend(cs.args())
+                    for new_cond in cs.args():
+                        nac.append((t, new_cond))
                 else:
-                    nac.append(cs)
-            action._set_conditions(t, nac)
-        return True
+                    nac.append((t, cs))
+        return (True, nac)
 
-    def _check_and_simplify_preconditions(self, action: InstantaneousAction) -> bool:
+    def _check_and_simplify_preconditions(self, action: InstantaneousAction) -> Tuple[bool, List[FNode]]:
         '''Simplifies preconditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all preconditions.
@@ -103,7 +103,7 @@ class Transformer:
         #action preconditions
         ap = action.preconditions()
         if len(ap) == 0:
-            return True
+            return (True, [])
         #preconditions (as an And FNode)
         p = self._env.expression_manager.And(ap)
         #preconditions simplified
@@ -112,14 +112,14 @@ class Transformer:
         nap: List[FNode] = []
         if ps.is_bool_constant():
             if not ps.bool_constant_value():
-                return False
+                return (False, [])
         else:
             if ps.is_and():
                 nap.extend(ps.args())
             else:
                 nap.append(ps)
         action._set_preconditions(nap)
-        return True
+        return (True, nap)
 
     def get_fresh_name(self, original_name: str) -> str:
         '''To use this method, the new problem returned by the transformer must be stored in the field

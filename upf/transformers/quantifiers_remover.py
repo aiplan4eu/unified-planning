@@ -132,7 +132,7 @@ class QuantifiersRemover(Transformer):
                 self._new_to_old[action] = original_action
             else:
                 raise NotImplementedError
-        for t, el in self._problem.timed_effects().items():
+        for t, el in self._new_problem.timed_effects().items():
             for e in el:
                 if e.is_conditional():
                     e.set_condition(self._expression_quantifier_remover.remove_quantifiers(e.condition(), self._problem))

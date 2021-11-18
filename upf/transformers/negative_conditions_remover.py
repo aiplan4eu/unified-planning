@@ -103,7 +103,7 @@ class NegativeConditionsRemover(Transformer):
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
                         new_durative_action.add_durative_condition(i, nc)
-                for t, cel in new_durative_action.conditional_effects():
+                for t, cel in new_durative_action.conditional_effects().items():
                     for ce in cel:
                         ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
                 name_action_map[name] = new_durative_action
@@ -194,10 +194,9 @@ class NegativeConditionsRemover(Transformer):
                 if fneg is not None:
                     simplified_not_v = self._simplifier.simplify(self._env.expression_manager.Not(v))
                     self._new_problem._add_effect_instance(t, Effect(self._env.expression_manager.FluentExp(fneg, tuple(fl.args())),
-                                                    self._env.expression_manager.FALSE(), e.condition(), e.kind()))
+                                                    simplified_not_v, e.condition(), e.kind()))
 
         return self._new_problem
-
 
     def get_original_action(self, action: Action) -> Action:
         return self._new_to_old[action]

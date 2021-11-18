@@ -153,10 +153,14 @@ class Problem:
             res += hash(t)
             for e in set(el):
                 res += hash(e)
-        for tg in self._timed_goals.items():
-            res += hash(tg)
-        for mg in self._maintain_goals.items():
-            res += hash(mg)
+        for t, gl in self._timed_goals.items():
+            res += hash(t)
+            for g in set(gl):
+                res += hash(g)
+        for i, gl in self._maintain_goals.items():
+            res += hash(i)
+            for g in set(gl):
+                res += hash(g)
         for g in self._goals:
             res += hash(g)
         return res
@@ -573,6 +577,7 @@ class Problem:
 
     def _update_problem_kind_effect(self, e: 'upf.model.effect.Effect'):
         if e.is_conditional():
+            self._update_problem_kind_condition(e.condition())
             self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
         elif e.is_increase():
             self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore

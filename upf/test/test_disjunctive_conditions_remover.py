@@ -70,7 +70,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
-    def test_ad_hoc(self):
+    def test_ad_hoc_1(self):
 
         #mockup problem
         a = Fluent('a')
@@ -115,7 +115,32 @@ class TestDisjunctiveConditionsRemover(TestCase):
                 if i != j:
                     self.assertNotEqual(preconditions, preconditions_oth_acts)
 
-    def test_temproal_mockup(self):
+    def test_ad_hoc_2(self):
+
+        #mockup problem
+        a = Fluent('a')
+        act = InstantaneousAction('act')
+        cond = And(a, a)
+        act.add_precondition(cond)
+        act.add_effect(a, TRUE())
+        problem = Problem('mockup')
+        problem.add_fluent(a)
+        problem.add_action(act)
+        problem.set_initial_value(a, True)
+        problem.add_goal(a)
+        dnfr = DisjunctiveConditionsRemover(problem)
+        dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_transformed_actions(act)
+
+        self.assertEqual(len(dnf_problem.actions()), 1)
+        self.assertEqual(len(new_act), 1)
+        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))
+        new_action = new_act[0]
+        self.assertEqual(new_action.effects(), act.effects())
+        preconditions = set(new_action.preconditions())
+        self.assertEqual(preconditions, set((FluentExp(a), )))
+
+    def test_temproal_mockup_1(self):
 
         # temporal mockup
         a = Fluent('a')
@@ -149,4 +174,32 @@ class TestDisjunctiveConditionsRemover(TestCase):
         new_act = dnfr.get_transformed_actions(act)
         self.assertEqual(len(dnf_problem.actions()), 81)
         self.assertEqual(len(new_act), 81)
+        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))
+
+
+    def test_temproal_mockup_2(self):
+
+        # temporal mockup
+        a = Fluent('a')
+        b = Fluent('b')
+        act = DurativeAction('act')
+        exp = And(Not(a), b)
+        act.add_condition(StartTiming(), exp)
+        act.add_condition(StartTiming(1), exp)
+        act.add_durative_condition(ClosedInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_durative_condition(ClosedInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_effect(StartTiming(6), a, TRUE())
+
+        problem = Problem('temporal_mockup')
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_action(act)
+        problem.set_initial_value(a, False)
+        problem.set_initial_value(b, False)
+        problem.add_goal(a)
+        dnfr = DisjunctiveConditionsRemover(problem)
+        dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_transformed_actions(act)
+        self.assertEqual(len(dnf_problem.actions()), 1)
+        self.assertEqual(len(new_act), 1)
         self.assertEqual(set(dnf_problem.actions().values()), set(new_act))

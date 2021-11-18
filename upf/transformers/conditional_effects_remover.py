@@ -91,7 +91,9 @@ class ConditionalEffectsRemover(Transformer):
                             new_action.add_precondition(self._env.expression_manager.Not(e.condition()))
                     #new action is created, then is checked if it has any impact and if it can be simplified
                     if len(new_action.effects()) > 0:
-                        if self._check_and_simplify_preconditions(new_action):
+                        action_is_feasible, simplified_preconditions = self._check_and_simplify_preconditions(new_action)
+                        if action_is_feasible:
+                            new_action._set_preconditions(simplified_preconditions)
                             self._new_to_old[new_action] = action
                             self._map_old_to_new_action(action, new_action)
                             self._new_problem.add_action(new_action)
@@ -102,8 +104,9 @@ class ConditionalEffectsRemover(Transformer):
                     new_action = action.clone()
                     new_action.name = self.get_fresh_name(action.name)
                     new_action.clear_effects()
-                    for t, e in action.unconditional_effects():
-                        new_action._add_effect_instance(t, e.clone())
+                    for t, el in action.unconditional_effects().items():
+                        for e in el:
+                            new_action._add_effect_instance(t, e.clone())
                     for i, (e, t) in enumerate(cond_effects_timing):
                         if i in p:
                             # positive precondition
@@ -115,7 +118,10 @@ class ConditionalEffectsRemover(Transformer):
                             new_action.add_condition(t, self._env.expression_manager.Not(e.condition()))
                     #new action is created, then is checked if it has any impact and if it can be simplified
                     if len(new_action.effects()) > 0:
-                        if self._check_and_simplify_conditions(new_action):
+                        action_is_feasible, timing_simplified_conditions = self._check_and_simplify_conditions(new_action)
+                        if action_is_feasible:
+                            for t, c in timing_simplified_conditions:
+                                new_action.add_condition(t, c)
                             self._new_to_old[new_action] = action
                             self._map_old_to_new_action(action, new_action)
                             self._new_problem.add_action(new_action)
