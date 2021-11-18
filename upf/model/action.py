@@ -154,8 +154,6 @@ class InstantaneousAction(Action):
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = self._effects[:]
-        assert self == new_instantaneous_action
-        assert hash(self) == hash(new_instantaneous_action)
         return new_instantaneous_action
 
     def preconditions(self) -> List['upf.model.fnode.FNode']:
@@ -284,22 +282,25 @@ class DurativeAction(Action):
             for t, cl in self._conditions.items():
                 if (oth_cl := oth._conditions.get(t, None)) is None:
                     return False
-                if set(cl) != set(oth_cl):
-                    return False
+                else:
+                    if set(cl) != set(oth_cl):
+                        return False
             if len(self._durative_conditions) != len(oth._durative_conditions):
                 return False
             for i, dcl in self._durative_conditions.items():
                 if (oth_dcl := oth._durative_conditions.get(i, None)) is None:
                     return False
-                if set(dcl) != set(oth_dcl):
-                    return False
+                else:
+                    if set(dcl) != set(oth_dcl):
+                        return False
             if len(self._effects) != len(oth._effects):
                 return False
             for t, el in self._effects.items():
                 if (oth_el := oth._effects.get(t, None)) is None:
                     return False
-                if set(el) != set(oth_el):
-                    return False
+                else:
+                    if set(el) != set(oth_el):
+                        return False
             return True
         else:
             return False
@@ -323,16 +324,12 @@ class DurativeAction(Action):
         return res
 
     def clone(self):
-        new_params = {}
-        for param_name, param in self._parameters.items():
-            new_params[param_name] = param.type()
+        new_params = {param_name: param.type() for param_name, param in self._parameters.items()}
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         new_durative_action._durative_conditions = {i : dcl[:] for i, dcl in self._durative_conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
-        assert self == new_durative_action
-        assert hash(self) == hash(new_durative_action)
         return new_durative_action
 
     def duration(self):

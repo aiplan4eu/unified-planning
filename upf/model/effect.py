@@ -59,8 +59,6 @@ class Effect:
 
     def clone(self):
         new_effect = Effect(self._fluent, self._value, self._condition, self._kind)
-        assert self == new_effect
-        assert hash(self) == hash(new_effect)
         return new_effect
 
     def is_conditional(self) -> bool:

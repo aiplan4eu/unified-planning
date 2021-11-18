@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from functools import partialmethod
+from functools import partialmethod, total_ordering
 from typing import Set
 
 
@@ -44,7 +44,7 @@ class ProblemKindMeta(type):
                 setattr(obj, "has_" + f.lower(), partialmethod(_has, feature=f))
         return obj
 
-
+@total_ordering
 class ProblemKind(metaclass=ProblemKindMeta):
     def __init__(self, features: Set[str] = set()):
         self._features: Set[str] = set(features)
@@ -61,15 +61,10 @@ class ProblemKind(metaclass=ProblemKindMeta):
             res += hash(f)
         return res
 
-    def __lt__(self, oth: object):
+    def __le__(self, oth: object):
         if not isinstance(oth, ProblemKind):
             raise
         return self._features.issubset(oth._features)
-
-    def __gt__(self, oth: object):
-        if not isinstance(oth, ProblemKind):
-            raise
-        return oth._features.issubset(self._features)
 
     def features(self) -> Set[str]:
         return self._features

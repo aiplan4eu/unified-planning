@@ -253,7 +253,7 @@ class SequentialPlanValidator(solvers.solver.Solver):
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS')
         supported_kind.set_effects_kind('INCREASE_EFFECTS')
         supported_kind.set_effects_kind('DECREASE_EFFECTS')
-        return problem_kind < supported_kind
+        return problem_kind <= supported_kind
 
     @staticmethod
     def is_plan_validator():
