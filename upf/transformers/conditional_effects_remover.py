@@ -28,7 +28,10 @@ class ConditionalEffectsRemover(Transformer):
     to transform a conditional problem into an unconditional one.
 
     This is done by substituting every conditional action with different
-    actions representing every possible branch of the original action.'''
+    actions representing every possible branch of the original action.
+
+    Also the conditional timed_effects are removed maintaining the same
+    semanthics. When this is not possible, an exception is raised.'''
     def __init__(self, problem: Problem, name: str = 'cerm'):
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
@@ -43,9 +46,7 @@ class ConditionalEffectsRemover(Transformer):
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
-        but every conditional action is removed and all the possible
-        branches of the conditional action are added as non-conditional
-        actions.'''
+        but every conditional action or effect are removed.'''
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
@@ -136,7 +137,11 @@ class ConditionalEffectsRemover(Transformer):
             self._old_to_new[old_action] = [new_action]
 
     def get_original_action(self, action: Action) -> Action:
+        '''After the method get_rewritten_problem is called, this function maps
+        the actions of the transformed problem into the actions of the original problem.'''
         return self._new_to_old[action]
 
     def get_transformed_actions(self, action: Action) -> List[Action]:
+        '''After the method get_rewritten_problem is called, this function maps
+        the actions of the original problem into the actions of the transformed problem.'''
         return self._old_to_new[action]

@@ -25,7 +25,7 @@ from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 
 class Transformer:
-    '''Represents a generic remover with all the support methods shared among them.'''
+    '''Represents a generic Transformer with all the needed methods shared among them.'''
     def __init__(self, problem: Problem, name: str):
         self._name = name
         self._problem = problem
@@ -34,12 +34,19 @@ class Transformer:
         self._simplifier = upf.walkers.Simplifier(self._env)
 
     def get_original_action(self, action: Action) -> Action:
+        '''After the method get_rewritten_problem is called, this function should
+         map the actions of the transformed problem into the actions of the original problem.'''
         raise NotImplementedError
 
     def get_transformed_actions(self, action: Action) -> List[Action]:
+        '''After the method get_rewritten_problem is called, this function should
+         map the actions of the original problem into the actions of the transformed problem.'''
         raise NotImplementedError
 
     def get_rewritten_problem(self) -> Problem:
+        '''This function should rewrite the problem according to the Transformer specifics.
+        This should also include the data structure to support the methods get_original_action
+        and get_transformed_actions'''
         raise NotImplementedError
 
     def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
@@ -67,7 +74,9 @@ class Transformer:
         If the simplification is still an AND rewrites back every "arg" of the AND
         in the conditions
         If the simplification is not an AND sets the simplification as the only
-        condition at the given timing.'''
+        condition at the given timing.
+        Then, the new conditions are returned as a List[Tuple[Timing, FNode]] and the user can
+        decide how to use the new conditions.'''
         #action conditions
         #tlc = timing list condition
         tlc: Dict[Timing, List[FNode]] = action.conditions()
@@ -99,7 +108,9 @@ class Transformer:
         If the simplification is still an AND rewrites back every "arg" of the AND
         in the preconditions
         If the simplification is not an AND sets the simplification as the only
-        precondition.'''
+        precondition.
+        Then, the new preconditions are returned as a List[FNode] and the user can
+        decide how to use the new preconditions.'''
         #action preconditions
         ap = action.preconditions()
         if len(ap) == 0:
@@ -124,7 +135,7 @@ class Transformer:
     def get_fresh_name(self, original_name: str) -> str:
         '''To use this method, the new problem returned by the transformer must be stored in the field
         self._new_problem!
-        This method returns a fresh name for the problem, given name of the transformer and a name in input.'''
+        This method returns a fresh name for the problem, given the name of the transformer and a name in input.'''
         assert self._new_problem is not None
         count = 0
         while(True):

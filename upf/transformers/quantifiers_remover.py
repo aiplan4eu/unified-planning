@@ -151,7 +151,11 @@ class QuantifiersRemover(Transformer):
         return self._new_problem
 
     def get_original_action(self, action: Action) -> Action:
+        '''After the method get_rewritten_problem is called, this function maps
+        the actions of the transformed problem into the actions of the original problem.'''
         return self._new_to_old[action]
 
     def get_transformed_actions(self, action: Action) -> List[Action]:
+        '''After the method get_rewritten_problem is called, this function maps
+        the actions of the original problem into the actions of the transformed problem.'''
         return self._old_to_new[action]

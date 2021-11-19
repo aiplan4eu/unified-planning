@@ -23,10 +23,11 @@ from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionErr
 from typing import List, Dict, Union
 
 class NegativeFluentRemover(IdentityDagWalker):
-    def __init__(self, env):
+    def __init__(self, negative_conditions_remover, env):
         self._env = env
         IdentityDagWalker.__init__(self, self._env)
         self._fluent_mapping: Dict[Fluent, Fluent] = {}
+        self._negative_conditions_remover = negative_conditions_remover
 
     def remove_negative_fluents(self, expression:FNode) -> FNode:
         return self.walk(expression)
@@ -39,7 +40,7 @@ class NegativeFluentRemover(IdentityDagWalker):
         if neg_fluent is not None:
             return self._env.expression_manager.FluentExp(neg_fluent, tuple(args[0].args()))
         f = args[0].fluent()
-        nf = Fluent(f.name()+"__negated__", f.type(), f.signature(), f._env)
+        nf = Fluent(self._negative_conditions_remover.get_fresh_name(f.name()), f.type(), f.signature(), f._env)
         self._fluent_mapping[f] = nf
         return self._env.expression_manager.FluentExp(nf, tuple(args[0].args()))
 
@@ -59,7 +60,7 @@ class NegativeConditionsRemover(Transformer):
     def __init__(self, problem: Problem, name: str = 'ncrm'):
         Transformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
-        self._fluent_remover = NegativeFluentRemover(self._env)
+        self._fluent_remover = NegativeFluentRemover(self, self._env)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.
@@ -199,7 +200,11 @@ class NegativeConditionsRemover(Transformer):
         return self._new_problem
 
     def get_original_action(self, action: Action) -> Action:
+        '''After the method get_rewritten_problem is called, this function maps
+        the actions of the transformed problem into the actions of the original problem.'''
         return self._new_to_old[action]
 
     def get_transformed_actions(self, action: Action) -> List[Action]:
+        '''After the method get_rewritten_problem is called, this function maps
+        the actions of the original problem into the actions of the transformed problem.'''
         return self._old_to_new[action]
