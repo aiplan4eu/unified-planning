@@ -15,11 +15,11 @@
 """This module defines the negative preconditions remover class."""
 
 from collections import OrderedDict
-from upf.fluent import Fluent
+from upf.model.fluent import Fluent
 from upf.transformers.transformer import Transformer
-from upf.problem import Problem
-from upf.action import InstantaneousAction, DurativeAction
-from upf.fnode import FNode
+from upf.model.problem import Problem
+from upf.model.action import InstantaneousAction, DurativeAction
+from upf.model.fnode import FNode
 from upf.walkers.identitydag import IdentityDagWalker
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
 from typing import List, Dict, Union

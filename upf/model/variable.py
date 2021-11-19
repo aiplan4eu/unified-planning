@@ -19,27 +19,35 @@ A Variable has a name and a type.
 
 
 from typing import List, Set
-from upf.fnode import FNode
+from upf.model.fnode import FNode
 import upf
-import upf.types
 import upf.walkers as walkers
-import upf.operators as op
+import upf.model.operators as op
 
 
 class Variable:
     """Represents a varible."""
-    def __init__(self, name: str, typename: upf.types.Type):
+    def __init__(self, name: str, typename: 'upf.model.types.Type'):
         self._name = name
         self._typename = typename
 
     def __repr__(self) -> str:
         return f'{str(self.type())} {self.name()}'
 
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Variable):
+            return self._name == oth._name and self._typename == oth._typename
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._name) + hash(self._typename)
+
     def name(self) -> str:
         """Returns the variable name."""
         return self._name
 
-    def type(self) -> upf.types.Type:
+    def type(self) -> 'upf.model.types.Type':
         """Returns the variable type."""
         return self._typename
 

@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import os
-from upf.problem_kind import ProblemKind
+from upf.model.problem_kind import ProblemKind
 from upf.environment import get_env
 from typing import List
-from upf.pddl_solver import PDDLSolver
+from upf.solvers import PDDLSolver
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +49,7 @@ class ENHSP(PDDLSolver):
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
         supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
         supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore # type: ignore
-        return problem_kind.features().issubset(supported_kind.features())
+        return problem_kind <= supported_kind
 
 
 env = get_env()

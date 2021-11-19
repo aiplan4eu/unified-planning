@@ -15,8 +15,8 @@
 import unittest
 from functools import wraps
 from upf.environment import get_env
-from upf.problem_kind import ProblemKind
-import upf.test.pddl.enhsp
+from upf.model import ProblemKind
+from upf.test.pddl import enhsp
 
 
 skipIf = unittest.skipIf
@@ -69,51 +69,6 @@ class skipIfNoPlanValidatorForProblemKind(object):
         def wrapper(*args, **kwargs):
             return test_fun(*args, **kwargs)
         return wrapper
-
-
-basic_classical_kind = ProblemKind()
-basic_classical_kind.set_typing('FLAT_TYPING') # type: ignore
-
-classical_kind = ProblemKind()
-classical_kind.set_typing('FLAT_TYPING') # type: ignore
-classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-classical_kind.set_conditions_kind('EQUALITY') # type: ignore
-
-full_classical_kind = ProblemKind()
-full_classical_kind.set_typing('FLAT_TYPING') # type: ignore
-full_classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-full_classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-full_classical_kind.set_conditions_kind('EQUALITY') # type: ignore
-full_classical_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-full_classical_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-full_classical_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-
-basic_numeric_kind = ProblemKind()
-basic_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
-basic_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-basic_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-
-full_numeric_kind = ProblemKind()
-full_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
-full_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-full_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-full_numeric_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-full_numeric_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-
-basic_temporal_kind = ProblemKind()
-basic_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
-basic_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
-
-full_temporal_kind = ProblemKind()
-full_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
-full_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
-full_temporal_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-full_temporal_kind.set_time('TIMED_EFFECT') # type: ignore
-full_temporal_kind.set_time('TIMED_GOALS') # type: ignore
-full_temporal_kind.set_time('MAINTAIN_GOALS') # type: ignore
-full_temporal_kind.set_time('DURATION_INEQUALITIES') # type: ignore
-
 
 TestCase = unittest.TestCase
 main = unittest.main

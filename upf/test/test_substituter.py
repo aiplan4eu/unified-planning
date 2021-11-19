@@ -13,11 +13,10 @@
 # limitations under the License.
 
 
-from collections import OrderedDict
+
 from upf.shortcuts import *
 from upf.test import TestCase, main
-import upf
-from upf.substituter import Substituter
+from upf.walkers import Substituter
 from upf.environment import get_env
 from upf.exceptions import UPFTypeError
 
@@ -28,8 +27,8 @@ class TestSubstituter(TestCase):
     def test_id_walker(self):
         s = Substituter(get_env())
         #small test on already-done expressions to check the id-dagwalker
-        x = FluentExp(upf.Fluent('x'))
-        y = FluentExp(upf.Fluent('y', IntType()))
+        x = FluentExp(Fluent('x'))
+        y = FluentExp(Fluent('y', IntType()))
         t = Bool(True)
         f = Bool(False)
         subs = {y: 3}
@@ -48,7 +47,7 @@ class TestSubstituter(TestCase):
 
     def test_substitution(self):
         s = Substituter(get_env())
-        xfluent = upf.Fluent('x', IntType())
+        xfluent = Fluent('x', IntType())
         x = FluentExp(xfluent)
         subst = {}
         subst[x] = Int(5)
@@ -56,10 +55,10 @@ class TestSubstituter(TestCase):
         s1 = s.substitute(e1, subst)
         self.assertEqual(s1, Plus(5, 1))
         #Testing that (a & b) with sbust = {a <- c, (c & b) <- d, (a & b) <- c} is c
-        a = upf.Fluent('a')
-        b = upf.Fluent('b')
-        c = FluentExp(upf.Fluent('c'))
-        d = upf.Fluent('d')
+        a = Fluent('a')
+        b = Fluent('b')
+        c = FluentExp(Fluent('c'))
+        d = Fluent('d')
         subst = {}
         subst[a] = c
         subst[And(c,b)] = d

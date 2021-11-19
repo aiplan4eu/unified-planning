@@ -14,8 +14,8 @@
 
 import upf
 from upf.shortcuts import *
+from upf.model.problem_kind import classical_kind, basic_numeric_kind
 from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind
-from upf.test import classical_kind, basic_numeric_kind
 from upf.test.examples import get_example_problems
 
 
@@ -34,7 +34,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             print(validator.name())
             self.assertFalse(res)
@@ -49,7 +49,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 
@@ -63,7 +63,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 
@@ -77,7 +77,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertTrue(res)
 
-            plan = upf.SequentialPlan([])
+            plan = upf.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertFalse(res)
 

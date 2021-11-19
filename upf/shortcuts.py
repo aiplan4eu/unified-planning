@@ -17,12 +17,10 @@ This module defines a global environment, so that most methods can be
 called without the need to specify an environment or a ExpressionManager.
 """
 
-import upf.types
+import upf.model.types
 from upf.environment import get_env
-from upf.expression import BoolExpression, Expression
-from upf.problem_kind import ProblemKind
-from upf.solver import Solver
-from upf.fnode import FNode
+from upf.model import *
+from upf.solvers import Solver
 from typing import Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
@@ -42,22 +40,22 @@ def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
 def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
     return get_env().expression_manager.Iff(left, right)
 
-def Exists(expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
+def Exists(expression: BoolExpression, *vars: 'upf.model.Variable') -> FNode:
     return get_env().expression_manager.Exists(expression, *vars)
 
-def Forall(expression: BoolExpression, *vars: 'upf.Variable') -> FNode:
+def Forall(expression: BoolExpression, *vars: 'upf.model.Variable') -> FNode:
     return get_env().expression_manager.Forall(expression, *vars)
 
-def FluentExp(fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
+def FluentExp(fluent: 'upf.model.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
     return get_env().expression_manager.FluentExp(fluent, params)
 
-def ParameterExp(param: 'upf.ActionParameter') -> FNode:
+def ParameterExp(param: 'upf.model.ActionParameter') -> FNode:
     return get_env().expression_manager.ParameterExp(param)
 
-def VariableExp(var: 'upf.Variable') -> FNode:
+def VariableExp(var: 'upf.model.Variable') -> FNode:
     return get_env().expression_manager.VariableExp(var)
 
-def ObjectExp(obj: 'upf.Object') -> FNode:
+def ObjectExp(obj: 'upf.model.Object') -> FNode:
     return get_env().expression_manager.ObjectExp(obj)
 
 def TRUE() -> FNode:
@@ -102,16 +100,16 @@ def GT(left: Expression, right: Expression) -> FNode:
 def Equals(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Equals(left, right)
 
-def BoolType() -> upf.types.Type:
+def BoolType() -> upf.model.types.Type:
     return get_env().type_manager.BoolType()
 
-def IntType(lower_bound: int = None, upper_bound: int = None) -> upf.types.Type:
+def IntType(lower_bound: int = None, upper_bound: int = None) -> upf.model.types.Type:
     return get_env().type_manager.IntType(lower_bound, upper_bound)
 
-def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.types.Type:
+def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> upf.model.types.Type:
     return get_env().type_manager.RealType(lower_bound, upper_bound)
 
-def UserType(name: str) -> upf.types.Type:
+def UserType(name: str) -> upf.model.types.Type:
     return get_env().type_manager.UserType(name)
 
 def OneshotPlanner(*, name: Optional[str] = None,

@@ -15,7 +15,8 @@
 """This module defines the solver interface."""
 
 import upf
-from upf.problem_kind import ProblemKind
+import upf.model
+from upf.model import ProblemKind
 from typing import Optional
 
 
@@ -42,10 +43,10 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'upf.Problem') -> Optional['upf.Plan']:
+    def solve(self, problem: 'upf.model.Problem') -> Optional['upf.plan.Plan']:
         raise NotImplementedError
 
-    def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
+    def validate(self, problem: 'upf.model.Problem', plan: 'upf.plan.Plan') -> bool:
         raise NotImplementedError
 
     def destroy(self):

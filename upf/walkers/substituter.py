@@ -15,13 +15,12 @@
 
 
 import upf.walkers as walkers
-import upf.operators as op
+
 import upf.environment
 from upf.walkers.identitydag import IdentityDagWalker
-from upf.fnode import FNode
-from upf.type_checker import TypeChecker
+from upf.model import FNode, operators as op
 from upf.exceptions import UPFTypeError
-from upf.expression import Expression
+from upf.model import Expression
 from typing import List, Dict
 
 

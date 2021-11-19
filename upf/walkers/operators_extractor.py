@@ -14,8 +14,7 @@
 #
 
 import upf.walkers as walkers
-import upf.operators as op
-from upf.fnode import FNode
+from upf.model import FNode, operators as op
 from typing import List, Set
 
 

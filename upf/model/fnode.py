@@ -15,8 +15,9 @@
 """FNode are the building blocks of expressions."""
 
 import upf
+import upf.model.fluent
+import upf.model.operators as op
 import collections
-import upf.operators as op
 from typing import List, Union
 from fractions import Fraction
 
@@ -139,27 +140,27 @@ class FNode(object):
         assert self.is_real_constant()
         return self._content.payload
 
-    def fluent(self) -> 'upf.Fluent':
+    def fluent(self) -> 'upf.model.fluent.Fluent':
         """Return the fluent of the FluentExp."""
         assert self.is_fluent_exp()
         return self._content.payload
 
-    def parameter(self) -> 'upf.ActionParameter':
+    def parameter(self) -> 'upf.model.action.ActionParameter':
         """Return the parameter of the ParameterExp."""
         assert self.is_parameter_exp()
         return self._content.payload
 
-    def variable(self) -> 'upf.Variable':
+    def variable(self) -> 'upf.model.variable.Variable':
         """Return the variable of the VariableExp."""
         assert self.is_variable_exp()
         return self._content.payload
 
-    def variables(self) -> List['upf.Variable']:
+    def variables(self) -> List['upf.model.variable.Variable']:
         """Return the variable of the Exists or Forall."""
         assert self.is_exists() or self.is_forall()
         return list(self._content.payload)
 
-    def object(self) -> 'upf.Object':
+    def object(self) -> 'upf.model.object.Object':
         """Return the object of the ObjectExp."""
         assert self.is_object_exp()
         return self._content.payload

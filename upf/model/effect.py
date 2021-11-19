@@ -19,9 +19,7 @@ A condition can be added to make it a conditional effect.
 """
 
 
-from upf.fnode import FNode
-from collections import OrderedDict
-from typing import List, Union, Tuple, Optional
+from upf.model.fnode import FNode
 
 KINDS = list(range(0, 3))
 
@@ -49,6 +47,19 @@ class Effect:
             s.append('-=')
         s.append(f'{str(self._value)}')
         return ' '.join(s)
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Effect):
+            return self._fluent == oth._fluent and self._value == oth._value and self._condition == oth._condition and self._kind == oth._kind
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._fluent) + hash(self._value) + hash(self._condition) + hash(self._kind)
+
+    def clone(self):
+        new_effect = Effect(self._fluent, self._value, self._condition, self._kind)
+        return new_effect
 
     def is_conditional(self) -> bool:
         """Returns True if the Effect condition is not True."""

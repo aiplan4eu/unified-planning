@@ -31,7 +31,7 @@ class PDDLReader:
                                            strict_with_requirements=False)
         self.env = get_env(env)
 
-    def parse_problem(self, domain: str, problem: str) -> upf.Problem:
+    def parse_problem(self, domain: str, problem: str) -> 'upf.model.Problem':
         self.reader.parse_domain(domain)
         problem = self.reader.parse_instance(problem)
         return convert_tarski_problem(self.env, problem)

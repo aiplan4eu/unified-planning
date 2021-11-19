@@ -20,13 +20,12 @@ import upf
 from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
-from upf.test import basic_classical_kind, classical_kind, basic_temporal_kind
 from upf.test.examples import get_example_problems
-from upf.timing import AbsoluteTiming, ClosedInterval
+from upf.model import AbsoluteTiming, ClosedInterval, Effect
+from upf.model.problem_kind import basic_classical_kind, classical_kind, basic_temporal_kind
 from upf.transformers import NegativeConditionsRemover
-from upf.plan_validator import SequentialPlanValidator as PV
+from upf.solvers import SequentialPlanValidator as PV
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
-from upf.effect import Effect
 
 
 class TestNegativeConditionsRemover(TestCase):
@@ -112,13 +111,14 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertIn(mend_f2, npa)
         self.assertIn(mend_f3, npa)
 
+
     def test_ad_hoc(self):
-        x = upf.Fluent('x')
-        y = upf.Fluent('y')
-        a = upf.InstantaneousAction('a')
+        x = Fluent('x')
+        y = Fluent('y')
+        a = InstantaneousAction('a')
         a.add_precondition(And(Not(x), Not(y)))
         a.add_effect(x, True)
-        problem = upf.Problem('ad_hoc')
+        problem = Problem('ad_hoc')
         problem.add_fluent(x)
         problem.add_fluent(y)
         problem.add_action(a)
@@ -135,8 +135,8 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertIn(f"Expression: {Not(Iff(x, y))} is not in NNF.", str(e.exception))
 
     def test_ad_hoc_2(self):
-        r = upf.Fluent('r', RealType())
-        problem = upf.Problem('ad_hoc_2')
+        r = Fluent('r', RealType())
+        problem = Problem('ad_hoc_2')
         problem.set_initial_value(r, 5.1)
         npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPFProblemDefinitionError) as e:
@@ -145,16 +145,16 @@ class TestNegativeConditionsRemover(TestCase):
 
     def test_ad_hoc_3(self):
         loc = UserType('loc')
-        x = upf.Fluent('x')
-        y = upf.Fluent('y', BoolType(), [loc])
-        a = upf.InstantaneousAction('a')
-        l1 = upf.Object('l1', loc)
-        l2 = upf.Object('l2', loc)
+        x = Fluent('x')
+        y = Fluent('y', BoolType(), [loc])
+        a = InstantaneousAction('a')
+        l1 = Object('l1', loc)
+        l2 = Object('l2', loc)
         a.add_precondition(x)
         a.add_precondition(Not(y(l1)))
         a.add_precondition(Not(y(l2)))
         a.add_effect(y(l1), True, Not(y(l2)))
-        problem = upf.Problem('ad_hoc_3')
+        problem = Problem('ad_hoc_3')
         problem.add_fluent(x, default_initial_value=False)
         problem.add_fluent(y, default_initial_value=False)
         problem.add_action(a)
@@ -164,12 +164,12 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertIn(f"Effect: {a.effects()[0]} of action: {a} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.", str(e.exception))
 
     def test_ad_hoc_4(self):
-        x = upf.Fluent('x')
-        y = upf.Fluent('y')
-        a = upf.InstantaneousAction('a')
+        x = Fluent('x')
+        y = Fluent('y')
+        a = InstantaneousAction('a')
         a.add_precondition(x)
         a._add_effect_instance(Effect(FluentExp(y), Real(Fraction(5.1)), get_env().expression_manager.TRUE()))
-        problem = upf.Problem('ad_hoc_4')
+        problem = Problem('ad_hoc_4')
         problem.add_fluent(x, default_initial_value=False)
         problem.add_fluent(y, default_initial_value=False)
         problem.add_action(a)

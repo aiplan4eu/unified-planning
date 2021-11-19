@@ -14,20 +14,19 @@
 #
 
 import importlib
-from upf.problem_kind import ProblemKind
-from upf.solver import Solver
-from upf.parallel import Parallel
+import upf
+from upf.model import ProblemKind
 from typing import Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl'),
                    'pyperplan' : ('upf_pyperplan', 'SolverImpl'),
-                   'sequential_plan_validator' : ('upf.plan_validator', 'SequentialPlanValidator')}
+                   'sequential_plan_validator' : ('upf.solvers.plan_validator', 'SequentialPlanValidator')}
 
 
 class Factory:
     def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
-        self.solvers: Dict[str, Type[Solver]] = {}
+        self.solvers: Dict[str, Type['upf.solvers.solver.Solver']] = {}
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
@@ -40,7 +39,7 @@ class Factory:
         self.solvers[name] = SolverImpl
 
     def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
-                          problem_kind: ProblemKind = ProblemKind()) -> Optional[Type[Solver]]:
+                          problem_kind: ProblemKind = ProblemKind()) -> Optional[Type['upf.solvers.solver.Solver']]:
         if name is not None:
             return self.solvers[name]
         for SolverClass in self.solvers.values():
@@ -51,7 +50,7 @@ class Factory:
     def _get_solver(self, solver_kind: str, name: Optional[str] = None,
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                    problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+                    problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solvers.solver.Solver']:
         if names is not None:
             assert name is None
             if params is None:
@@ -63,7 +62,7 @@ class Factory:
                 if SolverClass is None:
                     raise
                 solvers.append((SolverClass, param))
-            return Parallel(solvers)
+            return upf.solvers.parallel.Parallel(solvers)
         else:
             if params is None:
                 params = {}
@@ -77,7 +76,7 @@ class Factory:
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solvers.solver.Solver']:
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -94,7 +93,7 @@ class Factory:
     def PlanValidator(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solvers.solver.Solver']:
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'

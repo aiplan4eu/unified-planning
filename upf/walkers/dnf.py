@@ -15,17 +15,14 @@
 
 
 import upf.environment
-import upf.operators as op
 import upf.walkers as walkers
 from upf.exceptions import UPFUnreachableCodeError
-from upf.walkers.dag import DagWalker
-from upf.fnode import FNode
-from upf.simplifier import Simplifier
+from upf.model import FNode, operators as op
 from typing import List, Tuple
 from itertools import product
 
 
-class Nnf():
+class Nnf:
     """Class used to transform a logic expression into the equivalent
     Negation Normal Form expression.
 
@@ -112,7 +109,7 @@ class Nnf():
 
 
 
-class Dnf(DagWalker):
+class Dnf(walkers.DagWalker):
     """Class used to transform a logic expression into the equivalent
     Disjunctive Normal Form expression.
 
@@ -122,11 +119,11 @@ class Dnf(DagWalker):
     Not of an atomic expression.
     """
     def __init__(self, env: 'upf.environment.Environment'):
-        DagWalker.__init__(self, True)
+        walkers.DagWalker.__init__(self, True)
         self.env = env
         self.manager = env.expression_manager
         self._nnf = Nnf(self.env)
-        self._simplifier = Simplifier(self.env)
+        self._simplifier = walkers.Simplifier(self.env)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
         """Function used to transform a logic expression into the equivalent

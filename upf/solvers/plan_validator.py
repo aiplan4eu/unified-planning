@@ -18,18 +18,13 @@ from typing import Dict, Union, List, Set, Optional
 from itertools import product
 
 import upf.environment
+import upf.solvers as solvers
 import upf.walkers as walkers
-from upf.simplifier import Simplifier
-from upf.substituter import Substituter
-from upf.fnode import FNode
 from upf.exceptions import UPFProblemDefinitionError
-from upf.expression import Expression
-from upf.problem import Problem
-from upf.problem_kind import ProblemKind
-from upf.object import Object
+from upf.model import FNode, Expression, Problem, ProblemKind, Object
 from upf.plan import SequentialPlan
 
-class QuantifierSimplifier(Simplifier):
+class QuantifierSimplifier(walkers.Simplifier):
     """Same to the upf.Simplifier, but does not expand quantifiers and solves them locally."""
     def __init__(self, env: 'upf.environment.Environment', problem: Problem):
         walkers.DagWalker.__init__(self, True)
@@ -55,7 +50,7 @@ class QuantifierSimplifier(Simplifier):
         if expression.is_forall() or expression.is_exists():
             self.stack.append((True, expression))
         else:
-            super(Simplifier, self)._push_with_children_to_stack(expression, **kwargs)
+            super(walkers.Simplifier, self)._push_with_children_to_stack(expression, **kwargs)
 
 
     def _compute_node_result(self, expression: FNode, **kwargs):
@@ -167,15 +162,15 @@ class QuantifierSimplifier(Simplifier):
             raise UPFProblemDefinitionError(f"Value of ActionParameter {str(expression)} not found in {str(self._assignments)}")
 
 
-class SequentialPlanValidator(upf.Solver):
+class SequentialPlanValidator(solvers.solver.Solver):
     """Performs plan validation."""
     def __init__(self, **options):
-        self._env: 'upf.environment.Environment' = upf.get_env(options.get('env', None))
+        self._env: 'upf.environment.Environment' = upf.environment.get_env(options.get('env', None))
         self.manager = self._env.expression_manager
-        self._substituter = Substituter(self._env)
+        self._substituter = walkers.Substituter(self._env)
         self._last_error: Union[str, None] = None
 
-    def validate(self, problem: 'upf.Problem', plan: 'upf.Plan') -> bool:
+    def validate(self, problem: 'Problem', plan: 'upf.plan.Plan') -> bool:
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""
@@ -186,7 +181,7 @@ class SequentialPlanValidator(upf.Solver):
         count = 0 #used for better error indexing
         for ai in plan.actions():
             action = ai.action()
-            assert isinstance(action, upf.InstantaneousAction)
+            assert isinstance(action, upf.model.InstantaneousAction)
             count = count + 1
             new_assignments: Dict[Expression, Expression] = {}
             for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):
@@ -258,7 +253,7 @@ class SequentialPlanValidator(upf.Solver):
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS')
         supported_kind.set_effects_kind('INCREASE_EFFECTS')
         supported_kind.set_effects_kind('DECREASE_EFFECTS')
-        return problem_kind.features().issubset(supported_kind.features())
+        return problem_kind <= supported_kind
 
     @staticmethod
     def is_plan_validator():

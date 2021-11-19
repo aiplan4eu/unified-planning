@@ -15,13 +15,11 @@
 import os
 import upf
 from upf.shortcuts import *
+from upf.model.problem_kind import classical_kind, full_numeric_kind, full_classical_kind
 from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
-from upf.test import classical_kind, full_numeric_kind, full_classical_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import DisjunctiveConditionsRemover
 from upf.exceptions import UPFProblemDefinitionError
-from upf.timing import ClosedInterval
-from upf.timing import StartTiming
 
 
 class TestDisjunctiveConditionsRemover(TestCase):
@@ -75,11 +73,11 @@ class TestDisjunctiveConditionsRemover(TestCase):
     def test_ad_hoc(self):
 
         #mockup problem
-        a = upf.Fluent('a')
-        b = upf.Fluent('b')
-        c = upf.Fluent('c')
-        d = upf.Fluent('d')
-        act = upf.InstantaneousAction('act')
+        a = Fluent('a')
+        b = Fluent('b')
+        c = Fluent('c')
+        d = Fluent('d')
+        act = InstantaneousAction('act')
         # (a <-> (b -> c)) -> (a & d)
         # In Dnf:
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
@@ -88,7 +86,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
             {FluentExp(b), Not(c), FluentExp(a)}, {FluentExp(a), FluentExp(d)}]
         act.add_precondition(cond)
         act.add_effect(a, TRUE())
-        problem = upf.Problem('mockup')
+        problem = Problem('mockup')
         problem.add_fluent(a)
         problem.add_fluent(b)
         problem.add_fluent(c)
@@ -120,20 +118,20 @@ class TestDisjunctiveConditionsRemover(TestCase):
     def test_raise_exceptions(self):
 
         #mockup problem
-        a = upf.Fluent('a')
-        b = upf.Fluent('b')
-        c = upf.Fluent('c')
-        d = upf.Fluent('d')
-        act = upf.InstantaneousAction('act')
+        a = Fluent('a')
+        b = Fluent('b')
+        c = Fluent('c')
+        d = Fluent('d')
+        act = InstantaneousAction('act')
         # (a <-> (b -> c)) -> (a & d)
         # In Dnf:
         # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
         act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act.add_effect(a, TRUE())
-        act_2 = upf.InstantaneousAction('act__1__')
+        act_2 = InstantaneousAction('act__1__')
         act_2.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
         act_2.add_effect(a, TRUE())
-        problem = upf.Problem('mockup')
+        problem = Problem('mockup')
         problem.add_fluent(a)
         problem.add_fluent(b)
         problem.add_fluent(c)
@@ -154,11 +152,11 @@ class TestDisjunctiveConditionsRemover(TestCase):
     def test_temproal_mockup(self):
 
         # temporal mockup
-        a = upf.Fluent('a')
-        b = upf.Fluent('b')
-        c = upf.Fluent('c')
-        d = upf.Fluent('d')
-        act = upf.DurativeAction('act')
+        a = Fluent('a')
+        b = Fluent('b')
+        c = Fluent('c')
+        d = Fluent('d')
+        act = DurativeAction('act')
         # !a => (b | ((c <-> d) & d))
         # In Dnf:
         # a | b | (c & d)
@@ -169,7 +167,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         act.add_durative_condition(ClosedInterval(StartTiming(4), StartTiming(5)), exp)
         act.add_effect(StartTiming(6), a, TRUE())
 
-        problem = upf.Problem('temporal_mockup')
+        problem = Problem('temporal_mockup')
         problem.add_fluent(a)
         problem.add_fluent(b)
         problem.add_fluent(c)

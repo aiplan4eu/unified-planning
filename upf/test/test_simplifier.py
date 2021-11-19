@@ -16,9 +16,8 @@
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
-from upf.simplifier import Simplifier
+from upf.walkers import Simplifier, Substituter
 from upf.environment import get_env
-from upf.substituter import Substituter
 from fractions import Fraction
 
 
@@ -45,8 +44,8 @@ class TestBoolOperators(TestCase):
 
     def test_and_fluent(self):
         s = Simplifier(get_env())
-        x = upf.Fluent('x')
-        y = upf.Fluent('y')
+        x = Fluent('x')
+        y = Fluent('y')
         t = Bool(True)
         f = Bool(False)
         e1 = And(x, f)
@@ -93,8 +92,8 @@ class TestBoolOperators(TestCase):
 
     def test_or_fluent(self):
         s = Simplifier(get_env())
-        x = upf.Fluent('x')
-        y = upf.Fluent('y')
+        x = Fluent('x')
+        y = Fluent('y')
         t = Bool(True)
         f = Bool(False)
         e1 = Or(x, t)
@@ -124,7 +123,7 @@ class TestBoolOperators(TestCase):
 
     def test_not(self):
         s = Simplifier(get_env())
-        x = upf.Fluent('x')
+        x = Fluent('x')
         t = Bool(True)
         f = Bool(False)
         e1 = Or(x, Not(t))
@@ -143,8 +142,8 @@ class TestBoolOperators(TestCase):
 
     def test_iff(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x'))
-        y = FluentExp(upf.Fluent('y'))
+        x = FluentExp(Fluent('x'))
+        y = FluentExp(Fluent('y'))
         t = Bool(True)
         f = Bool(False)
         e1 = Iff(x, y)
@@ -180,8 +179,8 @@ class TestBoolOperators(TestCase):
 
     def test_implies(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x'))
-        y = FluentExp(upf.Fluent('y'))
+        x = FluentExp(Fluent('x'))
+        y = FluentExp(Fluent('y'))
         t = Bool(True)
         f = Bool(False)
         e1 = Implies(x, y)
@@ -214,8 +213,8 @@ class TestBoolOperators(TestCase):
 
     def test_equals(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x', IntType()))
-        y = FluentExp(upf.Fluent('y', IntType()))
+        x = FluentExp(Fluent('x', IntType()))
+        y = FluentExp(Fluent('y', IntType()))
         t = Bool(True)
         f = Bool(False)
         i1 = Int(5)
@@ -236,8 +235,8 @@ class TestBoolOperators(TestCase):
 
     def test_le(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x', IntType()))
-        y = FluentExp(upf.Fluent('y', IntType()))
+        x = FluentExp(Fluent('x', IntType()))
+        y = FluentExp(Fluent('y', IntType()))
         t = Bool(True)
         f = Bool(False)
         i1 = Int(5)
@@ -258,8 +257,8 @@ class TestBoolOperators(TestCase):
 
     def test_lt(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x', IntType()))
-        y = FluentExp(upf.Fluent('y', IntType()))
+        x = FluentExp(Fluent('x', IntType()))
+        y = FluentExp(Fluent('y', IntType()))
         t = Bool(True)
         f = Bool(False)
         i1 = Int(5)
@@ -280,8 +279,8 @@ class TestBoolOperators(TestCase):
 
     def test_gt(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x', IntType()))
-        y = FluentExp(upf.Fluent('y', IntType()))
+        x = FluentExp(Fluent('x', IntType()))
+        y = FluentExp(Fluent('y', IntType()))
         t = Bool(True)
         f = Bool(False)
         i1 = Int(5)
@@ -302,8 +301,8 @@ class TestBoolOperators(TestCase):
 
     def test_ge(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x', IntType()))
-        y = FluentExp(upf.Fluent('y', IntType()))
+        x = FluentExp(Fluent('x', IntType()))
+        y = FluentExp(Fluent('y', IntType()))
         t = Bool(True)
         f = Bool(False)
         i1 = Int(5)
@@ -352,8 +351,8 @@ class TestArithmeticOperators(TestCase):
         #plus with fluent
         s = Simplifier(get_env())
         data2 = 3
-        x = upf.Fluent('x', IntType())
-        y = upf.Fluent('y', IntType())
+        x = Fluent('x', IntType())
+        y = Fluent('y', IntType())
         fnode2 = Int(data2)
         fnodex_2 = Plus(x, fnode2)
         data_list = [1,5,6,2,3,4,-3,5]
@@ -389,8 +388,8 @@ class TestArithmeticOperators(TestCase):
         #minus with fluent
         s = Simplifier(get_env())
         data2 = 3
-        x = upf.Fluent('x', IntType())
-        y = upf.Fluent('y', IntType())
+        x = Fluent('x', IntType())
+        y = Fluent('y', IntType())
         fnode2 = Int(data2)
         x_2 = Minus(x, fnode2)
         data_list = [1,5,6,2,3,4,-3,5]
@@ -449,7 +448,7 @@ class TestArithmeticOperators(TestCase):
         #plus with fluent
         s = Simplifier(get_env())
         data2 = 3
-        x = FluentExp(upf.Fluent('x', IntType()))
+        x = FluentExp(Fluent('x', IntType()))
         fnode2 = Int(data2)
         x_2 = Times(x, fnode2)
         data_list = [1,5,6,2,3,4,-3,5]
@@ -516,7 +515,7 @@ class TestArithmeticOperators(TestCase):
         #div with fluent
         s = Simplifier(get_env())
         data2 = 3
-        x = upf.Fluent('x', IntType())
+        x = Fluent('x', IntType())
         fnode2 = Int(data2)
         x_2 = Div(x, fnode2)
         data_list = [Fraction(5), Fraction(1, 5)]
@@ -538,8 +537,8 @@ class TestArithmeticOperators(TestCase):
 
     def test_general(self):
         s = Simplifier(get_env())
-        x = FluentExp(upf.Fluent('x'))
-        y = FluentExp(upf.Fluent('y', IntType()))
+        x = FluentExp(Fluent('x'))
+        y = FluentExp(Fluent('y', IntType()))
         t = Bool(True)
         f = Bool(False)
         # ((25/5)*30*2*2) - (20*5) (500) == (25*4*10) / 2 (500)
@@ -562,8 +561,8 @@ class TestWithSubstituter(TestCase):
     def test_and_fluent(self):
         s = Simplifier(get_env())
         su = Substituter(get_env())
-        x = upf.Fluent('x')
-        y = FluentExp(upf.Fluent('y'))
+        x = Fluent('x')
+        y = FluentExp(Fluent('y'))
         t = Bool(True)
         f = Bool(False)
         e1 = And(x, f)
@@ -607,8 +606,8 @@ class TestWithSubstituter(TestCase):
     def test_or_fluent(self):
         s = Simplifier(get_env())
         su = Substituter(get_env())
-        x = upf.Fluent('x')
-        y = FluentExp(upf.Fluent('y'))
+        x = Fluent('x')
+        y = FluentExp(Fluent('y'))
         t = Bool(True)
         f = Bool(False)
         e1 = Or(x, t)
@@ -661,7 +660,7 @@ class TestWithSubstituter(TestCase):
     def test_not(self):
         s = Simplifier(get_env())
         su = Substituter(get_env())
-        x = upf.Fluent('x')
+        x = Fluent('x')
         t = Bool(True)
         f = Bool(False)
         e1 = Or(x, Not(t))
@@ -678,8 +677,8 @@ class TestWithSubstituter(TestCase):
     def test_iff(self):
         s = Simplifier(get_env())
         su = Substituter(get_env())
-        x = FluentExp(upf.Fluent('x'))
-        y = FluentExp(upf.Fluent('y'))
+        x = FluentExp(Fluent('x'))
+        y = FluentExp(Fluent('y'))
         t = Bool(True)
         f = Bool(False)
         e1 = Iff(x, y)
@@ -701,8 +700,8 @@ class TestWithSubstituter(TestCase):
     def test_implies(self):
         s = Simplifier(get_env())
         su = Substituter(get_env())
-        x = FluentExp(upf.Fluent('x'))
-        y = FluentExp(upf.Fluent('y'))
+        x = FluentExp(Fluent('x'))
+        y = FluentExp(Fluent('y'))
         t = Bool(True)
         f = Bool(False)
         e1 = Implies(x, y)
@@ -719,12 +718,12 @@ class TestWithSubstituter(TestCase):
     def test_num_to_bools_operators(self):
         s = Simplifier(get_env())
         su = Substituter(get_env())
-        a = FluentExp(upf.Fluent("a", IntType()))
-        b = FluentExp(upf.Fluent("b", IntType()))
-        c = FluentExp(upf.Fluent("c", IntType()))
-        d = FluentExp(upf.Fluent("d", IntType()))
-        x = FluentExp(upf.Fluent("x"))
-        y = FluentExp(upf.Fluent("y"))
+        a = FluentExp(Fluent("a", IntType()))
+        b = FluentExp(Fluent("b", IntType()))
+        c = FluentExp(Fluent("c", IntType()))
+        d = FluentExp(Fluent("d", IntType()))
+        x = FluentExp(Fluent("x"))
+        y = FluentExp(Fluent("y"))
         t = Bool(True)
         f = Bool(False)
         #[(a+5 > b iff c != d) & x] iff (x xor y)

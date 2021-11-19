@@ -19,23 +19,21 @@ are represented by the same object.
 """
 
 import upf
-import upf.types
-import upf.operators as op
-from upf.fnode import FNodeContent, FNode
+import upf.model.types
+import upf.model.operators as op
 from upf.exceptions import UPFTypeError, UPFExpressionDefinitionError
-from upf.variable import Variable
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
-Expression = Union[FNode, 'upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, float, Fraction]
-BoolExpression = Union[FNode, 'upf.Fluent', 'upf.ActionParameter', bool]
+Expression = Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', 'upf.model.object.Object', 'upf.model.action.ActionParameter', 'upf.model.variable.Variable', bool, int, float, Fraction]
+BoolExpression = Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', 'upf.model.action.ActionParameter', bool]
 
 class ExpressionManager(object):
     """ExpressionManager is responsible for the creation of all expressions."""
 
     def __init__(self, env: 'upf.environment.Environment'):
         self.env = env
-        self.expressions: Dict[FNodeContent, FNode] = {}
+        self.expressions: Dict['upf.model.fnode.FNodeContent', 'upf.model.fnode.FNode'] = {}
         self._next_free_id = 1
 
         self.true_expression = self.create_node(node_type=op.BOOL_CONSTANT,
@@ -61,17 +59,17 @@ class ExpressionManager(object):
                 res.append(p)
         return tuple(res)
 
-    def auto_promote(self, *args: Union[Expression, Iterable[Expression]]) -> List[FNode]:
+    def auto_promote(self, *args: Union[Expression, Iterable[Expression]]) -> List['upf.model.fnode.FNode']:
         tuple_args = self._polymorph_args_to_tuple(*args)
         res = []
         for e in tuple_args:
-            if isinstance(e, upf.Fluent):
+            if isinstance(e, upf.model.fluent.Fluent):
                 res.append(self.FluentExp(e))
-            elif isinstance(e, upf.ActionParameter):
+            elif isinstance(e, upf.model.action.ActionParameter):
                 res.append(self.ParameterExp(e))
-            elif isinstance(e, upf.Variable):
+            elif isinstance(e, upf.model.variable.Variable):
                 res.append(self.VariableExp(e))
-            elif isinstance(e, upf.Object):
+            elif isinstance(e, upf.model.object.Object):
                 res.append(self.ObjectExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
@@ -85,19 +83,19 @@ class ExpressionManager(object):
                 res.append(e)
         return res
 
-    def create_node(self, node_type: int, args: Iterable[FNode],
-                    payload: Union['upf.Fluent', 'upf.Object', 'upf.ActionParameter', 'upf.Variable', bool, int, Fraction, Tuple['upf.Variable', ...]] = None) -> FNode:
-        content = FNodeContent(node_type, args, payload)
+    def create_node(self, node_type: int, args: Iterable['upf.model.fnode.FNode'],
+                    payload: Union['upf.model.fluent.Fluent', 'upf.model.object.Object', 'upf.model.action.ActionParameter', 'upf.model.variable.Variable', bool, int, Fraction, Tuple['upf.model.variable.Variable', ...]] = None) ->'upf.model.fnode.FNode':
+        content = upf.model.fnode.FNodeContent(node_type, args, payload)
         if content in self.expressions:
             return self.expressions[content]
         else:
-            n = FNode(content, self._next_free_id)
+            n =upf.model.fnode.FNode(content, self._next_free_id)
             self._next_free_id += 1
             self.expressions[content] = n
             self.env.type_checker.get_type(n)
             return n
 
-    def And(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    def And(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) -> 'upf.model.fnode.FNode':
         """ Returns a conjunction of terms.
         This function has polimorphic n-arguments:
           - And(a,b,c)
@@ -114,7 +112,7 @@ class ExpressionManager(object):
             return self.create_node(node_type=op.AND,
                                     args=tuple_args)
 
-    def Or(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    def Or(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) ->'upf.model.fnode.FNode':
         """ Returns an disjunction of terms.
         This function has polimorphic n-arguments:
           - Or(a,b,c)
@@ -131,7 +129,7 @@ class ExpressionManager(object):
             return self.create_node(node_type=op.OR,
                                     args=tuple_args)
 
-    def Not(self, expression: BoolExpression) -> FNode:
+    def Not(self, expression: BoolExpression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form:
                 not expression
         Restriction: expression must be of boolean type
@@ -141,7 +139,7 @@ class ExpressionManager(object):
             return expression.arg(0)
         return self.create_node(node_type=op.NOT, args=(expression,))
 
-    def Implies(self, left: BoolExpression, right: BoolExpression) -> FNode:
+    def Implies(self, left: BoolExpression, right: BoolExpression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form:
             left -> right
         Restriction: Left and Right must be of boolean type
@@ -149,7 +147,7 @@ class ExpressionManager(object):
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IMPLIES, args=(left, right))
 
-    def Iff(self, left: BoolExpression, right: BoolExpression) -> FNode:
+    def Iff(self, left: BoolExpression, right: BoolExpression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form:
             left <-> right
         Restriction: Left and Right must be of boolean type
@@ -157,7 +155,7 @@ class ExpressionManager(object):
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.IFF, args=(left, right))
 
-    def Exists(self, expression: BoolExpression, *vars: Variable) -> FNode:
+    def Exists(self, expression: BoolExpression, *vars: 'upf.model.variable.Variable') ->'upf.model.fnode.FNode':
         """ Creates an expression of the form:
             Exists (var[0]... var[n]) | expression
         Restriction: expression must be of boolean type and
@@ -167,11 +165,11 @@ class ExpressionManager(object):
         if len(vars) == 0:
             raise UPFExpressionDefinitionError(f"Exists of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed.")
         for v in vars:
-            if not isinstance(v, Variable):
+            if not isinstance(v, upf.model.variable.Variable):
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
         return self.create_node(node_type=op.EXISTS, args=expressions, payload=vars)
 
-    def Forall(self, expression: BoolExpression, *vars: Variable) -> FNode:
+    def Forall(self, expression: BoolExpression, *vars: 'upf.model.variable.Variable') ->'upf.model.fnode.FNode':
         """ Creates an expression of the form:
             Forall (var[0]... var[n]) | expression
         Restriction: expression must be of boolean type and
@@ -181,11 +179,11 @@ class ExpressionManager(object):
         if len(vars) == 0:
             raise UPFExpressionDefinitionError(f"Forall of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed.")
         for v in vars:
-            if not isinstance(v, Variable):
+            if not isinstance(v, upf.model.variable.Variable):
                 raise UPFTypeError("Expecting 'upf.Variable', got %s", type(v))
         return self.create_node(node_type=op.FORALL, args=expressions, payload=vars)
 
-    def FluentExp(self, fluent: 'upf.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
+    def FluentExp(self, fluent: 'upf.model.fluent.Fluent', params: Tuple[Expression, ...] = tuple()) ->'upf.model.fnode.FNode':
         """ Creates an expression for the given fluent and parameters.
         Restriction: parameters type must be compatible with the fluent signature
         """
@@ -193,27 +191,27 @@ class ExpressionManager(object):
         params_exp = self.auto_promote(*params)
         return self.create_node(node_type=op.FLUENT_EXP, args=tuple(params_exp), payload=fluent)
 
-    def ParameterExp(self, param: 'upf.ActionParameter') -> FNode:
+    def ParameterExp(self, param: 'upf.model.action.ActionParameter') ->'upf.model.fnode.FNode':
         """Returns an expression for the given action parameter."""
         return self.create_node(node_type=op.PARAM_EXP, args=tuple(), payload=param)
 
-    def VariableExp(self, var: 'upf.Variable') -> FNode:
+    def VariableExp(self, var: 'upf.model.variable.Variable') ->'upf.model.fnode.FNode':
         """Returns an expression for the given variable."""
         return self.create_node(node_type=op.VARIABLE_EXP, args=tuple(), payload=var)
 
-    def ObjectExp(self, obj: 'upf.Object') -> FNode:
+    def ObjectExp(self, obj: 'upf.model.object.Object') ->'upf.model.fnode.FNode':
         """Returns an expression for the given object."""
         return self.create_node(node_type=op.OBJECT_EXP, args=tuple(), payload=obj)
 
-    def TRUE(self) -> FNode:
+    def TRUE(self) ->'upf.model.fnode.FNode':
         """Return the boolean constant True."""
         return self.true_expression
 
-    def FALSE(self) -> FNode:
+    def FALSE(self) ->'upf.model.fnode.FNode':
         """Return the boolean constant False."""
         return self.false_expression
 
-    def Bool(self, value: bool) -> FNode:
+    def Bool(self, value: bool) ->'upf.model.fnode.FNode':
         """Return a boolean constant."""
         if type(value) != bool:
             raise UPFTypeError("Expecting bool, got %s" % type(value))
@@ -223,19 +221,19 @@ class ExpressionManager(object):
         else:
             return self.false_expression
 
-    def Int(self, value: int) -> FNode:
+    def Int(self, value: int) ->'upf.model.fnode.FNode':
         """Return an int constant."""
         if type(value) != int:
             raise UPFTypeError("Expecting int, got %s" % type(value))
         return self.create_node(node_type=op.INT_CONSTANT, args=tuple(), payload=value)
 
-    def Real(self, value: Fraction) -> FNode:
+    def Real(self, value: Fraction) ->'upf.model.fnode.FNode':
         """Return a real constant."""
         if type(value) != Fraction:
             raise UPFTypeError("Expecting Fraction, got %s" % type(value))
         return self.create_node(node_type=op.REAL_CONSTANT, args=tuple(), payload=value)
 
-    def Plus(self, *args: Union[Expression, Iterable[Expression]]) -> FNode:
+    def Plus(self, *args: Union[Expression, Iterable[Expression]]) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form:
             args[0] + ... + args[n]
         """
@@ -249,12 +247,12 @@ class ExpressionManager(object):
             return self.create_node(node_type=op.PLUS,
                                     args=tuple_args)
 
-    def Minus(self, left: Expression, right: Expression) -> FNode:
+    def Minus(self, left: Expression, right: Expression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form: left - right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.MINUS, args=(left, right))
 
-    def Times(self, *args: Union[Expression, Iterable[Expression]]) -> FNode:
+    def Times(self, *args: Union[Expression, Iterable[Expression]]) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form:
             args[0] * ... * args[n]
         """
@@ -268,32 +266,32 @@ class ExpressionManager(object):
             return self.create_node(node_type=op.TIMES,
                                     args=tuple_args)
 
-    def Div(self, left: Expression, right: Expression) -> FNode:
+    def Div(self, left: Expression, right: Expression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form: left / right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.DIV, args=(left, right))
 
-    def LE(self, left: Expression, right: Expression) -> FNode:
+    def LE(self, left: Expression, right: Expression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form: left <= right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LE, args=(left, right))
 
-    def GE(self, left: Expression, right: Expression) -> FNode:
+    def GE(self, left: Expression, right: Expression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form: left >= right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LE, args=(right, left))
 
-    def LT(self, left: Expression, right: Expression) -> FNode:
+    def LT(self, left: Expression, right: Expression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form: left < right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LT, args=(left, right))
 
-    def GT(self, left: Expression, right: Expression) -> FNode:
+    def GT(self, left: Expression, right: Expression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form: left > right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.LT, args=(right, left))
 
-    def Equals(self, left: Expression, right: Expression) -> FNode:
+    def Equals(self, left: Expression, right: Expression) ->'upf.model.fnode.FNode':
         """ Creates an expression of the form: left == right."""
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=op.EQUALS, args=(left, right))

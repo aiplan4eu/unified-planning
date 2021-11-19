@@ -19,49 +19,52 @@ singleton objects that are used throughout the system,
 such as the ExpressionManager, TypeChecker, TypeManager.
 """
 
-import upf.expression
-import upf.factory
-import upf.types
-import upf.type_checker
-import upf.variable
+from typing import Optional
+import upf
 
 
 class Environment:
     """Represents the environment."""
     def __init__(self):
-        self._type_manager = upf.types.TypeManager()
-        self._factory = upf.factory.Factory()
-        self._tc = upf.type_checker.TypeChecker(self)
-        self._expression_manager = upf.expression.ExpressionManager(self)
-        self._free_vars_oracle = upf.variable.FreeVarsOracle()
+        import upf.model
+        import upf.solvers
+        import upf.walkers
+        self._type_manager = upf.model.TypeManager()
+        self._factory = upf.solvers.Factory()
+        self._tc = upf.walkers.TypeChecker(self)
+        self._expression_manager = upf.model.ExpressionManager(self)
+        self._free_vars_oracle = upf.model.FreeVarsOracle()
 
 
     @property
-    def free_vars_oracle(self) -> upf.variable.FreeVarsOracle:
+    def free_vars_oracle(self) -> 'upf.model.FreeVarsOracle':
         return self._free_vars_oracle
 
     @property
-    def expression_manager(self) -> upf.expression.ExpressionManager:
+    def expression_manager(self) -> 'upf.model.ExpressionManager':
         return self._expression_manager
 
     @property
-    def type_manager(self) -> upf.types.TypeManager:
+    def type_manager(self) -> 'upf.model.TypeManager':
         return self._type_manager
 
     @property
-    def type_checker(self) -> upf.type_checker.TypeChecker:
+    def type_checker(self) -> 'upf.walkers.TypeChecker':
         """ Get the Type Checker """
         return self._tc
 
     @property
-    def factory(self) -> upf.factory.Factory:
+    def factory(self) -> 'upf.solvers.Factory':
         return self._factory
 
 
-GLOBAL_ENVIRONMENT = Environment()
+GLOBAL_ENVIRONMENT: Optional[Environment] = None
 
 def get_env(env: Environment = None) -> Environment:
+    global GLOBAL_ENVIRONMENT
     if env is None:
+        if GLOBAL_ENVIRONMENT is None:
+            GLOBAL_ENVIRONMENT = Environment()
         return GLOBAL_ENVIRONMENT
     else:
         return env

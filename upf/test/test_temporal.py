@@ -14,7 +14,8 @@
 
 import upf
 from upf.shortcuts import *
-from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind, basic_temporal_kind
+from upf.model.problem_kind import basic_temporal_kind
+from upf.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
 from upf.test.examples import get_example_problems
 
 

@@ -17,8 +17,8 @@ import os
 import upf
 from upf.environment import get_env
 from upf.shortcuts import *
+from upf.model.problem_kind import classical_kind, full_classical_kind, basic_temporal_kind, full_numeric_kind
 from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
-from upf.test import classical_kind, full_classical_kind, basic_temporal_kind, full_numeric_kind
 from upf.test.examples import get_example_problems
 from upf.transformers import QuantifiersRemover
 

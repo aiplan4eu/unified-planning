@@ -15,13 +15,13 @@
 '''This module defines the different remover classes.'''
 
 
-from upf.fnode import FNode
-from upf.action import Action, InstantaneousAction, DurativeAction
+import upf
+from upf.model.fnode import FNode
+from upf.model.action import Action, InstantaneousAction, DurativeAction
 from upf.exceptions import UPFProblemDefinitionError
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
-from upf.problem import Problem
-from upf.simplifier import Simplifier
-from upf.timing import Timing
+from upf.model.problem import Problem
+from upf.model.timing import Timing
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 
@@ -35,7 +35,7 @@ class Transformer:
         self._new_to_old: Optional[Dict[Action, Action]] = None
         #represents a mapping from the action of the original problem to action of the new one.
         self._old_to_new: Optional[Dict[Action, List[Action]]] = None
-        self._simplifier = Simplifier(self._env)
+        self._simplifier = upf.walkers.Simplifier(self._env)
 
     def get_old_to_new_actions_mapping(self) -> Optional[Dict[Action, List[Action]]]:
         return self._old_to_new
@@ -157,8 +157,9 @@ class Transformer:
         return nda
 
     def _durative_action_add_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
-        for t, c in original_action.conditions().items():
-            new_action.add_condition(t, c)
+        for t, cl in original_action.conditions().items():
+            for c in cl:
+                new_action.add_condition(t, c)
 
     def _durative_action_add_durative_conditions(self, original_action: DurativeAction, new_action: DurativeAction):
         for i, dc in original_action.durative_conditions().items():
