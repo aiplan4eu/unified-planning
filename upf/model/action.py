@@ -280,21 +280,24 @@ class DurativeAction(Action):
             if len(self._conditions) != len(oth._conditions):
                 return False
             for t, cl in self._conditions.items():
-                if (oth_cl := oth._conditions.get(t, None)) is None:
+                oth_cl = oth._conditions.get(t, None)
+                if oth_cl is None:
                     return False
                 elif set(cl) != set(oth_cl):
                     return False
             if len(self._durative_conditions) != len(oth._durative_conditions):
                 return False
             for i, dcl in self._durative_conditions.items():
-                if (oth_dcl := oth._durative_conditions.get(i, None)) is None:
+                oth_dcl = oth._durative_conditions.get(i, None)
+                if oth_dcl is None:
                     return False
                 elif set(dcl) != set(oth_dcl):
                     return False
             if len(self._effects) != len(oth._effects):
                 return False
             for t, el in self._effects.items():
-                if (oth_el := oth._effects.get(t, None)) is None:
+                oth_el = oth._effects.get(t, None)
+                if oth_el is None:
                     return False
                 elif set(el) != set(oth_el):
                     return False

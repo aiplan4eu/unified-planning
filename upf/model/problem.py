@@ -107,7 +107,8 @@ class Problem:
         if len(self._actions) != len(oth._actions):
                 return False
         for action_name, action in self._actions.items():
-            if (oth_action := oth._actions.get(action_name, None)) is None:
+            oth_action = oth._actions.get(action_name, None)
+            if oth_action is None:
                 return False
             elif action != oth_action:
                 return False
@@ -115,28 +116,32 @@ class Problem:
         if len(self.initial_values()) != len(oth_initial_values):
                 return False
         for fluent, value in self.initial_values().items():
-            if (oth_value := oth_initial_values.get(fluent, None)) is None:
+            oth_value = oth_initial_values.get(fluent, None)
+            if oth_value is None:
                 return False
             elif value != oth_value:
                 return False
         if len(self._timed_effects) != len(oth._timed_effects):
                 return False
         for t, tel in self._timed_effects.items():
-            if (oth_tel := oth._timed_effects.get(t, None)) is None:
+            oth_tel = oth._timed_effects.get(t, None)
+            if oth_tel is None:
                 return False
             elif set(tel) != set(oth_tel):
                 return False
         if len(self._timed_goals) != len(oth._timed_goals):
                 return False
         for t, tgl in self._timed_goals.items():
-            if (oth_tgl := oth._timed_goals.get(t, None)) is None:
+            oth_tgl = oth._timed_goals.get(t, None)
+            if oth_tgl is None:
                 return False
             elif set(tgl) != set(oth_tgl):
                 return False
         if len(self._maintain_goals) != len(oth._maintain_goals):
                 return False
         for i, mgl in self._maintain_goals.items():
-            if (oth_mgl := oth._maintain_goals.get(i, None)) is None:
+            oth_mgl = oth._maintain_goals.get(i, None)
+            if oth_mgl is None:
                 return False
             elif set(mgl) != set(oth_mgl):
                 return False
