@@ -110,7 +110,7 @@ class Problem:
             if (oth_action := oth._actions.get(action_name, None)) is None:
                 return False
             elif action != oth_action:
-                    return False
+                return False
         oth_initial_values = oth.initial_values()
         if len(self.initial_values()) != len(oth_initial_values):
                 return False
@@ -118,7 +118,7 @@ class Problem:
             if (oth_value := oth_initial_values.get(fluent, None)) is None:
                 return False
             elif value != oth_value:
-                    return False
+                return False
         if len(self._timed_effects) != len(oth._timed_effects):
                 return False
         for t, tel in self._timed_effects.items():
