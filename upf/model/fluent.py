@@ -46,8 +46,8 @@ class Fluent:
 
     def __hash__(self) -> int:
         res = hash(self._typename)
-        for _ in self._signature:
-            res += hash(_)
+        for s in self._signature:
+            res += hash(s)
         return res ^ hash(self._name)
 
     def name(self) -> str:
