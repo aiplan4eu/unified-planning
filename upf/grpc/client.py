@@ -14,7 +14,8 @@
 #
 import grpc
 import upf.grpc.generated.upf_pb2_grpc as upf_pb2_grpc
-from upf.grpc.factory import FromProtobufConverter, ToProtobufConverter
+from upf.grpc.from_protobuf_converter import FromProtobufConverter
+from upf.grpc.to_protobuf_converter import ToProtobufConverter
 
 
 class UpfGrpcClient:
@@ -28,9 +29,8 @@ class UpfGrpcClient:
         with grpc.insecure_channel('%s:%d' % (self.host, self.port)) as channel:
             stub = upf_pb2_grpc.UpfStub(channel)
             req = self.to_protobuf.convert(problem)
-            self.from_protobuf.convert(req) # TODO: Workaround to assure that fluent map is populated
 
             answer = stub.plan(req)
 
-            r = self.from_protobuf.convert(answer)
+            r = self.from_protobuf.convert(answer, problem)
             return r

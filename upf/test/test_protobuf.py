@@ -16,7 +16,8 @@ from upf.test import TestCase
 
 from upf.test.examples import get_example_problems
 
-from upf.grpc.factory import FromProtobufConverter, ToProtobufConverter
+from upf.grpc.from_protobuf_converter import FromProtobufConverter
+from upf.grpc.to_protobuf_converter import ToProtobufConverter
 
 
 class TestProtobufFactory(TestCase):
@@ -30,22 +31,22 @@ class TestProtobufFactory(TestCase):
         problem = self.ps['basic'].problem
         msg = self.to_protobuf.convert(problem)
         problem_ret = self.from_protobuf.convert(msg)
-        assert(str(problem) == str(problem_ret))
+        self.assertEqual(problem, problem_ret)
 
     def test_robot(self):
         problem = self.ps['robot'].problem
         msg = self.to_protobuf.convert(problem)
         problem_ret = self.from_protobuf.convert(msg)
-        assert(str(problem) == str(problem_ret))
+        self.assertEqual(problem, problem_ret)
 
     def test_robot_loader(self):
         problem = self.ps['robot_loader'].problem
         msg = self.to_protobuf.convert(problem)
         problem_ret = self.from_protobuf.convert(msg)
-        assert(str(problem) == str(problem_ret))
+        self.assertEqual(problem, problem_ret)
 
     def test_robot_loader_adv(self):
         problem = self.ps['robot_loader_adv'].problem
         msg = self.to_protobuf.convert(problem)
         problem_ret = self.from_protobuf.convert(msg)
-        assert(str(problem) == str(problem_ret))
+        self.assertEqual(problem, problem_ret)

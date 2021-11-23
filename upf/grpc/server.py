@@ -17,7 +17,8 @@ import grpc
 
 from upf.shortcuts import *
 import upf.grpc.generated.upf_pb2_grpc as upf_pb2_grpc
-from upf.grpc.factory import FromProtobufConverter, ToProtobufConverter
+from upf.grpc.from_protobuf_converter import FromProtobufConverter
+from upf.grpc.to_protobuf_converter import ToProtobufConverter
 
 
 class UpfGrpcServer(upf_pb2_grpc.UpfServicer):
