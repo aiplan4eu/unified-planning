@@ -19,5 +19,6 @@ setup(name='upf',
       url='https://aiplan4eu.fbk.eu/',
       packages=find_packages(),
       include_package_data=True,
+      install_requires=['git+https://github.com/aig-upf/tarski.git@ebfda1c13ac908904d5b74587971cc7149e73d85#egg=tarski[arithmetic]'],
       license='APACHE'
      )
