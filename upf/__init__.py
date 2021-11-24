@@ -32,11 +32,10 @@ if len(VERSION) == 5:
                                               stderr=subprocess.STDOUT)
         commits_from_tag = git_version.strip().decode('ascii')
         commits_from_tag = commits_from_tag.split("-")[1]
-        commits_from_tag = int(commits_from_tag)
-        VERSION = VERSION[:4] + (commits_from_tag,)
+        VERSION = VERSION[:4] + (int(commits_from_tag),)
     except Exception as ex:
         pass
 
 # PEP440 Format
 __version__ = "%d.%d.%d.%s%d" % VERSION if len(VERSION) == 5 else \
-              "%d.%d.%d" % VERSION
+              "%d.%d.%d" % VERSION[:3]
