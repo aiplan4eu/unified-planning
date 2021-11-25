@@ -31,7 +31,7 @@ jobs:
         with:
           repository: aiplan4eu/tamer-upf
           path: tamer-upf
-          ref: "7eee1f5529dd7c1bf2c9a9bc1000789627bf97e4"
+          ref: "1dd55c577b5cd264a604ef1338ec379dc14fa7e7"
 
       - name: Install Tamer UPF
         run: pip install ./tamer-upf
