@@ -80,9 +80,15 @@ class Action:
     def clone(self):
         raise NotImplementedError
 
+    @property
     def name(self) -> str:
         """Returns the action name."""
         return self._name
+
+    @name.setter
+    def name(self, new_name: str):
+        """Sets the parameter name."""
+        self._name = new_name
 
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
@@ -107,7 +113,7 @@ class InstantaneousAction(Action):
 
     def __repr__(self) -> str:
         s = []
-        s.append(f'action {self.name()}')
+        s.append(f'action {self.name}')
         first = True
         for p in self.parameters():
             if first:
@@ -153,16 +159,24 @@ class InstantaneousAction(Action):
             new_params[param_name] = param.type()
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
-        new_instantaneous_action._effects = self._effects[:]
+        new_instantaneous_action._effects = [e.clone() for e in self._effects]
         return new_instantaneous_action
 
     def preconditions(self) -> List['upf.model.fnode.FNode']:
         """Returns the list of the action preconditions."""
         return self._preconditions
 
+    def clear_preconditions(self):
+        """Removes all action preconditions"""
+        self._preconditions = []
+
     def effects(self) -> List['upf.model.effect.Effect']:
         """Returns the list of the action effects."""
         return self._effects
+
+    def clear_effects(self):
+        """Removes all effects."""
+        self._effects = []
 
     def conditional_effects(self) -> List['upf.model.effect.Effect']:
         """Returns the list of the action conditional effects."""
@@ -239,7 +253,7 @@ class DurativeAction(Action):
 
     def __repr__(self) -> str:
         s = []
-        s.append(f'durative action {self.name()}')
+        s.append(f'durative action {self.name}')
         first = True
         for p in self.parameters():
             if first:
@@ -340,13 +354,25 @@ class DurativeAction(Action):
         '''Returns the action conditions.'''
         return self._conditions
 
+    def clear_conditions(self):
+        '''Removes all conditions.'''
+        self._conditions = {}
+
     def durative_conditions(self):
         '''Returns the action durative conditions.'''
         return self._durative_conditions
 
+    def clear_durative_conditions(self):
+        '''Removes all durative conditions.'''
+        self._durative_conditions = {}
+
     def effects(self):
         '''Returns the action effects.'''
         return self._effects
+
+    def clear_effects(self):
+        '''Removes all effects.'''
+        self._effects = {}
 
     def conditional_effects(self):
         '''Return the action conditional effects.'''
@@ -380,7 +406,7 @@ class DurativeAction(Action):
         elif (upper.constant_value() < lower.constant_value() or
               (upper.constant_value() == lower.constant_value() and
                (duration.is_left_open() or duration.is_right_open()))):
-            raise UPFProblemDefinitionError(f'{duration} is an empty interval duration of action: {self.name()}.')
+            raise UPFProblemDefinitionError(f'{duration} is an empty interval duration of action: {self.name}.')
         self._duration = duration
 
     def set_fixed_duration(self, value: Union['upf.model.fnode.FNode', int, Fraction]):

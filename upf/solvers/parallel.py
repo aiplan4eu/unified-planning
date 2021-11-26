@@ -70,12 +70,12 @@ class Parallel(solvers.solver.Solver):
         plan = self._run_parallel('solve', problem)
         actions = []
         objects = {}
-        for ut in problem.user_types().values():
+        for ut in problem.user_types():
             for obj in problem.objects(ut):
                 objects[obj.name()] = obj
         em = problem.env.expression_manager
         for a in plan.actions():
-            new_a = problem.action(a.action().name())
+            new_a = problem.action(a.action().name)
             params = []
             for p in a.actual_parameters():
                 if p.is_object_exp():

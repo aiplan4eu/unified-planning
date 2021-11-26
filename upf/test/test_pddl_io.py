@@ -80,7 +80,6 @@ class TestPddlIO(TestCase):
         w = PDDLWriter(problem)
 
         pddl_domain = w.get_domain()
-        print(pddl_domain)
         self.assertIn('(:requirements :strips :typing :existential-preconditions)', pddl_domain)
         self.assertIn('(:predicates (x) (y ?p0 - Semaphore))', pddl_domain)
         self.assertIn('(:action a', pddl_domain)

@@ -21,8 +21,7 @@ from upf.environment import get_env
 from upf.shortcuts import *
 from upf.test import TestCase, main, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
 from upf.test.examples import get_example_problems
-from upf.model import AbsoluteTiming, ClosedInterval, Effect
-from upf.model.problem_kind import basic_classical_kind, classical_kind, basic_temporal_kind
+from upf.model.problem_kind import basic_classical_kind, classical_kind, basic_temporal_kind, full_classical_kind
 from upf.transformers import NegativeConditionsRemover
 from upf.solvers import SequentialPlanValidator as PV
 from upf.exceptions import UPFExpressionDefinitionError, UPFProblemDefinitionError
@@ -38,7 +37,6 @@ class TestNegativeConditionsRemover(TestCase):
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_basic(self):
         problem = self.problems['basic'].problem
-        plan = self.problems['basic'].plan
         npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
@@ -47,7 +45,6 @@ class TestNegativeConditionsRemover(TestCase):
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem)
-            print(planner.name())
             new_plan = npr.rewrite_back_plan(positive_plan)
             with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
@@ -56,7 +53,6 @@ class TestNegativeConditionsRemover(TestCase):
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader_mod(self):
         problem = self.problems['robot_loader_mod'].problem
-        plan = self.problems['robot_loader_mod'].plan
         npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         positive_problem_2 = npr.get_rewritten_problem()
@@ -75,7 +71,6 @@ class TestNegativeConditionsRemover(TestCase):
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_matchcellar(self):
         problem = self.problems['matchcellar'].problem
-        plan = self.problems['matchcellar'].plan
         npr = NegativeConditionsRemover(problem)
         positive_problem = npr.get_rewritten_problem()
         self.assertTrue(problem.kind().has_negative_conditions())
@@ -112,7 +107,40 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertIn(mend_f3, npa)
 
 
-    def test_ad_hoc(self):
+    @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
+    def test_basic_conditional(self):
+        problem = self.problems['basic_conditional'].problem
+        npr = NegativeConditionsRemover(problem)
+        positive_problem = npr.get_rewritten_problem()
+        self.assertEqual(len(problem.fluents()) + 2, len(positive_problem.fluents()))
+        self.assertTrue(problem.kind().has_negative_conditions())
+        self.assertFalse(positive_problem.kind().has_negative_conditions())
+        with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
+            self.assertNotEqual(planner, None)
+            positive_plan = planner.solve(positive_problem)
+            new_plan = npr.rewrite_back_plan(positive_plan)
+            with PlanValidator(problem_kind=problem.kind()) as PV:
+                self.assertTrue(PV.validate(problem, new_plan))
+
+    def test_temporal_conditional(self):
+        problem = self.problems['temporal_conditional'].problem
+        npr = NegativeConditionsRemover(problem)
+        positive_problem = npr.get_rewritten_problem()
+        self.assertEqual(len(problem.fluents()) + 3, len(positive_problem.fluents()))
+        self.assertTrue(problem.kind().has_negative_conditions())
+        self.assertFalse(positive_problem.kind().has_negative_conditions())
+        set_giver = problem.action('set_giver')
+        new_actions = npr.get_transformed_actions(set_giver)
+        self.assertEqual(len(new_actions), 1)
+        self.assertNotEqual(new_actions[0], set_giver)
+        take_ok = problem.action('take_ok')
+        new_actions = npr.get_transformed_actions(take_ok)
+        self.assertEqual(len(new_actions), 1)
+        self.assertNotEqual(new_actions[0], take_ok)
+        #lacking planners to test this with planner+plan_validator
+
+    def test_ad_hoc_1(self):
         x = Fluent('x')
         y = Fluent('y')
         a = InstantaneousAction('a')
@@ -135,45 +163,28 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertIn(f"Expression: {Not(Iff(x, y))} is not in NNF.", str(e.exception))
 
     def test_ad_hoc_2(self):
-        r = Fluent('r', RealType())
-        problem = Problem('ad_hoc_2')
-        problem.set_initial_value(r, 5.1)
-        npr = NegativeConditionsRemover(problem)
-        with self.assertRaises(UPFProblemDefinitionError) as e:
-            positive_problem = npr.get_rewritten_problem()
-        self.assertIn(f"Initial value: {str(problem.initial_value(r))} of fluent: {FluentExp(r)} is not a boolean constant. An initial value MUST be a Boolean constant.", str(e.exception))
-
-    def test_ad_hoc_3(self):
-        loc = UserType('loc')
-        x = Fluent('x')
-        y = Fluent('y', BoolType(), [loc])
-        a = InstantaneousAction('a')
-        l1 = Object('l1', loc)
-        l2 = Object('l2', loc)
-        a.add_precondition(x)
-        a.add_precondition(Not(y(l1)))
-        a.add_precondition(Not(y(l2)))
-        a.add_effect(y(l1), True, Not(y(l2)))
-        problem = Problem('ad_hoc_3')
-        problem.add_fluent(x, default_initial_value=False)
-        problem.add_fluent(y, default_initial_value=False)
-        problem.add_action(a)
-        npr = NegativeConditionsRemover(problem)
-        with self.assertRaises(UPFProblemDefinitionError) as e:
-            positive_problem = npr.get_rewritten_problem()
-        self.assertIn(f"Effect: {a.effects()[0]} of action: {a} is conditional. Try using the ConditionalEffectsRemover before the NegativeConditionsRemover.", str(e.exception))
-
-    def test_ad_hoc_4(self):
         x = Fluent('x')
         y = Fluent('y')
-        a = InstantaneousAction('a')
-        a.add_precondition(x)
-        a._add_effect_instance(Effect(FluentExp(y), Real(Fraction(5.1)), get_env().expression_manager.TRUE()))
-        problem = Problem('ad_hoc_4')
-        problem.add_fluent(x, default_initial_value=False)
-        problem.add_fluent(y, default_initial_value=False)
-        problem.add_action(a)
+        t = AbsoluteTiming(5)
+        problem = Problem('ad_hoc')
+        problem.add_fluent(x)
+        problem.add_fluent(y)
+        problem.add_timed_effect(t, y, x, Not(y))
+        problem.set_initial_value(x, True)
+        problem.set_initial_value(y, False)
+        problem.add_goal(x)
         npr = NegativeConditionsRemover(problem)
-        with self.assertRaises(UPFProblemDefinitionError) as e:
-            positive_problem = npr.get_rewritten_problem()
-        self.assertIn(f"Effect; {a.effects()[0]} assigns value: {a.effects()[0].value()} to fluent: {a.effects()[0].fluent()}, but value is not a boolean constant.", str(e.exception))
+        positive_problem = npr.get_rewritten_problem()
+        self.assertEqual(len(problem.fluents()) + 1, len(positive_problem.fluents()))
+        y__negated__ = Fluent('ncrm_y_0')
+        test_problem = Problem(positive_problem.name)
+        test_problem.add_fluent(x)
+        test_problem.add_fluent(y)
+        test_problem.add_fluent(y__negated__)
+        test_problem.add_timed_effect(t, y, x, y__negated__)
+        test_problem.add_timed_effect(t, y__negated__, Not(x), y__negated__)
+        test_problem.set_initial_value(x, True)
+        test_problem.set_initial_value(y, False)
+        test_problem.set_initial_value(y__negated__, True)
+        test_problem.add_goal(x)
+        self.assertEqual(positive_problem, test_problem)

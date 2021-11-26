@@ -45,7 +45,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         cond = Or(is_connected(l_from, l_to), is_connected(l_to, l_from))
         self.assertIn(cond, move.preconditions())
-        new_moves = dnfr.get_old_to_new_actions_mapping()[move]
+        new_moves = dnfr.get_transformed_actions(move)
         for m in new_moves:
             self.assertNotIn(cond, m.preconditions())
 
@@ -66,12 +66,11 @@ class TestDisjunctiveConditionsRemover(TestCase):
             plan = dnfr.rewrite_back_plan(dnf_plan)
             for ai in plan.actions():
                 a = ai.action()
-                self.assertEqual(a, problem.action(a.name()))
+                self.assertEqual(a, problem.action(a.name))
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
-    def test_ad_hoc(self):
-
+    def test_ad_hoc_1(self):
         #mockup problem
         a = Fluent('a')
         b = Fluent('b')
@@ -99,58 +98,47 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
-        new_act = dnfr.get_old_to_new_actions_mapping()[act]
+        new_act = dnfr.get_transformed_actions(act)
 
         self.assertEqual(len(dnf_problem.actions()), 4)
         self.assertEqual(len(new_act), 4)
-        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))
+        self.assertEqual(set(dnf_problem.actions()), set(new_act))
         # Cycle over all actions. For every new action assume that the precondition is equivalent
         # to one in the possible_preconditions and that no other action has the same precondition.
-        for i, new_action in enumerate(dnf_problem.actions().values()):
+        for i, new_action in enumerate(dnf_problem.actions()):
             self.assertEqual(new_action.effects(), act.effects())
             preconditions = set(new_action.preconditions())
             self.assertIn(preconditions, possible_conditions)
-            for j, new_action_oth_acts in enumerate(dnf_problem.actions().values()):
+            for j, new_action_oth_acts in enumerate(dnf_problem.actions()):
                 preconditions_oth_acts = set(new_action_oth_acts.preconditions())
                 if i != j:
                     self.assertNotEqual(preconditions, preconditions_oth_acts)
 
-    def test_raise_exceptions(self):
-
+    def test_ad_hoc_2(self):
         #mockup problem
         a = Fluent('a')
-        b = Fluent('b')
-        c = Fluent('c')
-        d = Fluent('d')
         act = InstantaneousAction('act')
-        # (a <-> (b -> c)) -> (a & d)
-        # In Dnf:
-        # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
-        act.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
+        cond = And(a, a)
+        act.add_precondition(cond)
         act.add_effect(a, TRUE())
-        act_2 = InstantaneousAction('act__1__')
-        act_2.add_precondition(Implies(Iff(a, Implies(b, c)), And(a, d)))
-        act_2.add_effect(a, TRUE())
         problem = Problem('mockup')
         problem.add_fluent(a)
-        problem.add_fluent(b)
-        problem.add_fluent(c)
-        problem.add_fluent(d)
         problem.add_action(act)
-        problem.add_action(act_2)
         problem.set_initial_value(a, True)
-        problem.set_initial_value(b, False)
-        problem.set_initial_value(c, True)
-        problem.set_initial_value(d, False)
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
-        with self.assertRaises(UPFProblemDefinitionError) as e:
-            dnf_problem = dnfr.get_rewritten_problem()
-        self.assertIn("InstantaneousAction: act__1__ of problem: mockup has invalid name. Double underscore '__' is reserved by the naming convention.",
-        str(e.exception))
+        dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_transformed_actions(act)
 
-    def test_temproal_mockup(self):
+        self.assertEqual(len(dnf_problem.actions()), 1)
+        self.assertEqual(len(new_act), 1)
+        self.assertEqual(set(dnf_problem.actions()), set(new_act))
+        new_action = new_act[0]
+        self.assertEqual(new_action.effects(), act.effects())
+        preconditions = set(new_action.preconditions())
+        self.assertEqual(preconditions, set((FluentExp(a), )))
 
+    def test_temproal_mockup_1(self):
         # temporal mockup
         a = Fluent('a')
         b = Fluent('b')
@@ -180,7 +168,33 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
-        new_act = dnfr.get_old_to_new_actions_mapping()[act]
+        new_act = dnfr.get_transformed_actions(act)
         self.assertEqual(len(dnf_problem.actions()), 81)
         self.assertEqual(len(new_act), 81)
-        self.assertEqual(set(dnf_problem.actions().values()), set(new_act))
+        self.assertEqual(set(dnf_problem.actions()), set(new_act))
+
+    def test_temproal_mockup_2(self):
+        # temporal mockup
+        a = Fluent('a')
+        b = Fluent('b')
+        act = DurativeAction('act')
+        exp = And(Not(a), b)
+        act.add_condition(StartTiming(), exp)
+        act.add_condition(StartTiming(1), exp)
+        act.add_durative_condition(ClosedInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_durative_condition(ClosedInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_effect(StartTiming(6), a, TRUE())
+
+        problem = Problem('temporal_mockup')
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_action(act)
+        problem.set_initial_value(a, False)
+        problem.set_initial_value(b, False)
+        problem.add_goal(a)
+        dnfr = DisjunctiveConditionsRemover(problem)
+        dnf_problem = dnfr.get_rewritten_problem()
+        new_act = dnfr.get_transformed_actions(act)
+        self.assertEqual(len(dnf_problem.actions()), 1)
+        self.assertEqual(len(new_act), 1)
+        self.assertEqual(set(dnf_problem.actions()), set(new_act))

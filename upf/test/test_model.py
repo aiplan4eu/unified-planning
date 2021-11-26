@@ -28,7 +28,7 @@ class TestModel(TestCase):
         for _, (problem, _) in self.problems.items():
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
-            for action_1, action_2 in zip(problem_clone_1.actions().values(), problem_clone_2.actions().values()):
+            for action_1, action_2 in zip(problem_clone_1.actions(), problem_clone_2.actions()):
                 if isinstance(action_2, InstantaneousAction):
                     action_2._effects = []
                     action_1_clone = action_1.clone()
@@ -43,8 +43,8 @@ class TestModel(TestCase):
                 self.assertEqual(action_1_clone, action_2)
                 self.assertNotEqual(action_1, action_1_clone)
                 self.assertNotEqual(action_1_clone, action_1)
-                self.assertNotEqual(action_1, action_1_clone.name())
-                self.assertNotEqual(action_1_clone.name(), action_1)
+                self.assertNotEqual(action_1, action_1_clone.name)
+                self.assertNotEqual(action_1_clone.name, action_1)
             self.assertEqual(problem_clone_1, problem)
             self.assertEqual(problem, problem_clone_1)
             self.assertNotEqual(problem_clone_2, problem)
@@ -58,7 +58,7 @@ class TestModel(TestCase):
         with self.assertRaises(NotImplementedError):
             hash(a)
         with self.assertRaises(NotImplementedError):
-            a == a.name()
+            a == a.name
         with self.assertRaises(NotImplementedError):
             a.is_conditional()
 
@@ -76,3 +76,59 @@ class TestModel(TestCase):
         self.assertNotEqual(e, e_clone_2)
         self.assertNotEqual(e, e.value())
         self.assertNotEqual(e.value(), e)
+
+    def test_istantaneous_action(self):
+        Location = UserType('Location')
+        move = InstantaneousAction('move', l_from=Location, l_to=Location)
+        km = Fluent('km', IntType())
+        move.add_increase_effect(km, 10)
+        e = Effect(FluentExp(km), Int(10), TRUE(), upf.model.effect.INCREASE)
+        self.assertEqual(move.effects()[0], e)
+
+    def test_durative_action(self):
+        Location = UserType('Location')
+        x = Fluent('x')
+        move = DurativeAction('move', l_from=Location, l_to=Location)
+        km = Fluent('km', IntType())
+        move.add_decrease_effect(StartTiming(), km, 5)
+        move.add_increase_effect(EndTiming(), km, 20)
+        e_end = Effect(FluentExp(km), Int(20), TRUE(), upf.model.effect.INCREASE)
+        e_start = Effect(FluentExp(km), Int(5), TRUE(), upf.model.effect.DECREASE)
+        effects_test = {StartTiming(): [e_start], EndTiming(): [e_end]}
+        self.assertEqual(effects_test, move.effects())
+        move.set_closed_interval_duration(1, 2)
+        self.assertEqual(move.duration(), ClosedIntervalDuration(Int(1), Int(2)))
+        move.set_open_interval_duration(2, Fraction(7, 2))
+        self.assertEqual(move.duration(), OpenIntervalDuration(Int(2), Real(Fraction(7, 2))))
+        move.set_left_open_interval_duration(1, 2)
+        self.assertEqual(move.duration(), LeftOpenIntervalDuration(Int(1), Int(2)))
+        move.set_right_open_interval_duration(1, 2)
+        self.assertEqual(move.duration(), RightOpenIntervalDuration(Int(1), Int(2)))
+        move.add_condition(StartTiming(), x)
+        move.add_durative_condition(Interval(StartTiming(), EndTiming()), x)
+        self.assertIn('duration = [1, 2)', str(move))
+
+    def test_problem(self):
+        x = Fluent('x')
+        y = Fluent('y')
+        km = Fluent('km', IntType())
+        problem = Problem('problem_test')
+        problem.add_fluent(x, default_initial_value=True)
+        problem.add_fluent(y, default_initial_value=False)
+        problem.add_fluent(km, default_initial_value=Int(0))
+        problem.add_timed_effect(AbsoluteTiming(5), x, y)
+        problem.add_timed_goal(AbsoluteTiming(11), x)
+        problem.add_maintain_goal(Interval(AbsoluteTiming(5), AbsoluteTiming(9)), x)
+        problem.add_action(DurativeAction('move'))
+        problem.add_action(InstantaneousAction('stop_moving'))
+        stop_moving_list = [a for a in problem.instantaneous_actions()]
+        self.assertEqual(len(stop_moving_list), 1)
+        stop_moving = stop_moving_list[0]
+        self.assertEqual(stop_moving.name, 'stop_moving')
+        move_list = [a for a in problem.durative_actions()]
+        self.assertEqual(len(move_list), 1)
+        move = move_list[0]
+        self.assertEqual(move.name, 'move')
+        problem.add_increase_effect(AbsoluteTiming(5), km, 10)
+        problem.add_decrease_effect(AbsoluteTiming(10), km, 5)
+        self.assertIn(str(Effect(FluentExp(km), Int(10), TRUE(), upf.model.effect.INCREASE)), str(problem))
