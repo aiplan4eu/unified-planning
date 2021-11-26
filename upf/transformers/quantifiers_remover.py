@@ -97,7 +97,7 @@ class QuantifiersRemover(Transformer):
         self._new_problem.clear_timed_goals()
         self._new_problem.clear_maintain_goals()
         self._new_problem.clear_goals()
-        for action in self._new_problem.actions_list():
+        for action in self._new_problem.actions():
             if isinstance(action, InstantaneousAction):
                 original_action = self._problem.action(action.name)
                 assert isinstance(original_action, InstantaneousAction)

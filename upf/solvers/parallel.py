@@ -70,7 +70,7 @@ class Parallel(solvers.solver.Solver):
         plan = self._run_parallel('solve', problem)
         actions = []
         objects = {}
-        for ut in problem.user_types().values():
+        for ut in problem.user_types():
             for obj in problem.objects(ut):
                 objects[obj.name()] = obj
         em = problem.env.expression_manager

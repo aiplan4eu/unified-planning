@@ -170,11 +170,11 @@ class PDDLWriter:
                 out.write(' :duration-inequalities')
             out.write(')\n')
 
-        out.write(f' (:types {" ".join(self.problem.user_types().keys())})\n' if len(self.problem.user_types()) > 0 else '')
+        out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
 
         predicates = []
         functions = []
-        for f in self.problem.fluents().values():
+        for f in self.problem.fluents():
             if f.type().is_bool_type():
                 params = []
                 i = 0
@@ -201,7 +201,7 @@ class PDDLWriter:
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
         converter = ConverterToPDDLString(self.problem.env)
-        for a in self.problem.actions_list():
+        for a in self.problem.actions():
             if isinstance(a, upf.model.InstantaneousAction):
                 out.write(f' (:action {a.name}')
                 out.write(f'\n  :parameters (')
@@ -311,7 +311,7 @@ class PDDLWriter:
         out.write(f' (:domain {name}-domain)\n')
         if len(self.problem.user_types()) > 0:
             out.write(' (:objects ')
-            for t in self.problem.user_types().values():
+            for t in self.problem.user_types():
                 out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
             out.write('\n )\n')
         converter = ConverterToPDDLString(self.problem.env)

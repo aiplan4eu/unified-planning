@@ -206,7 +206,7 @@ class TestPddlIO(TestCase):
 
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents()), 15)
-        self.assertEqual(len(problem.actions_list()), 5)
+        self.assertEqual(len(problem.actions()), 5)
         self.assertEqual(len(problem.objects(problem.user_type('object'))), 13)
 
     def test_counters_reader(self):
@@ -218,7 +218,7 @@ class TestPddlIO(TestCase):
 
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents()), 2)
-        self.assertEqual(len(problem.actions_list()), 2)
+        self.assertEqual(len(problem.actions()), 2)
         self.assertEqual(len(problem.objects(problem.user_type('counter'))), 4)
 
     def test_sailing_reader(self):
@@ -230,7 +230,7 @@ class TestPddlIO(TestCase):
 
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents()), 4)
-        self.assertEqual(len(problem.actions_list()), 8)
+        self.assertEqual(len(problem.actions()), 8)
         self.assertEqual(len(problem.objects(problem.user_type('boat'))), 2)
         self.assertEqual(len(problem.objects(problem.user_type('person'))), 2)
 

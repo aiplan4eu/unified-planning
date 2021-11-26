@@ -31,7 +31,7 @@ jobs:
         with:
           repository: aiplan4eu/tamer-upf
           path: tamer-upf
-          ref: "5347e400b7fbaad70917647f9899ab1648ebd042"
+          ref: "b2cb52cb0368a4d2979c2fa4786e0394709583d4"
 
       - name: Install Tamer UPF
         run: bash tamer-upf/install.sh
@@ -41,7 +41,7 @@ jobs:
         with:
           repository: aiplan4eu/pyperplan-upf
           path: pyperplan-upf
-          ref: "db978d0d321aaa1195431b2ae874bf92d024e437"
+          ref: "cff63238bd8fdf95a9617f8cf23413032b0ac93b"
 
       - name: Install Pyperplan UPF
         run: bash pyperplan-upf/install.sh

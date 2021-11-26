@@ -50,18 +50,18 @@ class Problem:
         if not self.name is None:
             s.append(f'problem name = {str(self.name)}\n\n')
         if len(self.user_types()) > 0:
-            s.append(f'types = {str(list(self.user_types().values()))}\n\n')
+            s.append(f'types = {str(list(self.user_types()))}\n\n')
         s.append('fluents = [\n')
-        for f in self.fluents().values():
+        for f in self.fluents():
             s.append(f'  {str(f)}\n')
         s.append(']\n\n')
         s.append('actions = [\n')
-        for a in self.actions_list():
+        for a in self.actions():
             s.append(f'  {str(a)}\n')
         s.append(']\n\n')
         if len(self.user_types()) > 0:
             s.append('objects = [\n')
-            for ty in self.user_types().values():
+            for ty in self.user_types():
                 s.append(f'  {str(ty)}: {str(self.objects(ty))}\n')
             s.append(']\n\n')
         s.append('initial values = [\n')
@@ -203,9 +203,9 @@ class Problem:
         '''Returns true if the name is in the problem.'''
         return self.has_action(name) or self.has_fluent(name) or self.has_object(name) or self.has_type(name)
 
-    def fluents(self) -> Dict[str, 'upf.model.fluent.Fluent']:
+    def fluents(self) -> List['upf.model.fluent.Fluent']:
         '''Returns the fluents.'''
-        return {f.name(): f for f in self._fluents}
+        return self._fluents
 
     def fluent(self, name: str) -> 'upf.model.fluent.Fluent':
         '''Returns the fluent with the given name.'''
@@ -237,7 +237,7 @@ class Problem:
             if type.is_user_type() and type not in self._user_types:
                 self._user_types.append(type) # type: ignore
 
-    def actions_list(self) -> List['upf.model.action.Action']:
+    def actions(self) -> List['upf.model.action.Action']:
         '''Returns the list of the actions in the problem.'''
         return self._actions
 
@@ -283,9 +283,9 @@ class Problem:
             raise UPFProblemDefinitionError('Name ' + action.name + ' already defined!')
         self._actions.append(action)
 
-    def user_types(self) -> Dict[str, 'upf.model.types.Type']:
+    def user_types(self) -> List['upf.model.types.Type']:
         '''Returns the user types.'''
-        return {ut.name(): ut for ut in self._user_types} # type: ignore
+        return self._user_types
 
     def user_type(self, name: str) -> 'upf.model.types.Type':
         '''Returns the user type with the given name.'''

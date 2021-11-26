@@ -80,7 +80,7 @@ class NegativeConditionsRemover(Transformer):
         assert self._new_problem is not None
 
         name_action_map: Dict[str, Union[InstantaneousAction, DurativeAction]] = {}
-        for action in self._problem.actions_list():
+        for action in self._problem.actions():
             if isinstance(action, InstantaneousAction):
                 new_action = action.clone()
                 new_action.name = self.get_fresh_name(action.name)
@@ -137,7 +137,7 @@ class NegativeConditionsRemover(Transformer):
         # negation is None it means the fluent is never found in a negation into
         # every condititon analized before; therefore it does not need to exist.
         fluent_mapping = self._fluent_remover.fluent_mapping
-        for f in self._problem.fluents().values():
+        for f in self._problem.fluents():
             self._new_problem.add_fluent(f)
             fneg = fluent_mapping.get(f, None)
             if fneg is not None:
@@ -154,7 +154,7 @@ class NegativeConditionsRemover(Transformer):
                     self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
                     tuple(fl.args())), self._env.expression_manager.TRUE())
 
-        for action in self._problem.actions_list():
+        for action in self._problem.actions():
             if isinstance(action, InstantaneousAction):
                 new_action = name_action_map[action.name]
                 new_effects: List[Effect] = []
