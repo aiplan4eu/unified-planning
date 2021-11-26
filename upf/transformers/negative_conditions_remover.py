@@ -80,7 +80,7 @@ class NegativeConditionsRemover(Transformer):
         assert self._new_problem is not None
 
         name_action_map: Dict[str, Union[InstantaneousAction, DurativeAction]] = {}
-        for name, action in self._problem.actions().items():
+        for action in self._problem.actions_list():
             if isinstance(action, InstantaneousAction):
                 new_action = action.clone()
                 new_action.name = self.get_fresh_name(action.name)
@@ -90,7 +90,7 @@ class NegativeConditionsRemover(Transformer):
                     new_action.add_precondition(np)
                 for ce in new_action.conditional_effects():
                     ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
-                name_action_map[name] = new_action
+                name_action_map[action.name] = new_action
             elif isinstance(action, DurativeAction):
                 new_durative_action = action.clone()
                 new_durative_action.name = self.get_fresh_name(action.name)
@@ -107,7 +107,7 @@ class NegativeConditionsRemover(Transformer):
                 for t, cel in new_durative_action.conditional_effects().items():
                     for ce in cel:
                         ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
-                name_action_map[name] = new_durative_action
+                name_action_map[action.name] = new_durative_action
             else:
                 raise NotImplementedError
 
@@ -154,9 +154,9 @@ class NegativeConditionsRemover(Transformer):
                     self._new_problem.set_initial_value(self._env.expression_manager.FluentExp(fneg,
                     tuple(fl.args())), self._env.expression_manager.TRUE())
 
-        for name, action in self._problem.actions().items():
+        for action in self._problem.actions_list():
             if isinstance(action, InstantaneousAction):
-                new_action = name_action_map[name]
+                new_action = name_action_map[action.name]
                 new_effects: List[Effect] = []
                 for e in new_action.effects():
                     fl, v = e.fluent(), e.value()
@@ -171,7 +171,7 @@ class NegativeConditionsRemover(Transformer):
                 self._old_to_new[action] = [new_action]
                 self._new_to_old[new_action] = action
             elif isinstance(action, DurativeAction):
-                new_durative_action = name_action_map[name]
+                new_durative_action = name_action_map[action.name]
                 new_durative_action.set_duration_constraint(action.duration())
 
                 for t, el in new_durative_action.effects().items():

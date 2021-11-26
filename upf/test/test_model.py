@@ -28,7 +28,7 @@ class TestModel(TestCase):
         for _, (problem, _) in self.problems.items():
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
-            for action_1, action_2 in zip(problem_clone_1.actions().values(), problem_clone_2.actions().values()):
+            for action_1, action_2 in zip(problem_clone_1.actions_list(), problem_clone_2.actions_list()):
                 if isinstance(action_2, InstantaneousAction):
                     action_2._effects = []
                     action_1_clone = action_1.clone()

@@ -56,7 +56,7 @@ class Problem:
             s.append(f'  {str(f)}\n')
         s.append(']\n\n')
         s.append('actions = [\n')
-        for a in self.actions().values():
+        for a in self.actions_list():
             s.append(f'  {str(a)}\n')
         s.append(']\n\n')
         if len(self.user_types()) > 0:
@@ -237,9 +237,9 @@ class Problem:
             if type.is_user_type() and type not in self._user_types:
                 self._user_types.append(type) # type: ignore
 
-    def actions(self) -> Dict[str, 'upf.model.action.Action']:
-        '''Returns the actions.'''
-        return {a.name: a for a in self._actions}
+    def actions_list(self) -> List['upf.model.action.Action']:
+        '''Returns the list of the actions in the problem.'''
+        return self._actions
 
     def clear_actions(self):
         '''Removes all the problem actions.'''

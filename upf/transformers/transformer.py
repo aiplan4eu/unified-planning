@@ -52,7 +52,11 @@ class Transformer:
     def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
-        to be a plan of the original problem.'''
+        to be a plan of the original problem.
+
+        NOTE:
+        This method MUST be rewritten if the specific Transformer extension changes
+        the action's parameters!'''
         if isinstance(plan, SequentialPlan):
             new_actions: List[ActionInstance] = plan.actions()
             old_actions: List[ActionInstance] = []

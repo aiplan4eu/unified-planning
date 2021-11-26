@@ -36,7 +36,7 @@ class TestConditionalEffectsRemover(TestCase):
         problem = self.problems['basic_conditional'].problem
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
-        u_actions = list(unconditional_problem.actions().values())
+        u_actions = unconditional_problem.actions_list()
         a_x = problem.action("a_x")
         a_x_new_list = cer.get_transformed_actions(a_x)
         self.assertEqual(len(a_x_new_list), 1)
@@ -59,7 +59,7 @@ class TestConditionalEffectsRemover(TestCase):
 
         self.assertTrue(problem.kind().has_conditional_effects())
         self.assertFalse(unconditional_problem.kind().has_conditional_effects())
-        for a in unconditional_problem.actions().values():
+        for a in unconditional_problem.actions_list():
             self.assertFalse(a.is_conditional())
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
@@ -99,7 +99,7 @@ class TestConditionalEffectsRemover(TestCase):
             for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uncond_plan.actions()):
                 self.assertEqual(s, s_1)
                 self.assertEqual(d, d_1)
-                self.assertIn(a.action(), problem.actions().values())
+                self.assertIn(a.action(), problem.actions_list())
 
     def test_ad_hoc_1(self):
         ct = AbsoluteTiming(2)

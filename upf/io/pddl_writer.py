@@ -201,7 +201,7 @@ class PDDLWriter:
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
         converter = ConverterToPDDLString(self.problem.env)
-        for a in self.problem.actions().values():
+        for a in self.problem.actions_list():
             if isinstance(a, upf.model.InstantaneousAction):
                 out.write(f' (:action {a.name}')
                 out.write(f'\n  :parameters (')
