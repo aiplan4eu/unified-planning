@@ -21,30 +21,30 @@ jobs:
         uses: jpetrucciani/mypy-check@master
 
       - name: Install Python dependencies
-        run: python3 -mpip install -r requirements.txt
+        run: python3 -m pip install -r requirements.txt
 
       - name: Install Development Python dependencies
-        run: python3 -mpip install -r dev-requirements.txt
+        run: python3 -m pip install -r dev-requirements.txt
 
       - name: Checkout Tamer UPF
         uses: actions/checkout@v2
         with:
           repository: aiplan4eu/tamer-upf
           path: tamer-upf
-          ref: "29dfa4b3c43ac6da0b97ca89e94450fce19b5681"
+          ref: "5786e4078d9bd1b358920a483712e52b452996fc"
 
       - name: Install Tamer UPF
-        run: pip install ./tamer-upf
+        run: python3 -m pip install tamer-upf
 
       - name: Checkout Pyperplan UPF
         uses: actions/checkout@v2
         with:
           repository: aiplan4eu/pyperplan-upf
           path: pyperplan-upf
-          ref: "ddaf0cee57343638a8af0f1454e2a48dc5aa210f"
+          ref: "4b66bc1764ff710bdcbda285f93ee15f53129e4e"
 
       - name: Install Pyperplan UPF
-        run: pip install ./pyperplan-upf
+        run: python3 -m pip install pyperplan-upf
 
       - name: Download ENHSP
         run: |
