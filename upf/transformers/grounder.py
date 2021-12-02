@@ -41,6 +41,18 @@ class Grounder(Transformer):
         #this data structure maps the grounded action with the objects the action grounds
         self._map_parameters: Dict[Action, List[FNode]] = {}
 
+    def get_rewrite_back_map(self) -> Dict[Action, Tuple[Action, List[FNode]]]:
+        '''Returns a map from an action of the grounded problem to the
+        corresponding action of the original problem and the list of the
+        parameters applied to the original action to obtain the grounded
+        action.'''
+        if self._new_problem is None:
+            raise
+        trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
+        for grounded_action in self._new_problem.actions():
+            trace_back_map[grounded_action] = (self.get_original_action(grounded_action), self._map_parameters[grounded_action])
+        return trace_back_map
+
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every action is substituted by it's grounded derivates.'''
@@ -145,11 +157,8 @@ class Grounder(Transformer):
     def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
-        to be a plan of the original problem.
-
-        NOTE:
-        This method is because the grounder changes
-        the action's parameters!'''
+        to be a plan of the original problem, considering the absence of parameters
+        in the actions of the plan.'''
         if isinstance(plan, SequentialPlan):
             new_actions: List[ActionInstance] = plan.actions()
             old_actions: List[ActionInstance] = []
