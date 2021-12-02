@@ -34,7 +34,7 @@ jobs:
           ref: "5786e4078d9bd1b358920a483712e52b452996fc"
 
       - name: Install Tamer UPF
-        run: python3 -m pip install tamer-upf
+        run: python3 -m pip install tamer-upf/
 
       - name: Checkout Pyperplan UPF
         uses: actions/checkout@v2
@@ -44,7 +44,7 @@ jobs:
           ref: "4b66bc1764ff710bdcbda285f93ee15f53129e4e"
 
       - name: Install Pyperplan UPF
-        run: python3 -m pip install pyperplan-upf
+        run: python3 -m pip install pyperplan-upf/
 
       - name: Download ENHSP
         run: |
