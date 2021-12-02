@@ -15,5 +15,6 @@
 
 from upf.transformers.conditional_effects_remover import ConditionalEffectsRemover
 from upf.transformers.disjunctive_conditions_remover import DisjunctiveConditionsRemover
+from upf.transformers.grounder import Grounder
 from upf.transformers.quantifiers_remover import QuantifiersRemover
 from upf.transformers.negative_conditions_remover import NegativeConditionsRemover
