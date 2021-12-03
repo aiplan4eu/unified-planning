@@ -16,6 +16,7 @@
 
 import upf
 import upf.model.operators as op
+from upf.model.types import _domain_size,  _get_ith_fluent_exp
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError
 from upf.walkers import OperatorsExtractor
 from fractions import Fraction
@@ -369,49 +370,6 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Initial value not set!')
 
-    def _domain_size(self, typename: 'upf.model.types.Type') -> int:
-        '''Returns the domain size of the given type.'''
-        if typename.is_bool_type():
-            return 2
-        elif typename.is_user_type():
-            return len(self.objects(typename))
-        elif typename.is_int_type():
-            lb = typename.lower_bound() # type: ignore
-            ub = typename.upper_bound() # type: ignore
-            if lb is None or ub is None:
-                raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-            return ub - lb
-        else:
-            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-
-    def _domain_item(self, typename: 'upf.model.types.Type', idx: int) -> 'upf.model.fnode.FNode':
-        '''Returns the ith domain item of the given type.'''
-        if typename.is_bool_type():
-            return self._env.expression_manager.Bool(idx == 0)
-        elif typename.is_user_type():
-            return self._env.expression_manager.ObjectExp(self.objects(typename)[idx])
-        elif typename.is_int_type():
-            lb = typename.lower_bound() # type: ignore
-            ub = typename.upper_bound() # type: ignore
-            if lb is None or ub is None:
-                raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-            return self._env.expression_manager.Int(lb + idx)
-        else:
-            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-
-    def _get_ith_fluent_exp(self, fluent: 'upf.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'upf.model.fnode.FNode':
-        '''Returns the ith ground fluent expression.'''
-        quot = idx
-        rem = 0
-        actual_parameters = []
-        for i in range(fluent.arity()):
-            ds = domain_sizes[i];
-            rem = quot % ds
-            quot //= ds
-            v = self._domain_item(fluent.signature()[i], rem)
-            actual_parameters.append(v)
-        return fluent(*actual_parameters)
-
     def initial_values(self) -> Dict['upf.model.fnode.FNode', 'upf.model.fnode.FNode']:
         '''Gets the initial value of the fluents.'''
         res = self._initial_value
@@ -422,15 +380,13 @@ class Problem:
             else:
                 ground_size = 1
                 domain_sizes = []
-                is_groundable = True
                 for p in f.signature():
-                    ds = self._domain_size(p)
+                    ds = _domain_size(self, p)
                     domain_sizes.append(ds)
                     ground_size *= ds
-                if is_groundable:
-                    for i in range(ground_size):
-                        f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
-                        res[f_exp] = self.initial_value(f_exp)
+                for i in range(ground_size):
+                    f_exp = _get_ith_fluent_exp(self, f, domain_sizes, i)
+                    res[f_exp] = self.initial_value(f_exp)
         return res
 
     def add_timed_goal(self, timing: 'upf.model.timing.Timing', goal: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', bool]):

@@ -17,6 +17,7 @@
 
 import upf
 from upf.model import Problem, Action, Type, Object, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
+from upf.model.types import _domain_size,  _domain_item
 from upf.transformers.transformer import Transformer
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.walkers import Substituter
@@ -80,12 +81,22 @@ class Grounder(Transformer):
             # objects_list = [[r1, r2], [l1, l2]]
             # the product of *objects_list will be:
             # [(r1, l1), (r1, l2), (r2, l1), (r2,l2)]
-            objects_list: List[List[Object]] = [self._problem.objects(t) for t in type_list]
-            for o in product(*objects_list):
-                subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(o)))
+            ground_size = 1
+            domain_sizes = []
+            for t in type_list:
+                ds = _domain_size(self._new_problem, t)
+                domain_sizes.append(ds)
+                ground_size *= ds
+            items_list: List[List[FNode]] = []
+            for i, (size, type) in enumerate(zip(domain_sizes, type_list)):
+                items_list.append([])
+                for j in range(size):
+                    items_list[i].append(_domain_item(self._new_problem, type, j))
+            for grounded_params in product(*items_list):
+                subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(grounded_params)))
                 is_feasible, new_action = self._create_action_with_given_subs(old_action, subs)
                 if is_feasible:
-                    self._map_parameters[new_action] = self._problem.env.expression_manager.auto_promote(subs.values())
+                    self._map_parameters[new_action] = self._new_problem.env.expression_manager.auto_promote(subs.values())
                     self._new_problem.add_action(new_action)
                     self._new_to_old[new_action] = old_action
                     self._map_old_to_new_action(old_action, new_action)
@@ -99,11 +110,11 @@ class Grounder(Transformer):
 
     def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Tuple[bool, Action]:
         naming_list: List[str] = []
-        for param, object in subs.items():
+        for param, value in subs.items():
             assert isinstance(param, ActionParameter)
-            assert isinstance(object, Object)
+            assert isinstance(value, FNode)
             naming_list.append(param.name())
-            naming_list.append(object.name())
+            naming_list.append(str(value))
         new_name = f'{old_action.name}_{"_".join(naming_list)}'
         if isinstance(old_action, InstantaneousAction):
             new_action = InstantaneousAction(self.get_fresh_name(new_name))
