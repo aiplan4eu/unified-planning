@@ -106,8 +106,17 @@ class TestGrounder(TestCase):
         gro = TransformersGrounder(problem)
         grounded_problem_test = gro.get_rewritten_problem()
         with Grounder(name='grounder') as grounder:
-            grounded_problem_try, _ = grounder.ground(problem)
+            grounded_problem_try, rewrite_back_plan_function = grounder.ground(problem)
             self.assertEqual(grounded_problem_test, grounded_problem_try)
+            with OneshotPlanner(problem_kind=grounded_problem_try.kind()) as planner:
+                self.assertNotEqual(planner, None)
+                grounded_plan = planner.solve(grounded_problem_try)
+                plan = rewrite_back_plan_function(grounded_plan)
+                for _, ai, _ in plan.actions():
+                    a = ai.action()
+                    self.assertEqual(a, problem.action(a.name))
+                with PlanValidator(problem_kind=problem.kind()) as pv:
+                    self.assertTrue(pv.validate(problem, plan))
 
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem

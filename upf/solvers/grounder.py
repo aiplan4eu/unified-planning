@@ -29,10 +29,10 @@ class Grounder(solvers.solver.Solver):
     def __init__(self, **options):
         pass
 
-    def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
+    def _ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Dict[Action, Tuple[Action, List[FNode]]]]:
         grounder = upf.transformers.Grounder(problem)
         grounded_problem = grounder.get_rewritten_problem()
-        return (grounded_problem, grounder.rewrite_back_plan)
+        return (grounded_problem, grounder.get_rewrite_back_map())
 
     @staticmethod
     def name():
