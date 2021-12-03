@@ -159,7 +159,7 @@ class TypeManager:
             self._user_types[name] = ut
             return ut
 
-def _domain_size(problem: 'upf.model.problem.Problem', typename: 'upf.model.types.Type') -> int:
+def domain_size(problem: 'upf.model.problem.Problem', typename: 'upf.model.types.Type') -> int:
     '''Returns the domain size of the given type.'''
     if typename.is_bool_type():
         return 2
@@ -174,7 +174,7 @@ def _domain_size(problem: 'upf.model.problem.Problem', typename: 'upf.model.type
     else:
         raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
-def _domain_item(problem: 'upf.model.problem.Problem', typename: 'upf.model.types.Type', idx: int) -> 'upf.model.fnode.FNode':
+def domain_item(problem: 'upf.model.problem.Problem', typename: 'upf.model.types.Type', idx: int) -> 'upf.model.fnode.FNode':
     '''Returns the ith domain item of the given type.'''
     if typename.is_bool_type():
         return problem._env.expression_manager.Bool(idx == 0)
@@ -188,16 +188,3 @@ def _domain_item(problem: 'upf.model.problem.Problem', typename: 'upf.model.type
         return problem._env.expression_manager.Int(lb + idx)
     else:
         raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-
-def _get_ith_fluent_exp(problem: 'upf.model.problem.Problem', fluent: 'upf.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'upf.model.fnode.FNode':
-    '''Returns the ith ground fluent expression.'''
-    quot = idx
-    rem = 0
-    actual_parameters = []
-    for i in range(fluent.arity()):
-        ds = domain_sizes[i];
-        rem = quot % ds
-        quot //= ds
-        v = _domain_item(problem, fluent.signature()[i], rem)
-        actual_parameters.append(v)
-    return fluent(*actual_parameters)

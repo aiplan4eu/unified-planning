@@ -16,7 +16,7 @@
 
 import upf
 import upf.model.operators as op
-from upf.model.types import _domain_size,  _get_ith_fluent_exp
+from upf.model.types import domain_size, domain_item
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError
 from upf.walkers import OperatorsExtractor
 from fractions import Fraction
@@ -370,6 +370,19 @@ class Problem:
         else:
             raise UPFProblemDefinitionError('Initial value not set!')
 
+    def _get_ith_fluent_exp(self, fluent: 'upf.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'upf.model.fnode.FNode':
+        '''Returns the ith ground fluent expression.'''
+        quot = idx
+        rem = 0
+        actual_parameters = []
+        for i in range(fluent.arity()):
+            ds = domain_sizes[i];
+            rem = quot % ds
+            quot //= ds
+            v = domain_item(self, fluent.signature()[i], rem)
+            actual_parameters.append(v)
+        return fluent(*actual_parameters)
+
     def initial_values(self) -> Dict['upf.model.fnode.FNode', 'upf.model.fnode.FNode']:
         '''Gets the initial value of the fluents.'''
         res = self._initial_value
@@ -381,11 +394,11 @@ class Problem:
                 ground_size = 1
                 domain_sizes = []
                 for p in f.signature():
-                    ds = _domain_size(self, p)
+                    ds = domain_size(self, p)
                     domain_sizes.append(ds)
                     ground_size *= ds
                 for i in range(ground_size):
-                    f_exp = _get_ith_fluent_exp(self, f, domain_sizes, i)
+                    f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                     res[f_exp] = self.initial_value(f_exp)
         return res
 
