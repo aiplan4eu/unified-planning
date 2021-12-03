@@ -16,6 +16,7 @@
 
 
 import upf
+from upf.exceptions import UPFUsageError
 from upf.model import Problem, Action, Type, Object, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
 from upf.model.types import domain_size,  domain_item
 from upf.transformers.transformer import Transformer
@@ -48,7 +49,7 @@ class Grounder(Transformer):
         parameters applied to the original action to obtain the grounded
         action.'''
         if self._new_problem is None:
-            raise
+            raise UPFUsageError('The get_rewrite_back_map method must be called after the function get_rewritten_problem!')
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
         for grounded_action in self._new_problem.actions():
             trace_back_map[grounded_action] = (self.get_original_action(grounded_action), self._map_parameters[grounded_action])

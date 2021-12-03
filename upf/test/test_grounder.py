@@ -1,13 +1,14 @@
 import os
 import upf
 from upf.shortcuts import *
+from upf.exceptions import UPFUsageError
 from upf.model.problem_kind import basic_classical_kind, classical_kind, full_numeric_kind, basic_temporal_kind
 from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
 from upf.test.examples import get_example_problems
 from upf.transformers import Grounder as TransformersGrounder
 
 
-class TestDisjunctiveConditionsRemover(TestCase):
+class TestGrounder(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
@@ -18,6 +19,10 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem = self.problems['basic'].problem
 
         gro = TransformersGrounder(problem)
+        with self.assertRaises(UPFUsageError) as e:
+            gro.get_rewrite_back_map()
+        self.assertIn('The get_rewrite_back_map method must be called after the function get_rewritten_problem!', str(e.exception))
+
         grounded_problem = gro.get_rewritten_problem()
         grounded_problem_2 = gro.get_rewritten_problem()
         self.assertEqual(grounded_problem, grounded_problem_2)
@@ -103,3 +108,21 @@ class TestDisjunctiveConditionsRemover(TestCase):
         with Grounder(name='grounder') as grounder:
             grounded_problem_try, _ = grounder.ground(problem)
             self.assertEqual(grounded_problem_test, grounded_problem_try)
+
+    def test_timed_connected_locations(self):
+        problem = self.problems['timed_connected_locations'].problem
+
+        gro = TransformersGrounder(problem)
+        grounded_problem = gro.get_rewritten_problem()
+        self.assertEqual(len(grounded_problem.actions()), 20)
+        for a in grounded_problem.actions():
+            self.assertEqual(len(a.parameters()), 0)
+        for a in problem.actions():
+            self.assertEqual(len(gro.get_transformed_actions(a)), 20)
+
+    def test_ad_hoc(self):
+        problem = Problem('ad_hoc')
+        gro = TransformersGrounder(problem)
+        gro.get_rewritten_problem()
+        with self.assertRaises(NotImplementedError):
+            gro.rewrite_back_plan(problem)
