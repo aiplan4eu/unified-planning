@@ -14,11 +14,12 @@
 #
 
 
-from typing import Dict, List,Tuple
+from typing import Dict, List,Tuple, Callable
 
 import upf.environment
 import upf.solvers as solvers
 import upf.transformers
+from upf.plan import Plan
 from upf.model import FNode, Problem, ProblemKind, Action
 
 
@@ -28,10 +29,10 @@ class Grounder(solvers.solver.Solver):
     def __init__(self, **options):
         pass
 
-    def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Dict[Action, Tuple[Action, List[FNode]]]]:
+    def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
         grounder = upf.transformers.Grounder(problem)
         grounded_problem = grounder.get_rewritten_problem()
-        return (grounded_problem, grounder.get_rewrite_back_map())
+        return (grounded_problem, grounder.rewrite_back_plan)
 
     @staticmethod
     def name():

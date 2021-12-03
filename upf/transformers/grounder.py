@@ -17,6 +17,7 @@
 
 import upf
 from upf.exceptions import UPFUsageError
+from upf.plan import Plan
 from upf.model import Problem, Action, Type, Object, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
 from upf.model.types import domain_size,  domain_item
 from upf.transformers.transformer import Transformer
@@ -164,7 +165,7 @@ class Grounder(Transformer):
         the actions of the original problem into the actions of the transformed problem.'''
         return self._old_to_new[action]
 
-    def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
+    def rewrite_back_plan(self, plan: Plan) -> Plan:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem, considering the absence of parameters

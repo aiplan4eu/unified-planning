@@ -18,7 +18,7 @@
 import upf
 from upf.model.fnode import FNode
 from upf.model.action import Action, InstantaneousAction, DurativeAction
-from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
+from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance, Plan
 from upf.model.problem import Problem
 from upf.model.timing import Timing
 from typing import Dict, List, Optional, OrderedDict, Tuple, Union
@@ -49,7 +49,7 @@ class Transformer:
         and get_transformed_actions'''
         raise NotImplementedError
 
-    def rewrite_back_plan(self, plan: Union[SequentialPlan, TimeTriggeredPlan]) -> Union[SequentialPlan, TimeTriggeredPlan]:
+    def rewrite_back_plan(self, plan: Plan) -> Plan:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.

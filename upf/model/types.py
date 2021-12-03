@@ -169,10 +169,10 @@ def domain_size(problem: 'upf.model.problem.Problem', typename: 'upf.model.types
         lb = typename.lower_bound() # type: ignore
         ub = typename.upper_bound() # type: ignore
         if lb is None or ub is None:
-            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
+            raise UPFProblemDefinitionError('Parameter not groundable!')
         return ub - lb
     else:
-        raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
+        raise UPFProblemDefinitionError('Parameter not groundable!')
 
 def domain_item(problem: 'upf.model.problem.Problem', typename: 'upf.model.types.Type', idx: int) -> 'upf.model.fnode.FNode':
     '''Returns the ith domain item of the given type.'''
@@ -184,7 +184,7 @@ def domain_item(problem: 'upf.model.problem.Problem', typename: 'upf.model.types
         lb = typename.lower_bound() # type: ignore
         ub = typename.upper_bound() # type: ignore
         if lb is None or ub is None:
-            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
+            raise UPFProblemDefinitionError('Parameter not groundable!')
         return problem._env.expression_manager.Int(lb + idx)
     else:
         raise UPFProblemDefinitionError('Parameter not groundable!')

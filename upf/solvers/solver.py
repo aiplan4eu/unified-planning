@@ -16,8 +16,9 @@
 
 import upf
 import upf.model
+from upf.plan import Plan
 from upf.model import ProblemKind, Problem, Action, FNode
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List, Callable
 
 
 class Solver:
@@ -53,7 +54,7 @@ class Solver:
     def validate(self, problem: 'upf.model.Problem', plan: 'upf.plan.Plan') -> bool:
         raise NotImplementedError
 
-    def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Dict[Action, Tuple[Action, List[FNode]]]]:
+    def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
         '''This function should return the tuple (grounded_problem, trace_back_map), where
         "trace_back_map" is a map from every action in the "grounded_problem" to the tuple
         (original_action, parameters). Where the grounded actions is obtained by grounding
