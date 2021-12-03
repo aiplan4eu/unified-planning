@@ -154,16 +154,16 @@ def Grounder(*, name: Optional[str] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
     """
-    Returns a grounder. There are three ways to call this method:
-    - using 'name' (the name of a specific plan validator) and 'params'
-      (plan validator dependent options).
-      e.g. Grounder(name='tamer', params={'opt': 'val'})
-    - using 'names' (list of specific plan validators name) and 'params' (list of
-      plan validators dependent options) to get a Parallel solver.
-      e.g. Grounder(names=['tamer', 'tamer'],
-                         params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
+    Returns a Grounder. There are three ways to call this method:
+    - using 'name' (the name of a specific grounder) and 'params'
+        (grounder dependent options).
+        e.g. Grounder(name='tamer', params={'opt': 'val'})
+    - using 'names' (list of specific grounders name) and 'params' (list of
+        grounders dependent options) to get a Parallel solver.
+        e.g. Grounder(names=['tamer', 'tamer'],
+                            params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
     - using 'problem_kind' parameter.
-      e.g. Grounder(problem_kind=problem.kind())
+        e.g. Grounder(problem_kind=problem.kind())
     """
     return get_env().factory.Grounder(name=name, names=names, params=params,
                                            problem_kind=problem_kind)

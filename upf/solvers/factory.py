@@ -115,11 +115,11 @@ class Factory:
                        problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solvers.solver.Solver']:
         """
         Returns a Grounder. There are three ways to call this method:
-        - using 'name' (the name of a specific plan validator) and 'params'
-          (plan validator dependent options).
+        - using 'name' (the name of a specific grounder) and 'params'
+          (grounder dependent options).
           e.g. Grounder(name='tamer', params={'opt': 'val'})
-        - using 'names' (list of specific plan validators name) and 'params' (list of
-          plan validators dependent options) to get a Parallel solver.
+        - using 'names' (list of specific grounders name) and 'params' (list of
+          grounders dependent options) to get a Parallel solver.
           e.g. Grounder(names=['tamer', 'tamer'],
                              params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
         - using 'problem_kind' parameter.
