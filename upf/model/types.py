@@ -187,4 +187,4 @@ def domain_item(problem: 'upf.model.problem.Problem', typename: 'upf.model.types
             raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
         return problem._env.expression_manager.Int(lb + idx)
     else:
-        raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
+        raise UPFProblemDefinitionError('Parameter not groundable!')
