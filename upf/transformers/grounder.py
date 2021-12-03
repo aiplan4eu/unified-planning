@@ -90,9 +90,7 @@ class Grounder(Transformer):
                 ground_size *= ds
             items_list: List[List[FNode]] = []
             for i, (size, type) in enumerate(zip(domain_sizes, type_list)):
-                items_list.append([])
-                for j in range(size):
-                    items_list[i].append(domain_item(self._new_problem, type, j))
+                items_list.append([domain_item(self._new_problem, type, j) for j in range(size)])
             for grounded_params in product(*items_list):
                 subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(grounded_params)))
                 is_feasible, new_action = self._create_action_with_given_subs(old_action, subs)
