@@ -109,20 +109,14 @@ class Factory:
         """
         return self._get_solver('plan_validator', name, names, params, problem_kind)
 
-    def Grounder(self, *, name: Optional[str] = None,
-                       names: Optional[List[str]] = None,
-                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+    def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solvers.solver.Solver']:
         """
         Returns a Grounder. There are three ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
           (grounder dependent options).
           e.g. Grounder(name='tamer', params={'opt': 'val'})
-        - using 'names' (list of specific grounders name) and 'params' (list of
-          grounders dependent options) to get a Parallel solver.
-          e.g. Grounder(names=['tamer', 'tamer'],
-                             params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
         - using 'problem_kind' parameter.
           e.g. Grounder(problem_kind=problem.kind())
         """
-        return self._get_solver('grounder', name, names, params, problem_kind)
+        return self._get_solver('grounder', name, None, params, problem_kind)

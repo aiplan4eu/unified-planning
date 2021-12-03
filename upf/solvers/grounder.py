@@ -26,7 +26,7 @@ from upf.model import FNode, Problem, ProblemKind, Action
 class Grounder(solvers.solver.Solver):
     """Performs grounding."""
     def __init__(self, **options):
-        self._env: 'upf.environment.Environment' = upf.environment.get_env(options.get('env', None))
+        pass
 
     def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Dict[Action, Tuple[Action, List[FNode]]]]:
         grounder = upf.transformers.Grounder(problem)
