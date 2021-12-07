@@ -63,9 +63,6 @@ class TestGrounder(TestCase):
         for a in problem.actions():
             self.assertEqual(len(gro.get_transformed_actions(a)), 20)
 
-        print(grounded_problem)
-        assert False
-
         with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             grounded_plan = planner.solve(grounded_problem)
