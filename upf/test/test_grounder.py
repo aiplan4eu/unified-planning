@@ -57,6 +57,8 @@ class TestGrounder(TestCase):
 
         gro = TransformersGrounder(problem)
         grounded_problem = gro.get_rewritten_problem()
+        print(problem)
+        print(grounded_problem)
         self.assertEqual(len(grounded_problem.actions()), 40)
         for a in grounded_problem.actions():
             self.assertEqual(len(a.parameters()), 0)
@@ -129,7 +131,30 @@ class TestGrounder(TestCase):
         for a in problem.actions():
             self.assertEqual(len(gro.get_transformed_actions(a)), 20)
 
-    def test_ad_hoc(self):
+    def test_ad_hoc_1(self):
+        problem = Problem('ad_hoc')
+        Location = UserType('Location')
+        visited = Fluent('at', BoolType(), [Location])
+        l1 = Object('l1', Location)
+        visit = InstantaneousAction('visit', l_to=Location)
+        l_to = visit.parameter('l_to')
+        visit.add_effect(visited(l_to), True)
+        visit_l1 = InstantaneousAction('visit_l1')
+        visit_l1.add_effect(visited(l1), True)
+        problem.add_fluent(visited)
+        problem.set_initial_value(visited(l1), True)
+        problem.add_object(l1)
+        problem.add_action(visit)
+        problem.add_action(visit_l1)
+        gro = TransformersGrounder(problem)
+        grounded_problem = gro.get_rewritten_problem()
+        self.assertEqual(len(grounded_problem.actions()), 2)
+        for a in grounded_problem.actions():
+            self.assertEqual(len(a.parameters()), 0)
+        for a in problem.actions():
+            self.assertEqual(len(gro.get_transformed_actions(a)), 1)
+
+    def test_ad_hoc_2(self):
         problem = Problem('ad_hoc')
         gro = TransformersGrounder(problem)
         gro.get_rewritten_problem()

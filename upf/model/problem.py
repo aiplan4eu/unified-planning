@@ -20,7 +20,7 @@ from upf.model.types import domain_size, domain_item
 from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError
 from upf.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Set, Union, Optional
 
 
 class Problem:
@@ -237,6 +237,27 @@ class Problem:
         for type in fluent.signature():
             if type.is_user_type() and type not in self._user_types:
                 self._user_types.append(type) # type: ignore
+
+    def get_static_fluents(self) -> Set['upf.model.fluent.Fluent']:
+        '''Returns the set of the static fluents.
+
+        Static fluents are those who can't change their values because they never
+        appear in the "fluent" field of an effect, therefore there are no Actions
+        in the Problem that can change their value.'''
+        static_fluents: Set['upf.model.fluent.Fluent'] = set(self._fluents)
+        for a in self._actions:
+            if isinstance(a, upf.model.action.InstantaneousAction):
+                for e in a.effects():
+                    if e.fluent().fluent() in static_fluents:
+                        static_fluents.remove(e.fluent().fluent())
+            elif isinstance(a, upf.model.action.DurativeAction):
+                for _, el in a.effects():
+                    for e in el:
+                        if e.fluent().fluent() in static_fluents:
+                            static_fluents.remove(e.fluent().fluent())
+            else:
+                raise NotImplementedError
+        return static_fluents
 
     def actions(self) -> List['upf.model.action.Action']:
         '''Returns the list of the actions in the problem.'''

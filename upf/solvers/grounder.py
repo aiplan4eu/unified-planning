@@ -14,12 +14,13 @@
 #
 
 
+from functools import partial
 from typing import Dict, List,Tuple, Callable
 
 import upf.environment
 import upf.solvers as solvers
 import upf.transformers
-from upf.plan import Plan
+from upf.plan import Plan, lift_plan
 from upf.model import FNode, Problem, ProblemKind, Action
 
 
@@ -29,10 +30,14 @@ class Grounder(solvers.solver.Solver):
     def __init__(self, **options):
         pass
 
-    def _ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Dict[Action, Tuple[Action, List[FNode]]]]:
+    def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
+        '''This method takes an "upf.model.Problem" and returns the grounded version of the problem
+        and a function, that called on an "upf.plan.Plan" of grounded problem returns the Plan
+        version to apply to the original problem.'''
         grounder = upf.transformers.Grounder(problem)
         grounded_problem = grounder.get_rewritten_problem()
-        return (grounded_problem, grounder.get_rewrite_back_map())
+        trace_back_map = grounder.get_rewrite_back_map()
+        return (grounded_problem, partial(lift_plan, map=trace_back_map))
 
     @staticmethod
     def name():

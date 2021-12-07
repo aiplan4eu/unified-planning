@@ -52,7 +52,6 @@ class QuantifierSimplifier(walkers.Simplifier):
         else:
             super(walkers.Simplifier, self)._push_with_children_to_stack(expression, **kwargs)
 
-
     def _compute_node_result(self, expression: FNode, **kwargs):
         """Apply function to the node and memoize the result.
         Note: This function assumes that the results for the children

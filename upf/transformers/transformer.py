@@ -122,7 +122,7 @@ class Transformer:
         #preconditions (as an And FNode)
         p = self._env.expression_manager.And(ap)
         #preconditions simplified
-        ps = self._simplifier.simplify(p)
+        ps = self._simplifier.simplify(p, self._problem)
         #new action preconditions
         nap: List[FNode] = []
         if ps.is_bool_constant():
