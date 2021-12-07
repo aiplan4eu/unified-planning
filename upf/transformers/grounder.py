@@ -24,7 +24,7 @@ from upf.transformers.transformer import Transformer
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.walkers import Substituter
 from itertools import product
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 
 class Grounder(Transformer):
@@ -113,11 +113,9 @@ class Grounder(Transformer):
         for param, value in subs.items():
             assert isinstance(param, ActionParameter)
             assert isinstance(value, FNode)
-            naming_list.append(param.name())
             naming_list.append(str(value))
-        new_name = f'{old_action.name}_{"_".join(naming_list)}'
         if isinstance(old_action, InstantaneousAction):
-            new_action = InstantaneousAction(self.get_fresh_name(new_name))
+            new_action = InstantaneousAction(self.get_fresh_name(old_action.name, naming_list))
             for p in old_action.preconditions():
                 new_action.add_precondition(self._substituter.substitute(p, subs))
             for e in old_action.effects():
@@ -128,7 +126,7 @@ class Grounder(Transformer):
             new_action._set_preconditions(new_preconditions)
             return (True, new_action)
         elif isinstance(old_action, DurativeAction):
-            new_durative_action = DurativeAction(self.get_fresh_name(old_action.name))
+            new_durative_action = DurativeAction(self.get_fresh_name(old_action.name, naming_list))
             new_durative_action.set_duration_constraint(old_action.duration())
             for t, cl in old_action.conditions().items():
                 for c in cl:
@@ -183,3 +181,18 @@ class Grounder(Transformer):
                 s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action()), tuple(self._map_parameters[ai.action()])), d))
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
+
+    def get_fresh_name(self, original_name: str, parameters_names: Iterable[str] = []) -> str:
+        '''To use this method, the new problem returned by the transformer must be stored in the field
+        self._new_problem!
+        This method returns a fresh name for the problem, given a name and an iterable of names in input.'''
+        assert self._new_problem is not None
+        name_list = [original_name]
+        name_list.extend(parameters_names)
+        new_name = '_'.join(name_list)
+        base_name = new_name
+        count = 0
+        while(self._problem.has_name(new_name) or self._new_problem.has_name(new_name)):
+            new_name = f'{base_name}_{str(count)}'
+            count += 1
+        return new_name

@@ -21,7 +21,7 @@ from upf.model.action import Action, InstantaneousAction, DurativeAction
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance, Plan
 from upf.model.problem import Problem
 from upf.model.timing import Timing
-from typing import Dict, List, Optional, OrderedDict, Tuple, Union
+from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
 
 
 class Transformer:
@@ -136,11 +136,15 @@ class Transformer:
         action._set_preconditions(nap)
         return (True, nap)
 
-    def get_fresh_name(self, original_name: str) -> str:
+    def get_fresh_name(self, original_name: str, parameters_names: Iterable[str] = []) -> str:
         '''To use this method, the new problem returned by the transformer must be stored in the field
         self._new_problem!
-        This method returns a fresh name for the problem, given the name of the transformer and a name in input.'''
+        This method returns a fresh name for the problem, given the name of the transformer and a name in input.
+
+        NOTE: The field parameters_names is there just for possible extensions.'''
         assert self._new_problem is not None
+        if parameters_names != []:
+            raise NotImplementedError
         count = 0
         while(True):
             new_name = f'{self._name}_{original_name}_{str(count)}'
