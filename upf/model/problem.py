@@ -257,6 +257,10 @@ class Problem:
                             static_fluents.remove(e.fluent().fluent())
             else:
                 raise NotImplementedError
+        for el in self._timed_effects.values():
+            for e in el:
+                if e.fluent().fluent() in static_fluents:
+                    static_fluents.remove(e.fluent().fluent())
         return static_fluents
 
     def actions(self) -> List['upf.model.action.Action']:

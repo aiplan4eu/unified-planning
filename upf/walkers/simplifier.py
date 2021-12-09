@@ -29,7 +29,7 @@ class Simplifier(walkers.DagWalker):
         walkers.DagWalker.__init__(self)
         self.env = env
         self.manager = env.expression_manager
-        self.quantifiers_remover = upf.transformers.quantifiers_remover.ExpressionQuantifierRemover(self.env)
+        self.quantifiers_remover = upf.walkers.expression_quantifiers_remover.ExpressionQuantifiersRemover(self.env)
 
     def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
         if isinstance(value, int):
