@@ -57,13 +57,16 @@ class TestGrounder(TestCase):
 
         gro = TransformersGrounder(problem)
         grounded_problem = gro.get_rewritten_problem()
-        print(problem)
-        print(grounded_problem)
-        self.assertEqual(len(grounded_problem.actions()), 40)
+        self.assertEqual(len(grounded_problem.actions()), 14)
         for a in grounded_problem.actions():
             self.assertEqual(len(a.parameters()), 0)
-        for a in problem.actions():
-            self.assertEqual(len(gro.get_transformed_actions(a)), 20)
+        for i, a in enumerate(problem.actions()):
+            if i == 0:
+                self.assertEqual(len(gro.get_transformed_actions(a)), 8)
+            elif i == 1:
+                self.assertEqual(len(gro.get_transformed_actions(a)), 6)
+            else:
+                self.assertTrue(False)
 
         with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
