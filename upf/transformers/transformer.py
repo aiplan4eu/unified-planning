@@ -16,11 +16,8 @@
 
 
 import upf
-from upf.model.fnode import FNode
-from upf.model.action import Action, InstantaneousAction, DurativeAction
+from upf.model import FNode, Timing, Interval, Action, InstantaneousAction, DurativeAction, Problem
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance, Plan
-from upf.model.problem import Problem
-from upf.model.timing import Timing
 from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
 
 
@@ -71,7 +68,7 @@ class Transformer:
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
-    def _check_and_simplify_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[Tuple[Timing, FNode]]]:
+    def _check_and_simplify_conditions_and_durative_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[FNode], List[Timing], List[Interval]]:
         '''Simplifies conditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all conditions at the given timing.
@@ -84,12 +81,14 @@ class Transformer:
         #action conditions
         #tlc = timing list condition
         tlc: Dict[Timing, List[FNode]] = action.conditions()
-        if len(tlc) == 0:
-            return (True, [])
+        #ilc = interval list condition
+        ilc: Dict[Interval, List[FNode]] = action.durative_conditions()
         #new action conditions
-        nac: List[Tuple[Timing, FNode]] = []
+        nac: List[FNode] = []
+        timings: List[Timing] = []
+        intervals: List[Interval] = []
         # t = timing, lc = list condition
-        for t, lc in tlc.copy().items():
+        for t, lc in tlc.items():
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
@@ -99,14 +98,35 @@ class Transformer:
                 cs = self._simplifier.simplify(c)
             if cs.is_bool_constant():
                 if not cs.bool_constant_value():
-                    return (False, [])
+                    return (False, [], [], [])
             else:
                 if cs.is_and():
                     for new_cond in cs.args():
-                        nac.append((t, new_cond))
+                        nac.append(new_cond)
+                        timings.append(t)
                 else:
-                    nac.append((t, cs))
-        return (True, nac)
+                    nac.append(cs)
+                    timings.append(t)
+        for i, lc in ilc.items():
+            #conditions (as an And FNode)
+            c = self._env.expression_manager.And(lc)
+            #conditions simplified
+            if simplify_constants:
+                cs = self._simplifier.simplify(c, self._problem)
+            else:
+                cs = self._simplifier.simplify(c)
+            if cs.is_bool_constant():
+                if not cs.bool_constant_value():
+                    return (False, [], [], [])
+            else:
+                if cs.is_and():
+                    for new_cond in cs.args():
+                        nac.append(new_cond)
+                        intervals.append(i)
+                else:
+                    nac.append(cs)
+                    intervals.append(i)
+        return (True, nac, timings, intervals)
 
     def _check_and_simplify_preconditions(self, action: InstantaneousAction, simplify_constants: bool = False) -> Tuple[bool, List[FNode]]:
         '''Simplifies preconditions and if it is False (a contraddiction)
