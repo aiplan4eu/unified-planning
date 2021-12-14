@@ -17,7 +17,7 @@
 import upf
 import upf.model.operators as op
 from upf.model.types import domain_size, domain_item
-from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError
+from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError, UPFExpressionDefinitionError
 from upf.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
@@ -388,7 +388,7 @@ class Problem:
         fluent_exp, = self._env.expression_manager.auto_promote(fluent)
         for a in fluent_exp.args():
             if not a.is_constant():
-                raise UPFProblemDefinitionError(f'Initial value of fluent {fluent_exp} has argument {a} which is not a constant.')
+                raise UPFExpressionDefinitionError(f'Impossible to return the initial value of a fluent expression with no constant arguments: {fluent_exp}.')
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
         elif fluent_exp.fluent() in self._fluents_defaults:

@@ -94,8 +94,10 @@ class Grounder(Transformer):
                 items_list.append([domain_item(self._new_problem, type, j) for j in range(size)])
             for grounded_params in product(*items_list):
                 subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(grounded_params)))
-                is_feasible, new_action = self._create_action_with_given_subs(old_action, subs)
-                if is_feasible:
+                new_action = self._create_action_with_given_subs(old_action, subs)
+                #when the action is None it means it is not feasible,
+                # it's conditions are in contraddiction within one another.
+                if new_action is not None:
                     self._map_parameters[new_action] = self._new_problem.env.expression_manager.auto_promote(subs.values())
                     self._new_problem.add_action(new_action)
                     self._new_to_old[new_action] = old_action
@@ -108,7 +110,7 @@ class Grounder(Transformer):
         new_condition = self._substituter.substitute(old_effect.condition(), subs)
         return Effect(new_fluent, new_value, new_condition, old_effect.kind())
 
-    def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Tuple[bool, Optional[Action]]:
+    def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Optional[Action]:
         naming_list: List[str] = []
         for param, value in subs.items():
             assert isinstance(param, ActionParameter)
@@ -122,9 +124,9 @@ class Grounder(Transformer):
                 new_action._add_effect_instance(self._create_effect_with_given_subs(e, subs))
             is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action, simplify_constants=True)
             if not is_feasible:
-                return (False, None)
+                return None
             new_action._set_preconditions(new_preconditions)
-            return (True, new_action)
+            return new_action
         elif isinstance(old_action, DurativeAction):
             new_durative_action = DurativeAction(self.get_fresh_name(old_action.name, naming_list))
             new_durative_action.set_duration_constraint(old_action.duration())
@@ -139,11 +141,11 @@ class Grounder(Transformer):
                     new_durative_action._add_effect_instance(t, self._create_effect_with_given_subs(e, subs))
             is_feasible, new_conditions = self._check_and_simplify_conditions(new_durative_action, simplify_constants=True)
             if not is_feasible:
-                return (False, None)
+                return None
             new_durative_action.clear_conditions()
             for t, c in new_conditions:
                 new_durative_action.add_condition(t, c)
-            return (True, new_durative_action)
+            return new_durative_action
         else:
             raise NotImplementedError
 
