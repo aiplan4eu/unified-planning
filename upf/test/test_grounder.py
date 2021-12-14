@@ -55,14 +55,14 @@ class TestGrounder(TestCase):
 
         gro = TransformersGrounder(problem)
         grounded_problem = gro.get_rewritten_problem()
-        self.assertEqual(len(grounded_problem.actions()), 14)
+        self.assertEqual(len(grounded_problem.actions()), 28)
         for a in grounded_problem.actions():
             self.assertEqual(len(a.parameters()), 0)
         for i, a in enumerate(problem.actions()):
             if i == 0:
                 self.assertEqual(len(gro.get_transformed_actions(a)), 8)
             elif i == 1:
-                self.assertEqual(len(gro.get_transformed_actions(a)), 6)
+                self.assertEqual(len(gro.get_transformed_actions(a)), 20)
             else:
                 self.assertTrue(False)
 
@@ -126,11 +126,11 @@ class TestGrounder(TestCase):
 
         gro = TransformersGrounder(problem)
         grounded_problem = gro.get_rewritten_problem()
-        self.assertEqual(len(grounded_problem.actions()), 6)
+        self.assertEqual(len(grounded_problem.actions()), 20)
         for a in grounded_problem.actions():
             self.assertEqual(len(a.parameters()), 0)
         for a in problem.actions():
-            self.assertEqual(len(gro.get_transformed_actions(a)), 6)
+            self.assertEqual(len(gro.get_transformed_actions(a)), 20)
 
     def test_ad_hoc_1(self):
         problem = Problem('ad_hoc')

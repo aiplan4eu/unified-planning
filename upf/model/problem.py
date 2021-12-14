@@ -386,6 +386,9 @@ class Problem:
     def initial_value(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent']) -> 'upf.model.fnode.FNode':
         '''Gets the initial value of the given fluent.'''
         fluent_exp, = self._env.expression_manager.auto_promote(fluent)
+        for a in fluent_exp.args():
+            if not a.is_constant():
+                raise UPFProblemDefinitionError(f'Initial value of fluent {fluent_exp} has argument {a} which is not a constant.')
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
         elif fluent_exp.fluent() in self._fluents_defaults:

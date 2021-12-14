@@ -45,9 +45,8 @@ class Simplifier(walkers.DagWalker):
         for a better simplification."""
         if problem is not None:
             self.static_fluents = problem.get_static_fluents()
-            expression_without_quantifiers = self.quantifiers_remover.remove_quantifiers(expression, problem)
             self.problem: Optional['upf.model.Problem'] = problem
-            return self.walk(expression_without_quantifiers)
+            return self.walk(expression)
         else:
             self.static_fluents = set()
             self.problem = problem
@@ -226,6 +225,9 @@ class Simplifier(walkers.DagWalker):
             return self.manager.FluentExp(expression.fluent(), tuple(args))
         else:
             assert self.problem is not None
+            for a in args:
+                if a.is_variable_exp():
+                    return self.manager.FluentExp(expression.fluent(), tuple(args))
             return self.problem.initial_value(self.manager.FluentExp(expression.fluent(), tuple(args)))
 
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
