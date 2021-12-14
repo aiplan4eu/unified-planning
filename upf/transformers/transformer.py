@@ -71,7 +71,7 @@ class Transformer:
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
-    def _check_and_simplify_conditions(self, action: DurativeAction, simplify_quantifiers: bool = False) -> Tuple[bool, List[Tuple[Timing, FNode]]]:
+    def _check_and_simplify_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[Tuple[Timing, FNode]]]:
         '''Simplifies conditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all conditions at the given timing.
@@ -93,7 +93,7 @@ class Transformer:
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
-            if simplify_quantifiers:
+            if simplify_constants:
                 cs = self._simplifier.simplify(c, self._problem)
             else:
                 cs = self._simplifier.simplify(c)
@@ -108,7 +108,7 @@ class Transformer:
                     nac.append((t, cs))
         return (True, nac)
 
-    def _check_and_simplify_preconditions(self, action: InstantaneousAction, simplify_quantifiers: bool = False) -> Tuple[bool, List[FNode]]:
+    def _check_and_simplify_preconditions(self, action: InstantaneousAction, simplify_constants: bool = False) -> Tuple[bool, List[FNode]]:
         '''Simplifies preconditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all preconditions.
@@ -125,7 +125,7 @@ class Transformer:
         #preconditions (as an And FNode)
         p = self._env.expression_manager.And(ap)
         #preconditions simplified
-        if simplify_quantifiers:
+        if simplify_constants:
             ps = self._simplifier.simplify(p, self._problem)
         else:
             ps = self._simplifier.simplify(p)

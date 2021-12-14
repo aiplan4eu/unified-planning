@@ -120,7 +120,7 @@ class Grounder(Transformer):
                 new_action.add_precondition(self._substituter.substitute(p, subs))
             for e in old_action.effects():
                 new_action._add_effect_instance(self._create_effect_with_given_subs(e, subs))
-            is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action, simplify_quantifiers=True)
+            is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action, simplify_constants=True)
             if not is_feasible:
                 return (False, None)
             new_action._set_preconditions(new_preconditions)
@@ -137,7 +137,7 @@ class Grounder(Transformer):
             for t, el in old_action.effects().items():
                 for e in el:
                     new_durative_action._add_effect_instance(t, self._create_effect_with_given_subs(e, subs))
-            is_feasible, new_conditions = self._check_and_simplify_conditions(new_durative_action, simplify_quantifiers=True)
+            is_feasible, new_conditions = self._check_and_simplify_conditions(new_durative_action, simplify_constants=True)
             if not is_feasible:
                 return (False, None)
             new_durative_action.clear_conditions()
