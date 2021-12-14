@@ -24,7 +24,7 @@ from upf.transformers.transformer import Transformer
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.walkers import Substituter
 from itertools import product
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 
 class Grounder(Transformer):
@@ -108,7 +108,7 @@ class Grounder(Transformer):
         new_condition = self._substituter.substitute(old_effect.condition(), subs)
         return Effect(new_fluent, new_value, new_condition, old_effect.kind())
 
-    def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Tuple[bool, Action]:
+    def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Tuple[bool, Optional[Action]]:
         naming_list: List[str] = []
         for param, value in subs.items():
             assert isinstance(param, ActionParameter)
@@ -120,9 +120,9 @@ class Grounder(Transformer):
                 new_action.add_precondition(self._substituter.substitute(p, subs))
             for e in old_action.effects():
                 new_action._add_effect_instance(self._create_effect_with_given_subs(e, subs))
-            is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action)
+            is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action, simplify_quantifiers=True)
             if not is_feasible:
-                return (False, new_action)
+                return (False, None)
             new_action._set_preconditions(new_preconditions)
             return (True, new_action)
         elif isinstance(old_action, DurativeAction):
@@ -137,9 +137,9 @@ class Grounder(Transformer):
             for t, el in old_action.effects().items():
                 for e in el:
                     new_durative_action._add_effect_instance(t, self._create_effect_with_given_subs(e, subs))
-            is_feasible, new_conditions = self._check_and_simplify_conditions(new_durative_action)
+            is_feasible, new_conditions = self._check_and_simplify_conditions(new_durative_action, simplify_quantifiers=True)
             if not is_feasible:
-                return (False, new_durative_action)
+                return (False, None)
             new_durative_action.clear_conditions()
             for t, c in new_conditions:
                 new_durative_action.add_condition(t, c)

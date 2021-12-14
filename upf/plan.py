@@ -102,23 +102,3 @@ class TimeTriggeredPlan(Plan):
     def actions(self) -> List[Tuple[Fraction, ActionInstance, Optional[Fraction]]]:
         '''Returns the sequence of action instances.'''
         return self._actions
-
-def lift_plan(plan: Plan, map: Dict['upf.model.Action', Tuple['upf.model.Action', List['upf.model.FNode']]]) -> Plan:
-    '''"map" is a map from every action in the "grounded_problem" to the tuple
-        (original_action, parameters).
-
-        Where the grounded actions is obtained by grounding
-        the "original_action" with the specific "parameters".'''
-    if isinstance(plan, SequentialPlan):
-        original_actions: List[ActionInstance] = []
-        for ai in plan.actions():
-            original_action, parameters = map[ai.action()]
-            original_actions.append(ActionInstance(original_action, tuple(parameters)))
-        return SequentialPlan(original_actions)
-    elif isinstance(plan, TimeTriggeredPlan):
-        s_original_actions_d = []
-        for s, ai, d in plan.actions():
-            original_action, parameters = map[ai.action()]
-            s_original_actions_d.append((s, ActionInstance(original_action, tuple(parameters)), d))
-        return TimeTriggeredPlan(s_original_actions_d)
-    raise NotImplementedError

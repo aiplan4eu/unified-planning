@@ -251,7 +251,7 @@ class Problem:
                     if e.fluent().fluent() in static_fluents:
                         static_fluents.remove(e.fluent().fluent())
             elif isinstance(a, upf.model.action.DurativeAction):
-                for _, el in a.effects():
+                for el in a.effects().values():
                     for e in el:
                         if e.fluent().fluent() in static_fluents:
                             static_fluents.remove(e.fluent().fluent())

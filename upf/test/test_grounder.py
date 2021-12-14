@@ -13,8 +13,6 @@ class TestGrounder(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
-    @skipIfNoPlanValidatorForProblemKind(basic_classical_kind)
     def test_basic(self):
         problem = self.problems['basic'].problem
 
@@ -128,11 +126,11 @@ class TestGrounder(TestCase):
 
         gro = TransformersGrounder(problem)
         grounded_problem = gro.get_rewritten_problem()
-        self.assertEqual(len(grounded_problem.actions()), 20)
+        self.assertEqual(len(grounded_problem.actions()), 6)
         for a in grounded_problem.actions():
             self.assertEqual(len(a.parameters()), 0)
         for a in problem.actions():
-            self.assertEqual(len(gro.get_transformed_actions(a)), 20)
+            self.assertEqual(len(gro.get_transformed_actions(a)), 6)
 
     def test_ad_hoc_1(self):
         problem = Problem('ad_hoc')

@@ -65,7 +65,7 @@ class Solver:
         NOTE: to create a callable, the "functools.partial" method can be used, as we do in the
         "upf.solvers.grounder".
 
-        Also, the "upf.plan.lift_plan" function can be called, if retrieving the needed map
+        Also, the "upf.solvers.grounder.lift_plan" function can be called, if retrieving the needed map
         fits the solver implementation better than retrieving a function.'''
         raise NotImplementedError
 
