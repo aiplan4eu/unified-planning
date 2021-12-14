@@ -139,15 +139,18 @@ class Grounder(Transformer):
             for t, el in old_action.effects().items():
                 for e in el:
                     new_durative_action._add_effect_instance(t, self._create_effect_with_given_subs(e, subs))
-            is_feasible, new_conditions, timings, intervals = self._check_and_simplify_conditions_and_durative_conditions(new_durative_action, simplify_constants=True)
+            is_feasible, new_conditions = self._check_and_simplify_conditions_and_durative_conditions(new_durative_action, simplify_constants=True)
             if not is_feasible:
                 return None
             new_durative_action.clear_conditions()
             new_durative_action.clear_durative_conditions()
-            for t, c in zip(timings, new_conditions[:len(timings)]):
-                new_durative_action.add_condition(t, c)
-            for i,c in zip(intervals, new_conditions[len(timings):]):
-                new_durative_action.add_durative_condition(i, c)
+            for timing_or_interval, c in new_conditions:
+                if isinstance(timing_or_interval, upf.model.Timing):
+                    new_durative_action.add_condition(timing_or_interval, c)
+                elif isinstance(timing_or_interval, upf.model.Interval):
+                    new_durative_action.add_durative_condition(timing_or_interval, c)
+                else:
+                    raise NotImplementedError
             return new_durative_action
         else:
             raise NotImplementedError

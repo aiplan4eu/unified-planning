@@ -119,14 +119,17 @@ class ConditionalEffectsRemover(Transformer):
                             new_action.add_condition(t, self._env.expression_manager.Not(e.condition()))
                     #new action is created, then is checked if it has any impact and if it can be simplified
                     if len(new_action.effects()) > 0:
-                        action_is_feasible, simplified_conditions, timings, intervals = self._check_and_simplify_conditions_and_durative_conditions(new_action)
+                        action_is_feasible, simplified_conditions = self._check_and_simplify_conditions_and_durative_conditions(new_action)
                         if action_is_feasible:
                             new_action.clear_conditions()
                             new_action.clear_durative_conditions()
-                            for t, c in zip(timings, simplified_conditions[:len(timings)]):
-                                new_action.add_condition(t, c)
-                            for interval, c in zip(intervals, simplified_conditions[len(timings):]):
-                                new_action.add_durative_condition(interval, c)
+                            for timing_or_interval, c in simplified_conditions:
+                                if isinstance(timing_or_interval, upf.model.Timing):
+                                    new_action.add_condition(timing_or_interval, c)
+                                elif isinstance(timing_or_interval, upf.model.Interval):
+                                    new_action.add_durative_condition(timing_or_interval, c)
+                                else:
+                                    raise NotImplementedError
                             self._new_to_old[new_action] = action
                             self._map_old_to_new_action(action, new_action)
                             self._new_problem.add_action(new_action)

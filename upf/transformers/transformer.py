@@ -68,7 +68,7 @@ class Transformer:
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
-    def _check_and_simplify_conditions_and_durative_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[FNode], List[Timing], List[Interval]]:
+    def _check_and_simplify_conditions_and_durative_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[Tuple[Union[Timing, Interval], FNode]]]:
         '''Simplifies conditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all conditions at the given timing.
@@ -78,17 +78,10 @@ class Transformer:
         condition at the given timing.
         Then, the new conditions are returned as a List[Tuple[Timing, FNode]] and the user can
         decide how to use the new conditions.'''
-        #action conditions
-        #tlc = timing list condition
-        tlc: Dict[Timing, List[FNode]] = action.conditions()
-        #ilc = interval list condition
-        ilc: Dict[Interval, List[FNode]] = action.durative_conditions()
         #new action conditions
-        nac: List[FNode] = []
-        timings: List[Timing] = []
-        intervals: List[Interval] = []
+        nac: List[Tuple[Union[Timing, Interval], FNode]] = []
         # t = timing, lc = list condition
-        for t, lc in tlc.items():
+        for t, lc in action.conditions().items():
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
@@ -98,16 +91,14 @@ class Transformer:
                 cs = self._simplifier.simplify(c)
             if cs.is_bool_constant():
                 if not cs.bool_constant_value():
-                    return (False, [], [], [])
+                    return (False, [],)
             else:
                 if cs.is_and():
                     for new_cond in cs.args():
-                        nac.append(new_cond)
-                        timings.append(t)
+                        nac.append((t, new_cond))
                 else:
-                    nac.append(cs)
-                    timings.append(t)
-        for i, lc in ilc.items():
+                    nac.append((t, cs))
+        for i, lc in action.durative_conditions().items():
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
@@ -117,16 +108,14 @@ class Transformer:
                 cs = self._simplifier.simplify(c)
             if cs.is_bool_constant():
                 if not cs.bool_constant_value():
-                    return (False, [], [], [])
+                    return (False, [])
             else:
                 if cs.is_and():
                     for new_cond in cs.args():
-                        nac.append(new_cond)
-                        intervals.append(i)
+                        nac.append((i, new_cond))
                 else:
-                    nac.append(cs)
-                    intervals.append(i)
-        return (True, nac, timings, intervals)
+                    nac.append((i, cs))
+        return (True, nac)
 
     def _check_and_simplify_preconditions(self, action: InstantaneousAction, simplify_constants: bool = False) -> Tuple[bool, List[FNode]]:
         '''Simplifies preconditions and if it is False (a contraddiction)
