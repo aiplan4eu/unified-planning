@@ -40,8 +40,7 @@ class Simplifier(walkers.DagWalker):
     def simplify(self, expression: FNode, problem: Optional['upf.model.Problem'] = None) -> FNode:
         """Performs basic simplification of the given expression.
 
-        If a problem is given, it also uses the static fluents of the problem and removes quantifiers
-        for a better simplification."""
+        If a problem is given, it also uses the static fluents of the problem for a better simplification."""
         if problem is not None:
             self.static_fluents = problem.get_static_fluents()
         else:
