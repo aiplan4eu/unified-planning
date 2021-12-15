@@ -276,7 +276,7 @@ def get_example_problems():
     robot_loader_adv = Example(problem=problem, plan=plan)
     problems['robot_loader_adv'] = robot_loader_adv
 
-    #robot connected locations
+    #robot locations connected
     Location = UserType('Location')
     Robot = UserType('Robot')
     is_at = Fluent('is_at', BoolType(), [Location, Robot])

@@ -148,3 +148,16 @@ def PlanValidator(*, name: Optional[str] = None,
     """
     return get_env().factory.PlanValidator(name=name, names=names, params=params,
                                            problem_kind=problem_kind)
+
+def Grounder(*, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                   problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+    """
+    Returns a Grounder. There are three ways to call this method:
+    - using 'name' (the name of a specific grounder) and 'params'
+        (grounder dependent options).
+        e.g. Grounder(name='tamer', params={'opt': 'val'})
+    - using 'problem_kind' parameter.
+        e.g. Grounder(problem_kind=problem.kind())
+    """
+    return get_env().factory.Grounder(name=name, params=params,
+                                           problem_kind=problem_kind)

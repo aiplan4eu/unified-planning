@@ -15,52 +15,10 @@
 """This module defines the quantifiers remover class."""
 
 
-import upf.model
-import upf.walkers as walkers
-from upf.walkers.identitydag import IdentityDagWalker
+from upf.walkers import ExpressionQuantifiersRemover
 from upf.transformers.transformer import Transformer
-from upf.model import Problem, InstantaneousAction, DurativeAction, Object, Effect, FNode, Action, operators as op
-from upf.model.expression import Expression
-from upf.exceptions import UPFProblemDefinitionError
-from typing import List, Dict, Union
-from itertools import product
-from collections import OrderedDict
-
-
-class ExpressionQuantifierRemover(IdentityDagWalker):
-    def __init__(self, env):
-        self._env = env
-        IdentityDagWalker.__init__(self, self._env, True)
-        self._substituter = walkers.Substituter(self._env)
-
-    def remove_quantifiers(self, expression: FNode, problem: Problem):
-        self._problem = problem
-        return self.walk(expression)
-
-    def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
-        vars = expression.variables()
-        type_list = [v.type() for v in vars]
-        possible_objects: List[List[Object]] = [self._problem.objects(t) for t in type_list]
-        #product of n iterables returns a generator of tuples where
-        # every tuple has n elements and the tuples make every possible
-        # combination of 1 item for each iterable. For example:
-        #product([1,2], [3,4], [5,6], [7]) =
-        # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
-        subs_results = []
-        for o in product(*possible_objects):
-            subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
-            subs_results.append(self._substituter.substitute(args[0], subs))
-        return subs_results
-
-    @walkers.handles(op.EXISTS)
-    def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        subs_results = self._help_walk_quantifiers(expression, args)
-        return self._env.expression_manager.Or(subs_results)
-
-    @walkers.handles(op.FORALL)
-    def walk_forall(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        subs_results = self._help_walk_quantifiers(expression, args)
-        return self._env.expression_manager.And(subs_results)
+from upf.model import Problem, InstantaneousAction, DurativeAction, Action
+from typing import List, Dict
 
 
 class QuantifiersRemover(Transformer):
@@ -71,7 +29,7 @@ class QuantifiersRemover(Transformer):
     def __init__(self, problem: Problem, name: str = 'qurm'):
         Transformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
-        self._expression_quantifier_remover = ExpressionQuantifierRemover(self._env)
+        self._expression_quantifier_remover = ExpressionQuantifiersRemover(self._env)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.

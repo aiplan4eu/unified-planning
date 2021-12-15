@@ -15,7 +15,7 @@
 """This module defines the conditional effects remover class."""
 
 
-from upf.model import Timing, Problem, Action, InstantaneousAction, DurativeAction, Effect
+import upf
 from upf.exceptions import UPFProblemDefinitionError
 from upf.transformers.transformer import Transformer
 from typing import Iterable, List, Dict, Tuple, Union, Optional
@@ -32,19 +32,19 @@ class ConditionalEffectsRemover(Transformer):
 
     Also the conditional timed_effects are removed maintaining the same
     semanthics. When this is not possible, an exception is raised.'''
-    def __init__(self, problem: Problem, name: str = 'cerm'):
+    def __init__(self, problem: 'upf.model.Problem', name: str = 'cerm'):
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
-        self._new_to_old: Dict[Action, Action] = {}
+        self._new_to_old: Dict['upf.model.Action', 'upf.model.Action'] = {}
         #represents a mapping from the action of the original problem to action of the new one.
-        self._old_to_new: Dict[Action, List[Action]] = {}
+        self._old_to_new: Dict['upf.model.Action', List['upf.model.Action']] = {}
 
     def powerset(self, iterable: Iterable) -> Iterable:
         "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
         s = list(iterable)
         return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
-    def get_rewritten_problem(self) -> Problem:
+    def get_rewritten_problem(self) -> 'upf.model.Problem':
         '''Creates a problem that is a copy of the original problem
         but every conditional action or effect are removed.'''
         if self._new_problem is not None:
@@ -73,7 +73,7 @@ class ConditionalEffectsRemover(Transformer):
             self._new_to_old[new_uncond_action] = ua
             self._map_old_to_new_action(ua, new_uncond_action)
         for action in self._problem.conditional_actions():
-            if isinstance(action, InstantaneousAction):
+            if isinstance(action, upf.model.InstantaneousAction):
                 cond_effects = action.conditional_effects()
                 for p in self.powerset(range(len(cond_effects))):
                     new_action = action.clone()
@@ -85,7 +85,7 @@ class ConditionalEffectsRemover(Transformer):
                         if i in p:
                             # positive precondition
                             new_action.add_precondition(e.condition())
-                            ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
+                            ne = upf.model.Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
                             new_action._add_effect_instance(ne)
                         else:
                             #negative precondition
@@ -98,9 +98,9 @@ class ConditionalEffectsRemover(Transformer):
                             self._new_to_old[new_action] = action
                             self._map_old_to_new_action(action, new_action)
                             self._new_problem.add_action(new_action)
-            elif isinstance(action, DurativeAction):
-                timing_cond_effects: Dict[Timing, List[Effect]] = action.conditional_effects()
-                cond_effects_timing: List[Tuple[Effect, Timing]] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
+            elif isinstance(action, upf.model.DurativeAction):
+                timing_cond_effects: Dict['upf.model.Timing', List['upf.model.Effect']] = action.conditional_effects()
+                cond_effects_timing: List[Tuple['upf.model.Effect', 'upf.model.Timing']] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
                 for p in self.powerset(range(len(cond_effects_timing))):
                     new_action = action.clone()
                     new_action.name = self.get_fresh_name(action.name)
@@ -112,17 +112,24 @@ class ConditionalEffectsRemover(Transformer):
                         if i in p:
                             # positive precondition
                             new_action.add_condition(t, e.condition())
-                            ne = Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
+                            ne = upf.model.Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
                             new_action._add_effect_instance(t, ne)
                         else:
                             #negative precondition
                             new_action.add_condition(t, self._env.expression_manager.Not(e.condition()))
                     #new action is created, then is checked if it has any impact and if it can be simplified
                     if len(new_action.effects()) > 0:
-                        action_is_feasible, timing_simplified_conditions = self._check_and_simplify_conditions(new_action)
+                        action_is_feasible, simplified_conditions = self._check_and_simplify_conditions_and_durative_conditions(new_action)
                         if action_is_feasible:
-                            for t, c in timing_simplified_conditions:
-                                new_action.add_condition(t, c)
+                            new_action.clear_conditions()
+                            new_action.clear_durative_conditions()
+                            for timing_or_interval, c in simplified_conditions:
+                                if isinstance(timing_or_interval, upf.model.Timing):
+                                    new_action.add_condition(timing_or_interval, c)
+                                elif isinstance(timing_or_interval, upf.model.Interval):
+                                    new_action.add_durative_condition(timing_or_interval, c)
+                                else:
+                                    raise NotImplementedError
                             self._new_to_old[new_action] = action
                             self._map_old_to_new_action(action, new_action)
                             self._new_problem.add_action(new_action)
@@ -136,12 +143,12 @@ class ConditionalEffectsRemover(Transformer):
         else:
             self._old_to_new[old_action] = [new_action]
 
-    def get_original_action(self, action: Action) -> Action:
+    def get_original_action(self, action: 'upf.model.Action') -> 'upf.model.Action':
         '''After the method get_rewritten_problem is called, this function maps
         the actions of the transformed problem into the actions of the original problem.'''
         return self._new_to_old[action]
 
-    def get_transformed_actions(self, action: Action) -> List[Action]:
+    def get_transformed_actions(self, action: 'upf.model.Action') -> List['upf.model.Action']:
         '''After the method get_rewritten_problem is called, this function maps
         the actions of the original problem into the actions of the transformed problem.'''
         return self._old_to_new[action]

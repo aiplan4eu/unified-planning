@@ -21,7 +21,8 @@ from typing import Dict, Tuple, Optional, List, Union, Type
 
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl'),
                    'pyperplan' : ('upf_pyperplan', 'SolverImpl'),
-                   'sequential_plan_validator' : ('upf.solvers.plan_validator', 'SequentialPlanValidator')}
+                   'sequential_plan_validator' : ('upf.solvers.plan_validator', 'SequentialPlanValidator'),
+                   'grounder' : ('upf.solvers.grounder', 'Grounder')}
 
 
 class Factory:
@@ -107,3 +108,15 @@ class Factory:
           e.g. PlanValidator(problem_kind=problem.kind())
         """
         return self._get_solver('plan_validator', name, names, params, problem_kind)
+
+    def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional['upf.solvers.solver.Solver']:
+        """
+        Returns a Grounder. There are three ways to call this method:
+        - using 'name' (the name of a specific grounder) and 'params'
+          (grounder dependent options).
+          e.g. Grounder(name='tamer', params={'opt': 'val'})
+        - using 'problem_kind' parameter.
+          e.g. Grounder(problem_kind=problem.kind())
+        """
+        return self._get_solver('grounder', name, None, params, problem_kind)

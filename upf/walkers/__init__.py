@@ -16,6 +16,7 @@
 from upf.walkers.dag import DagWalker
 from upf.walkers.generic import handles
 from upf.walkers.dnf import Dnf, Nnf
+from upf.walkers.expression_quantifiers_remover import ExpressionQuantifiersRemover
 from upf.walkers.operators_extractor import OperatorsExtractor
 from upf.walkers.simplifier import Simplifier
 from upf.walkers.substituter import Substituter

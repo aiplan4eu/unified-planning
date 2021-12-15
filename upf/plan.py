@@ -14,10 +14,9 @@
 #
 '''This module defines the different plan classes.'''
 
-
 import upf
 import upf.model
-from typing import Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List
 from fractions import Fraction
 
 
@@ -28,7 +27,7 @@ class Plan:
 
 class ActionInstance:
     '''Represents an action instance with the actual parameters.'''
-    def __init__(self, action: 'upf.model.Action', params: Tuple[upf.model.FNode, ...] = tuple()):
+    def __init__(self, action: 'upf.model.Action', params: Tuple['upf.model.FNode', ...] = tuple()):
         assert len(action.parameters()) == len(params)
         self._action = action
         self._params = tuple(params)
@@ -56,7 +55,7 @@ class ActionInstance:
         '''Returns the action.'''
         return self._action
 
-    def actual_parameters(self) -> Tuple[upf.model.FNode, ...]:
+    def actual_parameters(self) -> Tuple['upf.model.FNode', ...]:
         '''Returns the actual parameters.'''
         return self._params
 

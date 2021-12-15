@@ -15,10 +15,11 @@
 
 from fractions import Fraction
 from collections import OrderedDict
+from typing import List, Optional, Set, Union
+import upf
 import upf.environment
 import upf.walkers as walkers
 from upf.model import FNode, operators as op
-from typing import List, Set, Union
 
 
 class Simplifier(walkers.DagWalker):
@@ -36,9 +37,17 @@ class Simplifier(walkers.DagWalker):
             fnode = self.manager.Real(Fraction(value))
         return fnode
 
-    def simplify(self, expression: FNode) -> FNode:
-        """Performs basic simplification of the given expression."""
+    def simplify(self, expression: FNode, problem: Optional['upf.model.Problem'] = None) -> FNode:
+        """Performs basic simplification of the given expression.
+
+        If a problem is given, it also uses the static fluents of the problem for a better simplification."""
+        if problem is not None:
+            self.static_fluents = problem.get_static_fluents()
+        else:
+            self.static_fluents = set()
+        self.problem: Optional['upf.model.Problem'] = problem
         return self.walk(expression)
+
 
     def walk_and(self, expression: FNode, args: List[FNode]) -> FNode:
         if len(args) == 2 and args[0] == args[1]:
@@ -209,7 +218,14 @@ class Simplifier(walkers.DagWalker):
         return self.manager.LT(sl, sr)
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
-        return self.manager.FluentExp(expression.fluent(), tuple(args))
+        if expression.fluent() not in self.static_fluents:
+            return self.manager.FluentExp(expression.fluent(), tuple(args))
+        else:
+            assert self.problem is not None
+            for a in args:
+                if not a.is_constant():
+                    return self.manager.FluentExp(expression.fluent(), tuple(args))
+            return self.problem.initial_value(self.manager.FluentExp(expression.fluent(), tuple(args)))
 
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()

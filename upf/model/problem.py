@@ -16,10 +16,11 @@
 
 import upf
 import upf.model.operators as op
-from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError
+from upf.model.types import domain_size, domain_item
+from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError, UPFExpressionDefinitionError
 from upf.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Set, Union, Optional
 
 
 class Problem:
@@ -237,6 +238,31 @@ class Problem:
             if type.is_user_type() and type not in self._user_types:
                 self._user_types.append(type) # type: ignore
 
+    def get_static_fluents(self) -> Set['upf.model.fluent.Fluent']:
+        '''Returns the set of the static fluents.
+
+        Static fluents are those who can't change their values because they never
+        appear in the "fluent" field of an effect, therefore there are no Actions
+        in the Problem that can change their value.'''
+        static_fluents: Set['upf.model.fluent.Fluent'] = set(self._fluents)
+        for a in self._actions:
+            if isinstance(a, upf.model.action.InstantaneousAction):
+                for e in a.effects():
+                    if e.fluent().fluent() in static_fluents:
+                        static_fluents.remove(e.fluent().fluent())
+            elif isinstance(a, upf.model.action.DurativeAction):
+                for el in a.effects().values():
+                    for e in el:
+                        if e.fluent().fluent() in static_fluents:
+                            static_fluents.remove(e.fluent().fluent())
+            else:
+                raise NotImplementedError
+        for el in self._timed_effects.values():
+            for e in el:
+                if e.fluent().fluent() in static_fluents:
+                    static_fluents.remove(e.fluent().fluent())
+        return static_fluents
+
     def actions(self) -> List['upf.model.action.Action']:
         '''Returns the list of the actions in the problem.'''
         return self._actions
@@ -360,6 +386,9 @@ class Problem:
     def initial_value(self, fluent: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent']) -> 'upf.model.fnode.FNode':
         '''Gets the initial value of the given fluent.'''
         fluent_exp, = self._env.expression_manager.auto_promote(fluent)
+        for a in fluent_exp.args():
+            if not a.is_constant():
+                raise UPFExpressionDefinitionError(f'Impossible to return the initial value of a fluent expression with no constant arguments: {fluent_exp}.')
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
         elif fluent_exp.fluent() in self._fluents_defaults:
@@ -368,36 +397,6 @@ class Problem:
             return self._initial_defaults[fluent_exp.fluent().type()]
         else:
             raise UPFProblemDefinitionError('Initial value not set!')
-
-    def _domain_size(self, typename: 'upf.model.types.Type') -> int:
-        '''Returns the domain size of the given type.'''
-        if typename.is_bool_type():
-            return 2
-        elif typename.is_user_type():
-            return len(self.objects(typename))
-        elif typename.is_int_type():
-            lb = typename.lower_bound() # type: ignore
-            ub = typename.upper_bound() # type: ignore
-            if lb is None or ub is None:
-                raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-            return ub - lb
-        else:
-            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-
-    def _domain_item(self, typename: 'upf.model.types.Type', idx: int) -> 'upf.model.fnode.FNode':
-        '''Returns the ith domain item of the given type.'''
-        if typename.is_bool_type():
-            return self._env.expression_manager.Bool(idx == 0)
-        elif typename.is_user_type():
-            return self._env.expression_manager.ObjectExp(self.objects(typename)[idx])
-        elif typename.is_int_type():
-            lb = typename.lower_bound() # type: ignore
-            ub = typename.upper_bound() # type: ignore
-            if lb is None or ub is None:
-                raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
-            return self._env.expression_manager.Int(lb + idx)
-        else:
-            raise UPFProblemDefinitionError('Fluent parameters must be groundable!')
 
     def _get_ith_fluent_exp(self, fluent: 'upf.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'upf.model.fnode.FNode':
         '''Returns the ith ground fluent expression.'''
@@ -408,7 +407,7 @@ class Problem:
             ds = domain_sizes[i];
             rem = quot % ds
             quot //= ds
-            v = self._domain_item(fluent.signature()[i], rem)
+            v = domain_item(self, fluent.signature()[i], rem)
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
@@ -422,15 +421,13 @@ class Problem:
             else:
                 ground_size = 1
                 domain_sizes = []
-                is_groundable = True
                 for p in f.signature():
-                    ds = self._domain_size(p)
+                    ds = domain_size(self, p)
                     domain_sizes.append(ds)
                     ground_size *= ds
-                if is_groundable:
-                    for i in range(ground_size):
-                        f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
-                        res[f_exp] = self.initial_value(f_exp)
+                for i in range(ground_size):
+                    f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
+                    res[f_exp] = self.initial_value(f_exp)
         return res
 
     def add_timed_goal(self, timing: 'upf.model.timing.Timing', goal: Union['upf.model.fnode.FNode', 'upf.model.fluent.Fluent', bool]):

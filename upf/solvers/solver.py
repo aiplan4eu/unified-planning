@@ -16,8 +16,10 @@
 
 import upf
 import upf.model
-from upf.model import ProblemKind
-from typing import Optional
+from upf.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
+from upf.model import ProblemKind, Problem, Action, FNode
+from functools import partial
+from typing import Optional, Tuple, Dict, List, Callable
 
 
 class Solver:
@@ -40,6 +42,10 @@ class Solver:
         return False
 
     @staticmethod
+    def is_grounder() -> bool:
+        return False
+
+    @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
@@ -47,6 +53,20 @@ class Solver:
         raise NotImplementedError
 
     def validate(self, problem: 'upf.model.Problem', plan: 'upf.plan.Plan') -> bool:
+        raise NotImplementedError
+
+    def ground(self, problem: 'upf.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
+        '''
+        Implement only if "self.is_grounder()" returns True.
+        This function should return the tuple (grounded_problem, trace_back_plan), where
+        "trace_back_plan" is a callable from a plan for the "grounded_problem" to a plan of the
+        original problem.
+
+        NOTE: to create a callable, the "functools.partial" method can be used, as we do in the
+        "upf.solvers.grounder".
+
+        Also, the "upf.solvers.grounder.lift_plan" function can be called, if retrieving the needed map
+        fits the solver implementation better than retrieving a function.'''
         raise NotImplementedError
 
     def destroy(self):

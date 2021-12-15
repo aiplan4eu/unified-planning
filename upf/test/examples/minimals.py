@@ -196,7 +196,7 @@ def get_example_problems():
     o2 = Object('o2', sem)
     s_var = Variable("s", sem)
     a = InstantaneousAction('a')
-    a.add_precondition(Forall(Not(FluentExp(y, [s_var])), s_var))
+    a.add_precondition(Forall(Not(y(s_var)), s_var))
     a.add_effect(x, True)
     problem = Problem('basic_exists')
     problem.add_fluent(x)

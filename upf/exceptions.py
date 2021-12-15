@@ -39,3 +39,6 @@ class UPFUnreachableCodeError(UPFException):
 
 class UPFValueError(UPFException):
     pass
+
+class UPFUsageError(UPFException):
+    pass
