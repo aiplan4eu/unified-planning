@@ -3,7 +3,7 @@ import upf
 from upf.shortcuts import *
 from upf.exceptions import UPFUsageError
 from upf.model.problem_kind import basic_classical_kind, classical_kind, full_numeric_kind, basic_temporal_kind
-from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
+from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
 from upf.test.examples import get_example_problems
 from upf.transformers import Grounder as TransformersGrounder
 
@@ -161,3 +161,54 @@ class TestGrounder(TestCase):
         gro.get_rewritten_problem()
         with self.assertRaises(NotImplementedError):
             gro.rewrite_back_plan(problem)
+
+    @skipIfSolverNotAvailable('pyperplan')
+    def test_pyperplan_grounder(self):
+
+        problem = self.problems['robot_no_negative_preconditions'].problem
+        with Grounder(name='pyperplan') as grounder:
+            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
+                self.assertNotEqual(planner, None)
+                grounded_plan = planner.solve(grounded_problem)
+                plan = rewrite_back_plan_function(grounded_plan)
+                for ai in plan.actions():
+                    a = ai.action()
+                    self.assertEqual(a, problem.action(a.name))
+                with PlanValidator(problem_kind=problem.kind()) as pv:
+                    self.assertTrue(pv.validate(problem, plan))
+
+    @skipIfSolverNotAvailable('pyperplan')
+    def test_pyperplan_grounder_mockup_problem(self):
+        problem = Problem('mockup')
+        Location = UserType('Location')
+        at = Fluent('at', BoolType(), [Location])
+        at_l2 = Fluent('at_l2')
+        l1 = Object('l1', Location)
+        l2 = Object('l2', Location)
+        move_to = InstantaneousAction('move_to', l_to=Location)
+        l_to = move_to.parameter('l_to')
+        move_to.add_effect(at(l_to), True)
+        move_to_l2 = InstantaneousAction('move_to_l2')
+        move_to_l2.add_effect(at_l2, True)
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(at_l2, default_initial_value=False)
+        problem.add_object(l1)
+        problem.add_object(l2)
+        problem.add_action(move_to)
+        problem.add_action(move_to_l2)
+        problem.add_goal(at(l1))
+        problem.add_goal(at(l2))
+        problem.add_goal(at_l2)
+
+        with Grounder(name='pyperplan') as grounder:
+            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
+                self.assertNotEqual(planner, None)
+                grounded_plan = planner.solve(grounded_problem)
+                plan = rewrite_back_plan_function(grounded_plan)
+                for ai in plan.actions():
+                    a = ai.action()
+                    self.assertEqual(a, problem.action(a.name))
+                with PlanValidator(problem_kind=problem.kind()) as pv:
+                    self.assertTrue(pv.validate(problem, plan))
