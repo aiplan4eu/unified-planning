@@ -28,7 +28,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
         self.lang = language
 
     def convert_formula(self, expression: 'upf.model.FNode') -> 'tarski.syntax.formulas.Formula':
-        self.walk(expression)
+        return self.walk(expression)
 
     def walk_and(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         return tarski.syntax.land(*args, flat=True)
@@ -120,7 +120,7 @@ class TarskiConverter:
 
     def upf_to_tarski(self, problem: 'upf.model.Problem') -> 'tarski.fstrips.problem.Problem':
         #creating tarski language
-        lang = tarski.fol.FirstOrderLanguage(f'{problem.name}_lang', ['equality', 'arithmetic'])
+        lang = tarski.fstrips.language(f'{problem.name}_lang', ['equality', 'arithmetic'])
         for ut in problem.user_types(): #adding user_types to the language
             lang.sort(ut.name()) # type: ignore
         for f in problem.fluents(): #adding fluents to the language
@@ -146,9 +146,19 @@ class TarskiConverter:
                                 precondition=em.And(action.preconditions()),
                                 effects=[_convert_effect(e, tfc, em) for e in action.effects()]
             )
-        #TODO: init with new_problem.init.add(predicate, eventually some parameters)
-        # new_problem.init.set(function, eventually some parameters)
+        for fluent_exp, value_exp in problem.initial_values().items():
+            if value_exp.is_bool_constant():
+                if value_exp.constant_value():
+                    parameters = []
+                    for a in fluent_exp.args():
+                        if not a.is_object_exp():
+                            raise #TODO: insert exception to raise
+                        parameters.append(lang.get_constant(a.object().name()))
+                    new_problem.init.add(lang.get_predicate(fluent_exp.fluent().name()), *parameters)
+            else:
+                new_problem.init.set(tfc.convert_formula(fluent_exp), tfc.convert_formula(value_exp))
         new_problem.goal = tfc.convert_formula(em.And(problem.goals()))
+        print(tfc.convert_formula(em.And(problem.goals())))
 
         return new_problem
 
