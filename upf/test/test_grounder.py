@@ -166,8 +166,12 @@ class TestGrounder(TestCase):
     def test_pyperplan_grounder(self):
 
         problem = self.problems['robot_no_negative_preconditions'].problem
+        for action in problem.actions():
+            self.assertTrue(len(action.parameters()) > 0)
         with Grounder(name='pyperplan') as grounder:
             grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            for grounded_action in grounded_problem.actions():
+                self.assertEqual(len(grounded_action.parameters()), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem)
@@ -203,6 +207,8 @@ class TestGrounder(TestCase):
 
         with Grounder(name='pyperplan') as grounder:
             grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            for grounded_action in grounded_problem.actions():
+                self.assertEqual(len(grounded_action.parameters()), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem)
