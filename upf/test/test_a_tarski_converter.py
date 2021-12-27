@@ -89,8 +89,23 @@ class TestGrounder(TestCase):
     #     assert False
 
 
-    def test_basic_forall(self):
-        problem = self.problems['basic_forall'].problem
+    # def test_basic_forall(self):
+    #     problem = self.problems['basic_forall'].problem
+    #     tarski_problem = self.tc.upf_to_tarski(problem)
+    #     print(problem)
+    #     print(tarski_problem)
+    #     print(tarski_problem.goal)
+    #     print(tarski_problem.init)
+    #     print(tarski_problem.actions)
+    #     for n, a in tarski_problem.actions.items():
+    #         print(a)
+    #         print(a.precondition)
+    #         print(a.effects)
+    #     assert False
+
+
+    def test_robot(self):
+        problem = self.problems['robot'].problem
         tarski_problem = self.tc.upf_to_tarski(problem)
         print(problem)
         print(tarski_problem)

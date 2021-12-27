@@ -14,7 +14,7 @@
 #
 
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import upf
 import upf.model
@@ -75,18 +75,18 @@ class TarskiFormulaConverter(walkers.DagWalker):
         return tarski_fluent_rep(*args)
 
     def walk_plus(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        return tarski.syntax.Atom(self.lang.get_predicate('+'), *args) #TODO: to test if + (and *) is binary or n-ary for tarski
+        return tarski.syntax.Atom(self.lang.get_predicate('+'), *args)#TODO : write this correcly #TODO: to test if + (and *) is binary or n-ary for tarski
 
     def walk_minus(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate('-'), args[0], args[1])
+        return args[0] - args[1]
 
     def walk_times(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        return tarski.syntax.Atom(self.lang.get_predicate('*'), *args)
+        return tarski.syntax.Atom(self.lang.get_predicate('*'), *args) #TODO : write this correcly
 
     def walk_div(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate('/'), args[0], args[1])
+        return args[0] / args[1]
 
     def walk_bool_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
@@ -95,12 +95,14 @@ class TarskiFormulaConverter(walkers.DagWalker):
         return tarski.syntax.bot
 
     def walk_int_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        #NOTE: TODO
-        pass
+        assert len(args) == 0
+        # NOTE expression.int_constant_value() might need to be changed to str(expression.int_constant_value())
+        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Integer) # type: ignore
 
     def walk_real_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        #NOTE: TODO
-        pass
+        assert len(args) == 0
+        # NOTE expression.int_constant_value() might need to be changed to str(expression.int_constant_value())
+        return tarski.syntax.Constant(expression.real_constant_value(), self.lang.Real) # type: ignore
 
     def walk_param_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         tarski_param_rep = self.lang.variable(expression.parameter().name(), self.lang.get_sort(expression.parameter().type().name())) # type: ignore
@@ -123,13 +125,36 @@ class TarskiConverter:
         lang = tarski.fstrips.language(f'{problem.name}_lang', ['equality', 'arithmetic'])
         for ut in problem.user_types(): #adding user_types to the language
             lang.sort(ut.name()) # type: ignore
-        for f in problem.fluents(): #adding fluents to the language
-            signature = [lang.get_sort(t.name()) for t in f.signature()] # type: ignore
-            if f.type().is_bool_type():
-                lang.predicate(f.name(), *signature)
+        for fluent in problem.fluents(): #adding fluents to the language
+            signature = []
+            for type in fluent.signature():
+                if type.is_user_type():
+                    signature.append(lang.get_sort(type.name())) # type: ignore
+                else:
+                    #typename will be the name that this type has in the tarski language
+                    typename = str(type).replace(' ','')
+                    if not lang.has_sort(typename):
+                        # the type is not in the language, therefore it must be added
+                        if type.is_int_type():
+                            lang.interval(typename, lang.Integer, type.lower_bound(), type.upper_bound()) # type: ignore
+                        elif type.is_real_type():
+                            lang.interval(typename, lang.Real, type.lower_bound(), type.upper_bound()) # type: ignore
+                        else:
+                            raise NotImplementedError
+                    signature.append(lang.get_sort(typename))
+            if fluent.type().is_bool_type():
+                lang.predicate(fluent.name(), *signature)
             else:
-                #NOTE: Might not be bool_type or real_type
-                lang.function(f.name(), *signature, lang.get_sort(f.type().name())) # type: ignore #NOTE: NOT SURE ABOUT THIS
+                typename = str(fluent.type()).replace(' ','')
+                if not lang.has_sort(typename):
+                    # the type is not in the language, therefore it must be added
+                    if fluent.type().is_int_type():
+                        lang.interval(typename, lang.Integer, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
+                    elif fluent.type().is_real_type():
+                        lang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
+                    else:
+                        raise NotImplementedError
+                lang.function(fluent.name(), *signature, lang.get_sort(typename)) # type: ignore
         for o in problem.all_objects(): #adding objects to the language
             lang.constant(o.name(), lang.get_sort(o.type().name())) # type: ignore
         #creating tarski problem
@@ -144,8 +169,7 @@ class TarskiConverter:
             new_problem.action(action.name,
                                 parameters,
                                 precondition=em.And(action.preconditions()),
-                                effects=[_convert_effect(e, tfc, em) for e in action.effects()]
-            )
+                                effects=[_convert_effect(e, tfc, em) for e in action.effects()])
         for fluent_exp, value_exp in problem.initial_values().items():
             if value_exp.is_bool_constant():
                 if value_exp.constant_value():
