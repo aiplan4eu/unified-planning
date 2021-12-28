@@ -97,7 +97,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
     def walk_int_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
         # NOTE expression.int_constant_value() might need to be changed to str(expression.int_constant_value())
-        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Integer) # type: ignore
+        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Real) # type: ignore
 
     def walk_real_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
@@ -135,9 +135,7 @@ class TarskiConverter:
                     typename = str(type).replace(' ','')
                     if not lang.has_sort(typename):
                         # the type is not in the language, therefore it must be added
-                        if type.is_int_type():
-                            lang.interval(typename, lang.Integer, type.lower_bound(), type.upper_bound()) # type: ignore
-                        elif type.is_real_type():
+                        if type.is_int_type() or type.is_real_type():
                             lang.interval(typename, lang.Real, type.lower_bound(), type.upper_bound()) # type: ignore
                         else:
                             raise NotImplementedError
@@ -148,9 +146,7 @@ class TarskiConverter:
                 typename = str(fluent.type()).replace(' ','')
                 if not lang.has_sort(typename):
                     # the type is not in the language, therefore it must be added
-                    if fluent.type().is_int_type():
-                        lang.interval(typename, lang.Integer, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
-                    elif fluent.type().is_real_type():
+                    if fluent.type().is_int_type() or fluent.type().is_real_type():
                         lang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
                     else:
                         raise NotImplementedError

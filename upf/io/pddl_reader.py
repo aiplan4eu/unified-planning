@@ -16,6 +16,7 @@
 import upf
 import typing
 from upf.environment import Environment, get_env
+<<<<<<< HEAD
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore # type: ignore
 from pyparsing import Optional, one_of, Suppress, nestedExpr, Group, restOfLine # type: ignore
 from pyparsing.results import ParseResults # type: ignore
@@ -105,6 +106,9 @@ class PDDLGrammar:
     @property
     def parameters(self):
         return self._parameters
+=======
+from upf.io.interop.tarski import convert_tarski_problem
+>>>>>>> Backup commit
 
 
 class PDDLReader:

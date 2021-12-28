@@ -13,10 +13,13 @@
 # limitations under the License.
 
 
+import upf
+
 from upf.shortcuts import *
 from upf.solvers.upf_tarski_converter import TarskiConverter
 from upf.test import TestCase
 from upf.test.examples import get_example_problems
+from upf.io.interop.tarski import convert_tarski_problem
 
 
 class TestGrounder(TestCase):
@@ -25,14 +28,13 @@ class TestGrounder(TestCase):
         self.problems = get_example_problems()
         self.tc = TarskiConverter()
 
-    # def test_basic(self):
-    #     problem = self.problems['basic'].problem
-    #     tarski_problem = self.tc.upf_to_tarski(problem)
-    #     print(problem)
-    #     print(tarski_problem)
-    #     print(tarski_problem.goal)
-    #     print(tarski_problem.init)
-    #     assert False
+    def test_basic(self):
+        problem = self.problems['basic'].problem
+        tarski_problem = self.tc.upf_to_tarski(problem)
+        new_problem = convert_tarski_problem(problem.env, tarski_problem)
+        print(problem)
+        print(new_problem)
+        assert False
 
     # def test_basic_conditional(self):
     #     problem = self.problems['basic_conditional'].problem
@@ -104,16 +106,16 @@ class TestGrounder(TestCase):
     #     assert False
 
 
-    def test_robot(self):
-        problem = self.problems['robot'].problem
-        tarski_problem = self.tc.upf_to_tarski(problem)
-        print(problem)
-        print(tarski_problem)
-        print(tarski_problem.goal)
-        print(tarski_problem.init)
-        print(tarski_problem.actions)
-        for n, a in tarski_problem.actions.items():
-            print(a)
-            print(a.precondition)
-            print(a.effects)
-        assert False
+    # def test_robot(self):
+    #     problem = self.problems['robot'].problem
+    #     tarski_problem = self.tc.upf_to_tarski(problem)
+    #     print(problem)
+    #     print(tarski_problem)
+    #     print(tarski_problem.goal)
+    #     print(tarski_problem.init)
+    #     print(tarski_problem.actions)
+    #     for n, a in tarski_problem.actions.items():
+    #         print(a)
+    #         print(a.precondition)
+    #         print(a.effects)
+    #     assert False
