@@ -92,7 +92,7 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.Fluen
         elif formula.name in objects:
             return em.ObjectExp(objects[formula.name])
         else:
-            raise UPFProblemDefinitionError(symbol + ' not supported!')
+            raise UPFProblemDefinitionError(formula + ' not supported!')
     elif isinstance(formula, Variable):
         assert formula.symbol in action_parameters
         return em.ParameterExp(action_parameters[formula.symbol])
@@ -157,16 +157,17 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         f = convert_tarski_formula(env, fluents, objects, action_parameters, a.precondition)
         action.add_precondition(f)
         for eff in a.effects:
+            condition = convert_tarski_formula(env, fluents, objects, action_parameters, eff.condition)
             if isinstance(eff, AddEffect):
                 f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
-                action.add_effect(f, True)
+                action.add_effect(f, True, condition)
             elif isinstance(eff, DelEffect):
                 f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
-                action.add_effect(f, False)
+                action.add_effect(f, False, condition)
             elif isinstance(eff, FunctionalEffect):
                 lhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.lhs)
                 rhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.rhs)
-                action.add_effect(lhs, rhs)
+                action.add_effect(lhs, rhs, condition)
             else:
                 raise UPFProblemDefinitionError(eff + ' not supported!')
         problem.add_action(action)

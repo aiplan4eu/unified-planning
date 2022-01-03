@@ -20,6 +20,7 @@ from upf.solvers.upf_tarski_converter import TarskiConverter
 from upf.test import TestCase
 from upf.test.examples import get_example_problems
 from upf.interop.tarski import convert_tarski_problem
+from upf.model.problem_kind import full_classical_kind
 
 
 class TestGrounder(TestCase):
@@ -32,9 +33,45 @@ class TestGrounder(TestCase):
         problem = self.problems['basic'].problem
         tarski_problem = self.tc.upf_to_tarski(problem)
         new_problem = convert_tarski_problem(problem.env, tarski_problem)
-        print(problem)
-        print(new_problem)
-        assert False
+        self.assertEqual(problem, new_problem)
+
+    def test_all_non_numerical(self):
+        for p in self.problems.values():
+            problem = p.problem
+            problem_kind = problem.kind()
+            if problem_kind <= full_classical_kind:
+                #modify the problem to have the same representation
+                modified_problem = problem.clone()
+                for action in modified_problem.actions():
+                    if len(action.preconditions()) > 1:
+                        new_precondition_as_and_of_preconditions = modified_problem.env.expression_manager.And(\
+                                    action.preconditions())
+                        action._set_preconditions([new_precondition_as_and_of_preconditions])
+                if len(modified_problem.goals()) > 1:
+                    new_goal_as_and_of_goals = modified_problem.env.expression_manager.And(\
+                                    modified_problem.goals())
+                    modified_problem.clear_goals()
+                    modified_problem.add_goal(new_goal_as_and_of_goals)
+                # print("_____ORIGINAL_PROBLEMMMM")
+                # print(modified_problem)
+                tarski_problem = self.tc.upf_to_tarski(modified_problem)
+                new_problem = convert_tarski_problem(modified_problem.env, tarski_problem)
+                if not modified_problem == new_problem:
+                    print("_______ORIGINAL_PROBLEM___________")
+                    print(modified_problem)
+                    print("_______TARSKI_PROBLEM___________")
+                    print(tarski_problem)
+                    print(tarski_problem.goal)
+                    print(tarski_problem.init)
+                    print(tarski_problem.actions)
+                    for n, a in tarski_problem.actions.items():
+                        print(a)
+                        print(a.precondition)
+                        print(a.effects)
+                    print("_______CREATED_PROBLEM___________")
+                    print(new_problem)
+                self.assertEqual(modified_problem, new_problem)
+
 
     # def test_basic_conditional(self):
     #     problem = self.problems['basic_conditional'].problem

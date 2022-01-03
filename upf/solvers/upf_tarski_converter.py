@@ -50,12 +50,12 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_exists(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 1
-        variables = [self.lang.variable(v.name(), self.lang.sort(v.type().name())) for v in expression.variables()] # type: ignore
+        variables = [self.lang.variable(v.name(), self.lang.get_sort(v.type().name())) for v in expression.variables()] # type: ignore
         return tarski.syntax.exists(*variables, args[0])
 
     def walk_forall(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 1
-        variables = [self.lang.variable(v.name(), self.lang.sort(v.type().name())) for v in expression.variables()] # type: ignore
+        variables = [self.lang.variable(v.name(), self.lang.get_sort(v.type().name())) for v in expression.variables()] # type: ignore
         return tarski.syntax.forall(*variables, args[0])
 
     def walk_equals(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
@@ -164,7 +164,7 @@ class TarskiConverter:
             #add action to the problem
             new_problem.action(action.name,
                                 parameters,
-                                precondition=em.And(action.preconditions()),
+                                precondition=tfc.convert_formula(em.And(action.preconditions())),
                                 effects=[_convert_effect(e, tfc, em) for e in action.effects()])
         for fluent_exp, value_exp in problem.initial_values().items():
             if value_exp.is_bool_constant():
