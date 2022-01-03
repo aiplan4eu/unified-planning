@@ -19,7 +19,7 @@ from upf.shortcuts import *
 from upf.solvers.upf_tarski_converter import TarskiConverter
 from upf.test import TestCase
 from upf.test.examples import get_example_problems
-from upf.io.interop.tarski import convert_tarski_problem
+from upf.interop.tarski import convert_tarski_problem
 
 
 class TestGrounder(TestCase):
