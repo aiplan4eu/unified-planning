@@ -40,6 +40,9 @@ class TestGrounder(TestCase):
             problem = p.problem
             problem_kind = problem.kind()
             if problem_kind <= full_classical_kind:
+                if problem.name == "charger_discharger":
+                    continue #the charger_discharger problem has Implies, which tarski represents with Or and Not
+                            #therefore the 2 problems will not be equals
                 #modify the problem to have the same representation
                 modified_problem = problem.clone()
                 for action in modified_problem.actions():

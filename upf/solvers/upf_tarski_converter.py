@@ -60,29 +60,29 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_equals(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate('='), args[0], args[1]) #NOTE: might also be CompoundTerm instead of Atom, but the first does not extend "Formula"
+        return tarski.syntax.Atom(self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.EQ), args)
 
     def walk_le(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate('<='), args[0], args[1])
+        return tarski.syntax.Atom(self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.LE), args)
 
     def walk_lt(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate('<'), args[0], args[1])
+        return tarski.syntax.Atom(self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.LT), args)
 
     def walk_fluent_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         tarski_fluent_rep = self.lang.get(expression.fluent().name())
         return tarski_fluent_rep(*args)
 
     def walk_plus(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        return tarski.syntax.Atom(self.lang.get_predicate('+'), *args)#TODO : write this correcly #TODO: to test if + (and *) is binary or n-ary for tarski
+        return tarski.syntax.Atom(self.lang.get_function('+'), args)#TODO : write this correcly #TODO: to test if + (and *) is binary or n-ary for tarski
 
     def walk_minus(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
         return args[0] - args[1]
 
     def walk_times(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        return tarski.syntax.Atom(self.lang.get_predicate('*'), *args) #TODO : write this correcly
+        return tarski.syntax.Atom(self.lang.get_function('*'), args) #TODO : write this correcly
 
     def walk_div(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
@@ -178,7 +178,6 @@ class TarskiConverter:
             else:
                 new_problem.init.set(tfc.convert_formula(fluent_exp), tfc.convert_formula(value_exp))
         new_problem.goal = tfc.convert_formula(em.And(problem.goals()))
-        print(tfc.convert_formula(em.And(problem.goals())))
 
         return new_problem
 

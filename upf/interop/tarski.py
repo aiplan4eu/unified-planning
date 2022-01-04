@@ -21,7 +21,7 @@ from upf.environment import Environment
 from collections import OrderedDict
 from typing import Union, Dict
 from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
-from tarski.syntax.formulas import Tautology, Contradiction # type: ignore
+from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
 from tarski.syntax.terms import Term, CompoundTerm, BuiltinPredicateSymbol # type: ignore
 from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol # type: ignore
 from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type: ignore
@@ -94,8 +94,21 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.Fluen
         else:
             raise UPFProblemDefinitionError(formula + ' not supported!')
     elif isinstance(formula, Variable):
-        assert formula.symbol in action_parameters
-        return em.ParameterExp(action_parameters[formula.symbol])
+        if formula.symbol in action_parameters:
+            return em.ParameterExp(action_parameters[formula.symbol])
+        else:
+            return em.VariableExp(upf.model.Variable(formula.symbol, \
+                env.type_manager.UserType(formula.sort.name)))
+    elif isinstance(formula, QuantifiedFormula):
+        expression = convert_tarski_formula(env, fluents, objects, action_parameters, formula.formula)
+        variables = [upf.model.Variable(v.symbol, env.type_manager.UserType(v.sort.name)) \
+            for v in formula.variables]
+        if formula.quantifier == Quantifier.Exists:
+            return em.Exists(expression, *variables)
+        elif formula.quantifier == Quantifier.Forall:
+            return em.Forall(expression, *variables)
+        else:
+            raise NotImplementedError
     elif isinstance(formula, Tautology):
         return em.TRUE()
     elif isinstance(formula, Contradiction):
