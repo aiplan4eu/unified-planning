@@ -147,6 +147,7 @@ class TarskiConverter:
                 if not lang.has_sort(typename):
                     # the type is not in the language, therefore it must be added
                     if fluent.type().is_int_type() or fluent.type().is_real_type():
+                        print(typename)
                         lang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
                     else:
                         raise NotImplementedError
