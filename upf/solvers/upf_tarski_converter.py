@@ -14,7 +14,9 @@
 #
 
 
-from typing import Dict, List, Tuple
+from fractions import Fraction
+from numbers import Integral
+from typing import Dict, List, Optional, Tuple, Union
 
 import upf
 import upf.model
@@ -177,7 +179,14 @@ class TarskiConverter:
                         parameters.append(lang.get_constant(a.object().name()))
                     new_problem.init.add(lang.get_predicate(fluent_exp.fluent().name()), *parameters)
             else:
-                new_problem.init.set(tfc.convert_formula(fluent_exp), tfc.convert_formula(value_exp))
+                value: Optional[Union[Fraction, int, 'tarski.syntax.formulas.Formula']] = None
+                if value_exp.is_int_constant():
+                    value = value_exp.int_constant_value()
+                elif value_exp.is_real_constant():
+                    value = value_exp.real_constant_value()
+                else:
+                    value = tfc.convert_formula(value_exp)
+                new_problem.init.set(tfc.convert_formula(fluent_exp), value)
         new_problem.goal = tfc.convert_formula(em.And(problem.goals()))
 
         return new_problem

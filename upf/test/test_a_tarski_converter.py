@@ -20,7 +20,7 @@ from upf.solvers.upf_tarski_converter import TarskiConverter
 from upf.test import TestCase
 from upf.test.examples import get_example_problems
 from upf.interop.tarski import convert_tarski_problem
-from upf.model.problem_kind import full_classical_kind
+from upf.model.problem_kind import full_classical_kind, full_numeric_kind
 
 
 class TestGrounder(TestCase):
@@ -39,7 +39,7 @@ class TestGrounder(TestCase):
         for p in self.problems.values():
             problem = p.problem
             problem_kind = problem.kind()
-            if problem_kind <= full_classical_kind:
+            if problem_kind <= full_classical_kind.union(full_numeric_kind):
                 if problem.name == "charger_discharger":
                     continue #the charger_discharger problem has Implies, which tarski represents with Or and Not
                             #therefore the 2 problems will not be equals
@@ -55,8 +55,9 @@ class TestGrounder(TestCase):
                                     modified_problem.goals())
                     modified_problem.clear_goals()
                     modified_problem.add_goal(new_goal_as_and_of_goals)
-                # print("_____ORIGINAL_PROBLEMMMM")
-                # print(modified_problem)
+                if modified_problem.name == 'robot':
+                    print("_____ORIGINAL_PROBLEMMMM")
+                    print(modified_problem)
                 tarski_problem = self.tc.upf_to_tarski(modified_problem)
                 new_problem = convert_tarski_problem(modified_problem.env, tarski_problem)
                 if not modified_problem == new_problem:
