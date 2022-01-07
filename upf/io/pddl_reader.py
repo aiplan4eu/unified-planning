@@ -26,7 +26,7 @@ name = Word(alphas, alphanums+'_'+'-')
 variable = Suppress('?') + name
 
 require_def = Suppress('(') + ':requirements' + \
-    OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl')) \
+    OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions')) \
     + Suppress(')')
 
 types_def = Suppress('(') + ':types' + \
@@ -55,15 +55,22 @@ functions_def = Suppress('(') + ':functions' + \
 parameters = OneOrMore(Group(Group(OneOrMore(variable)) \
                              + Optional(Suppress('-') + name))).setResultsName('params')
 action_def = Group(Suppress('(') + ':action' + name.setResultsName('name') \
-                   + Optional(':parameters' + Suppress('(') + parameters + Suppress(')')) \
+                   + ':parameters' + Suppress('(') + parameters + Suppress(')') \
                    + Optional(':precondition' + nestedExpr().setResultsName('pre')) \
                    + Optional(':effect' + nestedExpr().setResultsName('eff')) \
                    + Suppress(')'))
 
+dur_action_def = Group(Suppress('(') + ':durative-action' + name.setResultsName('name') \
+                       + ':parameters' + Suppress('(') + parameters + Suppress(')') \
+                       + ':duration' + nestedExpr().setResultsName('duration') \
+                       + ':condition' + nestedExpr().setResultsName('cond') \
+                       + ':effect' + nestedExpr().setResultsName('eff') \
+                       + Suppress(')'))
+
 pp_domain = Suppress('(') + 'define' + Suppress('(') + 'domain' + name + Suppress(')') \
     + Optional(require_def) + Optional(types_def) + Optional(constants_def) \
     + Optional(predicates_def) + Optional(functions_def) \
-    + Group(ZeroOrMore(action_def)).setResultsName('actions') + Suppress(')')
+    + Group(ZeroOrMore(action_def | dur_action_def)).setResultsName('actions') + Suppress(')')
 
 objects = OneOrMore(Group(Group(OneOrMore(name)) \
                           + Optional(Suppress('-') + name))).setResultsName('objects')
@@ -113,7 +120,7 @@ class PDDLReader:
             exp = exp[1:]
             return op(*[self._parse_exp(problem, act, var, e) for e in exp])
         elif isinstance(exp, ParseResults) and exp[0] in ['exists', 'forall']:
-            op = Exists if exp[0] == 'exists' else Forall
+            op = self._em.Exists if exp[0] == 'exists' else self._em.Forall
             vars_string = ' '.join(exp[1])
             vars_res = parameters.parseString(vars_string)
             vars = {}
@@ -139,31 +146,82 @@ class PDDLReader:
         elif isinstance(exp, str):
             return self._em.Real(Fraction(exp))
         else:
-            raise Exception(f'Not able to handle: {exp}')
+            raise upf.exceptions.UPFProblemDefinitionError(f'Not able to handle: {exp}')
 
-    def _add_eff(self, problem, act, exp, cond=True):
+    def _add_effect(self, problem, act, exp, cond=True, timing=None):
         op = exp[0]
         if op == 'and':
             exp = exp[1:]
             for e in exp:
-                self._add_eff(problem, act, e)
+                self._add_effect(problem, act, e, cond, timing)
         elif op == 'when':
-            c = self._parse_exp(problem, act, {}, exp[1])
-            self._add_eff(problem, acr, exp[2], cond)
+            cond = self._parse_exp(problem, act, {}, exp[1])
+            self._add_effect(problem, act, exp[2], cond, timing)
         elif op == 'not':
             exp = exp[1]
-            act.add_effect(self._parse_exp(problem, act, {}, exp), self._em.FALSE(), cond)
+            eff = (self._parse_exp(problem, act, {}, exp), self._em.FALSE(), cond)
+            act.add_effect(*eff if timing is None else (timing, *eff))
         elif op == 'assign':
-            act.add_effect(self._parse_exp(problem, act, {}, exp[1]),
-                           self._parse_exp(problem, act, {}, exp[2]), cond)
+            eff = (self._parse_exp(problem, act, {}, exp[1]),
+                   self._parse_exp(problem, act, {}, exp[2]), cond)
+            act.add_effect(*eff if timing is None else (timing, *eff))
         elif op == 'increase':
-            act.add_increase_effect(self._parse_exp(problem, act, {}, exp[1]),
-                                    self._parse_exp(problem, act, {}, exp[2]), cond)
+            eff = (self._parse_exp(problem, act, {}, exp[1]),
+                   self._parse_exp(problem, act, {}, exp[2]), cond)
+            act.add_increase_effect(*eff if timing is None else (timing, *eff))
         elif op == 'decrease':
-            act.add_decrease_effect(self._parse_exp(problem, act, {}, exp[1]),
-                                    self._parse_exp(problem, act, {}, exp[2]), cond)
+            eff = (self._parse_exp(problem, act, {}, exp[1]),
+                   self._parse_exp(problem, act, {}, exp[2]), cond)
+            act.add_decrease_effect(*eff if timing is None else (timing, *eff))
         else:
-            act.add_effect(self._parse_exp(problem, act, {}, exp), self._em.TRUE(), cond)
+            eff = (self._parse_exp(problem, act, {}, exp), self._em.TRUE(), cond)
+            act.add_effect(*eff if timing is None else (timing, *eff))
+
+    def _add_condition(self, problem, act, exp, vars=None):
+        op = exp[0]
+        if op == 'and':
+            for e in exp[1:]:
+                self._add_condition(problem, act, e, vars)
+        elif op == 'forall':
+            vars_string = ' '.join(exp[1])
+            vars_res = parameters.parseString(vars_string)
+            if vars is None:
+                vars = {}
+            for g in vars_res['params']:
+                t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+                for o in g[0]:
+                    vars[o] = upf.model.Variable(o, t)
+            self._add_condition(problem, act, exp[2], vars)
+        elif len(exp) == 3 and op == 'at' and exp[1] == 'start':
+            cond = self._parse_exp(problem, act, {} if vars is None else vars, exp[2])
+            if vars is not None:
+                cond = self._em.Forall(cond, *vars.values())
+            act.add_condition(upf.model.StartTiming(), cond)
+        elif len(exp) == 3 and op == 'at' and exp[1] == 'end':
+            cond = self._parse_exp(problem, act, {} if vars is None else vars, exp[2])
+            if vars is not None:
+                cond = self._em.Forall(cond, *vars.values())
+            act.add_condition(upf.model.EndTiming(), cond)
+        elif len(exp) == 3 and op == 'over' and exp[1] == 'all':
+            t_all = upf.model.ClosedInterval(upf.model.StartTiming(), upf.model.EndTiming())
+            cond = self._parse_exp(problem, act, {} if vars is None else vars, exp[2])
+            if vars is not None:
+                cond = self._em.Forall(cond, *vars.values())
+            act.add_durative_condition(t_all, cond)
+        else:
+            raise upf.exceptions.UPFProblemDefinitionError(f'Not able to handle: {exp}')
+
+    def _add_timed_effects(self, problem, act, eff):
+        op = eff[0]
+        if op == 'and':
+            for e in eff[1:]:
+                self._add_timed_effects(problem, act, e)
+        elif len(eff) == 3 and op == 'at' and eff[1] == 'start':
+            self._add_effect(problem, act, eff[2], timing=upf.model.StartTiming())
+        elif len(eff) == 3 and op == 'at' and eff[1] == 'end':
+            self._add_effect(problem, act, eff[2], timing=upf.model.EndTiming())
+        else:
+            raise upf.exceptions.UPFProblemDefinitionError(f'Not able to handle: {eff}')
 
 
     def parse_problem(self, domain_filename: str, problem_filename: str) -> 'upf.model.Problem':
@@ -207,12 +265,44 @@ class PDDLReader:
                     t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
                     for p in g[0]:
                         a_params[p] = t
-                act = upf.model.InstantaneousAction(n, a_params, self._env)
-                pre = a['pre'][0]
-                act.add_precondition(self._parse_exp(problem, act, {}, pre))
-                eff = a['eff'][0]
-                self._add_eff(problem, act, eff)
-                problem.add_action(act)
+                if 'duration' in a:
+                    dur_act = upf.model.DurativeAction(n, a_params, self._env)
+                    dur = a['duration'][0]
+                    if dur[0] == '=':
+                        dur_act.set_fixed_duration(self._parse_exp(problem, dur_act,
+                                                                   {}, dur[2]))
+                    elif dur[0] == 'and':
+                        upper = None
+                        lower = None
+                        for j in range(1, len(dur)):
+                            v = Fraction(dur[j][2])
+                            if dur[j][0] == '>=':
+                                if lower is None or v > lower:
+                                    lower = v
+                            elif dur[j][0] == '<=':
+                                if upper is None or v < upper:
+                                    upper = v
+                            else:
+                                raise upf.exceptions.UPFProblemDefinitionError(f'Not able to handle duration constraint of action {n}')
+                        if lower is None or upper is None:
+                            raise upf.exceptions.UPFProblemDefinitionError(f'Not able to handle duration constraint of action {n}')
+                        d = upf.model.ClosedIntervalDuration(self._em.Real(lower),
+                                                             self._em.Real(upper))
+                        dur_act.set_duration_constraint(d)
+                    else:
+                        raise upf.exceptions.UPFProblemDefinitionError(f'Not able to handle duration constraint of action {n}')
+                    cond = a['cond'][0]
+                    self._add_condition(problem, dur_act, cond)
+                    eff = a['eff'][0]
+                    self._add_timed_effects(problem, dur_act, eff)
+                    problem.add_action(dur_act)
+                else:
+                    act = upf.model.InstantaneousAction(n, a_params, self._env)
+                    pre = a['pre'][0]
+                    act.add_precondition(self._parse_exp(problem, act, {}, pre))
+                    eff = a['eff'][0]
+                    self._add_effect(problem, act, eff)
+                    problem.add_action(act)
 
         if 'objects' in problem_res:
             for g in problem_res['objects']:
@@ -225,6 +315,17 @@ class PDDLReader:
                 f = self._parse_exp(problem, None, {}, i[1])
                 v = self._parse_exp(problem, None, {}, i[2])
                 problem.set_initial_value(f, v)
+            elif len(i) == 3 and i[0] == 'at' and i[1].replace('.','',1).isdigit():
+                ti = upf.model.StartTiming(Fraction(i[1]))
+                va = self._parse_exp(problem, None, {}, i[2])
+                if va.is_fluent_exp():
+                    problem.add_timed_effect(ti, va, self._em.TRUE())
+                elif va.is_not():
+                    problem.add_timed_effect(ti, va.arg(0), self._em.FALSE())
+                elif va.is_equals():
+                    problem.add_timed_effect(ti, va.arg(0), va.arg(1))
+                else:
+                    raise upf.exceptions.UPFProblemDefinitionError(f'Not able to handle this TIL {i}')
             else:
                 problem.set_initial_value(self._parse_exp(problem, None, {}, i), self._em.TRUE())
 

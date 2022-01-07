@@ -234,6 +234,19 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.objects(problem.user_type('boat'))), 2)
         self.assertEqual(len(problem.objects(problem.user_type('person'))), 2)
 
+    def test_matchcellar_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, 'matchcellar', 'domain.pddl')
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, 'matchcellar', 'problem.pddl')
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents()), 4)
+        self.assertEqual(len(problem.actions()), 2)
+        self.assertEqual(len(problem.objects(problem.user_type('match'))), 3)
+        self.assertEqual(len(problem.objects(problem.user_type('fuse'))), 3)
+
     def test_matchcellar_writer(self):
         problem = self.problems['matchcellar'].problem
 
