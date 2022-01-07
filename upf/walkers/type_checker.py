@@ -49,7 +49,7 @@ class TypeChecker(walkers.DagWalker):
         left_upper = float('inf') if t_left.upper_bound() is None else t_left.upper_bound() # type: ignore
         right_lower = -float('inf') if t_right.lower_bound() is None else t_right.lower_bound() # type: ignore
         right_upper = float('inf') if t_right.upper_bound() is None else t_right.upper_bound() # type: ignore
-        if right_upper < left_lower or right_upper > left_upper:
+        if right_upper < left_lower or right_lower > left_upper:
             return False
         else:
             return True
