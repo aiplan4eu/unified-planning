@@ -148,8 +148,9 @@ class TarskiConverter:
                 typename = str(fluent.type()).replace(' ','')
                 if not lang.has_sort(typename):
                     # the type is not in the language, therefore it must be added
-                    if fluent.type().is_int_type() or fluent.type().is_real_type():
-                        print(typename)
+                    if fluent.type().is_int_type(): #TODO case where bounds are None will be error
+                        lang.interval(typename, lang.Integer, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
+                    elif fluent.type().is_real_type():
                         lang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
                     else:
                         raise NotImplementedError

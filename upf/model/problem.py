@@ -109,7 +109,7 @@ class Problem:
             return False
         oth_initial_values = oth.initial_values()
         if len(self.initial_values()) != len(oth_initial_values):
-                return False
+            return False
         for fluent, value in self.initial_values().items():
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
@@ -125,7 +125,7 @@ class Problem:
             elif set(tel) != set(oth_tel):
                 return False
         if len(self._timed_goals) != len(oth._timed_goals):
-                return False
+            return False
         for t, tgl in self._timed_goals.items():
             oth_tgl = oth._timed_goals.get(t, None)
             if oth_tgl is None:
@@ -133,7 +133,7 @@ class Problem:
             elif set(tgl) != set(oth_tgl):
                 return False
         if len(self._maintain_goals) != len(oth._maintain_goals):
-                return False
+            return False
         for i, mgl in self._maintain_goals.items():
             oth_mgl = oth._maintain_goals.get(i, None)
             if oth_mgl is None:

@@ -20,6 +20,7 @@ from upf.exceptions import UPFProblemDefinitionError
 from upf.environment import Environment
 from collections import OrderedDict
 from typing import Union, Dict
+from tarski.syntax import Interval # type: ignore
 from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
 from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
 from tarski.syntax.terms import Term, CompoundTerm, BuiltinPredicateSymbol # type: ignore
@@ -157,7 +158,19 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         signature = []
         for t in p.domain:
             signature.append(types[str(t.name)])
-        fluent = upf.model.Fluent(p.name, tm.RealType(), signature)
+        func_sort = p.sort[-1]
+        fluent = None # type: ignore
+        if isinstance(func_sort, Interval):
+            if func_sort.encode == lang.Real.encode:
+                fluent = upf.model.Fluent(p.name, tm.RealType(lower_bound=\
+                    Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature)
+            else:
+                assert func_sort.encode == lang.Integer.encode or func_sort.encode == lang.Natural.encode
+                fluent = upf.model.Fluent(p.name, tm.IntType(lower_bound=\
+                    func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
+        else:
+            #TODO insert UserType here
+            raise
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
 
