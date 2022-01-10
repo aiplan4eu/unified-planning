@@ -139,8 +139,6 @@ class InstantaneousAction(Action):
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InstantaneousAction):
             cond = self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
-            if not (cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects)):
-                print('ABC->'*100)
             return cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects)
         else:
             return False
@@ -212,8 +210,6 @@ class InstantaneousAction(Action):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            print(fluent_exp)
-            print(value_exp)
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 

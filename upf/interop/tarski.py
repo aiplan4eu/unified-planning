@@ -162,12 +162,20 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         fluent = None # type: ignore
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:
-                fluent = upf.model.Fluent(p.name, tm.RealType(lower_bound=\
-                    Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature)
+                if func_sort.name == 'Real' or func_sort.name == 'number':
+                    fluent = upf.model.Fluent(p.name, tm.RealType(), signature)
+                else:
+                    fluent = upf.model.Fluent(p.name, tm.RealType(lower_bound=\
+                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature)
             else:
                 assert func_sort.encode == lang.Integer.encode or func_sort.encode == lang.Natural.encode
-                fluent = upf.model.Fluent(p.name, tm.IntType(lower_bound=\
-                    func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
+                if func_sort.name == 'Integer':
+                    fluent = upf.model.Fluent(p.name, tm.IntType(), signature)
+                elif func_sort.name == 'Natual':
+                    fluent = upf.model.Fluent(p.name, tm.IntType(lower_bound=0), signature)
+                else:
+                    fluent = upf.model.Fluent(p.name, tm.IntType(lower_bound=\
+                        func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
         else:
             #TODO insert UserType here
             raise

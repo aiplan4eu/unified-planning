@@ -98,12 +98,10 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_int_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
-        # NOTE expression.int_constant_value() might need to be changed to str(expression.int_constant_value())
-        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Real) # type: ignore
+        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Integer) # type: ignore
 
     def walk_real_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
-        # NOTE expression.int_constant_value() might need to be changed to str(expression.int_constant_value())
         return tarski.syntax.Constant(expression.real_constant_value(), self.lang.Real) # type: ignore
 
     def walk_param_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
@@ -149,9 +147,20 @@ class TarskiConverter:
                 if not lang.has_sort(typename):
                     # the type is not in the language, therefore it must be added
                     if fluent.type().is_int_type(): #TODO case where bounds are None will be error
-                        lang.interval(typename, lang.Integer, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
+                        if fluent.type().lower_bound() is not None and fluent.type().upper_bound() is not None:
+                            lang.interval(typename, lang.Integer, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
+                        elif fluent.type().lower_bound() == 0 and fluent.type().upper_bound is None:
+                            #NOTE: Don't know how to create natural Intervals, probably must use builtins,
+                            lang.interval(typename, lang.Natual, 0, 100) # type: ignore
+                        else:
+                            #NOTE: Don't know how to use Integers, probably must use builtins, but need to use the name typename
+                            lang.interval(typename, lang.Integer, -100, 100) # type: ignore
                     elif fluent.type().is_real_type():
-                        lang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
+                        if fluent.type().lower_bound() is not None and fluent.type().upper_bound() is not None:
+                            lang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
+                        else:
+                            #NOTE: Don't know how to use Reals, probably must use builtins, but need to use the name typename
+                            lang.interval(typename, lang.Integer, -100, 100) # type: ignorelang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
                     else:
                         raise NotImplementedError
                 lang.function(fluent.name(), *signature, lang.get_sort(typename)) # type: ignore
