@@ -132,37 +132,12 @@ class TarskiConverter:
                     signature.append(lang.get_sort(type.name())) # type: ignore
                 else:
                     #typename will be the name that this type has in the tarski language
-                    typename = str(type).replace(' ','')
-                    if not lang.has_sort(typename):
-                        # the type is not in the language, therefore it must be added
-                        if type.is_int_type() or type.is_real_type():
-                            lang.interval(typename, lang.Real, type.lower_bound(), type.upper_bound()) # type: ignore
-                        else:
-                            raise NotImplementedError
+                    typename = self._type_name_added_to_language_if_needed(lang, type)
                     signature.append(lang.get_sort(typename))
             if fluent.type().is_bool_type():
                 lang.predicate(fluent.name(), *signature)
             else:
-                typename = str(fluent.type()).replace(' ','')
-                if not lang.has_sort(typename):
-                    # the type is not in the language, therefore it must be added
-                    if fluent.type().is_int_type(): #TODO case where bounds are None will be error
-                        if fluent.type().lower_bound() is not None and fluent.type().upper_bound() is not None:
-                            lang.interval(typename, lang.Integer, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
-                        elif fluent.type().lower_bound() == 0 and fluent.type().upper_bound is None:
-                            #NOTE: Don't know how to create natural Intervals, probably must use builtins,
-                            lang.interval(typename, lang.Natual, 0, 100) # type: ignore
-                        else:
-                            #NOTE: Don't know how to use Integers, probably must use builtins, but need to use the name typename
-                            lang.interval(typename, lang.Integer, -100, 100) # type: ignore
-                    elif fluent.type().is_real_type():
-                        if fluent.type().lower_bound() is not None and fluent.type().upper_bound() is not None:
-                            lang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
-                        else:
-                            #NOTE: Don't know how to use Reals, probably must use builtins, but need to use the name typename
-                            lang.interval(typename, lang.Integer, -100, 100) # type: ignorelang.interval(typename, lang.Real, fluent.type().lower_bound(), fluent.type().upper_bound()) # type: ignore
-                    else:
-                        raise NotImplementedError
+                typename = self._type_name_added_to_language_if_needed(lang, fluent.type())
                 lang.function(fluent.name(), *signature, lang.get_sort(typename)) # type: ignore
         for o in problem.all_objects(): #adding objects to the language
             lang.constant(o.name(), lang.get_sort(o.type().name())) # type: ignore
@@ -198,9 +173,33 @@ class TarskiConverter:
                     value = tfc.convert_formula(value_exp)
                 new_problem.init.set(tfc.convert_formula(fluent_exp), value)
         new_problem.goal = tfc.convert_formula(em.And(problem.goals()))
-
         return new_problem
 
+    def _type_name_added_to_language_if_needed(self, lang: 'tarski.FirstOrderLanguage', type: 'upf.model.Type') -> str:
+        typename = str(type).replace(' ','')
+        if type.is_int_type() and (type.lower_bound() is None or type.upper_bound() is None): # type: ignore
+            if type.lower_bound() is None and type.upper_bound() is None: # type: ignore
+                typename = 'Integer'
+            elif type.lower_bound() == 0: # type: ignore
+                assert type.upper_bound() is None # type: ignore #must be true, otherwise branch would be skipped
+                typename = 'Natural'
+            else:
+                raise #TODO insert exception to raise with text 'Int type with just one bound is not accepted by tarski'
+        elif type.is_real_type() and (type.lower_bound() is None or type.upper_bound() is None): # type: ignore
+            if type.lower_bound() is None and type.upper_bound() is None: # type: ignore
+                typename = 'Real'
+            else:
+                raise #TODO insert exception to raise with text 'Real type with just one bound is not accepted by tarski'
+        #NOTE: Still missing the part where fluents can be of type user_type, not sure if this code works
+        if not lang.has_sort(typename):
+            # the type is not in the language, therefore it must be added
+            if type.is_int_type():
+                lang.interval(typename, lang.Integer, type.lower_bound(), type.upper_bound()) # type: ignore
+            elif type.is_real_type():
+                lang.interval(typename, lang.Real, type.lower_bound(), type.upper_bound()) # type: ignore
+            else:
+                raise NotImplementedError
+        return typename
 
 def _convert_effect(effect: 'upf.model.Effect', tfc: TarskiFormulaConverter, em: 'upf.model.ExpressionManager') -> 'tarski.fstrips.SingleEffect':
     condition = tfc.convert_formula(effect.condition())

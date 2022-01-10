@@ -35,7 +35,7 @@ class TestGrounder(TestCase):
         new_problem = convert_tarski_problem(problem.env, tarski_problem)
         self.assertEqual(problem, new_problem)
 
-    def test_all_non_numerical(self):
+    def test_all(self):
         problems_to_avoid = ['charger_discharger', 'robot_decrease', 'robot_locations_connected',
                                 'robot_locations_visited']
         #the charger_discharger problem has Implies, which tarski represents with Or and Not
@@ -60,7 +60,7 @@ class TestGrounder(TestCase):
                     modified_problem.add_goal(new_goal_as_and_of_goals)
                 tarski_problem = self.tc.upf_to_tarski(modified_problem)
                 new_problem = convert_tarski_problem(modified_problem.env, tarski_problem)
-                if not (modified_problem == new_problem or str(modified_problem) == str(new_problem)):
+                if not (modified_problem == new_problem):
                     print("_______ORIGINAL_PROBLEM___________")
                     print(modified_problem)
                     print("_______TARSKI_PROBLEM___________")
@@ -75,7 +75,4 @@ class TestGrounder(TestCase):
                     print("_______CREATED_PROBLEM___________")
                     print(new_problem)
                 #the 2 problems are equal or their representation in equal
-                if modified_problem == new_problem:
-                    self.assertEqual(modified_problem, new_problem)
-                else:
-                    self.assertEqual(str(modified_problem), str(new_problem))
+                self.assertEqual(modified_problem, new_problem)

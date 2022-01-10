@@ -138,7 +138,17 @@ class InstantaneousAction(Action):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InstantaneousAction):
+            print('Entering __eq__ of: '+self.name)
             cond = self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
+
+            if len(self._preconditions) == 1 and len(oth._preconditions) == 1:
+                print('Precondition 1')
+                print(self._preconditions[0])
+                print('Precondition 2')
+                print(oth._preconditions[0])
+                print('Are they the same?')
+                print(self._preconditions[0] == oth._preconditions[0])
+
             return cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects)
         else:
             return False
