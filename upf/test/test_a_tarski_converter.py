@@ -29,12 +29,6 @@ class TestGrounder(TestCase):
         self.problems = get_example_problems()
         self.tc = TarskiConverter()
 
-    def test_basic(self):
-        problem = self.problems['basic'].problem
-        tarski_problem = self.tc.upf_to_tarski(problem)
-        new_problem = convert_tarski_problem(problem.env, tarski_problem)
-        self.assertEqual(problem, new_problem)
-
     def test_all(self):
         problems_to_avoid = ['charger_discharger', 'robot_decrease', 'robot_locations_connected',
                                 'robot_locations_visited']
@@ -74,5 +68,4 @@ class TestGrounder(TestCase):
                         print(a.effects)
                     print("_______CREATED_PROBLEM___________")
                     print(new_problem)
-                #the 2 problems are equal or their representation in equal
                 self.assertEqual(modified_problem, new_problem)

@@ -106,16 +106,6 @@ class Problem:
         if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(oth._objects):
             return False
         if set(self._actions) != set(oth._actions):
-
-            print('ACTIONS_1')
-            print(set(self._actions))
-            print(type(self._actions[0]))
-            print('ACTIONS_2')
-            print(set(oth._actions))
-            print(type(oth._actions[0]))
-
-            self._actions[0] == oth._actions[0]
-
             return False
         oth_initial_values = oth.initial_values()
         if len(self.initial_values()) != len(oth_initial_values):
