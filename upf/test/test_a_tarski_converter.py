@@ -21,6 +21,8 @@ from upf.test import TestCase
 from upf.test.examples import get_example_problems
 from upf.interop.tarski import convert_tarski_problem
 from upf.model.problem_kind import full_classical_kind, full_numeric_kind
+from upf.plan import SequentialPlan, ActionInstance
+from upf.solvers import SequentialPlanValidator
 
 
 class TestGrounder(TestCase):
@@ -29,7 +31,7 @@ class TestGrounder(TestCase):
         self.problems = get_example_problems()
         self.tc = TarskiConverter()
 
-    def test_all(self):
+    def test_all_equals(self):
         problems_to_avoid = ['charger_discharger', 'robot', 'robot_decrease', 'robot_locations_connected',
                                 'robot_locations_visited']
         #the charger_discharger problem has Implies, which tarski represents with Or and Not
@@ -56,3 +58,51 @@ class TestGrounder(TestCase):
                 tarski_problem = self.tc.upf_to_tarski(modified_problem)
                 new_problem = convert_tarski_problem(modified_problem.env, tarski_problem)
                 self.assertEqual(modified_problem, new_problem)
+
+    def test_plan_charger_discharger(self):
+        problem, plan = self.problems['charge_discharge']
+        tarski_problem = self.tc.upf_to_tarski(problem)
+        new_problem = convert_tarski_problem(problem.env, tarski_problem)
+        new_plan = _switch_plan(plan, new_problem)
+        pv = SequentialPlanValidator()
+        self.assertTrue(pv.validate(new_problem, new_plan))
+
+    def test_plan_robot(self):
+        problem, plan = self.problems['robot']
+        tarski_problem = self.tc.upf_to_tarski(problem)
+        new_problem = convert_tarski_problem(problem.env, tarski_problem)
+        new_plan = _switch_plan(plan, new_problem)
+        pv = SequentialPlanValidator()
+        self.assertTrue(pv.validate(new_problem, new_plan))
+
+    def test_plan_robot_decrease(self):
+        problem, plan = self.problems['robot_decrease']
+        tarski_problem = self.tc.upf_to_tarski(problem)
+        new_problem = convert_tarski_problem(problem.env, tarski_problem)
+        new_plan = _switch_plan(plan, new_problem)
+        pv = SequentialPlanValidator()
+        self.assertTrue(pv.validate(new_problem, new_plan))
+
+    def test_plan_robot_locations_connected(self):
+        problem, plan = self.problems['robot_locations_connected']
+        tarski_problem = self.tc.upf_to_tarski(problem)
+        new_problem = convert_tarski_problem(problem.env, tarski_problem)
+        new_plan = _switch_plan(plan, new_problem)
+        pv = SequentialPlanValidator()
+        self.assertTrue(pv.validate(new_problem, new_plan))
+
+    def test_plan_robot_locations_visited(self):
+        problem, plan = self.problems['robot_locations_visited']
+        tarski_problem = self.tc.upf_to_tarski(problem)
+        new_problem = convert_tarski_problem(problem.env, tarski_problem)
+        new_plan = _switch_plan(plan, new_problem)
+        pv = SequentialPlanValidator()
+        self.assertTrue(pv.validate(new_problem, new_plan))
+
+def _switch_plan(original_plan, new_problem):
+    #This function switches a plan to be a plan of the given problem
+    new_plan_action_instances = []
+    for ai in original_plan.actions():
+        new_plan_action_instances.append(ActionInstance(new_problem.action(ai.action().name), ai.actual_parameters()))
+    new_plan = SequentialPlan(new_plan_action_instances)
+    return new_plan
