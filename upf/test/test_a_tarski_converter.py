@@ -30,10 +30,11 @@ class TestGrounder(TestCase):
         self.tc = TarskiConverter()
 
     def test_all(self):
-        problems_to_avoid = ['charger_discharger', 'robot_decrease', 'robot_locations_connected',
+        problems_to_avoid = ['charger_discharger', 'robot', 'robot_decrease', 'robot_locations_connected',
                                 'robot_locations_visited']
         #the charger_discharger problem has Implies, which tarski represents with Or and Not
-        #the robot_decrease problem has decrese. which is represented as an assignment
+        #the robot problem has Integers, which are casted to reals by tarski
+        #the robot_decrease, connected and visited problems have decrese, which is represented as an assignment
         for p in self.problems.values():
             problem = p.problem
             problem_kind = problem.kind()
@@ -54,18 +55,4 @@ class TestGrounder(TestCase):
                     modified_problem.add_goal(new_goal_as_and_of_goals)
                 tarski_problem = self.tc.upf_to_tarski(modified_problem)
                 new_problem = convert_tarski_problem(modified_problem.env, tarski_problem)
-                if not (modified_problem == new_problem):
-                    print("_______ORIGINAL_PROBLEM___________")
-                    print(modified_problem)
-                    print("_______TARSKI_PROBLEM___________")
-                    print(tarski_problem)
-                    print(tarski_problem.goal)
-                    print(tarski_problem.init)
-                    print(tarski_problem.actions)
-                    for n, a in tarski_problem.actions.items():
-                        print(a)
-                        print(a.precondition)
-                        print(a.effects)
-                    print("_______CREATED_PROBLEM___________")
-                    print(new_problem)
                 self.assertEqual(modified_problem, new_problem)
