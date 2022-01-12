@@ -70,7 +70,7 @@ def get_example_problems():
     move.add_effect(battery_charge, Minus(battery_charge, 10))
     l1 = Object('l1', Location)
     l2 = Object('l2', Location)
-    problem = Problem('robot')
+    problem = Problem('robot_int_battery')
     problem.add_fluent(robot_at)
     problem.add_fluent(battery_charge)
     problem.add_action(move)
@@ -82,6 +82,6 @@ def get_example_problems():
     problem.add_goal(robot_at(l2))
     plan = upf.plan.SequentialPlan([upf.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot = Example(problem=problem, plan=plan)
-    problems['robot'] = robot
+    problems['robot_int_battery'] = robot
 
     return problems

@@ -210,6 +210,16 @@ class InstantaneousAction(Action):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+
+            print('here:')
+            print(self._env.type_checker.get_type(fluent_exp))
+            print(value_exp)
+            print(self._env.type_checker.get_type(value_exp))
+            print(value_exp.arg(0))
+            print(self._env.type_checker.get_type(value_exp.arg(0)))
+            print(value_exp.arg(1))
+            print(self._env.type_checker.get_type(value_exp.arg(1)))
+
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 

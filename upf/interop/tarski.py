@@ -91,16 +91,16 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.Fluen
         if formula.sort.name == 'number':
             return em.Real(Fraction(float(formula.name)))
         elif isinstance(formula.sort, tarski.syntax.Interval):
-                if formula.sort.language.are_vertically_related(\
-                    formula.sort, formula.sort.language.Real):
-                    return em.Real(Fraction(float(formula.name)))
-                elif formula.sort.language.are_vertically_related(\
-                    formula.sort, formula.sort.language.Integer)\
-                    or formula.sort.language.are_vertically_related(\
-                        formula.sort, formula.sort.language.Natural):
-                    return em.Int(int(formula.name))
-                else:
-                    raise NotImplementedError
+            if formula.sort.language.is_subtype(\
+                formula.sort, formula.sort.language.Integer)\
+                or formula.sort.language.is_subtype(\
+                    formula.sort, formula.sort.language.Natural):
+                return em.Int(int(formula.name))
+            elif formula.sort.language.is_subtype(\
+                formula.sort, formula.sort.language.Real):
+                return em.Real(Fraction(float(formula.name)))
+            else:
+                raise NotImplementedError
         elif formula.name in objects:
             return em.ObjectExp(objects[formula.name])
         else:
