@@ -209,7 +209,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
 
             print('here:')
             print(self._env.type_checker.get_type(fluent_exp))
@@ -230,7 +230,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = upf.model.effect.INCREASE))
 
@@ -241,7 +241,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = upf.model.effect.DECREASE))
 
@@ -477,7 +477,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing, upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
@@ -488,7 +488,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,
@@ -501,7 +501,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,

@@ -105,11 +105,11 @@ class TarskiFormulaConverter(walkers.DagWalker):
         return tarski.syntax.Constant(expression.real_constant_value(), self.lang.Real) # type: ignore
 
     def walk_param_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        tarski_param_rep = self.lang.variable(expression.parameter().name(), self.lang.get_sort(expression.parameter().type().name())) # type: ignore
+        tarski_param_rep = self.lang.variable(expression.parameter().name(), self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, expression.parameter().type()))) # type: ignore
         return tarski_param_rep #NOTE :not sure
 
     def walk_variable_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
-        tarski_variable_rep = self.lang.variable(expression.variable().name(), self.lang.get_sort(expression.variable().type().name())) # type: ignore
+        tarski_variable_rep = self.lang.variable(expression.variable().name(), self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, expression.variable().type()))) # type: ignore
         return tarski_variable_rep #NOTE :not sure
 
     def walk_object_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
@@ -132,12 +132,12 @@ class TarskiConverter:
                     signature.append(lang.get_sort(type.name())) # type: ignore
                 else:
                     #typename will be the name that this type has in the tarski language
-                    typename = self._type_name_added_to_language_if_needed(lang, type)
+                    typename = _type_name_added_to_language_if_needed(lang, type)
                     signature.append(lang.get_sort(typename))
             if fluent.type().is_bool_type():
                 lang.predicate(fluent.name(), *signature)
             else:
-                typename = self._type_name_added_to_language_if_needed(lang, fluent.type())
+                typename = _type_name_added_to_language_if_needed(lang, fluent.type())
                 lang.function(fluent.name(), *signature, lang.get_sort(typename)) # type: ignore
         for o in problem.all_objects(): #adding objects to the language
             lang.constant(o.name(), lang.get_sort(o.type().name())) # type: ignore
@@ -148,7 +148,7 @@ class TarskiConverter:
         for action in problem.actions():
             if not isinstance(action, upf.model.InstantaneousAction):
                 raise #TODO: Insert exception to raise
-            parameters = [lang.variable(p.name(), lang.get_sort(p.type().name())) for p in action.parameters()] # type: ignore
+            parameters = [lang.variable(p.name(), lang.get_sort(_type_name_added_to_language_if_needed(lang, p.type()))) for p in action.parameters()] # type: ignore
             #add action to the problem
             new_problem.action(action.name,
                                 parameters,
@@ -175,31 +175,31 @@ class TarskiConverter:
         new_problem.goal = tfc.convert_formula(em.And(problem.goals()))
         return new_problem
 
-    def _type_name_added_to_language_if_needed(self, lang: 'tarski.FirstOrderLanguage', type: 'upf.model.Type') -> str:
-        typename = str(type).replace(' ','')
-        if type.is_int_type() and (type.lower_bound() is None or type.upper_bound() is None): # type: ignore
-            if type.lower_bound() is None and type.upper_bound() is None: # type: ignore
-                typename = 'Integer'
-            elif type.lower_bound() == 0: # type: ignore
-                assert type.upper_bound() is None # type: ignore #must be true, otherwise branch would be skipped
-                typename = 'Natural'
-            else:
-                raise #TODO insert exception to raise with text 'Int type with just one bound is not accepted by tarski'
-        elif type.is_real_type() and (type.lower_bound() is None or type.upper_bound() is None): # type: ignore
-            if type.lower_bound() is None and type.upper_bound() is None: # type: ignore
-                typename = 'Real'
-            else:
-                raise #TODO insert exception to raise with text 'Real type with just one bound is not accepted by tarski'
-        #NOTE: Still missing the part where fluents can be of type user_type, not sure if this code works
-        if not lang.has_sort(typename):
-            # the type is not in the language, therefore it must be added
-            if type.is_int_type():
-                lang.interval(typename, lang.Integer, type.lower_bound(), type.upper_bound()) # type: ignore
-            elif type.is_real_type():
-                lang.interval(typename, lang.Real, type.lower_bound(), type.upper_bound()) # type: ignore
-            else:
-                raise NotImplementedError
-        return typename
+def _type_name_added_to_language_if_needed(lang: 'tarski.FirstOrderLanguage', type: 'upf.model.Type') -> str:
+    typename = str(type).replace(' ','')
+    if type.is_int_type() and (type.lower_bound() is None or type.upper_bound() is None): # type: ignore
+        if type.lower_bound() is None and type.upper_bound() is None: # type: ignore
+            typename = 'Integer'
+        elif type.lower_bound() == 0: # type: ignore
+            assert type.upper_bound() is None # type: ignore #must be true, otherwise branch would be skipped
+            typename = 'Natural'
+        else:
+            raise #TODO insert exception to raise with text 'Int type with just one bound is not accepted by tarski'
+    elif type.is_real_type() and (type.lower_bound() is None or type.upper_bound() is None): # type: ignore
+        if type.lower_bound() is None and type.upper_bound() is None: # type: ignore
+            typename = 'Real'
+        else:
+            raise #TODO insert exception to raise with text 'Real type with just one bound is not accepted by tarski'
+    #NOTE: Still missing the part where fluents can be of type user_type, not sure if this code works
+    if not lang.has_sort(typename):
+        # the type is not in the language, therefore it must be added
+        if type.is_int_type():
+            lang.interval(typename, lang.Integer, type.lower_bound(), type.upper_bound()) # type: ignore
+        elif type.is_real_type():
+            lang.interval(typename, lang.Real, type.lower_bound(), type.upper_bound()) # type: ignore
+        else:
+            raise NotImplementedError
+    return typename
 
 def _convert_effect(effect: 'upf.model.Effect', tfc: TarskiFormulaConverter, em: 'upf.model.ExpressionManager') -> 'tarski.fstrips.SingleEffect':
     condition = tfc.convert_formula(effect.condition())

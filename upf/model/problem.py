@@ -377,7 +377,7 @@ class Problem:
                                        int, float, Fraction]):
         '''Sets the initial value for the given fluent.'''
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Initial value assignment has not compatible types!')
         if fluent_exp in self._initial_value:
             raise UPFProblemDefinitionError('Initial value already set!')
@@ -460,7 +460,7 @@ class Problem:
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing, upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
@@ -472,7 +472,7 @@ class Problem:
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,
@@ -486,7 +486,7 @@ class Problem:
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,

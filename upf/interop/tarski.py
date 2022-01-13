@@ -177,8 +177,7 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
                     fluent = upf.model.Fluent(p.name, tm.IntType(lower_bound=\
                         func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
         else:
-            #TODO insert UserType here
-            raise
+            fluent = upf.model.Fluent(p.name, tm.UserType(func_sort.name), signature)
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
 
@@ -227,6 +226,8 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
             default_value = em.Real(Fraction(0))
         elif fluent.type().is_int_type():
             default_value = em.Int(0)
+        elif fluent.type().is_user_type():
+            continue #NOTE: not sure
         if len(l) == 0:
             initial_values[em.FluentExp(fluent)] = default_value
         else:

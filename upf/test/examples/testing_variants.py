@@ -84,4 +84,29 @@ def get_example_problems():
     robot = Example(problem=problem, plan=plan)
     problems['robot_int_battery'] = robot
 
+    #robot fluent of user_type with int ID
+    Int_t = IntType(0,1)
+    Location = UserType('Location')
+    is_at = Fluent('is_at', Location, [Int_t])
+    move = InstantaneousAction('move', robot=Int_t, l_from=Location, l_to=Location)
+    robot = move.parameter('robot')
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(Equals(is_at(robot), l_from))
+    move.add_precondition(Not(Equals(is_at(robot), l_to)))
+    move.add_effect(is_at(robot), l_to)
+    l1 = Object('l1', Location)
+    l2 = Object('l2', Location)
+    problem = Problem('robot_fluent_of_user_type_with_int_id')
+    problem.add_fluent(is_at)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.set_initial_value(is_at(Int(0)), l1)
+    problem.set_initial_value(is_at(1), l1)
+    plan = upf.plan.SequentialPlan([upf.plan.ActionInstance(move, (Int(0), ObjectExp(l1), ObjectExp(l2))),
+                                    upf.plan.ActionInstance(move, (Int(1), ObjectExp(l1), ObjectExp(l2)))])
+    robot_fluent_of_user_type_with_int_id = Example(problem=problem, plan=plan)
+    problems['robot_fluent_of_user_type_with_int_id'] = robot_fluent_of_user_type_with_int_id
+
     return problems
