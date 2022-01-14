@@ -27,12 +27,19 @@ from agent import agent
 import copy
 class MultiAgentProblem(Problem):
     '''Represents a planning ma_problem.'''
+    '''def __init__(self, name, env, initial_defaults, _env, _operators_extractor, _name, _fluents, _actions,
+                 _user_types, _objects, _initial_value, _timed_effects, _timed_goals, _maintain_goals,
+                 _goals, _initial_defaults, _fluents_defaults ):
+        super().__init__(name, env, initial_defaults, _env, _operators_extractor, _name, _fluents, _actions,
+                 _user_types, _objects, _initial_value, _timed_effects, _timed_goals, _maintain_goals,
+                 _goals, _initial_defaults, _fluents_defaults)'''
 
     def __init__(self, *args, **kwargs):
         super(MultiAgentProblem, self).__init__(*args, **kwargs)
         #self.agents_list = agents_list
 
     agents_list = []
+    plan = []
     #def compile(self, agents):
     def add_agent(self, Agents):
 
@@ -41,24 +48,21 @@ class MultiAgentProblem(Problem):
     def get_agent(self):
         return self.agents_list
 
+
     def compile(self, problem ):
         #problem = MultiAgentProblem('robots')
         for ag in problem.get_agent():
-            for f in ag.get_fluents():
-
-                problem.add_fluent(f)
-
+            for flu in ag.get_fluents():
+                problem.add_fluent(flu)
             for act in ag.get_actions():
-
                 problem.add_action(act)
 
-            '''MultiAgentProblem.set_initial_value(robot1_at...)
-            MultiAgentProblem.add_goal(robot1_at...)'''
-        #return MultiAgentProblem
 
-    '''def solveCompiled(...):
-        compiled_problem = compile()
-        plan = upf.plan.SequentialPlan(compiled_problem)
-        return plan'''
+    def solve_compile(self, problem):
+        for ag in problem.get_agent():
 
-#print(help(MultiAgentProblem))
+            for i in range(len(ag.get_actions())):
+                self.plan.append(
+                    upf.plan.SequentialPlan([upf.plan.ActionInstance(ag.get_actions()[i], tuple(ag.get_goals()))]))
+        return self.plan
+

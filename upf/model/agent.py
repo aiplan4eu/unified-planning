@@ -15,7 +15,6 @@
 
 import upf
 from upf.shortcuts import *
-from collections import namedtuple
 
 
 class agent:
@@ -23,12 +22,14 @@ class agent:
             self,
             ID =  None,
             obs_fluents: [] = None,
-            actions: [] = None
+            actions: [] = None,
+            goals: () = None
     ):
         self.ID =  ID
         self.obs_fluents = obs_fluents
+        self.obs_fluents.append(self.ID)
         self.actions = actions
-
+        self.goals = goals
 
     def add_fluents(self, Fluent):
         self.obs_fluents.append(Fluent)
@@ -42,3 +43,9 @@ class agent:
     def get_actions(self):
         return self.actions
 
+    def add_goals(self, Goal):
+        self.goals.append(ObjectExp(Goal))
+
+
+    def get_goals(self):
+        return self.goals
