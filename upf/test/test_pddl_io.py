@@ -13,6 +13,7 @@
 # limitations under the License
 
 import os
+import tempfile
 import upf
 from upf.shortcuts import *
 from upf.test import TestCase, main
@@ -197,6 +198,27 @@ class TestPddlIO(TestCase):
         self.assertIn('(:init (robot_at r1 l1) (cargo_at c1 l2))', pddl_problem)
         self.assertIn('(:goal (and (cargo_at c1 l3) (robot_at r1 l1)))', pddl_problem)
 
+    def test_matchcellar_writer(self):
+        problem = self.problems['matchcellar'].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = w.get_domain()
+        self.assertIn('(define (domain MatchCellar-domain)', pddl_domain)
+        self.assertIn('(:requirements :strips :typing :negative-preconditions :durative-actions)', pddl_domain)
+        self.assertIn('(:types Match Fuse)', pddl_domain)
+        self.assertIn('(:predicates (handfree) (light) (match_used ?p0 - Match) (fuse_mended ?p0 - Fuse))', pddl_domain)
+        self.assertIn('(:durative-action light_match', pddl_domain)
+        self.assertIn(':parameters ( ?m - Match)', pddl_domain)
+        self.assertIn(':duration (= ?duration 6)', pddl_domain)
+        self.assertIn(':condition (and (at start (not (match_used ?m))))', pddl_domain)
+        self.assertIn(':effect (and (at start (match_used ?m)) (at start (light)) (at end (not (light)))))', pddl_domain)
+        self.assertIn('(:durative-action mend_fuse', pddl_domain)
+        self.assertIn(':parameters ( ?f - Fuse)', pddl_domain)
+        self.assertIn(':duration (= ?duration 5)', pddl_domain)
+        self.assertIn(':condition (and (at start (handfree))(at start (light))(over all (light))(at end (light)))', pddl_domain)
+        self.assertIn(':effect (and (at start (not (handfree))) (at end (fuse_mended ?f)) (at end (handfree))))', pddl_domain)
+
     def test_depot_reader(self):
         reader = PDDLReader()
 
@@ -247,23 +269,36 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.objects(problem.user_type('match'))), 3)
         self.assertEqual(len(problem.objects(problem.user_type('fuse'))), 3)
 
-    def test_matchcellar_writer(self):
-        problem = self.problems['matchcellar'].problem
+    def test_examples_io(self):
+        for example in self.problems.values():
+            problem = example.problem
+            if problem.kind().has_intermediate_conditions_and_effects():
+                continue
 
-        w = PDDLWriter(problem)
+            with tempfile.TemporaryDirectory() as tempdir:
+                domain_filename = os.path.join(tempdir, 'domain.pddl')
+                problem_filename = os.path.join(tempdir, 'problem.pddl')
 
-        pddl_domain = w.get_domain()
-        self.assertIn('(define (domain MatchCellar-domain)', pddl_domain)
-        self.assertIn('(:requirements :strips :typing :negative-preconditions :durative-actions)', pddl_domain)
-        self.assertIn('(:types Match Fuse)', pddl_domain)
-        self.assertIn('(:predicates (handfree) (light) (match_used ?p0 - Match) (fuse_mended ?p0 - Fuse))', pddl_domain)
-        self.assertIn('(:durative-action light_match', pddl_domain)
-        self.assertIn(':parameters ( ?m - Match)', pddl_domain)
-        self.assertIn(':duration (= ?duration 6)', pddl_domain)
-        self.assertIn(':condition (and (at start (not (match_used ?m))))', pddl_domain)
-        self.assertIn(':effect (and (at start (match_used ?m)) (at start (light)) (at end (not (light)))))', pddl_domain)
-        self.assertIn('(:durative-action mend_fuse', pddl_domain)
-        self.assertIn(':parameters ( ?f - Fuse)', pddl_domain)
-        self.assertIn(':duration (= ?duration 5)', pddl_domain)
-        self.assertIn(':condition (and (at start (handfree))(at start (light))(over all (light))(at end (light)))', pddl_domain)
-        self.assertIn(':effect (and (at start (not (handfree))) (at end (fuse_mended ?f)) (at end (handfree))))', pddl_domain)
+                w = PDDLWriter(problem)
+                w.write_domain(domain_filename)
+                w.write_problem(problem_filename)
+
+                reader = PDDLReader()
+                parsed_problem = reader.parse_problem(domain_filename, problem_filename)
+
+                self.assertEqual(len(problem.fluents()), len(parsed_problem.fluents()))
+                self.assertEqual(set(problem.user_types()), set(parsed_problem.user_types()))
+                self.assertEqual(len(problem.actions()), len(parsed_problem.actions()))
+                for a in problem.actions():
+                    parsed_a = parsed_problem.action(a.name)
+                    self.assertEqual(a.name, parsed_a.name)
+                    self.assertEqual(a.parameters(), parsed_a.parameters())
+                    if isinstance(a, upf.model.InstantaneousAction):
+                        self.assertEqual(len(a.effects()), len(parsed_a.effects()))
+                    elif isinstance(a, upf.model.DurativeAction):
+                        self.assertEqual(a.duration(), parsed_a.duration())
+                        for t, e in a.effects().items():
+                            self.assertEqual(len(e), len(parsed_a.effects()[t]))
+
+                self.assertEqual(set(problem.all_objects()), set(parsed_problem.all_objects()))
+                self.assertEqual(len(problem.initial_values()), len(parsed_problem.initial_values()))
