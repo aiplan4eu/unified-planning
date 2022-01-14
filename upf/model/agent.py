@@ -46,6 +46,5 @@ class agent:
     def add_goals(self, Goal):
         self.goals.append(ObjectExp(Goal))
 
-
     def get_goals(self):
         return self.goals

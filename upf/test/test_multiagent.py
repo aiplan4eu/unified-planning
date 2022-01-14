@@ -19,6 +19,7 @@ from collections import namedtuple
 from agent import agent
 from ma_problem import MultiAgentProblem
 
+
 Example = namedtuple('Example', ['problem', 'plan'])
 
 def ma_example_problem():
