@@ -16,7 +16,7 @@
 import upf
 
 from upf.shortcuts import *
-from upf.solvers.upf_tarski_converter import TarskiConverter
+from upf.interop.upf_tarski_converter import TarskiConverter
 from upf.test import TestCase
 from upf.test.examples import get_example_problems
 from upf.interop.tarski import convert_tarski_problem
@@ -33,7 +33,7 @@ class TestGrounder(TestCase):
 
     def test_all_equals(self):
         problems_to_avoid = ['charger_discharger', 'robot', 'robot_decrease', 'robot_locations_connected',
-                                'robot_locations_visited']
+                                'robot_locations_visited', 'robot_fluent_of_user_type_with_int_id']
         #the charger_discharger problem has Implies, which tarski represents with Or and Not
         #the robot problem has Integers, which are casted to reals by tarski
         #the robot_decrease, connected and visited problems have decrese, which is represented as an assignment
