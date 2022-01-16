@@ -31,7 +31,8 @@ def ma_example_problem():
     cargo_at = Fluent('cargo_at', BoolType(), [Location])
 
     # Creation of the robot1 object and addition of fluents
-    robot1 = agent(robot_at, [], [], [])
+    robot1 = agent()
+    robot1.add_fluents(robot_at)
     robot1.add_fluents(battery_charge)
     #robot1.add_fluents(cargo_at)
 
@@ -63,7 +64,8 @@ def ma_example_problem():
     cargo_at2 = Fluent('cargo_at2', BoolType(), [Location2])
 
     # Creation of the robot2 object and addition of fluents
-    robot2 = agent(robot_at2, [], [], [])
+    robot2 = agent()
+    robot2.add_fluents(robot_at2)
     robot2.add_fluents(battery_charge2)
     #robot2.add_fluents(cargo_at2)
 
