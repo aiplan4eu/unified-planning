@@ -41,6 +41,14 @@ class TypeChecker(walkers.DagWalker):
         if not ((t_left.is_int_type() and t_right.is_int_type()) or
                 (t_left.is_real_type() and t_right.is_real_type()) or
                 (t_left.is_real_type() and t_right.is_int_type())):
+
+            print('AAAAAAA')
+            print(t_left)
+            print(t_right)
+            print(t_left.is_int_type())
+            print(t_right.is_int_type())
+            print('BBBBBBB')
+
             return False
         left_lower = -float('inf') if t_left.lower_bound() is None else t_left.lower_bound() # type: ignore
         left_upper = float('inf') if t_left.upper_bound() is None else t_left.upper_bound() # type: ignore
@@ -73,6 +81,12 @@ class TypeChecker(walkers.DagWalker):
             return None
         for (arg, p_type) in zip(args, f.signature()):
             if not self.is_compatible_type(arg, p_type):
+
+                print('SIGNATURE->')
+                print(f.signature())
+                print(f.signature()[0].is_int_type())
+                print(f.signature()[0].is_user_type())
+
                 return None
         return f.type()
 

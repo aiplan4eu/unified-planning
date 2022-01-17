@@ -532,7 +532,8 @@ class Problem:
         '''Adds a goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        self._goals.append(goal_exp)
+        if goal_exp != self._env.expression_manager.TRUE():
+            self._goals.append(goal_exp)
 
     def goals(self) -> List['upf.model.fnode.FNode']:
         '''Returns the goals.'''

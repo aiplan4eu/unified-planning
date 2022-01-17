@@ -75,13 +75,26 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         tarski_fluent_rep = self.lang.get(expression.fluent().name())
-        return tarski_fluent_rep(*args)
+        new_args = [x.constant_value() if x.is_int_constant() else args[i] for i, x in enumerate(expression.args())]
+        new_args = []
+        for i, x in enumerate(expression.args()):
+            if x.is_int_constant():
+                type = (expression.fluent().signature())[i]
+                typename = _type_name_added_to_language_if_needed(self.lang, type)
+                constant = tarski.syntax.Constant(x.int_constant_value(), \
+                    self.lang.get_sort(typename))
+                new_args.append(constant)
+            elif x.is_real_constant():
+                pass
+            else:
+                new_args.append(args[i])
+        return tarski_fluent_rep(*new_args)
 
     def walk_plus(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         value = args[0]
         for a in args[1:]:
             value = value + a
-        return value #NOTE probably this can be done better
+        return value
 
     def walk_minus(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
@@ -91,7 +104,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
         value = args[0]
         for a in args[1:]:
             value = value * a
-        return value #NOTE probably this can be done better
+        return value
 
     def walk_div(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 2
@@ -105,9 +118,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_int_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
-        v = expression.int_constant_value()
-        type = self.lang.Integer
-        return tarski.syntax.Constant(expression.int_constant_value(), type) # type: ignore
+        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Integer) # type: ignore
 
     def walk_real_constant(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
@@ -125,64 +136,62 @@ class TarskiFormulaConverter(walkers.DagWalker):
         tarski_object_rep = self.lang.get_constant(expression.object().name())
         return tarski_object_rep #NOTE :not sure
 
-class TarskiConverter:
-    def __init__(self) -> None:
-        pass
-
-    def upf_to_tarski(self, problem: 'upf.model.Problem') -> 'tarski.fstrips.problem.Problem':
-        #creating tarski language
-        lang = tarski.fstrips.language(f'{problem.name}_lang', ['equality', 'arithmetic'])
-        for ut in problem.user_types(): #adding user_types to the language
-            lang.sort(ut.name()) # type: ignore
-        for fluent in problem.fluents(): #adding fluents to the language
-            signature = []
-            for type in fluent.signature():
-                if type.is_user_type():
-                    signature.append(lang.get_sort(type.name())) # type: ignore
-                else:
-                    #typename will be the name that this type has in the tarski language
-                    typename = _type_name_added_to_language_if_needed(lang, type)
-                    signature.append(lang.get_sort(typename))
-            if fluent.type().is_bool_type():
-                lang.predicate(fluent.name(), *signature)
+def convert_problem_to_tarski(problem: 'upf.model.Problem') -> 'tarski.fstrips.problem.Problem':
+    '''Converts a problem in the upf.model.Problem representation in the equivalent
+    tarski.fstrips.Problem representation.'''
+    #creating tarski language
+    lang = tarski.fstrips.language(f'{problem.name}_lang', ['equality', 'arithmetic'])
+    for ut in problem.user_types(): #adding user_types to the language
+        lang.sort(ut.name()) # type: ignore
+    for fluent in problem.fluents(): #adding fluents to the language
+        signature = []
+        for type in fluent.signature():
+            if type.is_user_type():
+                signature.append(lang.get_sort(type.name())) # type: ignore
             else:
-                typename = _type_name_added_to_language_if_needed(lang, fluent.type())
-                lang.function(fluent.name(), *signature, lang.get_sort(typename)) # type: ignore
-        for o in problem.all_objects(): #adding objects to the language
-            lang.constant(o.name(), lang.get_sort(o.type().name())) # type: ignore
-        #creating tarski problem
-        em = problem.env.expression_manager
-        tfc = TarskiFormulaConverter(language=lang, env=problem.env)
-        new_problem = tarski.fstrips.problem.create_fstrips_problem(lang, problem.name, f'{problem.name}_domain')
-        for action in problem.actions():
-            if not isinstance(action, upf.model.InstantaneousAction):
-                raise upf.exceptions.UPFProblemDefinitionError('Tarski supports only Instantaneous Actions.')
-            parameters = [lang.variable(p.name(), lang.get_sort(_type_name_added_to_language_if_needed(lang, p.type()))) for p in action.parameters()] # type: ignore
-            #add action to the problem
-            new_problem.action(action.name,
-                                parameters,
-                                precondition=tfc.convert_formula(em.And(action.preconditions())),
-                                effects=[_convert_effect(e, tfc, em) for e in action.effects()])
-        for fluent_exp, value_exp in problem.initial_values().items():
-            if value_exp.is_bool_constant():
-                if value_exp.constant_value():
-                    parameters = []
-                    for a in fluent_exp.args():
-                        if not a.is_object_exp():
-                            raise #NOTE is this raise right? If signature has ints/reals not
-                        parameters.append(lang.get_constant(a.object().name()))
-                    new_problem.init.add(lang.get_predicate(fluent_exp.fluent().name()), *parameters)
+                #typename will be the name that this type has in the tarski language
+                typename = _type_name_added_to_language_if_needed(lang, type)
+                signature.append(lang.get_sort(typename))
+        if fluent.type().is_bool_type():
+            lang.predicate(fluent.name(), *signature)
+        else:
+            typename = _type_name_added_to_language_if_needed(lang, fluent.type())
+            lang.function(fluent.name(), *signature, lang.get_sort(typename)) # type: ignore
+    for o in problem.all_objects(): #adding objects to the language
+        lang.constant(o.name(), lang.get_sort(o.type().name())) # type: ignore
+    #creating tarski problem
+    em = problem.env.expression_manager
+    tfc = TarskiFormulaConverter(language=lang, env=problem.env)
+    new_problem = tarski.fstrips.problem.create_fstrips_problem(lang, problem.name, f'{problem.name}_domain')
+    for action in problem.actions():
+        if not isinstance(action, upf.model.InstantaneousAction):
+            raise upf.exceptions.UPFProblemDefinitionError('Tarski supports only Instantaneous Actions.')
+        parameters = [lang.variable(p.name(), lang.get_sort(_type_name_added_to_language_if_needed(lang, p.type()))) for p in action.parameters()] # type: ignore
+        #add action to the problem
+        new_problem.action(action.name,
+                            parameters,
+                            precondition=tfc.convert_formula(em.And(action.preconditions())),
+                            effects=[_convert_effect(e, tfc, em) for e in action.effects()])
+    for fluent_exp, value_exp in problem.initial_values().items():
+        if value_exp.is_bool_constant():
+            if value_exp.constant_value():
+                parameters = []
+                for a in fluent_exp.args():
+                    if not a.is_object_exp():
+                        raise #NOTE is this raise right? If signature has ints/reals not
+                    parameters.append(lang.get_constant(a.object().name()))
+                new_problem.init.add(lang.get_predicate(fluent_exp.fluent().name()), *parameters)
+        else:
+            value: Optional[Union[Fraction, int, 'tarski.syntax.formulas.Formula']] = None
+            if value_exp.is_int_constant():
+                value = value_exp.int_constant_value()
+            elif value_exp.is_real_constant():
+                value = value_exp.real_constant_value()
             else:
-                value: Optional[Union[Fraction, int, 'tarski.syntax.formulas.Formula']] = None
-                if value_exp.is_int_constant():
-                    value = value_exp.int_constant_value()
-                elif value_exp.is_real_constant():
-                    value = value_exp.real_constant_value()
-                else:
-                    value = tfc.convert_formula(value_exp)
-                new_problem.init.set(tfc.convert_formula(fluent_exp), value)
-        new_problem.goal = tfc.convert_formula(em.And(problem.goals()))
-        return new_problem
+                value = tfc.convert_formula(value_exp)
+            new_problem.init.set(tfc.convert_formula(fluent_exp), value)
+    new_problem.goal = tfc.convert_formula(em.And(problem.goals()))
+    return new_problem
 
 def _type_name_added_to_language_if_needed(lang: 'tarski.FirstOrderLanguage', type: 'upf.model.Type') -> str:
     typename = str(type).replace(' ','')
@@ -199,7 +208,7 @@ def _type_name_added_to_language_if_needed(lang: 'tarski.FirstOrderLanguage', ty
             typename = 'Real'
         else:
             raise upf.exceptions.UPFProblemDefinitionError('Real type with just one bound is not accepted by tarski')
-    #NOTE: Still missing the part where fluents can be of type user_type, not sure if this code works
+    #NOTE: Still missing the part where fluents can be of type user_type, not sure if this code works for it
     if not lang.has_sort(typename):
         # the type is not in the language, therefore it must be added
         if type.is_int_type():

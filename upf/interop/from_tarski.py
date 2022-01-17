@@ -129,7 +129,7 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.Fluen
         raise UPFProblemDefinitionError(str(formula) + ' not supported!')
 
 
-def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'upf.model.Problem':
+def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'upf.model.Problem':
     """Converts a tarski problem in a upf.Problem."""
     em = env.expression_manager
     tm = env.type_manager
@@ -139,7 +139,23 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
     # Convert types
     types = {}
     for t in lang.sorts:
-        types[str(t.name)] = tm.UserType(str(t.name))
+        if isinstance(t, Interval):
+            if t == lang.Integer:
+                types[str(t.name)] = tm.IntType()
+            elif t == lang.Natural:
+                types[str(t.name)] = tm.IntType(lower_bound=0)
+            elif t == lang.Real:
+                types[str(t.name)] = tm.RealType()
+            elif t.encode == lang.Integer.encode:
+                types[str(t.name)] = tm.IntType(t.lower_bound, t.upper_bound)
+            elif t.encode == lang.Natural.encode:
+                types[str(t.name)] = tm.IntType(0, t.upper_bound)
+            elif t.encode == lang.Real.encode:
+                types[str(t.name)] = tm.RealType(t.lower_bound, t.upper_bound)
+            else:
+                raise NotImplementedError
+        else:
+            types[str(t.name)] = tm.UserType(str(t.name))
 
     # Convert predicates and functions
     fluents = {}
