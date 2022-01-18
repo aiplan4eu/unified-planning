@@ -243,7 +243,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
         elif fluent.type().is_int_type():
             default_value = em.Int(0)
         elif fluent.type().is_user_type():
-            continue #NOTE: not sure
+            continue
         if len(l) == 0:
             initial_values[em.FluentExp(fluent)] = default_value
         else:
