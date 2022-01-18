@@ -77,10 +77,10 @@ class FNode(object):
         elif self.is_iff():
             return self.get_nary_expression_string(' iff ', self.args())
         elif self.is_exists():
-            s = ' , '.join(v.name() for v in self.variables())
+            s = ', '.join(str(v) for v in self.variables())
             return f"Exists ({s}) {str(self.arg(0))}"
         elif self.is_forall():
-            s = ' , '.join(v.name() for v in self.variables())
+            s = ', '.join(str(v) for v in self.variables())
             return f"Forall ({s}) {str(self.arg(0))}"
         elif self.is_plus():
             return self.get_nary_expression_string(' + ', self.args())
