@@ -56,14 +56,19 @@ class TarskiGrounder(Solver):
         tarski_problem = upf.interop.convert_problem_to_tarski(problem)
         actions = None
         state_variables = None
-        try:
-            lpgs = LPGroundingStrategy(tarski_problem)
-            actions = lpgs.ground_actions()
-            state_variables = lpgs.ground_state_variables()
-        except RuntimeError:
-            ngs = NaiveGroundingStrategy(tarski_problem)
-            actions = ngs.ground_actions()
-            state_variables = ngs.ground_state_variables()
+
+        #this piece of code requires gringo to be installed
+        # try:
+        #     lpgs = LPGroundingStrategy(tarski_problem)
+        #     actions = lpgs.ground_actions()
+        #     state_variables = lpgs.ground_state_variables()
+        # except RuntimeError:
+        #     ngs = NaiveGroundingStrategy(tarski_problem)
+        #     actions = ngs.ground_actions()
+        #     state_variables = ngs.ground_state_variables()
+        ngs = NaiveGroundingStrategy(tarski_problem)
+        actions = ngs.ground_actions()
+        state_variables = ngs.ground_state_variables()
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name(): fluent for fluent in problem.fluents()}
         objects = {object.name(): object for object in problem.all_objects()}
