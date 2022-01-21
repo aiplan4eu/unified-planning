@@ -609,6 +609,10 @@ class Problem:
 
     def _update_problem_kind_fluent(self, fluent: 'upf.model.fluent.Fluent'):
         self._update_problem_kind_type(fluent.type())
+        if fluent.type().is_int_type() or fluent.type().is_real_type():
+            self._kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+        elif fluent.type().is_user_type():
+            self._kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
         for t in fluent.signature():
             self._update_problem_kind_type(t)
 

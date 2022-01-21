@@ -49,26 +49,34 @@ class TarskiGrounder(Solver):
 
     @staticmethod
     def supports(problem_kind: 'upf.model.ProblemKind') -> bool:
-        kind = full_classical_kind.union(full_numeric_kind)
-        return problem_kind <= kind
+        supported_kind = upf.model.ProblemKind()
+        supported_kind.set_typing('FLAT_TYPING') # type: ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+        return problem_kind <= supported_kind
 
     def ground(self, problem: 'upf.model.Problem') -> Tuple['upf.model.Problem', Callable[[upf.plan.Plan], upf.plan.Plan]]:
         tarski_problem = upf.interop.convert_problem_to_tarski(problem)
         actions = None
         state_variables = None
-
-        #this piece of code requires gringo to be installed
-        # try:
-        #     lpgs = LPGroundingStrategy(tarski_problem)
-        #     actions = lpgs.ground_actions()
-        #     state_variables = lpgs.ground_state_variables()
-        # except RuntimeError:
-        #     ngs = NaiveGroundingStrategy(tarski_problem)
-        #     actions = ngs.ground_actions()
-        #     state_variables = ngs.ground_state_variables()
-        ngs = NaiveGroundingStrategy(tarski_problem)
-        actions = ngs.ground_actions()
-        state_variables = ngs.ground_state_variables()
+        #TODO: understand when LP works and when not and use the problem_kind instead of try-catch
+        try:
+            lpgs = LPGroundingStrategy(tarski_problem)
+            actions = lpgs.ground_actions()
+            state_variables = lpgs.ground_state_variables()
+        except:
+            ngs = NaiveGroundingStrategy(tarski_problem)
+            actions = ngs.ground_actions()
+            state_variables = ngs.ground_state_variables()
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name(): fluent for fluent in problem.fluents()}
         objects = {object.name(): object for object in problem.all_objects()}
