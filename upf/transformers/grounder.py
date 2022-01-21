@@ -18,13 +18,13 @@
 import upf
 from upf.exceptions import UPFUsageError
 from upf.plan import Plan
-from upf.model import Problem, Action, Type, Object, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
+from upf.model import Problem, Action, Type, Fluent, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
 from upf.model.types import domain_size,  domain_item
 from upf.transformers.transformer import Transformer
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.walkers import Substituter
 from itertools import product
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 
 class Grounder(Transformer):
@@ -34,7 +34,9 @@ class Grounder(Transformer):
     resulting problem will not have lifted actions anymore,
     but only grounded actions.
     '''
-    def __init__(self, problem: Problem, name: str = 'grnd'):
+    def __init__(self, problem: Problem, name: str = 'grnd', \
+            grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None, \
+            grounding_fluents_map: Optional[Dict[Fluent, Tuple[FNode, ...]]] = None):
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
@@ -43,6 +45,8 @@ class Grounder(Transformer):
         self._substituter = Substituter(self._problem.env)
         #this data structure maps the grounded action with the objects the action grounds
         self._map_parameters: Dict[Action, List[FNode]] = {}
+        self._grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = grounding_actions_map
+        self._grounding_fluents_map: Optional[Dict[Fluent, Tuple[FNode, ...]]] = grounding_fluents_map
 
     def get_rewrite_back_map(self) -> Dict[Action, Tuple[Action, List[FNode]]]:
         '''Returns a map from an action of the grounded problem to the
@@ -70,29 +74,47 @@ class Grounder(Transformer):
             type_list: List[Type] = [param.type() for param in old_action.parameters()]
             #if the action does not have parameters, it does not need to be grounded.
             if len(type_list) == 0:
-                new_action = old_action.clone()
-                self._new_problem.add_action(new_action)
-                self._new_to_old[new_action] = old_action
-                self._old_to_new[old_action] = [new_action]
+                if self._grounding_actions_map is None:
+                    new_action = old_action.clone()
+                    self._new_problem.add_action(new_action)
+                    self._new_to_old[new_action] = old_action
+                    self._map_parameters[new_action] = []
+                    self._old_to_new[old_action] = [new_action]
+                else:
+                    # test that the action is in the dict of the actions that need to be in the grounded problem
+                    test = self._grounding_actions_map.get(old_action, None)
+                    if test is not None:
+                        new_action = old_action.clone()
+                        self._new_problem.add_action(new_action)
+                        self._new_to_old[new_action] = old_action
+                        self._map_parameters[new_action] = []
+                        self._old_to_new[old_action] = [new_action]
                 continue
-            # a list containing the list of object in the problem of the given type.
-            # So, if the problem has 2 Locations l1 and l2, and 2 Robots r1 and r2, and
-            # the action move_to takes as parameters a Robot and a Location,
-            # the variable state at this point will be the following:
-            # type_list = [Robot, Location]
-            # objects_list = [[r1, r2], [l1, l2]]
-            # the product of *objects_list will be:
-            # [(r1, l1), (r1, l2), (r2, l1), (r2,l2)]
-            ground_size = 1
-            domain_sizes = []
-            for t in type_list:
-                ds = domain_size(self._new_problem, t)
-                domain_sizes.append(ds)
-                ground_size *= ds
-            items_list: List[List[FNode]] = []
-            for size, type in zip(domain_sizes, type_list):
-                items_list.append([domain_item(self._new_problem, type, j) for j in range(size)])
-            for grounded_params in product(*items_list):
+            grounded_params_list: Optional[Iterator[Tuple[FNode, ...]]] = None
+            if self._grounding_actions_map is None:
+                # a list containing the list of object in the problem of the given type.
+                # So, if the problem has 2 Locations l1 and l2, and 2 Robots r1 and r2, and
+                # the action move_to takes as parameters a Robot and a Location,
+                # the variable state at this point will be the following:
+                # type_list = [Robot, Location]
+                # objects_list = [[r1, r2], [l1, l2]]
+                # the product of *objects_list will be:
+                # [(r1, l1), (r1, l2), (r2, l1), (r2,l2)]
+                ground_size = 1
+                domain_sizes = []
+                for t in type_list:
+                    ds = domain_size(self._new_problem, t)
+                    domain_sizes.append(ds)
+                    ground_size *= ds
+                items_list: List[List[FNode]] = []
+                for size, type in zip(domain_sizes, type_list):
+                    items_list.append([domain_item(self._new_problem, type, j) for j in range(size)])
+                grounded_params_list = product(*items_list)
+            else:
+                # The grounding_actions_map is not None, therefore it must be used to ground
+                grounded_params_list = _create_generator_from_list_of_tuple(self._grounding_actions_map[old_action])
+            assert grounded_params_list is not None
+            for grounded_params in grounded_params_list:
                 subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(grounded_params)))
                 new_action = self._create_action_with_given_subs(old_action, subs)
                 #when the action is None it means it is not feasible,
@@ -204,3 +226,7 @@ class Grounder(Transformer):
             new_name = f'{base_name}_{str(count)}'
             count += 1
         return new_name
+
+def _create_generator_from_list_of_tuple(tuple_list: List[Tuple[FNode, ...]]):
+    for tup in tuple_list:
+        yield tup
