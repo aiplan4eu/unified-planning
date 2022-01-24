@@ -35,8 +35,7 @@ class Grounder(Transformer):
     but only grounded actions.
     '''
     def __init__(self, problem: Problem, name: str = 'grnd', \
-            grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None, \
-            grounding_fluents_map: Optional[Dict[Fluent, Tuple[FNode, ...]]] = None):
+            grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None):
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
@@ -46,7 +45,6 @@ class Grounder(Transformer):
         #this data structure maps the grounded action with the objects the action grounds
         self._map_parameters: Dict[Action, List[FNode]] = {}
         self._grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = grounding_actions_map
-        self._grounding_fluents_map: Optional[Dict[Fluent, Tuple[FNode, ...]]] = grounding_fluents_map
 
     def get_rewrite_back_map(self) -> Dict[Action, Tuple[Action, List[FNode]]]:
         '''Returns a map from an action of the grounded problem to the
@@ -74,21 +72,13 @@ class Grounder(Transformer):
             type_list: List[Type] = [param.type() for param in old_action.parameters()]
             #if the action does not have parameters, it does not need to be grounded.
             if len(type_list) == 0:
-                if self._grounding_actions_map is None:
+                if self._grounding_actions_map is None or \
+                    self._grounding_actions_map.get(old_action, None) is not None:
                     new_action = old_action.clone()
                     self._new_problem.add_action(new_action)
                     self._new_to_old[new_action] = old_action
                     self._map_parameters[new_action] = []
                     self._old_to_new[old_action] = [new_action]
-                else:
-                    # test that the action is in the dict of the actions that need to be in the grounded problem
-                    test = self._grounding_actions_map.get(old_action, None)
-                    if test is not None:
-                        new_action = old_action.clone()
-                        self._new_problem.add_action(new_action)
-                        self._new_to_old[new_action] = old_action
-                        self._map_parameters[new_action] = []
-                        self._old_to_new[old_action] = [new_action]
                 continue
             grounded_params_list: Optional[Iterator[Tuple[FNode, ...]]] = None
             if self._grounding_actions_map is None:

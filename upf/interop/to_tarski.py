@@ -26,7 +26,7 @@ import tarski # type: ignore
 
 class TarskiFormulaConverter(walkers.DagWalker):
     def __init__(self, language: 'tarski.fol.FirstOrderLanguage', env) -> None:
-        walkers.DagWalker.__init__(self) #NOTE: invalidate_memoization is False, but we might want it True
+        walkers.DagWalker.__init__(self)
         self.lang = language
         self.env = env
 
@@ -75,7 +75,6 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression: 'upf.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         tarski_fluent_rep = self.lang.get(expression.fluent().name())
-        new_args = [x.constant_value() if x.is_int_constant() else args[i] for i, x in enumerate(expression.args())]
         new_args = []
         for i, x in enumerate(expression.args()):
             if x.is_int_constant():
@@ -85,7 +84,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
                     self.lang.get_sort(typename))
                 new_args.append(constant)
             elif x.is_real_constant():
-                pass
+                raise upf.exception.UPFProblemDefinitionError('Fluents can not have reals into their signatures.')
             else:
                 new_args.append(args[i])
         return tarski_fluent_rep(*new_args)
@@ -138,8 +137,14 @@ class TarskiFormulaConverter(walkers.DagWalker):
 def convert_problem_to_tarski(problem: 'upf.model.Problem') -> 'tarski.fstrips.problem.Problem':
     '''Converts a problem in the upf.model.Problem representation in the equivalent
     tarski.fstrips.Problem representation.'''
+    features: List[str] = []
+    kind = problem.kind()
+    if kind.has_equality(): # type: ignore
+        features.append('equality')
+    if kind.has_continuous_numbers() or kind.has_discrete_numbers() or kind.has_numeric_fluents(): # type: ignore
+        features.append('arithmetic')
     #creating tarski language
-    lang = tarski.fstrips.language(f'{problem.name}_lang', ['equality', 'arithmetic'])
+    lang = tarski.fstrips.language(f'{problem.name}_lang', features)
     for ut in problem.user_types(): #adding user_types to the language
         lang.sort(ut.name()) # type: ignore
     for fluent in problem.fluents(): #adding fluents to the language
@@ -175,7 +180,7 @@ def convert_problem_to_tarski(problem: 'upf.model.Problem') -> 'tarski.fstrips.p
         if value_exp.is_bool_constant():
             if value_exp.constant_value():
                 parameters = []
-                for a in fluent_exp.args():#NOTE is this raise right? If signature has ints/reals not
+                for a in fluent_exp.args():
                     parameters.append(tfc.convert_formula(a))
                 new_problem.init.add(lang.get_predicate(fluent_exp.fluent().name()), *parameters)
         else:

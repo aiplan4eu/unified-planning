@@ -17,22 +17,20 @@ import upf
 import upf.solvers
 
 from upf.shortcuts import *
-from upf.interop import convert_problem_from_tarski
-from upf.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
+from upf.test import TestCase, skipIfNoOneshotPlannerForProblemKind
 from upf.test.examples import get_example_problems
-from upf.interop import convert_problem_to_tarski
-from upf.model.problem_kind import full_classical_kind, full_numeric_kind
-from upf.plan import SequentialPlan, ActionInstance
+from upf.model.problem_kind import basic_classical_kind, classical_kind, full_numeric_kind
 
 
 class TestGrounder(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
+        
 
-    #TODO: add skipif
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
     def test_robot_decrease(self):
-        problem, plan = self.problems['robot_decrease']
+        problem, plan = self.problems['robot_int_battery']
         with Grounder(name='tarski_grounder') as grounder:
             grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
             for grounded_action in grounded_problem.actions():
@@ -47,8 +45,8 @@ class TestGrounder(TestCase):
                 with PlanValidator(problem_kind=problem.kind()) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
-    #TODO: write right skipif
-    @skipIfSolverNotAvailable('pyperplan')
+
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
     def test_tarski_grounder_mockup_problem(self):
         problem = Problem('mockup')
         Location = UserType('Location')

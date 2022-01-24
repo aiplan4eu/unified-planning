@@ -18,6 +18,7 @@
 
 
 from functools import partial
+import shutil
 from typing import Callable, Tuple, Dict, List
 import tarski # type: ignore
 import upf
@@ -67,16 +68,16 @@ class TarskiGrounder(Solver):
     def ground(self, problem: 'upf.model.Problem') -> Tuple['upf.model.Problem', Callable[[upf.plan.Plan], upf.plan.Plan]]:
         tarski_problem = upf.interop.convert_problem_to_tarski(problem)
         actions = None
-        state_variables = None
-        #TODO: understand when LP works and when not and use the problem_kind instead of try-catch
+        gringo = shutil.which('gringo')
+        if gringo is None:
+            raise tarski.errors.CommandNotFoundError('gringo not installed, try use sudo apt install gringo')
+        if problem.kind().has_continuous_numbers(): # type: ignore
+            raise upf.exceptions.UPFUsageError('tarski grounder can not be used for problems with continuous numbers.')
         try:
             lpgs = LPGroundingStrategy(tarski_problem)
             actions = lpgs.ground_actions()
-            state_variables = lpgs.ground_state_variables()
-        except:
-            ngs = NaiveGroundingStrategy(tarski_problem)
-            actions = ngs.ground_actions()
-            state_variables = ngs.ground_state_variables()
+        except tarski.errors.ReachabilityLPUnsolvable:
+            raise upf.exceptions.UPFUsageError('tarski grounder can not find a solvable grounding.')
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name(): fluent for fluent in problem.fluents()}
         objects = {object.name(): object for object in problem.all_objects()}
