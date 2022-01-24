@@ -17,7 +17,7 @@
 import upf
 from upf.shortcuts import *
 
-class environment:
+class ma_environment:
     def __init__(
             self,
             obs_fluents = None,
@@ -27,3 +27,16 @@ class environment:
             self.obs_fluents = []
         if actions is None:
             self.actions = []
+
+
+    def add_fluent(self, Fluent):
+        self.obs_fluents.append(Fluent)
+
+    def get_fluent(self):
+        return self.obs_fluents
+
+    def add_actions(self, Action):
+        self.actions.append(Action)
+
+    def get_actions(self):
+        return self.actions

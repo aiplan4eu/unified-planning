@@ -19,6 +19,7 @@ from upf.shortcuts import *
 from collections import namedtuple
 from agent import agent
 from ma_problem import MultiAgentProblem
+from ma_environment import ma_environment
 
 
 Example = namedtuple('Example', ['problem', 'plan'])
