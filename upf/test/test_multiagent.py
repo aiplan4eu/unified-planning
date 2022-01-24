@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# limitations under the License.
 
 
 import upf
@@ -32,8 +33,9 @@ def ma_example_problem():
 
     # Creation of the robot1 object and addition of fluents
     robot1 = agent()
-    robot1.add_fluents(robot_at)
-    robot1.add_fluents(battery_charge)
+    robot1.add_individual_fluent(robot_at)
+    robot1.add_individual_fluent(battery_charge)
+    robot1.add_public_fluent(cargo_at)
     #robot1.add_fluents(cargo_at)
 
     # Action move with its preconditions and effects
@@ -65,8 +67,8 @@ def ma_example_problem():
 
     # Creation of the robot2 object and addition of fluents
     robot2 = agent()
-    robot2.add_fluents(robot_at2)
-    robot2.add_fluents(battery_charge2)
+    robot2.add_individual_fluent(robot_at2)
+    robot2.add_individual_fluent(battery_charge2)
     #robot2.add_fluents(cargo_at2)
 
     # Action move2 with its preconditions and effects
@@ -102,6 +104,8 @@ def ma_example_problem():
     problem.set_initial_value(robot_at(l1), True)
     problem.set_initial_value(robot_at(l2), False)
     problem.set_initial_value(battery_charge, 100)
+    problem.set_initial_value(cargo_at(l1), False)
+    problem.set_initial_value(cargo_at(l2), True)
     problem.add_goal(robot_at(l2))
 
     #Robot2
@@ -124,4 +128,4 @@ def ma_example_problem():
 
 
 
-
+ma_example_problem()

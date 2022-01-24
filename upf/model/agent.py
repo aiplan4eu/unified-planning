@@ -21,24 +21,32 @@ class agent:
     def __init__(
             self,
             ID =  None,
-            obs_fluents = None,
+            obs_individual_fluents = None,
+            obs_public_fluents = None,
             actions = None,
             goals = None
     ):
-        self.ID = ID
-        if obs_fluents is None:
-            self.obs_fluents = []
+        self.ID =  ID
+        if obs_individual_fluents is None:
+            self.obs_individual_fluents = []
+        if obs_public_fluents is None:
+            self.obs_public_fluents = []
         if actions is None:
             self.actions = []
         if goals is None:
             self.goals = []
 
+    def add_individual_fluent(self, Fluent):
+        self.obs_individual_fluents.append(Fluent)
 
-    def add_fluents(self, Fluent):
-        self.obs_fluents.append(Fluent)
+    def get_individual_fluent(self):
+        return self.obs_individual_fluents
 
-    def get_fluents(self):
-        return self.obs_fluents
+    def add_public_fluent(self, Fluent):
+        self.obs_public_fluents.append(Fluent)
+
+    def get_public_fluent(self):
+        return self.obs_public_fluents
 
     def add_actions(self, Action):
         self.actions.append(Action)

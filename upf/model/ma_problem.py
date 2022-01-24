@@ -41,7 +41,9 @@ class MultiAgentProblem(Problem):
 
     def compile(self, problem ):
         for ag in problem.get_agent():
-            for flu in ag.get_fluents():
+            for flu in ag.get_individual_fluent():
+                problem.add_fluent(flu)
+            for flu in ag.get_public_fluent():
                 problem.add_fluent(flu)
             for act in ag.get_actions():
                 problem.add_action(act)
