@@ -84,7 +84,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
                     self.lang.get_sort(typename))
                 new_args.append(constant)
             elif x.is_real_constant():
-                raise upf.exception.UPFProblemDefinitionError('Fluents can not have reals into their signatures.')
+                raise upf.exceptions.UPFProblemDefinitionError('Fluents can not have reals into their signatures.')
             else:
                 new_args.append(args[i])
         return tarski_fluent_rep(*new_args)

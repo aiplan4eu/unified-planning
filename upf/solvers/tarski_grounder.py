@@ -59,10 +59,6 @@ class TarskiGrounder(Solver):
         supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
         supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
         return problem_kind <= supported_kind
 
     def ground(self, problem: 'upf.model.Problem') -> Tuple['upf.model.Problem', Callable[[upf.plan.Plan], upf.plan.Plan]]:
@@ -71,12 +67,10 @@ class TarskiGrounder(Solver):
         gringo = shutil.which('gringo')
         if gringo is None:
             raise tarski.errors.CommandNotFoundError('gringo not installed, try use sudo apt install gringo')
-        if problem.kind().has_continuous_numbers(): # type: ignore
-            raise upf.exceptions.UPFUsageError('tarski grounder can not be used for problems with continuous numbers.')
         try:
             lpgs = LPGroundingStrategy(tarski_problem)
             actions = lpgs.ground_actions()
-        except tarski.errors.ReachabilityLPUnsolvable:
+        except tarski.grounding.errors.ReachabilityLPUnsolvable:
             raise upf.exceptions.UPFUsageError('tarski grounder can not find a solvable grounding.')
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name(): fluent for fluent in problem.fluents()}
