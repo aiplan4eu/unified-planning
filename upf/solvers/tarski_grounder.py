@@ -58,7 +58,6 @@ class TarskiGrounder(Solver):
         supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
         supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
         return problem_kind <= supported_kind
 
     def ground(self, problem: 'upf.model.Problem') -> Tuple['upf.model.Problem', Callable[[upf.plan.Plan], upf.plan.Plan]]:
@@ -66,7 +65,7 @@ class TarskiGrounder(Solver):
         actions = None
         gringo = shutil.which('gringo')
         if gringo is None:
-            raise tarski.errors.CommandNotFoundError('gringo not installed, try use sudo apt install gringo')
+            raise tarski.errors.CommandNotFoundError('gringo')
         try:
             lpgs = LPGroundingStrategy(tarski_problem)
             actions = lpgs.ground_actions()

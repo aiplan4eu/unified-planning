@@ -25,7 +25,7 @@ from upf.plan import SequentialPlan, ActionInstance
 from upf.solvers import SequentialPlanValidator
 
 
-class TestGrounder(TestCase):
+class TestTarskiConverter(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()

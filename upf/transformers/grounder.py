@@ -18,7 +18,7 @@
 import upf
 from upf.exceptions import UPFUsageError
 from upf.plan import Plan
-from upf.model import Problem, Action, Type, Fluent, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
+from upf.model import Problem, Action, Type, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
 from upf.model.types import domain_size,  domain_item
 from upf.transformers.transformer import Transformer
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
@@ -116,11 +116,14 @@ class Grounder(Transformer):
                     self._map_old_to_new_action(old_action, new_action)
         return self._new_problem
 
-    def _create_effect_with_given_subs(self, old_effect: Effect, subs: Dict[Expression, Expression]) -> Effect:
+    def _create_effect_with_given_subs(self, old_effect: Effect, subs: Dict[Expression, Expression]) -> Optional[Effect]:
         new_fluent = self._substituter.substitute(old_effect.fluent(), subs)
         new_value = self._substituter.substitute(old_effect.value(), subs)
-        new_condition = self._substituter.substitute(old_effect.condition(), subs)
-        return Effect(new_fluent, new_value, new_condition, old_effect.kind())
+        new_condition = self._simplifier.simplify(self._substituter.substitute(old_effect.condition(), subs), self._problem)
+        if new_condition == self._env.expression_manager.FALSE():
+            return None
+        else:
+            return Effect(new_fluent, new_value, new_condition, old_effect.kind())
 
     def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Optional[Action]:
         naming_list: List[str] = []
@@ -133,7 +136,9 @@ class Grounder(Transformer):
             for p in old_action.preconditions():
                 new_action.add_precondition(self._substituter.substitute(p, subs))
             for e in old_action.effects():
-                new_action._add_effect_instance(self._create_effect_with_given_subs(e, subs))
+                new_effect = self._create_effect_with_given_subs(e, subs)
+                if new_effect is not None:
+                    new_action._add_effect_instance(new_effect)
             is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action, simplify_constants=True)
             if not is_feasible:
                 return None
@@ -150,7 +155,9 @@ class Grounder(Transformer):
                     new_durative_action.add_durative_condition(i, self._substituter.substitute(c, subs))
             for t, el in old_action.effects().items():
                 for e in el:
-                    new_durative_action._add_effect_instance(t, self._create_effect_with_given_subs(e, subs))
+                    new_effect = self._create_effect_with_given_subs(e, subs)
+                    if new_effect is not None:
+                        new_durative_action._add_effect_instance(t, new_effect)
             is_feasible, new_conditions = self._check_and_simplify_conditions_and_durative_conditions(new_durative_action, simplify_constants=True)
             if not is_feasible:
                 return None
