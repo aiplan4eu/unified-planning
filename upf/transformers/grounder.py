@@ -36,6 +36,14 @@ class Grounder(Transformer):
     '''
     def __init__(self, problem: Problem, name: str = 'grnd', \
             grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None):
+        '''This class transforms an upf problem into a grounded problem, with the method 
+        get_rewritten_problem(). The problem is given at creation time. 
+        The name is added in front of every grounded action and at the beginning of the problem's name.
+
+        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if 
+        it is given, it represents a map between an action of the original problem and a list of tuple 
+        of it's parameters. The resulting problem will have an action for every tuple in the map,
+        obtained by applying the action to the specific parameters of the tuple.'''
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
@@ -60,7 +68,12 @@ class Grounder(Transformer):
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
-        but every action is substituted by it's grounded derivates.'''
+        but every action is substituted by it's grounded derivates.
+        
+        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if 
+        it is given, it represents a map between an action of the original problem and a list of tuple 
+        of it's parameters. The resulting problem will have an action for every tuple in the map,
+        obtained by applying the action to the specific parameters of the tuple.'''
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
