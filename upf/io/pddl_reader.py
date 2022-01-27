@@ -105,7 +105,7 @@ class PDDLGrammar:
     @property
     def parameters(self):
         return self._parameters
-
+      
 
 class PDDLReader:
     """

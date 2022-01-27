@@ -35,10 +35,7 @@ class TypeChecker(walkers.DagWalker):
                                % str(expression))
         return res
 
-    def is_compatible_type(self, fluent_exp: FNode, value_exp: FNode) -> bool:
-        """Returns true iff the given expressions have compatible types."""
-        t_left = self.get_type(fluent_exp)
-        t_right = self.get_type(value_exp)
+    def is_compatible_type(self, t_left: 'upf.model.types.Type', t_right: 'upf.model.types.Type') -> bool:
         if t_left == t_right:
             return True
         if not ((t_left.is_int_type() and t_right.is_int_type()) or
@@ -53,6 +50,12 @@ class TypeChecker(walkers.DagWalker):
             return False
         else:
             return True
+
+    def is_compatible_exp(self, fluent_exp: FNode, value_exp: FNode) -> bool:
+        """Returns true iff the given expressions have compatible types."""
+        t_left = self.get_type(fluent_exp)
+        t_right = self.get_type(value_exp)
+        return self.is_compatible_type(t_left, t_right)
 
     @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF, op.EXISTS, op.FORALL)
     def walk_bool_to_bool(self, expression: FNode,
@@ -69,7 +72,7 @@ class TypeChecker(walkers.DagWalker):
         if len(args) != len(f.signature()):
             return None
         for (arg, p_type) in zip(args, f.signature()):
-            if arg != p_type:
+            if not self.is_compatible_type(arg, p_type):
                 return None
         return f.type()
 

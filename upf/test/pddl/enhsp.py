@@ -48,7 +48,8 @@ class ENHSP(PDDLSolver):
         supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
         supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore # type: ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
         return problem_kind <= supported_kind
 
 

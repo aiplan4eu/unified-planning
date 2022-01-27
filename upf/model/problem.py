@@ -109,7 +109,7 @@ class Problem:
             return False
         oth_initial_values = oth.initial_values()
         if len(self.initial_values()) != len(oth_initial_values):
-                return False
+            return False
         for fluent, value in self.initial_values().items():
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
@@ -125,7 +125,7 @@ class Problem:
             elif set(tel) != set(oth_tel):
                 return False
         if len(self._timed_goals) != len(oth._timed_goals):
-                return False
+            return False
         for t, tgl in self._timed_goals.items():
             oth_tgl = oth._timed_goals.get(t, None)
             if oth_tgl is None:
@@ -133,7 +133,7 @@ class Problem:
             elif set(tgl) != set(oth_tgl):
                 return False
         if len(self._maintain_goals) != len(oth._maintain_goals):
-                return False
+            return False
         for i, mgl in self._maintain_goals.items():
             oth_mgl = oth._maintain_goals.get(i, None)
             if oth_mgl is None:
@@ -377,7 +377,7 @@ class Problem:
                                        int, float, Fraction]):
         '''Sets the initial value for the given fluent.'''
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Initial value assignment has not compatible types!')
         if fluent_exp in self._initial_value:
             raise UPFProblemDefinitionError('Initial value already set!')
@@ -460,7 +460,7 @@ class Problem:
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing, upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
@@ -472,7 +472,7 @@ class Problem:
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,
@@ -486,7 +486,7 @@ class Problem:
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,
@@ -532,7 +532,8 @@ class Problem:
         '''Adds a goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        self._goals.append(goal_exp)
+        if goal_exp != self._env.expression_manager.TRUE():
+            self._goals.append(goal_exp)
 
     def goals(self) -> List['upf.model.fnode.FNode']:
         '''Returns the goals.'''
@@ -608,6 +609,10 @@ class Problem:
 
     def _update_problem_kind_fluent(self, fluent: 'upf.model.fluent.Fluent'):
         self._update_problem_kind_type(fluent.type())
+        if fluent.type().is_int_type() or fluent.type().is_real_type():
+            self._kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+        elif fluent.type().is_user_type():
+            self._kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
         for t in fluent.signature():
             self._update_problem_kind_type(t)
 

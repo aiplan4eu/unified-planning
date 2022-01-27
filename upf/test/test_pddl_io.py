@@ -272,9 +272,10 @@ class TestPddlIO(TestCase):
     def test_examples_io(self):
         for example in self.problems.values():
             problem = example.problem
-            if problem.kind().has_intermediate_conditions_and_effects():
+            kind = problem.kind()
+            if kind.has_intermediate_conditions_and_effects() or \
+                kind.has_object_fluents():
                 continue
-
             with tempfile.TemporaryDirectory() as tempdir:
                 domain_filename = os.path.join(tempdir, 'domain.pddl')
                 problem_filename = os.path.join(tempdir, 'problem.pddl')

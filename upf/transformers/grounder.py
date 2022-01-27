@@ -18,13 +18,13 @@
 import upf
 from upf.exceptions import UPFUsageError
 from upf.plan import Plan
-from upf.model import Problem, Action, Type, Object, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
+from upf.model import Problem, Action, Type, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
 from upf.model.types import domain_size,  domain_item
 from upf.transformers.transformer import Transformer
 from upf.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from upf.walkers import Substituter
 from itertools import product
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 
 class Grounder(Transformer):
@@ -34,7 +34,16 @@ class Grounder(Transformer):
     resulting problem will not have lifted actions anymore,
     but only grounded actions.
     '''
-    def __init__(self, problem: Problem, name: str = 'grnd'):
+    def __init__(self, problem: Problem, name: str = 'grnd', \
+            grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None):
+        '''This class transforms an upf problem into a grounded problem, with the method 
+        get_rewritten_problem(). The problem is given at creation time. 
+        The name is added in front of every grounded action and at the beginning of the problem's name.
+
+        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if 
+        it is given, it represents a map between an action of the original problem and a list of tuple 
+        of it's parameters. The resulting problem will have an action for every tuple in the map,
+        obtained by applying the action to the specific parameters of the tuple.'''
         Transformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
@@ -43,6 +52,7 @@ class Grounder(Transformer):
         self._substituter = Substituter(self._problem.env)
         #this data structure maps the grounded action with the objects the action grounds
         self._map_parameters: Dict[Action, List[FNode]] = {}
+        self._grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = grounding_actions_map
 
     def get_rewrite_back_map(self) -> Dict[Action, Tuple[Action, List[FNode]]]:
         '''Returns a map from an action of the grounded problem to the
@@ -58,7 +68,12 @@ class Grounder(Transformer):
 
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
-        but every action is substituted by it's grounded derivates.'''
+        but every action is substituted by it's grounded derivates.
+        
+        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if 
+        it is given, it represents a map between an action of the original problem and a list of tuple 
+        of it's parameters. The resulting problem will have an action for every tuple in the map,
+        obtained by applying the action to the specific parameters of the tuple.'''
         if self._new_problem is not None:
             return self._new_problem
         #NOTE that a different environment might be needed when multi-threading
@@ -70,29 +85,39 @@ class Grounder(Transformer):
             type_list: List[Type] = [param.type() for param in old_action.parameters()]
             #if the action does not have parameters, it does not need to be grounded.
             if len(type_list) == 0:
-                new_action = old_action.clone()
-                self._new_problem.add_action(new_action)
-                self._new_to_old[new_action] = old_action
-                self._old_to_new[old_action] = [new_action]
+                if self._grounding_actions_map is None or \
+                    self._grounding_actions_map.get(old_action, None) is not None:
+                    new_action = old_action.clone()
+                    self._new_problem.add_action(new_action)
+                    self._new_to_old[new_action] = old_action
+                    self._map_parameters[new_action] = []
+                    self._old_to_new[old_action] = [new_action]
                 continue
-            # a list containing the list of object in the problem of the given type.
-            # So, if the problem has 2 Locations l1 and l2, and 2 Robots r1 and r2, and
-            # the action move_to takes as parameters a Robot and a Location,
-            # the variable state at this point will be the following:
-            # type_list = [Robot, Location]
-            # objects_list = [[r1, r2], [l1, l2]]
-            # the product of *objects_list will be:
-            # [(r1, l1), (r1, l2), (r2, l1), (r2,l2)]
-            ground_size = 1
-            domain_sizes = []
-            for t in type_list:
-                ds = domain_size(self._new_problem, t)
-                domain_sizes.append(ds)
-                ground_size *= ds
-            items_list: List[List[FNode]] = []
-            for size, type in zip(domain_sizes, type_list):
-                items_list.append([domain_item(self._new_problem, type, j) for j in range(size)])
-            for grounded_params in product(*items_list):
+            grounded_params_list: Optional[Iterator[Tuple[FNode, ...]]] = None
+            if self._grounding_actions_map is None:
+                # a list containing the list of object in the problem of the given type.
+                # So, if the problem has 2 Locations l1 and l2, and 2 Robots r1 and r2, and
+                # the action move_to takes as parameters a Robot and a Location,
+                # the variable state at this point will be the following:
+                # type_list = [Robot, Location]
+                # objects_list = [[r1, r2], [l1, l2]]
+                # the product of *objects_list will be:
+                # [(r1, l1), (r1, l2), (r2, l1), (r2,l2)]
+                ground_size = 1
+                domain_sizes = []
+                for t in type_list:
+                    ds = domain_size(self._new_problem, t)
+                    domain_sizes.append(ds)
+                    ground_size *= ds
+                items_list: List[List[FNode]] = []
+                for size, type in zip(domain_sizes, type_list):
+                    items_list.append([domain_item(self._new_problem, type, j) for j in range(size)])
+                grounded_params_list = product(*items_list)
+            else:
+                # The grounding_actions_map is not None, therefore it must be used to ground
+                grounded_params_list = iter(self._grounding_actions_map[old_action])
+            assert grounded_params_list is not None
+            for grounded_params in grounded_params_list:
                 subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(grounded_params)))
                 new_action = self._create_action_with_given_subs(old_action, subs)
                 #when the action is None it means it is not feasible,
@@ -104,11 +129,14 @@ class Grounder(Transformer):
                     self._map_old_to_new_action(old_action, new_action)
         return self._new_problem
 
-    def _create_effect_with_given_subs(self, old_effect: Effect, subs: Dict[Expression, Expression]) -> Effect:
+    def _create_effect_with_given_subs(self, old_effect: Effect, subs: Dict[Expression, Expression]) -> Optional[Effect]:
         new_fluent = self._substituter.substitute(old_effect.fluent(), subs)
         new_value = self._substituter.substitute(old_effect.value(), subs)
-        new_condition = self._substituter.substitute(old_effect.condition(), subs)
-        return Effect(new_fluent, new_value, new_condition, old_effect.kind())
+        new_condition = self._simplifier.simplify(self._substituter.substitute(old_effect.condition(), subs), self._problem)
+        if new_condition == self._env.expression_manager.FALSE():
+            return None
+        else:
+            return Effect(new_fluent, new_value, new_condition, old_effect.kind())
 
     def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Optional[Action]:
         naming_list: List[str] = []
@@ -121,7 +149,9 @@ class Grounder(Transformer):
             for p in old_action.preconditions():
                 new_action.add_precondition(self._substituter.substitute(p, subs))
             for e in old_action.effects():
-                new_action._add_effect_instance(self._create_effect_with_given_subs(e, subs))
+                new_effect = self._create_effect_with_given_subs(e, subs)
+                if new_effect is not None:
+                    new_action._add_effect_instance(new_effect)
             is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action, simplify_constants=True)
             if not is_feasible:
                 return None
@@ -138,7 +168,9 @@ class Grounder(Transformer):
                     new_durative_action.add_durative_condition(i, self._substituter.substitute(c, subs))
             for t, el in old_action.effects().items():
                 for e in el:
-                    new_durative_action._add_effect_instance(t, self._create_effect_with_given_subs(e, subs))
+                    new_effect = self._create_effect_with_given_subs(e, subs)
+                    if new_effect is not None:
+                        new_durative_action._add_effect_instance(t, new_effect)
             is_feasible, new_conditions = self._check_and_simplify_conditions_and_durative_conditions(new_durative_action, simplify_constants=True)
             if not is_feasible:
                 return None

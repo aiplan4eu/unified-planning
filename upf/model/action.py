@@ -194,6 +194,8 @@ class InstantaneousAction(Action):
         """Adds the given action precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
+        if precondition_exp == self._env.expression_manager.TRUE():
+            return
         free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)
         if len(free_vars) != 0:
             raise UPFUnboundedVariablesError(f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}")
@@ -207,7 +209,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
@@ -218,7 +220,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = upf.model.effect.INCREASE))
 
@@ -229,7 +231,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(upf.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = upf.model.effect.DECREASE))
 
@@ -465,7 +467,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing, upf.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
@@ -476,7 +478,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,
@@ -489,7 +491,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPFTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPFTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   upf.model.effect.Effect(fluent_exp, value_exp,

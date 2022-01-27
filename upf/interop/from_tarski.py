@@ -20,8 +20,9 @@ from upf.exceptions import UPFProblemDefinitionError
 from upf.environment import Environment
 from collections import OrderedDict
 from typing import Union, Dict
+from tarski.syntax import Interval # type: ignore
 from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
-from tarski.syntax.formulas import Tautology, Contradiction # type: ignore
+from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
 from tarski.syntax.terms import Term, CompoundTerm, BuiltinPredicateSymbol # type: ignore
 from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol # type: ignore
 from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type: ignore
@@ -89,13 +90,37 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.Fluen
     elif isinstance(formula, Constant):
         if formula.sort.name == 'number':
             return em.Real(Fraction(float(formula.name)))
+        elif isinstance(formula.sort, tarski.syntax.Interval):
+            if formula.sort.language.is_subtype(\
+                formula.sort, formula.sort.language.Integer)\
+                or formula.sort.language.is_subtype(\
+                    formula.sort, formula.sort.language.Natural):
+                return em.Int(int(formula.name))
+            elif formula.sort.language.is_subtype(\
+                formula.sort, formula.sort.language.Real):
+                return em.Real(Fraction(float(formula.name)))
+            else:
+                raise NotImplementedError
         elif formula.name in objects:
             return em.ObjectExp(objects[formula.name])
         else:
-            raise UPFProblemDefinitionError(symbol + ' not supported!')
+            raise UPFProblemDefinitionError(formula + ' not supported!')
     elif isinstance(formula, Variable):
-        assert formula.symbol in action_parameters
-        return em.ParameterExp(action_parameters[formula.symbol])
+        if formula.symbol in action_parameters:
+            return em.ParameterExp(action_parameters[formula.symbol])
+        else:
+            return em.VariableExp(upf.model.Variable(formula.symbol, \
+                env.type_manager.UserType(formula.sort.name)))
+    elif isinstance(formula, QuantifiedFormula):
+        expression = convert_tarski_formula(env, fluents, objects, action_parameters, formula.formula)
+        variables = [upf.model.Variable(v.symbol, env.type_manager.UserType(v.sort.name)) \
+            for v in formula.variables]
+        if formula.quantifier == Quantifier.Exists:
+            return em.Exists(expression, *variables)
+        elif formula.quantifier == Quantifier.Forall:
+            return em.Forall(expression, *variables)
+        else:
+            raise NotImplementedError
     elif isinstance(formula, Tautology):
         return em.TRUE()
     elif isinstance(formula, Contradiction):
@@ -104,7 +129,7 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'upf.model.Fluen
         raise UPFProblemDefinitionError(str(formula) + ' not supported!')
 
 
-def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'upf.model.Problem':
+def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'upf.model.Problem':
     """Converts a tarski problem in a upf.Problem."""
     em = env.expression_manager
     tm = env.type_manager
@@ -114,7 +139,23 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
     # Convert types
     types = {}
     for t in lang.sorts:
-        types[str(t.name)] = tm.UserType(str(t.name))
+        if isinstance(t, Interval):
+            if t == lang.Integer:
+                types[str(t.name)] = tm.IntType()
+            elif t == lang.Natural:
+                types[str(t.name)] = tm.IntType(lower_bound=0)
+            elif t == lang.Real:
+                types[str(t.name)] = tm.RealType()
+            elif t.encode == lang.Integer.encode:
+                types[str(t.name)] = tm.IntType(t.lower_bound, t.upper_bound)
+            elif t.encode == lang.Natural.encode:
+                types[str(t.name)] = tm.IntType(0, t.upper_bound)
+            elif t.encode == lang.Real.encode:
+                types[str(t.name)] = tm.RealType(t.lower_bound, t.upper_bound)
+            else:
+                raise NotImplementedError
+        else:
+            types[str(t.name)] = tm.UserType(str(t.name))
 
     # Convert predicates and functions
     fluents = {}
@@ -133,7 +174,26 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         signature = []
         for t in p.domain:
             signature.append(types[str(t.name)])
-        fluent = upf.model.Fluent(p.name, tm.RealType(), signature)
+        func_sort = p.sort[-1]
+        fluent = None # type: ignore
+        if isinstance(func_sort, Interval):
+            if func_sort.encode == lang.Real.encode:
+                if func_sort.name == 'Real' or func_sort.name == 'number':
+                    fluent = upf.model.Fluent(p.name, tm.RealType(), signature)
+                else:
+                    fluent = upf.model.Fluent(p.name, tm.RealType(lower_bound=\
+                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature)
+            else:
+                assert func_sort.encode == lang.Integer.encode or func_sort.encode == lang.Natural.encode
+                if func_sort.name == 'Integer':
+                    fluent = upf.model.Fluent(p.name, tm.IntType(), signature)
+                elif func_sort.name == 'Natual':
+                    fluent = upf.model.Fluent(p.name, tm.IntType(lower_bound=0), signature)
+                else:
+                    fluent = upf.model.Fluent(p.name, tm.IntType(lower_bound=\
+                        func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
+        else:
+            fluent = upf.model.Fluent(p.name, tm.UserType(func_sort.name), signature)
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
 
@@ -157,16 +217,17 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
         f = convert_tarski_formula(env, fluents, objects, action_parameters, a.precondition)
         action.add_precondition(f)
         for eff in a.effects:
+            condition = convert_tarski_formula(env, fluents, objects, action_parameters, eff.condition)
             if isinstance(eff, AddEffect):
                 f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
-                action.add_effect(f, True)
+                action.add_effect(f, True, condition)
             elif isinstance(eff, DelEffect):
                 f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
-                action.add_effect(f, False)
+                action.add_effect(f, False, condition)
             elif isinstance(eff, FunctionalEffect):
                 lhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.lhs)
                 rhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.rhs)
-                action.add_effect(lhs, rhs)
+                action.add_effect(lhs, rhs, condition)
             else:
                 raise UPFProblemDefinitionError(eff + ' not supported!')
         problem.add_action(action)
@@ -181,6 +242,8 @@ def convert_tarski_problem(env: Environment, tarski_problem: tarski.fstrips.Prob
             default_value = em.Real(Fraction(0))
         elif fluent.type().is_int_type():
             default_value = em.Int(0)
+        elif fluent.type().is_user_type():
+            continue
         if len(l) == 0:
             initial_values[em.FluentExp(fluent)] = default_value
         else:
