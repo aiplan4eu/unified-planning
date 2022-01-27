@@ -1,10 +1,10 @@
-# The AIPlan4EU Unified Planning Framework
+# The AIPlan4EU Unified Planning Library
 
 [![Actions Status](https://github.com/aiplan4eu/upf/actions/workflows/main.yml/badge.svg)](https://github.com/aiplan4eu/upf/actions)
 [![Coverage Status](https://codecov.io/gh/aiplan4eu/upf/branch/master/graph/badge.svg?token=GBM7HYNDRB)](https://codecov.io/gh/aiplan4eu/upf)
 [![Documentation Status](https://readthedocs.org/projects/upf/badge/?version=latest)](https://upf.readthedocs.io/en/latest/)
 
-The UPF library makes it easy to formulate planning problems and to invoke automated planners.
+The unified_planning library makes it easy to formulate planning problems and to invoke automated planners.
 
 * Define problems in a *simple*, *intuitive*, and *planner independent* way
 * Solve your planning problems using one of the native solvers, or by using any PDDL planner
@@ -15,7 +15,7 @@ The UPF library makes it easy to formulate planning problems and to invoke autom
 
 ## Usage
 ```python
-from upf.shortcuts import *
+from unified_planning.shortcuts import *
 
 x = Fluent('x')
 
