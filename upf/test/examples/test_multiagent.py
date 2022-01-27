@@ -17,26 +17,26 @@
 import upf
 from upf.shortcuts import *
 from collections import namedtuple
-from agent import agent
+from agent import Agent
 from ma_problem import MultiAgentProblem
-from ma_environment import ma_environment
 
 
 Example = namedtuple('Example', ['problem', 'plan'])
 
 def ma_example_problem():
     problems = {}
-
     Location = UserType('Location')
     robot_at = Fluent('robot_at', BoolType(), [Location])
+
     battery_charge = Fluent('battery_charge', RealType(0, 100))
     cargo_at = Fluent('cargo_at', BoolType(), [Location])
 
     # Creation of the robot1 object and addition of fluents
-    robot1 = agent()
+    robot1 = Agent()
     robot1.add_individual_fluent(robot_at)
     robot1.add_individual_fluent(battery_charge)
     robot1.add_public_fluent(cargo_at)
+    robot1.add_location(Location)
     #robot1.add_fluents(cargo_at)
 
     # Action move with its preconditions and effects
@@ -54,26 +54,28 @@ def ma_example_problem():
     l2 = Object('l2', Location)
 
     # Adding goals
-    robot1.add_goals(l1)
-    robot1.add_goals(l2)
+    robot1.add_goal(l1)
+    robot1.add_goal(l2)
 
     # Add action with associated preconditions and effects
-    robot1.add_actions(move)
+    robot1.add_action(move)
 
     ######################################ROBOT2######################################
     Location2 = UserType('Location2')
     robot_at2 = Fluent('robot_at2', BoolType(), [Location2])
-    battery_charge2 = Fluent('battery_charge2', RealType(0, 100))
-    cargo_at2 = Fluent('cargo_at2', BoolType(), [Location2])
+    #battery_charge2 = Fluent('battery_charge', RealType(0, 100))
+    #cargo_at2 = Fluent('cargo_at2', BoolType(), [Location2])
 
     # Creation of the robot2 object and addition of fluents
-    robot2 = agent()
+    robot2 = Agent()
     robot2.add_individual_fluent(robot_at2)
-    robot2.add_individual_fluent(battery_charge2)
+
+    robot2.add_individual_fluent(battery_charge)
+    robot2.add_location(Location2)
     #robot2.add_fluents(cargo_at2)
 
     # Action move2 with its preconditions and effects
-    move2 = InstantaneousAction('move_2', l_from=Location2, l_to=Location2)
+    '''move2 = InstantaneousAction('move2', l_from=Location2, l_to=Location2)
     l_from = move2.parameter('l_from')
     l_to = move2.parameter('l_to')
     move2.add_precondition(GE(battery_charge2, 10))
@@ -82,44 +84,45 @@ def ma_example_problem():
     move2.add_precondition(Not(robot_at2(l_to)))
     move2.add_effect(robot_at2(l_from), False)
     move2.add_effect(robot_at2(l_to), True)
-    move2.add_effect(battery_charge2, Minus(battery_charge2, 10))
+    move2.add_effect(battery_charge2, Minus(battery_charge2, 10))'''
     l1_2 = Object('l1_1', Location2)
     l2_2 = Object('l2_2', Location2)
 
     # Adding goals
-    robot2.add_goals(l1_2)
-    robot2.add_goals(l2_2)
+    robot2.add_goal(l1_2)
+    robot2.add_goal(l2_2)
 
     # Add action with associated preconditions and effects
-    robot2.add_actions(move2)
+    robot2.add_action(move)
+
 
     ######################################Problem######################################
-    problem = MultiAgentProblem('robots')
+    ma_problem = MultiAgentProblem('robots')
 
-    problem.add_agent(robot1)
-    problem.add_agent(robot2)
+    ma_problem.add_agent(robot1)
+    ma_problem.add_agent(robot2)
 
+    problem = ma_problem.compile()
     #Robot1
-    problem.add_object(l1)
-    problem.add_object(l2)
-    problem.set_initial_value(robot_at(l1), True)
-    problem.set_initial_value(robot_at(l2), False)
-    problem.set_initial_value(battery_charge, 100)
-    problem.set_initial_value(cargo_at(l1), False)
-    problem.set_initial_value(cargo_at(l2), True)
-    problem.add_goal(robot_at(l2))
+    ma_problem.add_object(l1)
+    ma_problem.add_object(l2)
+    ma_problem.set_initial_value(robot_at(l1), True)
+    ma_problem.set_initial_value(robot_at(l2), False)
+    ma_problem.set_initial_value(battery_charge, 100)
+    ma_problem.set_initial_value(cargo_at(l1), False)
+    ma_problem.set_initial_value(cargo_at(l2), True)
+    ma_problem.add_goal(robot_at(l2))
 
     #Robot2
-    problem.add_object(l1_2)
-    problem.add_object(l2_2)
-    problem.set_initial_value(robot_at2(l1_2), True)
-    problem.set_initial_value(robot_at2(l2_2), False)
-    problem.set_initial_value(battery_charge2, 80)
-    problem.add_goal(robot_at2(l2_2))
+    ma_problem.add_object(l1_2)
+    ma_problem.add_object(l2_2)
+    ma_problem.set_initial_value(robot_at2(l1_2), True)
+    ma_problem.set_initial_value(robot_at2(l2_2), False)
+    ma_problem.set_initial_value(battery_charge, 80)
+    ma_problem.add_goal(robot_at2(l2_2))
 
 
-    problem.compile(problem)
-    plan = problem.solve_compile(problem)
+    plan = problem.solve_compile()
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
@@ -130,3 +133,41 @@ def ma_example_problem():
 
 
 ma_example_problem()
+
+################################################SINGLE_AGENT################################################
+def get_example_single_agent():
+    problems = {}
+
+    # robot
+    Location = UserType('Location')
+    robot_at = Fluent('robot_at', BoolType(), [Location])
+    battery_charge = Fluent('battery_charge', RealType(0, 100))
+    move = InstantaneousAction('move', l_from=Location, l_to=Location)
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(GE(battery_charge, 10))
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(robot_at(l_from))
+    move.add_precondition(Not(robot_at(l_to)))
+    move.add_effect(robot_at(l_from), False)
+    move.add_effect(robot_at(l_to), True)
+    move.add_effect(battery_charge, Minus(battery_charge, 10))
+    l1 = Object('l1', Location)
+    l2 = Object('l2', Location)
+    problem = Problem('robot')
+    problem.add_fluent(robot_at)
+    problem.add_fluent(battery_charge)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.set_initial_value(robot_at(l1), True)
+    problem.set_initial_value(robot_at(l2), False)
+    problem.set_initial_value(battery_charge, 100)
+    problem.add_goal(robot_at(l2))
+    plan = upf.plan.SequentialPlan([upf.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
+    robot = Example(problem=problem, plan=plan)
+    problems['robot'] = robot
+    print(problems)
+
+
+    return problems

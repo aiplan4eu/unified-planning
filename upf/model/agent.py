@@ -17,14 +17,15 @@ import upf
 from upf.shortcuts import *
 
 
-class agent:
+class Agent:
     def __init__(
             self,
             ID =  None,
             obs_individual_fluents = None,
             obs_public_fluents = None,
             actions = None,
-            goals = None
+            goals = None,
+            location = None
     ):
         self.ID =  ID
         if obs_individual_fluents is None:
@@ -35,27 +36,37 @@ class agent:
             self.actions = []
         if goals is None:
             self.goals = []
+        if location is None:
+            self.location = []
 
     def add_individual_fluent(self, Fluent):
+        #idx = len(self.obs_individual_fluents)
+        #setattr(Fluent, '_name', str(Fluent._name) + (self.ID))
         self.obs_individual_fluents.append(Fluent)
 
-    def get_individual_fluent(self):
+    def get_individual_fluents(self):
         return self.obs_individual_fluents
 
     def add_public_fluent(self, Fluent):
         self.obs_public_fluents.append(Fluent)
 
-    def get_public_fluent(self):
+    def get_public_fluents(self):
         return self.obs_public_fluents
 
-    def add_actions(self, Action):
+    def add_action(self, Action):
         self.actions.append(Action)
 
     def get_actions(self):
         return self.actions
 
-    def add_goals(self, Goal):
+    def add_goal(self, Goal):
         self.goals.append(ObjectExp(Goal))
 
     def get_goals(self):
         return self.goals
+
+    def add_location(self, Location):
+        self.location.append(Location)
+
+    def get_location(self):
+        return self.location
