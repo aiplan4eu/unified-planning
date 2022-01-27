@@ -115,7 +115,7 @@ class Grounder(Transformer):
                 grounded_params_list = product(*items_list)
             else:
                 # The grounding_actions_map is not None, therefore it must be used to ground
-                grounded_params_list = _create_generator_from_list_of_tuple(self._grounding_actions_map[old_action])
+                grounded_params_list = iter(self._grounding_actions_map[old_action])
             assert grounded_params_list is not None
             for grounded_params in grounded_params_list:
                 subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(grounded_params)))
@@ -236,7 +236,3 @@ class Grounder(Transformer):
             new_name = f'{base_name}_{str(count)}'
             count += 1
         return new_name
-
-def _create_generator_from_list_of_tuple(tuple_list: List[Tuple[FNode, ...]]):
-    for tup in tuple_list:
-        yield tup
