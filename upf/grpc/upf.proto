@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+message Fluent {
+    string name = 1;
+    string valueType = 2;
+    repeated string signature = 3;
+}
+
+message Object {
+    string name = 1;
+    string type = 2; 
+}
+
+message Expression {
+    int64 type = 1;
+    repeated Expression args = 2;
+    Payload payload = 3;
+}
+
+message Assignment {
+    Expression x = 1;
+    Expression v = 2;
+}
+
+message Payload {
+    string type = 1;
+    string value = 2;
+}
+
+message Action {
+    string name = 1;
+    repeated string parameters = 2;
+    repeated string parameterTypes = 3;
+    repeated Expression preconditions = 4;
+    repeated Assignment effects = 5;
+}
+
+message Problem {
+    string name = 1;
+    repeated Fluent fluents = 2;
+    repeated Object objects = 3;
+    repeated Action actions = 4;
+    repeated Assignment initialState = 5;
+    repeated Expression goals = 6;
+}
+
+message ActionInstance {
+    Action action = 1;
+    repeated Expression parameters = 2;
+}
+
+message SequentialPlan {
+    repeated ActionInstance actions = 1;
+}
+
+message Answer {
+    int32 status = 1;
+    SequentialPlan plan = 2;
+}
+
+service Upf {
+    rpc plan(Problem) returns(Answer);
+} 
