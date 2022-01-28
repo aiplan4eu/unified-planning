@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from typing import List
 import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 from unified_planning.grpc.converter import Converter, handles
 import unified_planning.model
@@ -91,7 +92,8 @@ class FromProtobufConverter(Converter):
         for i in range(len(msg.parameters)):
             p_name = msg.parameters[i]
             t_name = msg.parameterTypes[i]
-            if t_name not in problem.user_types().keys():
+            types_names: List[str] = [t.name() for t in problem.user_types()]
+            if t_name not in types_names:
                 raise ValueError("Unknown type: " + msg.signatures[i])
             op_sig[p_name] = problem.user_type(t_name) # TODO: deal with non user-defined types
 
