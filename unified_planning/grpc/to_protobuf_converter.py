@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import unified_planning.grpc.generated.up_pb2 as up_pb2
+import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 from unified_planning.grpc.converter import Converter, handles
 import unified_planning.model
 import unified_planning.plan

@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 import grpc  # type: ignore
-import unified_planning.grpc.generated.up_pb2_grpc as up_pb2_grpc
+import unified_planning.grpc.generated.unified_planning_pb2_grpc as up_pb2_grpc
 from unified_planning.grpc.from_protobuf_converter import FromProtobufConverter
 from unified_planning.grpc.to_protobuf_converter import ToProtobufConverter
 
@@ -27,7 +27,7 @@ class UpGrpcClient:
 
     def __call__(self, problem):
         with grpc.insecure_channel('%s:%d' % (self.host, self.port)) as channel:
-            stub = up_pb2_grpc.UpStub(channel)
+            stub = up_pb2_grpc.UnifiedPlanningStub(channel)
             req = self.to_protobuf.convert(problem)
 
             answer = stub.plan(req)

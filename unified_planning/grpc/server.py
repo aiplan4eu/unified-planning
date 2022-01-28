@@ -16,12 +16,12 @@ from concurrent import futures
 import grpc # type: ignore
 
 from unified_planning.shortcuts import *
-import unified_planning.grpc.generated.up_pb2_grpc as up_pb2_grpc
+import unified_planning.grpc.generated.unified_planning_pb2_grpc as up_pb2_grpc
 from unified_planning.grpc.from_protobuf_converter import FromProtobufConverter
 from unified_planning.grpc.to_protobuf_converter import ToProtobufConverter
 
 
-class UpGrpcServer(up_pb2_grpc.UpServicer):
+class UpGrpcServer(up_pb2_grpc.UnifiedPlanningServicer):
     def __init__(self, port):
         self.server = None
         self.port = port
@@ -39,7 +39,7 @@ class UpGrpcServer(up_pb2_grpc.UpServicer):
 
     def start(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        up_pb2_grpc.add_UpServicer_to_server(
+        up_pb2_grpc.add_UnifiedPlanningServicer_to_server(
             self, self.server)
         self.server.add_insecure_port('0.0.0.0:%d' % self.port)
         self.server.start()

@@ -15,11 +15,11 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='unified_planning.proto',
-  package='up_plan',
+  package='',
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\tunified_planning.proto\x12\x08up_plan\"<\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tvalueType\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x03(\t\"$\n\x06Object\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"b\n\nExpression\x12\x0c\n\x04type\x18\x01 \x01(\x03\x12\"\n\x04\x61rgs\x18\x02 \x03(\x0b\x32\x14.up_plan.Expression\x12\"\n\x07payload\x18\x03 \x01(\x0b\x32\x11.up_plan.Payload\"N\n\nAssignment\x12\x1f\n\x01x\x18\x01 \x01(\x0b\x32\x14.up_plan.Expression\x12\x1f\n\x01v\x18\x02 \x01(\x0b\x32\x14.up_plan.Expression\"&\n\x07Payload\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x96\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nparameters\x18\x02 \x03(\t\x12\x16\n\x0eparameterTypes\x18\x03 \x03(\t\x12+\n\rpreconditions\x18\x04 \x03(\x0b\x32\x14.up_plan.Expression\x12%\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x14.up_plan.Assignment\"\xd1\x01\n\x07Problem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12!\n\x07\x66luents\x18\x02 \x03(\x0b\x32\x10.up_plan.Fluent\x12!\n\x07objects\x18\x03 \x03(\x0b\x32\x10.up_plan.Object\x12!\n\x07\x61\x63tions\x18\x04 \x03(\x0b\x32\x10.up_plan.Action\x12*\n\x0cinitialState\x18\x05 \x03(\x0b\x32\x14.up_plan.Assignment\x12#\n\x05goals\x18\x06 \x03(\x0b\x32\x14.up_plan.Expression\"\\\n\x0e\x41\x63tionInstance\x12 \n\x06\x61\x63tion\x18\x01 \x01(\x0b\x32\x10.up_plan.Action\x12(\n\nparameters\x18\x02 \x03(\x0b\x32\x14.up_plan.Expression\";\n\x0eSequentialPlan\x12)\n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x18.up_plan.ActionInstance\"@\n\x06\x41nswer\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12&\n\x04plan\x18\x02 \x01(\x0b\x32\x18.up_plan.SequentialPlan22\n\x03UnifiedPlanning\x12+\n\x04plan\x12\x11.up_plan.Problem\x1a\x10.up_plan.Answerb\x06proto3'
+  serialized_pb=b'\n\x16unified_planning.proto\"<\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x11\n\tvalueType\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x03(\t\"$\n\x06Object\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"P\n\nExpression\x12\x0c\n\x04type\x18\x01 \x01(\x03\x12\x19\n\x04\x61rgs\x18\x02 \x03(\x0b\x32\x0b.Expression\x12\x19\n\x07payload\x18\x03 \x01(\x0b\x32\x08.Payload\"<\n\nAssignment\x12\x16\n\x01x\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x16\n\x01v\x18\x02 \x01(\x0b\x32\x0b.Expression\"&\n\x07Payload\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\"\x84\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nparameters\x18\x02 \x03(\t\x12\x16\n\x0eparameterTypes\x18\x03 \x03(\t\x12\"\n\rpreconditions\x18\x04 \x03(\x0b\x32\x0b.Expression\x12\x1c\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x0b.Assignment\"\xa4\x01\n\x07Problem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x18\n\x07\x66luents\x18\x02 \x03(\x0b\x32\x07.Fluent\x12\x18\n\x07objects\x18\x03 \x03(\x0b\x32\x07.Object\x12\x18\n\x07\x61\x63tions\x18\x04 \x03(\x0b\x32\x07.Action\x12!\n\x0cinitialState\x18\x05 \x03(\x0b\x32\x0b.Assignment\x12\x1a\n\x05goals\x18\x06 \x03(\x0b\x32\x0b.Expression\"J\n\x0e\x41\x63tionInstance\x12\x17\n\x06\x61\x63tion\x18\x01 \x01(\x0b\x32\x07.Action\x12\x1f\n\nparameters\x18\x02 \x03(\x0b\x32\x0b.Expression\"2\n\x0eSequentialPlan\x12 \n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x0f.ActionInstance\"7\n\x06\x41nswer\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x1d\n\x04plan\x18\x02 \x01(\x0b\x32\x0f.SequentialPlan2,\n\x0fUnifiedPlanning\x12\x19\n\x04plan\x12\x08.Problem\x1a\x07.Answerb\x06proto3'
 )
 
 
@@ -27,28 +27,28 @@ DESCRIPTOR = _descriptor.FileDescriptor(
 
 _FLUENT = _descriptor.Descriptor(
   name='Fluent',
-  full_name='up_plan.Fluent',
+  full_name='Fluent',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='up_plan.Fluent.name', index=0,
+      name='name', full_name='Fluent.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='valueType', full_name='up_plan.Fluent.valueType', index=1,
+      name='valueType', full_name='Fluent.valueType', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='signature', full_name='up_plan.Fluent.signature', index=2,
+      name='signature', full_name='Fluent.signature', index=2,
       number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -66,28 +66,28 @@ _FLUENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=23,
-  serialized_end=83,
+  serialized_start=26,
+  serialized_end=86,
 )
 
 
 _OBJECT = _descriptor.Descriptor(
   name='Object',
-  full_name='up_plan.Object',
+  full_name='Object',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='up_plan.Object.name', index=0,
+      name='name', full_name='Object.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='type', full_name='up_plan.Object.type', index=1,
+      name='type', full_name='Object.type', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -105,35 +105,35 @@ _OBJECT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=85,
-  serialized_end=121,
+  serialized_start=88,
+  serialized_end=124,
 )
 
 
 _EXPRESSION = _descriptor.Descriptor(
   name='Expression',
-  full_name='up_plan.Expression',
+  full_name='Expression',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='type', full_name='up_plan.Expression.type', index=0,
+      name='type', full_name='Expression.type', index=0,
       number=1, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='args', full_name='up_plan.Expression.args', index=1,
+      name='args', full_name='Expression.args', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='payload', full_name='up_plan.Expression.payload', index=2,
+      name='payload', full_name='Expression.payload', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -151,28 +151,28 @@ _EXPRESSION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=123,
-  serialized_end=221,
+  serialized_start=126,
+  serialized_end=206,
 )
 
 
 _ASSIGNMENT = _descriptor.Descriptor(
   name='Assignment',
-  full_name='up_plan.Assignment',
+  full_name='Assignment',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='x', full_name='up_plan.Assignment.x', index=0,
+      name='x', full_name='Assignment.x', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='v', full_name='up_plan.Assignment.v', index=1,
+      name='v', full_name='Assignment.v', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -190,28 +190,28 @@ _ASSIGNMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=223,
-  serialized_end=301,
+  serialized_start=208,
+  serialized_end=268,
 )
 
 
 _PAYLOAD = _descriptor.Descriptor(
   name='Payload',
-  full_name='up_plan.Payload',
+  full_name='Payload',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='type', full_name='up_plan.Payload.type', index=0,
+      name='type', full_name='Payload.type', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='value', full_name='up_plan.Payload.value', index=1,
+      name='value', full_name='Payload.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -229,49 +229,49 @@ _PAYLOAD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=303,
-  serialized_end=341,
+  serialized_start=270,
+  serialized_end=308,
 )
 
 
 _ACTION = _descriptor.Descriptor(
   name='Action',
-  full_name='up_plan.Action',
+  full_name='Action',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='up_plan.Action.name', index=0,
+      name='name', full_name='Action.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='parameters', full_name='up_plan.Action.parameters', index=1,
+      name='parameters', full_name='Action.parameters', index=1,
       number=2, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='parameterTypes', full_name='up_plan.Action.parameterTypes', index=2,
+      name='parameterTypes', full_name='Action.parameterTypes', index=2,
       number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='preconditions', full_name='up_plan.Action.preconditions', index=3,
+      name='preconditions', full_name='Action.preconditions', index=3,
       number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='effects', full_name='up_plan.Action.effects', index=4,
+      name='effects', full_name='Action.effects', index=4,
       number=5, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -289,56 +289,56 @@ _ACTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=344,
-  serialized_end=494,
+  serialized_start=311,
+  serialized_end=443,
 )
 
 
 _PROBLEM = _descriptor.Descriptor(
   name='Problem',
-  full_name='up_plan.Problem',
+  full_name='Problem',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='up_plan.Problem.name', index=0,
+      name='name', full_name='Problem.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='fluents', full_name='up_plan.Problem.fluents', index=1,
+      name='fluents', full_name='Problem.fluents', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='objects', full_name='up_plan.Problem.objects', index=2,
+      name='objects', full_name='Problem.objects', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='actions', full_name='up_plan.Problem.actions', index=3,
+      name='actions', full_name='Problem.actions', index=3,
       number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='initialState', full_name='up_plan.Problem.initialState', index=4,
+      name='initialState', full_name='Problem.initialState', index=4,
       number=5, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='goals', full_name='up_plan.Problem.goals', index=5,
+      name='goals', full_name='Problem.goals', index=5,
       number=6, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -356,28 +356,28 @@ _PROBLEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=497,
-  serialized_end=706,
+  serialized_start=446,
+  serialized_end=610,
 )
 
 
 _ACTIONINSTANCE = _descriptor.Descriptor(
   name='ActionInstance',
-  full_name='up_plan.ActionInstance',
+  full_name='ActionInstance',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='action', full_name='up_plan.ActionInstance.action', index=0,
+      name='action', full_name='ActionInstance.action', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='parameters', full_name='up_plan.ActionInstance.parameters', index=1,
+      name='parameters', full_name='ActionInstance.parameters', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -395,21 +395,21 @@ _ACTIONINSTANCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=708,
-  serialized_end=800,
+  serialized_start=612,
+  serialized_end=686,
 )
 
 
 _SEQUENTIALPLAN = _descriptor.Descriptor(
   name='SequentialPlan',
-  full_name='up_plan.SequentialPlan',
+  full_name='SequentialPlan',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='actions', full_name='up_plan.SequentialPlan.actions', index=0,
+      name='actions', full_name='SequentialPlan.actions', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -427,28 +427,28 @@ _SEQUENTIALPLAN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=802,
-  serialized_end=861,
+  serialized_start=688,
+  serialized_end=738,
 )
 
 
 _ANSWER = _descriptor.Descriptor(
   name='Answer',
-  full_name='up_plan.Answer',
+  full_name='Answer',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='status', full_name='up_plan.Answer.status', index=0,
+      name='status', full_name='Answer.status', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='plan', full_name='up_plan.Answer.plan', index=1,
+      name='plan', full_name='Answer.plan', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -466,8 +466,8 @@ _ANSWER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=863,
-  serialized_end=927,
+  serialized_start=740,
+  serialized_end=795,
 )
 
 _EXPRESSION.fields_by_name['args'].message_type = _EXPRESSION
@@ -499,89 +499,89 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Fluent = _reflection.GeneratedProtocolMessageType('Fluent', (_message.Message,), {
   'DESCRIPTOR' : _FLUENT,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Fluent)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Fluent)
   })
 _sym_db.RegisterMessage(Fluent)
 
 Object = _reflection.GeneratedProtocolMessageType('Object', (_message.Message,), {
   'DESCRIPTOR' : _OBJECT,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Object)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Object)
   })
 _sym_db.RegisterMessage(Object)
 
 Expression = _reflection.GeneratedProtocolMessageType('Expression', (_message.Message,), {
   'DESCRIPTOR' : _EXPRESSION,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Expression)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Expression)
   })
 _sym_db.RegisterMessage(Expression)
 
 Assignment = _reflection.GeneratedProtocolMessageType('Assignment', (_message.Message,), {
   'DESCRIPTOR' : _ASSIGNMENT,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Assignment)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Assignment)
   })
 _sym_db.RegisterMessage(Assignment)
 
 Payload = _reflection.GeneratedProtocolMessageType('Payload', (_message.Message,), {
   'DESCRIPTOR' : _PAYLOAD,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Payload)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Payload)
   })
 _sym_db.RegisterMessage(Payload)
 
 Action = _reflection.GeneratedProtocolMessageType('Action', (_message.Message,), {
   'DESCRIPTOR' : _ACTION,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Action)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Action)
   })
 _sym_db.RegisterMessage(Action)
 
 Problem = _reflection.GeneratedProtocolMessageType('Problem', (_message.Message,), {
   'DESCRIPTOR' : _PROBLEM,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Problem)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Problem)
   })
 _sym_db.RegisterMessage(Problem)
 
 ActionInstance = _reflection.GeneratedProtocolMessageType('ActionInstance', (_message.Message,), {
   'DESCRIPTOR' : _ACTIONINSTANCE,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.ActionInstance)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:ActionInstance)
   })
 _sym_db.RegisterMessage(ActionInstance)
 
 SequentialPlan = _reflection.GeneratedProtocolMessageType('SequentialPlan', (_message.Message,), {
   'DESCRIPTOR' : _SEQUENTIALPLAN,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.SequentialPlan)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:SequentialPlan)
   })
 _sym_db.RegisterMessage(SequentialPlan)
 
 Answer = _reflection.GeneratedProtocolMessageType('Answer', (_message.Message,), {
   'DESCRIPTOR' : _ANSWER,
-  '__module__' : 'up_pb2'
-  # @@protoc_insertion_point(class_scope:up_plan.Answer)
+  '__module__' : 'unified_planning_pb2'
+  # @@protoc_insertion_point(class_scope:Answer)
   })
 _sym_db.RegisterMessage(Answer)
 
 
 
-_UP = _descriptor.ServiceDescriptor(
+_UNIFIEDPLANNING = _descriptor.ServiceDescriptor(
   name='UnifiedPlanning',
-  full_name='up_plan.UnifiedPlanning',
+  full_name='UnifiedPlanning',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=929,
-  serialized_end=979,
+  serialized_start=797,
+  serialized_end=841,
   methods=[
   _descriptor.MethodDescriptor(
     name='plan',
-    full_name='up_plan.UnifiedPlanning.plan',
+    full_name='UnifiedPlanning.plan',
     index=0,
     containing_service=None,
     input_type=_PROBLEM,
@@ -590,8 +590,8 @@ _UP = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
 ])
-_sym_db.RegisterServiceDescriptor(_UP)
+_sym_db.RegisterServiceDescriptor(_UNIFIEDPLANNING)
 
-DESCRIPTOR.services_by_name['UnifiedPlanning'] = _UP
+DESCRIPTOR.services_by_name['UnifiedPlanning'] = _UNIFIEDPLANNING
 
 # @@protoc_insertion_point(module_scope)
