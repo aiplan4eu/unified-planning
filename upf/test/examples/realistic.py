@@ -52,6 +52,37 @@ def get_example_problems():
     robot = Example(problem=problem, plan=plan)
     problems['robot'] = robot
 
+    #robot fluent of user_type
+    Location = UserType('Location')
+    Robot = UserType('Robot')
+    is_at = Fluent('is_at', Location, [Robot])
+    move = InstantaneousAction('move', robot=Robot, l_from=Location, l_to=Location)
+    robot = move.parameter('robot')
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(Equals(is_at(robot), l_from))
+    move.add_precondition(Not(Equals(is_at(robot), l_to)))
+    move.add_effect(is_at(robot), l_to)
+    l1 = Object('l1', Location)
+    l2 = Object('l2', Location)
+    r1 = Object('r1', Robot)
+    r2 = Object('r2', Robot)
+    problem = Problem('robot_fluent_of_user_type')
+    problem.add_fluent(is_at)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.add_object(r1)
+    problem.add_object(r2)
+    problem.set_initial_value(is_at(r1), l2)
+    problem.set_initial_value(is_at(r2), l1)
+    problem.add_goal(Equals(is_at(r1), l1))
+    problem.add_goal(Equals(is_at(r2), l2))
+    plan = upf.plan.SequentialPlan([upf.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l1))),
+                                    upf.plan.ActionInstance(move, (ObjectExp(r2), ObjectExp(l1), ObjectExp(l2)))])
+    robot_fluent_of_user_type = Example(problem=problem, plan=plan)
+    problems['robot_fluent_of_user_type'] = robot_fluent_of_user_type
+
     # robot no negative preconditions
     Location = UserType('location')
     robot_at = Fluent('robot_at', BoolType(), [Location])
