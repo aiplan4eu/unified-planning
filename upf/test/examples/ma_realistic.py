@@ -90,7 +90,6 @@ def ma_example_env():
     environment.add_goal(cargo_at(l1))
     environment.set_initial_value(cargo_at(l1), False)
     environment.set_initial_value(cargo_at(l2), True)
-    environment.add_goal(cargo_at(l1))
 
     ma_problem = MultiAgentProblem('robots_env')
     ma_problem.add_agent(robot1)
