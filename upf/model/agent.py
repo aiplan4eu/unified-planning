@@ -197,4 +197,22 @@ class Agent:
         '''Returns all the objects.'''
         return [o for o in self._objects]
 
+    def object(self, name: str) -> 'upf.model.object.Object':
+        '''Returns the object with the given name.'''
+        for o in self._objects:
+            if o.name() == name:
+                return o
+        raise UPFValueError(f'Object of name: {name} is not defined!')
 
+    def objects(self, typename: 'upf.model.types.Type') -> List['upf.model.object.Object']:
+        '''Returns the objects of the given user types.'''
+        res = []
+        for obj in self._objects:
+            if obj.type() == typename:
+                res.append(obj)
+        return res
+
+
+    def user_types(self) -> List['upf.model.types.Type']:
+        '''Returns the user types.'''
+        return self._user_types

@@ -21,7 +21,7 @@ that defines the types of its parameters.
 import upf
 from upf.environment import get_env, Environment
 from typing import List
-
+import copy
 
 class Fluent:
     """Represents a fluent."""
@@ -34,6 +34,13 @@ class Fluent:
         else:
             self._typename = typename
         self._signature = signature
+
+    def __deepcopy__(self, memo):
+        memo[self._typename] = newself = self.__class__(copy.deepcopy(self._typename, memo))
+        newself._env = copy.deepcopy(self._env, memo)
+        newself._name = copy.deepcopy(self._name, memo)
+        newself._signature = copy.deepcopy(self._signature, memo)
+        return newself
 
     def __repr__(self) -> str:
         return f'{str(self.type())} {self.name()}{str(self.signature()) if self.arity() > 0 else ""}'
