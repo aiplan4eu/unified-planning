@@ -23,7 +23,8 @@ FEATURES = {
     'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
     'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
     'EFFECTS_KIND' : ['CONDITIONAL_EFFECTS', 'INCREASE_EFFECTS', 'DECREASE_EFFECTS'],
-    'TYPING' : ['FLAT_TYPING']
+    'TYPING' : ['FLAT_TYPING'],
+    'FLUENTS_TYPE' : ['NUMERIC_FLUENTS', 'OBJECT_FLUENTS']
 }
 
 
@@ -91,15 +92,20 @@ full_classical_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
 full_classical_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
 full_classical_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
 
+object_fluent_kind = ProblemKind()
+object_fluent_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
+
 basic_numeric_kind = ProblemKind()
 basic_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
 basic_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
 basic_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+basic_numeric_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
 
 full_numeric_kind = ProblemKind()
 full_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
 full_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
 full_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+full_numeric_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
 full_numeric_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
 full_numeric_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
 

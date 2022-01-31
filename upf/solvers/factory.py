@@ -22,7 +22,8 @@ from typing import Dict, Tuple, Optional, List, Union, Type
 DEFAULT_SOLVERS = {'tamer' : ('upf_tamer', 'SolverImpl'),
                    'pyperplan' : ('upf_pyperplan', 'SolverImpl'),
                    'sequential_plan_validator' : ('upf.solvers.plan_validator', 'SequentialPlanValidator'),
-                   'grounder' : ('upf.solvers.grounder', 'Grounder')}
+                   'grounder' : ('upf.solvers.grounder', 'Grounder'),
+                   'tarski_grounder' : ('upf.solvers.tarski_grounder', 'TarskiGrounder')}
 
 
 class Factory:

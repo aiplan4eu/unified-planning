@@ -20,6 +20,7 @@ from upf.solvers.grounder import Grounder
 from upf.solvers.parallel import Parallel
 from upf.solvers.pddl_solver import PDDLSolver
 from upf.solvers.plan_validator import SequentialPlanValidator
+from upf.solvers.tarski_grounder import TarskiGrounder
 
 __all__ = [ 'Factory',
             'Grounder',
@@ -27,4 +28,5 @@ __all__ = [ 'Factory',
             'PDDLSolver',
             'SequentialPlanValidator',
             'Solver'
+            'TarskiGrounder'
         ]
