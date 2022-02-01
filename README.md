@@ -1,8 +1,8 @@
 # The AIPlan4EU Unified Planning Library
 
-[![Actions Status](https://github.com/aiplan4eu/upf/actions/workflows/main.yml/badge.svg)](https://github.com/aiplan4eu/upf/actions)
-[![Coverage Status](https://codecov.io/gh/aiplan4eu/upf/branch/master/graph/badge.svg?token=GBM7HYNDRB)](https://codecov.io/gh/aiplan4eu/upf)
-[![Documentation Status](https://readthedocs.org/projects/upf/badge/?version=latest)](https://upf.readthedocs.io/en/latest/)
+[![Actions Status](https://github.com/aiplan4eu/unified-planning/actions/workflows/main.yml/badge.svg)](https://github.com/aiplan4eu/unified-planning/actions)
+[![Coverage Status](https://codecov.io/gh/aiplan4eu/unified-planning/branch/master/graph/badge.svg?token=GBM7HYNDRB)](https://codecov.io/gh/aiplan4eu/unified-planning)
+[![Documentation Status](https://readthedocs.org/projects/unified-planning/badge/?version=latest)](https://unified-planning.readthedocs.io/en/latest/)
 
 The unified_planning library makes it easy to formulate planning problems and to invoke automated planners.
 
