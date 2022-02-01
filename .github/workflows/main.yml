@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: aiplan4eu/upf
+    container: aiplan4eu/unified-planning
 
     steps:
       - name: Checkout
@@ -26,27 +26,27 @@ jobs:
       - name: MyPy check
         run: |
           python3 -m mypy --version
-          python3 -m mypy upf
+          python3 -m mypy unified_planning
 
-      - name: Checkout Tamer UPF
+      - name: Checkout Tamer unified-planning interface
         uses: actions/checkout@v2
         with:
-          repository: aiplan4eu/tamer-upf
-          path: tamer-upf
-          ref: "628a8ac7d5c0eb255565a67d086ebfd340ddabbe"
+          repository: aiplan4eu/up-tamer
+          path: up-tamer
+          ref: "3b0aec1957f47bacb20e99372b1026d2af684ee7"
 
-      - name: Install Tamer UPF
-        run: python3 -m pip install tamer-upf/
+      - name: Install Tamer unified-planning interface
+        run: python3 -m pip install up-tamer/
 
-      - name: Checkout Pyperplan UPF
+      - name: Checkout Pyperplan unified-planning interface
         uses: actions/checkout@v2
         with:
-          repository: aiplan4eu/pyperplan-upf
-          path: pyperplan-upf
-          ref: "675093f8779524a1ca0b6b6b8a20f28c502aaa8f"
+          repository: aiplan4eu/up-pyperplan
+          path: up-pyperplan
+          ref: "28972c8cc21b6bdaa7a70eae3aba9bd148d32ec0"
 
-      - name: Install Pyperplan UPF
-        run: python3 -m pip install pyperplan-upf/
+      - name: Install Pyperplan unified-planning interface
+        run: python3 -m pip install up-pyperplan/
 
       - name: Download ENHSP
         run: |

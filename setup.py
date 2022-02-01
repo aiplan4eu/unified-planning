@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
 from setuptools import setup, find_packages # type: ignore
-import upf
+import unified_planning
 
 
 long_description=\
 """============================================================
- UPF: A library that unifies planning frameworks
+ Unified planning: A library that unifies planning frameworks
  ============================================================
     Insert long description here
 """
 
-setup(name='upf',
-      version=upf.__version__,
+setup(name='unified_planning',
+      version=unified_planning.__version__,
       description='Unified planning framework',
       author='AIPlan4EU Organization',
       author_email='aiplan4eu@fbk.eu',

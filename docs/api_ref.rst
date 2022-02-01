@@ -9,43 +9,43 @@ API Reference
 
 Shortcuts
 =========
-.. automodule:: upf.shortcuts
+.. automodule:: unified_planning.shortcuts
 
 Model
 =====
-.. automodule:: upf.model
+.. automodule:: unified_planning.model
 
 Environment
 ===========
-.. automodule:: upf.environment
+.. automodule:: unified_planning.environment
 
 Transformers
 ============
-.. automodule:: upf.transformers
+.. automodule:: unified_planning.transformers
 
 Solvers
 =======
-.. automodule:: upf.solvers
+.. automodule:: unified_planning.solvers
 
 Exceptions
 ==========
-.. automodule:: upf.exceptions
+.. automodule:: unified_planning.exceptions
 
 I/O
 ===
-.. automodule:: upf.io
-.. automodule:: upf.io.pddl_reader
-.. automodule:: upf.io.pddl_writer
+.. automodule:: unified_planning.io
+.. automodule:: unified_planning.io.pddl_reader
+.. automodule:: unified_planning.io.pddl_writer
 
 Plans
 =====
-.. automodule:: upf.plan
+.. automodule:: unified_planning.plan
 
 Walkers
 =======
-.. automodule:: upf.walkers
+.. automodule:: unified_planning.walkers
 
 Interoperability
 ================
-.. automodule:: upf.interop
-.. automodule:: upf.interop.tarski
+.. automodule:: unified_planning.interop
+.. automodule:: unified_planning.interop.tarski

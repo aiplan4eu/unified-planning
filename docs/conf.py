@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# upf documentation build configuration file, created by
+# unified_planning documentation build configuration file, created by
 # sphinx-quickstart on Sun Feb 16 16:14:52 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -48,7 +48,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'UPF'
+project = u'Unified-Planning'
 copyright = u'2014, The AIPlan4EU Project'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -61,7 +61,7 @@ version = '0.X'
 release = '0.X.Y'
 
 try:
-    from upf import VERSION
+    from unified_planning import VERSION
     version = "%s.%s" % VERSION[0:2]
     release = "%s.%s.%s" % VERSION[0:3]
 except ImportError:
@@ -188,7 +188,7 @@ html_theme = 'default'
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'upfdoc'
+htmlhelp_basename = 'unified_planning_doc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -208,7 +208,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'upf.tex', u'UPF Documentation',
+  ('index', 'unified_planning.tex', u'Unified-Planning Documentation',
    u'The AIPlan4EU Project', 'manual'),
 ]
 
@@ -238,7 +238,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'upf', u'UPF Documentation',
+    ('index', 'unified_planning', u'Unified-Planning Documentation',
      [u'The AIPlan4EU Project'], 1)
 ]
 
@@ -252,8 +252,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'upf', u'UPF Documentation',
-   u'The AIPlan4EU Project', 'upf', ' a Python API for Automated Planning.',
+  ('index', 'unified_planning', u'Unified-Planning Documentation',
+   u'The AIPlan4EU Project', 'unified_planning', ' a Python API for Automated Planning.',
    'Miscellaneous'),
 ]
 

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 -m pytest --cov=upf --cov-report=xml -x upf/test
+python3 -m pytest --cov=unified_planning --cov-report=xml -x unified_planning/test
