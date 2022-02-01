@@ -361,12 +361,12 @@ class Problem:
         ordered_types_hierarchy[None] = unordered_types_hierarchy[None]
         while(len(to_check) > 0):
             added = []
-            for ut in to_check:
-                sons_list = unordered_types_hierarchy.get(ut, None)
+            for optional_user_type in to_check:
+                sons_list = unordered_types_hierarchy.get(optional_user_type, None)
                 if sons_list is not None:
-                    ordered_types_hierarchy[ut] = unordered_types_hierarchy[ut]
-                    added.extend(unordered_types_hierarchy(ut))
-            to_check = added
+                    ordered_types_hierarchy[optional_user_type] = unordered_types_hierarchy[optional_user_type]
+                    added.extend(unordered_types_hierarchy[optional_user_type])
+            to_check = added # type: ignore
         return ordered_types_hierarchy
 
     def add_object(self, obj: 'unified_planning.model.object.Object'):
