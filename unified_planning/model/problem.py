@@ -14,13 +14,14 @@
 #
 '''This module defines the problem class.'''
 
+
 import unified_planning
 import unified_planning.model.operators as op
 from unified_planning.model.types import domain_size, domain_item
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import List, Dict, Set, Union, Optional
+from typing import List, Dict, Set, Union, Optional, OrderedDict
 
 
 class Problem:
@@ -329,6 +330,45 @@ class Problem:
                 return True
         return False
 
+    def user_type_heirs(self, type: 'unified_planning.model.types.Type') -> List['unified_planning.model.types.Type']:
+        '''Returns all the user_types in the problem that are heirs of the given type.'''
+        if not type.is_user_type():
+            raise UPUsageError('The user_type_hierarchy method must be called on a user type.')
+        # NOTE: what happens here if the problem has in it's user_types (that are added as a side effect of a fluent addiction)
+        # only a type without it's father, but it has his grandfather?
+        heirs: List['unified_planning.model.types.Type'] = []
+        in_check: List['unified_planning.model.types.Type'] = [type]
+        while(len(in_check) > 0):
+            added: List['unified_planning.model.types.Type'] = []
+            for ut in self._user_types:
+                if ut.father() in in_check: # type: ignore
+                    added.append(ut)
+            heirs.extend(in_check)
+            in_check = added
+        return heirs
+
+    def user_types_hierarchy(self) -> OrderedDict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']]:
+        ''' TODO add documentation.'''
+        unordered_types_hierarchy: Dict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']] = {}
+        for ut in self._user_types:
+            brothers = unordered_types_hierarchy.get(ut.father(), None) # type: ignore
+            if brothers is None:
+                unordered_types_hierarchy[ut.father()] = [ut] # type: ignore
+            else:
+                brothers.append(ut)
+        ordered_types_hierarchy: OrderedDict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']] = OrderedDict()
+        to_check: List[Optional['unified_planning.model.types.Type']] = [None]
+        ordered_types_hierarchy[None] = unordered_types_hierarchy[None]
+        while(len(to_check) > 0):
+            added = []
+            for ut in to_check:
+                sons_list = unordered_types_hierarchy.get(ut, None)
+                if sons_list is not None:
+                    ordered_types_hierarchy[ut] = unordered_types_hierarchy[ut]
+                    added.extend(unordered_types_hierarchy(ut))
+            to_check = added
+        return ordered_types_hierarchy
+
     def add_object(self, obj: 'unified_planning.model.object.Object'):
         '''Adds the given object.'''
         if self.has_name(obj.name()):
@@ -602,6 +642,8 @@ class Problem:
     def _update_problem_kind_type(self, type: 'unified_planning.model.types.Type'):
         if type.is_user_type():
             self._kind.set_typing('FLAT_TYPING') # type: ignore
+            if type.father() is not None: # type: ignore
+               self._kind.set_typing('HIERARCHICAL_TYPING') # type: ignore 
         elif type.is_int_type():
             self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
         elif type.is_real_type():

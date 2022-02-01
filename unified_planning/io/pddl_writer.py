@@ -46,7 +46,6 @@ class ConverterToPDDLString(walkers.DagWalker):
         vars_string_list = [f"?{v.name()} - {str(v.type())}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
-
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
         return f'?{expression.variable().name()}'
@@ -170,7 +169,10 @@ class PDDLWriter:
                 out.write(' :duration-inequalities')
             out.write(')\n')
 
-        out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
+        if self.problem.kind().has_hierarchical_typing(): # type: ignore
+            pass #TODO implement right printage
+        else:
+            out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
 
         predicates = []
         functions = []

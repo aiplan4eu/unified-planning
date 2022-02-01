@@ -17,7 +17,7 @@
 import unified_planning
 from fractions import Fraction
 from typing import Optional, Dict, Tuple, List
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
 class Type:
@@ -53,9 +53,12 @@ class _BoolType(Type):
 
 class _UserType(Type):
     """Represents the user type."""
-    def __init__(self, name: str):
+    def __init__(self, name: str, father: Optional[Type] = None):
         Type.__init__(self)
         self._name = name
+        if father is not None and (not father.is_user_type()):
+            raise UPTypeError('father field of a UserType must be a UserType.')
+        self._father = father
 
     def __repr__(self) -> str:
         return self.name()
@@ -63,6 +66,10 @@ class _UserType(Type):
     def name(self) -> str:
         """Returns the type name."""
         return self._name
+
+    def father(self) -> Optional[Type]:
+        """Returns the type s father."""
+        return self._father
 
     def is_user_type(self) -> bool:
         """Returns true iff is a user type."""
@@ -128,7 +135,7 @@ class TypeManager:
         self._bool = BOOL
         self._ints: Dict[Tuple[Optional[int], Optional[int]], Type] = {}
         self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
-        self._user_types: Dict[str, Type] = {}
+        self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
 
     def BoolType(self) -> Type:
         return self._bool
@@ -151,12 +158,12 @@ class TypeManager:
             self._reals[k] = rt
             return rt
 
-    def UserType(self, name: str) -> Type:
-        if name in self._user_types:
-            return self._user_types[name]
+    def UserType(self, name: str, father: Optional[Type] = None) -> Type:
+        if (name, father) in self._user_types:
+            return self._user_types[(name, father)]
         else:
-            ut = _UserType(name)
-            self._user_types[name] = ut
+            ut = _UserType(name, father)
+            self._user_types[(name, father)] = ut
             return ut
 
 def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'unified_planning.model.types.Type') -> int:
