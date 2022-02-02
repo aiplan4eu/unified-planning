@@ -49,6 +49,8 @@ class Grounder(solvers.solver.Solver):
         supported_kind.set_typing('FLAT_TYPING')
         supported_kind.set_numbers('CONTINUOUS_NUMBERS')
         supported_kind.set_numbers('DISCRETE_NUMBERS')
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS')
+        supported_kind.set_fluents_type('OBJECT_FLUENTS')
         supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS')
         supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS')
         supported_kind.set_conditions_kind('EQUALITY')
