@@ -20,7 +20,7 @@ import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
-from typing import IO
+from typing import IO, List, Optional
 from io import StringIO
 from functools import reduce
 
@@ -132,9 +132,10 @@ class PDDLWriter:
         self.needs_requirements = needs_requirements
 
     def _write_domain(self, out: IO[str]):
-        if self.problem.kind().has_intermediate_conditions_and_effects() or self.problem.kind().has_maintain_goals(): # type: ignore
+        problem_kind = self.problem.kind()
+        if problem_kind.has_intermediate_conditions_and_effects() or problem_kind.has_maintain_goals(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support ICE or maintained goals.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
-        if self.problem.kind().has_timed_effect() or self.problem.kind().has_timed_goals(): # type: ignore
+        if problem_kind.has_timed_effect() or problem_kind.has_timed_goals(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
         out.write('(define ')
         if self.problem.name is None:
@@ -145,32 +146,44 @@ class PDDLWriter:
 
         if self.needs_requirements:
             out.write(' (:requirements :strips')
-            if self.problem.kind().has_flat_typing(): # type: ignore
+            if problem_kind.has_flat_typing(): # type: ignore
                 out.write(' :typing')
-            if self.problem.kind().has_negative_conditions(): # type: ignore
+            if problem_kind.has_negative_conditions(): # type: ignore
                 out.write(' :negative-preconditions')
-            if self.problem.kind().has_disjunctive_conditions(): # type: ignore
+            if problem_kind.has_disjunctive_conditions(): # type: ignore
                 out.write(' :disjunctive-preconditions')
-            if self.problem.kind().has_equality(): # type: ignore
+            if problem_kind.has_equality(): # type: ignore
                 out.write(' :equality')
-            if (self.problem.kind().has_continuous_numbers() or # type: ignore
-                self.problem.kind().has_discrete_numbers()): # type: ignore
+            if (problem_kind.has_continuous_numbers() or # type: ignore
+                problem_kind.has_discrete_numbers()): # type: ignore
                 out.write(' :numeric-fluents')
-            if self.problem.kind().has_conditional_effects(): # type: ignore
+            if problem_kind.has_conditional_effects(): # type: ignore
                 out.write(' :conditional-effects')
-            if self.problem.kind().has_existential_conditions(): # type: ignore
+            if problem_kind.has_existential_conditions(): # type: ignore
                 out.write(' :existential-preconditions')
-            if self.problem.kind().has_universal_conditions(): # type: ignore
+            if problem_kind.has_universal_conditions(): # type: ignore
                 out.write(' :universal-preconditions')
-            if (self.problem.kind().has_continuous_time() or # type: ignore
-                self.problem.kind().has_discrete_time()): # type: ignore
+            if (problem_kind.has_continuous_time() or # type: ignore
+                problem_kind.has_discrete_time()): # type: ignore
                 out.write(' :durative-actions')
-            if self.problem.kind().has_duration_inequalities(): # type: ignore
+            if problem_kind.has_duration_inequalities(): # type: ignore
                 out.write(' :duration-inequalities')
             out.write(')\n')
 
-        if self.problem.kind().has_hierarchical_typing(): # type: ignore
-            pass #TODO implement right printage
+        if problem_kind.has_hierarchical_typing(): # type: ignore
+            user_types_hierarchy = self.problem.user_types_hierarchy()
+            out.write(f' (:types\n')
+            if not self.problem.has_type('object'):
+                out.write(f'    {" ".join([t.name() for t in user_types_hierarchy[None]])} - object\n')  # type: ignore
+            #NOTE not sure if we should have an else branch here
+            stack: List['unified_planning.model.Type'] = (user_types_hierarchy[None])[:]
+            while(len(stack) > 0):
+                current_type = stack.pop()
+                direct_sons: List['unified_planning.model.Type'] = user_types_hierarchy[current_type]
+                if len(direct_sons) > 0:
+                    stack.extend(direct_sons)
+                    out.write(f'    {" ".join([t.name() for t in direct_sons])} - {current_type.name()}\n')  # type: ignore
+            out.write(' )\n')
         else:
             out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
 

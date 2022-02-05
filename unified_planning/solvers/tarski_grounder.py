@@ -52,6 +52,7 @@ class TarskiGrounder(Solver):
     def supports(problem_kind: 'unified_planning.model.ProblemKind') -> bool:
         supported_kind = unified_planning.model.ProblemKind()
         supported_kind.set_typing('FLAT_TYPING') # type: ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
         supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
         supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
         supported_kind.set_conditions_kind('EQUALITY') # type: ignore

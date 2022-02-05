@@ -155,7 +155,12 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
             else:
                 raise NotImplementedError
         else:
-            types[str(t.name)] = tm.UserType(str(t.name))
+            if t.name == 'object' or tarski.syntax.sorts.parent(t).name == 'object':
+                types[str(t.name)] = tm.UserType(str(t.name)) # handle root type or "direct root type decendent"
+                                                              # here type hierarchy is not needed
+                                                              # NOTE: True only if the type 'object' is never used.
+            else:
+                types[str(t.name)] = tm.UserType(str(t.name), tm.UserType(tarski.syntax.sorts.parent(t).name))
 
     # Convert predicates and functions
     fluents = {}

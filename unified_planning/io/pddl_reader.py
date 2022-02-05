@@ -172,7 +172,8 @@ class PDDLReader:
                         vars_res = self._pp_parameters.parseString(vars_string)
                         vars = {}
                         for g in vars_res['params']:
-                            t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+                            # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
+                            t = self._types_map[g[1] if len(g) > 1 else 'object']
                             for o in g[0]:
                                 vars[o] = unified_planning.model.Variable(o, t)
                         stack.append((vars, exp, True))
@@ -258,7 +259,8 @@ class PDDLReader:
                 if vars is None:
                     vars = {}
                 for g in vars_res['params']:
-                    t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+                    # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
+                    t = self._types_map[g[1] if len(g) > 1 else 'object']
                     for o in g[0]:
                         vars[o] = unified_planning.model.Variable(o, t)
                 to_add.append((exp[2], vars))
@@ -298,6 +300,23 @@ class PDDLReader:
             else:
                 raise SyntaxError(f'Not able to handle: {eff}')
 
+    def _check_if_object_type_is_needed(self, domain_res) -> bool:
+        for p in domain_res.get('predicates', []):
+            for g in p[1]:
+                if len(g) <= 1 or g[1] == 'object':
+                    return True
+        for p in domain_res.get('functions', []):
+            for g in p[1]:
+                if len(g) <= 1 or g[1] == 'object':
+                    return True
+        for g in domain_res.get('constants', []):
+            if len(g) <= 1 or g[1] == 'object':
+                return True
+        for a in domain_res.get('actions', []):
+            for g in a.get('params', []):
+                if len(g) <= 1 or g[1] == 'object':
+                    return True
+        return False
 
     def parse_problem(self, domain_filename: str,
                       problem_filename: typing.Optional[str] = None) -> 'unified_planning.model.Problem':
@@ -305,12 +324,37 @@ class PDDLReader:
 
         problem = unified_planning.model.Problem(domain_res['name'], self._env,
                                     initial_defaults={self._tm.BoolType(): self._em.FALSE()})
+        
+        self._types_map: Dict[str, 'unified_planning.model.Type'] = {}
+        object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
+        for types_list in domain_res.get('types', []):
+            # types_list is a List of 1 or 2 elements, where the first one
+            # is a List of types, and the second one can be their father,
+            # if they have one.
+            father: Optional['unified_planning.model.Type'] = None
+            if len(types_list) == 2: # the types have a father
+                if types_list[1] != 'object': #the father is not object
+                    father = self._types_map[types_list[1]]
+                elif object_type_needed: # the father is object, and object is needed
+                    object_type = self._types_map.get('object', None)
+                    if object_type is None: # the type object is not defined
+                        father = self._env.type_manager.UserType('object', None)
+                        self._types_map['object'] = father
+                    else:
+                        father = object_type
+            else:
+                assert len(types_list) == 1 # sanity check
+            for type_name in types_list[0]:
+                self._types_map[type_name] = self._env.type_manager.UserType(type_name, father)
+        if object_type_needed and self._types_map.get('object', None) is None: # The object type is needed, but has not been defined
+            self._types_map['object'] = self._env.type_manager.UserType('object', None)  # We manually define it.
 
         for p in domain_res.get('predicates', []):
             n = p[0]
             params = []
             for g in p[1]:
-                t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
+                t = self._types_map[g[1] if len(g) > 1 else 'object']
                 params.extend([t for i in range(len(g[0]))])
             f = unified_planning.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
@@ -319,13 +363,15 @@ class PDDLReader:
             n = p[0]
             params = []
             for g in p[1]:
-                t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
+                t = self._types_map[g[1] if len(g) > 1 else 'object']
                 params.extend([t for i in range(len(g[0]))])
             f = unified_planning.model.Fluent(n, self._tm.RealType(), params, self._env)
             problem.add_fluent(f)
 
         for g in domain_res.get('constants', []):
-            t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+            # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
+            t = self._types_map[g[1] if len(g) > 1 else 'object']
             for o in g[0]:
                 problem.add_object(unified_planning.model.Object(o, t))
 
@@ -333,7 +379,8 @@ class PDDLReader:
             n = a['name']
             a_params = OrderedDict()
             for g in a.get('params', []):
-                t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
+                t = self._types_map[g[1] if len(g) > 1 else 'object']
                 for p in g[0]:
                     a_params[p] = t
             if 'duration' in a:
@@ -381,7 +428,8 @@ class PDDLReader:
             problem.name = problem_res['name']
 
             for g in problem_res.get('objects', []):
-                t = self._tm.UserType(g[1] if len(g) > 1 else 'object')
+                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
+                t = self._types_map[g[1] if len(g) > 1 else 'object']
                 for o in g[0]:
                     problem.add_object(unified_planning.model.Object(o, t))
 

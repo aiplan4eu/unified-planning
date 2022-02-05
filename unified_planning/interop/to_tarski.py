@@ -146,7 +146,10 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
     #creating tarski language
     lang = tarski.fstrips.language(f'{problem.name}_lang', features)
     for ut in problem.user_types(): #adding user_types to the language
-        lang.sort(ut.name()) # type: ignore
+        if ut.father() is not None:  # type: ignore
+            lang.sort(ut.name(), ut.father().name()) # type: ignore
+        else:
+            lang.sort(ut.name()) # type: ignore
     for fluent in problem.fluents(): #adding fluents to the language
         signature = []
         for type in fluent.signature():

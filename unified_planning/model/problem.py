@@ -21,7 +21,7 @@ from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import List, Dict, Set, Union, Optional, OrderedDict
+from typing import Iterator, List, Dict, Set, Union, Optional, OrderedDict
 
 
 class Problem:
@@ -35,6 +35,8 @@ class Problem:
         self._fluents: List['unified_planning.model.fluent.Fluent'] = []
         self._actions: List['unified_planning.model.action.Action'] = []
         self._user_types: List['unified_planning.model.types.Type'] = []
+        # The field _user_types_hierarchy stores the information about the types and the list of their sons.
+        self._user_types_hierarchy: Dict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']] = {}
         self._objects: List['unified_planning.model.object.Object'] = []
         self._initial_value: Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode'] = {}
         self._timed_effects: Dict['unified_planning.model.timing.Timing', List['unified_planning.model.effect.Effect']] = {}
@@ -234,10 +236,23 @@ class Problem:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
         if fluent.type().is_user_type() and fluent.type() not in self._user_types:
-            self._user_types.append(fluent.type()) # type: ignore
+            self._add_user_type(fluent.type()) # type: ignore
         for type in fluent.signature():
             if type.is_user_type() and type not in self._user_types:
-                self._user_types.append(type) # type: ignore
+                self._add_user_type(type) # type: ignore
+    
+    def _add_user_type(self, type: Optional['unified_planning.model.types.Type']):
+        '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''
+        assert (type is None) or type.is_user_type()
+        if self._user_types_hierarchy.get(type, None) is None:
+            if type is not None:
+                for ut in self._user_types:
+                    if ut.name == type.name: # type: ignore
+                        raise UPProblemDefinitionError('The type {type} is already used in the problem as {ut}')
+                self._add_user_type(type.father()) # type: ignore
+                self._user_types_hierarchy[type.father()].append(type) # type: ignore
+                self._user_types.append(type)
+            self._user_types_hierarchy[type] = []
 
     def get_static_fluents(self) -> Set['unified_planning.model.fluent.Fluent']:
         '''Returns the set of the static fluents.
@@ -330,44 +345,21 @@ class Problem:
                 return True
         return False
 
-    def user_type_heirs(self, type: 'unified_planning.model.types.Type') -> List['unified_planning.model.types.Type']:
+    def user_type_heirs(self, type: 'unified_planning.model.types.Type') -> Iterator['unified_planning.model.types.Type']:
         '''Returns all the user_types in the problem that are heirs of the given type.'''
         if not type.is_user_type():
             raise UPUsageError('The user_type_hierarchy method must be called on a user type.')
-        # NOTE: what happens here if the problem has in it's user_types (that are added as a side effect of a fluent addiction)
-        # only a type without it's father, but it has his grandfather?
-        heirs: List['unified_planning.model.types.Type'] = []
-        in_check: List['unified_planning.model.types.Type'] = [type]
-        while(len(in_check) > 0):
-            added: List['unified_planning.model.types.Type'] = []
-            for ut in self._user_types:
-                if ut.father() in in_check: # type: ignore
-                    added.append(ut)
-            heirs.extend(in_check)
-            in_check = added
-        return heirs
-
-    def user_types_hierarchy(self) -> OrderedDict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']]:
-        ''' TODO add documentation.'''
-        unordered_types_hierarchy: Dict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']] = {}
-        for ut in self._user_types:
-            brothers = unordered_types_hierarchy.get(ut.father(), None) # type: ignore
-            if brothers is None:
-                unordered_types_hierarchy[ut.father()] = [ut] # type: ignore
-            else:
-                brothers.append(ut)
-        ordered_types_hierarchy: OrderedDict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']] = OrderedDict()
-        to_check: List[Optional['unified_planning.model.types.Type']] = [None]
-        ordered_types_hierarchy[None] = unordered_types_hierarchy[None]
-        while(len(to_check) > 0):
-            added = []
-            for optional_user_type in to_check:
-                sons_list = unordered_types_hierarchy.get(optional_user_type, None)
-                if sons_list is not None:
-                    ordered_types_hierarchy[optional_user_type] = unordered_types_hierarchy[optional_user_type]
-                    added.extend(unordered_types_hierarchy[optional_user_type])
-            to_check = added # type: ignore
-        return ordered_types_hierarchy
+        stack: List['unified_planning.model.types.Type'] = [type]
+        while(len(stack) > 0):
+            current_item = stack.pop()
+            stack.extend(self._user_types_hierarchy[current_item])
+            yield current_item
+        
+    def user_types_hierarchy(self) -> Dict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']]:
+        '''Returns a Dict where the keys are the father and the associated value is the list of it's children.
+        The Dict is NOT ORDERED.'''
+        #NOTE this returns a copy, but could also return the original map
+        return dict(self._user_types_hierarchy)
 
     def add_object(self, obj: 'unified_planning.model.object.Object'):
         '''Adds the given object.'''
@@ -375,7 +367,7 @@ class Problem:
             raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
         self._objects.append(obj)
         if obj.type().is_user_type() and obj.type() not in self._user_types:
-            self._user_types.append(obj.type())
+            self._add_user_type(obj.type())
 
     def add_objects(self, objs: List['unified_planning.model.object.Object']):
         '''Adds the given objects.'''
@@ -384,7 +376,7 @@ class Problem:
                 raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
             self._objects.append(obj)
             if obj.type().is_user_type() and obj.type() not in self._user_types:
-                self._user_types.append(obj.type())
+                self._add_user_type(obj.type())
 
     def object(self, name: str) -> 'unified_planning.model.object.Object':
         '''Returns the object with the given name.'''

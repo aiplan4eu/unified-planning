@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from cmath import exp
 import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.walkers as walkers
@@ -31,6 +32,9 @@ class TypeChecker(walkers.DagWalker):
         """ Returns the unified_planning.model.types type of the expression """
         res = self.walk(expression)
         if res is None:
+            print(expression)
+            print(expression.arg(0).variable())
+            print(expression.fluent())
             raise UPTypeError("The expression '%s' is not well-formed" \
                                % str(expression))
         return res
