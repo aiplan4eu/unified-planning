@@ -14,21 +14,24 @@
 #
 '''This module defines the MultiAgentProblem class.'''
 
-import upf
+import unified_planning
 import sys
 import copy
-from upf.shortcuts import *
-import upf.model.operators as op
-from upf.model.types import domain_size, domain_item
-from upf.exceptions import UPFProblemDefinitionError, UPFTypeError, UPFValueError, UPFExpressionDefinitionError
-from upf.walkers import OperatorsExtractor
+from unified_planning.shortcuts import *
+import unified_planning.model.operators as op
+from unified_planning.model.types import domain_size, domain_item
+from unified_planning.environment import get_env, Environment
+from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
-from upf.model.problem import Problem
+from unified_planning.model.problem import Problem
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError
 from agent import Agent
 from environment import Environment
 import collections
 from typing import List, Union
+
+
 
 class MultiAgentProblem(Problem):
     '''Represents a planning MultiAgentProblem.'''
@@ -38,13 +41,31 @@ class MultiAgentProblem(Problem):
     env = None
     agents_list = []
     plan = []
-    obj_exp = []
-    obj_exp_tot = []
+    #obj_exp = []
+    #obj_exp_tot = []
+    #plan_solve = []
 
-    def add_env(self, Env):
+
+    def initial_values(self) -> Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode']:
+        '''Gets the initial value of the fluents.'''
+        res = self._initial_value
+        return res
+
+    def add_fluent(self, fluent: 'unified_planning.model.fluent.Fluent', *,
+                   default_initial_value: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.object.Object', bool,
+                                                int, float, Fraction] = None):
+        '''Adds the given fluent.'''
+        if self.has_name(fluent.name()):
+            raise UPProblemDefinitionError('Name ' + fluent.name() + ' already defined!')
+        self._fluents.append(fluent)
+        if not default_initial_value is None:
+            v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
+            self._fluents_defaults[fluent] = v_exp
+
+    def add_environment(self, Env):
         self.env = Env
 
-    def get_env(self):
+    def get_environment(self):
         return self.env
 
     def add_agent(self, Agents):
@@ -53,7 +74,7 @@ class MultiAgentProblem(Problem):
     def get_agents(self):
         return self.agents_list
 
-    def get_obj_exp(self):
+    '''def get_obj_exp(self):
         for ag in self.get_agents():
             self.obj_exp = []
             for obj in ag.get_all_objects():
@@ -61,20 +82,19 @@ class MultiAgentProblem(Problem):
                 setattr(obj, '_name', str(getattr(obj, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.obj_exp.append(ObjectExp(obj))
             self.obj_exp_tot.append(tuple(self.obj_exp))
-        return tuple(o for o in self.obj_exp_tot)
+        return tuple(o for o in self.obj_exp_tot)'''
 
     def compile(self):
-        for flu in self.get_env().get_fluents():
+        for flu in self.get_environment().get_fluents():
             flu = copy.deepcopy(flu)
             setattr(flu, '_name', str(getattr(flu, '_name')) + "_env")
             self.add_fluent(flu)
 
-        for goal in self.get_env().get_goals():
+        for goal in self.get_environment().get_goals():
             goal = copy.deepcopy(goal)
             setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_env")
             self.add_goal(goal)
-
-        for flu, value in self.get_env().get_initial_values().items():
+        for flu, value in self.get_environment().get_initial_values().items():
             flu = copy.deepcopy(flu)
             value = copy.deepcopy(value)
             setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_env")
@@ -82,42 +102,61 @@ class MultiAgentProblem(Problem):
 
         for ag in self.get_agents():
             for flu in ag.get_individual_fluents():
+
                 flu = copy.deepcopy(flu)
                 setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_fluent(flu)
+
 
             for act in ag.get_actions():
                 act = copy.deepcopy(act)
                 setattr(act, 'name', str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag)))
                 change_name = True
-                for n, t in act._parameters.items():
+                for n, t in act._parameters.items(): #n è str:l_fro e l_to. t è Location
                     if change_name == True:
                         setattr(t._typename, '_name', str(getattr(t._typename, '_name')) + "_" + (str(self.get_agents().index(ag))))
                     change_name = False
-                self.add_action(act)
+                for i in act._preconditions:
+                    if i.is_fluent_exp():
+                        setattr(i._content.payload, '_name', str(getattr(i._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))
 
             for flu, value in ag.get_initial_values().items():
                 flu = copy.deepcopy(flu)
                 value = copy.deepcopy(value)
                 setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.set_initial_value(flu, value)
-
             for goal in ag.get_goals():
                 goal = copy.deepcopy(goal)
                 setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_goal(goal)
-
             for obj in ag.get_all_objects():
                 obj = copy.deepcopy(obj)
                 setattr(obj, '_name', str(getattr(obj, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_object(obj)
-
         return self
 
-    def solve_compile(self):
+
+    '''def solve_compile(self):
         for ag in self.get_agents():
             for i in range(len(ag.get_actions())):
                 self.plan.append(
-                    upf.plan.SequentialPlan([upf.plan.ActionInstance(ag.get_actions()[i], self.get_obj_exp()[self.get_agents().index(ag)])]))
+                    unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(ag.get_actions()[i], self.get_obj_exp()[self.get_agents().index(ag)])]))
+        return self.plan'''
+
+    def solve_OneshotPlanner(self):
+        with OneshotPlanner(name='pyperplan') as planner:
+            solve_plan = planner.solve(self)
+            print("Pyperplan returned: %s" % solve_plan)
+        return
+
+    def extract_plans(self, plan_problem):
+        print("piano originale", plan_problem)
+        for ag in self.get_agents():
+            for act in plan_problem._actions:
+                act = copy.deepcopy(act)
+                setattr(act._action, 'name', str(getattr(act._action, 'name')) + "_" + str(self.get_agents().index(ag)))
+                for par in act._params: #l1, l2 , ...
+                    setattr(par._content.payload, '_name', str(getattr(par._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))
+                self.plan.append(act)
         return self.plan
 

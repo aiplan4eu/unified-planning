@@ -14,13 +14,13 @@
 # limitations under the License.
 
 
-import upf
-from upf.shortcuts import *
+import unified_planning
+from unified_planning.shortcuts import *
 from collections import namedtuple
-from upf.model.agent import Agent
-from upf.model.ma_problem import MultiAgentProblem
+from unified_planning.model.agent import Agent
+from unified_planning.model.ma_problem import MultiAgentProblem
 from realistic import get_example_problems
-from upf.model.environment import Environment
+from unified_planning.model.environment import Environment
 
 Example = namedtuple('Example', ['problem', 'plan'])
 problems = {}
@@ -29,11 +29,26 @@ examples = get_example_problems()
 def ma_example():
     problem = examples['robot'].problem
 
+    # examples['...'].problem supported:
+    # Yes: robot
+    # No: robot_fluent_of_user_type
+    # Yes: robot_no_negative_preconditions
+    # Yes: robot_decrease
+    # Yes: robot_loader
+    # Yes: robot_loader_mod
+    # Yes: robot_loader_adv
+    # Yes: robot_locations_connected
+    # Yes: No robot_locations_visited
+    # Yes: charge_discharge
+    # No: matchcellar
+    # No: timed_connected_locations
+
     fluents_problem = problem.fluents()
     actions_problem = problem.actions()
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
+    plan = examples['robot'].plan
     robot1 = Agent()
     robot2 = Agent()
     environment = Environment()
@@ -52,9 +67,11 @@ def ma_example():
     ma_problem = MultiAgentProblem('robots')
     ma_problem.add_agent(robot1)
     ma_problem.add_agent(robot2)
-    ma_problem.add_env(environment)
+    ma_problem.add_environment(environment)
     problem = ma_problem.compile()
-    plan = problem.solve_compile()
+    print("Single agent plan:\n ", plan)
+    plan = ma_problem.extract_plans(plan)
+    print("Multi agent plan:\n ", plan)
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
@@ -66,6 +83,7 @@ def ma_example_env():
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
+    plan = examples['robot'].plan
     robot1 = Agent()
     robot2 = Agent()
     environment = Environment()
@@ -94,9 +112,11 @@ def ma_example_env():
     ma_problem = MultiAgentProblem('robots_env')
     ma_problem.add_agent(robot1)
     ma_problem.add_agent(robot2)
-    ma_problem.add_env(environment)
+    ma_problem.add_environment(environment)
     problem = ma_problem.compile()
-    plan = problem.solve_compile()
+    print("Single agent plan:\n ", plan)
+    plan = ma_problem.extract_plans(plan)
+    print("Multi agent plan:\n ", plan)
     robots = Example(problem=problem, plan=plan)
     problems['robots_env'] = robots
 
