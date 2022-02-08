@@ -69,11 +69,13 @@ def ma_example():
     ma_problem.add_agent(robot2)
     ma_problem.add_environment(environment)
     problem = ma_problem.compile()
+    print(problem)
     print("Single agent plan:\n ", plan)
     plan = ma_problem.extract_plans(plan)
     print("Multi agent plan:\n ", plan)
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
+
 
 def ma_example_env():
     problem = examples['robot'].problem
@@ -120,3 +122,4 @@ def ma_example_env():
     robots = Example(problem=problem, plan=plan)
     problems['robots_env'] = robots
 
+ma_example()

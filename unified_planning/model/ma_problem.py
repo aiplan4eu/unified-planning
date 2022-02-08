@@ -21,7 +21,7 @@ from unified_planning.shortcuts import *
 import unified_planning.model.operators as op
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.environment import get_env, Environment
-from unified_planning.walkers import OperatorsExtractor
+#from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.problem import Problem

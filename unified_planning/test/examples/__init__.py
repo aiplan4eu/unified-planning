@@ -20,5 +20,5 @@ import unified_planning.test.examples.testing_variants as testing_variants
 import unified_planning.test.examples.ma_realistic as ma_realistic
 
 def get_example_problems():
-    sub_modules = [minimals, realistic, testing_variants]
+    sub_modules = [minimals, realistic, testing_variants, ma_realistic]
     return dict(x for m in sub_modules for x in m.get_example_problems().items())
