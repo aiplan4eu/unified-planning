@@ -17,6 +17,7 @@ import unified_planning.test.examples.minimals as minimals
 import unified_planning.test.examples.realistic as realistic
 import unified_planning.test.examples.testing_variants as testing_variants
 
+import unified_planning.test.examples.ma_realistic as ma_realistic
 
 def get_example_problems():
     sub_modules = [minimals, realistic, testing_variants]

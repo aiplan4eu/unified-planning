@@ -39,3 +39,4 @@ if len(VERSION) == 5:
 # PEP440 Format
 __version__ = "%d.%d.%d.%s%d" % VERSION if len(VERSION) == 5 else \
               "%d.%d.%d" % VERSION[:3]
+

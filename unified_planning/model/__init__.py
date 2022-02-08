@@ -28,6 +28,10 @@ from unified_planning.model.timing import Interval, ClosedInterval, OpenInterval
 from unified_planning.model.types import Type, TypeManager
 from unified_planning.model.variable import Variable, FreeVarsOracle
 
+from unified_planning.model.agent import Agent
+from unified_planning.model.ma_problem import MultiAgentProblem
+from unified_planning.model.environment import Environment
+
 __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
             'Effect',
             'BoolExpression', 'Expression', 'ExpressionManager',
@@ -40,5 +44,6 @@ __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction'
             'FixedDuration', 'OpenIntervalDuration', 'LeftOpenIntervalDuration', 'RightOpenIntervalDuration',
             'Interval', 'ClosedInterval', 'OpenInterval', 'LeftOpenInterval', 'RightOpenInterval',
             'Type', 'TypeManager',
-            'Variable', 'FreeVarsOracle'
+            'Variable', 'FreeVarsOracle',
+            'Agent', 'MultiAgentProblem', 'Environment'
             ]

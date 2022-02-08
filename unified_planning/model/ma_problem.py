@@ -26,8 +26,8 @@ from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.problem import Problem
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError
-from agent import Agent
-from environment import Environment
+from unified_planning.model.agent import Agent
+from unified_planning.environment import Environment
 import collections
 from typing import List, Union
 
