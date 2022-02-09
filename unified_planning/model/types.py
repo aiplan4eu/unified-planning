@@ -166,7 +166,7 @@ class TypeManager:
                 if not father.is_user_type():
                     raise UPTypeError('The father of a UserType must be either None or a UserType.')
                 for ancestor in self.user_type_ancestors(father):
-                    if ancestor.name() == name:
+                    if ancestor.name() == name: # type: ignore
                         raise UPTypeError('The name: {name} is already used in the UserType: {ancestor}. An UserType and one of his ancestors can not share the name.')
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
@@ -180,8 +180,7 @@ class TypeManager:
         father: Optional[Type] = user_type.father()
         while(father is not None):
             yield father
-            father = father.father()
-
+            father = father.father() # type: ignore
 
 
 def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'unified_planning.model.types.Type') -> int:

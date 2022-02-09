@@ -201,7 +201,7 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
 def _type_name_added_to_language_if_needed(lang: 'tarski.FirstOrderLanguage', type: 'unified_planning.model.Type') -> str:
     typename = ''
     if type.is_user_type():
-        typename = type.name()
+        typename = type.name() # type: ignore
     else:
         typename = str(type).replace(' ','')
     if type.is_int_type() and (type.lower_bound() is None or type.upper_bound() is None): # type: ignore

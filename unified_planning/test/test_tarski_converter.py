@@ -20,7 +20,7 @@ from unified_planning.interop import convert_problem_from_tarski
 from unified_planning.test import TestCase
 from unified_planning.test.examples import get_example_problems
 from unified_planning.interop import convert_problem_to_tarski
-from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind
+from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind, hierarchical_kind
 from unified_planning.plan import SequentialPlan, ActionInstance
 from unified_planning.solvers import SequentialPlanValidator
 
@@ -39,7 +39,7 @@ class TestTarskiConverter(TestCase):
         for p in self.problems.values():
             problem = p.problem
             problem_kind = problem.kind()
-            if problem_kind <= full_classical_kind.union(full_numeric_kind) or problem.name == 'hierarchical_blocks_world':
+            if problem_kind <= full_classical_kind.union(full_numeric_kind.union(hierarchical_kind)):
                 if problem.name in problems_to_avoid:
                     continue
                 #modify the problem to have the same representation
