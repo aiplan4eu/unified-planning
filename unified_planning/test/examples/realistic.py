@@ -16,6 +16,8 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from collections import namedtuple
+#from unified_planning.io.pddl_writer import PDDLWriter
+#from unified_planning.io.pddl_reader import PDDLReader
 
 Example = namedtuple('Example', ['problem', 'plan'])
 
@@ -51,6 +53,12 @@ def get_example_problems():
     plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot = Example(problem=problem, plan=plan)
     problems['robot'] = robot
+
+
+    #print(problem)
+    '''w = PDDLWriter(problem)
+    print(w.get_domain())
+    print(w.get_problem())'''
 
     #robot fluent of user_type
     Location = UserType('Location')
@@ -591,3 +599,5 @@ def get_example_problems():
     problems['timed_connected_locations'] = timed_connected_locations
 
     return problems
+
+#get_example_problems()

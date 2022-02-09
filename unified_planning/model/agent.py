@@ -25,17 +25,15 @@ class Agent:
     def __init__(
             self,
             ID =  None,
-            obs_individual_fluents = None,
+            obs_fluents = None,
             obs_public_fluents = None,
             actions = None,
             goals = None,
             env: 'unified_planning.environment.Environment' = None,
     ):
         self.ID =  ID
-        if obs_individual_fluents is None:
-            self.obs_individual_fluents = []
-        if obs_public_fluents is None:
-            self.obs_public_fluents = []
+        if obs_fluents is None:
+            self.obs_fluents = []
         if actions is None:
             self.actions = []
         if goals is None:
@@ -46,47 +44,25 @@ class Agent:
         self._objects: List['unified_planning.model.object.Object'] = []
         self._user_types: List['unified_planning.model.types.Type'] = []
 
-    def add_individual_fluent(self, Fluent):
+    def add_fluent(self, Fluent):
         if self.has_name(Fluent.name):
             raise UPProblemDefinitionError('Name ' + Fluent.name + ' already defined!')
-        self.obs_individual_fluents.append(Fluent)
+        self.obs_fluents.append(Fluent)
 
-    def add_individual_fluents(self, List_fluents: List):
+    def add_fluents(self, List_fluents: List):
         for flu in List_fluents:
-            self.add_individual_fluent(flu)
+            self.add_fluent(flu)
 
-    def get_individual_fluents(self):
+    def get_fluents(self):
         '''Returns the individual fluents'''
-        return self.obs_individual_fluents
+        return self.obs_fluents
 
-    def get_individual_fluent(self, name: str) -> 'unified_planning.model.fluent.Fluent':
+    def get_fluent(self, name: str) -> 'unified_planning.model.fluent.Fluent':
         '''Returns the fluent with the given name.'''
-        for f in self.obs_individual_fluents:
+        for f in self.obs_fluents:
             if f.name() == name:
                 return f
         raise UPValueError(f'Fluent of name: {name} is not defined!')
-
-
-    def add_public_fluent(self, Fluent):
-        if self.has_name(Fluent.name):
-            raise UPProblemDefinitionError('Name ' + Fluent.name + ' already defined!')
-        self.obs_public_fluents.append(Fluent)
-
-    def add_public_fluents(self, List_fluents: List):
-        for flu in List_fluents:
-            self.add_public_fluent(flu)
-
-    def get_public_fluents(self):
-        '''Returns the public fluents'''
-        return self.obs_public_fluents
-
-    def get_public_fluent(self, name: str) -> 'unified_planning.model.fluent.Fluent':
-        '''Returns the fluent with the given name.'''
-        for f in self.obs_public_fluents:
-            if f.name() == name:
-                return f
-        raise UPValueError(f'Fluent of name: {name} is not defined!')
-
 
     def add_action(self, Action):
         '''Adds the given action.'''
@@ -129,7 +105,7 @@ class Agent:
 
     def has_fluent(self, name: str) -> bool:
         '''Returns true if the fluent with the given name is in the agent.'''
-        for f in self.obs_individual_fluents:
+        for f in self.obs_fluents:
             if f.name() == name:
                 return True
         return False
@@ -154,8 +130,8 @@ class Agent:
                                        int, float, Fraction]):
         '''Sets the initial value for the given fluent.'''
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPTypeError('Initial value assignment has not compatible types!')
+        '''if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPTypeError('Initial value assignment has not compatible types!')'''
         if fluent_exp in self._initial_value:
             raise UPProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
@@ -179,8 +155,7 @@ class Agent:
         else:
             raise UPProblemDefinitionError('Initial value not set!')
 
-
-    def add_object(self, obj: 'unified_planning.model.object.Object'):
+    def add_object(self, obj: 'upf.model.object.Object'):
         '''Adds the given object.'''
         if self.has_name(obj.name()):
             raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
@@ -188,23 +163,23 @@ class Agent:
         if obj.type().is_user_type() and obj.type() not in self._user_types:
             self._user_types.append(obj.type())
 
-    def add_objects(self, objs: List['unified_planning.model.object.Object']):
+    def add_objects(self, objs: List['upf.model.object.Object']):
         '''Adds the given objects.'''
         for obj in objs:
             self.add_object(obj)
 
-    def get_all_objects(self) -> List['unified_planning.model.object.Object']:
+    def get_all_objects(self) -> List['upf.model.object.Object']:
         '''Returns all the objects.'''
         return [o for o in self._objects]
 
-    def object(self, name: str) -> 'unified_planning.model.object.Object':
+    def object(self, name: str) -> 'upf.model.object.Object':
         '''Returns the object with the given name.'''
         for o in self._objects:
             if o.name() == name:
                 return o
         raise UPValueError(f'Object of name: {name} is not defined!')
 
-    def objects(self, typename: 'unified_planning.model.types.Type') -> List['unified_planning.model.object.Object']:
+    def objects(self, typename: 'upf.model.types.Type') -> List['upf.model.object.Object']:
         '''Returns the objects of the given user types.'''
         res = []
         for obj in self._objects:
@@ -213,6 +188,6 @@ class Agent:
         return res
 
 
-    def user_types(self) -> List['unified_planning.model.types.Type']:
+    def user_types(self) -> List['upf.model.types.Type']:
         '''Returns the user types.'''
         return self._user_types

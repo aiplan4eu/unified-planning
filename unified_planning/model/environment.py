@@ -25,13 +25,10 @@ class Environment:
     def __init__(
             self,
             obs_fluents = None,
-            goals=None,
             env: 'unified_planning.environment.Environment' = None
     ):
         if obs_fluents is None:
             self.obs_fluents = []
-        if goals is None:
-            self._goals = []
 
         self._env = unified_planning.environment.get_env(env)
         self._initial_value: Dict['unified_planning.model.fnode.FNode', 'upf.model.fnode.FNode'] = {}
@@ -47,7 +44,6 @@ class Environment:
 
     def get_fluents(self):
         return self.obs_fluents
-
 
     def has_name(self, name: str) -> bool:
         '''Returns true if the name is in the agent.'''
@@ -65,8 +61,8 @@ class Environment:
                                        int, float, Fraction]):
         '''Sets the initial value for the given fluent.'''
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
-            raise UPTypeError('Initial value assignment has not compatible types!')
+        '''if not self._env.type_checker.is_compatible_type(fluent_exp, value_exp):
+            raise UPTypeError('Initial value assignment has not compatible types!')'''
         if fluent_exp in self._initial_value:
             raise UPProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
@@ -75,11 +71,9 @@ class Environment:
         for fluent, value in init_values.items():
             self.set_initial_value(fluent, value)
 
-
     def get_initial_values(self) -> Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode']:
         '''Gets the initial values'''
         return self._initial_value
-
 
     def get_initial_value(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent']) -> 'unified_planning.model.fnode.FNode':
         '''Gets the initial value of the given fluent.'''
@@ -91,23 +85,3 @@ class Environment:
             return self._initial_value[fluent_exp]
         else:
             raise UPProblemDefinitionError('Initial value not set!')
-
-
-    def add_goal(self, goal: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', bool]):
-        '''Adds a goal.'''
-        goal_exp, = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        self._goals.append(goal_exp)
-
-    def add_goals(self, List_goals):
-        '''Adds a goals.'''
-        for goal in List_goals:
-            self.add_goal(goal)
-
-    def get_goals(self) -> Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode']:
-        '''Returns the goals.'''
-        return self._goals
-
-    def clear_goals(self):
-        '''Removes the goals.'''
-        self._goals = []

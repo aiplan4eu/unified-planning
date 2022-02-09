@@ -21,7 +21,7 @@ from unified_planning.shortcuts import *
 import unified_planning.model.operators as op
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.environment import get_env, Environment
-#from unified_planning.walkers import OperatorsExtractor
+from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.problem import Problem
@@ -45,6 +45,17 @@ class MultiAgentProblem(Problem):
     #obj_exp_tot = []
     #plan_solve = []
 
+    def set_initial_value(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
+                          value: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', bool,
+                                       int, float, Fraction]):
+        '''Sets the initial value for the given fluent.'''
+        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
+        '''if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+            raise UPTypeError('Initial value assignment has not compatible types!')'''
+        if fluent_exp in self._initial_value:
+            raise UPProblemDefinitionError('Initial value already set!')
+        self._initial_value[fluent_exp] = value_exp
+
 
     def initial_values(self) -> Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode']:
         '''Gets the initial value of the fluents.'''
@@ -61,6 +72,18 @@ class MultiAgentProblem(Problem):
         if not default_initial_value is None:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
+
+
+    def add_objects(self, objs: List['unified_planning.model.object.Object']):
+        '''Adds the given objects.'''
+        for obj in objs:
+            self.add_object(obj)
+
+    def get_all_objects(self) -> List['unified_planning.model.object.Object']:
+        '''Returns all the objects.'''
+        return [o for o in self._objects]
+
+
 
     def add_environment(self, Env):
         self.env = Env
@@ -90,18 +113,15 @@ class MultiAgentProblem(Problem):
             setattr(flu, '_name', str(getattr(flu, '_name')) + "_env")
             self.add_fluent(flu)
 
-        for goal in self.get_environment().get_goals():
-            goal = copy.deepcopy(goal)
-            setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_env")
-            self.add_goal(goal)
         for flu, value in self.get_environment().get_initial_values().items():
             flu = copy.deepcopy(flu)
             value = copy.deepcopy(value)
             setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_env")
             self.set_initial_value(flu, value)
 
+
         for ag in self.get_agents():
-            for flu in ag.get_individual_fluents():
+            for flu in ag.get_fluents():
 
                 flu = copy.deepcopy(flu)
                 setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
@@ -117,11 +137,15 @@ class MultiAgentProblem(Problem):
                         setattr(t._typename, '_name', str(getattr(t._typename, '_name')) + "_" + (str(self.get_agents().index(ag))))
                     change_name = False
                 for i in act._preconditions:
-                    if i.is_fluent_exp():
-                        setattr(i._content.payload, '_name', str(getattr(i._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))
-
+                    if i._content.args != None:
+                        for flu in i._content.args:
+                            if flu.is_fluent_exp():
+                                setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
+                    '''if i.is_fluent_exp():
+                        setattr(i._content.payload, '_name', str(getattr(i._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))'''
+                self.add_action(act)
             for flu, value in ag.get_initial_values().items():
-                flu = copy.deepcopy(flu)
+                flu = copy.deepcopy(flu)        #hash commentato in fnode
                 value = copy.deepcopy(value)
                 setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.set_initial_value(flu, value)
@@ -150,7 +174,6 @@ class MultiAgentProblem(Problem):
         return
 
     def extract_plans(self, plan_problem):
-        print("piano originale", plan_problem)
         for ag in self.get_agents():
             for act in plan_problem._actions:
                 act = copy.deepcopy(act)

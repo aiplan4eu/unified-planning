@@ -20,6 +20,7 @@ import unified_planning.model.operators as op
 import collections
 from typing import List, Union
 from fractions import Fraction
+import copy
 
 FNodeContent = collections.namedtuple("FNodeContent",
                                       ["node_type", "args", "payload"])
@@ -37,8 +38,9 @@ class FNode(object):
     # environment two nodes have always different ids, but in
     # different environments they can have the same id. This is not an
     # issue since, by default, equality coincides with identity.
-    def __hash__(self) -> int:
-        return self._node_id
+    '''def __hash__(self) -> int:
+        return self._node_id'''
+    ##ADDED###
 
     def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
         p = []
