@@ -49,3 +49,11 @@ class TestPyperplan(TestCase):
             self.assertNotEqual(planner, None)
             new_plan = planner.solve(problem)
             self.assertEqual(str(plan), str(new_plan))
+
+    @skipIfSolverNotAvailable('pyperplan')
+    def test_hierarchical_blocks_world(self):
+        problem, plan = self.problems['hierarchical_blocks_world'].problem, self.problems['hierarchical_blocks_world'].plan
+        with OneshotPlanner(name='pyperplan') as planner:
+            self.assertNotEqual(planner, None)
+            new_plan = planner.solve(problem)
+            self.assertEqual(str(plan), str(new_plan))

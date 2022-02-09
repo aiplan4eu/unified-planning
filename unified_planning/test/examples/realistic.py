@@ -608,7 +608,7 @@ def get_example_problems():
     move.add_precondition(clear(l_to))
     move.add_precondition(on(item, l_from))
     move.add_effect(clear(l_from), True)
-    move.add_effect(on(item, l_to), False)
+    move.add_effect(on(item, l_from), False)
     move.add_effect(clear(l_to), False)
     move.add_effect(on(item, l_to), True)
 
