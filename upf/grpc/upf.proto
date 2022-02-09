@@ -300,6 +300,9 @@ message PlanRequest {
     // max allowed time in milliseconds 
     // (maybe a deadline would be better if we are considering milliseconds?)
     int64 timeout_milliseconds = 3;
+
+    // Some planner specific options to be passed to the planner
+    map<string, string> planner_options = 4;
 }
 
 
