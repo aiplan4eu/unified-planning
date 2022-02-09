@@ -178,6 +178,7 @@ class Problem:
         new_p._fluents = self._fluents[:]
         new_p._actions = [a.clone() for a in self._actions]
         new_p._user_types = self._user_types[:]
+        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
         new_p._initial_value = self._initial_value.copy()
         new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
@@ -394,9 +395,18 @@ class Problem:
 
     def objects(self, typename: 'unified_planning.model.types.Type') -> List['unified_planning.model.object.Object']:
         '''Returns the objects of the given user types.'''
-        res = []
+        res:List['unified_planning.model.object.Object'] = []
         for obj in self._objects:
             if obj.type() == typename:
+                res.append(obj)
+        return res
+
+    def objects_hierarchy(self, typename: 'unified_planning.model.types.Type') -> List['unified_planning.model.object.Object']:
+        '''Returns the objects of the given user types and of his heirs.'''
+        res:List['unified_planning.model.object.Object'] = []
+        type_heirs: List['unified_planning.model.types.Type'] = list(self.user_type_heirs(typename))
+        for obj in self._objects:
+            if obj.type() in type_heirs:
                 res.append(obj)
         return res
 

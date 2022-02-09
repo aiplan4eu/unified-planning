@@ -109,8 +109,8 @@ def IntType(lower_bound: int = None, upper_bound: int = None) -> unified_plannin
 def RealType(lower_bound: Fraction = None, upper_bound: Fraction = None) -> unified_planning.model.types.Type:
     return get_env().type_manager.RealType(lower_bound, upper_bound)
 
-def UserType(name: str) -> unified_planning.model.types.Type:
-    return get_env().type_manager.UserType(name)
+def UserType(name: str, father: Optional[Type] = None) -> unified_planning.model.types.Type:
+    return get_env().type_manager.UserType(name, father)
 
 def OneshotPlanner(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,

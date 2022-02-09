@@ -590,4 +590,60 @@ def get_example_problems():
     timed_connected_locations = Example(problem=problem, plan=plan)
     problems['timed_connected_locations'] = timed_connected_locations
 
+    # hierarchical blocks world
+    Entity = UserType('Entity', None) # None can be avoided
+    Location = UserType('Location', Entity)
+    Unmovable = UserType('Unmovable', Location)
+    TableSpace = UserType('TableSpace', Unmovable)
+    Movable = UserType('Movable', Location)
+    Block = UserType('Block', Movable)
+    clear = Fluent('clear', BoolType(), [Location])
+    on = Fluent('on', BoolType(), [Movable, Location])
+
+    move = InstantaneousAction('move', item=Movable, l_from=Location, l_to=Location)
+    item = move.parameter('item')
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(clear(item))
+    move.add_precondition(clear(l_to))
+    move.add_precondition(on(item, l_from))
+    move.add_effect(clear(l_from), True)
+    move.add_effect(on(item, l_to), False)
+    move.add_effect(clear(l_to), False)
+    move.add_effect(on(item, l_to), True)
+
+    problem = Problem('hierarchical_blocks_world')
+    problem.add_fluent(clear, default_initial_value=False)
+    problem.add_fluent(on, default_initial_value=False)
+    problem.add_action(move)
+    ts_1 = Object('ts_1', TableSpace)
+    ts_2 = Object('ts_2', TableSpace)
+    ts_3 = Object('ts_3', TableSpace)
+    problem.add_objects([ts_1, ts_2, ts_3])
+    block_1 = Object('block_1', Block)
+    block_2 = Object('block_2', Block)
+    block_3 = Object('block_3', Block)
+    problem.add_objects([block_1, block_2, block_3])
+
+    # The blocks are all on ts_1, in order block_3 under block_1 under block_2
+    problem.set_initial_value(clear(ts_2), True)
+    problem.set_initial_value(clear(ts_3), True)
+    problem.set_initial_value(clear(block_2), True)
+    problem.set_initial_value(on(block_3, ts_1), True)
+    problem.set_initial_value(on(block_1, block_3), True)
+    problem.set_initial_value(on(block_2, block_1), True)
+
+    # We want them on ts_3 in order block_3 on block_2 on block_1
+    problem.add_goal(on(block_1, ts_3))
+    problem.add_goal(on(block_2, block_1))
+    problem.add_goal(on(block_3, block_2))
+
+    plan = unified_planning.plan.SequentialPlan([
+            unified_planning.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(block_1), ObjectExp(ts_2))), 
+            unified_planning.plan.ActionInstance(move, (ObjectExp(block_1), ObjectExp(block_3), ObjectExp(ts_3))),
+            unified_planning.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(ts_2), ObjectExp(block_1))),
+            unified_planning.plan.ActionInstance(move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2)))])
+    hierarchical_blocks_world = Example(problem=problem, plan=plan)
+    problems['hierarchical_blocks_world'] = hierarchical_blocks_world
+
     return problems

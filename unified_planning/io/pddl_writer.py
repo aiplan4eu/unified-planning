@@ -327,7 +327,9 @@ class PDDLWriter:
         if len(self.problem.user_types()) > 0:
             out.write(' (:objects ')
             for t in self.problem.user_types():
-                out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
+                objects: List['unified_planning.model.Object'] = self.problem.objects(t)
+                if len(objects) > 0:
+                    out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
             out.write('\n )\n')
         converter = ConverterToPDDLString(self.problem.env)
         out.write(' (:init')
@@ -343,11 +345,11 @@ class PDDLWriter:
         out.write(')\n')
 
     def print_domain(self):
-        '''Prints to std output the PDDL domain.'''
+        '''print to std output the PDDL domain.'''
         self._write_domain(sys.stdout)
 
     def print_problem(self):
-        '''Prints to std output the PDDL problem.'''
+        '''prints to std output the PDDL problem.'''
         self._write_problem(sys.stdout)
 
     def get_domain(self) -> str:

@@ -428,7 +428,6 @@ class PDDLReader:
             problem.name = problem_res['name']
 
             for g in problem_res.get('objects', []):
-                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
                 t = self._types_map[g[1] if len(g) > 1 else 'object']
                 for o in g[0]:
                     problem.add_object(unified_planning.model.Object(o, t))

@@ -77,6 +77,9 @@ class ProblemKind(metaclass=ProblemKindMeta):
 basic_classical_kind = ProblemKind()
 basic_classical_kind.set_typing('FLAT_TYPING') # type: ignore
 
+hierarchical_kind = ProblemKind()
+hierarchical_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
+
 classical_kind = ProblemKind()
 classical_kind.set_typing('FLAT_TYPING') # type: ignore
 classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore

@@ -39,7 +39,7 @@ class TestTarskiConverter(TestCase):
         for p in self.problems.values():
             problem = p.problem
             problem_kind = problem.kind()
-            if problem_kind <= full_classical_kind.union(full_numeric_kind):
+            if problem_kind <= full_classical_kind.union(full_numeric_kind) or problem.name == 'hierarchical_blocks_world':
                 if problem.name in problems_to_avoid:
                     continue
                 #modify the problem to have the same representation

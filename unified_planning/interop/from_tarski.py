@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from lib2to3.pgen2.token import OP
 import unified_planning
 import itertools
 import tarski.fstrips # type: ignore
@@ -19,7 +20,7 @@ from fractions import Fraction
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.environment import Environment
 from collections import OrderedDict
-from typing import Union, Dict
+from typing import Optional, Union, Dict
 from tarski.syntax import Interval # type: ignore
 from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
 from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
@@ -129,6 +130,67 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_plannin
         raise UPProblemDefinitionError(str(formula) + ' not supported!')
 
 
+def _check_if_tarski_problem_uses_object_type(tarski_problem: tarski.fstrips.Problem) -> bool:
+    lang = tarski_problem.language
+    for p in lang.predicates:
+        if str(p.name) in ['=', '!=', '<', '<=', '>', '>=']:
+            continue
+        for t in p.sort:
+            if str(t.name) == 'object':
+                return True
+    for p in lang.functions:
+        if str(p.name) in ['ite', '@', '+', '-', '*', '/', '**', '%', 'sqrt']:
+            continue
+        for t in p.domain:
+            if str(t.name) == 'object':
+                return True
+        func_sort = p.sort[-1]
+        if str(func_sort.name) == 'object':
+            return True
+    for c in lang.constants():
+        if str(c.sort.name) == 'object':
+            return True
+    for a_name in tarski_problem.actions:
+        a = tarski_problem.get_action(a_name)
+        for p in a.parameters:
+            if str(p.sort.name) == 'object':
+                return True
+    return False
+
+
+def _convert_type_and_update_dict(sort: tarski.syntax.Sort, types_dict: Dict[str, Optional['unified_planning.model.Type']], \
+                tm: 'unified_planning.model.TypeManager', lang: 'tarski.fol.FirstOrderLanguage') \
+                -> Optional['unified_planning.model.Type']:
+    '''Converts a tarski type in a unified_planning type and inserts it into the types_dict.
+        Important NOTE: This function modifies the parameter types_dict.'''
+    if str(sort.name) in types_dict.keys(): # type already defined
+        return types_dict[str(sort.name)]
+    if isinstance(sort, Interval): # if the type is an Interval
+        if sort == lang.Integer:
+            up_type = tm.IntType()
+        elif sort == lang.Natural:
+            up_type = tm.IntType(lower_bound=0)
+        elif sort == lang.Real:
+            up_type = tm.RealType()
+        elif sort.encode == lang.Integer.encode:
+            up_type = tm.IntType(sort.lower_bound, sort.upper_bound)
+        elif sort.encode == lang.Natural.encode:
+            up_type = tm.IntType(0, sort.upper_bound)
+        elif sort.encode == lang.Real.encode:
+            up_type = tm.RealType(sort.lower_bound, sort.upper_bound)
+        else:
+            raise NotImplementedError
+    else: # the type should be a user_type
+        tarski_father = tarski.syntax.sorts.parent(sort)
+        up_father: Optional['unified_planning.model.Type'] = None
+        if tarski_father is not None:
+            up_father = _convert_type_and_update_dict(tarski_father, types_dict, tm, lang)
+        up_type = tm.UserType(str(sort.name), up_father)
+    assert up_type is not None #sanity check
+    types_dict[str(sort.name)] = up_type
+    return up_type
+    
+
 def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'unified_planning.model.Problem':
     """Converts a tarski problem in a unified_planning.Problem."""
     em = env.expression_manager
@@ -137,30 +199,14 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     problem = unified_planning.model.Problem(tarski_problem.name)
 
     # Convert types
-    types = {}
+    types: Dict[str, Optional['unified_planning.model.Type']] = {}
+    uses_object_type: bool = _check_if_tarski_problem_uses_object_type(tarski_problem)
+    assert not uses_object_type
+    if not uses_object_type:
+        types['object'] = None # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
     for t in lang.sorts:
-        if isinstance(t, Interval):
-            if t == lang.Integer:
-                types[str(t.name)] = tm.IntType()
-            elif t == lang.Natural:
-                types[str(t.name)] = tm.IntType(lower_bound=0)
-            elif t == lang.Real:
-                types[str(t.name)] = tm.RealType()
-            elif t.encode == lang.Integer.encode:
-                types[str(t.name)] = tm.IntType(t.lower_bound, t.upper_bound)
-            elif t.encode == lang.Natural.encode:
-                types[str(t.name)] = tm.IntType(0, t.upper_bound)
-            elif t.encode == lang.Real.encode:
-                types[str(t.name)] = tm.RealType(t.lower_bound, t.upper_bound)
-            else:
-                raise NotImplementedError
-        else:
-            if t.name == 'object' or tarski.syntax.sorts.parent(t).name == 'object':
-                types[str(t.name)] = tm.UserType(str(t.name)) # handle root type or "direct root type decendent"
-                                                              # here type hierarchy is not needed
-                                                              # NOTE: True only if the type 'object' is never used.
-            else:
-                types[str(t.name)] = tm.UserType(str(t.name), tm.UserType(tarski.syntax.sorts.parent(t).name))
+        #types will be filled witrh the needed types in this loop.
+        _convert_type_and_update_dict(t, types, tm, lang)
 
     # Convert predicates and functions
     fluents = {}
@@ -170,7 +216,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
         signature = []
         for t in p.sort:
             signature.append(types[str(t.name)])
-        fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
+        fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature) # type: ignore
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
     for p in lang.functions:
@@ -184,28 +230,28 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:
                 if func_sort.name == 'Real' or func_sort.name == 'number':
-                    fluent = unified_planning.model.Fluent(p.name, tm.RealType(), signature)
+                    fluent = unified_planning.model.Fluent(p.name, tm.RealType(), signature) # type: ignore
                 else:
                     fluent = unified_planning.model.Fluent(p.name, tm.RealType(lower_bound=\
-                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature)
+                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature) # type: ignore
             else:
                 assert func_sort.encode == lang.Integer.encode or func_sort.encode == lang.Natural.encode
                 if func_sort.name == 'Integer':
-                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(), signature)
+                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(), signature) # type: ignore
                 elif func_sort.name == 'Natual':
-                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(lower_bound=0), signature)
+                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(lower_bound=0), signature) # type: ignore
                 else:
                     fluent = unified_planning.model.Fluent(p.name, tm.IntType(lower_bound=\
-                        func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
+                        func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature) # type: ignore
         else:
-            fluent = unified_planning.model.Fluent(p.name, tm.UserType(func_sort.name), signature)
+            fluent = unified_planning.model.Fluent(p.name, tm.UserType(func_sort.name), signature) # type: ignore
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
 
     # Convert objects
     objects = {}
     for c in lang.constants():
-        o = unified_planning.model.Object(str(c.name), types[str(c.sort.name)])
+        o = unified_planning.model.Object(str(c.name), types[str(c.sort.name)]) # type: ignore
         objects[o.name()] = o
         problem.add_object(o)
 
@@ -215,7 +261,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
         parameters = OrderedDict()
         for p in a.parameters:
             parameters[p.symbol] = types[p.sort.name]
-        action = unified_planning.model.InstantaneousAction(a_name, parameters)
+        action = unified_planning.model.InstantaneousAction(a_name, parameters) # type: ignore
         action_parameters = {}
         for p in parameters.keys():
             action_parameters[p] = action.parameter(p)
@@ -240,7 +286,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     # Set initial values
     initial_values = {}
     for fluent in fluents.values():
-        l = [problem.objects(t) for t in fluent.signature()]
+        l = [problem.objects_hierarchy(t) for t in fluent.signature()]
         if fluent.type().is_bool_type():
             default_value = em.FALSE()
         elif fluent.type().is_real_type():

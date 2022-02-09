@@ -104,7 +104,6 @@ class TestQuantifiersRemover(TestCase):
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem
-        plan = self.problems['timed_connected_locations'].plan
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
         self.assertTrue(problem.has_quantifiers())
