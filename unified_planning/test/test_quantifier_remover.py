@@ -17,7 +17,7 @@ import os
 import unified_planning
 from unified_planning.environment import get_env
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import classical_kind, full_classical_kind, basic_temporal_kind, full_numeric_kind
+from unified_planning.model.problem_kind import classical_kind, full_classical_kind, basic_temporal_kind, full_numeric_kind, hierarchical_kind
 from unified_planning.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 from unified_planning.transformers import QuantifiersRemover
@@ -101,6 +101,17 @@ class TestQuantifiersRemover(TestCase):
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
+    @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
+    def test_hierarchical_blocks_world_exists(self):
+        problem = self.problems['hierarchical_blocks_world_exists'].problem
+        qr = QuantifiersRemover(problem)
+        uq_problem = qr.get_rewritten_problem()
+        self.assertTrue(problem.kind().has_existential_conditions())
+        self.assertFalse(uq_problem.kind().has_existential_conditions())
+        self.assertTrue(uq_problem.kind().has_disjunctive_conditions())
+        self.assertFalse(problem.kind().has_disjunctive_conditions())
+        self.assertIn('(on(block_1, block_1) or on(block_2, block_1) or on(block_3, block_1))', str(uq_problem.goals()))
+        
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem

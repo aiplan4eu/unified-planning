@@ -15,8 +15,7 @@
 
 
 from fractions import Fraction
-from numbers import Integral
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import unified_planning
 import unified_planning.model

@@ -32,23 +32,24 @@ from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type
 def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_planning.model.Fluent'],
                            objects: Dict[str, 'unified_planning.model.Object'],
                            action_parameters: Dict[str, 'unified_planning.model.ActionParameter'],
+                           types: Dict[str, Optional['unified_planning.model.Type']],
                            formula: Union[Formula, Term]) -> 'unified_planning.model.FNode':
     """Converts a tarski formula in a unified_planning expression."""
     em = env.expression_manager
     if is_and(formula):
-        children = [convert_tarski_formula(env, fluents, objects, action_parameters, f)
+        children = [convert_tarski_formula(env, fluents, objects, action_parameters, types, f)
                     for f in formula.subformulas]
         return em.And(*children)
     elif is_or(formula):
-        children = [convert_tarski_formula(env, fluents, objects, action_parameters, f)
+        children = [convert_tarski_formula(env, fluents, objects, action_parameters, types, f)
                     for f in formula.subformulas]
         return em.Or(*children)
     elif is_neg(formula):
         assert len(formula.subformulas) == 1
-        return em.Not(convert_tarski_formula(env, fluents, objects, action_parameters,
+        return em.Not(convert_tarski_formula(env, fluents, objects, action_parameters, types,
                                                   formula.subformulas[0]))
     elif is_atom(formula) or isinstance(formula, CompoundTerm):
-        children = [convert_tarski_formula(env, fluents, objects, action_parameters, f)
+        children = [convert_tarski_formula(env, fluents, objects, action_parameters, types, f)
                     for f in formula.subterms]
         if is_atom(formula):
             symbol = formula.predicate.symbol
@@ -111,10 +112,11 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_plannin
             return em.ParameterExp(action_parameters[formula.symbol])
         else:
             return em.VariableExp(unified_planning.model.Variable(formula.symbol, \
-                env.type_manager.UserType(formula.sort.name)))
+                _convert_type_and_update_dict(formula.sort, types, env.type_manager, formula.sort.language))) # type: ignore
     elif isinstance(formula, QuantifiedFormula):
-        expression = convert_tarski_formula(env, fluents, objects, action_parameters, formula.formula)
-        variables = [unified_planning.model.Variable(v.symbol, env.type_manager.UserType(v.sort.name)) \
+        expression = convert_tarski_formula(env, fluents, objects, action_parameters, types, formula.formula)
+        variables = [unified_planning.model.Variable(v.symbol, 
+            _convert_type_and_update_dict(v.sort, types, env.type_manager, v.sort.language)) # type: ignore
             for v in formula.variables]
         if formula.quantifier == Quantifier.Exists:
             return em.Exists(expression, *variables)
@@ -201,11 +203,10 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     # Convert types
     types: Dict[str, Optional['unified_planning.model.Type']] = {}
     uses_object_type: bool = _check_if_tarski_problem_uses_object_type(tarski_problem)
-    assert not uses_object_type
     if not uses_object_type:
         types['object'] = None # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
     for t in lang.sorts:
-        #types will be filled witrh the needed types in this loop.
+        #types will be filled with the needed types in this loop.
         _convert_type_and_update_dict(t, types, tm, lang)
 
     # Convert predicates and functions
@@ -244,7 +245,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
                     fluent = unified_planning.model.Fluent(p.name, tm.IntType(lower_bound=\
                         func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature) # type: ignore
         else:
-            fluent = unified_planning.model.Fluent(p.name, tm.UserType(func_sort.name), signature) # type: ignore
+            fluent = unified_planning.model.Fluent(p.name, types[func_sort.name], signature) # type: ignore
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
 
@@ -265,19 +266,19 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
         action_parameters = {}
         for p in parameters.keys():
             action_parameters[p] = action.parameter(p)
-        f = convert_tarski_formula(env, fluents, objects, action_parameters, a.precondition)
+        f = convert_tarski_formula(env, fluents, objects, action_parameters, types, a.precondition)
         action.add_precondition(f)
         for eff in a.effects:
-            condition = convert_tarski_formula(env, fluents, objects, action_parameters, eff.condition)
+            condition = convert_tarski_formula(env, fluents, objects, action_parameters, types, eff.condition)
             if isinstance(eff, AddEffect):
-                f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
+                f = convert_tarski_formula(env, fluents, objects, action_parameters, types, eff.atom)
                 action.add_effect(f, True, condition)
             elif isinstance(eff, DelEffect):
-                f = convert_tarski_formula(env, fluents, objects, action_parameters, eff.atom)
+                f = convert_tarski_formula(env, fluents, objects, action_parameters, types, eff.atom)
                 action.add_effect(f, False, condition)
             elif isinstance(eff, FunctionalEffect):
-                lhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.lhs)
-                rhs = convert_tarski_formula(env, fluents, objects, action_parameters, eff.rhs)
+                lhs = convert_tarski_formula(env, fluents, objects, action_parameters, types, eff.lhs)
+                rhs = convert_tarski_formula(env, fluents, objects, action_parameters, types, eff.rhs)
                 action.add_effect(lhs, rhs, condition)
             else:
                 raise UPProblemDefinitionError(eff + ' not supported!')
@@ -302,16 +303,16 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
                 initial_values[fluent(*args)] = default_value
     for i in tarski_problem.init.as_atoms():
         if isinstance(i, tuple):
-            lhs = convert_tarski_formula(env, fluents, objects, {}, i[0])
-            rhs = convert_tarski_formula(env, fluents, objects, {}, i[1])
+            lhs = convert_tarski_formula(env, fluents, objects, {}, types, i[0])
+            rhs = convert_tarski_formula(env, fluents, objects, {}, types, i[1])
             initial_values[lhs] = rhs
         else:
-            f = convert_tarski_formula(env, fluents, objects, {}, i)
+            f = convert_tarski_formula(env, fluents, objects, {}, types, i)
             initial_values[f] = em.TRUE()
     for lhs, rhs in initial_values.items():
         problem.set_initial_value(lhs, rhs)
 
     # Convert goals
-    problem.add_goal(convert_tarski_formula(env, fluents, objects, {}, tarski_problem.goal))
+    problem.add_goal(convert_tarski_formula(env, fluents, objects, {}, types, tarski_problem.goal))
 
     return problem

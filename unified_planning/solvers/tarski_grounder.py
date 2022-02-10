@@ -19,7 +19,7 @@
 
 from functools import partial
 import shutil
-from typing import Callable, Tuple, Dict, List
+from typing import Callable, Optional, Tuple, Dict, List
 import tarski # type: ignore
 import unified_planning
 import unified_planning.interop
@@ -75,6 +75,9 @@ class TarskiGrounder(Solver):
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name(): fluent for fluent in problem.fluents()}
         objects = {object.name(): object for object in problem.all_objects()}
+        types: Dict[str, Optional['unified_planning.model.Type']] = {}
+        if not problem.has_type('object'):
+            types['object'] = None # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
         for action_name, list_of_tuple_of_parameters in actions.items():
             action = problem.action(action_name)
             parameters = {parameter.name(): parameter for parameter in action.parameters()}
@@ -86,7 +89,7 @@ class TarskiGrounder(Solver):
                         temp_list_of_converted_parameters.append(problem.env.expression_manager.ObjectExp(problem.object(p)))
                     else:
                         temp_list_of_converted_parameters.append(convert_tarski_formula(problem.env, fluents, \
-                            objects, parameters, p))
+                            objects, parameters, types, p))
                 grounded_actions_map[action].append(tuple(temp_list_of_converted_parameters))
         unified_planning_grounder = Grounder(problem, grounding_actions_map=grounded_actions_map)
         grounded_problem = unified_planning_grounder.get_rewritten_problem()
