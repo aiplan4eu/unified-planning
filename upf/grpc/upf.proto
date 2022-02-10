@@ -19,13 +19,12 @@ syntax = "proto3";
 
 // Declares the existence of a type (same as in PDDL)
 message TypeDeclaration {
+    // Type that is declared.
     string type_name = 1;
-    // optional parent type
+    // If the string is non-empty, this is the parent type of `type_name`.
+    // If set, the parent type must have been previously declared (i.e. should appear earlier in the problem's type declarations.
     string parent_type = 2;
 }
-
-
-// Open question: do we provide a default top type of objects?
 
 // We can also consider restrictions to int/reals with specific syntax (e.g. "int[0,100]")
 // but we need to agree on the semantics and syntax.
@@ -34,23 +33,43 @@ message TypeDeclaration {
 // ================== Expressions ====================
 
 
-//  ------- Solution 1 --------
-
-// An expression is of the form "head(arg1, arg2, ..., argn)"
-// It is an adaptation of the original proposition for expression
-// Caveats: 
-//  - there is no way to distinguish between "head" and "head()"
-//  - no way to represent an empty list
+// As in s-expression, an Expression is either an atom or list representing the application of some parameters to a function/fluent.
 message Expression {
-    string head = 1;
-    repeated Expression args = 2;
-    // type of the entire expression
-    string type = 3; 
+    oneof content {
+        // The expression is a single atom.
+        // For instance `3`, `+`, `kitchen`, `at-robot`, ...
+        Atom atom = 1;
+        // The expression is a list, typically representing the application of some arguments to a function or fluent.
+        // For instance `(+ 1 3)`, (at-robot l1)`, `(>= (battery_level) 20)`
+        repeated Expression list = 2;
+    }
+    // Type of the expression. For instance "int", "location", ...
+    string type = 3;
+    // Kind of the expression, specifying the content of the expression. 
+    // This is intended to facilitate parsing of the expression.
+    ExpressionKind kind = 4;
 }
 
-// ------- Solution 2 --------
 
-// Alternative encoding that closely mimics the way S-Expression are defined in Lisp.
+enum ExpressionKind {
+    // Default value, should not be used. Drop it if we are sure to never need it.
+    UNKNOWN = 0;
+    // Constant atom. For instance `3` or `kitchen` (where `kitchen` is an object defined in the problem)
+    CONSTANT = 1;
+    // Atom symbol representing a parameter from an outer scope. For instance `from` that would appear inside a `(move from to - location)` action.
+    PARAMETER = 2;
+    // Atom symbol reprenting a fluent of the problem. For instance `at-robot`.
+    FLUENT_SYMBOL = 3;
+    // Atom representing a function. For instance `+`, `=`, `and`, ...
+    FUNCTION_SYMBOL = 4;
+    // List. Application of some parameters to a fluent symbol. For instance `(at-robot l1)` or `(battery-charged)`
+    // The first element of the list must be a FLUENT_SYMBOL
+    STATE_VARIABLE = 5;
+    // List. The expression is the application of some parameters to a function. For instance `(+ 1 3)`.
+    // The first element of the list must be a FUNCTION_SYMBOL
+    FUNCTION_APPLICATION = 6;
+}
+
 
 message Atom {
     oneof content {
@@ -60,22 +79,6 @@ message Atom {
         bool boolean = 4;
     }
 }
-
-message SList {
-    repeated Expression elements = 1;
-}
-
-// An expression is either a list or an atom.
-message Expression {
-    oneof content {
-        Atom atom = 1;
-        SList list = 2;
-    }
-    // Type of the expression.
-    string type = 3;
-}
-
-
 
 
 
@@ -88,13 +91,18 @@ message Parameter {
 }
 
 
-// A state-dependent variable
+// A state-dependent variable.
 message Fluent {
     string name = 1;
+    // Return type of the fluent.
     string value_type = 2;
+    // Typed and named parameters of the fluent.
     repeated Parameter parameters = 3;
 }
 
+
+// Declares an object with the given name and type.
+// Type must be a previously declared symbolic type.
 message ObjectDeclaration {
     string name = 1;
     string type = 2; 
@@ -107,84 +115,72 @@ message ObjectDeclaration {
 // ========= Actions ========
 
 
-// --------- Action Proposal 1 ----------------
 
-// this is a minimal adaptation of the initial proposal
-// which involves splitting the action in several classes
-
-message InstantaneousAction {
-    string name = 1;
-    repeated Parameter parameters = 2;
-    repeated Expression preconditions = 4;
-    // A conjunction of effects.
-    // I changed it from "Assignment" to "Expression" to allow for 
-    // effects like "increase"
-    // Each expression should be of the form (OP FLUENT EXPR) where
-    //  - OP is one of "=", "increase", ... (list should eventually be fixed)
-    //  - FLUENT is an expression that identifies a state-variable
-    //  - EXPR is an arbitrary expression with the same type
-    repeated Expression effects = 5;
-}
-
-// sticking with this would require to have other classes of actions like
-message DurativeAction {
-    string name = 1;
-    repeated Parameter parameters = 2;
-    // TODO: conditions, effects, ..
-}
-
-
-//  -------- Option for representing an effect (independent of action propasal) --------
-
-// Instead of having an effect as an arbitrary expression, we could have a more 
-// structured representation such as the one below.
-// Benefits: 
-//  - easier to identify what the effect does (e.g. to find problem features)
-//  - easier to parse for the planner
-
+// An effect expression is of the form `FLUENT OP VALUE`.
+// We explicitly restrict the different types of effects by setting the allowed operators.
 message EffectExpression {
     enum Operator {
-        ASSIGN = 0;
-        INCREASE = 1;
-        // more to add
+        // This is the value that will be taken if the operator is not explicitly set.
+        // It is currently a logic error to have this value but is needed to allow later extensions.
+        UNDEFINED = 0;
+        // The `fluent` is set to the corresponding `value`
+        ASSIGN = 1;
+        // The `fluent` is increased by the amount `value`
+        // features: [numeric?]
+        INCREASE = 2;
     }
-    Operator op = 1;
-    Expression fluent = 2;
+    
+    // Expression that must be of the STATE_VARIABLE kind.
+    Expression fluent = 1;
+    Operator op = 2;
     Expression value = 3;
 }
 
-
-// ----------------- Action proposal 2 ---------------------
-
-// Another option is to have a "one-size-fits-all" action where the different variants 
-// are represented using optional fields.
-
+// Representation of an effect that allows qualifying the effect expression, e.g., to make it a conditional effect.
 message Effect {
-    // The actual effect.
-    // Should be an EffectExpression if retained
-    Expression effect = 1; 
-    // Optional. If the effect is conditional, then the following field must be set
+    // Required. The actual effect that should take place.
+    EffectExpression effect = 1; 
+    // Optional. If the effect is conditional, then the following field must be set.
+    // In this case, the `effect` will only be applied if the `condition`` holds.
+    // TODO: When should the condition hold in case of durative actions? Is this supported by PDDL? Two options:
+    //        - immediately before the effect (generalization of the non-temporal case)
+    //        - have the condition field be of type `Condition` which allows for temporal qualification. If not qualified, the above would apply.
+    // features: [conditional_effects]
     Expression condition = 2;
-    // Optional. If the effect is within a durative action, the following must be set
+    // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
+    // features: [durative_actions]
     TemporalQualification temporal_qualification = 3;
 }
 
 
 message Condition {
     Expression cond = 1;
-    // Optional.
+    // Optional. Must be set for durative actions where it specifies when the condition should hold.
+    // features: [durative_actions]
     TemporalQualification temporal_qualification = 2;
 }
 
-// Single Action class for all kinds of actions
+// Unified action representation that should representing all kinds of actions.
 message Action {
+    // .Action name. E.g. "move"
     string name = 1;
-    // must allow distinguishing between instantaneous and durative actions
-    // and setting duration constraints of the latter.
-    Duration duration = 2;
-    repeated Parameter parameters = 3;
+    
+    // Typed and named parameters of the action.
+    repeated Parameter parameters = 2;
+
+    // If set, the action is durative. Otherwise it is instantaneous.
+    // features: [durative_actions]
+    Duration duration = 3;
+    
+    // Conjunction of conditions that must hold for the action to be applicable.
     repeated Condition conditions = 4;
+
+    // Conjunction of effects as a result of applying this action.
     repeated Effect effects = 5;
+
+    // Cost of the action.
+    // features: [action_costs]
+    Expression cost = 6;
 }
 
 
@@ -196,88 +192,86 @@ message Duration { /* TODO */ }
 
 // ============== Problem =========================
 
-// For representing the assignment of a value to each fluent in the initial state
-// note that it allows for more expressivity than what we typically want:
-//  - the `fluent` should be a non-empty list of symbols 
-//  - the `value` should be an atom (symbol or number).
-message Assignment {
-    Expression fluent = 1;
-    Expression value = 2;
+
+// A Goal is currently an expression that must hold in the final state.
+// It is in its own message to allow its extension with (e.g.):
+//  - temporal qualification
+//  - weight (for optional goals, oversubscription planning)
+message Goal {
+    // Goal expression that must hold in the final state.
+    Expression goal = 1;
+}
+
+// An initial or timed fact.
+message Fact {
+    // If the `temporal_qualification` field if not set (which is guaranteed to be the case without the `timed_facts` feature),
+    // then it represents an initial fact and:
+    //  - the operator of the effect MUST be an ASSIGN
+    //  - the effect will be applied to the initial state.
+    EffectExpression fact = 1;
+    // If set, the fact will not hold at the initial state but instead according to the given temporal qualification.
+    // In that case, it makes sense to have non-assign effects (e.g. "at time 100, increase stock by 10")
+    // features: [timed_facts]
+    TemporalQualification temporal_qualification = 2;
 }
 
 message Problem {
-    string domain_name = 8;
-    string problem_name = 1;
-    repeated TypeDeclaration types = 2;
-    repeated Fluent fluents = 3;
-    repeated ObjectDeclaration objects = 4;
+    string domain_name = 1;
+    string problem_name = 2;
+    repeated TypeDeclaration types = 3;
+    repeated Fluent fluents = 4;
+    repeated ObjectDeclaration objects = 5;
 
     // list of actions (the type and different fields might depend on the retained proposal)
-    repeated InstantaneousAction instantaneous_actions = 5;
+    repeated Action actions = 6;
 
-    // initial state and goals, will need to be extended to account for timed initial literals, ...
-    repeated Assignment initial_state = 6;
-    repeated Expression goals = 7;
+    // Initial facts and timed facts (under the `timed_facts` feature).
+    repeated Fact facts = 7;
+    repeated Goal goals = 8;
 
     // all features of the problem
     repeated Feature features = 15;
 }
 
-// Just a proof of concept
+// Features of the problem.
+// Features are essential in that not supporting a feature `X` should allow disregarding any field tagged with `features: [X]`.
 enum Feature {
     DURATIVE_ACTIONS = 0;
-    NUMERIC = 1; 
+    CONDITIONAL_EFFECTS = 1; 
+    ACTION_COSTS = 2;
+    TIMED_FACTS = 3;
 }
 
 
 // =================== Plan ================
 
 
-// --------------- Plan proposal 1 (refinement of the initial proposal) ------------------
 
-// Represents an action instance in a plan
+
+
+// Representation of an action instance that appears in a plan.
 message ActionInstance {
-    // Optional. A unique identifier of the action (useful at least for HTN planning)
+    // Optional. A unique identifier of the action that might be used to refer to it (e.g. in HTN plans).
     string id = 1;
-    // name of the action template (conld be instantaneous, durative, ...)
-    string action_name = 1;
-    // parameters might not contain expressions, but allow constant symbols or numbers
-    repeated Atom parameters = 2;
-}
-
-// From the previous proposal. Problem: we will need to define several types of plan
-message SequentialPlan {
-    repeated ActionInstance actions = 1;
-}
-
-
-// ------------------ plan proposal 2 ----------------------
-
-
-
-// representation of an action instance, independently of the type of actions
-message ActionInstance {
-    // Optional. A unique identifier of the action (useful at least of HTN planning)
-    string id = 1;
-    // name of the action template (conld be instantaneous, durative, ...)
+    // name of the action 
     string action_name = 2;
+    // Parameters of the action instance, required to constants (kind = CONSTANT).
     repeated Atom parameters = 3;
-    // Start time of the action.
-    // For non-temporal plan, start_time should induce a total order between actions 
-    // but the numeric value itself is unused.
+    // Start time of the action. The default 0 value is OK in the case of non-temporal planning
+    // feature: [durative_actions]
     double start_time = 4; 
-    // for an instantaneous action, should be equal to start_time 
+    // End time of the action. The default 0 value is OK in the case of non-temporal planning
+    // feature: [durative_actions]
     double end_time = 5; 
 
 }
 
 message Plan {
-    // A **set** of actions that appear in the plan.
-    // The order of the actions is the one given by the start times of the action instances.
+    // An ordered sequence of actions that appear in the plan.
+    // The order of the actions in the list must be compatible with the partial order of the start times.
+    // In case of non-temporal planning, this allows having all start time at 0 and only rely on the order in this sequence.
     repeated Action actions = 1;
-    // careful, a scalar will take the default value 0 if not set
-    // if NaN is valid in protobuf, we might want to use it or have a special message type to handle optionality
-    double cost = 2; 
+    // TODO: add an optional cost field?
 }
 
 
@@ -297,25 +291,37 @@ message PlanRequest {
     }
     Mode resolution_mode = 2;
     
-    // max allowed time in milliseconds 
+    // max allowed runtime time in milliseconds 
     // (maybe a deadline would be better if we are considering milliseconds?)
-    int64 timeout_milliseconds = 3;
+    double timeout_seconds = 3;
 
-    // Some planner specific options to be passed to the planner
+    // Planner specific options to be passed to the planner
     map<string, string> planner_options = 4;
 }
 
 
 
-// Notification that a plan was found (but the planner is still running)
-message PlanFound {
+
+
+
+// Intermediate report sent by the planner while running.
+message Report {
+    // Optional. If set, it is the latest found plan not already reported.
     Plan plan = 1;
-    double runtime_seconds = 2;
-    // more?
+
+    // ==== Logging ====
+    // the following is a very early draft to allow semi-structured feedback from the planner.
+
+    // To be refined with different log levels: INFO, WARNING, ERROR
+    // We would want to display warning and error messages by default.
+    string log_message = 2;
+
+    // Planner specific messages
+    map<string, string> metrics = 3;
 }
 
 // Last message sent by planner before exiting.
-// Contains the planner status as well as the best plan found if any.
+// Contains the planner exit status as well as the best plan found if any.
 message Stopped {
     enum Status {
         // Valid plan found and search stopped immediately
@@ -337,6 +343,9 @@ message Stopped {
     }
     Status status = 1;
 
+    // Optional. Debug information (to be used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM).
+    string error_message = 4;
+
     // Optional. Best plan found if any.
     Plan best_plan = 2;
 
@@ -347,19 +356,21 @@ message Stopped {
 }
 
 
+
 message Answer {
-    oneof PlanOrEnd {
-        PlanFound intermediate_plan = 1;
+    oneof content {
+        Report report = 1;
         Stopped stopped = 2;
     }
 }
 
+
 service Upf {
     // A plan request to the planner.
     // The planner replies with a stream of N `Answer` messages where:
-    //  - the first (N-1) message are of type `PlanFound`
+    //  - the first (N-1) message are of type `Report`
     //  - the last message is of type `Stopped`
-    rpc plan(Problem) returns(stream Answer);
+    rpc plan(PlanRequest) returns(stream Answer);
 
 
     // ===== About bidirectional interaction =====
