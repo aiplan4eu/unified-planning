@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lib2to3.pgen2.token import OP
+
 import unified_planning
 import itertools
 import tarski.fstrips # type: ignore

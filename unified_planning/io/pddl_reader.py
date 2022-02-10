@@ -172,7 +172,6 @@ class PDDLReader:
                         vars_res = self._pp_parameters.parseString(vars_string)
                         vars = {}
                         for g in vars_res['params']:
-                            # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
                             t = self._types_map[g[1] if len(g) > 1 else 'object']
                             for o in g[0]:
                                 vars[o] = unified_planning.model.Variable(o, t)
@@ -259,7 +258,6 @@ class PDDLReader:
                 if vars is None:
                     vars = {}
                 for g in vars_res['params']:
-                    # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
                     t = self._types_map[g[1] if len(g) > 1 else 'object']
                     for o in g[0]:
                         vars[o] = unified_planning.model.Variable(o, t)
@@ -353,7 +351,6 @@ class PDDLReader:
             n = p[0]
             params = []
             for g in p[1]:
-                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
                 t = self._types_map[g[1] if len(g) > 1 else 'object']
                 params.extend([t for i in range(len(g[0]))])
             f = unified_planning.model.Fluent(n, self._tm.BoolType(), params, self._env)
@@ -363,7 +360,6 @@ class PDDLReader:
             n = p[0]
             params = []
             for g in p[1]:
-                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
                 t = self._types_map[g[1] if len(g) > 1 else 'object']
                 params.extend([t for i in range(len(g[0]))])
             f = unified_planning.model.Fluent(n, self._tm.RealType(), params, self._env)
@@ -379,7 +375,6 @@ class PDDLReader:
             n = a['name']
             a_params = OrderedDict()
             for g in a.get('params', []):
-                # t = self._tm.UserType(g[1] if len(g) > 1 else 'object') # TODO cancel line
                 t = self._types_map[g[1] if len(g) > 1 else 'object']
                 for p in g[0]:
                     a_params[p] = t

@@ -101,7 +101,7 @@ class TestQuantifiersRemover(TestCase):
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
+
     def test_hierarchical_blocks_world_exists(self):
         problem = self.problems['hierarchical_blocks_world_exists'].problem
         qr = QuantifiersRemover(problem)
