@@ -66,7 +66,7 @@ class Problem:
         if len(self.user_types()) > 0:
             s.append('objects = [\n')
             for ty in self.user_types():
-                s.append(f'  {str(ty)}: {str(self.objects(ty))}\n')
+                s.append(f'  {str(ty)}: {str(list(self.objects(ty)))}\n')
             s.append(']\n\n')
         s.append('initial values = [\n')
         for k, v in self.initial_values().items():
@@ -245,11 +245,10 @@ class Problem:
     def _add_user_type(self, type: Optional['unified_planning.model.types.Type']):
         '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''
         assert (type is None) or type.is_user_type()
-        if self._user_types_hierarchy.get(type, None) is None:
+        if type not in self._user_types_hierarchy:
             if type is not None:
-                for ut in self._user_types:
-                    if ut.name == type.name: # type: ignore
-                        raise UPProblemDefinitionError('The type {type} is already used in the problem as {ut}')
+                if any(ut.name() == type.name() for ut in self._user_types): # type: ignore
+                    raise UPProblemDefinitionError('The type {type} is already used in the problem as {ut}')
                 self._add_user_type(type.father()) # type: ignore
                 self._user_types_hierarchy[type.father()].append(type) # type: ignore
                 self._user_types.append(type)
@@ -351,13 +350,14 @@ class Problem:
         if not type.is_user_type():
             raise UPUsageError('The user_type_hierarchy method must be called on a user type.')
         stack: List['unified_planning.model.types.Type'] = [type]
-        while(len(stack) > 0):
+        while stack:
             current_item = stack.pop()
             stack.extend(self._user_types_hierarchy[current_item])
             yield current_item
         
     def user_types_hierarchy(self) -> Dict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']]:
-        '''Returns a Dict where the keys are the father and the associated value is the list of it's children.
+        '''Returns a Dict where every key represents an Optional Type and the value associated to the key is the 
+            List of the direct sons of the Optional Type.
         The Dict is NOT ORDERED.'''
         #NOTE this returns a copy, but could also return the original map
         return dict(self._user_types_hierarchy)
@@ -393,22 +393,18 @@ class Problem:
                 return True
         return False
 
-    def objects(self, typename: 'unified_planning.model.types.Type') -> List['unified_planning.model.object.Object']:
+    def objects(self, typename: 'unified_planning.model.types.Type') -> Iterator['unified_planning.model.object.Object']:
         '''Returns the objects of the given user types.'''
-        res:List['unified_planning.model.object.Object'] = []
         for obj in self._objects:
             if obj.type() == typename:
-                res.append(obj)
-        return res
+                yield obj 
 
-    def objects_hierarchy(self, typename: 'unified_planning.model.types.Type') -> List['unified_planning.model.object.Object']:
+    def objects_hierarchy(self, typename: 'unified_planning.model.types.Type') -> Iterator['unified_planning.model.object.Object']:
         '''Returns the objects of the given user types and of his heirs.'''
-        res:List['unified_planning.model.object.Object'] = []
         type_heirs: List['unified_planning.model.types.Type'] = list(self.user_type_heirs(typename))
         for obj in self._objects:
             if obj.type() in type_heirs:
-                res.append(obj)
-        return res
+                yield obj
 
     def all_objects(self) -> List['unified_planning.model.object.Object']:
         '''Returns all the objects.'''

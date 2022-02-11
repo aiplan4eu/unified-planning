@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from cmath import exp
+
 import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.walkers as walkers

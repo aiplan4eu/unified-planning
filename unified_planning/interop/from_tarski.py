@@ -20,7 +20,7 @@ from fractions import Fraction
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.environment import Environment
 from collections import OrderedDict
-from typing import Optional, Union, Dict
+from typing import List, Optional, Union, Dict
 from tarski.syntax import Interval # type: ignore
 from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
 from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
@@ -165,7 +165,7 @@ def _convert_type_and_update_dict(sort: tarski.syntax.Sort, types_dict: Dict[str
                 -> Optional['unified_planning.model.Type']:
     '''Converts a tarski type in a unified_planning type and inserts it into the types_dict.
         Important NOTE: This function modifies the parameter types_dict.'''
-    if str(sort.name) in types_dict.keys(): # type already defined
+    if str(sort.name) in types_dict: # type already defined
         return types_dict[str(sort.name)]
     if isinstance(sort, Interval): # if the type is an Interval
         if sort == lang.Integer:
@@ -214,10 +214,12 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     for p in lang.predicates:
         if str(p.name) in ['=', '!=', '<', '<=', '>', '>=']:
             continue
-        signature = []
+        signature: List['unified_planning.model.Type'] = []
         for t in p.sort:
-            signature.append(types[str(t.name)])
-        fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature) # type: ignore
+            type = types[str(t.name)]
+            assert type is not None
+            signature.append(type)
+        fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
     for p in lang.functions:
@@ -225,27 +227,27 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
             continue
         signature = []
         for t in p.domain:
-            signature.append(types[str(t.name)])
+            signature.append(types[str(t.name)]) # type: ignore
         func_sort = p.sort[-1]
         fluent = None # type: ignore
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:
                 if func_sort.name == 'Real' or func_sort.name == 'number':
-                    fluent = unified_planning.model.Fluent(p.name, tm.RealType(), signature) # type: ignore
+                    fluent = unified_planning.model.Fluent(p.name, tm.RealType(), signature)
                 else:
                     fluent = unified_planning.model.Fluent(p.name, tm.RealType(lower_bound=\
-                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature) # type: ignore
+                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature) 
             else:
                 assert func_sort.encode == lang.Integer.encode or func_sort.encode == lang.Natural.encode
                 if func_sort.name == 'Integer':
-                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(), signature) # type: ignore
+                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(), signature)
                 elif func_sort.name == 'Natual':
-                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(lower_bound=0), signature) # type: ignore
+                    fluent = unified_planning.model.Fluent(p.name, tm.IntType(lower_bound=0), signature)
                 else:
                     fluent = unified_planning.model.Fluent(p.name, tm.IntType(lower_bound=\
-                        func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature) # type: ignore
+                        func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
         else:
-            fluent = unified_planning.model.Fluent(p.name, types[func_sort.name], signature) # type: ignore
+            fluent = unified_planning.model.Fluent(p.name, types[func_sort.name], signature)
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
 

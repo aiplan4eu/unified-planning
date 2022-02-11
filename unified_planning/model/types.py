@@ -163,22 +163,19 @@ class TypeManager:
             return self._user_types[(name, father)]
         else:
             if father is not None:
-                if not father.is_user_type():
-                    raise UPTypeError('The father of a UserType must be either None or a UserType.')
-                for ancestor in self.user_type_ancestors(father):
-                    if ancestor.name() == name: # type: ignore
-                        raise UPTypeError('The name: {name} is already used in the UserType: {ancestor}. An UserType and one of his ancestors can not share the name.')
+                if any(ancestor.name() == name for ancestor in self.user_type_ancestors(father)): # type: ignore
+                    raise UPTypeError('The name: {name} is already used in the UserType: {ancestor}. An UserType and one of his ancestors can not share the name.')
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
             return ut
     
     def user_type_ancestors(self, user_type: Type) -> Iterator[Type]:
         '''Returns all the ancestors of the given UserType, including itself.'''
-        if not isinstance(user_type, _UserType):
+        if not user_type.is_user_type():
             raise UPTypeError('The function user_type_ancestors can be called only on UserTypes.')
         yield user_type
-        father: Optional[Type] = user_type.father()
-        while(father is not None):
+        father: Optional[Type] = user_type.father() # type: ignore
+        while father is not None:
             yield father
             father = father.father() # type: ignore
 
@@ -188,7 +185,7 @@ def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'un
     if typename.is_bool_type():
         return 2
     elif typename.is_user_type():
-        return len(problem.objects_hierarchy(typename))
+        return len(list(problem.objects_hierarchy(typename)))
     elif typename.is_int_type():
         lb = typename.lower_bound() # type: ignore
         ub = typename.upper_bound() # type: ignore
@@ -203,7 +200,7 @@ def domain_item(problem: 'unified_planning.model.problem.Problem', typename: 'un
     if typename.is_bool_type():
         return problem._env.expression_manager.Bool(idx == 0)
     elif typename.is_user_type():
-        return problem._env.expression_manager.ObjectExp(problem.objects_hierarchy(typename)[idx])
+        return problem._env.expression_manager.ObjectExp(list(problem.objects_hierarchy(typename))[idx])
     elif typename.is_int_type():
         lb = typename.lower_bound() # type: ignore
         ub = typename.upper_bound() # type: ignore
