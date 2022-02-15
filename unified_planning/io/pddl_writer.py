@@ -14,7 +14,12 @@
 #
 
 
+from fractions import Fraction
 import sys
+
+from decimal import Decimal, localcontext
+from warnings import warn
+
 import unified_planning
 import unified_planning.environment
 import unified_planning.walkers as walkers
@@ -27,6 +32,8 @@ from functools import reduce
 
 class ConverterToPDDLString(walkers.DagWalker):
     '''Expression converter to a PDDL string.'''
+
+    DECIMAL_PRECISION = 10 # Number of decimal places to print real constants
 
     def __init__(self, env: 'unified_planning.environment.Environment'):
         walkers.DagWalker.__init__(self)
@@ -90,7 +97,15 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
-        return str(expression.constant_value())
+        frac = expression.constant_value()
+
+        with localcontext() as ctx:
+            ctx.prec = self.DECIMAL_PRECISION
+            dec = frac.numerator / Decimal(frac.denominator, ctx)
+
+            if Fraction(dec) != frac:
+                warn("The PDDL printer cannot exactly represent the real constant '%s'" % frac)
+            return str(dec)
 
     def walk_int_constant(self, expression, args):
         assert len(args) == 0
