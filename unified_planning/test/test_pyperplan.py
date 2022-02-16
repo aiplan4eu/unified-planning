@@ -28,7 +28,7 @@ class TestPyperplan(TestCase):
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_pyperplan(self):
-        problem, plan = self.problems['robot_no_negative_preconditions'].problem, self.problems['robot_no_negative_preconditions'].plan
+        problem, plan = self.problems['robot_no_negative_preconditions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             new_plan = planner.solve(problem)
@@ -36,7 +36,7 @@ class TestPyperplan(TestCase):
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_basic_without_negative_preconditions(self):
-        problem, plan = self.problems['basic_without_negative_preconditions'].problem, self.problems['basic_without_negative_preconditions'].plan
+        problem, plan = self.problems['basic_without_negative_preconditions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             new_plan = planner.solve(problem)
@@ -44,7 +44,7 @@ class TestPyperplan(TestCase):
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_basic_nested_conjunctions(self):
-        problem, plan = self.problems['basic_nested_conjunctions'].problem, self.problems['basic_nested_conjunctions'].plan
+        problem, plan = self.problems['basic_nested_conjunctions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             new_plan = planner.solve(problem)
@@ -52,7 +52,23 @@ class TestPyperplan(TestCase):
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_hierarchical_blocks_world(self):
-        problem, plan = self.problems['hierarchical_blocks_world'].problem, self.problems['hierarchical_blocks_world'].plan
+        problem, plan = self.problems['hierarchical_blocks_world']
+        with OneshotPlanner(name='pyperplan') as planner:
+            self.assertNotEqual(planner, None)
+            new_plan = planner.solve(problem)
+            self.assertEqual(str(plan), str(new_plan))
+
+    @skipIfSolverNotAvailable('pyperplan')
+    def test_hierarchical_blocks_world_object_as_root(self):
+        problem, plan = self.problems['hierarchical_blocks_world_object_as_root']
+        with OneshotPlanner(name='pyperplan') as planner:
+            self.assertNotEqual(planner, None)
+            new_plan = planner.solve(problem)
+            self.assertEqual(str(plan), str(new_plan))
+    
+    @skipIfSolverNotAvailable('pyperplan')
+    def test_hierarchical_blocks_world_with_object(self):
+        problem, plan = self.problems['hierarchical_blocks_world_with_object']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             new_plan = planner.solve(problem)

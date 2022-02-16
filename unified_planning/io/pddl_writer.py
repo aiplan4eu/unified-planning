@@ -171,18 +171,19 @@ class PDDLWriter:
             out.write(')\n')
 
         if problem_kind.has_hierarchical_typing(): # type: ignore
+            self.object_freshname = 'object'
+            while self.problem.has_type(self.object_freshname):
+                self.object_freshname = self.object_freshname + '_'
             user_types_hierarchy = self.problem.user_types_hierarchy()
             out.write(f' (:types\n')
-            if not self.problem.has_type('object'):
-                out.write(f'    {" ".join([t.name() for t in user_types_hierarchy[None]])} - object\n')  # type: ignore
-            #NOTE not sure if we should have an else branch here
-            stack: List['unified_planning.model.Type'] = (user_types_hierarchy[None])[:]
-            while(len(stack) > 0):
+            stack: List['unified_planning.model.Type'] = user_types_hierarchy[None] if None in user_types_hierarchy else []
+            out.write(f'    {" ".join(t.name() if t.name() != "object" else self.object_freshname for t in stack)} - object\n')  # type: ignore
+            while stack:
                 current_type = stack.pop()
                 direct_sons: List['unified_planning.model.Type'] = user_types_hierarchy[current_type]
-                if len(direct_sons) > 0:
+                if direct_sons:
                     stack.extend(direct_sons)
-                    out.write(f'    {" ".join([t.name() for t in direct_sons])} - {current_type.name()}\n')  # type: ignore
+                    out.write(f'    {" ".join([t.name() if t.name() != "object" else self.object_freshname for t in direct_sons])} - {current_type.name() if current_type.name() != "object" else self.object_freshname}\n')  # type: ignore
             out.write(' )\n')
         else:
             out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
@@ -195,7 +196,7 @@ class PDDLWriter:
                 i = 0
                 for p in f.signature():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {p.name()}') # type: ignore
+                        params.append(f' ?p{str(i)} - {p.name() if p.name() != "object" else self.object_freshname}') # type: ignore
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -205,7 +206,7 @@ class PDDLWriter:
                 i = 0
                 for p in f.signature():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {p.name()}') # type: ignore
+                        params.append(f' ?p{str(i)} - {p.name() if p.name() != "object" else self.object_freshname}') # type: ignore
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -222,7 +223,7 @@ class PDDLWriter:
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
                     if ap.type().is_user_type():
-                        out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
+                        out.write(f' ?{ap.name()} - {ap.type().name() if ap.type().name() != "object" else self.object_freshname}') # type: ignore
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -253,7 +254,7 @@ class PDDLWriter:
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
                     if ap.type().is_user_type():
-                        out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
+                        out.write(f' ?{ap.name()} - {ap.type().name() if ap.type().name() != "object" else self.object_freshname}') # type: ignore
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -329,7 +330,7 @@ class PDDLWriter:
             for t in self.problem.user_types():
                 objects: List['unified_planning.model.Object'] = list(self.problem.objects(t))
                 if len(objects) > 0:
-                    out.write(f'\n   {" ".join([o.name() for o in objects])} - {t.name()}') # type: ignore
+                    out.write(f'\n   {" ".join([o.name() for o in objects])} - {t.name() if t.name() != "object" else self.object_freshname}') # type: ignore
             out.write('\n )\n')
         converter = ConverterToPDDLString(self.problem.env)
         out.write(' (:init')
