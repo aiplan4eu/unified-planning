@@ -19,7 +19,9 @@ from unified_planning.model import ProblemKind
 from typing import Dict, Tuple, Optional, List, Union, Type
 
 
-DEFAULT_SOLVERS = {'tamer' : ('up_tamer', 'SolverImpl'),
+DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
+                   'lpg' : ('up_lpg', 'LPGsolver'),
+                   'tamer' : ('up_tamer', 'SolverImpl'),
                    'pyperplan' : ('up_pyperplan', 'SolverImpl'),
                    'sequential_plan_validator' : ('unified_planning.solvers.plan_validator', 'SequentialPlanValidator'),
                    'grounder' : ('unified_planning.solvers.grounder', 'Grounder'),
