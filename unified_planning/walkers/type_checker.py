@@ -31,9 +31,8 @@ class TypeChecker(walkers.DagWalker):
         """ Returns the unified_planning.model.types type of the expression """
         res = self.walk(expression)
         if res is None:
-            pass
-            '''raise UPTypeError("The expression '%s' is not well-formed" \
-                               % str(expression))'''
+            raise UPTypeError("The expression '%s' is not well-formed" \
+                               % str(expression))
         return res
 
     def is_compatible_type(self, t_left: 'unified_planning.model.types.Type', t_right: 'unified_planning.model.types.Type') -> bool:

@@ -34,14 +34,17 @@ class Fluent:
         else:
             self._typename = typename
         self._signature = signature
+
     ##ADDED###
     def __deepcopy__(self, memo):
         memo[self._typename] = newself = self.__class__(copy.deepcopy(self._typename, memo))
         newself._env = copy.deepcopy(self._env, memo)
         newself._name = copy.deepcopy(self._name, memo)
         newself._signature = copy.deepcopy(self._signature, memo)
+        newself._typename = self._typename
         return newself
     ##ADDED###
+
     def __repr__(self) -> str:
         return f'{str(self.type())} {self.name()}{str(self.signature()) if self.arity() > 0 else ""}'
 

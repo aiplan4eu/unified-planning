@@ -122,8 +122,7 @@ class MultiAgentProblem(Problem):
 
         for ag in self.get_agents():
             for flu in ag.get_fluents():
-
-                flu = copy.copy(flu)
+                flu = copy.deepcopy(flu)
                 #print(flu, "flu!")
                 setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_fluent(flu)

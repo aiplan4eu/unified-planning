@@ -140,3 +140,6 @@ def prova2():
     w = PDDLWriter(problem)
     print(w.get_domain())
     print(w.get_problem())
+
+
+prova2()
