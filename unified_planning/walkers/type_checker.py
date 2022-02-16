@@ -31,8 +31,9 @@ class TypeChecker(walkers.DagWalker):
         """ Returns the unified_planning.model.types type of the expression """
         res = self.walk(expression)
         if res is None:
-            raise UPTypeError("The expression '%s' is not well-formed" \
-                               % str(expression))
+            pass
+            '''raise UPTypeError("The expression '%s' is not well-formed" \
+                               % str(expression))'''
         return res
 
     def is_compatible_type(self, t_left: 'unified_planning.model.types.Type', t_right: 'unified_planning.model.types.Type') -> bool:
@@ -241,6 +242,7 @@ class TypeChecker(walkers.DagWalker):
             return None
 
         if t.is_bool_type():
+
             raise UPTypeError("The expression '%s' is not well-formed."
                                "Equality operator is not supported for Boolean"
                                " terms. Use Iff instead." \

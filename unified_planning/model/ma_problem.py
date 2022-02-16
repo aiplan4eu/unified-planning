@@ -28,6 +28,7 @@ from unified_planning.model.problem import Problem
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError
 from unified_planning.model.agent import Agent
 from unified_planning.environment import Environment
+from unified_planning.model.environment import Environment_
 import collections
 from typing import List, Union
 
@@ -38,9 +39,10 @@ class MultiAgentProblem(Problem):
     def __init__(self, *args, **kwargs):
         super(MultiAgentProblem, self).__init__(*args, **kwargs)
 
-    env = None
+    env_ = None
     agents_list = []
     plan = []
+    fluents_name = []
     #obj_exp = []
     #obj_exp_tot = []
     #plan_solve = []
@@ -75,9 +77,17 @@ class MultiAgentProblem(Problem):
 
 
     def add_objects(self, objs: List['unified_planning.model.object.Object']):
-        '''Adds the given objects.'''
+        '''Adds the given fluents.'''
         for obj in objs:
             self.add_object(obj)
+
+    '''def add_objects(self, objs: List['unified_planning.model.object.Object']):
+        for ag in self.agents_list:
+            for obj in objs:
+                obj = copy.deepcopy(obj)
+                setattr(obj, '_name', str(getattr(obj, '_name')) + "_" + str(self.get_agents().index(ag)))
+                self.add_object(obj)'''
+
 
     def get_all_objects(self) -> List['unified_planning.model.object.Object']:
         '''Returns all the objects.'''
@@ -85,11 +95,11 @@ class MultiAgentProblem(Problem):
 
 
 
-    def add_environment(self, Env):
-        self.env = Env
+    def add_environment_(self, Env):
+        self.env_ = Env
 
-    def get_environment(self):
-        return self.env
+    def get_environment_(self):
+        return self.env_
 
     def add_agent(self, Agents):
         self.agents_list.append(Agents)
@@ -97,23 +107,13 @@ class MultiAgentProblem(Problem):
     def get_agents(self):
         return self.agents_list
 
-    '''def get_obj_exp(self):
-        for ag in self.get_agents():
-            self.obj_exp = []
-            for obj in ag.get_all_objects():
-                obj = copy.deepcopy(obj)
-                setattr(obj, '_name', str(getattr(obj, '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.obj_exp.append(ObjectExp(obj))
-            self.obj_exp_tot.append(tuple(self.obj_exp))
-        return tuple(o for o in self.obj_exp_tot)'''
-
     def compile(self):
-        for flu in self.get_environment().get_fluents():
+        for flu in self.get_environment_().get_fluents():
             flu = copy.deepcopy(flu)
             setattr(flu, '_name', str(getattr(flu, '_name')) + "_env")
             self.add_fluent(flu)
 
-        for flu, value in self.get_environment().get_initial_values().items():
+        for flu, value in self.get_environment_().get_initial_values().items():
             flu = copy.deepcopy(flu)
             value = copy.deepcopy(value)
             setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_env")
@@ -123,25 +123,52 @@ class MultiAgentProblem(Problem):
         for ag in self.get_agents():
             for flu in ag.get_fluents():
 
-                flu = copy.deepcopy(flu)
+                flu = copy.copy(flu)
+                #print(flu, "flu!")
                 setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_fluent(flu)
-
+            #print("fluents", self.fluents())
 
             for act in ag.get_actions():
                 act = copy.deepcopy(act)
                 setattr(act, 'name', str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag)))
-                change_name = True
+                #Change l_fro e l_to. e Location
+                '''change_name = True
                 for n, t in act._parameters.items(): #n è str:l_fro e l_to. t è Location
                     if change_name == True:
                         setattr(t._typename, '_name', str(getattr(t._typename, '_name')) + "_" + (str(self.get_agents().index(ag))))
-                    change_name = False
+                    change_name = False'''
+
                 for i in act._preconditions:
+                    #print("i._content", i._content, type(i._content.args), i.args())
                     if i._content.args != None:
                         for flu in i._content.args:
                             if flu.is_fluent_exp():
+                                if flu.fluent()._name not in self.fluents_name:
+                                    setattr(flu.fluent(), '_name',
+                                            str(getattr(flu.fluent(), '_name')) + "_" + str(
+                                                self.get_agents().index(ag)))
+                                    self.fluents_name.append(flu.fluent()._name)
+                    #print("flu", flu, "list", self.fluents_name)
+                    if i._content.payload:
+                        if i.is_fluent_exp():
+                            if i.fluent()._name not in self.fluents_name:
+                                setattr(i.fluent(), '_name',
+                                        str(getattr(i.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
+                                #print("quiiiii", i.fluent()._name)
+                                self.fluents_name.append(i.fluent()._name)
+
+
+
+                    '''if i._content.payload:
+                        print("quiiiii", i._content.payload)
+                        setattr(i.fluent(), '_name',
+                                str(getattr(i.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))'''
+                    '''if i._content.args != None:
+                        for flu in i._content.args:
+                            if flu.is_fluent_exp():
                                 setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
-                    '''if i.is_fluent_exp():
+                    if i.is_fluent_exp():
                         setattr(i._content.payload, '_name', str(getattr(i._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))'''
                 self.add_action(act)
             for flu, value in ag.get_initial_values().items():
@@ -153,19 +180,14 @@ class MultiAgentProblem(Problem):
                 goal = copy.deepcopy(goal)
                 setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_goal(goal)
-            for obj in ag.get_all_objects():
+            '''for obj in ag.get_all_objects():
                 obj = copy.deepcopy(obj)
+                print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOObj", obj)
                 setattr(obj, '_name', str(getattr(obj, '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.add_object(obj)
+                self.add_object(obj)'''
         return self
 
 
-    '''def solve_compile(self):
-        for ag in self.get_agents():
-            for i in range(len(ag.get_actions())):
-                self.plan.append(
-                    unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(ag.get_actions()[i], self.get_obj_exp()[self.get_agents().index(ag)])]))
-        return self.plan'''
 
     def solve_OneshotPlanner(self):
         with OneshotPlanner(name='pyperplan') as planner:
@@ -178,8 +200,8 @@ class MultiAgentProblem(Problem):
             for act in plan_problem._actions:
                 act = copy.deepcopy(act)
                 setattr(act._action, 'name', str(getattr(act._action, 'name')) + "_" + str(self.get_agents().index(ag)))
-                for par in act._params: #l1, l2 , ...
-                    setattr(par._content.payload, '_name', str(getattr(par._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))
+                #for par in act._params: #l1, l2 , l1_0. l2_1 ...
+                #    setattr(par._content.payload, '_name', str(getattr(par._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.plan.append(act)
         return self.plan
 

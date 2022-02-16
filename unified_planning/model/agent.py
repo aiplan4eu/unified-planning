@@ -26,7 +26,6 @@ class Agent:
             self,
             ID =  None,
             obs_fluents = None,
-            obs_public_fluents = None,
             actions = None,
             goals = None,
             env: 'unified_planning.environment.Environment' = None,
@@ -155,7 +154,7 @@ class Agent:
         else:
             raise UPProblemDefinitionError('Initial value not set!')
 
-    def add_object(self, obj: 'upf.model.object.Object'):
+    def add_object(self, obj: 'unified_planning.model.object.Object'):
         '''Adds the given object.'''
         if self.has_name(obj.name()):
             raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
@@ -163,23 +162,23 @@ class Agent:
         if obj.type().is_user_type() and obj.type() not in self._user_types:
             self._user_types.append(obj.type())
 
-    def add_objects(self, objs: List['upf.model.object.Object']):
+    def add_objects(self, objs: List['unified_planning.model.object.Object']):
         '''Adds the given objects.'''
         for obj in objs:
             self.add_object(obj)
 
-    def get_all_objects(self) -> List['upf.model.object.Object']:
+    def get_all_objects(self) -> List['unified_planning.model.object.Object']:
         '''Returns all the objects.'''
         return [o for o in self._objects]
 
-    def object(self, name: str) -> 'upf.model.object.Object':
+    def object(self, name: str) -> 'unified_planning.model.object.Object':
         '''Returns the object with the given name.'''
         for o in self._objects:
             if o.name() == name:
                 return o
         raise UPValueError(f'Object of name: {name} is not defined!')
 
-    def objects(self, typename: 'upf.model.types.Type') -> List['upf.model.object.Object']:
+    def objects(self, typename: 'unified_planning.model.types.Type') -> List['unified_planning.model.object.Object']:
         '''Returns the objects of the given user types.'''
         res = []
         for obj in self._objects:
@@ -188,6 +187,6 @@ class Agent:
         return res
 
 
-    def user_types(self) -> List['upf.model.types.Type']:
+    def user_types(self) -> List['unified_planning.model.types.Type']:
         '''Returns the user types.'''
         return self._user_types

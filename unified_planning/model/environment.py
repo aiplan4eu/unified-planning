@@ -21,7 +21,7 @@ from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 
-class Environment:
+class Environment_:
     def __init__(
             self,
             obs_fluents = None,
@@ -31,7 +31,7 @@ class Environment:
             self.obs_fluents = []
 
         self._env = unified_planning.environment.get_env(env)
-        self._initial_value: Dict['unified_planning.model.fnode.FNode', 'upf.model.fnode.FNode'] = {}
+        self._initial_value: Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode'] = {}
 
     def add_fluent(self, Fluent):
         if self.has_name(Fluent.name):
