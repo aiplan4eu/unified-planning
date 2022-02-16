@@ -14,6 +14,8 @@
 
 import os
 import tempfile
+
+import pytest
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
@@ -303,3 +305,24 @@ class TestPddlIO(TestCase):
 
                 self.assertEqual(set(problem.all_objects()), set(parsed_problem.all_objects()))
                 self.assertEqual(len(problem.initial_values()), len(parsed_problem.initial_values()))
+
+
+    def test_rationals(self):
+        problem = self.problems['robot_decrease'].problem.clone()
+
+        # Check perfect conversion
+        battery = problem.fluent('battery_charge')
+        problem.set_initial_value(battery, Fraction(5, 2))
+        w = PDDLWriter(problem)
+        pddl_txt = w.get_problem()
+        self.assertNotIn('5/2', pddl_txt)
+        self.assertIn('2.5', pddl_txt)
+
+        # Check imperfect conversion
+        with pytest.warns(UserWarning, match="cannot exactly represent") as warns: 
+            battery = problem.fluent('battery_charge')
+            problem.set_initial_value(battery, Fraction(10, 3))
+            w = PDDLWriter(problem)
+            pddl_txt = w.get_problem()
+            self.assertNotIn('10/3', pddl_txt)
+            self.assertIn('3.333333333', pddl_txt)
