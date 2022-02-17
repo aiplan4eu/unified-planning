@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-import upf
+import unified_planning as up
 
 
 class PlanQualityMetric():
@@ -25,14 +25,14 @@ class MinimizeActionCosts(PlanQualityMetric):
         return 'minimize actions-cost'
 
 class MinimizeExpressionOnFinalState(PlanQualityMetric):
-    def __init__(self, expression: 'upf.model.FNode'):
+    def __init__(self, expression: 'up.model.FNode'):
         self.expression = expression
 
     def __repr__(self):
         return f'minimize {self.expression}'
 
 class MaximizeExpressionOnFinalState(PlanQualityMetric):
-    def __init__(self, expression: 'upf.model.FNode'):
+    def __init__(self, expression: 'up.model.FNode'):
         self.expression = expression
 
     def __repr__(self):

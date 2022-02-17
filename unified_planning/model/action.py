@@ -23,7 +23,7 @@ import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError
 from fractions import Fraction
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 from collections import OrderedDict
 
 
@@ -62,7 +62,7 @@ class Action:
                  _env: Environment = None, **kwargs: 'up.model.types.Type'):
         self._env = get_env(_env)
         self._name = _name
-        self._cost = None
+        self._cost: Optional['up.model.FNode'] = None
         self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
         if _parameters is not None:
             assert len(kwargs) == 0
@@ -91,7 +91,7 @@ class Action:
         """Sets the parameter name."""
         self._name = new_name
 
-    def cost(self) -> 'up.model.fnode.FNode':
+    def cost(self) -> Optional['up.model.fnode.FNode']:
         return self._cost
 
     def set_cost(self, cost: 'up.model.fnode.FNode'):

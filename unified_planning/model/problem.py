@@ -621,9 +621,9 @@ class Problem:
         for metric in self._metrics:
             if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState) or \
                isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                self._kind.set_quality_metrics('FINAL_VALUE')
+                self._kind.set_quality_metrics('FINAL_VALUE') # type: ignore
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                self._kind.set_quality_metrics('ACTIONS_COST')
+                self._kind.set_quality_metrics('ACTIONS_COST') # type: ignore
         return self._kind
 
     def has_quantifiers(self) -> bool:
