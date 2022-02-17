@@ -14,8 +14,9 @@
 #
 
 import importlib
-import unified_planning
+import unified_planning as up
 from unified_planning.model import ProblemKind
+from unified_planning.solvers import SATISFICING, OPTIMAL
 from typing import Dict, Tuple, Optional, List, Union, Type
 
 
@@ -23,14 +24,14 @@ DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
                    'lpg' : ('up_lpg', 'LPGsolver'),
                    'tamer' : ('up_tamer', 'SolverImpl'),
                    'pyperplan' : ('up_pyperplan', 'SolverImpl'),
-                   'sequential_plan_validator' : ('unified_planning.solvers.plan_validator', 'SequentialPlanValidator'),
-                   'grounder' : ('unified_planning.solvers.grounder', 'Grounder'),
-                   'tarski_grounder' : ('unified_planning.solvers.tarski_grounder', 'TarskiGrounder')}
+                   'sequential_plan_validator' : ('up.solvers.plan_validator', 'SequentialPlanValidator'),
+                   'grounder' : ('up.solvers.grounder', 'Grounder'),
+                   'tarski_grounder' : ('up.solvers.tarski_grounder', 'TarskiGrounder')}
 
 
 class Factory:
     def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
-        self.solvers: Dict[str, Type['unified_planning.solvers.solver.Solver']] = {}
+        self.solvers: Dict[str, Type['up.solvers.solver.Solver']] = {}
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
@@ -43,18 +44,21 @@ class Factory:
         self.solvers[name] = SolverImpl
 
     def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
-                          problem_kind: ProblemKind = ProblemKind()) -> Optional[Type['unified_planning.solvers.solver.Solver']]:
+                          problem_kind: ProblemKind = ProblemKind(),
+                          optimality_guarantee: Optional[int] = None) -> Optional[Type['up.solvers.solver.Solver']]:
         if name is not None:
             return self.solvers[name]
         for SolverClass in self.solvers.values():
-            if getattr(SolverClass, 'is_'+solver_kind)() and SolverClass.supports(problem_kind):
+            if getattr(SolverClass, 'is_'+solver_kind)() and SolverClass.supports(problem_kind) \
+               and (optimality_guarantee is None or SolverClass.satisfy(optimality_guarantee)):
                 return SolverClass
         return None
 
     def _get_solver(self, solver_kind: str, name: Optional[str] = None,
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                    problem_kind: ProblemKind = ProblemKind()) -> Optional['unified_planning.solvers.solver.Solver']:
+                    problem_kind: ProblemKind = ProblemKind(),
+                    optimality_guarantee: Optional[int] = None) -> Optional['up.solvers.solver.Solver']:
         if names is not None:
             assert name is None
             if params is None:
@@ -66,12 +70,12 @@ class Factory:
                 if SolverClass is None:
                     raise
                 solvers.append((SolverClass, param))
-            return unified_planning.solvers.parallel.Parallel(solvers)
+            return up.solvers.parallel.Parallel(solvers)
         else:
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
-            SolverClass = self._get_solver_class(solver_kind, name, problem_kind)
+            SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
             if SolverClass is None:
                 raise
             return SolverClass(**params)
@@ -80,7 +84,8 @@ class Factory:
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional['unified_planning.solvers.solver.Solver']:
+                       problem_kind: ProblemKind = ProblemKind(),
+                       optimality_guarantee: Optional[int] = None) -> Optional['up.solvers.solver.Solver']:
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -89,15 +94,15 @@ class Factory:
           planners dependent options) to get a Parallel solver.
           e.g. OneshotPlanner(names=['tamer', 'tamer'],
                               params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
-        - using 'problem_kind' parameter.
-          e.g. OneshotPlanner(problem_kind=problem.kind())
+        - using 'problem_kind' and 'optimality_guarantee'.
+          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=OPTIMAL)
         """
-        return self._get_solver('oneshot_planner', name, names, params, problem_kind)
+        return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 
     def PlanValidator(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional['unified_planning.solvers.solver.Solver']:
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional['up.solvers.solver.Solver']:
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
@@ -113,7 +118,7 @@ class Factory:
         return self._get_solver('plan_validator', name, names, params, problem_kind)
 
     def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional['unified_planning.solvers.solver.Solver']:
+                       problem_kind: ProblemKind = ProblemKind()) -> Optional['up.solvers.solver.Solver']:
         """
         Returns a Grounder. There are three ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'

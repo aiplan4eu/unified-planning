@@ -187,6 +187,8 @@ class PDDLWriter:
                 out.write(' :durative-actions')
             if problem_kind.has_duration_inequalities(): # type: ignore
                 out.write(' :duration-inequalities')
+            if self.problem.kind().has_actions_cost(): # type: ignore
+                out.write(' :action-costs')
             out.write(')\n')
 
         
@@ -232,6 +234,8 @@ class PDDLWriter:
                 functions.append(f'({f.name()}{"".join(params)})')
             else:
                 raise UPTypeError('PDDL supports only boolean and numerical fluents')
+        if self.problem.kind().has_actions_cost():
+            functions.append('(total-cost)')
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
@@ -266,6 +270,8 @@ class PDDLWriter:
                         if e.is_conditional():
                             out.write(f')')
 
+                    if a.cost() is not None:
+                        out.write(f' (increase total-cost {converter.convert(a.cost())})')
                     out.write(')')
                 out.write(')\n')
             elif isinstance(a, DurativeAction):
@@ -330,7 +336,8 @@ class PDDLWriter:
                             if e.is_conditional():
                                 out.write(f')')
                             out.write(')')
-
+                    if a.cost() is not None:
+                        out.write(f' (at end (increase total-cost {converter.convert(a.cost())}))')
                     out.write(')')
                 out.write(')\n')
             else:
@@ -360,8 +367,25 @@ class PDDLWriter:
                 pass
             else:
                 out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
+        if self.problem.kind().has_actions_cost():
+            out.write(f' (= total-cost 0)')
         out.write(')\n')
         out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals()])}))\n')
+        metrics = self.problem.quality_metrics()
+        if len(metrics) == 1:
+            metric = metrics[0]
+            out.write(' (:metric ')
+            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
+                out.write(f'minimize {metric.expression}')
+            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+                out.write(f'maximize {metric.expression}')
+            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
+                out.write(f'minimize total-cost')
+            else:
+                raise
+            out.write(')\n')
+        elif len(metrics) > 1:
+            raise
         out.write(')\n')
 
     def print_domain(self):
