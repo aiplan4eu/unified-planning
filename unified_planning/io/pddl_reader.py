@@ -18,6 +18,7 @@ import pyparsing # type: ignore
 import typing
 from mimetypes import types_map
 from unified_planning.environment import Environment, get_env
+from unified_planning.walkers import FreeVarsExtractor
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List
@@ -363,6 +364,9 @@ class PDDLReader:
         if object_type_needed and 'object' not in types_map: # The object type is needed, but has not been defined
             types_map['object'] = self._env.type_manager.UserType('object', None)  # We manually define it.
 
+        has_actions_cost = False
+        fve = FreeVarsExtractor()
+
         for p in domain_res.get('predicates', []):
             n = p[0]
             params = []
@@ -379,6 +383,9 @@ class PDDLReader:
                 t = types_map[g[1] if len(g) > 1 else 'object']
                 params.extend([t for i in range(len(g[0]))])
             f = up.model.Fluent(n, self._tm.RealType(), params, self._env)
+            if n == 'total-cost':
+                has_actions_cost = True
+                totalcost = self._em.FluentExp(f)
             problem.add_fluent(f)
 
         for g in domain_res.get('constants', []):
@@ -423,6 +430,31 @@ class PDDLReader:
                 self._add_condition(problem, dur_act, cond, types_map)
                 eff = a['eff'][0]
                 self._add_timed_effects(problem, dur_act, types_map, eff)
+
+                if has_actions_cost:
+                    if totalcost in fve.get(dur_act.duration().lower()) or \
+                       totalcost in fve.get(dur_act.duration().upper()):
+                        has_actions_cost = False
+                if has_actions_cost:
+                    for _, cl in dur_act.conditions().items():
+                        for c in cl:
+                            if totalcost in fve.get(c):
+                                has_actions_cost = False
+                                break
+                if has_actions_cost:
+                    for _, cl in dur_act.durative_conditions().items():
+                        for c in cl:
+                            if totalcost in fve.get(c):
+                                has_actions_cost = False
+                                break
+                if has_actions_cost:
+                    for _, el in dur_act.effects().items():
+                        for e in el:
+                            if totalcost in fve.get(e.fluent()) or totalcost in fve.get(e.value()) \
+                               or totalcost in fve.get(e.condition()):
+                                has_actions_cost = False
+                                break
+
                 problem.add_action(dur_act)
             else:
                 act = up.model.InstantaneousAction(n, a_params, self._env)
@@ -430,6 +462,25 @@ class PDDLReader:
                     act.add_precondition(self._parse_exp(problem, act, types_map, {}, a['pre'][0]))
                 if 'eff' in a:
                     self._add_effect(problem, act, types_map, a['eff'][0])
+
+                if has_actions_cost:
+                    for c in act.preconditions():
+                        if totalcost in fve.get(c):
+                            has_actions_cost = False
+                            break
+                if has_actions_cost:
+                    for e in act.effects():
+                        if totalcost in fve.get(e.value()) or totalcost in fve.get(e.condition()):
+                            has_actions_cost = False
+                            break
+                        if e.fluent() == totalcost:
+                            if not e.is_increase() or \
+                               not e.condition().is_true() or \
+                               not (e.value().is_int_constant() or \
+                                    e.value().is_real_constant()):
+                                has_actions_cost = False
+                                break
+
                 problem.add_action(act)
 
         if problem_filename is not None:
@@ -462,14 +513,44 @@ class PDDLReader:
 
             problem.add_goal(self._parse_exp(problem, None, types_map, {}, problem_res['goal'][0]))
 
+            if has_actions_cost:
+                if not problem.initial_value(totalcost).constant_value() == 0:
+                    has_actions_cost = False
+            if has_actions_cost:
+                for _, el in problem.timed_effects().items():
+                    for e in el:
+                        if totalcost in fve.get(e.fluent()) or totalcost in fve.get(e.value()) \
+                           or totalcost in fve.get(e.condition()):
+                            has_actions_cost = False
+                            break
+            if has_actions_cost:
+                for c in problem.goals():
+                    if totalcost in fve.get(c):
+                        has_actions_cost = False
+                        break
+
             optimization = problem_res.get('optimization', None)
             metric = problem_res.get('metric', None)
 
             if metric is not None:
                 metric_exp = self._parse_exp(problem, None, {}, metric)
-                if optimization == 'minimize':
-                    problem.add_quality_metric(up.model.metrics.MinimizeExpressionOnFinalState(metric_exp))
-                elif optimization == 'maximize':
-                    problem.add_quality_metric(up.model.metrics.MaximizeExpressionOnFinalState(metric_exp))
+                if has_actions_cost and optimization == 'minimize' and metric_exp == totalcost:
+                    problem._fluents.remove(totalcost.fluent())
+                    problem._initial_value.pop(totalcost)
+                    for a in problem.instantaneous_actions():
+                        cost = None
+                        for e in a.effects():
+                            if e.fluent() == totalcost:
+                                cost = e
+                                break
+                        if cost is not None:
+                            a.set_cost(cost.value())
+                            a._effects.remove(cost)
+                    problem.add_quality_metric(up.model.metrics.MinimizeActionCosts())
+                else:
+                    if optimization == 'minimize':
+                        problem.add_quality_metric(up.model.metrics.MinimizeExpressionOnFinalState(metric_exp))
+                    elif optimization == 'maximize':
+                        problem.add_quality_metric(up.model.metrics.MaximizeExpressionOnFinalState(metric_exp))
 
         return problem

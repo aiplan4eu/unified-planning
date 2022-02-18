@@ -94,8 +94,9 @@ class Action:
     def cost(self) -> Optional['up.model.fnode.FNode']:
         return self._cost
 
-    def set_cost(self, cost: 'up.model.fnode.FNode'):
-        self._cost = cost
+    def set_cost(self, cost: 'up.model.expression.Expression'):
+        cost_exp, = self._env.expression_manager.auto_promote(cost)
+        self._cost = cost_exp
 
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
@@ -167,6 +168,7 @@ class InstantaneousAction(Action):
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.type()
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
+        new_instantaneous_action._cost = self._cost
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
         return new_instantaneous_action
@@ -354,6 +356,7 @@ class DurativeAction(Action):
         new_params = {param_name: param.type() for param_name, param in self._parameters.items()}
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration
+        new_durative_action._cost = self._cost
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         new_durative_action._durative_conditions = {i : dcl[:] for i, dcl in self._durative_conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}

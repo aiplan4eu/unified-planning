@@ -21,3 +21,4 @@ from unified_planning.walkers.operators_extractor import OperatorsExtractor
 from unified_planning.walkers.simplifier import Simplifier
 from unified_planning.walkers.substituter import Substituter
 from unified_planning.walkers.type_checker import TypeChecker
+from unified_planning.walkers.free_vars import FreeVarsExtractor

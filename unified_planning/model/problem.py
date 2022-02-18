@@ -190,6 +190,7 @@ class Problem:
         new_p._timed_goals = {t: [g for g in gl] for t, gl in self._timed_goals.items()}
         new_p._maintain_goals = {i: [g for g in gl] for i, gl in self._maintain_goals.items()}
         new_p._goals = self._goals[:]
+        new_p._metrics = self._metrics[:]
         new_p._initial_defaults = self._initial_defaults.copy()
         new_p._fluents_defaults = self._fluents_defaults.copy()
         return new_p
