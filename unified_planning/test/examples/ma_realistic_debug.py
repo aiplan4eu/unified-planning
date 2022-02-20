@@ -20,10 +20,11 @@ from collections import namedtuple
 from unified_planning.model.agent import Agent
 from unified_planning.model.ma_problem import MultiAgentProblem
 from realistic import get_example_problems
-from unified_planning.model.environment import Environment_
+from unified_planning.model.environment_ma import Environment_
 
 from unified_planning.io.pddl_writer import PDDLWriter
-#from unified_planning.io.pddl_reader import PDDLReader
+from unified_planning.io.pddl_reader import PDDLReader
+from unified_planning.transformers import NegativeConditionsRemover
 
 Example = namedtuple('Example', ['problem', 'plan'])
 problems = {}
@@ -79,20 +80,19 @@ def ma_example():
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
-
-    #w = PDDLWriter(examples['robot_no_negative_preconditions'].problem)
-    #print(w.get_domain())
-    #print(w.get_problem())'''
-
     w = PDDLWriter(problem)
     print(w.get_domain())
     print(w.get_problem())
 
-    with OneshotPlanner(name='pyperplan') as planner:
+    #KeyError di Location ("Usertype")
+    with OneshotPlanner(name='tamer') as planner:
         solve_plan = planner.solve(problem)
         print("Pyperplan returned: %s" % solve_plan)
 
-
+    #unified_planning.exceptions.UPExpressionDefinitionError: Expression: (not (l_from == l_to)) is not in NNF.
+    npr = NegativeConditionsRemover(problem)
+    positive_problem = npr.get_rewritten_problem()
+    print("positive_problem", positive_problem)
 
 
 

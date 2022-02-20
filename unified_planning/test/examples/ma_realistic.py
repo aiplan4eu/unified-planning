@@ -20,38 +20,43 @@ from collections import namedtuple
 from unified_planning.model.agent import Agent
 from unified_planning.model.ma_problem import MultiAgentProblem
 from realistic import get_example_problems
-from unified_planning.model.environment import Environment_
+from unified_planning.model.environment_ma import Environment_
 
 from unified_planning.io.pddl_writer import PDDLWriter
-#from unified_planning.io.pddl_reader import PDDLReader
+from unified_planning.io.pddl_reader import PDDLReader
+from unified_planning.transformers import NegativeConditionsRemover
+from unified_planning.transformers import DisjunctiveConditionsRemover
+from unified_planning.transformers import ConditionalEffectsRemover
+from unified_planning.transformers  import QuantifiersRemover
 
 Example = namedtuple('Example', ['problem', 'plan'])
 problems = {}
 examples = get_example_problems()
 
 def ma_example():
-    problem = examples['robot'].problem
+    problem = examples['robot_no_negative_preconditions'].problem
 
     # examples['...'].problem supported:
     # Yes: robot
-    # No: robot_fluent_of_user_type
+    # No:  robot_fluent_of_user_type
     # Yes: robot_no_negative_preconditions
     # Yes: robot_decrease
     # Yes: robot_loader
     # Yes: robot_loader_mod
     # Yes: robot_loader_adv
     # Yes: robot_locations_connected
-    # Yes: No robot_locations_visited
+    # Yes: robot_locations_visited
     # Yes: charge_discharge
-    # No: matchcellar
-    # No: timed_connected_locations
+    # No:  matchcellar
+    # No:  timed_connected_locations
 
     fluents_problem = problem.fluents()
+    user_types = problem.user_types()
     actions_problem = problem.actions()
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
-    plan = examples['robot'].plan
+    plan = examples['robot_no_negative_preconditions'].plan
     robot1 = Agent()
     robot2 = Agent()
     environment = Environment_()
@@ -71,6 +76,8 @@ def ma_example():
     ma_problem.add_agent(robot2)
     ma_problem.add_environment_(environment)
     ma_problem.add_objects(objects_problem)
+    #ma_problem.add_user_types(user_types)
+    print("user_types: ", ma_problem.user_types())
     problem = ma_problem.compile()
     print(problem)
     print("Single agent plan:\n ", plan)
@@ -79,13 +86,33 @@ def ma_example():
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
-    w = PDDLWriter(problem)
+    '''w = PDDLWriter(problem)
     print(w.get_domain())
-    print(w.get_problem())
+    print(w.get_problem())'''
+
+    #npr = NegativeConditionsRemover(problem)
+    #positive_problem = npr.get_rewritten_problem()
+    # print("positive_problem", positive_problem)
+
+    with OneshotPlanner(name='pyperplan') as planner:
+        solve_plan = planner.solve(problem)
+        print("Tamer returned: %s" % solve_plan)
 
     #with OneshotPlanner(name='pyperplan') as planner:
     #    solve_plan = planner.solve(problem)
     #    print("Pyperplan returned: %s" % solve_plan)
+
+    #dnfr = DisjunctiveConditionsRemover(problem)
+    #dnf_problem = dnfr.get_rewritten_problem()
+    #print(dnf_problem)
+
+    #cer = ConditionalEffectsRemover(problem)
+    #unconditional_problem = cer.get_rewritten_problem()
+    #print(unconditional_problem)
+    #qr = QuantifiersRemover(problem)
+    #uq_problem = qr.get_rewritten_problem()
+
+
 
 def ma_example_env():
     problem = examples['robot'].problem
