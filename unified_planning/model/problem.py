@@ -237,10 +237,10 @@ class Problem:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
         if fluent.type().is_user_type() and fluent.type() not in self._user_types:
-            self._add_user_type(fluent.type()) # type: ignore
+            self._add_user_type(fluent.type())
         for type in fluent.signature():
             if type.is_user_type() and type not in self._user_types:
-                self._add_user_type(type) # type: ignore
+                self._add_user_type(type)
     
     def _add_user_type(self, type: Optional['unified_planning.model.types.Type']):
         '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''

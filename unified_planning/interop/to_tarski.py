@@ -117,11 +117,11 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_int_constant(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
-        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Integer) # type: ignore
+        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Integer) 
 
     def walk_real_constant(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 0
-        return tarski.syntax.Constant(expression.real_constant_value(), self.lang.Real) # type: ignore
+        return tarski.syntax.Constant(expression.real_constant_value(), self.lang.Real)
 
     def walk_param_exp(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         type = expression.parameter().type()
@@ -130,7 +130,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
                 self.lang.get_sort(type.name() if type.name() != 'object' else self.object_freshname)) # type: ignore
         else:
             return self.lang.variable(expression.parameter().name(), \
-                self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type))) # type: ignore
+                self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)))
 
     def walk_variable_exp(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         type = expression.variable().type()
@@ -139,7 +139,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
                 self.lang.get_sort(type.name() if type.name() != 'object' else self.object_freshname)) # type: ignore
         else:
             return self.lang.variable(expression.variable().name(), \
-                self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type))) # type: ignore
+                self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)))
 
     def walk_object_exp(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         return self.lang.get_constant(expression.object().name())
@@ -176,7 +176,7 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
             lang.predicate(fluent.name(), *signature)
         else:
             typename = _type_name_added_to_language_if_needed(lang, fluent.type())
-            lang.function(fluent.name(), *signature, lang.get_sort(typename if typename != 'object' else object_freshname)) # type: ignore
+            lang.function(fluent.name(), *signature, lang.get_sort(typename if typename != 'object' else object_freshname))
     for o in problem.all_objects(): #adding objects to the language
         lang.constant(o.name(), lang.get_sort(o.type().name() if o.type().name() != 'object' else object_freshname)) # type: ignore
     #creating tarski problem
@@ -191,7 +191,7 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
             if p.type().is_user_type():
                 parameters.append(lang.variable(p.name(), lang.get_sort(p.type().name() if p.type().name() != 'object' else object_freshname))) # type: ignore
             else:
-                parameters.append(lang.variable(p.name(), lang.get_sort(_type_name_added_to_language_if_needed(lang, p.type())))) # type: ignore
+                parameters.append(lang.variable(p.name(), lang.get_sort(_type_name_added_to_language_if_needed(lang, p.type()))))
         #add action to the problem
         new_problem.action(action.name,
                             parameters,

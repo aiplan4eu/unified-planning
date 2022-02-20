@@ -20,7 +20,7 @@ from fractions import Fraction
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.environment import Environment
 from collections import OrderedDict
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, cast
 from tarski.syntax import Interval # type: ignore
 from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
 from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
@@ -112,11 +112,11 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_plannin
             return em.ParameterExp(action_parameters[formula.symbol])
         else:
             return em.VariableExp(unified_planning.model.Variable(formula.symbol, \
-                _convert_type_and_update_dict(formula.sort, types, env.type_manager, formula.sort.language))) # type: ignore
+                cast(unified_planning.model.Type, _convert_type_and_update_dict(formula.sort, types, env.type_manager, formula.sort.language)))) 
     elif isinstance(formula, QuantifiedFormula):
         expression = convert_tarski_formula(env, fluents, objects, action_parameters, types, formula.formula)
         variables = [unified_planning.model.Variable(v.symbol, 
-            _convert_type_and_update_dict(v.sort, types, env.type_manager, v.sort.language)) # type: ignore
+            cast(unified_planning.model.Type, _convert_type_and_update_dict(v.sort, types, env.type_manager, v.sort.language)))
             for v in formula.variables]
         if formula.quantifier == Quantifier.Exists:
             return em.Exists(expression, *variables)
@@ -209,6 +209,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
         #types will be filled with the needed types in this loop.
         _convert_type_and_update_dict(t, types, tm, lang)
 
+
     # Convert predicates and functions
     fluents = {}
     for p in lang.predicates:
@@ -227,9 +228,10 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
             continue
         signature = []
         for t in p.domain:
-            signature.append(types[str(t.name)]) # type: ignore
+            type = types[str(t.name)]
+            assert type is not None
+            signature.append(type)
         func_sort = p.sort[-1]
-        fluent = None # type: ignore
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:
                 if func_sort.name == 'Real' or func_sort.name == 'number':
@@ -254,17 +256,21 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     # Convert objects
     objects = {}
     for c in lang.constants():
-        o = unified_planning.model.Object(str(c.name), types[str(c.sort.name)]) # type: ignore
+        type = types[str(c.sort.name)]
+        assert type is not None
+        o = unified_planning.model.Object(str(c.name), type)
         objects[o.name()] = o
         problem.add_object(o)
 
     # Convert actions
     for a_name in tarski_problem.actions:
         a = tarski_problem.get_action(a_name)
-        parameters = OrderedDict()
+        parameters: OrderedDict[str, 'unified_planning.model.Type'] = OrderedDict()
         for p in a.parameters:
-            parameters[p.symbol] = types[p.sort.name]
-        action = unified_planning.model.InstantaneousAction(a_name, parameters) # type: ignore
+            type = types[str(p.sort.name)]
+            assert type is not None
+            parameters[p.symbol] = type
+        action = unified_planning.model.InstantaneousAction(a_name, parameters)
         action_parameters = {}
         for p in parameters.keys():
             action_parameters[p] = action.parameter(p)
