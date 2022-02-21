@@ -417,8 +417,6 @@ class Problem:
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('Initial value assignment has not compatible types!')
-        if fluent_exp in self._initial_value:
-            raise UPProblemDefinitionError('Initial value already set!')
         self._initial_value[fluent_exp] = value_exp
 
     def initial_value(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent']) -> 'unified_planning.model.fnode.FNode':
