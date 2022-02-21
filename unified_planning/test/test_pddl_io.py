@@ -14,12 +14,14 @@
 
 import os
 import tempfile
+from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.io.pddl_reader import PDDLReader
 from unified_planning.test.examples import get_example_problems
+from unified_planning.model.types import _UserType
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -287,22 +289,67 @@ class TestPddlIO(TestCase):
                 reader = PDDLReader()
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
-                if problem.has_type('object'):
-                    continue #due to the renaming of the type object, the following tests will fail
+                if problem.has_type('object') and problem.kind().has_hierarchical_typing():
+                    object_rename: str = 'object'
+                    while problem.has_type(object_rename):
+                        object_rename = f'{object_rename}_'
+                    self.assertEqual(len(problem.fluents()), len(parsed_problem.fluents()))
+                    self.assertTrue(_have_same_user_types_considering_object_renaming(problem, parsed_problem, object_rename))
+                    self.assertEqual(len(problem.actions()), len(parsed_problem.actions()))
+                    for a in problem.actions():
+                        parsed_a = parsed_problem.action(a.name)
+                        self.assertEqual(a.name, parsed_a.name)
+                        for param, parsed_param in zip(a.parameters(), parsed_a.parameters()):
+                            self.assertEqual(param.name(), parsed_param.name())
+                            self.assertTrue(_is_same_user_type_considering_object_renaming(param.type(), parsed_param.type(), object_rename))
+                        if isinstance(a, unified_planning.model.InstantaneousAction):
+                            self.assertEqual(len(a.effects()), len(parsed_a.effects()))
+                        elif isinstance(a, unified_planning.model.DurativeAction):
+                            self.assertEqual(a.duration(), parsed_a.duration())
+                            for t, e in a.effects().items():
+                                self.assertEqual(len(e), len(parsed_a.effects()[t]))
+                else:
+                    self.assertEqual(len(problem.fluents()), len(parsed_problem.fluents()))
+                    self.assertEqual(set(problem.user_types()), set(parsed_problem.user_types()))
+                    self.assertEqual(len(problem.actions()), len(parsed_problem.actions()))
+                    for a in problem.actions():
+                        parsed_a = parsed_problem.action(a.name)
+                        self.assertEqual(a.name, parsed_a.name)
+                        self.assertEqual(a.parameters(), parsed_a.parameters())
+                        if isinstance(a, unified_planning.model.InstantaneousAction):
+                            self.assertEqual(len(a.effects()), len(parsed_a.effects()))
+                        elif isinstance(a, unified_planning.model.DurativeAction):
+                            self.assertEqual(a.duration(), parsed_a.duration())
+                            for t, e in a.effects().items():
+                                self.assertEqual(len(e), len(parsed_a.effects()[t]))
 
-                self.assertEqual(len(problem.fluents()), len(parsed_problem.fluents()))
-                self.assertEqual(set(problem.user_types()), set(parsed_problem.user_types()))
-                self.assertEqual(len(problem.actions()), len(parsed_problem.actions()))
-                for a in problem.actions():
-                    parsed_a = parsed_problem.action(a.name)
-                    self.assertEqual(a.name, parsed_a.name)
-                    self.assertEqual(a.parameters(), parsed_a.parameters())
-                    if isinstance(a, unified_planning.model.InstantaneousAction):
-                        self.assertEqual(len(a.effects()), len(parsed_a.effects()))
-                    elif isinstance(a, unified_planning.model.DurativeAction):
-                        self.assertEqual(a.duration(), parsed_a.duration())
-                        for t, e in a.effects().items():
-                            self.assertEqual(len(e), len(parsed_a.effects()[t]))
+                    self.assertEqual(set(problem.all_objects()), set(parsed_problem.all_objects()))
+                    self.assertEqual(len(problem.initial_values()), len(parsed_problem.initial_values()))
 
-                self.assertEqual(set(problem.all_objects()), set(parsed_problem.all_objects()))
-                self.assertEqual(len(problem.initial_values()), len(parsed_problem.initial_values()))
+def _is_same_user_type_considering_object_renaming(original_type: unified_planning.model.Type, 
+                                                    tested_type: unified_planning.model.Type,
+                                                    object_rename: str) -> bool:
+    if cast(_UserType, original_type).father() is None: # case where original_type has no father 
+        if cast(_UserType, tested_type).father() is not None:
+            return False # original_type has a father, tested_type does not.
+        if cast(_UserType, original_type).name() != 'object': # fathers are both None, now we have to check the name
+            return cast(_UserType, original_type).name() == cast(_UserType, tested_type).name() # original_type name is not object, so it should not be renamed
+        else:
+            return object_rename == cast(_UserType, tested_type).name() # original_type name is object, so we expect it to be renamed
+    else: # case where original_type has a father
+        if cast(_UserType, tested_type).father() is None:
+            return False # and tested_type has no father
+        if cast(_UserType, original_type).name() != 'object': # original_type name is not object, so it should not be renamed, and both father's types are the same type
+            return cast(_UserType, original_type).name() == cast(_UserType, tested_type).name() and _is_same_user_type_considering_object_renaming(original_type.father(), tested_type.father(), object_rename) # type: ignore
+        else: # original_type name is object, so we expect it to be renamed, and both father's types are the same type
+            return object_rename == tested_type.name() and _is_same_user_type_considering_object_renaming(original_type.father(), tested_type.father(), object_rename) # type: ignore
+
+def _have_same_user_types_considering_object_renaming(original_problem: unified_planning.model.Problem, tested_problem: unified_planning.model.Problem, object_rename: str) -> bool:
+    for original_type in original_problem.user_types():
+        if cast(_UserType, original_type).name() != 'object':
+            if not _is_same_user_type_considering_object_renaming(original_type, tested_problem.user_type(cast(_UserType, original_type).name()), object_rename):
+                return False
+        else:
+            if not _is_same_user_type_considering_object_renaming(original_type, tested_problem.user_type(object_rename), object_rename):
+                return False
+    return True
