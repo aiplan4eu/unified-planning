@@ -45,7 +45,7 @@ class Solver:
         return False
 
     @staticmethod
-    def satisfy(optimality_guarantee: int) -> bool:
+    def satisfies(optimality_guarantee: int) -> bool:
         return False
 
     @staticmethod

@@ -115,7 +115,8 @@ def UserType(name: str, father: Optional[Type] = None) -> unified_planning.model
 def OneshotPlanner(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                   problem_kind: ProblemKind = ProblemKind()) -> Optional[Solver]:
+                   problem_kind: ProblemKind = ProblemKind(),
+                   optimality_guarantee: Optional[int] = None) -> Optional[Solver]:
     """
     Returns a oneshot planner. There are three ways to call this method:
     - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -124,11 +125,12 @@ def OneshotPlanner(*, name: Optional[str] = None,
       planner dependent options) to get a Parallel solver.
       e.g. OneshotPlanner(names=['tamer', 'tamer'],
                           params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
-    - using 'problem_kind' parameter.
-      e.g. OneshotPlanner(problem_kind=problem.kind())
+    - using 'problem_kind' and 'optimality_guarantee'.
+          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=OPTIMAL)
     """
     return get_env().factory.OneshotPlanner(name=name, names=names, params=params,
-                                            problem_kind=problem_kind)
+                                            problem_kind=problem_kind,
+                                            optimality_guarantee=optimality_guarantee)
 
 def PlanValidator(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,

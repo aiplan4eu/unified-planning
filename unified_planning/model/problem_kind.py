@@ -125,3 +125,7 @@ full_temporal_kind.set_time('TIMED_EFFECT') # type: ignore
 full_temporal_kind.set_time('TIMED_GOALS') # type: ignore
 full_temporal_kind.set_time('MAINTAIN_GOALS') # type: ignore
 full_temporal_kind.set_time('DURATION_INEQUALITIES') # type: ignore
+
+quality_metrics_kind = ProblemKind()
+quality_metrics_kind.set_quality_metrics('ACTIONS_COST') # type: ignore
+quality_metrics_kind.set_quality_metrics('FINAL_VALUE') # type: ignore

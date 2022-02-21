@@ -50,7 +50,7 @@ class Factory:
             return self.solvers[name]
         for SolverClass in self.solvers.values():
             if getattr(SolverClass, 'is_'+solver_kind)() and SolverClass.supports(problem_kind) \
-               and (optimality_guarantee is None or SolverClass.satisfy(optimality_guarantee)):
+               and (optimality_guarantee is None or SolverClass.satisfies(optimality_guarantee)):
                 return SolverClass
         return None
 

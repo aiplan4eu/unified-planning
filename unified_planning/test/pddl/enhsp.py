@@ -33,7 +33,12 @@ class ENHSP(PDDLSolver):
     def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
         return ['java', '-jar',
                 os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
-                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename]
+                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename,
+                '-planner', 'opt-hrmax']
+
+    @staticmethod
+    def satisfies(optimality_guarantee: int) -> bool:
+        return True
 
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
@@ -50,6 +55,8 @@ class ENHSP(PDDLSolver):
         supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
         supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
         supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+        supported_kind.set_quality_metrics('ACTIONS_COST') # type: ignore
+        supported_kind.set_quality_metrics('FINAL_VALUE') # type: ignore
         return problem_kind <= supported_kind
 
 
