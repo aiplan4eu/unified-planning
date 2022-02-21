@@ -126,7 +126,7 @@ message EffectExpression {
         // The `fluent` is set to the corresponding `value`
         ASSIGN = 1;
         // The `fluent` is increased by the amount `value`
-        // features: [numeric?]
+        // features: numeric?
         INCREASE = 2;
     }
     
@@ -145,10 +145,10 @@ message Effect {
     // TODO: When should the condition hold in case of durative actions? Is this supported by PDDL? Two options:
     //        - immediately before the effect (generalization of the non-temporal case)
     //        - have the condition field be of type `Condition` which allows for temporal qualification. If not qualified, the above would apply.
-    // features: [conditional_effects]
+    // features: conditional_effects
     Expression condition = 2;
     // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
-    // features: [durative_actions]
+    // features: durative_actions
     TemporalQualification temporal_qualification = 3;
 }
 
@@ -156,7 +156,7 @@ message Effect {
 message Condition {
     Expression cond = 1;
     // Optional. Must be set for durative actions where it specifies when the condition should hold.
-    // features: [durative_actions]
+    // features: durative_actions
     TemporalQualification temporal_qualification = 2;
 }
 
@@ -169,7 +169,7 @@ message Action {
     repeated Parameter parameters = 2;
 
     // If set, the action is durative. Otherwise it is instantaneous.
-    // features: [durative_actions]
+    // features: durative_actions
     Duration duration = 3;
     
     // Conjunction of conditions that must hold for the action to be applicable.
@@ -179,13 +179,57 @@ message Action {
     repeated Effect effects = 5;
 
     // Cost of the action.
-    // features: [action_costs]
+    // features: action_costs
     Expression cost = 6;
 }
 
 
-message TemporalQualification { /* TODO */ }
-message Duration { /* TODO */ }
+// Symbolic reference to an absolute time.
+// It might represent the time of the initial or final state or the start/end of the containing action.
+//
+// It is currently composed of a single field whose interpretation is context dependent 
+// (e.g. "START" refers to the start of the containing action).
+// In the future, it could be extended to refer, e.g., to the start of a particular action/subtask 
+// by adding an additional field with the identifier of an action/subtask.
+message Timepoint {
+    enum Extractor {
+      // Global start of the planning problem. This is context independent and represents the time at which the initial state holds.
+      GLOBAL_START = 0;
+      // Global end of the planning problem. This is context independent and represents the time at which the final state holds.
+      GLOBAL_END = 1;
+      // Start of the container (typically the action) in which this symbol occurs
+      START = 2;
+      // End of the container (typically the action) in which this symbol occurs
+      END = 3;
+    }
+    Extractor name = 1;
+}
+
+// Represents a time (`tp` + `delay`), that is a time defined relatively to a particular timepoint `tp`.
+// Note that an absolute time can be defined by setting the delay relative to the GLOBAL_START which is the reference time.
+message RelativeTime {
+    Timepoint tp = 1;
+    double delay = 2;
+}
+
+
+
+message TemporalQualification { 
+    RelativeTime interval_start = 1;
+    RelativeTime interval_end = 2;
+}
+
+// Represent bounds on the duration of an action. 
+// `lower_bound` <= duration <= `upper_bound`
+// 
+// If the `strict_lower_bound` and `strict_upper_bound` fields are true, then the corresponding inequalites should
+// be interpreted as strict: `lower_bound` < duration < `upper_bound`.
+message Duration { 
+    bool strict_lower_bound = 1;
+    Expression lower_bound = 2;
+    bool strict_upper_bound = 3;
+    Expression upper_bound = 4;
+ }
 
 
 
@@ -202,17 +246,21 @@ message Goal {
     Expression goal = 1;
 }
 
-// An initial or timed fact.
-message Fact {
-    // If the `temporal_qualification` field if not set (which is guaranteed to be the case without the `timed_facts` feature),
-    // then it represents an initial fact and:
-    //  - the operator of the effect MUST be an ASSIGN
-    //  - the effect will be applied to the initial state.
+// Represents a fact that will occur sometime beyond the initial state. (similar to timed initial literals)
+message TimedFact {
+    // Required. An effect expression taht will take place sometime in the future (i.e. not at the intial state) as specified by the temporal qualifiation.
     EffectExpression fact = 1;
-    // If set, the fact will not hold at the initial state but instead according to the given temporal qualification.
-    // In that case, it makes sense to have non-assign effects (e.g. "at time 100, increase stock by 10")
-    // features: [timed_facts]
+    // Required. Temporal qualification denoting when the timed fact will occur.
     TemporalQualification temporal_qualification = 2;
+}
+
+// An assigment of a value to a fluent, as it appears in the initial state definition.
+message Assignment {
+    // State variable that is assigned the `value`. 
+    // It should be an expression of the STATE_VARIABLE kind for which all parameters are of the CONSTANT kind.
+    Expression fluent = 1;
+    // An expression of the CONSTANT kind, denoting the value take by the state variable.
+    Expression value = 2;
 }
 
 message Problem {
@@ -222,12 +270,18 @@ message Problem {
     repeated Fluent fluents = 4;
     repeated ObjectDeclaration objects = 5;
 
-    // list of actions (the type and different fields might depend on the retained proposal)
+    // List of actions in the domain.
     repeated Action actions = 6;
 
-    // Initial facts and timed facts (under the `timed_facts` feature).
-    repeated Fact facts = 7;
-    repeated Goal goals = 8;
+    // Initial state. It is asssumed that the initial state is fully defined by assignments.
+    repeated Assignment initial_state = 7;
+
+    // Facts and effects that are expected to occur strictly later than the initial state.
+    // features: timed_facts
+    repeated TimedFact timed_facts = 8;
+
+    // Goals of the planning problem.
+    repeated Goal goals = 9;
 
     // all features of the problem
     repeated Feature features = 15;
@@ -291,8 +345,7 @@ message PlanRequest {
     }
     Mode resolution_mode = 2;
     
-    // max allowed runtime time in milliseconds 
-    // (maybe a deadline would be better if we are considering milliseconds?)
+    // Max allowed runtime time in seconds.
     double timeout_seconds = 3;
 
     // Planner specific options to be passed to the planner
@@ -300,21 +353,27 @@ message PlanRequest {
 }
 
 
-
-
+// A freely formatted logging message.
+// Each message is annotated with its criticality level from the minimal (DEBUG) to the maximal (ERROR).
+// Criticality level is expected to be used by an end user to decide the level of verbosity.
+message LogMessage {
+    enum LogLevel {
+        DEBUG = 0;
+        INFO = 1;
+        WARNING = 2;
+        ERROR = 3;
+    }
+    LogLevel level = 1;
+    string message = 2;
+}
 
 
 // Intermediate report sent by the planner while running.
-message Report {
+message IntermediateReport {
     // Optional. If set, it is the latest found plan not already reported.
     Plan plan = 1;
 
-    // ==== Logging ====
-    // the following is a very early draft to allow semi-structured feedback from the planner.
-
-    // To be refined with different log levels: INFO, WARNING, ERROR
-    // We would want to display warning and error messages by default.
-    string log_message = 2;
+    repeated LogMessage logs = 2;
 
     // Planner specific messages
     map<string, string> metrics = 3;
@@ -322,7 +381,7 @@ message Report {
 
 // Last message sent by planner before exiting.
 // Contains the planner exit status as well as the best plan found if any.
-message Stopped {
+message FinalReport {
     enum Status {
         // Valid plan found and search stopped immediately
         SAT = 0;
@@ -343,9 +402,6 @@ message Stopped {
     }
     Status status = 1;
 
-    // Optional. Debug information (to be used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM).
-    string error_message = 4;
-
     // Optional. Best plan found if any.
     Plan best_plan = 2;
 
@@ -353,14 +409,19 @@ message Stopped {
     // - "grounding-time": "10ms"
     // - "expanded-states": "1290"
     map<string, string> metrics = 3;
+
+    // Optional logs about the planner's activity. 
+    // Note that it should not be expected that logging messages are visible to the end user.
+    // If used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM, it would be expected to have at least one log message at the ERROR level.
+    repeated LogMessage logs = 4;
 }
 
 
 
 message Answer {
     oneof content {
-        Report report = 1;
-        Stopped stopped = 2;
+        IntermediateReport intermediate = 1;
+        FinalReport final = 2;
     }
 }
 
@@ -368,9 +429,9 @@ message Answer {
 service Upf {
     // A plan request to the planner.
     // The planner replies with a stream of N `Answer` messages where:
-    //  - the first (N-1) message are of type `Report`
-    //  - the last message is of type `Stopped`
-    rpc plan(PlanRequest) returns(stream Answer);
+    //  - the first (N-1) message are of type `IntermediateReport`
+    //  - the last message is of type `FinalReport`
+    rpc planOneShot(PlanRequest) returns(stream Answer);
 
 
     // ===== About bidirectional interaction =====
