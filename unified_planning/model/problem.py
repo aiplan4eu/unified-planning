@@ -272,13 +272,13 @@ class Problem:
         '''Removes all the problem actions.'''
         self._actions = []
 
-    def instantaneous_actions(self) -> Iterator['unified_planning.model.action.InstantaneousAction']:
+    def instantaneous_actions(self) -> Iterator['up.model.action.InstantaneousAction']:
         '''Returs all the instantaneous actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 yield a
 
-    def durative_actions(self) -> Iterator['unified_planning.model.action.DurativeAction']:
+    def durative_actions(self) -> Iterator['up.model.action.DurativeAction']:
         '''Returs all the durative actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.DurativeAction):
@@ -453,15 +453,15 @@ class Problem:
                     res[f_exp] = self.initial_value(f_exp)
         return res
     
-    def initial_defaults(self) -> Dict['unified_planning.model.types.Type', 'unified_planning.model.fnode.FNode']:
+    def initial_defaults(self) -> Dict['up.model.types.Type', 'up.model.fnode.FNode']:
         '''Returns the problem's initial defaults.'''
         return self._initial_defaults
     
-    def fluents_defaults(self) -> Dict['unified_planning.model.fluent.Fluent', 'unified_planning.model.fnode.FNode']:
+    def fluents_defaults(self) -> Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode']:
         '''Returns the problem's fluents defaults.'''
         return self._fluents_defaults
     
-    def _initial_values_structure(self) -> Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode']:
+    def _initial_values_structure(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
         '''Returns the problem's defined initial values.
         IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values().'''
         return self._initial_value
