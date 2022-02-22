@@ -272,12 +272,14 @@ class Problem:
         '''Removes all the problem actions.'''
         self._actions = []
 
-    def instantaneous_actions(self):
+    def instantaneous_actions(self) -> Iterator['unified_planning.model.action.InstantaneousAction']:
+        '''Returs all the instantaneous actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 yield a
 
-    def durative_actions(self):
+    def durative_actions(self) -> Iterator['unified_planning.model.action.DurativeAction']:
+        '''Returs all the durative actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.DurativeAction):
                 yield a
@@ -450,6 +452,19 @@ class Problem:
                     f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                     res[f_exp] = self.initial_value(f_exp)
         return res
+    
+    def initial_defaults(self) -> Dict['unified_planning.model.types.Type', 'unified_planning.model.fnode.FNode']:
+        '''Returns the problem's initial defaults.'''
+        return self._initial_defaults
+    
+    def fluents_defaults(self) -> Dict['unified_planning.model.fluent.Fluent', 'unified_planning.model.fnode.FNode']:
+        '''Returns the problem's fluents defaults.'''
+        return self._fluents_defaults
+    
+    def _initial_values_structure(self) -> Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode']:
+        '''Returns the problem's defined initial values.
+        IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values().'''
+        return self._initial_value
 
     def add_timed_goal(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
                        goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):

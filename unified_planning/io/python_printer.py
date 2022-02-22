@@ -20,7 +20,7 @@ import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
-from typing import IO, Any, Optional
+from typing import IO, Any, Dict, Optional
 from io import StringIO
 from functools import reduce
 
@@ -65,7 +65,6 @@ class ConverterToPythonString(walkers.DagWalker):
         vars_string_list = [f'up.model.Variable("{v.name()}", {_print_python_type(v.type())})' for v in expression.variables()]
         return f'emgr.Forall([{", ".join(vars_string_list)}], {args[0]})'
 
-
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
         v = expression.variable()
@@ -100,12 +99,12 @@ class ConverterToPythonString(walkers.DagWalker):
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'param{p.name()}'
+        return f'parameter_{p.name()}'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
         o = expression.object()
-        return f'obj_{o.name()}'
+        return f'object_{o.name()}'
 
     def walk_bool_constant(self, expression, args):
         assert len(args) == 0
@@ -162,28 +161,42 @@ class PythonWriter:
         out.write('env = up.environment.get_env()\n')
         out.write('emgr = env.expression_manager\n')
         out.write('tm = env.type_manager\n')
-        out.write(f'problem = up.model.Problem("{self.problem.name}")\n')
 
-        for t in self.problem.user_types():
+        for t in self.problem.user_types(): # define user_types
             if t.father() is None:
                 out.write(f'type_{t.name()} = tm.UserType("{t.name()}")\n')
             else:#TODO: make sure that the fathers are added before their sons in the Problem._user_types List
                 out.write(f'type_{t.name()} = tm.UserType("{t.name()}", type_{t.father().name()})\n') 
 
-        for f in self.problem.fluents():
+        for f in self.problem.fluents(): # define fluents
             params = ', '.join(_print_python_type(p) for p in f.signature())
             out.write(f'fluent_{f.name()} = up.model.Fluent("{f.name()}", {_print_python_type(f.type())}, [{params}])\n')
 
-        for o in self.problem.all_objects():
+        for o in self.problem.all_objects(): # define objects
             out.write(f'object_{o.name()} = up.model.Object("{o.name()}", type_{o.type().name()})\n') #NOTE works if objects are only of user_type.
+        
+        out.write('problem_initial_defaults = {}\n') # define initial_defaults
+        for type, exp in self.problem.initial_defaults():
+            out.write(f'problem_initial_defaults[{_print_python_type(type)}] = {converter.convert(exp)}')
+        out.write(f'problem = up.model.Problem("{self.problem.name}", env, initial_defaults=problem_initial_defaults)\n')
+
+        for o in self.problem.all_objects(): # add objects to the problem
+            out.write(f'problem.add_object(object_{o.name()})\n')
+
+        for f in self.problem.fluents(): # add fluents to the problem, with their fluents_default, if they have one
+            default = self.problem.fluents_default().get(f, None)
+            out.write(f'problem.add_fluent(fluent_{f.name()}')
+            if default is not None: # the fluent has a default value
+                out.write(f', default_initial_value={converter.convert(default)}')
+            out.write(')\n')
 
         converter = ConverterToPythonString(self.problem.env)
-        for a in self.problem.actions():
+        for a in self.problem.actions(): # define actions and add them to the problem
             if isinstance(a, unified_planning.model.InstantaneousAction):
                 out.write(f'act_{a.name} = up.model.InstantaneousAction("{a.name}"')
                 for ap in a.parameters():
                     out.write(f', {ap.name()}={_print_python_type(ap.type())}')
-                out.write(")\n")
+                out.write(')\n')
                 for ap in a.parameters():
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
                 for p in a.preconditions():
@@ -204,9 +217,9 @@ class PythonWriter:
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
                 out.write(f'act_{a.name}.set_duration_constraint({_convert_interval_duration(a.duration())})\n')
                 for c in a.conditions():
-                    out.write(f'act_{a.name}.add_condition({converter.convert(c)})')
+                    out.write(f'act_{a.name}.add_condition({converter.convert(c)})\n')
                 for i, dc in a.durative_conditions():
-                    out.write(f'act_{a.name}.add_durative_condition({_convert_interval(i)}, {converter.convert(dc)})')
+                    out.write(f'act_{a.name}.add_durative_condition({_convert_interval(i)}, {converter.convert(dc)})\n')
                 for t, e in a.effects():
                     if e.is_increase():
                         out.write(f'act_{a.name}.add_increase_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
@@ -214,61 +227,29 @@ class PythonWriter:
                         out.write(f'act_{a.name}.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
                     else:
                         out.write(f'act_{a.name}.add_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
-            
-                if len(a.effects()) > 0:
-                    out.write('\n  :effect (and')
-                    for t, el in a.effects().items():
-                        for e in el:
-                            if t.is_from_start():
-                                out.write(f' (at start')
-                            else:
-                                out.write(f' (at end')
-                            if e.is_conditional():
-                                out.write(f' (when {converter.convert(e.condition())}')
-                            if e.value().is_true():
-                                out.write(f' {converter.convert(e.fluent())}')
-                            elif e.value().is_false():
-                                out.write(f' (not {converter.convert(e.fluent())})')
-                            elif e.is_increase():
-                                out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                            elif e.is_decrease():
-                                out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                            else:
-                                out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
-                            if e.is_conditional():
-                                out.write(f')')
-                            out.write(')')
-
-                    out.write(')')
-                out.write(')\n')
             else:
                 raise NotImplementedError
-        out.write(')\n')
+            out.write(f'problem.add_action(act_{a.name})\n')
 
-    # def _write_problem(self, out: IO[str]):
-    #     if self.problem.name is None:
-    #         name = 'pddl'
-    #     else:
-    #         name = f'{self.problem.name}'
-    #     out.write(f'(define (problem {name}-problem)\n')
-    #     out.write(f' (:domain {name}-domain)\n')
-    #     if len(self.problem.user_types()) > 0:
-    #         out.write(' (:objects ')
-    #         for t in self.problem.user_types():
-    #             out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
-    #         out.write('\n )\n')
-    #     converter = ConverterToPDDLString(self.problem.env)
-    #     out.write(' (:init')
-    #     for f, v in self.problem.initial_values().items():
-    #         if v.is_true():
-    #             out.write(f' {converter.convert(f)}')
-    #         elif v.is_false():
-    #             pass
-    #         else:
-    #             out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
-    #     out.write(')\n')
-    #     out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals()])}))\n')
-    #     out.write(')\n')
+        for f, v in self.problem._initial_values_structure(): # add only previously added initial values
+            out.write(f'problem.set_initial_value({converter.convert(f)}, {converter.convert(v)})\n')
+
+        for t, e in self.problem.timed_effects(): # add timed effects
+            if e.is_increase():
+                out.write(f'problem.add_increase_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+            elif e.is_decrease():
+                out.write(f'problem.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+            else:
+                out.write(f'problem.add_timed_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+        
+        for t, g in self.problem.timed_goals(): # add timed goals
+            out.write(f'problem.add_timed_goal(timing={_convert_timing(t)}, goal={converter.convert(g)})\n')
+        
+        for t, g in self.problem.maintain_goals(): # add maintain goals
+            out.write(f'problem.add_maintain_goal(interval={_convert_interval(i)}, goal={converter.convert(g)})\n')
+        
+        for g in self.problem.goals(): # add goals
+            out.write(f'problem.add_goal(goal={converter.convert(g)})\n')
 
     def print_domain(self):
         '''Prints to std output the PDDL domain.'''
@@ -282,12 +263,6 @@ class PythonWriter:
         '''Returns the PDDL domain.'''
         out = StringIO()
         self._write_domain(out)
-        return out.getvalue()
-
-    def get_problem(self) -> str:
-        '''Returns the PDDL problem.'''
-        out = StringIO()
-        self._write_problem(out)
         return out.getvalue()
 
     def write_domain(self, filename: str):
