@@ -19,7 +19,7 @@ import unified_planning.model
 from unified_planning.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
 from unified_planning.model import ProblemKind, Problem, Action, FNode
 from functools import partial
-from typing import Optional, Tuple, Dict, List, Callable
+from typing import Optional, Tuple, Dict, List, Callable, Union
 
 
 OPTIMALITY_GUARANTEES = list(range(0, 2))
@@ -45,7 +45,7 @@ class Solver:
         return False
 
     @staticmethod
-    def satisfies(optimality_guarantee: int) -> bool:
+    def satisfies(optimality_guarantee: Union[int, str]) -> bool:
         return False
 
     @staticmethod

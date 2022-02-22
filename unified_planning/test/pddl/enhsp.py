@@ -15,7 +15,7 @@
 import os
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.environment import get_env
-from typing import List
+from typing import List, Union
 from unified_planning.solvers import PDDLSolver
 
 
@@ -37,7 +37,7 @@ class ENHSP(PDDLSolver):
                 '-planner', 'opt-hrmax']
 
     @staticmethod
-    def satisfies(optimality_guarantee: int) -> bool:
+    def satisfies(optimality_guarantee: Union[int, str]) -> bool:
         return True
 
     @staticmethod

@@ -116,7 +116,7 @@ def OneshotPlanner(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
-                   optimality_guarantee: Optional[int] = None) -> Optional[Solver]:
+                   optimality_guarantee: Optional[Union[int, str]] = None) -> Optional[Solver]:
     """
     Returns a oneshot planner. There are three ways to call this method:
     - using 'name' (the name of a specific planner) and 'params' (planner dependent options).

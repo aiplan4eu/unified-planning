@@ -590,6 +590,7 @@ class Problem:
         self._metrics.append(metric)
 
     def quality_metrics(self) -> List['up.model.metrics.PlanQualityMetric']:
+        '''Returns the quality metrics'''
         return self._metrics
 
     def kind(self) -> 'up.model.problem_kind.ProblemKind':
@@ -625,6 +626,8 @@ class Problem:
                 self._kind.set_quality_metrics('FINAL_VALUE') # type: ignore
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
                 self._kind.set_quality_metrics('ACTIONS_COST') # type: ignore
+            else:
+                assert False, 'Unknown quality metric'
         return self._kind
 
     def has_quantifiers(self) -> bool:
