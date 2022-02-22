@@ -525,7 +525,7 @@ class PDDLReader:
             metric = problem_res.get('metric', None)
 
             if metric is not None:
-                metric_exp = self._parse_exp(problem, None, {}, metric)
+                metric_exp = self._parse_exp(problem, None, types_map, {}, metric)
                 if has_actions_cost and optimization == 'minimize' and metric_exp == self._totalcost:
                     problem._fluents.remove(self._totalcost.fluent())
                     problem._initial_value.pop(self._totalcost)
