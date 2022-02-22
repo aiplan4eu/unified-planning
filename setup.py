@@ -19,6 +19,6 @@ setup(name='unified_planning',
       url='https://www.aiplan4eu-project.eu',
       packages=find_packages(),
       include_package_data=True,
-      install_requires=['pyparsing>=3.0.0', 'tarski @ git+https://github.com/aig-upf/tarski.git@ebfda1c13ac908904d5b74587971cc7149e73d85#egg=tarski[arithmetic]'],
+      install_requires=['pyparsing', 'tarski @ git+https://github.com/aig-upf/tarski.git@ebfda1c13ac908904d5b74587971cc7149e73d85#egg=tarski[arithmetic]'],
       license='APACHE'
      )
