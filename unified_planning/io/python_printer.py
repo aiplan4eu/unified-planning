@@ -29,17 +29,17 @@ def _get_optional(x: Optional[Any]):
         return str(x)
     return 'None'
 
-def _get_type(t: 'unified_planning.model.Type'):
-    if t.is_bool_type():
-        return 'tm.BoolType()'
-    elif t.is_int_type():
-        return f'tm.IntType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
-    elif t.is_real_type():
-        return f'tm.RealType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
-    elif t.is_user_type():
-        return f'tm.UserType("{t.name()}")'
-    else:
-        raise UPTypeError('Unknown type: %s' % t)
+# def _get_type(t: 'unified_planning.model.Type'):
+#     if t.is_bool_type():
+#         return 'tm.BoolType()'
+#     elif t.is_int_type():
+#         return f'tm.IntType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
+#     elif t.is_real_type():
+#         return f'tm.RealType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
+#     elif t.is_user_type():
+#         return f'tm.UserType("{t.name()}")'
+#     else:
+#         raise UPTypeError('Unknown type: %s' % t)
 
 
 class ConverterToPythonString(walkers.DagWalker):
@@ -57,19 +57,19 @@ class ConverterToPythonString(walkers.DagWalker):
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f'up.model.Variable("{v.name()}", {_get_type(v.type())})' for v in expression.variables()]
+        vars_string_list = [f'up.model.Variable("{v.name()}", {_print_python_type(v.type())})' for v in expression.variables()]
         return f'emgr.Exists([{", ".join(vars_string_list)}], {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f'up.model.Variable("{v.name()}", {_get_type(v.type())})' for v in expression.variables()]
+        vars_string_list = [f'up.model.Variable("{v.name()}", {_print_python_type(v.type())})' for v in expression.variables()]
         return f'emgr.Forall([{", ".join(vars_string_list)}], {args[0]})'
 
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
         v = expression.variable()
-        return f'up.model.Variable("{v.name()}", {_get_type(v.type())})'
+        return f'up.model.Variable("{v.name()}", {_print_python_type(v.type())})'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -165,18 +165,24 @@ class PythonWriter:
         out.write(f'problem = up.model.Problem("{self.problem.name}")\n')
 
         for t in self.problem.user_types():
-            out.write(f'type_{t.name()} = tm.UserType("{t.name()}")\n')
+            if t.father() is None:
+                out.write(f'type_{t.name()} = tm.UserType("{t.name()}")\n')
+            else:#TODO: make sure that the fathers are added before their sons in the Problem._user_types List
+                out.write(f'type_{t.name()} = tm.UserType("{t.name()}", type_{t.father().name()})\n') 
 
         for f in self.problem.fluents():
-            params = ', '.join(_get_type(p) for p in f.signature())
-            out.write(f'fluent_{f.name()} = up.model.Fluent("{f.name()}", {_get_type(f.type())}, [{params}])\n')
+            params = ', '.join(_print_python_type(p) for p in f.signature())
+            out.write(f'fluent_{f.name()} = up.model.Fluent("{f.name()}", {_print_python_type(f.type())}, [{params}])\n')
+
+        for o in self.problem.all_objects():
+            out.write(f'object_{o.name()} = up.model.Object("{o.name()}", type_{o.type().name()})\n') #NOTE works if objects are only of user_type.
 
         converter = ConverterToPythonString(self.problem.env)
         for a in self.problem.actions():
             if isinstance(a, unified_planning.model.InstantaneousAction):
                 out.write(f'act_{a.name} = up.model.InstantaneousAction("{a.name}"')
                 for ap in a.parameters():
-                    out.write(f', {ap.name()}={_get_type(ap.type())}')
+                    out.write(f', {ap.name()}={_print_python_type(ap.type())}')
                 out.write(")\n")
                 for ap in a.parameters():
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
@@ -192,40 +198,23 @@ class PythonWriter:
             elif isinstance(a, unified_planning.model.DurativeAction):
                 out.write(f'act_{a.name} = up.model.DurativeAction("{a.name}"')
                 for ap in a.parameters():
-                    out.write(f', {ap.name()}={_get_type(ap.type())}')
-                out.write(')')
+                    out.write(f', {ap.name()}={_print_python_type(ap.type())}')
+                out.write(')\n')
                 for ap in a.parameters():
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
-                l, r = a.duration().lower(), a.duration().upper()
-                if l == r:
-                    out.write(f'\n  :duration (= ?duration {str(l)})')
-                else:
-                    out.write(f'\n  :duration (and ')
-                    if a.duration().is_left_open():
-                        out.write(f'(> ?duration {str(l)})')
+                out.write(f'act_{a.name}.set_duration_constraint({_convert_interval_duration(a.duration())})\n')
+                for c in a.conditions():
+                    out.write(f'act_{a.name}.add_condition({converter.convert(c)})')
+                for i, dc in a.durative_conditions():
+                    out.write(f'act_{a.name}.add_durative_condition({_convert_interval(i)}, {converter.convert(dc)})')
+                for t, e in a.effects():
+                    if e.is_increase():
+                        out.write(f'act_{a.name}.add_increase_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                    elif e.is_decrease():
+                        out.write(f'act_{a.name}.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
                     else:
-                        out.write(f'(>= ?duration {str(l)})')
-                    if a.duration().is_right_open():
-                        out.write(f'(< ?duration {str(r)})')
-                    else:
-                        out.write(f'(<= ?duration {str(r)})')
-                    out.write(')')
-                if len(a.conditions()) + len(a.durative_conditions()) > 0:
-                    out.write(f'\n  :condition (and ')
-                    for t, cl in a.conditions().items():
-                        for c in cl:
-                            if t.is_from_start():
-                                out.write(f'(at start {converter.convert(c)})')
-                            elif t.is_from_end():
-                                out.write(f'(at end {converter.convert(c)})')
-                    for interval, cl in a.durative_conditions().items():
-                        for c in cl:
-                            if not interval.is_left_open():
-                                out.write(f'(at start {converter.convert(c)})')
-                            out.write(f'(over all {converter.convert(c)})')
-                            if not interval.is_right_open():
-                                out.write(f'(at end {converter.convert(c)})')
-                    out.write(')')
+                        out.write(f'act_{a.name}.add_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+            
                 if len(a.effects()) > 0:
                     out.write('\n  :effect (and')
                     for t, el in a.effects().items():
@@ -256,52 +245,30 @@ class PythonWriter:
                 raise NotImplementedError
         out.write(')\n')
 
-    def _convert_timing(self, timing: unified_planning.model.Timing) -> str:
-        bound: str = f'{str(timing.bound())}'
-        if isinstance(timing.bound(), Fraction):
-            bound = f'Fraction({str(timing.bound().numerator)}, {str(timing.bound().denomiantor)})'
-        if timing.is_from_start():
-            return f'StartTiming({bound})'
-        else:
-            return f'EndTiming({bound})'
-
-    def _convert_interval(self, interval: unified_planning.model.Interval) -> str:
-        interval_feature: str = 'ClosedInterval'
-        if interval.is_left_open() and interval.is_right_open():
-            interval_feature = 'OpenInterval'
-        elif interval.is_left_open() and not interval.is_right_open():
-            interval_feature = 'LeftOpenInterval'
-        elif not interval.is_left_open() and interval.is_right_open():
-            interval_feature = 'RightOpenInterval'
-        return f'{interval_feature}({self._convert_interval(interval.lower())}, {self._convert_interval(interval.upper())})'
-
-    def _convert_interval_duration(self, interval: unified_planning.model.IntervalDuration) -> str:
-        pass #TODO: here
-
-    def _write_problem(self, out: IO[str]):
-        if self.problem.name is None:
-            name = 'pddl'
-        else:
-            name = f'{self.problem.name}'
-        out.write(f'(define (problem {name}-problem)\n')
-        out.write(f' (:domain {name}-domain)\n')
-        if len(self.problem.user_types()) > 0:
-            out.write(' (:objects ')
-            for t in self.problem.user_types():
-                out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
-            out.write('\n )\n')
-        converter = ConverterToPDDLString(self.problem.env)
-        out.write(' (:init')
-        for f, v in self.problem.initial_values().items():
-            if v.is_true():
-                out.write(f' {converter.convert(f)}')
-            elif v.is_false():
-                pass
-            else:
-                out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
-        out.write(')\n')
-        out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals()])}))\n')
-        out.write(')\n')
+    # def _write_problem(self, out: IO[str]):
+    #     if self.problem.name is None:
+    #         name = 'pddl'
+    #     else:
+    #         name = f'{self.problem.name}'
+    #     out.write(f'(define (problem {name}-problem)\n')
+    #     out.write(f' (:domain {name}-domain)\n')
+    #     if len(self.problem.user_types()) > 0:
+    #         out.write(' (:objects ')
+    #         for t in self.problem.user_types():
+    #             out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
+    #         out.write('\n )\n')
+    #     converter = ConverterToPDDLString(self.problem.env)
+    #     out.write(' (:init')
+    #     for f, v in self.problem.initial_values().items():
+    #         if v.is_true():
+    #             out.write(f' {converter.convert(f)}')
+    #         elif v.is_false():
+    #             pass
+    #         else:
+    #             out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
+    #     out.write(')\n')
+    #     out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals()])}))\n')
+    #     out.write(')\n')
 
     def print_domain(self):
         '''Prints to std output the PDDL domain.'''
@@ -337,7 +304,7 @@ def _print_python_type(type: 'unified_planning.model.types.Type') -> str:
     '''This method takes a type and returns how to use it from command line.
     For the user_types it assumes they have already been created and just refers to them.'''
     if type.is_user_type():
-        return type.name()
+        return f'type_{type.name()}'
     elif type.is_bool_type():
         return 'BoolType()'
     elif type.is_int_type():
@@ -346,3 +313,32 @@ def _print_python_type(type: 'unified_planning.model.types.Type') -> str:
         return f'RealType({str(type.lower_bound())}, {str(type.upper_bound())})'
     else:
         raise NotImplementedError
+
+def _convert_timing(timing: unified_planning.model.Timing) -> str:
+    bound: str = f'{str(timing.bound())}'
+    if isinstance(timing.bound(), Fraction):
+        bound = f'Fraction({str(timing.bound().numerator)}, {str(timing.bound().denomiantor)})'
+    if timing.is_from_start():
+        return f'StartTiming({bound})'
+    else:
+        return f'EndTiming({bound})'
+
+def _convert_interval(interval: unified_planning.model.Interval) -> str:
+    interval_feature: str = 'ClosedInterval'
+    if interval.is_left_open() and interval.is_right_open():
+        interval_feature = 'OpenInterval'
+    elif interval.is_left_open() and not interval.is_right_open():
+        interval_feature = 'LeftOpenInterval'
+    elif not interval.is_left_open() and interval.is_right_open():
+        interval_feature = 'RightOpenInterval'
+    return f'{interval_feature}({_convert_interval(interval.lower())}, {_convert_interval(interval.upper())})'
+
+def _convert_interval_duration(interval: unified_planning.model.IntervalDuration, converter: ConverterToPythonString) -> str:
+    interval_feature: str = 'ClosedIntervalDuration'
+    if interval.is_left_open() and interval.is_right_open():
+        interval_feature = 'OpenIntervalDuration'
+    elif interval.is_left_open() and not interval.is_right_open():
+        interval_feature = 'LeftOpenIntervalDuration'
+    elif not interval.is_left_open() and interval.is_right_open():
+        interval_feature = 'RightOpenIntervalDuration'
+    return f'{interval_feature}({converter.convert(interval.lower())}, {converter.convert(interval.upper())})'
