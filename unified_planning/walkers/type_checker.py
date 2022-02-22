@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+
 import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.walkers as walkers
@@ -38,6 +39,8 @@ class TypeChecker(walkers.DagWalker):
     def is_compatible_type(self, t_left: 'unified_planning.model.types.Type', t_right: 'unified_planning.model.types.Type') -> bool:
         if t_left == t_right:
             return True
+        if t_left.is_user_type() and t_right.is_user_type():
+            return t_right in self.env.type_manager.user_type_ancestors(t_left)
         if not ((t_left.is_int_type() and t_right.is_int_type()) or
                 (t_left.is_real_type() and t_right.is_real_type()) or
                 (t_left.is_real_type() and t_right.is_int_type())):

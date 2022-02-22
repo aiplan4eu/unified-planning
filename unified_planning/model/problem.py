@@ -14,13 +14,14 @@
 #
 '''This module defines the problem class.'''
 
+
 import unified_planning
 import unified_planning.model.operators as op
 from unified_planning.model.types import domain_size, domain_item
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import List, Dict, Set, Union, Optional
+from typing import Iterator, List, Dict, Set, Union, Optional, OrderedDict
 
 
 class Problem:
@@ -34,6 +35,8 @@ class Problem:
         self._fluents: List['unified_planning.model.fluent.Fluent'] = []
         self._actions: List['unified_planning.model.action.Action'] = []
         self._user_types: List['unified_planning.model.types.Type'] = []
+        # The field _user_types_hierarchy stores the information about the types and the list of their sons.
+        self._user_types_hierarchy: Dict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']] = {}
         self._objects: List['unified_planning.model.object.Object'] = []
         self._initial_value: Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode'] = {}
         self._timed_effects: Dict['unified_planning.model.timing.Timing', List['unified_planning.model.effect.Effect']] = {}
@@ -63,7 +66,7 @@ class Problem:
         if len(self.user_types()) > 0:
             s.append('objects = [\n')
             for ty in self.user_types():
-                s.append(f'  {str(ty)}: {str(self.objects(ty))}\n')
+                s.append(f'  {str(ty)}: {str(list(self.objects(ty)))}\n')
             s.append(']\n\n')
         s.append('initial values = [\n')
         for k, v in self.initial_values().items():
@@ -175,6 +178,7 @@ class Problem:
         new_p._fluents = self._fluents[:]
         new_p._actions = [a.clone() for a in self._actions]
         new_p._user_types = self._user_types[:]
+        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
         new_p._initial_value = self._initial_value.copy()
         new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
@@ -233,10 +237,22 @@ class Problem:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
         if fluent.type().is_user_type() and fluent.type() not in self._user_types:
-            self._user_types.append(fluent.type()) # type: ignore
+            self._add_user_type(fluent.type())
         for type in fluent.signature():
             if type.is_user_type() and type not in self._user_types:
-                self._user_types.append(type) # type: ignore
+                self._add_user_type(type)
+    
+    def _add_user_type(self, type: Optional['unified_planning.model.types.Type']):
+        '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''
+        assert (type is None) or type.is_user_type()
+        if type not in self._user_types_hierarchy:
+            if type is not None:
+                if any(ut.name() == type.name() for ut in self._user_types): # type: ignore
+                    raise UPProblemDefinitionError('The type {type} is already used in the problem as {ut}')
+                self._add_user_type(type.father()) # type: ignore
+                self._user_types_hierarchy[type.father()].append(type) # type: ignore
+                self._user_types.append(type)
+            self._user_types_hierarchy[type] = []
 
     def get_static_fluents(self) -> Set['unified_planning.model.fluent.Fluent']:
         '''Returns the set of the static fluents.
@@ -329,13 +345,30 @@ class Problem:
                 return True
         return False
 
+    def user_type_heirs(self, type: 'unified_planning.model.types.Type') -> Iterator['unified_planning.model.types.Type']:
+        '''Returns all the user_types in the problem that are heirs of the given type.'''
+        if not type.is_user_type():
+            raise UPUsageError('The user_type_hierarchy method must be called on a user type.')
+        stack: List['unified_planning.model.types.Type'] = [type]
+        while stack:
+            current_item = stack.pop()
+            stack.extend(self._user_types_hierarchy[current_item])
+            yield current_item
+        
+    def user_types_hierarchy(self) -> Dict[Optional['unified_planning.model.types.Type'], List['unified_planning.model.types.Type']]:
+        '''Returns a Dict where every key represents an Optional Type and the value associated to the key is the 
+            List of the direct sons of the Optional Type.
+        The Dict is NOT ORDERED.'''
+        #NOTE this returns a copy, but could also return the original map
+        return dict(self._user_types_hierarchy)
+
     def add_object(self, obj: 'unified_planning.model.object.Object'):
         '''Adds the given object.'''
         if self.has_name(obj.name()):
             raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
         self._objects.append(obj)
         if obj.type().is_user_type() and obj.type() not in self._user_types:
-            self._user_types.append(obj.type())
+            self._add_user_type(obj.type())
 
     def add_objects(self, objs: List['unified_planning.model.object.Object']):
         '''Adds the given objects.'''
@@ -344,7 +377,7 @@ class Problem:
                 raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
             self._objects.append(obj)
             if obj.type().is_user_type() and obj.type() not in self._user_types:
-                self._user_types.append(obj.type())
+                self._add_user_type(obj.type())
 
     def object(self, name: str) -> 'unified_planning.model.object.Object':
         '''Returns the object with the given name.'''
@@ -360,13 +393,18 @@ class Problem:
                 return True
         return False
 
-    def objects(self, typename: 'unified_planning.model.types.Type') -> List['unified_planning.model.object.Object']:
+    def objects(self, typename: 'unified_planning.model.types.Type') -> Iterator['unified_planning.model.object.Object']:
         '''Returns the objects of the given user types.'''
-        res = []
         for obj in self._objects:
             if obj.type() == typename:
-                res.append(obj)
-        return res
+                yield obj 
+
+    def objects_hierarchy(self, typename: 'unified_planning.model.types.Type') -> Iterator['unified_planning.model.object.Object']:
+        '''Returns the objects of the given user types and of his heirs.'''
+        type_heirs: List['unified_planning.model.types.Type'] = list(self.user_type_heirs(typename))
+        for obj in self._objects:
+            if obj.type() in type_heirs:
+                yield obj
 
     def all_objects(self) -> List['unified_planning.model.object.Object']:
         '''Returns all the objects.'''
@@ -600,6 +638,8 @@ class Problem:
     def _update_problem_kind_type(self, type: 'unified_planning.model.types.Type'):
         if type.is_user_type():
             self._kind.set_typing('FLAT_TYPING') # type: ignore
+            if type.father() is not None: # type: ignore
+               self._kind.set_typing('HIERARCHICAL_TYPING') # type: ignore 
         elif type.is_int_type():
             self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
         elif type.is_real_type():

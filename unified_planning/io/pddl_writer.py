@@ -25,7 +25,7 @@ import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
-from typing import IO
+from typing import IO, List, Optional
 from io import StringIO
 from functools import reduce
 
@@ -52,7 +52,6 @@ class ConverterToPDDLString(walkers.DagWalker):
         assert len(args) == 1
         vars_string_list = [f"?{v.name()} - {str(v.type())}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
-
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
@@ -146,11 +145,16 @@ class PDDLWriter:
     def __init__(self, problem: 'unified_planning.model.Problem', needs_requirements: bool = True):
         self.problem = problem
         self.needs_requirements = needs_requirements
+        self.object_freshname = 'object'
+
+    def _type_name_or_object_freshname(self, type: 'unified_planning.model.Type') -> str:
+        return type.name() if type.name() != "object" else self.object_freshname # type: ignore
 
     def _write_domain(self, out: IO[str]):
-        if self.problem.kind().has_intermediate_conditions_and_effects() or self.problem.kind().has_maintain_goals(): # type: ignore
+        problem_kind = self.problem.kind()
+        if problem_kind.has_intermediate_conditions_and_effects() or problem_kind.has_maintain_goals(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support ICE or maintained goals.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
-        if self.problem.kind().has_timed_effect() or self.problem.kind().has_timed_goals(): # type: ignore
+        if problem_kind.has_timed_effect() or problem_kind.has_timed_goals(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
         out.write('(define ')
         if self.problem.name is None:
@@ -161,31 +165,47 @@ class PDDLWriter:
 
         if self.needs_requirements:
             out.write(' (:requirements :strips')
-            if self.problem.kind().has_flat_typing(): # type: ignore
+            if problem_kind.has_flat_typing(): # type: ignore
                 out.write(' :typing')
-            if self.problem.kind().has_negative_conditions(): # type: ignore
+            if problem_kind.has_negative_conditions(): # type: ignore
                 out.write(' :negative-preconditions')
-            if self.problem.kind().has_disjunctive_conditions(): # type: ignore
+            if problem_kind.has_disjunctive_conditions(): # type: ignore
                 out.write(' :disjunctive-preconditions')
-            if self.problem.kind().has_equality(): # type: ignore
+            if problem_kind.has_equality(): # type: ignore
                 out.write(' :equality')
-            if (self.problem.kind().has_continuous_numbers() or # type: ignore
-                self.problem.kind().has_discrete_numbers()): # type: ignore
+            if (problem_kind.has_continuous_numbers() or # type: ignore
+                problem_kind.has_discrete_numbers()): # type: ignore
                 out.write(' :numeric-fluents')
-            if self.problem.kind().has_conditional_effects(): # type: ignore
+            if problem_kind.has_conditional_effects(): # type: ignore
                 out.write(' :conditional-effects')
-            if self.problem.kind().has_existential_conditions(): # type: ignore
+            if problem_kind.has_existential_conditions(): # type: ignore
                 out.write(' :existential-preconditions')
-            if self.problem.kind().has_universal_conditions(): # type: ignore
+            if problem_kind.has_universal_conditions(): # type: ignore
                 out.write(' :universal-preconditions')
-            if (self.problem.kind().has_continuous_time() or # type: ignore
-                self.problem.kind().has_discrete_time()): # type: ignore
+            if (problem_kind.has_continuous_time() or # type: ignore
+                problem_kind.has_discrete_time()): # type: ignore
                 out.write(' :durative-actions')
-            if self.problem.kind().has_duration_inequalities(): # type: ignore
+            if problem_kind.has_duration_inequalities(): # type: ignore
                 out.write(' :duration-inequalities')
             out.write(')\n')
 
-        out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
+        
+        if problem_kind.has_hierarchical_typing(): # type: ignore
+            while self.problem.has_type(self.object_freshname):
+                self.object_freshname = self.object_freshname + '_'
+            user_types_hierarchy = self.problem.user_types_hierarchy()
+            out.write(f' (:types\n')
+            stack: List['unified_planning.model.Type'] = user_types_hierarchy[None] if None in user_types_hierarchy else []
+            out.write(f'    {" ".join(self._type_name_or_object_freshname(t) for t in stack)} - object\n')
+            while stack:
+                current_type = stack.pop()
+                direct_sons: List['unified_planning.model.Type'] = user_types_hierarchy[current_type]
+                if direct_sons:
+                    stack.extend(direct_sons)
+                    out.write(f'    {" ".join([self._type_name_or_object_freshname(t) for t in direct_sons])} - {self._type_name_or_object_freshname(current_type)}\n')
+            out.write(' )\n')
+        else:
+            out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
 
         predicates = []
         functions = []
@@ -195,7 +215,7 @@ class PDDLWriter:
                 i = 0
                 for p in f.signature():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {p.name()}') # type: ignore
+                        params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -205,7 +225,7 @@ class PDDLWriter:
                 i = 0
                 for p in f.signature():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {p.name()}') # type: ignore
+                        params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -222,7 +242,7 @@ class PDDLWriter:
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
                     if ap.type().is_user_type():
-                        out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
+                        out.write(f' ?{ap.name()} - {self._type_name_or_object_freshname(ap.type())}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -253,7 +273,7 @@ class PDDLWriter:
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
                     if ap.type().is_user_type():
-                        out.write(f' ?{ap.name()} - {ap.type().name()}') # type: ignore
+                        out.write(f' ?{ap.name()} - {self._type_name_or_object_freshname(ap.type())}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -327,7 +347,9 @@ class PDDLWriter:
         if len(self.problem.user_types()) > 0:
             out.write(' (:objects ')
             for t in self.problem.user_types():
-                out.write(f'\n   {" ".join([o.name() for o in self.problem.objects(t)])} - {t.name()}') # type: ignore
+                objects: List['unified_planning.model.Object'] = list(self.problem.objects(t))
+                if len(objects) > 0:
+                    out.write(f'\n   {" ".join([o.name() for o in objects])} - {self._type_name_or_object_freshname(t)}')
             out.write('\n )\n')
         converter = ConverterToPDDLString(self.problem.env)
         out.write(' (:init')

@@ -23,7 +23,7 @@ FEATURES = {
     'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
     'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
     'EFFECTS_KIND' : ['CONDITIONAL_EFFECTS', 'INCREASE_EFFECTS', 'DECREASE_EFFECTS'],
-    'TYPING' : ['FLAT_TYPING'],
+    'TYPING' : ['FLAT_TYPING', 'HIERARCHICAL_TYPING'],
     'FLUENTS_TYPE' : ['NUMERIC_FLUENTS', 'OBJECT_FLUENTS']
 }
 
@@ -76,6 +76,9 @@ class ProblemKind(metaclass=ProblemKindMeta):
 
 basic_classical_kind = ProblemKind()
 basic_classical_kind.set_typing('FLAT_TYPING') # type: ignore
+
+hierarchical_kind = ProblemKind()
+hierarchical_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
 
 classical_kind = ProblemKind()
 classical_kind.set_typing('FLAT_TYPING') # type: ignore

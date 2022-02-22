@@ -17,9 +17,9 @@ import unified_planning
 import unified_planning.solvers
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfNoOneshotPlannerForProblemKind
+from unified_planning.test import TestCase, skipIfNoOneshotPlannerForProblemKind, skipIfNoPlanValidatorForProblemKind
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.problem_kind import basic_classical_kind, full_classical_kind
+from unified_planning.model.problem_kind import basic_classical_kind, full_classical_kind, hierarchical_kind
 
 
 class TestTarskiGrounder(TestCase):
@@ -29,6 +29,7 @@ class TestTarskiGrounder(TestCase):
 
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_robot_loader(self):
         problem, plan = self.problems['robot_loader']
         with Grounder(name='tarski_grounder') as grounder:
@@ -47,8 +48,28 @@ class TestTarskiGrounder(TestCase):
 
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_robot_locations_connected_without_battery(self):
         problem, plan = self.problems['robot_locations_connected_without_battery']
+        with Grounder(name='tarski_grounder') as grounder:
+            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            for grounded_action in grounded_problem.actions():
+                self.assertEqual(len(grounded_action.parameters()), 0)
+            with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
+                self.assertNotEqual(planner, None)
+                grounded_plan = planner.solve(grounded_problem)
+                plan = rewrite_back_plan_function(grounded_plan)
+                for ai in plan.actions():
+                    a = ai.action()
+                    self.assertEqual(a, problem.action(a.name))
+                with PlanValidator(problem_kind=problem.kind()) as pv:
+                    self.assertTrue(pv.validate(problem, plan))
+
+    
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(hierarchical_kind))
+    @skipIfNoPlanValidatorForProblemKind(basic_classical_kind.union(hierarchical_kind))
+    def test_hierarchical_blocks_world(self):
+        problem, plan = self.problems['hierarchical_blocks_world']
         with Grounder(name='tarski_grounder') as grounder:
             grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
             for grounded_action in grounded_problem.actions():
