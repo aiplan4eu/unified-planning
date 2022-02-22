@@ -14,14 +14,20 @@
 #
 
 import unified_planning
+import pyparsing # type: ignore
 import typing
 from unified_planning.environment import Environment, get_env
-from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore # type: ignore
-from pyparsing import Optional, one_of, Suppress, nestedExpr, Group, restOfLine # type: ignore
-from pyparsing.results import ParseResults # type: ignore
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List
+from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore
+from pyparsing import Optional, Suppress, nestedExpr, Group, restOfLine
+if pyparsing.__version__ < '3.0.0':
+    from pyparsing import oneOf as one_of
+    from pyparsing import ParseResults
+else:
+    from pyparsing.results import ParseResults # type: ignore
+    from pyparsing import one_of
 
 
 class PDDLGrammar:
@@ -105,7 +111,7 @@ class PDDLGrammar:
     @property
     def parameters(self):
         return self._parameters
-      
+
 
 class PDDLReader:
     """
