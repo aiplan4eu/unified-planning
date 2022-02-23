@@ -174,6 +174,7 @@ def get_example_problems():
     o2 = Object('o2', sem)
     s_var = Variable("s", sem)
     a = InstantaneousAction('a')
+    #emgr.Exists([up.model.Variable("s", type_Semaphore)], fluent_y(up.model.Variable("s", type_Semaphore))))
     a.add_precondition(Exists(FluentExp(y, [s_var]), s_var))
     a.add_effect(x, True)
     problem = Problem('basic_exists')
