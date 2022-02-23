@@ -260,7 +260,7 @@ class PythonWriter:
         for g in self.problem.goals(): # add goals
             out.write(f'problem.add_goal(goal={converter.convert(g)})\n')
 
-        for qm in self.problem.quality_metrics():
+        for qm in self.problem.quality_metrics(): # adding metrics
             out.write('problem.add_quality_metric(')
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
                 out.write('up.model.metrics.MinimizeActionCosts()')
@@ -272,7 +272,7 @@ class PythonWriter:
                 raise NotImplementedError
             out.write(')\n')
 
-    def print_domain(self):
+    def print_domain(self): # TODO: find a better name
         '''Prints to std output the PDDL domain.'''
         self._write_problem_code(sys.stdout)
 
@@ -282,7 +282,7 @@ class PythonWriter:
         self._write_problem_code(out)
         return out.getvalue()
 
-    def write_domain(self, filename: str):
+    def write_domain(self, filename: str): # TODO: find a better name
         '''Dumps to file the PDDL domain.'''
         with open(filename, 'w') as f:
             self._write_problem_code(f)
