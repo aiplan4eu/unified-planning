@@ -14,11 +14,11 @@
 #
 
 import unified_planning as up
+import unified_planning.model
 import pyparsing # type: ignore
 import typing
 from mimetypes import types_map
 from unified_planning.environment import Environment, get_env
-from unified_planning.walkers import FreeVarsExtractor
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
@@ -147,7 +147,7 @@ class PDDLReader:
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
         self._pp_parameters = grammar.parameters
-        self._fve = FreeVarsExtractor()
+        self._fve = up.walkers.FreeVarsExtractor()
         self._totalcost: Optional[up.model.FNode] = None
 
     def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[up.model.Action],
