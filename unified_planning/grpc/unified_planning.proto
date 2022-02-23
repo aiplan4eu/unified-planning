@@ -149,7 +149,7 @@ message Effect {
     Expression condition = 2;
     // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
     // features: durative_actions
-    TemporalQualification temporal_qualification = 3;
+    Timing occurence_time = 3;
 }
 
 
@@ -157,7 +157,7 @@ message Condition {
     Expression cond = 1;
     // Optional. Must be set for durative actions where it specifies when the condition should hold.
     // features: durative_actions
-    TemporalQualification temporal_qualification = 2;
+    TimeInterval span = 2;
 }
 
 // Unified action representation that should representing all kinds of actions.
@@ -214,12 +214,7 @@ message Timing {
 
 
 
-message TemporalQualification {
-    Timing start = 1;
-    Timing end = 2;
-}
-
-// An interval `[lower, upper]` where `lower` and `upper` are arbitrary expressions`
+// An interval `[lower, upper]` where `lower` and `upper` are arbitrary expressions.
 // The `is_left_open` and `is_right_open` fields indicate whether the interval is
 // opened on left and right side respectively.
 message Interval {
@@ -227,13 +222,24 @@ message Interval {
     Expression lower = 2;
     bool is_right_open = 3;
     Expression upper = 4;
- }
+}
+
+// A contiguous slice of time represented as an interval `[lower, upper]` where `lower` and `upper` are time references.
+// The `is_left_open` and `is_right_open` fields indicate whether the interval is
+// opened on left and right side respectively.
+message TimeInterval {
+    bool is_left_open = 1;
+    Timing lower = 2;
+    bool is_right_open = 3;
+    Timing upper = 4;
+}
+
 
 
 message Duration {
     /// The duration of the action can be freely chosen within the indicated bounds
     Interval controllable_in_bounds = 1;
- }
+}
 
 
 
@@ -255,7 +261,7 @@ message TimedEffect {
     // Required. An effect expression taht will take place sometime in the future (i.e. not at the intial state) as specified by the temporal qualifiation.
     EffectExpression effect = 1;
     // Required. Temporal qualification denoting when the timed fact will occur.
-    TemporalQualification temporal_qualification = 2;
+    Timing occurence_time = 2;
 }
 
 // An assigment of a value to a fluent, as it appears in the initial state definition.
