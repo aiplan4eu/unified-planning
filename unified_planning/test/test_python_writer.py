@@ -13,12 +13,11 @@
 # limitations under the License.
 
 
-import unified_planning
+
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import PythonWriter
-from unified_planning.environment import get_env
 
 class TestPythonWriter(TestCase):
     def setUp(self):
