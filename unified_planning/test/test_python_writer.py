@@ -29,5 +29,6 @@ class TestPythonWriter(TestCase):
             original_problem = p.problem
             pw = PythonWriter(original_problem)
             _locals = {}
+            print(original_problem.name)
             exec(pw.write_problem_code(), globals(), _locals)
             self.assertEqual(original_problem, _locals['problem'])

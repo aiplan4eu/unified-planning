@@ -15,39 +15,35 @@
 
 from fractions import Fraction
 import sys
-from traceback import format_exception
-import unified_planning
-import unified_planning.environment
+import unified_planning as up
 import unified_planning.walkers as walkers
-from unified_planning.model import DurativeAction
-from unified_planning.model.types import _UserType, _IntType, _RealType, _BoolType
-from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
-from typing import IO, Any, Dict, Optional, cast
+from unified_planning.model.types import _UserType, _IntType, _RealType
+from typing import IO, Any, Optional, cast
 from io import StringIO
-from functools import reduce
 
-def _get_optional(x: Optional[Any]):
-    if x:
-        return str(x)
-    return 'None'
+#TODO: remove old commentedcode if it is not needed anymore.
+# def _get_optional(x: Optional[Any]):
+#     if x:
+#         return str(x)
+#     return 'None'
 
-# def _get_type(t: 'unified_planning.model.Type'):
-#     if t.is_bool_type():
-#         return 'tm.BoolType()'
-#     elif t.is_int_type():
-#         return f'tm.IntType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
-#     elif t.is_real_type():
-#         return f'tm.RealType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
-#     elif t.is_user_type():
-#         return f'tm.UserType("{t.name()}")'
-#     else:
-#         raise UPTypeError('Unknown type: %s' % t)
+# # def _get_type(t: 'up.model.Type'):
+# #     if t.is_bool_type():
+# #         return 'tm.BoolType()'
+# #     elif t.is_int_type():
+# #         return f'tm.IntType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
+# #     elif t.is_real_type():
+# #         return f'tm.RealType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
+# #     elif t.is_user_type():
+# #         return f'tm.UserType("{t.name()}")'
+# #     else:
+# #         raise UPTypeError('Unknown type: %s' % t)
 
 
 class ConverterToPythonString(walkers.DagWalker):
     '''Expression converter to a Python string.'''
 
-    def __init__(self, env: 'unified_planning.environment.Environment'):
+    def __init__(self, env: 'up.environment.Environment'):
         walkers.DagWalker.__init__(self)
 
     def convert(self, expression):
@@ -154,7 +150,7 @@ class ConverterToPythonString(walkers.DagWalker):
 class PythonWriter:
     '''This class can be used to write a Problem in PDDL.'''
 
-    def __init__(self, problem: 'unified_planning.model.Problem'):
+    def __init__(self, problem: 'up.model.Problem'):
         self.problem = problem
 
     def _write_problem_code(self, out: IO[str]):
@@ -195,13 +191,15 @@ class PythonWriter:
             out.write(')\n')
 
         for a in self.problem.actions(): # define actions and add them to the problem
-            if isinstance(a, unified_planning.model.InstantaneousAction):
+            if isinstance(a, up.model.InstantaneousAction):
                 out.write(f'act_{a.name} = up.model.InstantaneousAction("{a.name}"')
                 for ap in a.parameters():
                     out.write(f', {ap.name()}={_print_python_type(ap.type())}')
                 out.write(')\n')
                 for ap in a.parameters():
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
+                if a.cost() is not None:
+                    out.write(f'act_{a.name}.set_cost({converter.convert(a.cost())})\n')
                 for p in a.preconditions():
                     out.write(f'act_{a.name}.add_precondition({converter.convert(p)})\n')
                 for e in a.effects():
@@ -211,13 +209,15 @@ class PythonWriter:
                         out.write(f'act_{a.name}.add_decrease_effect(fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
                     else:
                         out.write(f'act_{a.name}.add_effect(fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
-            elif isinstance(a, unified_planning.model.DurativeAction):
+            elif isinstance(a, up.model.DurativeAction):
                 out.write(f'act_{a.name} = up.model.DurativeAction("{a.name}"')
                 for ap in a.parameters():
                     out.write(f', {ap.name()}={_print_python_type(ap.type())}')
                 out.write(')\n')
                 for ap in a.parameters():
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
+                if a.cost() is not None:
+                    out.write(f'act_{a.name}.set_cost({converter.convert(a.cost())})\n')
                 out.write(f'act_{a.name}.set_duration_constraint({_convert_interval_duration(a.duration(), converter)})\n')
                 for t, cl in a.conditions().items():
                     for c in cl:
@@ -260,6 +260,18 @@ class PythonWriter:
         for g in self.problem.goals(): # add goals
             out.write(f'problem.add_goal(goal={converter.convert(g)})\n')
 
+        for qm in self.problem.quality_metrics():
+            out.write('problem.add_quality_metric(')
+            if isinstance(qm, up.model.metrics.MinimizeActionCosts):
+                out.write('up.model.metrics.MinimizeActionCosts()')
+            elif isinstance(qm, up.model.metrics.MinimizeExpressionOnFinalState):
+                out.write(f'up.model.metrics.MinimizeExpressionOnFinalState({converter.convert(qm.expression)})')
+            elif isinstance(qm, up.model.metrics.MaximizeExpressionOnFinalState):
+                out.write(f'up.model.metrics.MaximizeExpressionOnFinalState({converter.convert(qm.expression)})')
+            else:
+                raise NotImplementedError
+            out.write(')\n')
+
     def print_domain(self):
         '''Prints to std output the PDDL domain.'''
         self._write_problem_code(sys.stdout)
@@ -276,7 +288,7 @@ class PythonWriter:
             self._write_problem_code(f)
 
 
-def _print_python_type(type: 'unified_planning.model.types.Type') -> str:
+def _print_python_type(type: 'up.model.types.Type') -> str:
     '''This method takes a type and returns how to use it from command line.
     For the user_types it assumes they have already been created and just refers to them.'''
     if type.is_user_type():
@@ -290,7 +302,7 @@ def _print_python_type(type: 'unified_planning.model.types.Type') -> str:
     else:
         raise NotImplementedError
 
-def _convert_timing(timing: unified_planning.model.Timing) -> str:
+def _convert_timing(timing: up.model.Timing) -> str:
     bound: str = f'{str(timing.bound())}'
     if isinstance(timing.bound(), Fraction):
         bound = f'Fraction({str(timing.bound().numerator)}, {str(timing.bound().denomiantor)})'
@@ -299,7 +311,7 @@ def _convert_timing(timing: unified_planning.model.Timing) -> str:
     else:
         return f'EndTiming({bound})'
 
-def _convert_interval(interval: unified_planning.model.Interval) -> str:
+def _convert_interval(interval: up.model.Interval) -> str:
     interval_feature: str = 'ClosedInterval'
     if interval.is_left_open() and interval.is_right_open():
         interval_feature = 'OpenInterval'
@@ -309,7 +321,7 @@ def _convert_interval(interval: unified_planning.model.Interval) -> str:
         interval_feature = 'RightOpenInterval'
     return f'{interval_feature}({_convert_timing(interval.lower())}, {_convert_timing(interval.upper())})'
 
-def _convert_interval_duration(interval: unified_planning.model.IntervalDuration, converter: ConverterToPythonString) -> str:
+def _convert_interval_duration(interval: up.model.IntervalDuration, converter: ConverterToPythonString) -> str:
     interval_feature: str = 'ClosedIntervalDuration'
     if interval.is_left_open() and interval.is_right_open():
         interval_feature = 'OpenIntervalDuration'
