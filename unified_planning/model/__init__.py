@@ -27,6 +27,7 @@ from unified_planning.model.timing import FixedDuration, OpenIntervalDuration, L
 from unified_planning.model.timing import Interval, ClosedInterval, OpenInterval, LeftOpenInterval, RightOpenInterval
 from unified_planning.model.types import Type, TypeManager
 from unified_planning.model.variable import Variable, FreeVarsOracle
+import unified_planning.model.metrics
 
 __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
             'Effect',

@@ -13,15 +13,16 @@
 # limitations under the License.
 #
 
-from mimetypes import types_map
-import unified_planning
+import unified_planning as up
 import pyparsing # type: ignore
 import typing
+from mimetypes import types_map
 from unified_planning.environment import Environment, get_env
+from unified_planning.walkers import FreeVarsExtractor
 from collections import OrderedDict
 from fractions import Fraction
-from typing import Dict, Union, Callable, List
-from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore
+from typing import Dict, Union, Callable, List, cast
+from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
 from pyparsing import Optional, Suppress, nestedExpr, Group, restOfLine
 if pyparsing.__version__ < '3.0.0':
     from pyparsing import oneOf as one_of
@@ -37,7 +38,7 @@ class PDDLGrammar:
         variable = Suppress('?') + name
 
         require_def = Suppress('(') + ':requirements' + \
-            OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals')) \
+            OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs')) \
             + Suppress(')')
 
         types_def = Suppress('(') + ':types' + \
@@ -86,12 +87,17 @@ class PDDLGrammar:
 
         objects = OneOrMore(Group(Group(OneOrMore(name)) \
                                   + Optional(Suppress('-') + name))).setResultsName('objects')
+
+        metric = (Keyword('minimize') | Keyword('maximize')).setResultsName('optimization') \
+            + (name | nestedExpr()).setResultsName('metric')
+
         problem = Suppress('(') + 'define' \
             + Suppress('(') + 'problem' + name.setResultsName('name') + Suppress(')') \
             + Suppress('(') + ':domain' + name + Suppress(')') + Optional(require_def) \
             + Optional(Suppress('(') + ':objects' + objects + Suppress(')')) \
             + Suppress('(') + ':init' + ZeroOrMore(nestedExpr()).setResultsName('init') + Suppress(')') \
             + Suppress('(') + ':goal' + nestedExpr().setResultsName('goal') + Suppress(')') \
+            + Optional(Suppress('(') + ':metric' + metric + Suppress(')')) \
             + Suppress(')')
 
         domain.ignore(';' + restOfLine)
@@ -141,14 +147,14 @@ class PDDLReader:
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
         self._pp_parameters = grammar.parameters
+        self._fve = FreeVarsExtractor()
+        self._totalcost: Optional[up.model.FNode] = None
 
-    def _parse_exp(self, problem: unified_planning.model.Problem, 
-                    act: typing.Optional[unified_planning.model.Action],
-                    types_map: Dict[str, unified_planning.model.Type],
-                    var: Dict[str, unified_planning.model.Variable], 
-                    exp: Union[ParseResults, str]) -> unified_planning.model.FNode:
+    def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[up.model.Action],
+                   types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
+                   exp: Union[ParseResults, str]) -> up.model.FNode:
         stack = [(var, exp, False)]
-        solved: List[unified_planning.model.FNode] = []
+        solved: List[up.model.FNode] = []
         while len(stack) > 0:
             var, exp, status = stack.pop()
             if status:
@@ -165,7 +171,7 @@ class PDDLReader:
                     args = [solved.pop() for _ in exp[1:]]
                     solved.append(self._em.FluentExp(f, tuple(args)))
                 else:
-                    raise unified_planning.exceptions.UPUnreachableCodeError
+                    raise up.exceptions.UPUnreachableCodeError
             else:
                 if isinstance(exp, ParseResults):
                     if len(exp) == 0: # empty precodition
@@ -184,7 +190,7 @@ class PDDLReader:
                         for g in vars_res['params']:
                             t = types_map[g[1] if len(g) > 1 else 'object']
                             for o in g[0]:
-                                vars[o] = unified_planning.model.Variable(o, t)
+                                vars[o] = up.model.Variable(o, t)
                         stack.append((vars, exp, True))
                         stack.append((vars, exp[2], False))
                     elif problem.has_fluent(exp[0]): # fluent reference
@@ -216,12 +222,12 @@ class PDDLReader:
         assert len(solved) == 1 #sanity check
         return solved.pop()
 
-    def _add_effect(self, problem: unified_planning.model.Problem,
-                    act: Union[unified_planning.model.InstantaneousAction, unified_planning.model.DurativeAction],
-                    types_map: Dict[str, unified_planning.model.Type],
+    def _add_effect(self, problem: up.model.Problem,
+                    act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
+                    types_map: Dict[str, up.model.Type],
                     exp: Union[ParseResults, str],
-                    cond: Union[unified_planning.model.FNode, bool] = True,
-                    timing: typing.Optional[unified_planning.model.Timing] = None):
+                    cond: Union[up.model.FNode, bool] = True,
+                    timing: typing.Optional[up.model.Timing] = None):
         to_add = [(exp, cond)]
         while to_add:
             exp, cond = to_add.pop(0)
@@ -253,10 +259,10 @@ class PDDLReader:
                 eff = (self._parse_exp(problem, act, types_map, {}, exp), self._em.TRUE(), cond)
                 act.add_effect(*eff if timing is None else (timing, *eff)) # type: ignore
 
-    def _add_condition(self, problem: unified_planning.model.Problem, act: unified_planning.model.DurativeAction,
+    def _add_condition(self, problem: up.model.Problem, act: up.model.DurativeAction,
                        exp: Union[ParseResults, str],
-                       types_map: Dict[str, unified_planning.model.Type],
-                       vars: typing.Optional[Dict[str, unified_planning.model.Variable]] = None):
+                       types_map: Dict[str, up.model.Type],
+                       vars: typing.Optional[Dict[str, up.model.Variable]] = None):
         to_add = [(exp, vars)]
         while to_add:
             exp, vars = to_add.pop(0)
@@ -272,20 +278,20 @@ class PDDLReader:
                 for g in vars_res['params']:
                     t = types_map[g[1] if len(g) > 1 else 'object']
                     for o in g[0]:
-                        vars[o] = unified_planning.model.Variable(o, t)
+                        vars[o] = up.model.Variable(o, t)
                 to_add.append((exp[2], vars))
             elif len(exp) == 3 and op == 'at' and exp[1] == 'start':
                 cond = self._parse_exp(problem, act, types_map, {} if vars is None else vars, exp[2])
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
-                act.add_condition(unified_planning.model.StartTiming(), cond)
+                act.add_condition(up.model.StartTiming(), cond)
             elif len(exp) == 3 and op == 'at' and exp[1] == 'end':
                 cond = self._parse_exp(problem, act, types_map, {} if vars is None else vars, exp[2])
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
-                act.add_condition(unified_planning.model.EndTiming(), cond)
+                act.add_condition(up.model.EndTiming(), cond)
             elif len(exp) == 3 and op == 'over' and exp[1] == 'all':
-                t_all = unified_planning.model.OpenInterval(unified_planning.model.StartTiming(), unified_planning.model.EndTiming())
+                t_all = up.model.OpenInterval(up.model.StartTiming(), up.model.EndTiming())
                 cond = self._parse_exp(problem, act, types_map, {} if vars is None else vars, exp[2])
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
@@ -293,9 +299,9 @@ class PDDLReader:
             else:
                 raise SyntaxError(f'Not able to handle: {exp}')
 
-    def _add_timed_effects(self, problem: unified_planning.model.Problem,
-                           act: unified_planning.model.DurativeAction,
-                           types_map: Dict[str, unified_planning.model.Type],
+    def _add_timed_effects(self, problem: up.model.Problem,
+                           act: up.model.DurativeAction,
+                           types_map: Dict[str, up.model.Type],
                            eff: ParseResults):
         to_add = [eff]
         while to_add:
@@ -305,9 +311,9 @@ class PDDLReader:
                 for e in eff[1:]:
                     to_add.append(e)
             elif len(eff) == 3 and op == 'at' and eff[1] == 'start':
-                self._add_effect(problem, act, types_map, eff[2], timing=unified_planning.model.StartTiming())
+                self._add_effect(problem, act, types_map, eff[2], timing=up.model.StartTiming())
             elif len(eff) == 3 and op == 'at' and eff[1] == 'end':
-                self._add_effect(problem, act, types_map, eff[2], timing=unified_planning.model.EndTiming())
+                self._add_effect(problem, act, types_map, eff[2], timing=up.model.EndTiming())
             else:
                 raise SyntaxError(f'Not able to handle: {eff}')
 
@@ -329,20 +335,67 @@ class PDDLReader:
                     return True
         return False
 
+    def _durative_action_has_cost(self, dur_act: up.model.DurativeAction):
+        if self._totalcost in self._fve.get(dur_act.duration().lower()) or \
+           self._totalcost in self._fve.get(dur_act.duration().upper()):
+            return False
+        for _, cl in dur_act.conditions().items():
+            for c in cl:
+                if self._totalcost in self._fve.get(c):
+                    return False
+        for _, cl in dur_act.durative_conditions().items():
+            for c in cl:
+                if self._totalcost in self._fve.get(c):
+                    return False
+        for _, el in dur_act.effects().items():
+            for e in el:
+                if self._totalcost in self._fve.get(e.fluent()) or self._totalcost in self._fve.get(e.value()) \
+                   or self._totalcost in self._fve.get(e.condition()):
+                    return False
+        return True
+
+    def _instantaneous_action_has_cost(self, act: up.model.InstantaneousAction):
+        for c in act.preconditions():
+            if self._totalcost in self._fve.get(c):
+                return False
+        for e in act.effects():
+            if self._totalcost in self._fve.get(e.value()) or self._totalcost in self._fve.get(e.condition()):
+                return False
+            if e.fluent() == self._totalcost:
+                if not e.is_increase() or \
+                   not e.condition().is_true() or \
+                   not (e.value().is_int_constant() or \
+                        e.value().is_real_constant()):
+                    return False
+        return True
+
+    def _problem_has_actions_cost(self, problem: up.model.Problem):
+        if not problem.initial_value(self._totalcost).constant_value() == 0:
+            return False
+        for _, el in problem.timed_effects().items():
+            for e in el:
+                if self._totalcost in self._fve.get(e.fluent()) or self._totalcost in self._fve.get(e.value()) \
+                   or self._totalcost in self._fve.get(e.condition()):
+                    return False
+        for c in problem.goals():
+            if self._totalcost in self._fve.get(c):
+                return False
+        return True
+
     def parse_problem(self, domain_filename: str,
-                      problem_filename: typing.Optional[str] = None) -> 'unified_planning.model.Problem':
+                      problem_filename: typing.Optional[str] = None) -> 'up.model.Problem':
         domain_res = self._pp_domain.parseFile(domain_filename)
 
-        problem = unified_planning.model.Problem(domain_res['name'], self._env,
-                                    initial_defaults={self._tm.BoolType(): self._em.FALSE()})
-        
-        types_map: Dict[str, 'unified_planning.model.Type'] = {}
+        problem = up.model.Problem(domain_res['name'], self._env,
+                                   initial_defaults={self._tm.BoolType(): self._em.FALSE()})
+
+        types_map: Dict[str, 'up.model.Type'] = {}
         object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
         for types_list in domain_res.get('types', []):
             # types_list is a List of 1 or 2 elements, where the first one
             # is a List of types, and the second one can be their father,
             # if they have one.
-            father: Optional['unified_planning.model.Type'] = None
+            father: Optional['up.model.Type'] = None
             if len(types_list) == 2: # the types have a father
                 if types_list[1] != 'object': #the father is not object
                     father = types_map[types_list[1]]
@@ -360,13 +413,15 @@ class PDDLReader:
         if object_type_needed and 'object' not in types_map: # The object type is needed, but has not been defined
             types_map['object'] = self._env.type_manager.UserType('object', None)  # We manually define it.
 
+        has_actions_cost = False
+
         for p in domain_res.get('predicates', []):
             n = p[0]
             params = []
             for g in p[1]:
                 t = types_map[g[1] if len(g) > 1 else 'object']
                 params.extend([t for i in range(len(g[0]))])
-            f = unified_planning.model.Fluent(n, self._tm.BoolType(), params, self._env)
+            f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
 
         for p in domain_res.get('functions', []):
@@ -375,13 +430,16 @@ class PDDLReader:
             for g in p[1]:
                 t = types_map[g[1] if len(g) > 1 else 'object']
                 params.extend([t for i in range(len(g[0]))])
-            f = unified_planning.model.Fluent(n, self._tm.RealType(), params, self._env)
+            f = up.model.Fluent(n, self._tm.RealType(), params, self._env)
+            if n == 'total-cost':
+                has_actions_cost = True
+                self._totalcost = cast(up.model.FNode, self._em.FluentExp(f))
             problem.add_fluent(f)
 
         for g in domain_res.get('constants', []):
             t = types_map[g[1] if len(g) > 1 else 'object']
             for o in g[0]:
-                problem.add_object(unified_planning.model.Object(o, t))
+                problem.add_object(up.model.Object(o, t))
 
         for a in domain_res.get('actions', []):
             n = a['name']
@@ -391,7 +449,7 @@ class PDDLReader:
                 for p in g[0]:
                     a_params[p] = t
             if 'duration' in a:
-                dur_act = unified_planning.model.DurativeAction(n, a_params, self._env)
+                dur_act = up.model.DurativeAction(n, a_params, self._env)
                 dur = a['duration'][0]
                 if dur[0] == '=':
                     dur_act.set_fixed_duration(self._parse_exp(problem, dur_act, types_map,
@@ -411,8 +469,8 @@ class PDDLReader:
                             raise SyntaxError(f'Not able to handle duration constraint of action {n}')
                     if lower is None or upper is None:
                         raise SyntaxError(f'Not able to handle duration constraint of action {n}')
-                    d = unified_planning.model.ClosedIntervalDuration(self._em.Real(lower),
-                                                         self._em.Real(upper))
+                    d = up.model.ClosedIntervalDuration(self._em.Real(lower),
+                                                        self._em.Real(upper))
                     dur_act.set_duration_constraint(d)
                 else:
                     raise SyntaxError(f'Not able to handle duration constraint of action {n}')
@@ -421,13 +479,15 @@ class PDDLReader:
                 eff = a['eff'][0]
                 self._add_timed_effects(problem, dur_act, types_map, eff)
                 problem.add_action(dur_act)
+                has_actions_cost = has_actions_cost and self._durative_action_has_cost(dur_act)
             else:
-                act = unified_planning.model.InstantaneousAction(n, a_params, self._env)
+                act = up.model.InstantaneousAction(n, a_params, self._env)
                 if 'pre' in a:
                     act.add_precondition(self._parse_exp(problem, act, types_map, {}, a['pre'][0]))
                 if 'eff' in a:
                     self._add_effect(problem, act, types_map, a['eff'][0])
                 problem.add_action(act)
+                has_actions_cost = has_actions_cost and self._instantaneous_action_has_cost(act)
 
         if problem_filename is not None:
             problem_res = self._pp_problem.parseFile(problem_filename)
@@ -437,14 +497,14 @@ class PDDLReader:
             for g in problem_res.get('objects', []):
                 t = types_map[g[1] if len(g) > 1 else 'object']
                 for o in g[0]:
-                    problem.add_object(unified_planning.model.Object(o, t))
+                    problem.add_object(up.model.Object(o, t))
 
             for i in problem_res.get('init', []):
                 if i[0] == '=':
                     problem.set_initial_value(self._parse_exp(problem, None, types_map, {}, i[1]),
                                               self._parse_exp(problem, None, types_map, {}, i[2]))
                 elif len(i) == 3 and i[0] == 'at' and i[1].replace('.','',1).isdigit():
-                    ti = unified_planning.model.StartTiming(Fraction(i[1]))
+                    ti = up.model.StartTiming(Fraction(i[1]))
                     va = self._parse_exp(problem, None, types_map, {}, i[2])
                     if va.is_fluent_exp():
                         problem.add_timed_effect(ti, va, self._em.TRUE())
@@ -458,5 +518,31 @@ class PDDLReader:
                     problem.set_initial_value(self._parse_exp(problem, None, types_map, {}, i), self._em.TRUE())
 
             problem.add_goal(self._parse_exp(problem, None, types_map, {}, problem_res['goal'][0]))
+
+            has_actions_cost = has_actions_cost and self._problem_has_actions_cost(problem)
+
+            optimization = problem_res.get('optimization', None)
+            metric = problem_res.get('metric', None)
+
+            if metric is not None:
+                metric_exp = self._parse_exp(problem, None, types_map, {}, metric)
+                if has_actions_cost and optimization == 'minimize' and metric_exp == self._totalcost:
+                    problem._fluents.remove(self._totalcost.fluent())
+                    problem._initial_value.pop(self._totalcost)
+                    for a in problem.instantaneous_actions():
+                        cost = None
+                        for e in a.effects():
+                            if e.fluent() == self._totalcost:
+                                cost = e
+                                break
+                        if cost is not None:
+                            a.set_cost(cost.value())
+                            a._effects.remove(cost)
+                    problem.add_quality_metric(up.model.metrics.MinimizeActionCosts())
+                else:
+                    if optimization == 'minimize':
+                        problem.add_quality_metric(up.model.metrics.MinimizeExpressionOnFinalState(metric_exp))
+                    elif optimization == 'maximize':
+                        problem.add_quality_metric(up.model.metrics.MaximizeExpressionOnFinalState(metric_exp))
 
         return problem

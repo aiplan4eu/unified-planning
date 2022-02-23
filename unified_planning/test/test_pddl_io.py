@@ -326,7 +326,7 @@ class TestPddlIO(TestCase):
 
                     self.assertEqual(set(problem.all_objects()), set(parsed_problem.all_objects()))
                     self.assertEqual(len(problem.initial_values()), len(parsed_problem.initial_values()))
-                    
+
     def test_rationals(self):
         problem = self.problems['robot_decrease'].problem.clone()
 
@@ -339,7 +339,7 @@ class TestPddlIO(TestCase):
         self.assertIn('2.5', pddl_txt)
 
         # Check imperfect conversion
-        with pytest.warns(UserWarning, match="cannot exactly represent") as warns: 
+        with pytest.warns(UserWarning, match="cannot exactly represent") as warns:
             battery = problem.fluent('battery_charge')
             problem.set_initial_value(battery, Fraction(10, 3))
             w = PDDLWriter(problem)
@@ -347,10 +347,10 @@ class TestPddlIO(TestCase):
             self.assertNotIn('10/3', pddl_txt)
             self.assertIn('3.333333333', pddl_txt)
 
-def _is_same_user_type_considering_object_renaming(original_type: unified_planning.model.Type, 
+def _is_same_user_type_considering_object_renaming(original_type: unified_planning.model.Type,
                                                     tested_type: unified_planning.model.Type,
                                                     object_rename: str) -> bool:
-    if cast(_UserType, original_type).father() is None: # case where original_type has no father 
+    if cast(_UserType, original_type).father() is None: # case where original_type has no father
         if cast(_UserType, tested_type).father() is not None:
             return False # original_type has a father, tested_type does not.
         if cast(_UserType, original_type).name() != 'object': # fathers are both None, now we have to check the name
@@ -374,6 +374,3 @@ def _have_same_user_types_considering_object_renaming(original_problem: unified_
             if not _is_same_user_type_considering_object_renaming(original_type, tested_problem.user_type(object_rename), object_rename):
                 return False
     return True
-
-
-

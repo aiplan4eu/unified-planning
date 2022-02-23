@@ -19,11 +19,11 @@ and a list of effects.
 """
 
 
-import unified_planning
+import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError
 from fractions import Fraction
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 from collections import OrderedDict
 
 
@@ -32,7 +32,7 @@ class ActionParameter:
     An action parameter has a name, used to retrieve the parameter
     from the action, and a type, used to represent that the action
     parameter is of the given type."""
-    def __init__(self, name: str, typename: 'unified_planning.model.types.Type'):
+    def __init__(self, name: str, typename: 'up.model.types.Type'):
         self._name = name
         self._typename = typename
 
@@ -52,16 +52,17 @@ class ActionParameter:
         """Returns the parameter name."""
         return self._name
 
-    def type(self) -> 'unified_planning.model.types.Type':
+    def type(self) -> 'up.model.types.Type':
         """Returns the parameter type."""
         return self._typename
 
 class Action:
     """This is the action interface."""
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, unified_planning.model.types.Type]' = None,
-                 _env: Environment = None, **kwargs: 'unified_planning.model.types.Type'):
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
+                 _env: Environment = None, **kwargs: 'up.model.types.Type'):
         self._env = get_env(_env)
         self._name = _name
+        self._cost: Optional['up.model.FNode'] = None
         self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
         if _parameters is not None:
             assert len(kwargs) == 0
@@ -90,6 +91,13 @@ class Action:
         """Sets the parameter name."""
         self._name = new_name
 
+    def cost(self) -> Optional['up.model.fnode.FNode']:
+        return self._cost
+
+    def set_cost(self, cost: 'up.model.expression.Expression'):
+        cost_exp, = self._env.expression_manager.auto_promote(cost)
+        self._cost = cost_exp
+
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
         return list(self._parameters.values())
@@ -105,11 +113,11 @@ class Action:
 
 class InstantaneousAction(Action):
     """Represents an instantaneous action."""
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, unified_planning.model.types.Type]' = None,
-                 _env: Environment = None, **kwargs: 'unified_planning.model.types.Type'):
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
+                 _env: Environment = None, **kwargs: 'up.model.types.Type'):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
-        self._preconditions: List[unified_planning.model.fnode.FNode] = []
-        self._effects: List[unified_planning.model.effect.Effect] = []
+        self._preconditions: List[up.model.fnode.FNode] = []
+        self._effects: List[up.model.effect.Effect] = []
 
     def __repr__(self) -> str:
         s = []
@@ -125,6 +133,8 @@ class InstantaneousAction(Action):
         if not first:
             s.append(')')
         s.append(' {\n')
+        if self._cost is not None:
+            s.append(f'    cost = {self._cost}\n')
         s.append('    preconditions = [\n')
         for c in self.preconditions():
             s.append(f'      {str(c)}\n')
@@ -158,11 +168,12 @@ class InstantaneousAction(Action):
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.type()
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
+        new_instantaneous_action._cost = self._cost
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
         return new_instantaneous_action
 
-    def preconditions(self) -> List['unified_planning.model.fnode.FNode']:
+    def preconditions(self) -> List['up.model.fnode.FNode']:
         """Returns the list of the action preconditions."""
         return self._preconditions
 
@@ -170,7 +181,7 @@ class InstantaneousAction(Action):
         """Removes all action preconditions"""
         self._preconditions = []
 
-    def effects(self) -> List['unified_planning.model.effect.Effect']:
+    def effects(self) -> List['up.model.effect.Effect']:
         """Returns the list of the action effects."""
         return self._effects
 
@@ -178,7 +189,7 @@ class InstantaneousAction(Action):
         """Removes all effects."""
         self._effects = []
 
-    def conditional_effects(self) -> List['unified_planning.model.effect.Effect']:
+    def conditional_effects(self) -> List['up.model.effect.Effect']:
         """Returns the list of the action conditional effects."""
         return [e for e in self._effects if e.is_conditional()]
 
@@ -186,11 +197,11 @@ class InstantaneousAction(Action):
         """Returns True if the action has conditional effects."""
         return any(e.is_conditional() for e in self._effects)
 
-    def unconditional_effects(self) -> List['unified_planning.model.effect.Effect']:
+    def unconditional_effects(self) -> List['up.model.effect.Effect']:
         """Returns the list of the action unconditional effects."""
         return [e for e in self._effects if not e.is_conditional()]
 
-    def add_precondition(self, precondition: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', ActionParameter, bool]):
+    def add_precondition(self, precondition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', ActionParameter, bool]):
         """Adds the given action precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
@@ -202,8 +213,8 @@ class InstantaneousAction(Action):
         if precondition_exp not in self._preconditions:
             self._preconditions.append(precondition_exp)
 
-    def add_effect(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
-                   value: 'unified_planning.model.expression.Expression', condition: 'unified_planning.model.expression.BoolExpression' = True):
+    def add_effect(self, fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
+                   value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
         """Adds the given action effect."""
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
@@ -211,10 +222,10 @@ class InstantaneousAction(Action):
             raise UPTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
-        self._add_effect_instance(unified_planning.model.effect.Effect(fluent_exp, value_exp, condition_exp))
+        self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
-    def add_increase_effect(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
-                   value: 'unified_planning.model.expression.Expression', condition: 'unified_planning.model.expression.BoolExpression' = True):
+    def add_increase_effect(self, fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
+                   value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
         """Adds the given action increase effect."""
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
@@ -222,10 +233,10 @@ class InstantaneousAction(Action):
             raise UPTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
-        self._add_effect_instance(unified_planning.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = unified_planning.model.effect.INCREASE))
+        self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.INCREASE))
 
-    def add_decrease_effect(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
-                   value: 'unified_planning.model.expression.Expression', condition: 'unified_planning.model.expression.BoolExpression' = True):
+    def add_decrease_effect(self, fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
+                   value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
         """Adds the given action decrease effect."""
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
@@ -233,25 +244,25 @@ class InstantaneousAction(Action):
             raise UPTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
-        self._add_effect_instance(unified_planning.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = unified_planning.model.effect.DECREASE))
+        self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.DECREASE))
 
-    def _add_effect_instance(self, effect: 'unified_planning.model.effect.Effect'):
+    def _add_effect_instance(self, effect: 'up.model.effect.Effect'):
         if effect not in self._effects:
             self._effects.append(effect)
 
-    def _set_preconditions(self, preconditions: List['unified_planning.model.fnode.FNode']):
+    def _set_preconditions(self, preconditions: List['up.model.fnode.FNode']):
         self._preconditions = preconditions
 
 
 class DurativeAction(Action):
     '''Represents a durative action.'''
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, unified_planning.model.types.Type]' = None,
-                 _env: Environment = None, **kwargs: 'unified_planning.model.types.Type'):
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
+                 _env: Environment = None, **kwargs: 'up.model.types.Type'):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
-        self._duration: unified_planning.model.timing.IntervalDuration = unified_planning.model.timing.FixedDuration(self._env.expression_manager.Int(0))
-        self._conditions: Dict[unified_planning.model.timing.Timing, List[unified_planning.model.fnode.FNode]] = {}
-        self._durative_conditions: Dict[unified_planning.model.timing.Interval, List[unified_planning.model.fnode.FNode]] = {}
-        self._effects: Dict[unified_planning.model.timing.Timing, List[unified_planning.model.effect.Effect]] = {}
+        self._duration: up.model.timing.IntervalDuration = up.model.timing.FixedDuration(self._env.expression_manager.Int(0))
+        self._conditions: Dict[up.model.timing.Timing, List[up.model.fnode.FNode]] = {}
+        self._durative_conditions: Dict[up.model.timing.Interval, List[up.model.fnode.FNode]] = {}
+        self._effects: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -268,6 +279,8 @@ class DurativeAction(Action):
             s.append(')')
         s.append(' {\n')
         s.append(f'    duration = {str(self._duration)}\n')
+        if self._cost is not None:
+            s.append(f'    cost = {self._cost}\n')
         s.append('    conditions = [\n')
         for t, cl in self.conditions().items():
             s.append(f'      {str(t)}:\n')
@@ -343,6 +356,7 @@ class DurativeAction(Action):
         new_params = {param_name: param.type() for param_name, param in self._parameters.items()}
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration
+        new_durative_action._cost = self._cost
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         new_durative_action._durative_conditions = {i : dcl[:] for i, dcl in self._durative_conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
@@ -378,7 +392,7 @@ class DurativeAction(Action):
 
     def conditional_effects(self):
         '''Return the action conditional effects.'''
-        retval: Dict[unified_planning.model.timing.Timing, List[unified_planning.model.effect.Effect]] = {}
+        retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             cond_effect_list = [e for e in effect_list if e.is_conditional()]
             if len(cond_effect_list) > 0:
@@ -387,7 +401,7 @@ class DurativeAction(Action):
 
     def unconditional_effects(self):
         '''Return the action unconditional effects.'''
-        retval: Dict[unified_planning.model.timing.Timing, List[unified_planning.model.effect.Effect]] = {}
+        retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             uncond_effect_list = [e for e in effect_list if not e.is_conditional()]
             if len(uncond_effect_list) > 0:
@@ -398,7 +412,7 @@ class DurativeAction(Action):
         '''Returns True if the action has conditional effects.'''
         return any(e.is_conditional() for l in self._effects.values() for e in l)
 
-    def set_duration_constraint(self, duration: 'unified_planning.model.timing.IntervalDuration'):
+    def set_duration_constraint(self, duration: 'up.model.timing.IntervalDuration'):
         '''Sets the duration interval.'''
         lower, upper = duration.lower(), duration.upper()
         if not (lower.is_int_constant() or lower.is_real_constant()):
@@ -411,32 +425,32 @@ class DurativeAction(Action):
             raise UPProblemDefinitionError(f'{duration} is an empty interval duration of action: {self.name}.')
         self._duration = duration
 
-    def set_fixed_duration(self, value: Union['unified_planning.model.fnode.FNode', int, Fraction]):
+    def set_fixed_duration(self, value: Union['up.model.fnode.FNode', int, Fraction]):
         value_exp, = self._env.expression_manager.auto_promote(value)
-        self.set_duration_constraint(unified_planning.model.timing.FixedDuration(value_exp))
+        self.set_duration_constraint(up.model.timing.FixedDuration(value_exp))
 
-    def set_closed_interval_duration(self, lower: Union['unified_planning.model.fnode.FNode', int, Fraction],
-                                     upper: Union['unified_planning.model.fnode.FNode', int, Fraction]):
+    def set_closed_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+                                     upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(unified_planning.model.timing.ClosedIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.ClosedIntervalDuration(lower_exp, upper_exp))
 
-    def set_open_interval_duration(self, lower: Union['unified_planning.model.fnode.FNode', int, Fraction],
-                                   upper: Union['unified_planning.model.fnode.FNode', int, Fraction]):
+    def set_open_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+                                   upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(unified_planning.model.timing.OpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.OpenIntervalDuration(lower_exp, upper_exp))
 
-    def set_left_open_interval_duration(self, lower: Union['unified_planning.model.fnode.FNode', int, Fraction],
-                                        upper: Union['unified_planning.model.fnode.FNode', int, Fraction]):
+    def set_left_open_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+                                        upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(unified_planning.model.timing.LeftOpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.LeftOpenIntervalDuration(lower_exp, upper_exp))
 
-    def set_right_open_interval_duration(self, lower: Union['unified_planning.model.fnode.FNode', int, Fraction],
-                                         upper: Union['unified_planning.model.fnode.FNode', int, Fraction]):
+    def set_right_open_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+                                         upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(unified_planning.model.timing.RightOpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.RightOpenIntervalDuration(lower_exp, upper_exp))
 
-    def add_condition(self, timing: 'unified_planning.model.timing.Timing',
-                      condition: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', ActionParameter, bool]):
+    def add_condition(self, timing: 'up.model.timing.Timing',
+                      condition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', ActionParameter, bool]):
         '''Adds the given condition.'''
         condition_exp, = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
@@ -446,11 +460,11 @@ class DurativeAction(Action):
         else:
             self._conditions[timing] = [condition_exp]
 
-    def _set_conditions(self, timing: 'unified_planning.model.timing.Timing', conditions: List['unified_planning.model.fnode.FNode']):
+    def _set_conditions(self, timing: 'up.model.timing.Timing', conditions: List['up.model.fnode.FNode']):
         self._conditions[timing] = conditions
 
-    def add_durative_condition(self, interval: 'unified_planning.model.timing.Interval',
-                               condition: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', ActionParameter, bool]):
+    def add_durative_condition(self, interval: 'up.model.timing.Interval',
+                               condition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', ActionParameter, bool]):
         '''Adds the given durative condition.'''
         condition_exp, = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
@@ -460,8 +474,8 @@ class DurativeAction(Action):
         else:
             self._durative_conditions[interval] = [condition_exp]
 
-    def add_effect(self, timing: 'unified_planning.model.timing.Timing', fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
-                   value: 'unified_planning.model.expression.Expression', condition: 'unified_planning.model.expression.BoolExpression' = True):
+    def add_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
+                   value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
         '''Adds the given action effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
@@ -469,10 +483,10 @@ class DurativeAction(Action):
             raise UPTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
-        self._add_effect_instance(timing, unified_planning.model.effect.Effect(fluent_exp, value_exp, condition_exp))
+        self._add_effect_instance(timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp))
 
-    def add_increase_effect(self, timing: 'unified_planning.model.timing.Timing', fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
-                            value: 'unified_planning.model.expression.Expression', condition: 'unified_planning.model.expression.BoolExpression' = True):
+    def add_increase_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
+                            value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
         '''Adds the given action increase effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
@@ -481,11 +495,11 @@ class DurativeAction(Action):
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
-                                  unified_planning.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = unified_planning.model.effect.INCREASE))
+                                  up.model.effect.Effect(fluent_exp, value_exp,
+                                         condition_exp, kind = up.model.effect.INCREASE))
 
-    def add_decrease_effect(self, timing: 'unified_planning.model.timing.Timing', fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
-                            value: 'unified_planning.model.expression.Expression', condition: 'unified_planning.model.expression.BoolExpression' = True):
+    def add_decrease_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
+                            value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
         '''Adds the given action decrease effect.'''
         fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
@@ -494,10 +508,10 @@ class DurativeAction(Action):
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
-                                  unified_planning.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = unified_planning.model.effect.DECREASE))
+                                  up.model.effect.Effect(fluent_exp, value_exp,
+                                         condition_exp, kind = up.model.effect.DECREASE))
 
-    def _add_effect_instance(self, timing: 'unified_planning.model.timing.Timing', effect: 'unified_planning.model.effect.Effect'):
+    def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
         if timing in self._effects:
             if effect not in self._effects[timing]:
                 self._effects[timing].append(effect)

@@ -20,7 +20,7 @@ import sys
 from decimal import Decimal, localcontext
 from warnings import warn
 
-import unified_planning
+import unified_planning as up
 import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction
@@ -35,7 +35,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     DECIMAL_PRECISION = 10 # Number of decimal places to print real constants
 
-    def __init__(self, env: 'unified_planning.environment.Environment'):
+    def __init__(self, env: 'up.environment.Environment'):
         walkers.DagWalker.__init__(self)
         self.simplifier = walkers.Simplifier(env)
 
@@ -142,7 +142,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 class PDDLWriter:
     '''This class can be used to write a Problem in PDDL.'''
 
-    def __init__(self, problem: 'unified_planning.model.Problem', needs_requirements: bool = True):
+    def __init__(self, problem: 'up.model.Problem', needs_requirements: bool = True):
         self.problem = problem
         self.needs_requirements = needs_requirements
         self.object_freshname = 'object'
@@ -187,6 +187,8 @@ class PDDLWriter:
                 out.write(' :durative-actions')
             if problem_kind.has_duration_inequalities(): # type: ignore
                 out.write(' :duration-inequalities')
+            if self.problem.kind().has_actions_cost(): # type: ignore
+                out.write(' :action-costs')
             out.write(')\n')
 
         
@@ -232,12 +234,14 @@ class PDDLWriter:
                 functions.append(f'({f.name()}{"".join(params)})')
             else:
                 raise UPTypeError('PDDL supports only boolean and numerical fluents')
+        if self.problem.kind().has_actions_cost(): # type: ignore
+            functions.append('(total-cost)')
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
         converter = ConverterToPDDLString(self.problem.env)
         for a in self.problem.actions():
-            if isinstance(a, unified_planning.model.InstantaneousAction):
+            if isinstance(a, up.model.InstantaneousAction):
                 out.write(f' (:action {a.name}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters():
@@ -266,6 +270,8 @@ class PDDLWriter:
                         if e.is_conditional():
                             out.write(f')')
 
+                    if a.cost() is not None:
+                        out.write(f' (increase total-cost {converter.convert(a.cost())})')
                     out.write(')')
                 out.write(')\n')
             elif isinstance(a, DurativeAction):
@@ -330,7 +336,8 @@ class PDDLWriter:
                             if e.is_conditional():
                                 out.write(f')')
                             out.write(')')
-
+                    if a.cost() is not None:
+                        out.write(f' (at end (increase total-cost {converter.convert(a.cost())}))')
                     out.write(')')
                 out.write(')\n')
             else:
@@ -360,8 +367,25 @@ class PDDLWriter:
                 pass
             else:
                 out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
+        if self.problem.kind().has_actions_cost(): # type: ignore
+            out.write(f' (= total-cost 0)')
         out.write(')\n')
         out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals()])}))\n')
+        metrics = self.problem.quality_metrics()
+        if len(metrics) == 1:
+            metric = metrics[0]
+            out.write(' (:metric ')
+            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
+                out.write(f'minimize {metric.expression}')
+            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+                out.write(f'maximize {metric.expression}')
+            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
+                out.write(f'minimize total-cost')
+            else:
+                raise
+            out.write(')\n')
+        elif len(metrics) > 1:
+            raise
         out.write(')\n')
 
     def print_domain(self):

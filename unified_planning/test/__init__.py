@@ -55,6 +55,23 @@ class skipIfNoOneshotPlannerForProblemKind(object):
         return wrapper
 
 
+class skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(object):
+    """Skip a test if there are no oneshot planner satisfies optimality guarantee."""
+
+    def __init__(self, optimality_guarantee: int):
+        self.optimality_guarantee = optimality_guarantee
+
+    def __call__(self, test_fun):
+        msg = "no oneshot planner available for the given optimality guarantee"
+        cond = get_env().factory._get_solver_class('oneshot_planner',
+                                                   optimality_guarantee=self.optimality_guarantee) is None
+        @unittest.skipIf(cond, msg)
+        @wraps(test_fun)
+        def wrapper(*args, **kwargs):
+            return test_fun(*args, **kwargs)
+        return wrapper
+
+
 class skipIfNoPlanValidatorForProblemKind(object):
     """Skip a test if there are no plan validator for the given problem kind."""
 

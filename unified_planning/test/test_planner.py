@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unified_planning
+import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import classical_kind, basic_numeric_kind
+from unified_planning.model.problem_kind import classical_kind, basic_numeric_kind, quality_metrics_kind
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
+from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.test.examples import get_example_problems
 
 
@@ -49,6 +50,17 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
+    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(up.solvers.OPTIMAL)
+    def test_actions_cost(self):
+        problem = self.problems['basic_with_costs'].problem
+        opt_plan = self.problems['basic_with_costs'].plan
+        with OneshotPlanner(problem_kind=problem.kind(),
+                            optimality_guarantee=up.solvers.OPTIMAL) as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem)
+            self.assertEqual(plan, opt_plan)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
     def test_robot(self):

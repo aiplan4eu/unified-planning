@@ -24,7 +24,8 @@ FEATURES = {
     'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
     'EFFECTS_KIND' : ['CONDITIONAL_EFFECTS', 'INCREASE_EFFECTS', 'DECREASE_EFFECTS'],
     'TYPING' : ['FLAT_TYPING', 'HIERARCHICAL_TYPING'],
-    'FLUENTS_TYPE' : ['NUMERIC_FLUENTS', 'OBJECT_FLUENTS']
+    'FLUENTS_TYPE' : ['NUMERIC_FLUENTS', 'OBJECT_FLUENTS'],
+    'QUALITY_METRICS' : ['ACTIONS_COST', 'FINAL_VALUE']
 }
 
 
@@ -124,3 +125,7 @@ full_temporal_kind.set_time('TIMED_EFFECT') # type: ignore
 full_temporal_kind.set_time('TIMED_GOALS') # type: ignore
 full_temporal_kind.set_time('MAINTAIN_GOALS') # type: ignore
 full_temporal_kind.set_time('DURATION_INEQUALITIES') # type: ignore
+
+quality_metrics_kind = ProblemKind()
+quality_metrics_kind.set_quality_metrics('ACTIONS_COST') # type: ignore
+quality_metrics_kind.set_quality_metrics('FINAL_VALUE') # type: ignore
