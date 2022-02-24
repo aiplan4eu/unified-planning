@@ -4,27 +4,15 @@ syntax = "proto3";
 
 // =============== Types ================
 
-// We need to express types (of a paramater, of a fluent).
-// There are two options for this:
-//  (1) a structure with several options, or
-//  (2) a string representation of the type.
-// I find the former a bit heavy to work with and would suggest to just represent it a string.
+// Type of expressions are represented as strings in protobuf format.
+// A type might be, e.g., "int", "bool" or "location", where the latter is a problem-specific type.
 
-// Built-in types
+// Built-in types:
 //  - "bool"
 //  - "int"
 //  - "real"
 //
 // Any other string (e.g. "location") refers to a symbolic type and must have been declared in the problem definition.
-
-// Declares the existence of a type (same as in PDDL)
-message TypeDeclaration {
-    // Type that is declared.
-    string type_name = 1;
-    // If the string is non-empty, this is the parent type of `type_name`.
-    // If set, the parent type must have been previously declared (i.e. should appear earlier in the problem's type declarations.
-    string parent_type = 2;
-}
 
 // We can also consider restrictions to int/reals with specific syntax (e.g. "int[0,100]")
 // but we need to agree on the semantics and syntax.
@@ -35,14 +23,14 @@ message TypeDeclaration {
 
 // As in s-expression, an Expression is either an atom or list representing the application of some parameters to a function/fluent.
 message Expression {
-    oneof content {
-        // The expression is a single atom.
-        // For instance `3`, `+`, `kitchen`, `at-robot`, ...
-        Atom atom = 1;
-        // The expression is a list, typically representing the application of some arguments to a function or fluent.
-        // For instance `(+ 1 3)`, (at-robot l1)`, `(>= (battery_level) 20)`
-        repeated Expression list = 2;
-    }
+    // If non-empty, the expression is a single atom.
+    // For instance `3`, `+`, `kitchen`, `at-robot`, ...
+    Atom atom = 1;
+    // If the `atom` field is empty, then the expression is a list of sub-expressions,
+    // typically representing the application of some arguments to a function or fluent.
+    // For instance `(+ 1 3)`, (at-robot l1)`, `(>= (battery_level) 20)`
+    repeated Expression list = 2;
+
     // Type of the expression. For instance "int", "location", ...
     string type = 3;
     // Kind of the expression, specifying the content of the expression.
@@ -50,7 +38,7 @@ message Expression {
     ExpressionKind kind = 4;
 }
 
-
+// The kind of an expression, which gives information related to its structure.
 enum ExpressionKind {
     // Default value, should not be used. Drop it if we are sure to never need it.
     UNKNOWN = 0;
@@ -84,9 +72,21 @@ message Atom {
 
 // ============= Domains ====================
 
+
+// Declares the existence of a symbolic type.
+message TypeDeclaration {
+    // Name of the type that is declared.
+    string type_name = 1;
+    // If the string is non-empty, this is the parent type of `type_name`.
+    // If set, the parent type must have been previously declared (i.e. should appear earlier in the problem's type declarations.
+    string parent_type = 2;
+}
+
 // Parameter of a fluent or of an action
 message Parameter {
+    // Name of the parameter.
     string name = 1;
+    // Type of the parameter.
     string type = 2;
 }
 
@@ -102,9 +102,11 @@ message Fluent {
 
 
 // Declares an object with the given name and type.
-// Type must be a previously declared symbolic type.
 message ObjectDeclaration {
+    // Name of the object.
     string name = 1;
+    // Type of the object.
+    // The type must have been previously declared in the problem definition.
     string type = 2;
 }
 
@@ -123,46 +125,54 @@ message EffectExpression {
         // This is the value that will be taken if the operator is not explicitly set.
         // It is currently a logic error to have this value but is needed to allow later extensions.
         UNDEFINED = 0;
+
         // The `fluent` is set to the corresponding `value`
         ASSIGN = 1;
+
         // The `fluent` is increased by the amount `value`
         // features: numeric?
         INCREASE = 2;
+
+        // The `fluent` is decreased by the amount `value`
+        // features: numeric?
+        DECREASE = 3;
     }
     EffectKind kind = 1;
+
     // Expression that must be of the STATE_VARIABLE kind.
     Expression fluent = 2;
 
     Expression value = 3;
+
+    // Optional. If the effect is conditional, then the following field must be set.
+    // In this case, the `effect` will only be applied if the `condition`` holds.
+    // features: conditional_effects
+    Expression condition = 4;
 }
 
 // Representation of an effect that allows qualifying the effect expression, e.g., to make it a conditional effect.
 message Effect {
     // Required. The actual effect that should take place.
     EffectExpression effect = 1;
-    // Optional. If the effect is conditional, then the following field must be set.
-    // In this case, the `effect` will only be applied if the `condition`` holds.
-    // TODO: When should the condition hold in case of durative actions? Is this supported by PDDL? Two options:
-    //        - immediately before the effect (generalization of the non-temporal case)
-    //        - have the condition field be of type `Condition` which allows for temporal qualification. If not qualified, the above would apply.
-    // features: conditional_effects
-    Expression condition = 2;
+    
     // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
     // features: durative_actions
-    Timing occurence_time = 3;
+    Timing occurence_time = 2;
 }
 
 
 message Condition {
     Expression cond = 1;
-    // Optional. Must be set for durative actions where it specifies when the condition should hold.
+    
+    // Optional. Must be set for durative actions where it specifies the temporal interval 
+    // over which when the condition should hold.
     // features: durative_actions
     TimeInterval span = 2;
 }
 
-// Unified action representation that should representing all kinds of actions.
+// Unified action representation that represents any kind of actions.
 message Action {
-    // .Action name. E.g. "move"
+    // Action name. E.g. "move"
     string name = 1;
 
     // Typed and named parameters of the action.
@@ -185,10 +195,13 @@ message Action {
 
 
 // Symbolic reference to an absolute time.
-// It might represent the time of the initial or final state or the start/end of the containing action.
+// It might represent:
+// - the time of the initial/final state, or
+// - the start/end of the containing action.
 //
-// It is currently composed of a single field whose interpretation is context dependent
+// It is currently composed of a single field whose interpretation might be context dependent
 // (e.g. "START" refers to the start of the containing action).
+//
 // In the future, it could be extended to refer, e.g., to the start of a particular action/subtask
 // by adding an additional field with the identifier of an action/subtask.
 message Timepoint {
@@ -205,10 +218,10 @@ message Timepoint {
     TimepointKind kind = 1;
 }
 
-// Represents a time (`tp` + `delay`), that is a time defined relatively to a particular timepoint `tp`.
-// Note that an absolute time can be defined by setting the delay relative to the GLOBAL_START which is the reference time.
+// Represents a time (`timepoint` + `delay`), that is a time defined relatively to a particular `timepoint`.
+// Note that an absolute time can be defined by setting the `delay` relative to the `GLOBAL_START`` which is the reference time.
 message Timing {
-    Timepoint tp = 1;
+    Timepoint timepoint = 1;
     double delay = 2;
 }
 
@@ -247,13 +260,16 @@ message Duration {
 // ============== Problem =========================
 
 
-// A Goal is currently an expression that must hold in the final state.
-// It is in its own message to allow its extension with (e.g.):
-//  - temporal qualification
-//  - weight (for optional goals, oversubscription planning)
+// A Goal is currently an expression that must hold either: 
+// - in the final state,
+// - over a specific temporal interval (under the `timed_goals` features)
 message Goal {
     // Goal expression that must hold in the final state.
     Expression goal = 1;
+
+    // Optional. If specified the goal should hold over the specified temporal interval (instead of on the final state).
+    // features: timed_goals
+    TimeInterval timing = 2;
 }
 
 // Represents an effect that will occur sometime beyond the initial state. (similar to timed initial literals)
@@ -319,7 +335,7 @@ message ActionInstance {
     string id = 1;
     // name of the action
     string action_name = 2;
-    // Parameters of the action instance, required to constants (kind = CONSTANT).
+    // Parameters of the action instance, required to be constants.
     repeated Atom parameters = 3;
     // Start time of the action. The default 0 value is OK in the case of non-temporal planning
     // feature: [durative_actions]
@@ -334,7 +350,8 @@ message Plan {
     // An ordered sequence of actions that appear in the plan.
     // The order of the actions in the list must be compatible with the partial order of the start times.
     // In case of non-temporal planning, this allows having all start time at 0 and only rely on the order in this sequence.
-    repeated Action actions = 1;
+    repeated ActionInstance actions = 1;
+    
     // TODO: add an optional cost field?
 }
 
@@ -393,9 +410,13 @@ message IntermediateReport {
 // Contains the planner exit status as well as the best plan found if any.
 message FinalReport {
     enum Status {
+        // ==== Planner stopped normally ======
+
         // Valid plan found and search stopped immediately
+        // The `best_plan` field must be set.
         SAT = 0;
         // Plan found with optimality guarantee
+        // The `best_plan` field must be set and contain an optimal solution.
         OPT = 1;
         // No plan exists
         UNSAT = 2;
@@ -403,11 +424,17 @@ message FinalReport {
         // (i.e. the planner might not be complete)
         SEARCH_SPACE_EXHAUSTED = 3;
 
+        // ====== Planner exited before making any conclusion ====
         // Search stopped before concluding OPT or UNSAT
         // If a plan was found, it might be reported in the `best_plan` field
+
+        // The planner ran out of time
         TIMEOUT = 13;
+        // The planner ran out of memory
         MEMOUT = 14;
+        // The planner faced an internal error.
         INTERNAL_ERROR = 15;
+        // The problem submitted is not supported by the planner.
         UNSUPPORTED_PROBLEM = 16;
     }
     Status status = 1;
@@ -415,7 +442,7 @@ message FinalReport {
     // Optional. Best plan found if any.
     Plan best_plan = 2;
 
-    // a set of planner specific values that can be reported, for instance
+    // A set of planner specific values that can be reported, for instance
     // - "grounding-time": "10ms"
     // - "expanded-states": "1290"
     map<string, string> metrics = 3;
