@@ -503,7 +503,7 @@ def get_example_problems():
     f = mend_fuse.parameter('f')
     mend_fuse.set_fixed_duration(5)
     mend_fuse.add_condition(StartTiming(), handfree)
-    mend_fuse.add_durative_condition(ClosedInterval(StartTiming(), EndTiming()), light)
+    mend_fuse.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), light)
     mend_fuse.add_effect(StartTiming(), handfree, False)
     mend_fuse.add_effect(EndTiming(), fuse_mended(f), True)
     mend_fuse.add_effect(EndTiming(), handfree, True)
@@ -554,15 +554,12 @@ def get_example_problems():
     #(E (location mid_location)
     # !((mid_location == l_from) || (mid_location == l_to)) && (is_connected(l_from, mid_location) || is_connected(mid_location, l_from)) &&
     # && (is_connected(l_to, mid_location) || is_connected(mid_location, l_to)))
-    move.add_durative_condition(ClosedInterval(StartTiming(), EndTiming()), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
-                            Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
-                            Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
-
-    # NOTE: The add_durative_condition wants an interval, but the converter has problems converting it
-    # EDIT: It looks like the "action.conditions()" method also uses the durative conditions
+    move.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
+                       Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
+                       Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
     move.add_condition(StartTiming(), Exists(And(Not(Or(Equals(mid_location, l_from), Equals(mid_location, l_to))),
-                            Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
-                            Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
+                       Or(is_connected(l_from, mid_location), is_connected(mid_location, l_from)),
+                       Or(is_connected(l_to, mid_location), is_connected(mid_location, l_to))), mid_location))
     move.add_effect(StartTiming(1), is_at(l_from), False)
     move.add_effect(EndTiming(5), is_at(l_to), True)
     l1 = Object('l1', Location)
@@ -639,7 +636,7 @@ def get_example_problems():
     problem.add_goal(on(block_3, block_2))
 
     plan = unified_planning.plan.SequentialPlan([
-            unified_planning.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(block_1), ObjectExp(ts_2))), 
+            unified_planning.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(block_1), ObjectExp(ts_2))),
             unified_planning.plan.ActionInstance(move, (ObjectExp(block_1), ObjectExp(block_3), ObjectExp(ts_3))),
             unified_planning.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(ts_2), ObjectExp(block_1))),
             unified_planning.plan.ActionInstance(move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2)))])

@@ -151,8 +151,8 @@ class TestDisjunctiveConditionsRemover(TestCase):
         exp = Implies(Not(a), Or(b, And(Iff(c, d),d)))
         act.add_condition(StartTiming(), exp)
         act.add_condition(StartTiming(1), exp)
-        act.add_durative_condition(ClosedInterval(StartTiming(2), StartTiming(3)), exp)
-        act.add_durative_condition(ClosedInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(4), StartTiming(5)), exp)
         act.add_effect(StartTiming(6), a, TRUE())
 
         problem = Problem('temporal_mockup')
@@ -181,8 +181,8 @@ class TestDisjunctiveConditionsRemover(TestCase):
         exp = And(Not(a), b)
         act.add_condition(StartTiming(), exp)
         act.add_condition(StartTiming(1), exp)
-        act.add_durative_condition(ClosedInterval(StartTiming(2), StartTiming(3)), exp)
-        act.add_durative_condition(ClosedInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(4), StartTiming(5)), exp)
         act.add_effect(StartTiming(6), a, TRUE())
 
         problem = Problem('temporal_mockup')

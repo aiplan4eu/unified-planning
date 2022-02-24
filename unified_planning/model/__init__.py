@@ -22,9 +22,9 @@ from unified_planning.model.fluent import Fluent
 from unified_planning.model.object import Object
 from unified_planning.model.problem import Problem
 from unified_planning.model.problem_kind import ProblemKind
-from unified_planning.model.timing import Timing, StartTiming, EndTiming, AbsoluteTiming, IntervalDuration, ClosedIntervalDuration
-from unified_planning.model.timing import FixedDuration, OpenIntervalDuration, LeftOpenIntervalDuration, RightOpenIntervalDuration
-from unified_planning.model.timing import Interval, ClosedInterval, OpenInterval, LeftOpenInterval, RightOpenInterval
+from unified_planning.model.timing import Timing, StartTiming, EndTiming, GlobalStartTiming, GlobalEndTiming, DurationInterval, ClosedDurationInterval
+from unified_planning.model.timing import FixedDuration, OpenDurationInterval, LeftOpenDurationInterval, RightOpenDurationInterval
+from unified_planning.model.timing import TimeInterval, TimePointInterval, ClosedTimeInterval, OpenTimeInterval, LeftOpenTimeInterval, RightOpenTimeInterval
 from unified_planning.model.types import Type, TypeManager
 from unified_planning.model.variable import Variable, FreeVarsOracle
 import unified_planning.model.metrics
@@ -37,9 +37,9 @@ __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction'
             'Object',
             'Problem',
             'ProblemKind',
-            'Timing', 'StartTiming', 'EndTiming', 'AbsoluteTiming', 'IntervalDuration', 'ClosedIntervalDuration',
-            'FixedDuration', 'OpenIntervalDuration', 'LeftOpenIntervalDuration', 'RightOpenIntervalDuration',
-            'Interval', 'ClosedInterval', 'OpenInterval', 'LeftOpenInterval', 'RightOpenInterval',
+            'Timing', 'StartTiming', 'EndTiming', 'GlobalStartTiming', 'GlobalEndTiming',
+            'DurationInterval', 'ClosedDurationInterval', 'FixedDuration', 'OpenDurationInterval', 'LeftOpenDurationInterval', 'RightOpenDurationInterval',
+            'TimeInterval', 'TimePointInterval', 'ClosedTimeInterval', 'OpenTimeInterval', 'LeftOpenTimeInterval', 'RightOpenTimeInterval',
             'Type', 'TypeManager',
             'Variable', 'FreeVarsOracle'
             ]

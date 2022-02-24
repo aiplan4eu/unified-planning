@@ -155,8 +155,8 @@ class TestNegativeConditionsRemover(TestCase):
         problem.add_goal(x)
         problem.add_goal(Not(y))
         problem.add_goal(Not(Iff(x, y)))
-        problem.add_timed_goal(AbsoluteTiming(5), x)
-        problem.add_maintain_goal(ClosedInterval(AbsoluteTiming(3), AbsoluteTiming(4)), x)
+        problem.add_timed_goal(GlobalStartTiming(5), x)
+        problem.add_maintain_goal(ClosedTimeInterval(GlobalStartTiming(3), GlobalStartTiming(4)), x)
         npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPExpressionDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()
@@ -165,7 +165,7 @@ class TestNegativeConditionsRemover(TestCase):
     def test_ad_hoc_2(self):
         x = Fluent('x')
         y = Fluent('y')
-        t = AbsoluteTiming(5)
+        t = GlobalStartTiming(5)
         problem = Problem('ad_hoc')
         problem.add_fluent(x)
         problem.add_fluent(y)

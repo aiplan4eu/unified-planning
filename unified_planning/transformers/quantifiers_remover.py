@@ -74,13 +74,9 @@ class QuantifiersRemover(Transformer):
                 assert isinstance(original_action, DurativeAction)
                 action.name = self.get_fresh_name(action.name)
                 action.clear_conditions()
-                for t, cl in original_action.conditions().items():
+                for i, cl in original_action.conditions().items():
                     for c in cl:
-                        action.add_condition(t, self._expression_quantifier_remover.remove_quantifiers(c, self._problem))
-                action.clear_durative_conditions()
-                for i, cl in original_action.durative_conditions().items():
-                    for c in cl:
-                        action.add_durative_condition(i, self._expression_quantifier_remover.remove_quantifiers(c, self._problem))
+                        action.add_condition(i, self._expression_quantifier_remover.remove_quantifiers(c, self._problem))
                 for t, el in action.effects().items():
                     for e in el:
                         if e.is_conditional():

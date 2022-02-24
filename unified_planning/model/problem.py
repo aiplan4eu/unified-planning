@@ -40,7 +40,7 @@ class Problem:
         self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
         self._timed_goals: Dict['up.model.timing.Timing', List['up.model.fnode.FNode']] = {}
-        self._maintain_goals: Dict['up.model.timing.Interval', List['up.model.fnode.FNode']] = {}
+        self._maintain_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._goals: List['up.model.fnode.FNode'] = list()
         self._metrics : List['up.model.metrics.PlanQualityMetric'] = []
         self._initial_defaults: Dict['up.model.types.Type', 'up.model.fnode.FNode'] = {}
@@ -474,7 +474,7 @@ class Problem:
 
     def add_timed_goal(self, timing: 'up.model.timing.Timing', goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
         '''Adds a timed goal.'''
-        if timing.is_from_end() and timing.bound() > 0:
+        if timing.is_from_end() and timing.delay() > 0:
             raise UPProblemDefinitionError('Timing used in timed goal cannot be `end - k` with k > 0.')
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
@@ -549,10 +549,10 @@ class Problem:
         '''Removes the timed effects.'''
         self._timed_effects = {}
 
-    def add_maintain_goal(self, interval: 'up.model.timing.Interval', goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
+    def add_maintain_goal(self, interval: 'up.model.timing.TimeInterval', goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
         '''Adds a maintain goal.'''
-        if ((interval.lower().is_from_end() and interval.lower().bound() > 0) or
-            (interval.upper().is_from_end() and interval.upper().bound() > 0)):
+        if ((interval.lower().is_from_end() and interval.lower().delay() > 0) or
+            (interval.upper().is_from_end() and interval.upper().delay() > 0)):
             raise UPProblemDefinitionError('Problem timing can not be `end - k` with k > 0.')
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
@@ -562,7 +562,7 @@ class Problem:
         else:
             self._maintain_goals[interval] = [goal_exp]
 
-    def maintain_goals(self) -> Dict['up.model.timing.Interval', List['up.model.fnode.FNode']]:
+    def maintain_goals(self) -> Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']]:
         '''Returns the maintain goals.'''
         return self._maintain_goals
 
@@ -688,20 +688,15 @@ class Problem:
             lower, upper = action.duration().lower(), action.duration().upper()
             if lower.constant_value() != upper.constant_value():
                 self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
-            for i, l in action.durative_conditions().items():
-                if i.lower().bound() != 0 or i.upper().bound() != 0:
+            for i, lc in action.conditions().items():
+                if i.lower().delay() != 0 or i.upper().delay() != 0:
                     self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for c in l:
+                for c in lc:
                     self._update_problem_kind_condition(c)
-            for t, l in action.conditions().items():
-                if t.bound() != 0:
+            for t, le in action.effects().items():
+                if t.delay() != 0:
                     self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for c in l:
-                    self._update_problem_kind_condition(c)
-            for t, l in action.effects().items():
-                if t.bound() != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for e in l:
+                for e in le:
                     self._update_problem_kind_effect(e)
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         else:

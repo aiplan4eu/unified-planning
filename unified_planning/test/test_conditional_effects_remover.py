@@ -16,7 +16,7 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.model import AbsoluteTiming
+from unified_planning.model import GlobalStartTiming
 from unified_planning.model.effect import ASSIGN
 from unified_planning.model.problem_kind import classical_kind, full_classical_kind, basic_temporal_kind
 from unified_planning.test import TestCase, main
@@ -102,7 +102,7 @@ class TestConditionalEffectsRemover(TestCase):
                 self.assertIn(a.action(), problem.actions())
 
     def test_ad_hoc_1(self):
-        ct = AbsoluteTiming(2)
+        ct = GlobalStartTiming(2)
         x = unified_planning.model.Fluent('x')
         y = unified_planning.model.Fluent('y')
         problem = unified_planning.model.Problem('ad_hoc_1')
@@ -118,7 +118,7 @@ class TestConditionalEffectsRemover(TestCase):
         self.assertEqual(And(Not(x), y), eff.value())
 
     def test_mockup_1(self):
-        ct = AbsoluteTiming(2)
+        ct = GlobalStartTiming(2)
         x = unified_planning.model.Fluent('x', IntType())
         y = unified_planning.model.Fluent('y')
         problem = unified_planning.model.Problem('mockup_1')

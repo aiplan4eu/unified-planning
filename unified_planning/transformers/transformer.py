@@ -16,7 +16,7 @@
 
 
 import unified_planning
-from unified_planning.model import FNode, Timing, Interval, Action, InstantaneousAction, DurativeAction, Problem
+from unified_planning.model import FNode, Timing, TimeInterval, Action, InstantaneousAction, DurativeAction, Problem
 from unified_planning.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance, Plan
 from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
 
@@ -68,7 +68,7 @@ class Transformer:
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
-    def _check_and_simplify_conditions_and_durative_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[Tuple[Union[Timing, Interval], FNode]]]:
+    def _check_and_simplify_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
         '''Simplifies conditions and if it is False (a contraddiction)
         returns False, otherwise returns True.
         If the simplification is True (a tautology) removes all conditions at the given timing.
@@ -79,9 +79,9 @@ class Transformer:
         Then, the new conditions are returned as a List[Tuple[Timing, FNode]] and the user can
         decide how to use the new conditions.'''
         #new action conditions
-        nac: List[Tuple[Union[Timing, Interval], FNode]] = []
+        nac: List[Tuple[TimeInterval, FNode]] = []
         # t = timing, lc = list condition
-        for t, lc in action.conditions().items():
+        for i, lc in action.conditions().items():
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
@@ -92,23 +92,6 @@ class Transformer:
             if cs.is_bool_constant():
                 if not cs.bool_constant_value():
                     return (False, [],)
-            else:
-                if cs.is_and():
-                    for new_cond in cs.args():
-                        nac.append((t, new_cond))
-                else:
-                    nac.append((t, cs))
-        for i, lc in action.durative_conditions().items():
-            #conditions (as an And FNode)
-            c = self._env.expression_manager.And(lc)
-            #conditions simplified
-            if simplify_constants:
-                cs = self._simplifier.simplify(c, self._problem)
-            else:
-                cs = self._simplifier.simplify(c)
-            if cs.is_bool_constant():
-                if not cs.bool_constant_value():
-                    return (False, [])
             else:
                 if cs.is_and():
                     for new_cond in cs.args():

@@ -95,15 +95,10 @@ class NegativeConditionsRemover(Transformer):
                 new_durative_action = action.clone()
                 new_durative_action.name = self.get_fresh_name(action.name)
                 new_durative_action.clear_conditions()
-                for t, cl in action.conditions().items():
+                for i, cl in action.conditions().items():
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
-                        new_durative_action.add_condition(t, nc)
-                new_durative_action.clear_durative_conditions()
-                for i, cl in action.durative_conditions().items():
-                    for c in cl:
-                        nc = self._fluent_remover.remove_negative_fluents(c)
-                        new_durative_action.add_durative_condition(i, nc)
+                        new_durative_action.add_condition(i, nc)
                 for t, cel in new_durative_action.conditional_effects().items():
                     for ce in cel:
                         ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
