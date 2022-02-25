@@ -21,24 +21,6 @@ from unified_planning.model.types import _UserType, _IntType, _RealType
 from typing import IO, Any, Optional, cast
 from io import StringIO
 
-#TODO: remove old commentedcode if it is not needed anymore.
-# def _get_optional(x: Optional[Any]):
-#     if x:
-#         return str(x)
-#     return 'None'
-
-# # def _get_type(t: 'up.model.Type'):
-# #     if t.is_bool_type():
-# #         return 'tm.BoolType()'
-# #     elif t.is_int_type():
-# #         return f'tm.IntType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
-# #     elif t.is_real_type():
-# #         return f'tm.RealType({_get_optional(t.lower_bound())}, {_get_optional(t.upper_bound())})'
-# #     elif t.is_user_type():
-# #         return f'tm.UserType("{t.name()}")'
-# #     else:
-# #         raise UPTypeError('Unknown type: %s' % t)
-
 
 class ConverterToPythonString(walkers.DagWalker):
     '''Expression converter to a Python string.'''
@@ -156,8 +138,8 @@ class PythonWriter:
     def _write_problem_code(self, out: IO[str]):
 
         converter = ConverterToPythonString(self.problem.env)
+        out.write('from fractions import Fraction\n')
         out.write('import unified_planning as up\n')
-        out.write('from unified_planning.shortcuts import *\n')
         out.write('env = up.environment.get_env()\n')
         out.write('emgr = env.expression_manager\n')
         out.write('tm = env.type_manager\n')
@@ -294,11 +276,11 @@ def _print_python_type(type: 'up.model.types.Type') -> str:
     if type.is_user_type():
         return f'type_{cast(_UserType, type).name()}'
     elif type.is_bool_type():
-        return 'BoolType()'
+        return 'tm.BoolType()'
     elif type.is_int_type():
-        return f'IntType({str(cast(_IntType, type).lower_bound())}, {str(cast(_IntType, type).upper_bound())})'
+        return f'tm.IntType({str(cast(_IntType, type).lower_bound())}, {str(cast(_IntType, type).upper_bound())})'
     elif type.is_real_type():
-        return f'RealType({str(cast(_RealType, type).lower_bound())}, {str(cast(_RealType, type).upper_bound())})'
+        return f'tm.RealType({str(cast(_RealType, type).lower_bound())}, {str(cast(_RealType, type).upper_bound())})'
     else:
         raise NotImplementedError
 
@@ -307,26 +289,26 @@ def _convert_timing(timing: up.model.Timing) -> str:
     if isinstance(timing.bound(), Fraction):
         bound = f'Fraction({str(timing.bound().numerator)}, {str(timing.bound().denomiantor)})'
     if timing.is_from_start():
-        return f'StartTiming({bound})'
+        return f'up.model.StartTiming({bound})'
     else:
-        return f'EndTiming({bound})'
+        return f'up.model.EndTiming({bound})'
 
 def _convert_interval(interval: up.model.Interval) -> str:
-    interval_feature: str = 'ClosedInterval'
+    interval_feature: str = 'up.model.ClosedInterval'
     if interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'OpenInterval'
+        interval_feature = 'up.model.OpenInterval'
     elif interval.is_left_open() and not interval.is_right_open():
-        interval_feature = 'LeftOpenInterval'
+        interval_feature = 'up.model.LeftOpenInterval'
     elif not interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'RightOpenInterval'
+        interval_feature = 'up.model.RightOpenInterval'
     return f'{interval_feature}({_convert_timing(interval.lower())}, {_convert_timing(interval.upper())})'
 
 def _convert_interval_duration(interval: up.model.IntervalDuration, converter: ConverterToPythonString) -> str:
-    interval_feature: str = 'ClosedIntervalDuration'
+    interval_feature: str = 'up.model.ClosedIntervalDuration'
     if interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'OpenIntervalDuration'
+        interval_feature = 'up.model.OpenIntervalDuration'
     elif interval.is_left_open() and not interval.is_right_open():
-        interval_feature = 'LeftOpenIntervalDuration'
+        interval_feature = 'up.model.LeftOpenIntervalDuration'
     elif not interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'RightOpenIntervalDuration'
+        interval_feature = 'up.model.RightOpenIntervalDuration'
     return f'{interval_feature}({converter.convert(interval.lower())}, {converter.convert(interval.upper())})'
