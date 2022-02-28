@@ -118,7 +118,7 @@ class TestModel(TestCase):
         problem.add_fluent(km, default_initial_value=Int(0))
         problem.add_timed_effect(GlobalStartTiming(5), x, y)
         problem.add_timed_goal(GlobalStartTiming(11), x)
-        problem.add_maintain_goal(TimeInterval(GlobalStartTiming(5), GlobalStartTiming(9)), x)
+        problem.add_timed_goal(TimeInterval(GlobalStartTiming(5), GlobalStartTiming(9)), x)
         problem.add_action(DurativeAction('move'))
         problem.add_action(InstantaneousAction('stop_moving'))
         stop_moving_list = [a for a in problem.instantaneous_actions()]

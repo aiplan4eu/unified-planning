@@ -152,7 +152,7 @@ class TestQuantifiersRemover(TestCase):
         problem.add_object(o3)
         problem.add_timed_effect(GlobalStartTiming(4), x, Forall(FluentExp(y, [o]), o), Exists(FluentExp(y, [o]), o))
         problem.add_timed_goal(GlobalStartTiming(6), x)
-        problem.add_maintain_goal(OpenTimeInterval(GlobalStartTiming(8), GlobalStartTiming(10)), x)
+        problem.add_timed_goal(OpenTimeInterval(GlobalStartTiming(8), GlobalStartTiming(10)), x)
         problem.set_initial_value(x, False)
         problem.set_initial_value(y(o1), True)
         problem.set_initial_value(y(o2), False)

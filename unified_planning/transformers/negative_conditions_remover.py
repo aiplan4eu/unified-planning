@@ -115,14 +115,10 @@ class NegativeConditionsRemover(Transformer):
                 if e.is_conditional():
                     e.set_condition(self._fluent_remover.remove_negative_fluents(e.condition()))
 
-        for t, gl in self._problem.timed_goals().items():
+        for i, gl in self._problem.timed_goals().items():
             for g in gl:
                 ng = self._fluent_remover.remove_negative_fluents(g)
-                self._new_problem.add_timed_goal(t, ng)
-        for i, gl in self._problem.maintain_goals().items():
-            for g in gl:
-                ng = self._fluent_remover.remove_negative_fluents(g)
-                self._new_problem.add_maintain_goal(i, ng)
+                self._new_problem.add_timed_goal(i, ng)
 
         for g in self._problem.goals():
             ng = self._fluent_remover.remove_negative_fluents(g)

@@ -156,7 +156,7 @@ class TestNegativeConditionsRemover(TestCase):
         problem.add_goal(Not(y))
         problem.add_goal(Not(Iff(x, y)))
         problem.add_timed_goal(GlobalStartTiming(5), x)
-        problem.add_maintain_goal(ClosedTimeInterval(GlobalStartTiming(3), GlobalStartTiming(4)), x)
+        problem.add_timed_goal(ClosedTimeInterval(GlobalStartTiming(3), GlobalStartTiming(4)), x)
         npr = NegativeConditionsRemover(problem)
         with self.assertRaises(UPExpressionDefinitionError) as e:
             positive_problem = npr.get_rewritten_problem()

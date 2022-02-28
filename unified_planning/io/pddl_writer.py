@@ -152,8 +152,8 @@ class PDDLWriter:
 
     def _write_domain(self, out: IO[str]):
         problem_kind = self.problem.kind()
-        if problem_kind.has_intermediate_conditions_and_effects() or problem_kind.has_maintain_goals(): # type: ignore
-            raise UPProblemDefinitionError('PDDL2.1 does not support ICE or maintained goals.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
+        if problem_kind.has_intermediate_conditions_and_effects(): # type: ignore
+            raise UPProblemDefinitionError('PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
         if problem_kind.has_timed_effect() or problem_kind.has_timed_goals(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
         out.write('(define ')

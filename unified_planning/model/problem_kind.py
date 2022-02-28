@@ -19,7 +19,7 @@ from typing import Set
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
-    'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME', 'INTERMEDIATE_CONDITIONS_AND_EFFECTS', 'TIMED_EFFECT', 'TIMED_GOALS', 'MAINTAIN_GOALS', 'DURATION_INEQUALITIES'],
+    'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME', 'INTERMEDIATE_CONDITIONS_AND_EFFECTS', 'TIMED_EFFECT', 'TIMED_GOALS', 'DURATION_INEQUALITIES'],
     'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
     'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
     'EFFECTS_KIND' : ['CONDITIONAL_EFFECTS', 'INCREASE_EFFECTS', 'DECREASE_EFFECTS'],
@@ -123,7 +123,6 @@ full_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
 full_temporal_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
 full_temporal_kind.set_time('TIMED_EFFECT') # type: ignore
 full_temporal_kind.set_time('TIMED_GOALS') # type: ignore
-full_temporal_kind.set_time('MAINTAIN_GOALS') # type: ignore
 full_temporal_kind.set_time('DURATION_INEQUALITIES') # type: ignore
 
 quality_metrics_kind = ProblemKind()
