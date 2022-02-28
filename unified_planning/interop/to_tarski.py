@@ -78,7 +78,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
         new_args = []
         for i, x in enumerate(expression.args()):
             if x.is_int_constant():
-                type = (expression.fluent().signature())[i]
+                type = list(expression.fluent().signature().values())[i]
                 typename = _type_name_added_to_language_if_needed(self.lang, type)
                 constant = tarski.syntax.Constant(x.int_constant_value(), \
                     self.lang.get_sort(typename))
@@ -165,7 +165,7 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
             lang.sort(ut.name() if ut.name() != 'object' else object_freshname) # type: ignore
     for fluent in problem.fluents(): #adding fluents to the language
         signature = []
-        for type in fluent.signature():
+        for type in fluent.signature().values():
             if type.is_user_type():
                 signature.append(lang.get_sort(type.name() if type.name() != 'object' else object_freshname)) # type: ignore
             else:

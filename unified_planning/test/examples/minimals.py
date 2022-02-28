@@ -169,7 +169,7 @@ def get_example_problems():
     # basic exists
     sem = UserType("Semaphore")
     x = Fluent('x')
-    y = Fluent('y', BoolType(), [sem])
+    y = Fluent('y', BoolType(), p1=sem)
     o1 = Object('o1', sem)
     o2 = Object('o2', sem)
     s_var = Variable("s", sem)
@@ -194,14 +194,14 @@ def get_example_problems():
     # basic forall
     sem = UserType("Semaphore")
     x = Fluent('x')
-    y = Fluent('y', BoolType(), [sem])
+    y = Fluent('y', BoolType(), p1=sem)
     o1 = Object('o1', sem)
     o2 = Object('o2', sem)
     s_var = Variable("s", sem)
     a = InstantaneousAction('a')
     a.add_precondition(Forall(Not(y(s_var)), s_var))
     a.add_effect(x, True)
-    problem = Problem('basic_exists')
+    problem = Problem('basic_forall')
     problem.add_fluent(x)
     problem.add_fluent(y)
     problem.add_object(o1)
@@ -217,9 +217,9 @@ def get_example_problems():
 
     # temporal conditional
     Obj = UserType('Obj')
-    is_same_obj = Fluent('is_same_obj', BoolType(), [Obj, Obj])
-    is_ok = Fluent('is_ok', BoolType(), [Obj])
-    is_ok_giver = Fluent('is_ok_giver', BoolType(), [Obj])
+    is_same_obj = Fluent('is_same_obj', BoolType(), p1=Obj, p2=Obj)
+    is_ok = Fluent('is_ok', BoolType(), p1=Obj)
+    is_ok_giver = Fluent('is_ok_giver', BoolType(), p1=Obj)
     ok_given = Fluent('ok_given')
     set_giver = DurativeAction('set_giver', y=Obj)
     y = set_giver.parameter('y')

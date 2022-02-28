@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from simplejson import OrderedDict
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
@@ -122,9 +123,9 @@ class TestProblem(TestCase):
 
         robot_at = problem.fluent('robot_at')
         self.assertEqual(robot_at.name(), 'robot_at')
-        self.assertEqual(str(robot_at), 'bool robot_at[Location]')
+        self.assertEqual(str(robot_at), 'bool robot_at[p1=Location]')
         self.assertEqual(robot_at.arity(), 1)
-        self.assertEqual(robot_at.signature(), [Location])
+        self.assertEqual(robot_at.signature(), OrderedDict([('p1', Location)]))
         self.assertTrue(robot_at.type().is_bool_type())
 
         battery_charge = problem.fluent('battery_charge')
@@ -197,13 +198,13 @@ class TestProblem(TestCase):
         robot_at = problem.fluent('robot_at')
         self.assertEqual(robot_at.name(), 'robot_at')
         self.assertEqual(robot_at.arity(), 1)
-        self.assertEqual(robot_at.signature(), [Location])
+        self.assertEqual(robot_at.signature(), OrderedDict([('p1', Location)]))
         self.assertTrue(robot_at.type().is_bool_type())
 
         cargo_at = problem.fluent('cargo_at')
         self.assertEqual(cargo_at.name(), 'cargo_at')
         self.assertEqual(cargo_at.arity(), 1)
-        self.assertEqual(cargo_at.signature(), [Location])
+        self.assertEqual(cargo_at.signature(), OrderedDict([('p1', Location)]))
         self.assertTrue(cargo_at.type().is_bool_type())
 
         cargo_mounted = problem.fluent('cargo_mounted')
@@ -286,19 +287,19 @@ class TestProblem(TestCase):
         robot_at = problem.fluent('robot_at')
         self.assertEqual(robot_at.name(), 'robot_at')
         self.assertEqual(robot_at.arity(), 2)
-        self.assertEqual(robot_at.signature(), [Robot, Location])
+        self.assertEqual(robot_at.signature(), OrderedDict([('p1', Robot), ('p2', Location)]))
         self.assertTrue(robot_at.type().is_bool_type())
 
         cargo_at = problem.fluent('cargo_at')
         self.assertEqual(cargo_at.name(), 'cargo_at')
         self.assertEqual(cargo_at.arity(), 2)
-        self.assertEqual(cargo_at.signature(), [Container, Location])
+        self.assertEqual(cargo_at.signature(), OrderedDict([('p1', Container), ('p2', Location)]))
         self.assertTrue(cargo_at.type().is_bool_type())
 
         cargo_mounted = problem.fluent('cargo_mounted')
         self.assertEqual(cargo_mounted.name(), 'cargo_mounted')
         self.assertEqual(cargo_mounted.arity(), 2)
-        self.assertEqual(cargo_mounted.signature(), [Container, Robot])
+        self.assertEqual(cargo_mounted.signature(), OrderedDict([('p1', Container), ('p2', Robot)]))
         self.assertTrue(cargo_mounted.type().is_bool_type())
 
         move = problem.action('move')
@@ -392,8 +393,8 @@ class TestProblem(TestCase):
 
     def test_fluents_defaults(self):
         Location = UserType('Location')
-        robot_at = Fluent('robot_at', BoolType(), [Location])
-        distance = Fluent('distance', RealType(), [Location, Location])
+        robot_at = Fluent('robot_at', BoolType(), p1=Location)
+        distance = Fluent('distance', RealType(), p1=Location, p2=Location)
 
         N = 10
         locations = [Object(f'l{i}', Location) for i in range(N)]
@@ -421,9 +422,9 @@ class TestProblem(TestCase):
 
     def test_problem_defaults(self):
         Location = UserType('Location')
-        robot_at = Fluent('robot_at', BoolType(), [Location])
-        distance = Fluent('distance', IntType(), [Location, Location])
-        cost = Fluent('cost', IntType(), [Location, Location])
+        robot_at = Fluent('robot_at', BoolType(), p1=Location)
+        distance = Fluent('distance', IntType(), p1=Location, p2=Location)
+        cost = Fluent('cost', IntType(), p1=Location, p2=Location)
 
         N = 10
         locations = [Object(f'l{i}', Location) for i in range(N)]

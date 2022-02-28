@@ -223,7 +223,7 @@ class Problem:
             self._fluents_defaults[fluent] = v_exp
         if fluent.type().is_user_type() and fluent.type() not in self._user_types:
             self._add_user_type(fluent.type())
-        for type in fluent.signature():
+        for type in fluent.signature().values():
             if type.is_user_type() and type not in self._user_types:
                 self._add_user_type(type)
 
@@ -428,7 +428,7 @@ class Problem:
             ds = domain_sizes[i];
             rem = quot % ds
             quot //= ds
-            v = domain_item(self, fluent.signature()[i], rem)
+            v = domain_item(self, list(fluent.signature().values())[i], rem) #TODO: find a better way
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
@@ -442,7 +442,7 @@ class Problem:
             else:
                 ground_size = 1
                 domain_sizes = []
-                for p in f.signature():
+                for p in f.signature().values():
                     ds = domain_size(self, p)
                     domain_sizes.append(ds)
                     ground_size *= ds
@@ -629,7 +629,7 @@ class Problem:
             self._kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
         elif fluent.type().is_user_type():
             self._kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        for t in fluent.signature():
+        for t in fluent.signature().values():
             self._update_problem_kind_type(t)
 
     def _update_problem_kind_action(self, action: 'up.model.action.Action'):

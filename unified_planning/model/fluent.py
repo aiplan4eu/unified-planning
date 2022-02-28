@@ -20,23 +20,34 @@ that defines the types of its parameters.
 
 import unified_planning
 from unified_planning.environment import get_env, Environment
-from typing import List
+from typing import List, OrderedDict, Optional
 
 
 class Fluent:
     """Represents a fluent."""
     def __init__(self, name: str, typename: 'unified_planning.model.types.Type' = None,
-                 signature: List['unified_planning.model.types.Type'] = [], env: Environment = None):
+                 signature: Optional[OrderedDict[str, 'unified_planning.model.types.Type']] = None, env: Environment = None, **kwargs):
         self._env = get_env(env)
         self._name = name
         if typename is None:
             self._typename = self._env.type_manager.BoolType()
         else:
             self._typename = typename
-        self._signature = signature
+        if signature is not None:
+            self._signature = signature
+        else:
+            self._signature = OrderedDict()
+            for param_name, param_type in kwargs.items():
+                #NOTE 1: We should be sure that all the param names are different, right?
+                self._signature[param_name] = param_type
+
 
     def __repr__(self) -> str:
-        return f'{str(self.type())} {self.name()}{str(self.signature()) if self.arity() > 0 else ""}'
+        sign = ''
+        if self.arity() > 0:
+            sign_items = [f'{n}={str(t)}' for n, t in self.signature().items()]
+            sign = f'[{", ".join(sign_items)}]'
+        return f'{str(self.type())} {self.name()}{sign}'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Fluent):
@@ -46,8 +57,8 @@ class Fluent:
 
     def __hash__(self) -> int:
         res = hash(self._typename)
-        for s in self._signature:
-            res += hash(s)
+        for n, t in self._signature.items():
+            res += hash(n) + hash(t)
         return res ^ hash(self._name)
 
     def name(self) -> str:
@@ -58,7 +69,7 @@ class Fluent:
         """Returns the fluent type."""
         return self._typename
 
-    def signature(self) -> List['unified_planning.model.types.Type']:
+    def signature(self) -> OrderedDict[str, 'unified_planning.model.types.Type']:
         """Returns the fluent signature.
         The signature is the list of types of the fluent parameters.
         """

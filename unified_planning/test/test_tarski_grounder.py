@@ -89,7 +89,7 @@ class TestTarskiGrounder(TestCase):
     def test_tarski_grounder_mockup_problem(self):
         problem = Problem('mockup')
         Location = UserType('Location')
-        at = Fluent('at', BoolType(), [Location])
+        at = Fluent('at', BoolType(), p1=Location)
         at_l1 = Fluent('at_l1')
         at_l2 = Fluent('at_l2')
         l1 = Object('l1', Location)

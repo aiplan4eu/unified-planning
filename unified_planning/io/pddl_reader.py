@@ -413,19 +413,25 @@ class PDDLReader:
 
         for p in domain_res.get('predicates', []):
             n = p[0]
-            params = []
+            # params = [] #TODO Old code, can be cancelled if everything works
+            # for g in p[1]:
+            #     t = types_map[g[1] if len(g) > 1 else 'object']
+            #     params.extend([t for i in range(len(g[0]))])
+            params = OrderedDict()
             for g in p[1]:
-                t = types_map[g[1] if len(g) > 1 else 'object']
-                params.extend([t for i in range(len(g[0]))])
+                param_type = types_map[g[1] if len(g) > 1 else 'object']
+                for param_name in g[0]:
+                    params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
 
         for p in domain_res.get('functions', []):
             n = p[0]
-            params = []
+            params = OrderedDict()
             for g in p[1]:
-                t = types_map[g[1] if len(g) > 1 else 'object']
-                params.extend([t for i in range(len(g[0]))])
+                param_type = types_map[g[1] if len(g) > 1 else 'object']
+                for param_name in g[0]:
+                    params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.RealType(), params, self._env)
             if n == 'total-cost':
                 has_actions_cost = True

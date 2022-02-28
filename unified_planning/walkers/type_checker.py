@@ -74,7 +74,7 @@ class TypeChecker(walkers.DagWalker):
         f = expression.fluent()
         if len(args) != len(f.signature()):
             return None
-        for (arg, p_type) in zip(args, f.signature()):
+        for (arg, p_type) in zip(args, f.signature().values()):
             if not self.is_compatible_type(arg, p_type):
                 return None
         return f.type()

@@ -215,22 +215,22 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     for p in lang.predicates:
         if str(p.name) in ['=', '!=', '<', '<=', '>', '>=']:
             continue
-        signature: List['unified_planning.model.Type'] = []
-        for t in p.sort:
+        signature: OrderedDict[str, 'unified_planning.model.Type'] = OrderedDict()
+        for i, t in enumerate(p.sort):
             type = types[str(t.name)]
             assert type is not None
-            signature.append(type)
+            signature[f'p{str(i+1)}'] = type
         fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
         fluents[fluent.name()] = fluent
         problem.add_fluent(fluent)
     for p in lang.functions:
         if str(p.name) in ['ite', '@', '+', '-', '*', '/', '**', '%', 'sqrt']:
             continue
-        signature = []
-        for t in p.domain:
+        signature = OrderedDict()
+        for i, t in enumerate(p.domain):
             type = types[str(t.name)]
             assert type is not None
-            signature.append(type)
+            signature[f'p{str(i+1)}'] = type
         func_sort = p.sort[-1]
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:
@@ -295,7 +295,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     # Set initial values
     initial_values = {}
     for fluent in fluents.values():
-        l = [problem.objects_hierarchy(t) for t in fluent.signature()]
+        l = [problem.objects_hierarchy(t) for t in fluent.signature().values()]
         if fluent.type().is_bool_type():
             default_value = em.FALSE()
         elif fluent.type().is_real_type():
