@@ -38,8 +38,15 @@ class FNode(object):
     # environment two nodes have always different ids, but in
     # different environments they can have the same id. This is not an
     # issue since, by default, equality coincides with identity.
-    '''def __hash__(self) -> int:
-        return self._node_id'''
+    def __hash__(self) -> int:
+        return self._node_id
+
+    ##ADDED###
+    def __deepcopy__(self, memo):
+        memo[self._node_id] = newself = self.__class__(self, copy.deepcopy(self._node_id, memo))
+        newself._content = copy.deepcopy(self._content, memo)
+        newself._node_id = copy.deepcopy(self._node_id, memo)
+        return newself
     ##ADDED###
 
     def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:

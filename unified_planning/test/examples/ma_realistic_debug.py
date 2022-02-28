@@ -26,12 +26,13 @@ from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.io.pddl_reader import PDDLReader
 from unified_planning.transformers import NegativeConditionsRemover
 
+
 Example = namedtuple('Example', ['problem', 'plan'])
 problems = {}
 examples = get_example_problems()
 
 def ma_example():
-    problem = examples['robot_no_negative_preconditions'].problem
+    problem = examples['robot'].problem
 
     # examples['...'].problem supported:
     # Yes: robot                                 PDDL:Yes
@@ -52,7 +53,7 @@ def ma_example():
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
-    plan = examples['robot_no_negative_preconditions'].plan
+    plan = examples['robot'].plan
     robot1 = Agent()
     robot2 = Agent()
     environment = Environment_()
@@ -76,23 +77,26 @@ def ma_example():
 
     print("Single agent plan:\n ", plan)
     plan = ma_problem.extract_plans(plan)
-    print("Multi agent plan:\n ", plan)
+    print("Multi agent plan:\n ", plan, "\n")
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
-    w = PDDLWriter(problem)
-    print(w.get_domain())
-    print(w.get_problem())
+    #w = PDDLWriter(problem)
+    #print(w.get_domain())
+    #print(w.get_problem())
+
+    ma_problem.pddl_writer()
+
 
     #KeyError di Location ("Usertype")
-    with OneshotPlanner(name='tamer') as planner:
-        solve_plan = planner.solve(problem)
-        print("Pyperplan returned: %s" % solve_plan)
+    #with OneshotPlanner(name='tamer') as planner:
+    #    solve_plan = planner.solve(problem)
+    #    print("Pyperplan returned: %s" % solve_plan)
 
     #unified_planning.exceptions.UPExpressionDefinitionError: Expression: (not (l_from == l_to)) is not in NNF.
-    npr = NegativeConditionsRemover(problem)
-    positive_problem = npr.get_rewritten_problem()
-    print("positive_problem", positive_problem)
+    #npr = NegativeConditionsRemover(problem)
+    #positive_problem = npr.get_rewritten_problem()
+    #print("positive_problem", positive_problem)
 
 
 

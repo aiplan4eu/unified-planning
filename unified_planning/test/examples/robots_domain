@@ -1,0 +1,13 @@
+(define (domain robots-domain)
+ (:requirements :strips :typing)
+ (:types location)
+ (:predicates (robot_at_0 ?p0 - location) (robot_at_1 ?p0 - location))
+ (:action move_0
+  :parameters ( ?l_from - location ?l_to - location)
+  :precondition (and (robot_at_0 ?l_from))
+  :effect (and (not (robot_at_0 ?l_from)) (robot_at_0 ?l_to)))
+ (:action move_1
+  :parameters ( ?l_from - location ?l_to - location)
+  :precondition (and (robot_at_1 ?l_from))
+  :effect (and (not (robot_at_1 ?l_from)) (robot_at_1 ?l_to)))
+)

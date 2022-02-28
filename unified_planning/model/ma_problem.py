@@ -27,11 +27,12 @@ from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.problem import Problem
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError
 from unified_planning.model.agent import Agent
+from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.environment import Environment
-from unified_planning.model.environment import Environment_
+from unified_planning.model.environment_ma import Environment_
 import collections
 from typing import List, Union
-
+import re
 
 
 class MultiAgentProblem(Problem):
@@ -74,12 +75,28 @@ class MultiAgentProblem(Problem):
         if not default_initial_value is None:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
+        '''if fluent.type().is_user_type() and fluent.type() not in self._user_types:
+            self._user_types.append(fluent.type()) # type: ignore
+        for type in fluent.signature():
+            if type.is_user_type() and type not in self._user_types:
+                self._user_types.append(type)'''
 
 
     def add_objects(self, objs: List['unified_planning.model.object.Object']):
         '''Adds the given fluents.'''
+        #controllare##############
         for obj in objs:
+
+            if self.has_name(obj.name()):
+                raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
             self.add_object(obj)
+            if obj.type().is_user_type() and obj.type() not in self._user_types:
+                self._user_types.append(obj.type())
+
+    def add_user_types(self, user_types):
+        for user_type in user_types:
+            if user_type.is_user_type() and user_type not in self._user_types:
+                self._user_types.append(user_type)
 
     '''def add_objects(self, objs: List['unified_planning.model.object.Object']):
         for ag in self.agents_list:
@@ -106,6 +123,7 @@ class MultiAgentProblem(Problem):
 
     def get_agents(self):
         return self.agents_list
+
 
     def compile(self):
         for flu in self.get_environment_().get_fluents():
@@ -139,6 +157,9 @@ class MultiAgentProblem(Problem):
                     change_name = False'''
 
                 for i in act._preconditions:
+                    #print("prima", i._node_id)
+                    #i._node_id = i._node_id + int(self.get_agents().index(ag))
+                    #print("dopo", i._node_id)
                     #print("i._content", i._content, type(i._content.args), i.args())
                     if i._content.args != None:
                         for flu in i._content.args:
@@ -177,7 +198,8 @@ class MultiAgentProblem(Problem):
                 self.set_initial_value(flu, value)
             for goal in ag.get_goals():
                 goal = copy.deepcopy(goal)
-                setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
+                if goal.is_fluent_exp():
+                    setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_goal(goal)
             '''for obj in ag.get_all_objects():
                 obj = copy.deepcopy(obj)
@@ -203,4 +225,26 @@ class MultiAgentProblem(Problem):
                 #    setattr(par._content.payload, '_name', str(getattr(par._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.plan.append(act)
         return self.plan
+
+    def pddl_writer(self):
+        w = PDDLWriter(self)
+        prob_str = w.get_problem()
+        problems = []
+        for i in range(len(self.get_agents())):
+            n_prob = i
+            query = prob_str
+            for a in range(len(self.get_agents())):
+                if (a != n_prob):
+                    p = re.compile(r'[({\[]([a-z]*.[a-z]*.'+ str(a) + ').*?[)\]}]', re.MULTILINE)
+                    subst = ""
+                    query = re.sub(p, subst, query)
+
+            problems.append(query)
+            problem = open(str(self.name) + '_problem_' + str(i), "w")
+            problem.write(query)
+            problem.close()
+        domain = open(str(self.name) +'_domain', "w")
+        domain.write(w.get_domain())
+        domain.close()
+        return problems
 

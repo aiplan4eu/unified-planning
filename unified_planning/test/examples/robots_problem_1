@@ -1,0 +1,8 @@
+(define (problem robots-problem)
+ (:domain robots-domain)
+ (:objects 
+   l1 l2 - location
+ )
+ (:init  (robot_at_1 l1))
+ (:goal (and  (robot_at_1 l2)))
+)

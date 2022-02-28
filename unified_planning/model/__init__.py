@@ -30,7 +30,7 @@ from unified_planning.model.variable import Variable, FreeVarsOracle
 
 from unified_planning.model.agent import Agent
 from unified_planning.model.ma_problem import MultiAgentProblem
-from unified_planning.model.environment import Environment_
+from unified_planning.model.environment_ma import Environment_
 
 __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
             'Effect',

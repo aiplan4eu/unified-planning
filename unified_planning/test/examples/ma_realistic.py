@@ -51,7 +51,7 @@ def ma_example():
     # No:  timed_connected_locations
 
     fluents_problem = problem.fluents()
-    user_types = problem.user_types()
+    #user_types = problem.user_types()
     actions_problem = problem.actions()
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
@@ -82,13 +82,16 @@ def ma_example():
     print(problem)
     print("Single agent plan:\n ", plan)
     plan = ma_problem.extract_plans(plan)
-    print("Multi agent plan:\n ", plan)
+    print("Multi agent plan:\n ", plan, "\n")
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
-    '''w = PDDLWriter(problem)
+    problem.pddl_writer()
+
+    w = PDDLWriter(problem)
     print(w.get_domain())
-    print(w.get_problem())'''
+    print(w.get_problem())
+
 
     #npr = NegativeConditionsRemover(problem)
     #positive_problem = npr.get_rewritten_problem()
@@ -96,21 +99,8 @@ def ma_example():
 
     with OneshotPlanner(name='pyperplan') as planner:
         solve_plan = planner.solve(problem)
-        print("Tamer returned: %s" % solve_plan)
+        print("Pyperplan returned: %s" % solve_plan)
 
-    #with OneshotPlanner(name='pyperplan') as planner:
-    #    solve_plan = planner.solve(problem)
-    #    print("Pyperplan returned: %s" % solve_plan)
-
-    #dnfr = DisjunctiveConditionsRemover(problem)
-    #dnf_problem = dnfr.get_rewritten_problem()
-    #print(dnf_problem)
-
-    #cer = ConditionalEffectsRemover(problem)
-    #unconditional_problem = cer.get_rewritten_problem()
-    #print(unconditional_problem)
-    #qr = QuantifiersRemover(problem)
-    #uq_problem = qr.get_rewritten_problem()
 
 
 
@@ -141,8 +131,8 @@ def ma_example_env():
 
 
     Location = UserType('Location')
-    l3 = Object('l1', Location)
-    l4 = Object('l2', Location)
+    l3 = Object('l3', Location)
+    l4 = Object('l4', Location)
     cargo_at = Fluent('cargo_at', BoolType(), [Location])
     environment.add_fluent(cargo_at)
     environment.set_initial_value(cargo_at(l3), False)
@@ -160,5 +150,7 @@ def ma_example_env():
     robots = Example(problem=problem, plan=plan)
     problems['robots_env'] = robots
     print(problems['robots_env'])
+
+    problem.pddl_writer()
 
 ma_example()
