@@ -461,7 +461,7 @@ class Problem:
         '''Returns the problem's fluents defaults.'''
         return self._fluents_defaults
     
-    def _initial_values_structure(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
+    def explicit_initial_values(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
         '''Returns the problem's defined initial values.
         IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values().'''
         return self._initial_value

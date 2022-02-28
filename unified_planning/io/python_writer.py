@@ -219,7 +219,7 @@ class PythonWriter:
                 raise NotImplementedError
             out.write(f'problem.add_action(act_{a.name})\n')
 
-        for f_exp, v_exp in self.problem._initial_values_structure().items(): # add only previously added initial values
+        for f_exp, v_exp in self.problem.explicit_initial_values().items(): # add only previously added initial values
             out.write(f'problem.set_initial_value({converter.convert(f_exp)}, {converter.convert(v_exp)})\n')
 
         for t, el in self.problem.timed_effects().items(): # add timed effects
@@ -254,17 +254,17 @@ class PythonWriter:
                 raise NotImplementedError
             out.write(')\n')
 
-    def print_domain(self): # TODO: find a better name
-        '''Prints to std output the PDDL domain.'''
+    def print_problem_python_commands(self):
+        '''Prints the string representing all the necessary commands to recreate the problem.'''
         self._write_problem_code(sys.stdout)
 
     def write_problem_code(self) -> str:
-        '''Returns the PDDL domain.'''
+        '''Returns the string representing all the necessary commands to recreate the problem.'''
         out = StringIO()
         self._write_problem_code(out)
         return out.getvalue()
 
-    def write_domain(self, filename: str): # TODO: find a better name
+    def write_problem_code_to_file(self, filename: str):
         '''Dumps to file the PDDL domain.'''
         with open(filename, 'w') as f:
             self._write_problem_code(f)
