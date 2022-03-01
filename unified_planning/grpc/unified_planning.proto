@@ -154,7 +154,7 @@ message EffectExpression {
 message Effect {
     // Required. The actual effect that should take place.
     EffectExpression effect = 1;
-    
+
     // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
     // features: durative_actions
     Timing occurence_time = 2;
@@ -163,8 +163,8 @@ message Effect {
 
 message Condition {
     Expression cond = 1;
-    
-    // Optional. Must be set for durative actions where it specifies the temporal interval 
+
+    // Optional. Must be set for durative actions where it specifies the temporal interval
     // over which when the condition should hold.
     // features: durative_actions
     TimeInterval span = 2;
@@ -260,7 +260,7 @@ message Duration {
 // ============== Problem =========================
 
 
-// A Goal is currently an expression that must hold either: 
+// A Goal is currently an expression that must hold either:
 // - in the final state,
 // - over a specific temporal interval (under the `timed_goals` features)
 message Goal {
@@ -319,7 +319,8 @@ enum Feature {
     DURATIVE_ACTIONS = 0;
     CONDITIONAL_EFFECTS = 1;
     ACTION_COSTS = 2;
-    TIMED_FACTS = 3;
+    TIMED_EFFECTS = 3;
+    TIMED_GOALS = 4;
 }
 
 
@@ -351,7 +352,7 @@ message Plan {
     // The order of the actions in the list must be compatible with the partial order of the start times.
     // In case of non-temporal planning, this allows having all start time at 0 and only rely on the order in this sequence.
     repeated ActionInstance actions = 1;
-    
+
     // TODO: add an optional cost field?
 }
 
