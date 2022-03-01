@@ -202,12 +202,9 @@ class PythonWriter:
                 if a.cost() is not None:
                     out.write(f'act_{a.name}.set_cost({converter.convert(a.cost())})\n')
                 out.write(f'act_{a.name}.set_duration_constraint({_convert_interval_duration(a.duration(), converter)})\n')
-                for t, cl in a.conditions().items():
+                for i, cl in a.conditions().items():
                     for c in cl:
-                        out.write(f'act_{a.name}.add_condition({_convert_timing(t)}, {converter.convert(c)})\n')
-                for i, dcl in a.durative_conditions().items():
-                    for dc in dcl:
-                        out.write(f'act_{a.name}.add_durative_condition({_convert_interval(i)}, {converter.convert(dc)})\n')
+                        out.write(f'act_{a.name}.add_condition({_convert_interval(i)}, {converter.convert(c)})\n')
                 for t, el in a.effects().items():
                     for e in el:
                         if e.is_increase():
@@ -232,13 +229,9 @@ class PythonWriter:
                 else:
                     out.write(f'problem.add_timed_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
         
-        for t, gl in self.problem.timed_goals().items(): # add timed goals
+        for i, gl in self.problem.timed_goals().items(): # add timed goals
             for g in gl:
-                out.write(f'problem.add_timed_goal(timing={_convert_timing(t)}, goal={converter.convert(g)})\n')
-        
-        for i, gl in self.problem.maintain_goals().items(): # add maintain goals
-            for g in gl:
-                out.write(f'problem.add_maintain_goal(interval={_convert_interval(i)}, goal={converter.convert(g)})\n')
+                out.write(f'problem.add_timed_goal(timing={_convert_interval(i)}, goal={converter.convert(g)})\n')
         
         for g in self.problem.goals(): # add goals
             out.write(f'problem.add_goal(goal={converter.convert(g)})\n')
@@ -288,30 +281,30 @@ def _print_python_type(type: 'up.model.types.Type') -> str:
         raise NotImplementedError
 
 def _convert_timing(timing: up.model.Timing) -> str:
-    bound: str = f'{str(timing.bound())}'
-    if isinstance(timing.bound(), Fraction):
-        bound = f'Fraction({str(timing.bound().numerator)}, {str(timing.bound().denomiantor)})'
+    delay: str = f'{str(timing.delay())}'
+    if isinstance(timing.delay(), Fraction):
+        delay = f'Fraction({str(timing.delay().numerator)}, {str(timing.delay().denominator)})'
     if timing.is_from_start():
-        return f'up.model.StartTiming({bound})'
+        return f'up.model.StartTiming({delay})'
     else:
-        return f'up.model.EndTiming({bound})'
+        return f'up.model.EndTiming({delay})'
 
-def _convert_interval(interval: up.model.Interval) -> str:
-    interval_feature: str = 'up.model.ClosedInterval'
+def _convert_interval(interval: up.model.TimeInterval) -> str:
+    interval_feature: str = 'up.model.ClosedTimeInterval'
     if interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'up.model.OpenInterval'
+        interval_feature = 'up.model.OpenTimeInterval'
     elif interval.is_left_open() and not interval.is_right_open():
-        interval_feature = 'up.model.LeftOpenInterval'
+        interval_feature = 'up.model.LeftOpenTimeInterval'
     elif not interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'up.model.RightOpenInterval'
+        interval_feature = 'up.model.RightOpenTimeInterval'
     return f'{interval_feature}({_convert_timing(interval.lower())}, {_convert_timing(interval.upper())})'
 
-def _convert_interval_duration(interval: up.model.IntervalDuration, converter: ConverterToPythonString) -> str:
-    interval_feature: str = 'up.model.ClosedIntervalDuration'
+def _convert_interval_duration(interval: up.model.DurationInterval, converter: ConverterToPythonString) -> str:
+    interval_feature: str = 'up.model.ClosedDurationInterval'
     if interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'up.model.OpenIntervalDuration'
+        interval_feature = 'up.model.OpenDurationInterval'
     elif interval.is_left_open() and not interval.is_right_open():
-        interval_feature = 'up.model.LeftOpenIntervalDuration'
+        interval_feature = 'up.model.LeftOpenDurationInterval'
     elif not interval.is_left_open() and interval.is_right_open():
-        interval_feature = 'up.model.RightOpenIntervalDuration'
+        interval_feature = 'up.model.RightOpenDurationInterval'
     return f'{interval_feature}({converter.convert(interval.lower())}, {converter.convert(interval.upper())})'

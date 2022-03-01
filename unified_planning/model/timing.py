@@ -247,10 +247,10 @@ class TimeInterval:
             res ^= hash('is_right_open')
         return res
 
-    def lower(self) -> FNode:
+    def lower(self) -> Timing:
         return self._lower
 
-    def upper(self) -> FNode:
+    def upper(self) -> Timing:
         return self._upper
 
     def is_left_open(self) -> bool:
