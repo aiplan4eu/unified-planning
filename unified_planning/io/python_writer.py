@@ -231,7 +231,7 @@ class PythonWriter:
         
         for i, gl in self.problem.timed_goals().items(): # add timed goals
             for g in gl:
-                out.write(f'problem.add_timed_goal(timing={_convert_interval(i)}, goal={converter.convert(g)})\n')
+                out.write(f'problem.add_timed_goal(interval={_convert_interval(i)}, goal={converter.convert(g)})\n')
         
         for g in self.problem.goals(): # add goals
             out.write(f'problem.add_goal(goal={converter.convert(g)})\n')
