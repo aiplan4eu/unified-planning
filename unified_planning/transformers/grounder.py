@@ -36,12 +36,12 @@ class Grounder(Transformer):
     '''
     def __init__(self, problem: Problem, name: str = 'grnd', \
             grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None):
-        '''This class transforms an unified_planning problem into a grounded problem, with the method 
-        get_rewritten_problem(). The problem is given at creation time. 
+        '''This class transforms an unified_planning problem into a grounded problem, with the method
+        get_rewritten_problem(). The problem is given at creation time.
         The name is added in front of every grounded action and at the beginning of the problem's name.
 
-        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if 
-        it is given, it represents a map between an action of the original problem and a list of tuple 
+        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if
+        it is given, it represents a map between an action of the original problem and a list of tuple
         of it's parameters. The resulting problem will have an action for every tuple in the map,
         obtained by applying the action to the specific parameters of the tuple.'''
         Transformer.__init__(self, problem, name)
@@ -69,9 +69,9 @@ class Grounder(Transformer):
     def get_rewritten_problem(self) -> Problem:
         '''Creates a problem that is a copy of the original problem
         but every action is substituted by it's grounded derivates.
-        
-        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if 
-        it is given, it represents a map between an action of the original problem and a list of tuple 
+
+        If the grounding_actions_map is None, the problem is grounded in a combinatorial way, while if
+        it is given, it represents a map between an action of the original problem and a list of tuple
         of it's parameters. The resulting problem will have an action for every tuple in the map,
         obtained by applying the action to the specific parameters of the tuple.'''
         if self._new_problem is not None:
@@ -160,29 +160,20 @@ class Grounder(Transformer):
         elif isinstance(old_action, DurativeAction):
             new_durative_action = DurativeAction(self.get_fresh_name(old_action.name, naming_list))
             new_durative_action.set_duration_constraint(old_action.duration())
-            for t, cl in old_action.conditions().items():
+            for i, cl in old_action.conditions().items():
                 for c in cl:
-                    new_durative_action.add_condition(t, self._substituter.substitute(c, subs))
-            for i, cl in old_action.durative_conditions().items():
-                for c in cl:
-                    new_durative_action.add_durative_condition(i, self._substituter.substitute(c, subs))
+                    new_durative_action.add_condition(i, self._substituter.substitute(c, subs))
             for t, el in old_action.effects().items():
                 for e in el:
                     new_effect = self._create_effect_with_given_subs(e, subs)
                     if new_effect is not None:
                         new_durative_action._add_effect_instance(t, new_effect)
-            is_feasible, new_conditions = self._check_and_simplify_conditions_and_durative_conditions(new_durative_action, simplify_constants=True)
+            is_feasible, new_conditions = self._check_and_simplify_conditions(new_durative_action, simplify_constants=True)
             if not is_feasible:
                 return None
             new_durative_action.clear_conditions()
-            new_durative_action.clear_durative_conditions()
-            for timing_or_interval, c in new_conditions:
-                if isinstance(timing_or_interval, unified_planning.model.Timing):
-                    new_durative_action.add_condition(timing_or_interval, c)
-                elif isinstance(timing_or_interval, unified_planning.model.Interval):
-                    new_durative_action.add_durative_condition(timing_or_interval, c)
-                else:
-                    raise NotImplementedError
+            for interval, c in new_conditions:
+                new_durative_action.add_condition(interval, c)
             return new_durative_action
         else:
             raise NotImplementedError

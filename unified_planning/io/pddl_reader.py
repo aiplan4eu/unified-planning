@@ -291,11 +291,11 @@ class PDDLReader:
                     cond = self._em.Forall(cond, *vars.values())
                 act.add_condition(up.model.EndTiming(), cond)
             elif len(exp) == 3 and op == 'over' and exp[1] == 'all':
-                t_all = up.model.OpenInterval(up.model.StartTiming(), up.model.EndTiming())
+                t_all = up.model.OpenTimeInterval(up.model.StartTiming(), up.model.EndTiming())
                 cond = self._parse_exp(problem, act, types_map, {} if vars is None else vars, exp[2])
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
-                act.add_durative_condition(t_all, cond)
+                act.add_condition(t_all, cond)
             else:
                 raise SyntaxError(f'Not able to handle: {exp}')
 
@@ -340,10 +340,6 @@ class PDDLReader:
            self._totalcost in self._fve.get(dur_act.duration().upper()):
             return False
         for _, cl in dur_act.conditions().items():
-            for c in cl:
-                if self._totalcost in self._fve.get(c):
-                    return False
-        for _, cl in dur_act.durative_conditions().items():
             for c in cl:
                 if self._totalcost in self._fve.get(c):
                     return False
@@ -469,7 +465,7 @@ class PDDLReader:
                             raise SyntaxError(f'Not able to handle duration constraint of action {n}')
                     if lower is None or upper is None:
                         raise SyntaxError(f'Not able to handle duration constraint of action {n}')
-                    d = up.model.ClosedIntervalDuration(self._em.Real(lower),
+                    d = up.model.ClosedDurationInterval(self._em.Real(lower),
                                                         self._em.Real(upper))
                     dur_act.set_duration_constraint(d)
                 else:

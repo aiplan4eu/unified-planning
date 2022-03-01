@@ -1,0 +1,484 @@
+syntax = "proto3";
+
+
+
+// =============== Types ================
+
+// Type of expressions are represented as strings in protobuf format.
+// A type might be, e.g., "int", "bool" or "location", where the latter is a problem-specific type.
+
+// Built-in types:
+//  - "bool"
+//  - "int"
+//  - "real"
+//
+// Any other string (e.g. "location") refers to a symbolic type and must have been declared in the problem definition.
+
+// We can also consider restrictions to int/reals with specific syntax (e.g. "int[0,100]")
+// but we need to agree on the semantics and syntax.
+
+
+// ================== Expressions ====================
+
+
+// As in s-expression, an Expression is either an atom or list representing the application of some parameters to a function/fluent.
+message Expression {
+    // If non-empty, the expression is a single atom.
+    // For instance `3`, `+`, `kitchen`, `at-robot`, ...
+    Atom atom = 1;
+    // If the `atom` field is empty, then the expression is a list of sub-expressions,
+    // typically representing the application of some arguments to a function or fluent.
+    // For instance `(+ 1 3)`, (at-robot l1)`, `(>= (battery_level) 20)`
+    repeated Expression list = 2;
+
+    // Type of the expression. For instance "int", "location", ...
+    string type = 3;
+    // Kind of the expression, specifying the content of the expression.
+    // This is intended to facilitate parsing of the expression.
+    ExpressionKind kind = 4;
+}
+
+// The kind of an expression, which gives information related to its structure.
+enum ExpressionKind {
+    // Default value, should not be used. Drop it if we are sure to never need it.
+    UNKNOWN = 0;
+    // Constant atom. For instance `3` or `kitchen` (where `kitchen` is an object defined in the problem)
+    CONSTANT = 1;
+    // Atom symbol representing a parameter from an outer scope. For instance `from` that would appear inside a `(move from to - location)` action.
+    PARAMETER = 2;
+    // Atom symbol reprenting a fluent of the problem. For instance `at-robot`.
+    FLUENT_SYMBOL = 3;
+    // Atom representing a function. For instance `+`, `=`, `and`, ...
+    FUNCTION_SYMBOL = 4;
+    // List. Application of some parameters to a fluent symbol. For instance `(at-robot l1)` or `(battery-charged)`
+    // The first element of the list must be a FLUENT_SYMBOL
+    STATE_VARIABLE = 5;
+    // List. The expression is the application of some parameters to a function. For instance `(+ 1 3)`.
+    // The first element of the list must be a FUNCTION_SYMBOL
+    FUNCTION_APPLICATION = 6;
+}
+
+
+message Atom {
+    oneof content {
+        string symbol = 1;
+        int64 int = 2;
+        double float = 3;
+        bool boolean = 4;
+    }
+}
+
+
+
+// ============= Domains ====================
+
+
+// Declares the existence of a symbolic type.
+message TypeDeclaration {
+    // Name of the type that is declared.
+    string type_name = 1;
+    // If the string is non-empty, this is the parent type of `type_name`.
+    // If set, the parent type must have been previously declared (i.e. should appear earlier in the problem's type declarations.
+    string parent_type = 2;
+}
+
+// Parameter of a fluent or of an action
+message Parameter {
+    // Name of the parameter.
+    string name = 1;
+    // Type of the parameter.
+    string type = 2;
+}
+
+
+// A state-dependent variable.
+message Fluent {
+    string name = 1;
+    // Return type of the fluent.
+    string value_type = 2;
+    // Typed and named parameters of the fluent.
+    repeated Parameter parameters = 3;
+}
+
+
+// Declares an object with the given name and type.
+message ObjectDeclaration {
+    // Name of the object.
+    string name = 1;
+    // Type of the object.
+    // The type must have been previously declared in the problem definition.
+    string type = 2;
+}
+
+
+
+
+
+// ========= Actions ========
+
+
+
+// An effect expression is of the form `FLUENT OP VALUE`.
+// We explicitly restrict the different types of effects by setting the allowed operators.
+message EffectExpression {
+    enum EffectKind {
+        // This is the value that will be taken if the operator is not explicitly set.
+        // It is currently a logic error to have this value but is needed to allow later extensions.
+        UNDEFINED = 0;
+
+        // The `fluent` is set to the corresponding `value`
+        ASSIGN = 1;
+
+        // The `fluent` is increased by the amount `value`
+        // features: numeric?
+        INCREASE = 2;
+
+        // The `fluent` is decreased by the amount `value`
+        // features: numeric?
+        DECREASE = 3;
+    }
+    EffectKind kind = 1;
+
+    // Expression that must be of the STATE_VARIABLE kind.
+    Expression fluent = 2;
+
+    Expression value = 3;
+
+    // Optional. If the effect is conditional, then the following field must be set.
+    // In this case, the `effect` will only be applied if the `condition`` holds.
+    // features: conditional_effects
+    Expression condition = 4;
+}
+
+// Representation of an effect that allows qualifying the effect expression, e.g., to make it a conditional effect.
+message Effect {
+    // Required. The actual effect that should take place.
+    EffectExpression effect = 1;
+
+    // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
+    // features: durative_actions
+    Timing occurence_time = 2;
+}
+
+
+message Condition {
+    Expression cond = 1;
+
+    // Optional. Must be set for durative actions where it specifies the temporal interval
+    // over which when the condition should hold.
+    // features: durative_actions
+    TimeInterval span = 2;
+}
+
+// Unified action representation that represents any kind of actions.
+message Action {
+    // Action name. E.g. "move"
+    string name = 1;
+
+    // Typed and named parameters of the action.
+    repeated Parameter parameters = 2;
+
+    // If set, the action is durative. Otherwise it is instantaneous.
+    // features: durative_actions
+    Duration duration = 3;
+
+    // Conjunction of conditions that must hold for the action to be applicable.
+    repeated Condition conditions = 4;
+
+    // Conjunction of effects as a result of applying this action.
+    repeated Effect effects = 5;
+
+    // Cost of the action.
+    // features: action_costs
+    Expression cost = 6;
+}
+
+
+// Symbolic reference to an absolute time.
+// It might represent:
+// - the time of the initial/final state, or
+// - the start/end of the containing action.
+//
+// It is currently composed of a single field whose interpretation might be context dependent
+// (e.g. "START" refers to the start of the containing action).
+//
+// In the future, it could be extended to refer, e.g., to the start of a particular action/subtask
+// by adding an additional field with the identifier of an action/subtask.
+message Timepoint {
+    enum TimepointKind {
+      // Global start of the planning problem. This is context independent and represents the time at which the initial state holds.
+      GLOBAL_START = 0;
+      // Global end of the planning problem. This is context independent and represents the time at which the final state holds.
+      GLOBAL_END = 1;
+      // Start of the container (typically the action) in which this symbol occurs
+      START = 2;
+      // End of the container (typically the action) in which this symbol occurs
+      END = 3;
+    }
+    TimepointKind kind = 1;
+}
+
+// Represents a time (`timepoint` + `delay`), that is a time defined relatively to a particular `timepoint`.
+// Note that an absolute time can be defined by setting the `delay` relative to the `GLOBAL_START`` which is the reference time.
+message Timing {
+    Timepoint timepoint = 1;
+    double delay = 2;
+}
+
+
+
+// An interval `[lower, upper]` where `lower` and `upper` are arbitrary expressions.
+// The `is_left_open` and `is_right_open` fields indicate whether the interval is
+// opened on left and right side respectively.
+message Interval {
+    bool is_left_open = 1;
+    Expression lower = 2;
+    bool is_right_open = 3;
+    Expression upper = 4;
+}
+
+// A contiguous slice of time represented as an interval `[lower, upper]` where `lower` and `upper` are time references.
+// The `is_left_open` and `is_right_open` fields indicate whether the interval is
+// opened on left and right side respectively.
+message TimeInterval {
+    bool is_left_open = 1;
+    Timing lower = 2;
+    bool is_right_open = 3;
+    Timing upper = 4;
+}
+
+
+
+message Duration {
+    /// The duration of the action can be freely chosen within the indicated bounds
+    Interval controllable_in_bounds = 1;
+}
+
+
+
+
+// ============== Problem =========================
+
+
+// A Goal is currently an expression that must hold either:
+// - in the final state,
+// - over a specific temporal interval (under the `timed_goals` features)
+message Goal {
+    // Goal expression that must hold in the final state.
+    Expression goal = 1;
+
+    // Optional. If specified the goal should hold over the specified temporal interval (instead of on the final state).
+    // features: timed_goals
+    TimeInterval timing = 2;
+}
+
+// Represents an effect that will occur sometime beyond the initial state. (similar to timed initial literals)
+message TimedEffect {
+    // Required. An effect expression taht will take place sometime in the future (i.e. not at the intial state) as specified by the temporal qualifiation.
+    EffectExpression effect = 1;
+    // Required. Temporal qualification denoting when the timed fact will occur.
+    Timing occurence_time = 2;
+}
+
+// An assigment of a value to a fluent, as it appears in the initial state definition.
+message Assignment {
+    // State variable that is assigned the `value`.
+    // It should be an expression of the STATE_VARIABLE kind for which all parameters are of the CONSTANT kind.
+    Expression fluent = 1;
+    // An expression of the CONSTANT kind, denoting the value take by the state variable.
+    Expression value = 2;
+}
+
+message Problem {
+    string domain_name = 1;
+    string problem_name = 2;
+    repeated TypeDeclaration types = 3;
+    repeated Fluent fluents = 4;
+    repeated ObjectDeclaration objects = 5;
+
+    // List of actions in the domain.
+    repeated Action actions = 6;
+
+    // Initial state. It is asssumed that the initial state is fully defined by assignments.
+    repeated Assignment initial_state = 7;
+
+    // Facts and effects that are expected to occur strictly later than the initial state.
+    // features: timed_effects
+    repeated TimedEffect timed_effects = 8;
+
+    // Goals of the planning problem.
+    repeated Goal goals = 9;
+
+    // all features of the problem
+    repeated Feature features = 15;
+}
+
+// Features of the problem.
+// Features are essential in that not supporting a feature `X` should allow disregarding any field tagged with `features: [X]`.
+enum Feature {
+    DURATIVE_ACTIONS = 0;
+    CONDITIONAL_EFFECTS = 1;
+    ACTION_COSTS = 2;
+    TIMED_EFFECTS = 3;
+    TIMED_GOALS = 4;
+}
+
+
+// =================== Plan ================
+
+
+
+
+
+// Representation of an action instance that appears in a plan.
+message ActionInstance {
+    // Optional. A unique identifier of the action that might be used to refer to it (e.g. in HTN plans).
+    string id = 1;
+    // name of the action
+    string action_name = 2;
+    // Parameters of the action instance, required to be constants.
+    repeated Atom parameters = 3;
+    // Start time of the action. The default 0 value is OK in the case of non-temporal planning
+    // feature: [durative_actions]
+    double start_time = 4;
+    // End time of the action. The default 0 value is OK in the case of non-temporal planning
+    // feature: [durative_actions]
+    double end_time = 5;
+
+}
+
+message Plan {
+    // An ordered sequence of actions that appear in the plan.
+    // The order of the actions in the list must be compatible with the partial order of the start times.
+    // In case of non-temporal planning, this allows having all start time at 0 and only rely on the order in this sequence.
+    repeated ActionInstance actions = 1;
+
+    // TODO: add an optional cost field?
+}
+
+
+
+
+
+
+// =============== RPC API =======================
+
+message PlanRequest {
+    // Problem that should be solved.
+    Problem problem = 1;
+
+    enum Mode {
+        SATISFIABLE = 0;
+        OPTIMAL = 1;
+    }
+    Mode resolution_mode = 2;
+
+    // Max allowed runtime time in seconds.
+    double timeout_seconds = 3;
+
+    // Planner specific options to be passed to the planner
+    map<string, string> planner_options = 4;
+}
+
+
+// A freely formatted logging message.
+// Each message is annotated with its criticality level from the minimal (DEBUG) to the maximal (ERROR).
+// Criticality level is expected to be used by an end user to decide the level of verbosity.
+message LogMessage {
+    enum LogLevel {
+        DEBUG = 0;
+        INFO = 1;
+        WARNING = 2;
+        ERROR = 3;
+    }
+    LogLevel level = 1;
+    string message = 2;
+}
+
+
+// Intermediate report sent by the planner while running.
+message IntermediateReport {
+    // Optional. If set, it is the latest found plan not already reported.
+    Plan plan = 1;
+
+    repeated LogMessage logs = 2;
+
+    // Planner specific messages
+    map<string, string> metrics = 3;
+}
+
+// Last message sent by planner before exiting.
+// Contains the planner exit status as well as the best plan found if any.
+message FinalReport {
+    enum Status {
+        // ==== Planner stopped normally ======
+
+        // Valid plan found and search stopped immediately
+        // The `best_plan` field must be set.
+        SAT = 0;
+        // Plan found with optimality guarantee
+        // The `best_plan` field must be set and contain an optimal solution.
+        OPT = 1;
+        // No plan exists
+        UNSAT = 2;
+        // The planner was not able to find a solution but does not give any guarantee that none exist
+        // (i.e. the planner might not be complete)
+        SEARCH_SPACE_EXHAUSTED = 3;
+
+        // ====== Planner exited before making any conclusion ====
+        // Search stopped before concluding OPT or UNSAT
+        // If a plan was found, it might be reported in the `best_plan` field
+
+        // The planner ran out of time
+        TIMEOUT = 13;
+        // The planner ran out of memory
+        MEMOUT = 14;
+        // The planner faced an internal error.
+        INTERNAL_ERROR = 15;
+        // The problem submitted is not supported by the planner.
+        UNSUPPORTED_PROBLEM = 16;
+    }
+    Status status = 1;
+
+    // Optional. Best plan found if any.
+    Plan best_plan = 2;
+
+    // A set of planner specific values that can be reported, for instance
+    // - "grounding-time": "10ms"
+    // - "expanded-states": "1290"
+    map<string, string> metrics = 3;
+
+    // Optional logs about the planner's activity.
+    // Note that it should not be expected that logging messages are visible to the end user.
+    // If used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM, it would be expected to have at least one log message at the ERROR level.
+    repeated LogMessage logs = 4;
+}
+
+
+
+message Answer {
+    oneof content {
+        IntermediateReport intermediate = 1;
+        FinalReport final = 2;
+    }
+}
+
+
+service UnifiedPlanning {
+    // A plan request to the planner.
+    // The planner replies with a stream of N `Answer` messages where:
+    //  - the first (N-1) message are of type `IntermediateReport`
+    //  - the last message is of type `FinalReport`
+    rpc planOneShot(PlanRequest) returns(stream Answer);
+
+
+    // ===== About bidirectional interaction =====
+
+    // The scheme above does not allow send info to the planner after the initial request.
+    // gRPC might allow some limited form of interactions such as setting deadlines,
+    // cancel request or terminate an RPC. (https://www.grpc.io/docs/what-is-grpc/core-concepts/)
+
+    // With the current UP feature set, the above plan API is likely to be sufficient.
+    // In the future we might want to extend the API to have a stream of message sen to the planner.
+    // rpc plan(stream Request) returns(stream Answer);
+}

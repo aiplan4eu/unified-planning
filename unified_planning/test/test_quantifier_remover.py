@@ -111,7 +111,7 @@ class TestQuantifiersRemover(TestCase):
         self.assertTrue(uq_problem.kind().has_disjunctive_conditions())
         self.assertFalse(problem.kind().has_disjunctive_conditions())
         self.assertIn('(on(block_1, block_1) or on(block_2, block_1) or on(block_3, block_1))', str(uq_problem.goals()))
-        
+
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem
@@ -150,9 +150,9 @@ class TestQuantifiersRemover(TestCase):
         problem.add_object(o1)
         problem.add_object(o2)
         problem.add_object(o3)
-        problem.add_timed_effect(AbsoluteTiming(4), x, Forall(FluentExp(y, [o]), o), Exists(FluentExp(y, [o]), o))
-        problem.add_timed_goal(AbsoluteTiming(6), x)
-        problem.add_maintain_goal(OpenInterval(AbsoluteTiming(8), AbsoluteTiming(10)), x)
+        problem.add_timed_effect(GlobalStartTiming(4), x, Forall(FluentExp(y, [o]), o), Exists(FluentExp(y, [o]), o))
+        problem.add_timed_goal(GlobalStartTiming(6), x)
+        problem.add_timed_goal(OpenTimeInterval(GlobalStartTiming(8), GlobalStartTiming(10)), x)
         problem.set_initial_value(x, False)
         problem.set_initial_value(y(o1), True)
         problem.set_initial_value(y(o2), False)

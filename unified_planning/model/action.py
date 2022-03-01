@@ -259,10 +259,9 @@ class DurativeAction(Action):
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
                  _env: Environment = None, **kwargs: 'up.model.types.Type'):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
-        self._duration: up.model.timing.IntervalDuration = up.model.timing.FixedDuration(self._env.expression_manager.Int(0))
-        self._conditions: Dict[up.model.timing.Timing, List[up.model.fnode.FNode]] = {}
-        self._durative_conditions: Dict[up.model.timing.Interval, List[up.model.fnode.FNode]] = {}
-        self._effects: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
+        self._duration: 'up.model.timing.DurationInterval' = up.model.timing.FixedDuration(self._env.expression_manager.Int(0))
+        self._conditions: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
+        self._effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -282,13 +281,7 @@ class DurativeAction(Action):
         if self._cost is not None:
             s.append(f'    cost = {self._cost}\n')
         s.append('    conditions = [\n')
-        for t, cl in self.conditions().items():
-            s.append(f'      {str(t)}:\n')
-            for c in cl:
-                s.append(f'        {str(c)}\n')
-        s.append('    ]\n')
-        s.append('    durative conditions = [\n')
-        for i, cl in self.durative_conditions().items():
+        for i, cl in self.conditions().items():
             s.append(f'      {str(i)}:\n')
             for c in cl:
                 s.append(f'        {str(c)}\n')
@@ -308,19 +301,11 @@ class DurativeAction(Action):
                 return False
             if len(self._conditions) != len(oth._conditions):
                 return False
-            for t, cl in self._conditions.items():
-                oth_cl = oth._conditions.get(t, None)
+            for i, cl in self._conditions.items():
+                oth_cl = oth._conditions.get(i, None)
                 if oth_cl is None:
                     return False
                 elif set(cl) != set(oth_cl):
-                    return False
-            if len(self._durative_conditions) != len(oth._durative_conditions):
-                return False
-            for i, dcl in self._durative_conditions.items():
-                oth_dcl = oth._durative_conditions.get(i, None)
-                if oth_dcl is None:
-                    return False
-                elif set(dcl) != set(oth_dcl):
                     return False
             if len(self._effects) != len(oth._effects):
                 return False
@@ -338,14 +323,10 @@ class DurativeAction(Action):
         res = hash(self._name) + hash(self._duration)
         for ap in self._parameters.items():
             res += hash(ap)
-        for t, cl in self._conditions.items():
-            res += hash(t)
+        for i, cl in self._conditions.items():
+            res += hash(i)
             for c in cl:
                 res += hash(c)
-        for i, dcl in self._durative_conditions.items():
-            res += hash(i)
-            for dc in dcl:
-                res += hash(dc)
         for t, el in self._effects.items():
             res += hash(t)
             for e in el:
@@ -358,15 +339,14 @@ class DurativeAction(Action):
         new_durative_action._duration = self._duration
         new_durative_action._cost = self._cost
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
-        new_durative_action._durative_conditions = {i : dcl[:] for i, dcl in self._durative_conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
         return new_durative_action
 
-    def duration(self):
+    def duration(self) -> 'up.model.timing.DurationInterval':
         '''Returns the action duration interval.'''
         return self._duration
 
-    def conditions(self):
+    def conditions(self) -> Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']]:
         '''Returns the action conditions.'''
         return self._conditions
 
@@ -374,15 +354,7 @@ class DurativeAction(Action):
         '''Removes all conditions.'''
         self._conditions = {}
 
-    def durative_conditions(self):
-        '''Returns the action durative conditions.'''
-        return self._durative_conditions
-
-    def clear_durative_conditions(self):
-        '''Removes all durative conditions.'''
-        self._durative_conditions = {}
-
-    def effects(self):
+    def effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
         '''Returns the action effects.'''
         return self._effects
 
@@ -390,7 +362,7 @@ class DurativeAction(Action):
         '''Removes all effects.'''
         self._effects = {}
 
-    def conditional_effects(self):
+    def conditional_effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
         '''Return the action conditional effects.'''
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
@@ -399,7 +371,7 @@ class DurativeAction(Action):
                 retval[timing] = cond_effect_list
         return retval
 
-    def unconditional_effects(self):
+    def unconditional_effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
         '''Return the action unconditional effects.'''
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
@@ -412,7 +384,7 @@ class DurativeAction(Action):
         '''Returns True if the action has conditional effects.'''
         return any(e.is_conditional() for l in self._effects.values() for e in l)
 
-    def set_duration_constraint(self, duration: 'up.model.timing.IntervalDuration'):
+    def set_duration_constraint(self, duration: 'up.model.timing.DurationInterval'):
         '''Sets the duration interval.'''
         lower, upper = duration.lower(), duration.upper()
         if not (lower.is_int_constant() or lower.is_real_constant()):
@@ -429,50 +401,41 @@ class DurativeAction(Action):
         value_exp, = self._env.expression_manager.auto_promote(value)
         self.set_duration_constraint(up.model.timing.FixedDuration(value_exp))
 
-    def set_closed_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+    def set_closed_duration_interval(self, lower: Union['up.model.fnode.FNode', int, Fraction],
                                      upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(up.model.timing.ClosedIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.ClosedDurationInterval(lower_exp, upper_exp))
 
-    def set_open_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+    def set_open_duration_interval(self, lower: Union['up.model.fnode.FNode', int, Fraction],
                                    upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(up.model.timing.OpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.OpenDurationInterval(lower_exp, upper_exp))
 
-    def set_left_open_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+    def set_left_open_duration_interval(self, lower: Union['up.model.fnode.FNode', int, Fraction],
                                         upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(up.model.timing.LeftOpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.LeftOpenDurationInterval(lower_exp, upper_exp))
 
-    def set_right_open_interval_duration(self, lower: Union['up.model.fnode.FNode', int, Fraction],
+    def set_right_open_duration_interval(self, lower: Union['up.model.fnode.FNode', int, Fraction],
                                          upper: Union['up.model.fnode.FNode', int, Fraction]):
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
-        self.set_duration_constraint(up.model.timing.RightOpenIntervalDuration(lower_exp, upper_exp))
+        self.set_duration_constraint(up.model.timing.RightOpenDurationInterval(lower_exp, upper_exp))
 
-    def add_condition(self, timing: 'up.model.timing.Timing',
+    def add_condition(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
                       condition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', ActionParameter, bool]):
         '''Adds the given condition.'''
+        if isinstance(interval, up.model.Timing):
+            interval = up.model.TimePointInterval(interval)
         condition_exp, = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
-        if timing in self._conditions:
-            if condition_exp not in self._conditions[timing]:
-                self._conditions[timing].append(condition_exp)
+        if interval in self._conditions:
+            if condition_exp not in self._conditions[interval]:
+                self._conditions[interval].append(condition_exp)
         else:
-            self._conditions[timing] = [condition_exp]
+            self._conditions[interval] = [condition_exp]
 
-    def _set_conditions(self, timing: 'up.model.timing.Timing', conditions: List['up.model.fnode.FNode']):
-        self._conditions[timing] = conditions
-
-    def add_durative_condition(self, interval: 'up.model.timing.Interval',
-                               condition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', ActionParameter, bool]):
-        '''Adds the given durative condition.'''
-        condition_exp, = self._env.expression_manager.auto_promote(condition)
-        assert self._env.type_checker.get_type(condition_exp).is_bool_type()
-        if interval in self._durative_conditions:
-            if condition_exp not in self._durative_conditions[interval]:
-                self._durative_conditions[interval].append(condition_exp)
-        else:
-            self._durative_conditions[interval] = [condition_exp]
+    def _set_conditions(self, interval: 'up.model.timing.TimeInterval', conditions: List['up.model.fnode.FNode']):
+        self._conditions[interval] = conditions
 
     def add_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
                    value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):

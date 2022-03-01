@@ -152,8 +152,8 @@ class PDDLWriter:
 
     def _write_domain(self, out: IO[str]):
         problem_kind = self.problem.kind()
-        if problem_kind.has_intermediate_conditions_and_effects() or problem_kind.has_maintain_goals(): # type: ignore
-            raise UPProblemDefinitionError('PDDL2.1 does not support ICE or maintained goals.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
+        if problem_kind.has_intermediate_conditions_and_effects(): # type: ignore
+            raise UPProblemDefinitionError('PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
         if problem_kind.has_timed_effect() or problem_kind.has_timed_goals(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
         out.write('(define ')
@@ -191,7 +191,7 @@ class PDDLWriter:
                 out.write(' :action-costs')
             out.write(')\n')
 
-        
+
         if problem_kind.has_hierarchical_typing(): # type: ignore
             while self.problem.has_type(self.object_freshname):
                 self.object_freshname = self.object_freshname + '_'
@@ -297,21 +297,21 @@ class PDDLWriter:
                     else:
                         out.write(f'(<= ?duration {str(r)})')
                     out.write(')')
-                if len(a.conditions()) + len(a.durative_conditions()) > 0:
+                if len(a.conditions()) > 0:
                     out.write(f'\n  :condition (and ')
-                    for t, cl in a.conditions().items():
+                    for interval, cl in a.conditions().items():
                         for c in cl:
-                            if t.is_from_start():
-                                out.write(f'(at start {converter.convert(c)})')
-                            elif t.is_from_end():
-                                out.write(f'(at end {converter.convert(c)})')
-                    for interval, cl in a.durative_conditions().items():
-                        for c in cl:
-                            if not interval.is_left_open():
-                                out.write(f'(at start {converter.convert(c)})')
-                            out.write(f'(over all {converter.convert(c)})')
-                            if not interval.is_right_open():
-                                out.write(f'(at end {converter.convert(c)})')
+                            if interval.lower() == interval.upper():
+                                if interval.lower().is_from_start():
+                                    out.write(f'(at start {converter.convert(c)})')
+                                else:
+                                    out.write(f'(at end {converter.convert(c)})')
+                            else:
+                                if not interval.is_left_open():
+                                    out.write(f'(at start {converter.convert(c)})')
+                                out.write(f'(over all {converter.convert(c)})')
+                                if not interval.is_right_open():
+                                    out.write(f'(at end {converter.convert(c)})')
                     out.write(')')
                 if len(a.effects()) > 0:
                     out.write('\n  :effect (and')

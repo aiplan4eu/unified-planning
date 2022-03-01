@@ -53,7 +53,6 @@ class QuantifiersRemover(Transformer):
         self._new_problem = self._problem.clone()
         self._new_problem.name = f'{self._name}_{self._problem.name}'
         self._new_problem.clear_timed_goals()
-        self._new_problem.clear_maintain_goals()
         self._new_problem.clear_goals()
         for action in self._new_problem.actions():
             if isinstance(action, InstantaneousAction):
@@ -74,13 +73,9 @@ class QuantifiersRemover(Transformer):
                 assert isinstance(original_action, DurativeAction)
                 action.name = self.get_fresh_name(action.name)
                 action.clear_conditions()
-                for t, cl in original_action.conditions().items():
+                for i, cl in original_action.conditions().items():
                     for c in cl:
-                        action.add_condition(t, self._expression_quantifier_remover.remove_quantifiers(c, self._problem))
-                action.clear_durative_conditions()
-                for i, cl in original_action.durative_conditions().items():
-                    for c in cl:
-                        action.add_durative_condition(i, self._expression_quantifier_remover.remove_quantifiers(c, self._problem))
+                        action.add_condition(i, self._expression_quantifier_remover.remove_quantifiers(c, self._problem))
                 for t, el in action.effects().items():
                     for e in el:
                         if e.is_conditional():
@@ -95,14 +90,10 @@ class QuantifiersRemover(Transformer):
                 if e.is_conditional():
                     e.set_condition(self._expression_quantifier_remover.remove_quantifiers(e.condition(), self._problem))
                 e.set_value(self._expression_quantifier_remover.remove_quantifiers(e.value(), self._problem))
-        for t, gl in self._problem.timed_goals().items():
+        for i, gl in self._problem.timed_goals().items():
             for g in gl:
                 ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
-                self._new_problem.add_timed_goal(t, ng)
-        for i, gl in self._problem.maintain_goals().items():
-            for g in gl:
-                ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
-                self._new_problem.add_maintain_goal(i, ng)
+                self._new_problem.add_timed_goal(i, ng)
         for g in self._problem.goals():
             ng = self._expression_quantifier_remover.remove_quantifiers(g, self._problem)
             self._new_problem.add_goal(ng)

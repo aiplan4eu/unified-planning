@@ -39,8 +39,7 @@ class Problem:
         self._objects: List['up.model.object.Object'] = []
         self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
-        self._timed_goals: Dict['up.model.timing.Timing', List['up.model.fnode.FNode']] = {}
-        self._maintain_goals: Dict['up.model.timing.Interval', List['up.model.fnode.FNode']] = {}
+        self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._goals: List['up.model.fnode.FNode'] = list()
         self._metrics : List['up.model.metrics.PlanQualityMetric'] = []
         self._initial_defaults: Dict['up.model.types.Type', 'up.model.fnode.FNode'] = {}
@@ -81,13 +80,6 @@ class Problem:
             s.append(']\n\n')
         if len(self.timed_goals()) > 0:
             s.append('timed goals = [\n')
-            for t, gl in self.timed_goals().items():
-                s.append(f'  {str(t)} :\n')
-                for g in gl:
-                    s.append(f'    {str(g)}\n')
-            s.append(']\n\n')
-        if len(self.maintain_goals()) > 0:
-            s.append('maintain goals = [\n')
             for i, gl in self.timed_goals().items():
                 s.append(f'  {str(i)} :\n')
                 for g in gl:
@@ -134,19 +126,11 @@ class Problem:
                 return False
         if len(self._timed_goals) != len(oth._timed_goals):
             return False
-        for t, tgl in self._timed_goals.items():
-            oth_tgl = oth._timed_goals.get(t, None)
+        for i, tgl in self._timed_goals.items():
+            oth_tgl = oth._timed_goals.get(i, None)
             if oth_tgl is None:
                 return False
             elif set(tgl) != set(oth_tgl):
-                return False
-        if len(self._maintain_goals) != len(oth._maintain_goals):
-            return False
-        for i, mgl in self._maintain_goals.items():
-            oth_mgl = oth._maintain_goals.get(i, None)
-            if oth_mgl is None:
-                return False
-            elif set(mgl) != set(oth_mgl):
                 return False
         return True
 
@@ -166,11 +150,7 @@ class Problem:
             res += hash(t)
             for e in set(el):
                 res += hash(e)
-        for t, gl in self._timed_goals.items():
-            res += hash(t)
-            for g in set(gl):
-                res += hash(g)
-        for i, gl in self._maintain_goals.items():
+        for i, gl in self._timed_goals.items():
             res += hash(i)
             for g in set(gl):
                 res += hash(g)
@@ -187,8 +167,7 @@ class Problem:
         new_p._objects = self._objects[:]
         new_p._initial_value = self._initial_value.copy()
         new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
-        new_p._timed_goals = {t: [g for g in gl] for t, gl in self._timed_goals.items()}
-        new_p._maintain_goals = {i: [g for g in gl] for i, gl in self._maintain_goals.items()}
+        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._metrics = self._metrics[:]
         new_p._initial_defaults = self._initial_defaults.copy()
@@ -472,19 +451,23 @@ class Problem:
                     res[f_exp] = self.initial_value(f_exp)
         return res
 
-    def add_timed_goal(self, timing: 'up.model.timing.Timing', goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
+    def add_timed_goal(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
+                       goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
         '''Adds a timed goal.'''
-        if timing.is_from_end() and timing.bound() > 0:
-            raise UPProblemDefinitionError('Timing used in timed goal cannot be `end - k` with k > 0.')
+        if isinstance(interval, up.model.Timing):
+            interval = up.model.TimePointInterval(interval)
+        if ((interval.lower().is_from_end() and interval.lower().delay() > 0) or
+            (interval.upper().is_from_end() and interval.upper().delay() > 0)):
+            raise UPProblemDefinitionError('Problem timing can not be `end - k` with k > 0.')
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        if timing in self._timed_goals:
-            if goal_exp not in self._timed_goals[timing]:
-                self._timed_goals[timing].append(goal_exp)
+        if interval in self._timed_goals:
+            if goal_exp not in self._timed_goals[interval]:
+                self._timed_goals[interval].append(goal_exp)
         else:
-            self._timed_goals[timing] = [goal_exp]
+            self._timed_goals[interval] = [goal_exp]
 
-    def timed_goals(self) -> Dict['up.model.timing.Timing', List['up.model.fnode.FNode']]:
+    def timed_goals(self) -> Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']]:
         '''Returns the timed goals.'''
         return self._timed_goals
 
@@ -549,27 +532,6 @@ class Problem:
         '''Removes the timed effects.'''
         self._timed_effects = {}
 
-    def add_maintain_goal(self, interval: 'up.model.timing.Interval', goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
-        '''Adds a maintain goal.'''
-        if ((interval.lower().is_from_end() and interval.lower().bound() > 0) or
-            (interval.upper().is_from_end() and interval.upper().bound() > 0)):
-            raise UPProblemDefinitionError('Problem timing can not be `end - k` with k > 0.')
-        goal_exp, = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        if interval in self._maintain_goals:
-            if goal_exp not in self._maintain_goals[interval]:
-                self._maintain_goals[interval].append(goal_exp)
-        else:
-            self._maintain_goals[interval] = [goal_exp]
-
-    def maintain_goals(self) -> Dict['up.model.timing.Interval', List['up.model.fnode.FNode']]:
-        '''Returns the maintain goals.'''
-        return self._maintain_goals
-
-    def clear_maintain_goals(self):
-        '''Removes the maintain goals.'''
-        self._maintain_goals = {}
-
     def add_goal(self, goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
         '''Adds a goal.'''
         goal_exp, = self._env.expression_manager.auto_promote(goal)
@@ -610,12 +572,6 @@ class Problem:
             self._kind.set_time('TIMED_GOALS') # type: ignore
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         for goal_list in self._timed_goals.values():
-            for goal in goal_list:
-                self._update_problem_kind_condition(goal)
-        if len(self._maintain_goals) > 0:
-            self._kind.set_time('MAINTAIN_GOALS') # type: ignore
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
-        for goal_list in self._maintain_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal)
         for goal in self._goals:
@@ -688,20 +644,15 @@ class Problem:
             lower, upper = action.duration().lower(), action.duration().upper()
             if lower.constant_value() != upper.constant_value():
                 self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
-            for i, l in action.durative_conditions().items():
-                if i.lower().bound() != 0 or i.upper().bound() != 0:
+            for i, lc in action.conditions().items():
+                if i.lower().delay() != 0 or i.upper().delay() != 0:
                     self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for c in l:
+                for c in lc:
                     self._update_problem_kind_condition(c)
-            for t, l in action.conditions().items():
-                if t.bound() != 0:
+            for t, le in action.effects().items():
+                if t.delay() != 0:
                     self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for c in l:
-                    self._update_problem_kind_condition(c)
-            for t, l in action.effects().items():
-                if t.bound() != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-                for e in l:
+                for e in le:
                     self._update_problem_kind_effect(e)
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         else:
