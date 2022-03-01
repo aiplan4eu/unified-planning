@@ -145,10 +145,11 @@ class PythonWriter:
         out.write('tm = env.type_manager\n')
 
         for type in self.problem.user_types(): # define user_types
-            if cast(_UserType, type).father() is None:
-                out.write(f'type_{cast(_UserType, type).name()} = tm.UserType("{cast(_UserType, type).name()}")\n')
+            utype = cast(_UserType, type)
+            if utype.father() is None:
+                out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}")\n')
             else:
-                out.write(f'type_{cast(_UserType, type).name()} = tm.UserType("{cast(_UserType, type).name()}", type_{cast(_UserType, cast(_UserType, type).father()).name()})\n') 
+                out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}", type_{cast(_UserType, utype.father()).name()})\n') 
 
         for f in self.problem.fluents(): # define fluents
             params = ', '.join(_print_python_type(p) for p in f.signature())
@@ -278,9 +279,11 @@ def _print_python_type(type: 'up.model.types.Type') -> str:
     elif type.is_bool_type():
         return 'tm.BoolType()'
     elif type.is_int_type():
-        return f'tm.IntType({str(cast(_IntType, type).lower_bound())}, {str(cast(_IntType, type).upper_bound())})'
+        itype = cast(_IntType, type)
+        return f'tm.IntType({str(itype.lower_bound())}, {str(itype.upper_bound())})'
     elif type.is_real_type():
-        return f'tm.RealType({str(cast(_RealType, type).lower_bound())}, {str(cast(_RealType, type).upper_bound())})'
+        rtype = cast(_RealType, type)
+        return f'tm.RealType({str(rtype.lower_bound())}, {str(rtype.upper_bound())})'
     else:
         raise NotImplementedError
 
