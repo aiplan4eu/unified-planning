@@ -23,7 +23,7 @@ import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError
 from fractions import Fraction
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union
 from collections import OrderedDict
 
 
@@ -62,7 +62,6 @@ class Action:
                  _env: Environment = None, **kwargs: 'up.model.types.Type'):
         self._env = get_env(_env)
         self._name = _name
-        self._cost: Optional['up.model.FNode'] = None
         self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
         if _parameters is not None:
             assert len(kwargs) == 0
@@ -90,13 +89,6 @@ class Action:
     def name(self, new_name: str):
         """Sets the parameter name."""
         self._name = new_name
-
-    def cost(self) -> Optional['up.model.fnode.FNode']:
-        return self._cost
-
-    def set_cost(self, cost: 'up.model.expression.Expression'):
-        cost_exp, = self._env.expression_manager.auto_promote(cost)
-        self._cost = cost_exp
 
     def parameters(self) -> List[ActionParameter]:
         """Returns the list of the action parameters."""
@@ -133,8 +125,6 @@ class InstantaneousAction(Action):
         if not first:
             s.append(')')
         s.append(' {\n')
-        if self._cost is not None:
-            s.append(f'    cost = {self._cost}\n')
         s.append('    preconditions = [\n')
         for c in self.preconditions():
             s.append(f'      {str(c)}\n')
@@ -168,7 +158,6 @@ class InstantaneousAction(Action):
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.type()
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
-        new_instantaneous_action._cost = self._cost
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
         return new_instantaneous_action
@@ -278,8 +267,6 @@ class DurativeAction(Action):
             s.append(')')
         s.append(' {\n')
         s.append(f'    duration = {str(self._duration)}\n')
-        if self._cost is not None:
-            s.append(f'    cost = {self._cost}\n')
         s.append('    conditions = [\n')
         for i, cl in self.conditions().items():
             s.append(f'      {str(i)}:\n')
@@ -337,7 +324,6 @@ class DurativeAction(Action):
         new_params = {param_name: param.type() for param_name, param in self._parameters.items()}
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration
-        new_durative_action._cost = self._cost
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
         return new_durative_action

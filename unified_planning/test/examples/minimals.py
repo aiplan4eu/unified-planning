@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-import unified_planning
+import unified_planning as up
 from unified_planning.shortcuts import *
 from collections import namedtuple
 
@@ -32,7 +32,7 @@ def get_example_problems():
     problem.add_action(a)
     problem.set_initial_value(x, False)
     problem.add_goal(x)
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(a)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(a)])
     basic = Example(problem=problem, plan=plan)
     problems['basic'] = basic
 
@@ -53,7 +53,7 @@ def get_example_problems():
     problem.set_initial_value(x, False)
     problem.set_initial_value(y, False)
     problem.add_goal(x)
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(a_y), unified_planning.plan.ActionInstance(a_x)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(a_y), up.plan.ActionInstance(a_x)])
     basic_conditional = Example(problem=problem, plan=plan)
     problems['basic_conditional'] = basic_conditional
 
@@ -116,10 +116,10 @@ def get_example_problems():
     problem.add_goal(x)
     problem.add_goal(Not(y))
     problem.add_goal(z)
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(a_2_act),
-                                unified_planning.plan.ActionInstance(a_0_act),
-                                unified_planning.plan.ActionInstance(a_1_act),
-                                unified_planning.plan.ActionInstance(a_act)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(a_2_act),
+                                   up.plan.ActionInstance(a_0_act),
+                                   up.plan.ActionInstance(a_1_act),
+                                   up.plan.ActionInstance(a_act)])
     complex_conditional = Example(problem=problem, plan=plan)
     problems['complex_conditional'] = complex_conditional
 
@@ -136,7 +136,7 @@ def get_example_problems():
     problem.set_initial_value(x, False)
     problem.set_initial_value(y, True)
     problem.add_goal(x)
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(a)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(a)])
     basic_without_negative_preconditions = Example(problem=problem, plan=plan)
     problems['basic_without_negative_preconditions'] = basic_without_negative_preconditions
 
@@ -162,7 +162,7 @@ def get_example_problems():
     problem.set_initial_value(j, True)
     problem.set_initial_value(k, True)
     problem.add_goal(And(x, And(y, z, And(j, k))))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(a)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(a)])
     basic_nested_conjunctions = Example(problem=problem, plan=plan)
     problems['basic_nested_conjunctions'] = basic_nested_conjunctions
 
@@ -186,7 +186,7 @@ def get_example_problems():
     problem.set_initial_value(y(o1), True)
     problem.set_initial_value(y(o2), False)
     problem.add_goal(x)
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(a)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(a)])
     basic_exists = Example(problem=problem, plan=plan)
     problems['basic_exists'] = basic_exists
 
@@ -211,7 +211,7 @@ def get_example_problems():
     problem.set_initial_value(y(o1), False)
     problem.set_initial_value(y(o2), False)
     problem.add_goal(x)
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(a)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(a)])
     basic_forall = Example(problem=problem, plan=plan)
     problems['basic_forall'] = basic_forall
 
@@ -250,8 +250,8 @@ def get_example_problems():
     problem.add_goal(is_ok(o1))
     problem.set_initial_value(is_same_obj(o1, o1), True)
     problem.set_initial_value(is_same_obj(o2, o2), True)
-    plan = unified_planning.plan.TimeTriggeredPlan([(Fraction(0, 1), unified_planning.plan.ActionInstance(take_ok, (ObjectExp(o1), ObjectExp(o2))), Fraction(3, 1)),
-                                  (Fraction(1, 1), unified_planning.plan.ActionInstance(set_giver, (ObjectExp(o2), )), Fraction(2, 1))])
+    plan = up.plan.TimeTriggeredPlan([(Fraction(0, 1), up.plan.ActionInstance(take_ok, (ObjectExp(o1), ObjectExp(o2))), Fraction(3, 1)),
+                                      (Fraction(1, 1), up.plan.ActionInstance(set_giver, (ObjectExp(o2), )), Fraction(2, 1))])
     temporal_conditional = Example(problem=problem, plan=plan)
     problems['temporal_conditional'] = temporal_conditional
 
@@ -261,15 +261,12 @@ def get_example_problems():
     a = InstantaneousAction('a')
     a.add_precondition(Not(x))
     a.add_effect(x, True)
-    a.set_cost(10)
     b = InstantaneousAction('b')
     b.add_precondition(Not(y))
     b.add_effect(y, True)
-    b.set_cost(1)
     c = InstantaneousAction('c')
     c.add_precondition(y)
     c.add_effect(x, True)
-    c.set_cost(1)
     problem = Problem('basic_with_costs')
     problem.add_fluent(x)
     problem.add_fluent(y)
@@ -279,9 +276,9 @@ def get_example_problems():
     problem.set_initial_value(x, False)
     problem.set_initial_value(y, False)
     problem.add_goal(x)
-    problem.add_quality_metric(unified_planning.model.metrics.MinimizeActionCosts())
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(b),
-                                                 unified_planning.plan.ActionInstance(c)])
+    problem.add_quality_metric(up.model.metrics.MinimizeActionCosts({a: Int(10), b: Int(1), c: Int(1)}))
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(b),
+                                   up.plan.ActionInstance(c)])
     basic_with_costs = Example(problem=problem, plan=plan)
     problems['basic_with_costs'] = basic_with_costs
 

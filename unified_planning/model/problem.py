@@ -169,7 +169,13 @@ class Problem:
         new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
-        new_p._metrics = self._metrics[:]
+        new_p._metrics = []
+        for m in self._metrics:
+            if isinstance(m, up.model.metrics.MinimizeActionCosts):
+                costs = {new_p.action(a.name) : c for a, c in m.costs.items()}
+                new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
+            else:
+                new_p._metrics.append(m)
         new_p._initial_defaults = self._initial_defaults.copy()
         new_p._fluents_defaults = self._fluents_defaults.copy()
         return new_p
@@ -582,6 +588,10 @@ class Problem:
                 self._kind.set_quality_metrics('FINAL_VALUE') # type: ignore
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
                 self._kind.set_quality_metrics('ACTIONS_COST') # type: ignore
+            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
+                self._kind.set_quality_metrics('MAKESPAN') # type: ignore
+            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+                self._kind.set_quality_metrics('PLAN_LENGTH') # type: ignore
             else:
                 assert False, 'Unknown quality metric'
         return self._kind
