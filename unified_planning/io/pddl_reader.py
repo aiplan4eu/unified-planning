@@ -529,7 +529,7 @@ class PDDLReader:
                         costs = {}
                         problem._fluents.remove(self._totalcost.fluent())
                         problem._initial_value.pop(self._totalcost)
-                        use_plan_length = len(problem.durative_actions()) == 0
+                        use_plan_length = all(False for _ in problem.durative_actions())
                         for a in problem.instantaneous_actions():
                             cost = None
                             for e in a.effects():

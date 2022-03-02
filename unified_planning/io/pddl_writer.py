@@ -250,7 +250,7 @@ class PDDLWriter:
                 costs = metric.costs
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 for a in self.problem.actions():
-                    costs[a] = self.problem.env.expression_managert.Int(1)
+                    costs[a] = self.problem.env.expression_manager.Int(1)
         elif len(metrics) > 1:
             raise
         for a in self.problem.actions():
@@ -393,7 +393,7 @@ class PDDLWriter:
             elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
                 out.write(f'maximize {metric.expression}')
             elif (isinstance(metric, up.model.metrics.MinimizeActionCosts) or
-                  isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+                  isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength)):
                 out.write(f'minimize total-cost')
             elif isinstance(metric, up.model.metrics.MinimizeMakespan):
                 out.write(f'minimize total-time')
