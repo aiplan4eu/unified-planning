@@ -255,4 +255,34 @@ def get_example_problems():
     temporal_conditional = Example(problem=problem, plan=plan)
     problems['temporal_conditional'] = temporal_conditional
 
+    # basic with actions cost
+    x = Fluent('x')
+    y = Fluent('y')
+    a = InstantaneousAction('a')
+    a.add_precondition(Not(x))
+    a.add_effect(x, True)
+    a.set_cost(10)
+    b = InstantaneousAction('b')
+    b.add_precondition(Not(y))
+    b.add_effect(y, True)
+    b.set_cost(1)
+    c = InstantaneousAction('c')
+    c.add_precondition(y)
+    c.add_effect(x, True)
+    c.set_cost(1)
+    problem = Problem('basic_with_costs')
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(a)
+    problem.add_action(b)
+    problem.add_action(c)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, False)
+    problem.add_goal(x)
+    problem.add_quality_metric(unified_planning.model.metrics.MinimizeActionCosts())
+    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(b),
+                                                 unified_planning.plan.ActionInstance(c)])
+    basic_with_costs = Example(problem=problem, plan=plan)
+    problems['basic_with_costs'] = basic_with_costs
+
     return problems

@@ -47,6 +47,7 @@ class Grounder(solvers.solver.Solver):
     def supports(problem_kind):
         supported_kind = ProblemKind()
         supported_kind.set_typing('FLAT_TYPING')
+        supported_kind.set_typing('HIERARCHICAL_TYPING')
         supported_kind.set_numbers('CONTINUOUS_NUMBERS')
         supported_kind.set_numbers('DISCRETE_NUMBERS')
         supported_kind.set_fluents_type('NUMERIC_FLUENTS')

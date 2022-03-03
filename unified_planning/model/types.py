@@ -16,8 +16,8 @@
 
 import unified_planning
 from fractions import Fraction
-from typing import Optional, Dict, Tuple, List
-from unified_planning.exceptions import UPProblemDefinitionError
+from typing import Iterator, Optional, Dict, Tuple, List
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
 class Type:
@@ -53,16 +53,23 @@ class _BoolType(Type):
 
 class _UserType(Type):
     """Represents the user type."""
-    def __init__(self, name: str):
+    def __init__(self, name: str, father: Optional[Type] = None):
         Type.__init__(self)
         self._name = name
+        if father is not None and (not father.is_user_type()):
+            raise UPTypeError('father field of a UserType must be a UserType.')
+        self._father = father
 
     def __repr__(self) -> str:
-        return self.name()
+        return self._name if self._father is None else f'{self._name} - {self._father.name()}' # type: ignore
 
     def name(self) -> str:
         """Returns the type name."""
         return self._name
+
+    def father(self) -> Optional[Type]:
+        """Returns the type s father."""
+        return self._father
 
     def is_user_type(self) -> bool:
         """Returns true iff is a user type."""
@@ -128,7 +135,7 @@ class TypeManager:
         self._bool = BOOL
         self._ints: Dict[Tuple[Optional[int], Optional[int]], Type] = {}
         self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
-        self._user_types: Dict[str, Type] = {}
+        self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
 
     def BoolType(self) -> Type:
         return self._bool
@@ -151,20 +158,34 @@ class TypeManager:
             self._reals[k] = rt
             return rt
 
-    def UserType(self, name: str) -> Type:
-        if name in self._user_types:
-            return self._user_types[name]
+    def UserType(self, name: str, father: Optional[Type] = None) -> Type:
+        if (name, father) in self._user_types:
+            return self._user_types[(name, father)]
         else:
-            ut = _UserType(name)
-            self._user_types[name] = ut
+            if father is not None:
+                if any(ancestor.name() == name for ancestor in self.user_type_ancestors(father)): # type: ignore
+                    raise UPTypeError('The name: {name} is already used in the UserType: {ancestor}. An UserType and one of his ancestors can not share the name.')
+            ut = _UserType(name, father)
+            self._user_types[(name, father)] = ut
             return ut
+    
+    def user_type_ancestors(self, user_type: Type) -> Iterator[Type]:
+        '''Returns all the ancestors of the given UserType, including itself.'''
+        if not user_type.is_user_type():
+            raise UPTypeError('The function user_type_ancestors can be called only on UserTypes.')
+        yield user_type
+        father: Optional[Type] = user_type.father() # type: ignore
+        while father is not None:
+            yield father
+            father = father.father() # type: ignore
+
 
 def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'unified_planning.model.types.Type') -> int:
     '''Returns the domain size of the given type.'''
     if typename.is_bool_type():
         return 2
     elif typename.is_user_type():
-        return len(problem.objects(typename))
+        return len(list(problem.objects_hierarchy(typename)))
     elif typename.is_int_type():
         lb = typename.lower_bound() # type: ignore
         ub = typename.upper_bound() # type: ignore
@@ -179,7 +200,7 @@ def domain_item(problem: 'unified_planning.model.problem.Problem', typename: 'un
     if typename.is_bool_type():
         return problem._env.expression_manager.Bool(idx == 0)
     elif typename.is_user_type():
-        return problem._env.expression_manager.ObjectExp(problem.objects(typename)[idx])
+        return problem._env.expression_manager.ObjectExp(list(problem.objects_hierarchy(typename))[idx])
     elif typename.is_int_type():
         lb = typename.lower_bound() # type: ignore
         ub = typename.upper_bound() # type: ignore

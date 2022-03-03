@@ -95,15 +95,10 @@ class NegativeConditionsRemover(Transformer):
                 new_durative_action = action.clone()
                 new_durative_action.name = self.get_fresh_name(action.name)
                 new_durative_action.clear_conditions()
-                for t, cl in action.conditions().items():
+                for i, cl in action.conditions().items():
                     for c in cl:
                         nc = self._fluent_remover.remove_negative_fluents(c)
-                        new_durative_action.add_condition(t, nc)
-                new_durative_action.clear_durative_conditions()
-                for i, cl in action.durative_conditions().items():
-                    for c in cl:
-                        nc = self._fluent_remover.remove_negative_fluents(c)
-                        new_durative_action.add_durative_condition(i, nc)
+                        new_durative_action.add_condition(i, nc)
                 for t, cel in new_durative_action.conditional_effects().items():
                     for ce in cel:
                         ce.set_condition(self._fluent_remover.remove_negative_fluents(ce.condition()))
@@ -120,14 +115,10 @@ class NegativeConditionsRemover(Transformer):
                 if e.is_conditional():
                     e.set_condition(self._fluent_remover.remove_negative_fluents(e.condition()))
 
-        for t, gl in self._problem.timed_goals().items():
+        for i, gl in self._problem.timed_goals().items():
             for g in gl:
                 ng = self._fluent_remover.remove_negative_fluents(g)
-                self._new_problem.add_timed_goal(t, ng)
-        for i, gl in self._problem.maintain_goals().items():
-            for g in gl:
-                ng = self._fluent_remover.remove_negative_fluents(g)
-                self._new_problem.add_maintain_goal(i, ng)
+                self._new_problem.add_timed_goal(i, ng)
 
         for g in self._problem.goals():
             ng = self._fluent_remover.remove_negative_fluents(g)

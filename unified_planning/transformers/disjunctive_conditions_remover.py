@@ -16,7 +16,7 @@
 
 import unified_planning
 from itertools import product
-from unified_planning.model import FNode, Problem, InstantaneousAction, DurativeAction, Interval, Timing, Action
+from unified_planning.model import FNode, Problem, InstantaneousAction, DurativeAction, TimeInterval, Timing, Action
 from unified_planning.walkers import Dnf
 from unified_planning.transformers.transformer import Transformer
 from typing import List, Tuple, Dict
@@ -64,20 +64,12 @@ class DisjunctiveConditionsRemover(Transformer):
                     na = self._create_new_action_with_given_precond(new_precond, a)
                     self._new_problem.add_action(na)
             elif isinstance(a, DurativeAction):
-                timing_list: List[Timing] = []
-                interval_list: List[Interval] = []
+                interval_list: List[TimeInterval] = []
                 conditions: List[List[FNode]] = []
                 # save the timing, calculate the dnf of the and of all the conditions at the same time
                 # and then save it in conditions.
                 # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
-                for t, cl in a.conditions().items():
-                    timing_list.append(t)
-                    new_cond = dnf.get_dnf_expression(self._env.expression_manager.And(cl))
-                    if new_cond.is_or():
-                        conditions.append(new_cond.args())
-                    else:
-                        conditions.append([new_cond])
-                for i, cl in a.durative_conditions().items():
+                for i, cl in a.conditions().items():
                     interval_list.append(i)
                     new_cond = dnf.get_dnf_expression(self._env.expression_manager.And(cl))
                     if new_cond.is_or():
@@ -86,28 +78,21 @@ class DisjunctiveConditionsRemover(Transformer):
                         conditions.append([new_cond])
                 conditions_tuple: Tuple[List[FNode], ...] = product(*conditions)
                 for cond_list in conditions_tuple:
-                    nda = self._create_new_durative_action_with_given_conds_at_given_times(timing_list, interval_list, cond_list, a)
+                    nda = self._create_new_durative_action_with_given_conds_at_given_times(interval_list, cond_list, a)
                     self._new_problem.add_action(nda)
             else:
                 raise NotImplementedError
 
-    def _create_new_durative_action_with_given_conds_at_given_times(self, timing_list: List[Timing], interval_list: List[Interval], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
+    def _create_new_durative_action_with_given_conds_at_given_times(self, interval_list: List[TimeInterval], cond_list: List[FNode], original_action: DurativeAction) -> DurativeAction:
         new_action = original_action.clone()
         new_action.name = self.get_fresh_name(original_action.name)
         new_action.clear_conditions()
-        new_action.clear_durative_conditions()
-        for t, c in zip(timing_list, cond_list[:len(timing_list)]):
+        for i, c in zip(interval_list, cond_list):
             if c.is_and():
                 for co in c.args():
-                    new_action.add_condition(t, co)
+                    new_action.add_condition(i, co)
             else:
-                new_action.add_condition(t, c)
-        for i, c in zip(interval_list, cond_list[len(interval_list):]):
-            if c.is_and():
-                for co in c.args():
-                    new_action.add_durative_condition(i, co)
-            else:
-                new_action.add_durative_condition(i, c)
+                new_action.add_condition(i, c)
         assert self._new_to_old is not None
         self._new_to_old[new_action] = original_action
         self._map_old_to_new_action(original_action, new_action)

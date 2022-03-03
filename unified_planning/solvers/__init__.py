@@ -14,7 +14,7 @@
 #
 
 
-from unified_planning.solvers.solver import Solver
+from unified_planning.solvers.solver import Solver, SATISFICING, OPTIMAL
 from unified_planning.solvers.factory import Factory
 from unified_planning.solvers.grounder import Grounder
 from unified_planning.solvers.parallel import Parallel
@@ -27,6 +27,6 @@ __all__ = [ 'Factory',
             'Parallel',
             'PDDLSolver',
             'SequentialPlanValidator',
-            'Solver'
+            'Solver',
             'TarskiGrounder'
         ]

@@ -2,7 +2,7 @@ import os
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model.problem_kind import basic_classical_kind, classical_kind, full_numeric_kind, basic_temporal_kind
+from unified_planning.model.problem_kind import basic_classical_kind, classical_kind, full_numeric_kind, basic_temporal_kind, hierarchical_kind
 from unified_planning.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.transformers import Grounder as TransformersGrounder
@@ -63,6 +63,33 @@ class TestGrounder(TestCase):
                 self.assertEqual(len(gro.get_transformed_actions(a)), 8)
             elif i == 1:
                 self.assertEqual(len(gro.get_transformed_actions(a)), 20)
+            else:
+                self.assertTrue(False)
+
+        with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
+            self.assertNotEqual(planner, None)
+            grounded_plan = planner.solve(grounded_problem)
+            plan = gro.rewrite_back_plan(grounded_plan)
+            for ai in plan.actions():
+                a = ai.action()
+                self.assertEqual(a, problem.action(a.name))
+            with PlanValidator(problem_kind=problem.kind()) as pv:
+                self.assertTrue(pv.validate(problem, plan))
+
+    
+    @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
+    @skipIfNoPlanValidatorForProblemKind(hierarchical_kind)
+    def test_hierarchical_blocks_world(self):
+        problem = self.problems['hierarchical_blocks_world'].problem
+
+        gro = TransformersGrounder(problem)
+        grounded_problem = gro.get_rewritten_problem()
+        self.assertEqual(len(grounded_problem.actions()), 108)
+        for a in grounded_problem.actions():
+            self.assertEqual(len(a.parameters()), 0)
+        for i, a in enumerate(problem.actions()):
+            if i == 0:
+                self.assertEqual(len(gro.get_transformed_actions(a)), 108)
             else:
                 self.assertTrue(False)
 

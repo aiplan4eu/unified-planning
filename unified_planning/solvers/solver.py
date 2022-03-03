@@ -14,12 +14,19 @@
 #
 """This module defines the solver interface."""
 
-import unified_planning
+import unified_planning as up
 import unified_planning.model
 from unified_planning.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
 from unified_planning.model import ProblemKind, Problem, Action, FNode
 from functools import partial
-from typing import Optional, Tuple, Dict, List, Callable
+from typing import Optional, Tuple, Dict, List, Callable, Union
+
+
+OPTIMALITY_GUARANTEES = list(range(0, 2))
+
+(
+    SATISFICING, OPTIMAL
+) = OPTIMALITY_GUARANTEES
 
 
 class Solver:
@@ -38,6 +45,10 @@ class Solver:
         return False
 
     @staticmethod
+    def satisfies(optimality_guarantee: Union[int, str]) -> bool:
+        return False
+
+    @staticmethod
     def is_plan_validator() -> bool:
         return False
 
@@ -49,13 +60,13 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'unified_planning.model.Problem') -> Optional['unified_planning.plan.Plan']:
+    def solve(self, problem: 'up.model.Problem') -> Optional['up.plan.Plan']:
         raise NotImplementedError
 
-    def validate(self, problem: 'unified_planning.model.Problem', plan: 'unified_planning.plan.Plan') -> bool:
+    def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:
         raise NotImplementedError
 
-    def ground(self, problem: 'unified_planning.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
+    def ground(self, problem: 'up.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
         '''
         Implement only if "self.is_grounder()" returns True.
         This function should return the tuple (grounded_problem, trace_back_plan), where
@@ -63,9 +74,9 @@ class Solver:
         original problem.
 
         NOTE: to create a callable, the "functools.partial" method can be used, as we do in the
-        "unified_planning.solvers.grounder".
+        "up.solvers.grounder".
 
-        Also, the "unified_planning.solvers.grounder.lift_plan" function can be called, if retrieving the needed map
+        Also, the "up.solvers.grounder.lift_plan" function can be called, if retrieving the needed map
         fits the solver implementation better than retrieving a function.'''
         raise NotImplementedError
 

@@ -45,7 +45,9 @@ class TestProblem(TestCase):
     def test_all_from_factory_with_problem_kind(self):
         for p in self.problems.values():
             problem, plan = p.problem, p.plan
-            if problem.kind().has_continuous_time():
+            if problem.kind().has_continuous_time() or \
+               problem.kind().has_actions_cost() or \
+               problem.kind().has_final_value():
                 continue
             env = unified_planning.environment.Environment()
             env.factory.solvers.pop('tamer', None)

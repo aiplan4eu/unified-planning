@@ -92,7 +92,7 @@ class QuantifierSimplifier(walkers.Simplifier):
             return self.manager.FALSE()
         vars = expression.variables()
         type_list = [v.type() for v in vars]
-        possible_objects: List[List[Object]] = [self._problem.objects(t) for t in type_list]
+        possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:
@@ -115,7 +115,7 @@ class QuantifierSimplifier(walkers.Simplifier):
             return self.manager.FALSE()
         vars = expression.variables()
         type_list = [v.type() for v in vars]
-        possible_objects: List[List[Object]] = [self._problem.objects(t) for t in type_list]
+        possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:
@@ -242,6 +242,7 @@ class SequentialPlanValidator(solvers.solver.Solver):
     def supports(problem_kind):
         supported_kind = ProblemKind()
         supported_kind.set_typing('FLAT_TYPING')
+        supported_kind.set_typing('HIERARCHICAL_TYPING')
         supported_kind.set_numbers('CONTINUOUS_NUMBERS')
         supported_kind.set_numbers('DISCRETE_NUMBERS')
         supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS')

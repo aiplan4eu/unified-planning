@@ -37,7 +37,7 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
     def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
         vars = expression.variables()
         type_list = [v.type() for v in vars]
-        possible_objects: List[List[Object]] = [self._problem.objects(t) for t in type_list]
+        possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:
