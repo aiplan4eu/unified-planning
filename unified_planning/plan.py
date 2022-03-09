@@ -130,7 +130,7 @@ class IntermediateReport: #NOTE should we create a class "Report", that then is 
         output = f'{output}plan: {str(self._plan)}\n'
         if self._metrics != {}:
             metrics_str: str = ''
-            for mn, m in self._metrics:
+            for mn, m in self._metrics.items():
                 metrics_str = f'{metrics_str}    {mn}: {m}\n'
             output = f'{output}metrics: {metrics_str}'
         if self._log_messages != []:
@@ -179,7 +179,7 @@ class FinalReport:
         output = f'{output}plan: {str(self._plan)}\n'
         if self._metrics != {}:
             metrics_str: str = ''
-            for mn, m in self._metrics:
+            for mn, m in self._metrics.items():
                 metrics_str = f'{metrics_str}    {mn}: {m}\n'
             output = f'{output}metrics: {metrics_str}'
         if self._log_messages != []:
