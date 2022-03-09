@@ -14,12 +14,12 @@
 #
 
 
-import unified_planning
+import unified_planning as up
 import unified_planning.solvers as solvers
 from unified_planning.plan import Plan, SequentialPlan, ActionInstance
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, final
 from multiprocessing import Process, Queue
 
 
@@ -66,8 +66,9 @@ class Parallel(solvers.solver.Solver):
             p.terminate()
         return res
 
-    def solve(self, problem: 'unified_planning.model.Problem') -> 'unified_planning.plan.Plan':
-        plan = self._run_parallel('solve', problem)
+    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.plan.IntermediateReport'], None]] = None) -> 'up.plan.FinalReport':
+        final_report = self._run_parallel('solve', problem, callback)
+        plan = final_report.plan()
         actions = []
         objects = {}
         for ut in problem.user_types():
@@ -90,9 +91,9 @@ class Parallel(solvers.solver.Solver):
                 else:
                     raise
             actions.append(ActionInstance(new_a, tuple(params)))
-        return SequentialPlan(actions)
+        return up.plan.FinalReport(final_report.status(), SequentialPlan(actions), final_report.planner_name(), final_report.metrics(), final_report.log_messages()) #NOTE: this can be only a SequentialPlan?
 
-    def validate(self, problem: 'unified_planning.model.Problem', plan: Plan) -> bool:
+    def validate(self, problem: 'up.model.Problem', plan: Plan) -> bool:
         return self._run_parallel('validate', problem, plan)
 
     def destroy(self):
