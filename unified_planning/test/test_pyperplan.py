@@ -31,7 +31,7 @@ class TestPyperplan(TestCase):
         problem, plan = self.problems['robot_no_negative_preconditions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem)
+            new_plan = planner.solve(problem).plan()
             self.assertEqual(str(plan), str(new_plan))
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -39,7 +39,7 @@ class TestPyperplan(TestCase):
         problem, plan = self.problems['basic_without_negative_preconditions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem)
+            new_plan = planner.solve(problem).plan()
             self.assertEqual(str(plan), str(new_plan))
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -47,7 +47,7 @@ class TestPyperplan(TestCase):
         problem, plan = self.problems['basic_nested_conjunctions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem)
+            new_plan = planner.solve(problem).plan()
             self.assertEqual(str(plan), str(new_plan))
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -55,7 +55,7 @@ class TestPyperplan(TestCase):
         problem, plan = self.problems['hierarchical_blocks_world']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem)
+            new_plan = planner.solve(problem).plan()
             self.assertEqual(str(plan), str(new_plan))
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -63,7 +63,7 @@ class TestPyperplan(TestCase):
         problem, plan = self.problems['hierarchical_blocks_world_object_as_root']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem)
+            new_plan = planner.solve(problem).plan()
             self.assertEqual(str(plan), str(new_plan))
     
     @skipIfSolverNotAvailable('pyperplan')
@@ -71,5 +71,5 @@ class TestPyperplan(TestCase):
         problem, plan = self.problems['hierarchical_blocks_world_with_object']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem)
+            new_plan = planner.solve(problem).plan()
             self.assertEqual(str(plan), str(new_plan))
