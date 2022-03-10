@@ -25,7 +25,7 @@ def get_example_problems():
     # robot_real_constants
     #this version of the problem robot has reals instead of integers as constants
     Location = UserType('Location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Location)
+    robot_at = Fluent('robot_at', BoolType(), position=Location)
     battery_charge = Fluent('battery_charge', RealType(0, 100))
     move = InstantaneousAction('move', l_from=Location, l_to=Location)
     l_from = move.parameter('l_from')
@@ -56,7 +56,7 @@ def get_example_problems():
     # robot_int_battery
     #this version of the problem robot has the battery charge fluent represented as an int instead of a real
     Location = UserType('Location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Location)
+    robot_at = Fluent('robot_at', BoolType(), position=Location)
     battery_charge = Fluent('battery_charge', IntType(0, 100))
     move = InstantaneousAction('move', l_from=Location, l_to=Location)
     l_from = move.parameter('l_from')
@@ -87,7 +87,7 @@ def get_example_problems():
     #robot fluent of user_type with int ID
     Int_t = IntType(0,1)
     Location = UserType('Location')
-    is_at = Fluent('is_at', Location, p1=Int_t)
+    is_at = Fluent('is_at', Location, id=Int_t)
     move = InstantaneousAction('move', robot=Int_t, l_from=Location, l_to=Location)
     robot = move.parameter('robot')
     l_from = move.parameter('l_from')
@@ -112,8 +112,8 @@ def get_example_problems():
     #robot locations connected without battery
     Location = UserType('Location')
     Robot = UserType('Robot')
-    is_at = Fluent('is_at', BoolType(), p1=Location, p2=Robot)
-    is_connected = Fluent('is_connected', BoolType(), p1=Location, p2=Location)
+    is_at = Fluent('is_at', BoolType(), position=Location, robot=Robot)
+    is_connected = Fluent('is_connected', BoolType(), location_1=Location, location_2=Location)
     move = InstantaneousAction('move', robot=Robot, l_from=Location, l_to=Location)
     robot = move.parameter('robot')
     l_from = move.parameter('l_from')
@@ -175,8 +175,8 @@ def get_example_problems():
     TableSpace = UserType('TableSpace', Unmovable)
     Movable = UserType('Movable', Location)
     Block = UserType('Block', Movable)
-    clear = Fluent('clear', BoolType(), p1=Location)
-    on = Fluent('on', BoolType(), p1=Movable, p2=Location)
+    clear = Fluent('clear', BoolType(), space=Location)
+    on = Fluent('on', BoolType(), object=Movable, space=Location)
 
     move = InstantaneousAction('move', item=Movable, l_from=Location, l_to=Location)
     item = move.parameter('item')
@@ -233,8 +233,8 @@ def get_example_problems():
     TableSpace = UserType('TableSpace', Unmovable)
     Movable = UserType('Movable', Location)
     Block = UserType('Block', Movable)
-    clear = Fluent('clear', BoolType(), p1=Location)
-    on = Fluent('on', BoolType(), p1=Movable, p2=Location)
+    clear = Fluent('clear', BoolType(), space=Location)
+    on = Fluent('on', BoolType(), object=Movable, space=Location)
 
     move = InstantaneousAction('move', item=Movable, l_from=Location, l_to=Location)
     item = move.parameter('item')
@@ -289,8 +289,8 @@ def get_example_problems():
     TableSpace = UserType('TableSpace', Unmovable)
     Movable = UserType('Movable', object)
     Block = UserType('Block', Movable)
-    clear = Fluent('clear', BoolType(), p1=object)
-    on = Fluent('on', BoolType(), p1=Movable, p2=object)
+    clear = Fluent('clear', BoolType(), space=object)
+    on = Fluent('on', BoolType(), object=Movable, space=object)
 
     move = InstantaneousAction('move', item=Movable, l_from=object, l_to=object)
     item = move.parameter('item')

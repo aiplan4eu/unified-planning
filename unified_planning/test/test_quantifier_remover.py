@@ -133,7 +133,7 @@ class TestQuantifiersRemover(TestCase):
     def test_ad_hoc_1(self):
         Obj = UserType('Obj')
         x = Fluent('x')
-        y = Fluent('y', BoolType(), p1=Obj)
+        y = Fluent('y', BoolType(), obj=Obj)
         o = Variable('o', Obj)
         a = InstantaneousAction('a')
         o1 = Object('o1', Obj)

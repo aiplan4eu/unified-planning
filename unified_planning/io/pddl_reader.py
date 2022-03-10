@@ -413,10 +413,6 @@ class PDDLReader:
 
         for p in domain_res.get('predicates', []):
             n = p[0]
-            # params = [] #TODO Old code, can be cancelled if everything works
-            # for g in p[1]:
-            #     t = types_map[g[1] if len(g) > 1 else 'object']
-            #     params.extend([t for i in range(len(g[0]))])
             params = OrderedDict()
             for g in p[1]:
                 param_type = types_map[g[1] if len(g) > 1 else 'object']

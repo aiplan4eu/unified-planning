@@ -24,7 +24,7 @@ def get_example_problems():
 
     # robot
     Location = UserType('Location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Location)
+    robot_at = Fluent('robot_at', BoolType(), position=Location)
     battery_charge = Fluent('battery_charge', RealType(0, 100))
     move = InstantaneousAction('move', l_from=Location, l_to=Location)
     l_from = move.parameter('l_from')
@@ -55,7 +55,7 @@ def get_example_problems():
     #robot fluent of user_type
     Location = UserType('Location')
     Robot = UserType('Robot')
-    is_at = Fluent('is_at', Location, p1=Robot)
+    is_at = Fluent('is_at', Location, robot=Robot)
     move = InstantaneousAction('move', robot=Robot, l_from=Location, l_to=Location)
     robot = move.parameter('robot')
     l_from = move.parameter('l_from')
@@ -85,7 +85,7 @@ def get_example_problems():
 
     # robot no negative preconditions
     Location = UserType('location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Location)
+    robot_at = Fluent('robot_at', BoolType(), position=Location)
     move = InstantaneousAction('move', l_from=Location, l_to=Location)
     l_from = move.parameter('l_from')
     l_to = move.parameter('l_to')
@@ -108,7 +108,7 @@ def get_example_problems():
 
     # robot decrease
     Location = UserType('Location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Location)
+    robot_at = Fluent('robot_at', BoolType(), position=Location)
     battery_charge = Fluent('battery_charge', RealType(0, 100))
     move = InstantaneousAction('move', l_from=Location, l_to=Location)
     l_from = move.parameter('l_from')
@@ -138,8 +138,8 @@ def get_example_problems():
 
     # robot_loader
     Location = UserType('Location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Location)
-    cargo_at = Fluent('cargo_at', BoolType(), p1=Location)
+    robot_at = Fluent('robot_at', BoolType(), position=Location)
+    cargo_at = Fluent('cargo_at', BoolType(), position=Location)
     cargo_mounted = Fluent('cargo_mounted')
     move = InstantaneousAction('move', l_from=Location, l_to=Location)
     l_from = move.parameter('l_from')
@@ -189,8 +189,8 @@ def get_example_problems():
 
     # robot_loader_mod
     Location = UserType('Location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Location)
-    cargo_at = Fluent('cargo_at', BoolType(), p1=Location)
+    robot_at = Fluent('robot_at', BoolType(), position=Location)
+    cargo_at = Fluent('cargo_at', BoolType(), position=Location)
     is_same_location = Fluent('is_same_location', BoolType(), p1=Location, p2=Location)
     cargo_mounted = Fluent('cargo_mounted')
     move = InstantaneousAction('move', l_from=Location, l_to=Location)
@@ -243,9 +243,9 @@ def get_example_problems():
     Robot = UserType('Robot')
     Container = UserType('Container')
     Location = UserType('Location')
-    robot_at = Fluent('robot_at', BoolType(), p1=Robot, p2=Location)
-    cargo_at = Fluent('cargo_at', BoolType(), p1=Container, p2=Location)
-    cargo_mounted = Fluent('cargo_mounted', BoolType(), p1=Container, p2=Robot)
+    robot_at = Fluent('robot_at', BoolType(), robot=Robot, position=Location)
+    cargo_at = Fluent('cargo_at', BoolType(), cargo=Container, position=Location)
+    cargo_mounted = Fluent('cargo_mounted', BoolType(), cargo=Container, robot=Robot)
     move = InstantaneousAction('move', l_from=Location, l_to=Location, r=Robot)
     l_from = move.parameter('l_from')
     l_to = move.parameter('l_to')
@@ -310,9 +310,9 @@ def get_example_problems():
     #robot locations connected
     Location = UserType('Location')
     Robot = UserType('Robot')
-    is_at = Fluent('is_at', BoolType(), p1=Location, p2=Robot)
-    battery_charge = Fluent('battery_charge', RealType(0, 100), p1=Robot)
-    is_connected = Fluent('is_connected', BoolType(), p1=Location, p2=Location)
+    is_at = Fluent('is_at', BoolType(), position=Location, robot=Robot)
+    battery_charge = Fluent('battery_charge', RealType(0, 100), robot=Robot)
+    is_connected = Fluent('is_connected', BoolType(), location_1=Location, location_2=Location)
     move = InstantaneousAction('move', robot=Robot, l_from=Location, l_to=Location)
     robot = move.parameter('robot')
     l_from = move.parameter('l_from')
@@ -376,10 +376,10 @@ def get_example_problems():
     #robot locations visited
     Location = UserType('Location')
     Robot = UserType('Robot')
-    is_at = Fluent('is_at', BoolType(), p1=Location, p2=Robot)
-    battery_charge = Fluent('battery_charge', RealType(0, 100), p1=Robot)
-    is_connected = Fluent('is_connected', BoolType(), p1=Location, p2=Location)
-    visited = Fluent('visited', BoolType(), p1=Location)
+    is_at = Fluent('is_at', BoolType(), position=Location, robot=Robot)
+    battery_charge = Fluent('battery_charge', RealType(0, 100), robot=Robot)
+    is_connected = Fluent('is_connected', BoolType(), location_1=Location, location_2=Location)
+    visited = Fluent('visited', BoolType(), target=Location)
     move = InstantaneousAction('move', robot=Robot, l_from=Location, l_to=Location)
     robot = move.parameter('robot')
     l_from = move.parameter('l_from')
@@ -490,8 +490,8 @@ def get_example_problems():
     Fuse = UserType('Fuse')
     handfree = Fluent('handfree')
     light = Fluent('light')
-    match_used = Fluent('match_used', BoolType(), p1=Match)
-    fuse_mended = Fluent('fuse_mended', BoolType(), p1=Fuse)
+    match_used = Fluent('match_used', BoolType(), match=Match)
+    fuse_mended = Fluent('fuse_mended', BoolType(), fuse=Fuse)
     light_match = DurativeAction('light_match', m=Match)
     m = light_match.parameter('m')
     light_match.set_fixed_duration(6)
@@ -542,8 +542,8 @@ def get_example_problems():
 
     # timed connected locations
     Location = UserType('Location')
-    is_connected = Fluent('is_connected', BoolType(), p1=Location, p2=Location)
-    is_at = Fluent('is_at', BoolType(), p1=Location)
+    is_connected = Fluent('is_connected', BoolType(), location_1=Location, location_2=Location)
+    is_at = Fluent('is_at', BoolType(), position=Location)
     move = DurativeAction('move', l_from=Location, l_to=Location)
     l_from = move.parameter('l_from')
     l_to = move.parameter('l_to')
@@ -594,8 +594,8 @@ def get_example_problems():
     TableSpace = UserType('TableSpace', Unmovable)
     Movable = UserType('Movable', Location)
     Block = UserType('Block', Movable)
-    clear = Fluent('clear', BoolType(), p1=Location)
-    on = Fluent('on', BoolType(), p1=Movable, p2=Location)
+    clear = Fluent('clear', BoolType(), space=Location)
+    on = Fluent('on', BoolType(), object=Movable, space=Location)
 
     move = InstantaneousAction('move', item=Movable, l_from=Location, l_to=Location)
     item = move.parameter('item')

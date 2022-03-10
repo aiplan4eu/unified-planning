@@ -215,9 +215,9 @@ class PDDLWriter:
             if f.type().is_bool_type():
                 params = []
                 i = 0
-                for p in f.signature().values():
+                for n, p in f.signature().items():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
+                        params.append(f' ?{n} - {self._type_name_or_object_freshname(p)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -225,9 +225,9 @@ class PDDLWriter:
             elif f.type().is_int_type() or f.type().is_real_type():
                 params = []
                 i = 0
-                for p in f.signature().values():
+                for n, p in f.signature().items():
                     if p.is_user_type():
-                        params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
+                        params.append(f' ?{n} - {self._type_name_or_object_freshname(p)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')

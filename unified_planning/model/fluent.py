@@ -38,7 +38,6 @@ class Fluent:
         else:
             self._signature = OrderedDict()
             for param_name, param_type in kwargs.items():
-                #NOTE 1: We should be sure that all the param names are different, right?
                 self._signature[param_name] = param_type
 
 
@@ -57,8 +56,8 @@ class Fluent:
 
     def __hash__(self) -> int:
         res = hash(self._typename)
-        for n, t in self._signature.items():
-            res += hash(n) + hash(t)
+        for t in self._signature.items():
+            res += hash(t)
         return res ^ hash(self._name)
 
     def name(self) -> str:
@@ -71,7 +70,7 @@ class Fluent:
 
     def signature(self) -> OrderedDict[str, 'unified_planning.model.types.Type']:
         """Returns the fluent signature.
-        The signature is the list of types of the fluent parameters.
+        The signature is the OrderedDict from names of parameters to types of the fluent parameters.
         """
         return self._signature
 

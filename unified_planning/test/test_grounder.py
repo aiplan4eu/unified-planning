@@ -162,7 +162,7 @@ class TestGrounder(TestCase):
     def test_ad_hoc_1(self):
         problem = Problem('ad_hoc')
         Location = UserType('Location')
-        visited = Fluent('at', BoolType(), p1=Location)
+        visited = Fluent('at', BoolType(), position=Location)
         l1 = Object('l1', Location)
         visit = InstantaneousAction('visit', l_to=Location)
         l_to = visit.parameter('l_to')
@@ -213,7 +213,7 @@ class TestGrounder(TestCase):
     def test_pyperplan_grounder_mockup_problem(self):
         problem = Problem('mockup')
         Location = UserType('Location')
-        at = Fluent('at', BoolType(), p1=Location)
+        at = Fluent('at', BoolType(), position=Location)
         at_l2 = Fluent('at_l2')
         l1 = Object('l1', Location)
         l2 = Object('l2', Location)

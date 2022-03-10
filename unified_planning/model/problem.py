@@ -424,11 +424,11 @@ class Problem:
         quot = idx
         rem = 0
         actual_parameters = []
-        for i in range(fluent.arity()):
+        for i, t in enumerate(fluent.signature().values()):
             ds = domain_sizes[i];
             rem = quot % ds
             quot //= ds
-            v = domain_item(self, list(fluent.signature().values())[i], rem) #TODO: find a better way
+            v = domain_item(self, t, rem)
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
