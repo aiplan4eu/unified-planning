@@ -20,7 +20,7 @@ from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import Iterator, List, Dict, Set, Union, Optional, OrderedDict
+from typing import Iterator, List, Dict, Set, Union, Optional
 
 
 class Problem:
@@ -272,12 +272,14 @@ class Problem:
         '''Removes all the problem actions.'''
         self._actions = []
 
-    def instantaneous_actions(self):
+    def instantaneous_actions(self) -> Iterator['up.model.action.InstantaneousAction']:
+        '''Returs all the instantaneous actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 yield a
 
-    def durative_actions(self):
+    def durative_actions(self) -> Iterator['up.model.action.DurativeAction']:
+        '''Returs all the durative actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.DurativeAction):
                 yield a
@@ -450,6 +452,19 @@ class Problem:
                     f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                     res[f_exp] = self.initial_value(f_exp)
         return res
+    
+    def initial_defaults(self) -> Dict['up.model.types.Type', 'up.model.fnode.FNode']:
+        '''Returns the problem's initial defaults.'''
+        return self._initial_defaults
+    
+    def fluents_defaults(self) -> Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode']:
+        '''Returns the problem's fluents defaults.'''
+        return self._fluents_defaults
+    
+    def explicit_initial_values(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
+        '''Returns the problem's defined initial values.
+        IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values().'''
+        return self._initial_value
 
     def add_timed_goal(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
                        goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):

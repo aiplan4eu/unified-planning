@@ -21,7 +21,7 @@ import unified_planning
 import subprocess
 import unified_planning.solvers as solvers
 from unified_planning.shortcuts import *
-from unified_planning.io.pddl_writer import PDDLWriter
+from unified_planning.io import PDDLWriter
 from unified_planning.exceptions import UPException
 from typing import Optional, List
 
