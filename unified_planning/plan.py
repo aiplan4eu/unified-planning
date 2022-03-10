@@ -17,7 +17,7 @@
 
 import unified_planning
 import unified_planning.model
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Iterator, Optional, Tuple, List
 from fractions import Fraction
 
 
@@ -115,6 +115,11 @@ class TimeTriggeredPlan(Plan):
         '''Returns the sequence of action instances.'''
         return self._actions
 
+    def only_action_instances(self) -> Iterator[ActionInstance]: #NOTE this name is not optimal
+        '''Returns only the ActionInstances of the plan, without time of duration.'''
+        for _, a, _ in self._actions:
+            yield a
+
 class Report:
     '''Base class for unified_planning reports, given by the solvers to the user through the Solver.solve() method.'''
     def __init__(self, plan: Optional[Plan], planner_name: str = '', metrics: Dict[str, str] = {}, log_messages: List[str] = []):
@@ -203,7 +208,7 @@ def status_to_str(id: int) -> str:
     return __STATUS_STR__[id]
 
 __STATUS_STR__ = {
-    SATISFIED: 'STATISFIED',
+    SATISFIED: 'SATISFIED',
     OPTIMAL: 'OPTIMAL',
     UNSATISFIED: 'UNSATISFIED', 
     SEARCH_SPACE_EXHAUSTED: 'SEARCH_SPACE_EXHAUSTED',
