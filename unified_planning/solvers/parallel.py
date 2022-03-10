@@ -16,10 +16,10 @@
 
 import unified_planning as up
 import unified_planning.solvers as solvers
-from unified_planning.plan import Plan, SequentialPlan, ActionInstance
+from unified_planning.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
-from typing import Callable, Dict, List, Optional, Tuple, final
+from typing import Callable, Dict, List, Optional, Tuple
 from multiprocessing import Process, Queue
 
 
@@ -75,23 +75,42 @@ class Parallel(solvers.solver.Solver):
             for obj in problem.objects(ut):
                 objects[obj.name()] = obj
         em = problem.env.expression_manager
-        for a in plan.actions():
-            new_a = problem.action(a.action().name)
-            params = []
-            for p in a.actual_parameters():
-                if p.is_object_exp():
-                    obj = objects[p.object().name()]
-                    params.append(em.ObjectExp(obj))
-                elif p.is_bool_constant():
-                    params.append(em.Bool(p.is_true()))
-                elif p.is_int_constant():
-                    params.append(em.Int(p.constant_value()))
-                elif p.is_real_constant():
-                    params.append(em.Real(p.constant_value()))
-                else:
-                    raise
-            actions.append(ActionInstance(new_a, tuple(params)))
-        return up.plan.FinalReport(final_report.status(), SequentialPlan(actions), final_report.planner_name(), final_report.metrics(), final_report.log_messages()) #NOTE: this can be only a SequentialPlan?
+        if isinstance(plan, up.plan.SequentialPlan):
+            for a in plan.actions():
+                new_a = problem.action(a.action().name)
+                params = []
+                for p in a.actual_parameters():
+                    if p.is_object_exp():
+                        obj = objects[p.object().name()]
+                        params.append(em.ObjectExp(obj))
+                    elif p.is_bool_constant():
+                        params.append(em.Bool(p.is_true()))
+                    elif p.is_int_constant():
+                        params.append(em.Int(p.constant_value()))
+                    elif p.is_real_constant():
+                        params.append(em.Real(p.constant_value()))
+                    else:
+                        raise
+                actions.append(ActionInstance(new_a, tuple(params)))
+            return up.plan.FinalReport(final_report.status(), SequentialPlan(actions), final_report.planner_name(), final_report.metrics(), final_report.log_messages())
+        elif isinstance(plan, up.plan.TimeTriggeredPlan):
+            for t, a, d in plan.actions():
+                new_a = problem.action(a.action().name)
+                params = []
+                for p in a.actual_parameters():
+                    if p.is_object_exp():
+                        obj = objects[p.object().name()]
+                        params.append(em.ObjectExp(obj))
+                    elif p.is_bool_constant():
+                        params.append(em.Bool(p.is_true()))
+                    elif p.is_int_constant():
+                        params.append(em.Int(p.constant_value()))
+                    elif p.is_real_constant():
+                        params.append(em.Real(p.constant_value()))
+                    else:
+                        raise
+                actions.append((t, ActionInstance(new_a, tuple(params)), d))
+            return up.plan.FinalReport(final_report.status(), TimeTriggeredPlan(actions), final_report.planner_name(), final_report.metrics(), final_report.log_messages())
 
     def validate(self, problem: 'up.model.Problem', plan: Plan) -> bool:
         return self._run_parallel('validate', problem, plan)
