@@ -78,7 +78,7 @@ class ConverterToPythonString(walkers.DagWalker):
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'emgr.ParamExp(up.model.Parameter("{p.name()}", {_print_python_type(p.type())}))'
+        return f'emgr.ParameterExp(up.model.Parameter("{p.name()}", {_print_python_type(p.type())}))'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
