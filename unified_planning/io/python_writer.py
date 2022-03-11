@@ -72,7 +72,7 @@ class ConverterToPythonString(walkers.DagWalker):
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
         if args:
-            return f'emgr.FluentExp(fluent_{fluent.name()}({", ".join(args)}))'
+            return f'fluent_{fluent.name()}({", ".join(args)})'
         return f'emgr.FluentExp(fluent_{fluent.name()})'
 
     def walk_param_exp(self, expression, args):
