@@ -18,7 +18,7 @@
 import unified_planning
 from unified_planning.exceptions import UPUsageError
 from unified_planning.plan import Plan
-from unified_planning.model import Problem, Action, Type, Expression, Effect, ActionParameter, DurativeAction, InstantaneousAction, FNode
+from unified_planning.model import Problem, Action, Type, Expression, Effect, Parameter, DurativeAction, InstantaneousAction, FNode
 from unified_planning.model.types import domain_size,  domain_item
 from unified_planning.transformers.transformer import Transformer
 from unified_planning.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
@@ -141,7 +141,7 @@ class Grounder(Transformer):
     def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Optional[Action]:
         naming_list: List[str] = []
         for param, value in subs.items():
-            assert isinstance(param, ActionParameter)
+            assert isinstance(param, Parameter)
             assert isinstance(value, FNode)
             naming_list.append(str(value))
         if isinstance(old_action, InstantaneousAction):

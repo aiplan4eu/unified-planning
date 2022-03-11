@@ -49,7 +49,7 @@ def Forall(expression: BoolExpression, *vars: 'unified_planning.model.Variable')
 def FluentExp(fluent: 'unified_planning.model.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
     return get_env().expression_manager.FluentExp(fluent, params)
 
-def ParameterExp(param: 'unified_planning.model.ActionParameter') -> FNode:
+def ParameterExp(param: 'unified_planning.model.Parameter') -> FNode:
     return get_env().expression_manager.ParameterExp(param)
 
 def VariableExp(var: 'unified_planning.model.Variable') -> FNode:

@@ -31,7 +31,7 @@ from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type
 
 def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_planning.model.Fluent'],
                            objects: Dict[str, 'unified_planning.model.Object'],
-                           action_parameters: Dict[str, 'unified_planning.model.ActionParameter'],
+                           action_parameters: Dict[str, 'unified_planning.model.Parameter'],
                            types: Dict[str, Optional['unified_planning.model.Type']],
                            formula: Union[Formula, Term]) -> 'unified_planning.model.FNode':
     """Converts a tarski formula in a unified_planning expression."""
@@ -295,7 +295,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     # Set initial values
     initial_values = {}
     for fluent in fluents.values():
-        l = [problem.objects_hierarchy(t) for t in fluent.signature().values()]
+        l = [problem.objects_hierarchy(p.type()) for p in fluent.signature()]
         if fluent.type().is_bool_type():
             default_value = em.FALSE()
         elif fluent.type().is_real_type():

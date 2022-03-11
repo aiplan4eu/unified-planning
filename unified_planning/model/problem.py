@@ -223,9 +223,9 @@ class Problem:
             self._fluents_defaults[fluent] = v_exp
         if fluent.type().is_user_type() and fluent.type() not in self._user_types:
             self._add_user_type(fluent.type())
-        for type in fluent.signature().values():
-            if type.is_user_type() and type not in self._user_types:
-                self._add_user_type(type)
+        for param in fluent.signature():
+            if param.type().is_user_type() and param.type() not in self._user_types:
+                self._add_user_type(param.type())
 
     def _add_user_type(self, type: Optional['up.model.types.Type']):
         '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''
@@ -424,11 +424,11 @@ class Problem:
         quot = idx
         rem = 0
         actual_parameters = []
-        for i, t in enumerate(fluent.signature().values()):
+        for i, p in enumerate(fluent.signature()):
             ds = domain_sizes[i];
             rem = quot % ds
             quot //= ds
-            v = domain_item(self, t, rem)
+            v = domain_item(self, p.type(), rem)
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
@@ -442,8 +442,8 @@ class Problem:
             else:
                 ground_size = 1
                 domain_sizes = []
-                for p in f.signature().values():
-                    ds = domain_size(self, p)
+                for p in f.signature():
+                    ds = domain_size(self, p.type())
                     domain_sizes.append(ds)
                     ground_size *= ds
                 for i in range(ground_size):
@@ -629,8 +629,8 @@ class Problem:
             self._kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
         elif fluent.type().is_user_type():
             self._kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        for t in fluent.signature().values():
-            self._update_problem_kind_type(t)
+        for p in fluent.signature():
+            self._update_problem_kind_type(p.type())
 
     def _update_problem_kind_action(self, action: 'up.model.action.Action'):
         for p in action.parameters():

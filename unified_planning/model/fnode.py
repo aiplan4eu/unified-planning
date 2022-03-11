@@ -145,7 +145,7 @@ class FNode(object):
         assert self.is_fluent_exp()
         return self._content.payload
 
-    def parameter(self) -> 'unified_planning.model.action.ActionParameter':
+    def parameter(self) -> 'unified_planning.model.parameter.Parameter':
         """Return the parameter of the ParameterExp."""
         assert self.is_parameter_exp()
         return self._content.payload
