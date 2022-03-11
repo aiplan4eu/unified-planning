@@ -19,8 +19,7 @@ import pytest
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
-from unified_planning.io.pddl_writer import PDDLWriter
-from unified_planning.io.pddl_reader import PDDLReader
+from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.types import _UserType
 
