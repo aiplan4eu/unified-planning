@@ -20,7 +20,7 @@ from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import Iterator, List, Dict, Set, Union, Optional, OrderedDict
+from typing import Iterator, List, Dict, Set, Union, Optional
 
 
 class Problem:
@@ -229,9 +229,9 @@ class Problem:
             self._fluents_defaults[fluent] = v_exp
         if fluent.type().is_user_type() and fluent.type() not in self._user_types:
             self._add_user_type(fluent.type())
-        for type in fluent.signature():
-            if type.is_user_type() and type not in self._user_types:
-                self._add_user_type(type)
+        for param in fluent.signature():
+            if param.type().is_user_type() and param.type() not in self._user_types:
+                self._add_user_type(param.type())
 
     def _add_user_type(self, type: Optional['up.model.types.Type']):
         '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''
@@ -278,12 +278,14 @@ class Problem:
         '''Removes all the problem actions.'''
         self._actions = []
 
-    def instantaneous_actions(self):
+    def instantaneous_actions(self) -> Iterator['up.model.action.InstantaneousAction']:
+        '''Returs all the instantaneous actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 yield a
 
-    def durative_actions(self):
+    def durative_actions(self) -> Iterator['up.model.action.DurativeAction']:
+        '''Returs all the durative actions of the problem.'''
         for a in self._actions:
             if isinstance(a, up.model.action.DurativeAction):
                 yield a
@@ -430,11 +432,11 @@ class Problem:
         quot = idx
         rem = 0
         actual_parameters = []
-        for i in range(fluent.arity()):
+        for i, p in enumerate(fluent.signature()):
             ds = domain_sizes[i];
             rem = quot % ds
             quot //= ds
-            v = domain_item(self, fluent.signature()[i], rem)
+            v = domain_item(self, p.type(), rem)
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
@@ -449,13 +451,26 @@ class Problem:
                 ground_size = 1
                 domain_sizes = []
                 for p in f.signature():
-                    ds = domain_size(self, p)
+                    ds = domain_size(self, p.type())
                     domain_sizes.append(ds)
                     ground_size *= ds
                 for i in range(ground_size):
                     f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                     res[f_exp] = self.initial_value(f_exp)
         return res
+    
+    def initial_defaults(self) -> Dict['up.model.types.Type', 'up.model.fnode.FNode']:
+        '''Returns the problem's initial defaults.'''
+        return self._initial_defaults
+    
+    def fluents_defaults(self) -> Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode']:
+        '''Returns the problem's fluents defaults.'''
+        return self._fluents_defaults
+    
+    def explicit_initial_values(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
+        '''Returns the problem's defined initial values.
+        IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values().'''
+        return self._initial_value
 
     def add_timed_goal(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
                        goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
@@ -639,8 +654,8 @@ class Problem:
             self._kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
         elif fluent.type().is_user_type():
             self._kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        for t in fluent.signature():
-            self._update_problem_kind_type(t)
+        for p in fluent.signature():
+            self._update_problem_kind_type(p.type())
 
     def _update_problem_kind_action(self, action: 'up.model.action.Action'):
         for p in action.parameters():

@@ -158,7 +158,7 @@ class QuantifierSimplifier(walkers.Simplifier):
             assert type(res) is FNode
             return res
         else:
-            raise UPProblemDefinitionError(f"Value of ActionParameter {str(expression)} not found in {str(self._assignments)}")
+            raise UPProblemDefinitionError(f"Value of Parameter {str(expression)} not found in {str(self._assignments)}")
 
 
 class SequentialPlanValidator(solvers.solver.Solver):

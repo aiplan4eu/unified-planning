@@ -19,8 +19,7 @@ import pytest
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
-from unified_planning.io.pddl_writer import PDDLWriter
-from unified_planning.io.pddl_reader import PDDLReader
+from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.types import _UserType
 
@@ -85,7 +84,7 @@ class TestPddlIO(TestCase):
 
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :existential-preconditions)', pddl_domain)
-        self.assertIn('(:predicates (x) (y ?p0 - Semaphore))', pddl_domain)
+        self.assertIn('(:predicates (x) (y ?semaphore - Semaphore))', pddl_domain)
         self.assertIn('(:action a', pddl_domain)
         self.assertIn(':parameters ()', pddl_domain)
         self.assertIn(':precondition (and (exists (?s - Semaphore)\n (y ?s)))', pddl_domain)
@@ -105,7 +104,7 @@ class TestPddlIO(TestCase):
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :negative-preconditions :equality :numeric-fluents)', pddl_domain)
         self.assertIn('(:types Location)', pddl_domain)
-        self.assertIn('(:predicates (robot_at ?p0 - Location))', pddl_domain)
+        self.assertIn('(:predicates (robot_at ?position - Location))', pddl_domain)
         self.assertIn('(:functions (battery_charge))', pddl_domain)
         self.assertIn('(:action move', pddl_domain)
         self.assertIn(':parameters ( ?l_from - Location ?l_to - Location)', pddl_domain)
@@ -127,7 +126,7 @@ class TestPddlIO(TestCase):
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :negative-preconditions :equality :numeric-fluents)', pddl_domain)
         self.assertIn('(:types Location)', pddl_domain)
-        self.assertIn('(:predicates (robot_at ?p0 - Location))', pddl_domain)
+        self.assertIn('(:predicates (robot_at ?position - Location))', pddl_domain)
         self.assertIn('(:functions (battery_charge))', pddl_domain)
         self.assertIn('(:action move', pddl_domain)
         self.assertIn(':parameters ( ?l_from - Location ?l_to - Location)', pddl_domain)
@@ -149,7 +148,7 @@ class TestPddlIO(TestCase):
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :negative-preconditions :equality)', pddl_domain)
         self.assertIn('(:types Location)', pddl_domain)
-        self.assertIn('(:predicates (robot_at ?p0 - Location) (cargo_at ?p0 - Location) (cargo_mounted))', pddl_domain)
+        self.assertIn('(:predicates (robot_at ?position - Location) (cargo_at ?position - Location) (cargo_mounted))', pddl_domain)
         self.assertIn('(:action move', pddl_domain)
         self.assertIn(':parameters ( ?l_from - Location ?l_to - Location)', pddl_domain)
         self.assertIn(':precondition (and (not (= ?l_from ?l_to)) (robot_at ?l_from) (not (robot_at ?l_to)))', pddl_domain)
@@ -178,7 +177,7 @@ class TestPddlIO(TestCase):
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :negative-preconditions :equality)', pddl_domain)
         self.assertIn('(:types Robot Location Container)', pddl_domain)
-        self.assertIn('(:predicates (robot_at ?p0 - Robot ?p1 - Location) (cargo_at ?p0 - Container ?p1 - Location) (cargo_mounted ?p0 - Container ?p1 - Robot))', pddl_domain)
+        self.assertIn('(:predicates (robot_at ?robot - Robot ?position - Location) (cargo_at ?cargo - Container ?position - Location) (cargo_mounted ?cargo - Container ?robot - Robot))', pddl_domain)
         self.assertIn('(:action move', pddl_domain)
         self.assertIn(':parameters ( ?l_from - Location ?l_to - Location ?r - Robot)', pddl_domain)
         self.assertIn(':precondition (and (not (= ?l_from ?l_to)) (robot_at ?r ?l_from) (not (robot_at ?r ?l_to)))', pddl_domain)
@@ -210,7 +209,7 @@ class TestPddlIO(TestCase):
         self.assertIn('(define (domain MatchCellar-domain)', pddl_domain)
         self.assertIn('(:requirements :strips :typing :negative-preconditions :durative-actions)', pddl_domain)
         self.assertIn('(:types Match Fuse)', pddl_domain)
-        self.assertIn('(:predicates (handfree) (light) (match_used ?p0 - Match) (fuse_mended ?p0 - Fuse))', pddl_domain)
+        self.assertIn('(:predicates (handfree) (light) (match_used ?match - Match) (fuse_mended ?fuse - Fuse))', pddl_domain)
         self.assertIn('(:durative-action light_match', pddl_domain)
         self.assertIn(':parameters ( ?m - Match)', pddl_domain)
         self.assertIn(':duration (= ?duration 6)', pddl_domain)

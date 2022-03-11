@@ -13,8 +13,8 @@
 # limitations under the License.
 #
 """
-This module defines the InstantaneousAction class and the ActionParameter class.
-An InstantaneousAction has a name, a list of ActionParameter, a list of preconditions
+This module defines the Action base class and some of his extentions.
+An Action has a name, a list of Parameter, a list of preconditions
 and a list of effects.
 """
 
@@ -26,50 +26,20 @@ from fractions import Fraction
 from typing import Dict, List, Union
 from collections import OrderedDict
 
-
-class ActionParameter:
-    """Represents an action parameter.
-    An action parameter has a name, used to retrieve the parameter
-    from the action, and a type, used to represent that the action
-    parameter is of the given type."""
-    def __init__(self, name: str, typename: 'up.model.types.Type'):
-        self._name = name
-        self._typename = typename
-
-    def __repr__(self) -> str:
-        return f'{str(self.type())} {self.name()}'
-
-    def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, ActionParameter):
-            return self._name == oth._name and self._typename == oth._typename
-        else:
-            return False
-
-    def __hash__(self) -> int:
-        return hash(self._name) + hash(self._typename)
-
-    def name(self) -> str:
-        """Returns the parameter name."""
-        return self._name
-
-    def type(self) -> 'up.model.types.Type':
-        """Returns the parameter type."""
-        return self._typename
-
 class Action:
     """This is the action interface."""
     def __init__(self, _name: str, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
                  _env: Environment = None, **kwargs: 'up.model.types.Type'):
         self._env = get_env(_env)
         self._name = _name
-        self._parameters: 'OrderedDict[str, ActionParameter]' = OrderedDict()
+        self._parameters: 'OrderedDict[str, up.model.parameter.Parameter]' = OrderedDict()
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
-                self._parameters[n] = ActionParameter(n, t)
+                self._parameters[n] = up.model.parameter.Parameter(n, t)
         else:
             for n, t in kwargs.items():
-                self._parameters[n] = ActionParameter(n, t)
+                self._parameters[n] = up.model.parameter.Parameter(n, t)
 
     def __eq__(self, oth: object) -> bool:
         raise NotImplementedError
@@ -90,11 +60,11 @@ class Action:
         """Sets the parameter name."""
         self._name = new_name
 
-    def parameters(self) -> List[ActionParameter]:
+    def parameters(self) -> List['up.model.parameter.Parameter']:
         """Returns the list of the action parameters."""
         return list(self._parameters.values())
 
-    def parameter(self, name: str) -> ActionParameter:
+    def parameter(self, name: str) -> 'up.model.parameter.Parameter':
         """Returns the parameter of the action with the given name."""
         return self._parameters[name]
 
@@ -190,7 +160,7 @@ class InstantaneousAction(Action):
         """Returns the list of the action unconditional effects."""
         return [e for e in self._effects if not e.is_conditional()]
 
-    def add_precondition(self, precondition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', ActionParameter, bool]):
+    def add_precondition(self, precondition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
         """Adds the given action precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
@@ -408,7 +378,7 @@ class DurativeAction(Action):
         self.set_duration_constraint(up.model.timing.RightOpenDurationInterval(lower_exp, upper_exp))
 
     def add_condition(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
-                      condition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', ActionParameter, bool]):
+                      condition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
         '''Adds the given condition.'''
         if isinstance(interval, up.model.Timing):
             interval = up.model.TimePointInterval(interval)
