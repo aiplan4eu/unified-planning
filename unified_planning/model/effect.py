@@ -19,8 +19,9 @@ A condition can be added to make it a conditional effect.
 """
 
 
-from unified_planning.model.fnode import FNode
+import unified_planning as up
 from enum import Enum, auto
+from typing import List, Callable
 
 
 class EffectKind(Enum):
@@ -29,7 +30,8 @@ class EffectKind(Enum):
     DECREASE = auto()
 
 class Effect:
-    def __init__(self, fluent: FNode, value: FNode, condition: FNode, kind: EffectKind = EffectKind.ASSIGN):
+    def __init__(self, fluent: 'up.model.fnode.FNode', value: 'up.model.fnode.FNode',
+                 condition: 'up.model.fnode.FNode', kind: EffectKind = EffectKind.ASSIGN):
         self._fluent = fluent
         self._value = value
         self._condition = condition
@@ -67,25 +69,25 @@ class Effect:
         return not self._condition.is_true()
 
     @property
-    def fluent(self) -> FNode:
+    def fluent(self) -> 'up.model.fnode.FNode':
         """Returns the Fluent that is modified by this effect."""
         return self._fluent
 
     @property
-    def value(self) -> FNode:
+    def value(self) -> 'up.model.fnode.FNode':
         """Returns the value given to the Fluent by this Effect."""
         return self._value
 
-    def set_value(self, new_value: FNode):
+    def set_value(self, new_value: 'up.model.fnode.FNode'):
         """Sets the value given to the Fluent by this Effect."""
         self._value = new_value
 
     @property
-    def condition(self) -> FNode:
+    def condition(self) -> 'up.model.fnode.FNode':
         """Returns the condition required for this Effect to be applied."""
         return self._condition
 
-    def set_condition(self, new_condition: FNode):
+    def set_condition(self, new_condition: 'up.model.fnode.FNode'):
         """Sets the condition required for this Effect to be applied."""
         self._condition = new_condition
 
@@ -105,3 +107,31 @@ class Effect:
     def is_decrease(self) -> bool:
         """Returns True if the kind of this Effect is a decrease."""
         return self._kind == EffectKind.DECREASE
+
+
+class SimulatedEffects:
+    def __init__(self, fluents: List['up.model.fnode.FNode'],
+                 function: Callable[['up.model.problem.Problem', 'up.model.state.State'],
+                                    List['up.model.fnode.FNode']]):
+        self._fluents = fluents
+        self._function = function
+
+    def __repr__(self) -> str:
+        return f'{self._fluents} := simulated'
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, SimulatedEffects):
+            return self._fluents == oth._fluents and self._function == oth._function
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._fluents) + hash(self._function)
+
+    @property
+    def fluents(self) -> List['up.model.fnode.FNode']:
+        return self._fluents
+
+    @property
+    def function(self) -> Callable[['up.model.problem.Problem', 'up.model.state.State'], List['up.model.fnode.FNode']]:
+        return self._function

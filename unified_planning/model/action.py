@@ -81,6 +81,7 @@ class InstantaneousAction(Action):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
         self._preconditions: List[up.model.fnode.FNode] = []
         self._effects: List[up.model.effect.Effect] = []
+        self._simulated_effects: Optional[up.model.effect.SimulatedEffects] = None
 
     def __repr__(self) -> str:
         s = []
@@ -104,13 +105,14 @@ class InstantaneousAction(Action):
         for e in self.effects:
             s.append(f'      {str(e)}\n')
         s.append('    ]\n')
+        s.append(f'    simulated effects = {self._simulated_effects}\n')
         s.append('  }')
         return ''.join(s)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InstantaneousAction):
             cond = self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
-            return cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects)
+            return cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects) and self._simulated_effects == oth._simulated_effects
         else:
             return False
 
@@ -122,6 +124,7 @@ class InstantaneousAction(Action):
             res += hash(p)
         for e in self._effects:
             res += hash(e)
+        res += hash(self._simulated_effects)
         return res
 
     def clone(self):
@@ -131,6 +134,7 @@ class InstantaneousAction(Action):
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
+        new_instantaneous_action._simulated_effects = self._simulated_effects
         return new_instantaneous_action
 
     @property
@@ -220,6 +224,12 @@ class InstantaneousAction(Action):
         if effect not in self._effects:
             self._effects.append(effect)
 
+    def simulated_effects(self) -> Optional['up.model.effect.SimulatedEffects']:
+        return self._simulated_effects
+
+    def add_simulated_effects(self, simulated_effects: 'up.model.effect.SimulatedEffects'):
+        self._simulated_effects = simulated_effects
+
     def _set_preconditions(self, preconditions: List['up.model.fnode.FNode']):
         self._preconditions = preconditions
 
@@ -232,6 +242,7 @@ class DurativeAction(Action):
         self._duration: 'up.model.timing.DurationInterval' = up.model.timing.FixedDuration(self._env.expression_manager.Int(0))
         self._conditions: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
+        self._simulated_effects: Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffects'] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -260,6 +271,10 @@ class DurativeAction(Action):
             for e in el:
                 s.append(f'        {str(e)}:\n')
         s.append('    ]\n')
+        s.append('    simulated effects = [\n')
+        for t, se in self.simulated_effects().items():
+            s.append(f'      {str(t)}: {se}\n')
+        s.append('    ]\n')
         s.append('  }')
         return ''.join(s)
 
@@ -283,6 +298,12 @@ class DurativeAction(Action):
                     return False
                 elif set(el) != set(oth_el):
                     return False
+            for t, se in self._simulated_effects.items():
+                oth_se = oth._simulated_effects.get(t, None)
+                if oth_se is None:
+                    return False
+                elif se != oth_se:
+                    return False
             return True
         else:
             return False
@@ -299,6 +320,8 @@ class DurativeAction(Action):
             res += hash(t)
             for e in el:
                 res += hash(e)
+        for t, se in self._simulated_effects.items():
+            res += hash(t) + hash(se)
         return res
 
     def clone(self):
@@ -307,6 +330,7 @@ class DurativeAction(Action):
         new_durative_action._duration = self._duration
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
+        new_durative_action._simulated_effects = {t: se for t, se in self._simulated_effects.items()}
         return new_durative_action
 
     @property
@@ -458,3 +482,12 @@ class DurativeAction(Action):
                 self._effects[timing].append(effect)
         else:
             self._effects[timing] = [effect]
+
+    def simulated_effects(self) -> Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffects']:
+        '''Returns the action simulated effects.'''
+        return self._simulated_effects
+
+    def add_simulated_effects(self, timing: 'up.model.timing.Timing',
+                              simulated_effects: 'up.model.effect.SimulatedEffects'):
+        '''Adds the given simulated effects at the specified timing'''
+        self._simulated_effects[timing] = simulated_effects

@@ -15,7 +15,7 @@
 
 
 from unified_planning.model.action import Action, InstantaneousAction, DurativeAction
-from unified_planning.model.effect import Effect, EffectKind
+from unified_planning.model.effect import Effect, SimulatedEffects, EffectKind
 from unified_planning.model.expression import BoolExpression, Expression, ExpressionManager
 from unified_planning.model.fnode import FNode
 from unified_planning.model.fluent import Fluent
