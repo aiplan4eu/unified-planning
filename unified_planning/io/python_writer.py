@@ -152,8 +152,8 @@ class PythonWriter:
                 out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}", type_{cast(_UserType, utype.father()).name()})\n') 
 
         for f in self.problem.fluents(): # define fluents
-            params = ', '.join(_print_python_type(p) for p in f.signature())
-            out.write(f'fluent_{f.name()} = up.model.Fluent("{f.name()}", {_print_python_type(f.type())}, [{params}])\n')
+            params = ', '.join(f'{p.name()}={_print_python_type(p.type())} ' for p in f.signature())
+            out.write(f'fluent_{f.name()} = up.model.Fluent("{f.name()}", {_print_python_type(f.type())}, {params})\n')
 
         for o in self.problem.all_objects(): # define objects
             out.write(f'object_{o.name()} = up.model.Object("{o.name()}", type_{cast(_UserType, o.type()).name()})\n') #NOTE works if objects are only of user_type.

@@ -14,12 +14,13 @@
 #
 
 
-from unified_planning.model.action import ActionParameter, Action, InstantaneousAction, DurativeAction
+from unified_planning.model.action import Action, InstantaneousAction, DurativeAction
 from unified_planning.model.effect import Effect
 from unified_planning.model.expression import BoolExpression, Expression, ExpressionManager
 from unified_planning.model.fnode import FNode
 from unified_planning.model.fluent import Fluent
 from unified_planning.model.object import Object
+from unified_planning.model.parameter import Parameter
 from unified_planning.model.problem import Problem
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.timing import Timing, StartTiming, EndTiming, GlobalStartTiming, GlobalEndTiming, DurationInterval, ClosedDurationInterval
@@ -29,12 +30,13 @@ from unified_planning.model.types import Type, TypeManager
 from unified_planning.model.variable import Variable, FreeVarsOracle
 import unified_planning.model.metrics
 
-__all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
+__all__ = [ 'Action', 'InstantaneousAction', 'DurativeAction',
             'Effect',
             'BoolExpression', 'Expression', 'ExpressionManager',
             'FNode',
             'Fluent',
             'Object',
+            'Parameter',
             'Problem',
             'ProblemKind',
             'Timing', 'StartTiming', 'EndTiming', 'GlobalStartTiming', 'GlobalEndTiming',

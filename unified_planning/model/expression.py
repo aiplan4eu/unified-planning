@@ -25,8 +25,8 @@ from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
-Expression = Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.action.ActionParameter', 'unified_planning.model.variable.Variable', bool, int, float, Fraction]
-BoolExpression = Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.action.ActionParameter', bool]
+Expression = Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.parameter.Parameter', 'unified_planning.model.variable.Variable', bool, int, float, Fraction]
+BoolExpression = Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.parameter.Parameter', bool]
 
 class ExpressionManager(object):
     """ExpressionManager is responsible for the creation of all expressions."""
@@ -65,7 +65,7 @@ class ExpressionManager(object):
         for e in tuple_args:
             if isinstance(e, unified_planning.model.fluent.Fluent):
                 res.append(self.FluentExp(e))
-            elif isinstance(e, unified_planning.model.action.ActionParameter):
+            elif isinstance(e, unified_planning.model.parameter.Parameter):
                 res.append(self.ParameterExp(e))
             elif isinstance(e, unified_planning.model.variable.Variable):
                 res.append(self.VariableExp(e))
@@ -84,7 +84,7 @@ class ExpressionManager(object):
         return res
 
     def create_node(self, node_type: int, args: Iterable['unified_planning.model.fnode.FNode'],
-                    payload: Union['unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.action.ActionParameter', 'unified_planning.model.variable.Variable', bool, int, Fraction, Tuple['unified_planning.model.variable.Variable', ...]] = None) ->'unified_planning.model.fnode.FNode':
+                    payload: Union['unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.parameter.Parameter', 'unified_planning.model.variable.Variable', bool, int, Fraction, Tuple['unified_planning.model.variable.Variable', ...]] = None) ->'unified_planning.model.fnode.FNode':
         content = unified_planning.model.fnode.FNodeContent(node_type, args, payload)
         if content in self.expressions:
             return self.expressions[content]
@@ -191,7 +191,7 @@ class ExpressionManager(object):
         params_exp = self.auto_promote(*params)
         return self.create_node(node_type=op.FLUENT_EXP, args=tuple(params_exp), payload=fluent)
 
-    def ParameterExp(self, param: 'unified_planning.model.action.ActionParameter') ->'unified_planning.model.fnode.FNode':
+    def ParameterExp(self, param: 'unified_planning.model.parameter.Parameter') ->'unified_planning.model.fnode.FNode':
         """Returns an expression for the given action parameter."""
         return self.create_node(node_type=op.PARAM_EXP, args=tuple(), payload=param)
 
