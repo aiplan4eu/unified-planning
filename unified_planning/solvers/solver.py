@@ -60,7 +60,7 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.plan.IntermediateReport'], None]] = None) -> 'up.plan.FinalReport':
+    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.plan.PlanGenerationResult'], None]] = None) -> 'up.plan.PlanGenerationResult':
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:

@@ -431,25 +431,25 @@ message LogMessage {
 
 // Last message sent by planner before exiting.
 // Contains the planner exit status as well as the best plan found if any.
-message Answer {
+message PlanGenerationResult {
     enum Status {
         // ==== Planner stopped normally ======
 
-        // Valid plan found and search stopped immediately
-        // The `best_plan` field must be set.
-        SAT = 0;
+        // Valid plan found
+        // The `plan` field must be set.
+        SATISFIED = 0;
         // Plan found with optimality guarantee
-        // The `best_plan` field must be set and contain an optimal solution.
-        OPT = 1;
+        // The `plan` field must be set and contains an optimal solution.
+        OPTIMAL = 1;
         // No plan exists
-        UNSAT = 2;
+        UNSATISFIED = 2;
         // The planner was not able to find a solution but does not give any guarantee that none exist
         // (i.e. the planner might not be complete)
         SEARCH_SPACE_EXHAUSTED = 3;
 
         // ====== Planner exited before making any conclusion ====
-        // Search stopped before concluding OPT or UNSAT
-        // If a plan was found, it might be reported in the `best_plan` field
+        // Search stopped before concluding OPTIMAL or UNSATISFIED
+        // If a plan was found, it might be reported in the `plan` field
 
         // The planner ran out of time
         TIMEOUT = 13;
@@ -467,7 +467,7 @@ message Answer {
     Status status = 1;
 
     // Optional. Best plan found if any.
-    Plan best_plan = 2;
+    Plan plan = 2;
 
     // A set of planner specific values that can be reported, for instance
     // - "grounding-time": "10ms"
