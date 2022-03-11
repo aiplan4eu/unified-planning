@@ -17,10 +17,10 @@
 from fractions import Fraction
 import unified_planning as up
 import unified_planning.solvers as solvers
-from unified_planning.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
+from unified_planning.plan import Plan, ActionInstance
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
-from typing import Callable, Dict, Iterable, List, Optional, Tuple, cast
+from typing import Callable, Dict, List, Optional, Tuple, cast
 from multiprocessing import Process, Queue
 
 
@@ -67,21 +67,45 @@ class Parallel(solvers.solver.Solver):
             p.terminate()
         return res
 
-    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.plan.IntermediateReport'], None]] = None) -> 'up.plan.FinalReport':
+    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.plan.PlanGenerationResult'], None]] = None) -> 'up.plan.PlanGenerationResult':
         final_report = self._run_parallel('solve', problem, callback)
-        plan = final_report.plan()
+        new_plan = self.convert_plan(final_report.plan(), problem)
+        return up.plan.PlanGenerationResult(final_report.status(), new_plan, final_report.planner_name(), final_report.metrics(), final_report.log_messages())
+        
+    def convert_plan(self, plan: 'up.plan.Plan', problem: 'up.model.Problem')-> 'up.plan.Plan':
         objects = {}
         for ut in problem.user_types():
             for obj in problem.objects(ut):
                 objects[obj.name()] = obj
         em = problem.env.expression_manager
+        actions: List[ActionInstance] = []
         if isinstance(plan, up.plan.SequentialPlan):
-            actions = _handle_plan_actions(plan.actions(), objects, problem, em)
-            return up.plan.FinalReport(final_report.status(), SequentialPlan(actions), final_report.planner_name(), final_report.metrics(), final_report.log_messages())
+            actions = plan.actions()
         elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            actions = _handle_plan_actions(plan.only_action_instances(), objects, problem, em)
-            t_actions_d = [(t, a, d) for (t, _, d), a in zip(plan.actions(), actions)]
-            return up.plan.FinalReport(final_report.status(), TimeTriggeredPlan(t_actions_d), final_report.planner_name(), final_report.metrics(), final_report.log_messages())
+            actions = [a for _, a, _ in plan.actions()]
+        else:
+            raise NotImplementedError
+        new_actions: List[ActionInstance] = []
+        for a in actions:
+            new_a = problem.action(a.action().name)
+            params = []
+            for p in a.actual_parameters():
+                if p.is_object_exp():
+                    obj = objects[p.object().name()]
+                    params.append(em.ObjectExp(obj))
+                elif p.is_bool_constant():
+                    params.append(em.Bool(p.is_true()))
+                elif p.is_int_constant():
+                    params.append(em.Int(cast(int, p.constant_value())))
+                elif p.is_real_constant():
+                    params.append(em.Real(cast(Fraction, p.constant_value())))
+                else:
+                    raise
+            new_actions.append(ActionInstance(new_a, tuple(params)))
+        if isinstance(plan, up.plan.SequentialPlan):
+            return up.plan.SequentialPlan(new_actions)
+        elif isinstance(plan, up.plan.TimeTriggeredPlan):
+            return up.plan.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions(), new_actions)])
         else:
             raise NotImplementedError
 
@@ -100,23 +124,3 @@ def _run(idx: int, SolverClass: type, options: Dict[str, str], signaling_queue: 
             signaling_queue.put((idx, ex))
             return
         signaling_queue.put((idx, local_res))
-
-def _handle_plan_actions(actions: Iterable[ActionInstance], objects: Dict[str, 'up.model.Object'],problem: 'up.model.Problem', em: 'up.model.ExpressionManager') -> List[ActionInstance]:
-    retval = []
-    for a in actions:
-        new_a = problem.action(a.action().name)
-        params = []
-        for p in a.actual_parameters():
-            if p.is_object_exp():
-                obj = objects[p.object().name()]
-                params.append(em.ObjectExp(obj))
-            elif p.is_bool_constant():
-                params.append(em.Bool(p.is_true()))
-            elif p.is_int_constant():
-                params.append(em.Int(cast(int, p.constant_value())))
-            elif p.is_real_constant():
-                params.append(em.Real(cast(Fraction, p.constant_value())))
-            else:
-                raise
-        retval.append(ActionInstance(new_a, tuple(params)))
-    return retval
