@@ -20,6 +20,7 @@ from unified_planning.solvers.grounder import Grounder
 from unified_planning.solvers.parallel import Parallel
 from unified_planning.solvers.pddl_solver import PDDLSolver
 from unified_planning.solvers.plan_validator import SequentialPlanValidator
+from unified_planning.solvers.results import LogMessage, PlanGenerationResult
 from unified_planning.solvers.tarski_grounder import TarskiGrounder
 
 __all__ = [ 'Factory',
@@ -28,5 +29,6 @@ __all__ = [ 'Factory',
             'PDDLSolver',
             'SequentialPlanValidator',
             'Solver',
+            'LogMessage', 'PlanGenerationResult',
             'TarskiGrounder'
         ]

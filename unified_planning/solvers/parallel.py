@@ -67,10 +67,10 @@ class Parallel(solvers.solver.Solver):
             p.terminate()
         return res
 
-    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.plan.PlanGenerationResult'], None]] = None) -> 'up.plan.PlanGenerationResult':
+    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None) -> 'up.solvers.results.PlanGenerationResult':
         final_report = self._run_parallel('solve', problem, callback)
         new_plan = self.convert_plan(final_report.plan(), problem)
-        return up.plan.PlanGenerationResult(final_report.status(), new_plan, final_report.planner_name(), final_report.metrics(), final_report.log_messages())
+        return up.solvers.results.PlanGenerationResult(final_report.status(), new_plan, final_report.planner_name(), final_report.metrics(), final_report.log_messages())
         
     def convert_plan(self, plan: 'up.plan.Plan', problem: 'up.model.Problem')-> 'up.plan.Plan':
         objects = {}

@@ -60,11 +60,10 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.plan.PlanGenerationResult'], None]] = None) -> 'up.plan.PlanGenerationResult':
+    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None) -> 'up.solvers.results.PlanGenerationResult':
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:
-        #NOTE: also the validate should take a up.plan.FinalReport? (To check if the plan also satisfies what is claimed to satisfy?)
         raise NotImplementedError
 
     def ground(self, problem: 'up.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
