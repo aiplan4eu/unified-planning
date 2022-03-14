@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unified_planning
+import unified_planning as up
 from unified_planning.shortcuts import *
+from unified_planning.solvers.results import POSITIVE_OUTCOMES
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.environment import get_env
 from unified_planning.test.examples import get_example_problems
@@ -31,45 +32,55 @@ class TestPyperplan(TestCase):
         problem, plan = self.problems['robot_no_negative_preconditions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem).plan()
-            self.assertEqual(str(plan), str(new_plan))
+            final_report = planner.solve(problem)
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan()))
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_basic_without_negative_preconditions(self):
         problem, plan = self.problems['basic_without_negative_preconditions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem).plan()
-            self.assertEqual(str(plan), str(new_plan))
+            final_report = planner.solve(problem)
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan()))
+
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_basic_nested_conjunctions(self):
         problem, plan = self.problems['basic_nested_conjunctions']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem).plan()
-            self.assertEqual(str(plan), str(new_plan))
+            final_report = planner.solve(problem)
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan()))
+
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_hierarchical_blocks_world(self):
         problem, plan = self.problems['hierarchical_blocks_world']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem).plan()
-            self.assertEqual(str(plan), str(new_plan))
+            final_report = planner.solve(problem)
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan()))
+
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_hierarchical_blocks_world_object_as_root(self):
         problem, plan = self.problems['hierarchical_blocks_world_object_as_root']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem).plan()
-            self.assertEqual(str(plan), str(new_plan))
+            final_report = planner.solve(problem)
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan()))
+
     
     @skipIfSolverNotAvailable('pyperplan')
     def test_hierarchical_blocks_world_with_object(self):
         problem, plan = self.problems['hierarchical_blocks_world_with_object']
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
-            new_plan = planner.solve(problem).plan()
-            self.assertEqual(str(plan), str(new_plan))
+            final_report = planner.solve(problem)
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan()))

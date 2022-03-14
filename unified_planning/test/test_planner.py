@@ -19,6 +19,7 @@ from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.test.examples import get_example_problems
+from unified_planning.solvers.results import SATISFIED, OPTIMAL, POSITIVE_OUTCOMES
 
 
 class TestPlanner(TestCase):
@@ -33,7 +34,9 @@ class TestPlanner(TestCase):
 
         with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), SATISFIED)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
@@ -46,7 +49,9 @@ class TestPlanner(TestCase):
         with OneshotPlanner(names=['tamer', 'tamer'],
                             params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}]) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), SATISFIED)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
@@ -59,7 +64,9 @@ class TestPlanner(TestCase):
         with OneshotPlanner(problem_kind=problem.kind(),
                             optimality_guarantee=up.solvers.OPTIMAL) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), OPTIMAL)
             self.assertEqual(plan, opt_plan)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
@@ -69,7 +76,9 @@ class TestPlanner(TestCase):
 
         with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), move)
@@ -84,7 +93,9 @@ class TestPlanner(TestCase):
 
         with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
             self.assertEqual(len(plan.actions()), 4)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
@@ -104,7 +115,9 @@ class TestPlanner(TestCase):
 
         with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
             self.assertEqual(len(plan.actions()), 5)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
