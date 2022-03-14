@@ -39,9 +39,9 @@ class ENHSP(PDDLSolver):
     
     def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> int:
         if plan is None:
-            return up.plan.UNSATISFIED
+            return up.solvers.results.UNSATISFIED
         else:
-            return up.plan.OPTIMAL
+            return up.solvers.results.OPTIMAL
 
     @staticmethod
     def satisfies(optimality_guarantee: Union[int, str]) -> bool:

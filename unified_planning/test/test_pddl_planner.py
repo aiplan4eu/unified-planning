@@ -15,6 +15,7 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
+from unified_planning.solvers.results import OPTIMAL
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 
@@ -32,7 +33,9 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), OPTIMAL)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
@@ -46,7 +49,9 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), OPTIMAL)
             self.assertEqual(len(plan.actions()), 2)
             self.assertEqual(plan.actions()[0].action(), a_y)
             self.assertEqual(plan.actions()[1].action(), a_x)
@@ -61,7 +66,9 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), OPTIMAL)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), move)
@@ -75,7 +82,9 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), OPTIMAL)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), move)
@@ -91,7 +100,9 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), OPTIMAL)
             self.assertEqual(len(plan.actions()), 4)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
@@ -112,7 +123,9 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            plan = planner.solve(problem).plan()
+            final_report = planner.solve(problem)
+            plan = final_report.plan()
+            self.assertEqual(final_report.status(), OPTIMAL)
             self.assertEqual(len(plan.actions()), 5)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
