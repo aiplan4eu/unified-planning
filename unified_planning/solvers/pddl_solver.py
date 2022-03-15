@@ -69,7 +69,6 @@ class PDDLSolver(solvers.solver.Solver):
     def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None) -> 'up.solvers.results.PlanGenerationResult':
         w = PDDLWriter(problem, self._needs_requirements)
         plan = None
-        log: str = ''
         with tempfile.TemporaryDirectory() as tempdir:
             domanin_filename = os.path.join(tempdir, 'domain.pddl')
             problem_filename = os.path.join(tempdir, 'problem.pddl')
