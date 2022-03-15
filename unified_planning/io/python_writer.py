@@ -239,7 +239,7 @@ class PythonWriter:
                     out.write(f'costs[act_{a.name}] = {converter.convert(c)}\n')
             out.write('problem.add_quality_metric(')
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
-                out.write('up.model.metrics.MinimizeActionCosts(costs)')
+                out.write(f'up.model.metrics.MinimizeActionCosts(costs, {qm.default})')
             elif isinstance(qm, up.model.metrics.MinimizeSequentialPlanLength):
                 out.write('up.model.metrics.MinimizeSequentialPlanLength()')
             elif isinstance(qm, up.model.metrics.MinimizeMakespan):

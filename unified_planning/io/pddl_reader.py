@@ -548,7 +548,7 @@ class PDDLReader:
                         if use_plan_length:
                             problem.add_quality_metric(up.model.metrics.MinimizeSequentialPlanLength())
                         else:
-                            problem.add_quality_metric(up.model.metrics.MinimizeActionCosts(costs))
+                            problem.add_quality_metric(up.model.metrics.MinimizeActionCosts(costs, self._em.Int(0)))
                     else:
                         if optimization == 'minimize':
                             problem.add_quality_metric(up.model.metrics.MinimizeExpressionOnFinalState(metric_exp))

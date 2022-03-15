@@ -92,7 +92,7 @@ class ConverterToPDDLString(walkers.DagWalker):
         return f'{o.name()}'
 
     def walk_bool_constant(self, expression, args):
-        raise
+        raise up.exceptions.UPUnreachableCodeError
 
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
@@ -247,12 +247,13 @@ class PDDLWriter:
         if len(metrics) == 1:
             metric = metrics[0]
             if isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                costs = metric.costs
+                for a in self.problem.actions():
+                    costs[a] = metric.get_action_cost(a)
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 for a in self.problem.actions():
                     costs[a] = self.problem.env.expression_manager.Int(1)
         elif len(metrics) > 1:
-            raise
+            raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
         for a in self.problem.actions():
             if isinstance(a, up.model.InstantaneousAction):
                 out.write(f' (:action {a.name}')
@@ -398,10 +399,10 @@ class PDDLWriter:
             elif isinstance(metric, up.model.metrics.MinimizeMakespan):
                 out.write(f'minimize total-time')
             else:
-                raise
+                raise NotImplementedError
             out.write(')\n')
         elif len(metrics) > 1:
-            raise
+            raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
         out.write(')\n')
 
     def print_domain(self):
