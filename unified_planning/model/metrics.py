@@ -14,6 +14,7 @@
 #
 
 import unified_planning as up
+from typing import Dict, Optional
 
 
 class PlanQualityMetric():
@@ -21,8 +22,26 @@ class PlanQualityMetric():
     pass
 
 class MinimizeActionCosts(PlanQualityMetric):
+    def __init__(self, costs: Dict['up.model.Action', 'up.model.FNode'],
+                 default: Optional['up.model.FNode'] = None):
+        self.costs = costs
+        self.default = default
+
     def __repr__(self):
-        return 'minimize actions-cost'
+        costs = {a.name: c for a, c in self.costs.items()}
+        costs['default'] = self.default
+        return f'minimize actions-cost: {costs}'
+
+    def get_action_cost(self, action: 'up.model.Action') -> Optional['up.model.FNode']:
+        return self.costs.get(action, self.default)
+
+class MinimizeSequentialPlanLength(PlanQualityMetric):
+    def __repr__(self):
+        return 'minimize sequential-plan-length'
+
+class MinimizeMakespan(PlanQualityMetric):
+    def __repr__(self):
+        return 'minimize makespan'
 
 class MinimizeExpressionOnFinalState(PlanQualityMetric):
     def __init__(self, expression: 'up.model.FNode'):

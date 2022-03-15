@@ -523,24 +523,36 @@ class PDDLReader:
             metric = problem_res.get('metric', None)
 
             if metric is not None:
-                metric_exp = self._parse_exp(problem, None, types_map, {}, metric)
-                if has_actions_cost and optimization == 'minimize' and metric_exp == self._totalcost:
-                    problem._fluents.remove(self._totalcost.fluent())
-                    problem._initial_value.pop(self._totalcost)
-                    for a in problem.instantaneous_actions():
-                        cost = None
-                        for e in a.effects():
-                            if e.fluent() == self._totalcost:
-                                cost = e
-                                break
-                        if cost is not None:
-                            a.set_cost(cost.value())
-                            a._effects.remove(cost)
-                    problem.add_quality_metric(up.model.metrics.MinimizeActionCosts())
+                if optimization == 'minimize' and len(metric) == 1 and metric[0] == 'total-time':
+                    problem.add_quality_metric(up.model.metrics.MinimizeMakespan())
                 else:
-                    if optimization == 'minimize':
-                        problem.add_quality_metric(up.model.metrics.MinimizeExpressionOnFinalState(metric_exp))
-                    elif optimization == 'maximize':
-                        problem.add_quality_metric(up.model.metrics.MaximizeExpressionOnFinalState(metric_exp))
+                    metric_exp = self._parse_exp(problem, None, types_map, {}, metric)
+                    if has_actions_cost and optimization == 'minimize' and metric_exp == self._totalcost:
+                        costs = {}
+                        problem._fluents.remove(self._totalcost.fluent())
+                        problem._initial_value.pop(self._totalcost)
+                        use_plan_length = all(False for _ in problem.durative_actions())
+                        for a in problem.instantaneous_actions():
+                            cost = None
+                            for e in a.effects():
+                                if e.fluent() == self._totalcost:
+                                    cost = e
+                                    break
+                            if cost is not None:
+                                costs[a] = cost.value()
+                                a._effects.remove(cost)
+                                if cost.value() != 1:
+                                    use_plan_length = False
+                            else:
+                                use_plan_length = False
+                        if use_plan_length:
+                            problem.add_quality_metric(up.model.metrics.MinimizeSequentialPlanLength())
+                        else:
+                            problem.add_quality_metric(up.model.metrics.MinimizeActionCosts(costs, self._em.Int(0)))
+                    else:
+                        if optimization == 'minimize':
+                            problem.add_quality_metric(up.model.metrics.MinimizeExpressionOnFinalState(metric_exp))
+                        elif optimization == 'maximize':
+                            problem.add_quality_metric(up.model.metrics.MaximizeExpressionOnFinalState(metric_exp))
 
         return problem

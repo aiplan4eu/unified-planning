@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-import unified_planning
+import unified_planning as up
 from unified_planning.shortcuts import *
 from collections import namedtuple
 
@@ -48,7 +48,7 @@ def get_example_problems():
     problem.set_initial_value(robot_at(l2), False)
     problem.set_initial_value(battery_charge, 100)
     problem.add_goal(robot_at(l2))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot = Example(problem=problem, plan=plan)
     problems['robot'] = robot
 
@@ -78,8 +78,8 @@ def get_example_problems():
     problem.set_initial_value(is_at(r2), l1)
     problem.add_goal(Equals(is_at(r1), l1))
     problem.add_goal(Equals(is_at(r2), l2))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l1))),
-                                    unified_planning.plan.ActionInstance(move, (ObjectExp(r2), ObjectExp(l1), ObjectExp(l2)))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l1))),
+                                   up.plan.ActionInstance(move, (ObjectExp(r2), ObjectExp(l1), ObjectExp(l2)))])
     robot_fluent_of_user_type = Example(problem=problem, plan=plan)
     problems['robot_fluent_of_user_type'] = robot_fluent_of_user_type
 
@@ -102,7 +102,7 @@ def get_example_problems():
     problem.set_initial_value(robot_at(l1), True)
     problem.set_initial_value(robot_at(l2), False)
     problem.add_goal(robot_at(l2))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot_no_negative_preconditions = Example(problem=problem, plan=plan)
     problems['robot_no_negative_preconditions'] = robot_no_negative_preconditions
 
@@ -132,7 +132,7 @@ def get_example_problems():
     problem.set_initial_value(robot_at(l2), False)
     problem.set_initial_value(battery_charge, 100)
     problem.add_goal(robot_at(l2))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
     robot_decrease = Example(problem=problem, plan=plan)
     problems['robot_decrease'] = robot_decrease
 
@@ -180,10 +180,10 @@ def get_example_problems():
     problem.set_initial_value(cargo_at(l2), True)
     problem.set_initial_value(cargo_mounted, False)
     problem.add_goal(cargo_at(l1))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
-                               unified_planning.plan.ActionInstance(load, (ObjectExp(l2), )),
-                               unified_planning.plan.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1))),
-                               unified_planning.plan.ActionInstance(unload, (ObjectExp(l1), ))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                                   up.plan.ActionInstance(load, (ObjectExp(l2), )),
+                                   up.plan.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1))),
+                                   up.plan.ActionInstance(unload, (ObjectExp(l1), ))])
     robot_loader = Example(problem=problem, plan=plan)
     problems['robot_loader'] = robot_loader
 
@@ -232,10 +232,10 @@ def get_example_problems():
     for o in problem.objects(Location):
         problem.set_initial_value(is_same_location(o, o), True)
     problem.add_goal(cargo_at(l1))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
-                               unified_planning.plan.ActionInstance(load, (ObjectExp(l2), )),
-                               unified_planning.plan.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1))),
-                               unified_planning.plan.ActionInstance(unload, (ObjectExp(l1), ))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                                   up.plan.ActionInstance(load, (ObjectExp(l2), )),
+                                   up.plan.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1))),
+                                   up.plan.ActionInstance(unload, (ObjectExp(l1), ))])
     robot_loader_mod = Example(problem=problem, plan=plan)
     problems['robot_loader_mod'] = robot_loader_mod
 
@@ -299,11 +299,11 @@ def get_example_problems():
     problem.set_initial_value(cargo_mounted(c1,r1), False)
     problem.add_goal(cargo_at(c1,l3))
     problem.add_goal(robot_at(r1,l1))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2), ObjectExp(r1))),
-                               unified_planning.plan.ActionInstance(load, (ObjectExp(l2), ObjectExp(r1), ObjectExp(c1))),
-                               unified_planning.plan.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3), ObjectExp(r1))),
-                               unified_planning.plan.ActionInstance(unload, (ObjectExp(l3), ObjectExp(r1), ObjectExp(c1))),
-                               unified_planning.plan.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1), ObjectExp(r1)))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2), ObjectExp(r1))),
+                                   up.plan.ActionInstance(load, (ObjectExp(l2), ObjectExp(r1), ObjectExp(c1))),
+                                   up.plan.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3), ObjectExp(r1))),
+                                   up.plan.ActionInstance(unload, (ObjectExp(l3), ObjectExp(r1), ObjectExp(c1))),
+                                   up.plan.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1), ObjectExp(r1)))])
     robot_loader_adv = Example(problem=problem, plan=plan)
     problems['robot_loader_adv'] = robot_loader_adv
 
@@ -368,8 +368,8 @@ def get_example_problems():
     problem.set_initial_value(is_connected(l4, l5), True)
     problem.set_initial_value(battery_charge(r1), 100)
     problem.add_goal(is_at(l5, r1))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move_2, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l3))),
-                                unified_planning.plan.ActionInstance(move_2, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l5)))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move_2, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l3))),
+                                   up.plan.ActionInstance(move_2, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l5)))])
     robot_locations_connected = Example(problem=problem, plan=plan)
     problems['robot_locations_connected'] = robot_locations_connected
 
@@ -441,10 +441,10 @@ def get_example_problems():
     problem.add_goal(is_at(l5, r1))
     visited_location = Variable('visited_loc', Location)
     problem.add_goal(Forall(visited(visited_location) , visited_location))
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l2))),
-                                unified_planning.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))),
-                                unified_planning.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))),
-                                unified_planning.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5)))])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l2))),
+                                   up.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))),
+                                   up.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))),
+                                   up.plan.ActionInstance(move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5)))])
     robot_locations_visited = Example(problem=problem, plan=plan)
     problems['robot_locations_visited'] = robot_locations_visited
 
@@ -479,9 +479,9 @@ def get_example_problems():
     problem.add_goal(b_1)
     problem.add_goal(b_2)
     problem.add_goal(b_3)
-    plan = unified_planning.plan.SequentialPlan([unified_planning.plan.ActionInstance(charge), unified_planning.plan.ActionInstance(discharge),
-                unified_planning.plan.ActionInstance(charge), unified_planning.plan.ActionInstance(discharge),
-                unified_planning.plan.ActionInstance(charge), unified_planning.plan.ActionInstance(discharge)])
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(charge), up.plan.ActionInstance(discharge),
+                                   up.plan.ActionInstance(charge), up.plan.ActionInstance(discharge),
+                                   up.plan.ActionInstance(charge), up.plan.ActionInstance(discharge)])
     charge_discharge = Example(problem=problem, plan=plan)
     problems['charge_discharge'] = charge_discharge
 
@@ -531,12 +531,12 @@ def get_example_problems():
     problem.add_goal(fuse_mended(f1))
     problem.add_goal(fuse_mended(f2))
     problem.add_goal(fuse_mended(f3))
-    plan = unified_planning.plan.TimeTriggeredPlan([(Fraction(0, 1), unified_planning.plan.ActionInstance(light_match, (ObjectExp(m1), )), Fraction(6, 1)),
-                                  (Fraction(1, 100), unified_planning.plan.ActionInstance(mend_fuse, (ObjectExp(f1), )), Fraction(5, 1)),
-                                  (Fraction(601, 100), unified_planning.plan.ActionInstance(light_match, (ObjectExp(m2), )), Fraction(6, 1)),
-                                  (Fraction(602, 100), unified_planning.plan.ActionInstance(mend_fuse, (ObjectExp(f2), )), Fraction(5, 1)),
-                                  (Fraction(1202, 100), unified_planning.plan.ActionInstance(light_match, (ObjectExp(m3), )), Fraction(6, 1)),
-                                  (Fraction(1203, 100), unified_planning.plan.ActionInstance(mend_fuse, (ObjectExp(f3), )), Fraction(5, 1))])
+    plan = up.plan.TimeTriggeredPlan([(Fraction(0, 1), up.plan.ActionInstance(light_match, (ObjectExp(m1), )), Fraction(6, 1)),
+                                      (Fraction(1, 100), up.plan.ActionInstance(mend_fuse, (ObjectExp(f1), )), Fraction(5, 1)),
+                                      (Fraction(601, 100), up.plan.ActionInstance(light_match, (ObjectExp(m2), )), Fraction(6, 1)),
+                                      (Fraction(602, 100), up.plan.ActionInstance(mend_fuse, (ObjectExp(f2), )), Fraction(5, 1)),
+                                      (Fraction(1202, 100), up.plan.ActionInstance(light_match, (ObjectExp(m3), )), Fraction(6, 1)),
+                                      (Fraction(1203, 100), up.plan.ActionInstance(mend_fuse, (ObjectExp(f3), )), Fraction(5, 1))])
     matchcellar = Example(problem=problem, plan=plan)
     problems['matchcellar'] = matchcellar
 
@@ -582,8 +582,8 @@ def get_example_problems():
     problem.set_initial_value(is_connected(l3, l4), True)
     problem.set_initial_value(is_connected(l4, l5), True)
     problem.add_goal(is_at(l5))
-    plan = unified_planning.plan.TimeTriggeredPlan([(Fraction(0, 1), unified_planning.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))), Fraction(6, 1)),
-                                  (Fraction(6, 1), unified_planning.plan.ActionInstance(move, (ObjectExp(l3), ObjectExp(l5))), Fraction(6, 1))])
+    plan = up.plan.TimeTriggeredPlan([(Fraction(0, 1), up.plan.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))), Fraction(6, 1)),
+                                      (Fraction(6, 1), up.plan.ActionInstance(move, (ObjectExp(l3), ObjectExp(l5))), Fraction(6, 1))])
     timed_connected_locations = Example(problem=problem, plan=plan)
     problems['timed_connected_locations'] = timed_connected_locations
 
@@ -635,11 +635,11 @@ def get_example_problems():
     problem.add_goal(on(block_2, block_1))
     problem.add_goal(on(block_3, block_2))
 
-    plan = unified_planning.plan.SequentialPlan([
-            unified_planning.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(block_1), ObjectExp(ts_2))),
-            unified_planning.plan.ActionInstance(move, (ObjectExp(block_1), ObjectExp(block_3), ObjectExp(ts_3))),
-            unified_planning.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(ts_2), ObjectExp(block_1))),
-            unified_planning.plan.ActionInstance(move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2)))])
+    plan = up.plan.SequentialPlan([
+            up.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(block_1), ObjectExp(ts_2))),
+            up.plan.ActionInstance(move, (ObjectExp(block_1), ObjectExp(block_3), ObjectExp(ts_3))),
+            up.plan.ActionInstance(move, (ObjectExp(block_2), ObjectExp(ts_2), ObjectExp(block_1))),
+            up.plan.ActionInstance(move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2)))])
     hierarchical_blocks_world = Example(problem=problem, plan=plan)
     problems['hierarchical_blocks_world'] = hierarchical_blocks_world
 

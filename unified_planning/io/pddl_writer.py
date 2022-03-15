@@ -92,7 +92,7 @@ class ConverterToPDDLString(walkers.DagWalker):
         return f'{o.name()}'
 
     def walk_bool_constant(self, expression, args):
-        raise
+        raise up.exceptions.UPUnreachableCodeError
 
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
@@ -187,7 +187,8 @@ class PDDLWriter:
                 out.write(' :durative-actions')
             if problem_kind.has_duration_inequalities(): # type: ignore
                 out.write(' :duration-inequalities')
-            if self.problem.kind().has_actions_cost(): # type: ignore
+            if (self.problem.kind().has_actions_cost() or # type: ignore
+                self.problem.kind().has_plan_length()): # type: ignore
                 out.write(' :action-costs')
             out.write(')\n')
 
@@ -234,12 +235,25 @@ class PDDLWriter:
                 functions.append(f'({f.name()}{"".join(params)})')
             else:
                 raise UPTypeError('PDDL supports only boolean and numerical fluents')
-        if self.problem.kind().has_actions_cost(): # type: ignore
+        if (self.problem.kind().has_actions_cost() or # type: ignore
+            self.problem.kind().has_plan_length()): # type: ignore
             functions.append('(total-cost)')
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
         converter = ConverterToPDDLString(self.problem.env)
+        costs = {}
+        metrics = self.problem.quality_metrics()
+        if len(metrics) == 1:
+            metric = metrics[0]
+            if isinstance(metric, up.model.metrics.MinimizeActionCosts):
+                for a in self.problem.actions():
+                    costs[a] = metric.get_action_cost(a)
+            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+                for a in self.problem.actions():
+                    costs[a] = self.problem.env.expression_manager.Int(1)
+        elif len(metrics) > 1:
+            raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
         for a in self.problem.actions():
             if isinstance(a, up.model.InstantaneousAction):
                 out.write(f' (:action {a.name}')
@@ -270,8 +284,8 @@ class PDDLWriter:
                         if e.is_conditional():
                             out.write(f')')
 
-                    if a.cost() is not None:
-                        out.write(f' (increase total-cost {converter.convert(a.cost())})')
+                    if a in costs:
+                        out.write(f' (increase total-cost {converter.convert(costs[a])})')
                     out.write(')')
                 out.write(')\n')
             elif isinstance(a, DurativeAction):
@@ -336,8 +350,8 @@ class PDDLWriter:
                             if e.is_conditional():
                                 out.write(f')')
                             out.write(')')
-                    if a.cost() is not None:
-                        out.write(f' (at end (increase total-cost {converter.convert(a.cost())}))')
+                    if a in costs:
+                        out.write(f' (at end (increase total-cost {converter.convert(costs[a])}))')
                     out.write(')')
                 out.write(')\n')
             else:
@@ -379,13 +393,16 @@ class PDDLWriter:
                 out.write(f'minimize {metric.expression}')
             elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
                 out.write(f'maximize {metric.expression}')
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
+            elif (isinstance(metric, up.model.metrics.MinimizeActionCosts) or
+                  isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength)):
                 out.write(f'minimize total-cost')
+            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
+                out.write(f'minimize total-time')
             else:
-                raise
+                raise NotImplementedError
             out.write(')\n')
         elif len(metrics) > 1:
-            raise
+            raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
         out.write(')\n')
 
     def print_domain(self):

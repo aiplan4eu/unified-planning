@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#​
+#
 
 from fractions import Fraction
 import sys
@@ -47,7 +47,7 @@ class ConverterToPythonString(walkers.DagWalker):
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
         v = expression.variable()
-        return f'up.model.Variable("{v.name()}", {_print_python_type(v.type())})'
+        return f'emgr.VariableExp(up.model.Variable("{v.name()}", {_print_python_type(v.type())}))'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -73,17 +73,17 @@ class ConverterToPythonString(walkers.DagWalker):
         fluent = expression.fluent()
         if args:
             return f'fluent_{fluent.name()}({", ".join(args)})'
-        return f'fluent_{fluent.name()}'
+        return f'emgr.FluentExp(fluent_{fluent.name()})'
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'parameter_{p.name()}'
+        return f'emgr.ParameterExp(up.model.Parameter("{p.name()}", {_print_python_type(p.type())}))'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
         o = expression.object()
-        return f'object_{o.name()}'
+        return f'emgr.ObjectExp(object_{o.name()})'
 
     def walk_bool_constant(self, expression, args):
         assert len(args) == 0
@@ -149,15 +149,15 @@ class PythonWriter:
             if utype.father() is None:
                 out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}")\n')
             else:
-                out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}", type_{cast(_UserType, utype.father()).name()})\n') 
+                out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}", type_{cast(_UserType, utype.father()).name()})\n')
 
         for f in self.problem.fluents(): # define fluents
             params = ', '.join(f'{p.name()}={_print_python_type(p.type())} ' for p in f.signature())
             out.write(f'fluent_{f.name()} = up.model.Fluent("{f.name()}", {_print_python_type(f.type())}, {params})\n')
 
         for o in self.problem.all_objects(): # define objects
-            out.write(f'object_{o.name()} = up.model.Object("{o.name()}", type_{cast(_UserType, o.type()).name()})\n') #NOTE works if objects are only of user_type.
-        
+            out.write(f'object_{o.name()} = up.model.Object("{o.name()}", type_{cast(_UserType, o.type()).name()})\n')
+
         out.write('problem_initial_defaults = {}\n') # define initial_defaults
         for type, exp in self.problem.initial_defaults().items():
             out.write(f'problem_initial_defaults[{_print_python_type(type)}] = {converter.convert(exp)}')
@@ -181,8 +181,6 @@ class PythonWriter:
                 out.write(')\n')
                 for ap in a.parameters():
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
-                if a.cost() is not None:
-                    out.write(f'act_{a.name}.set_cost({converter.convert(a.cost())})\n')
                 for p in a.preconditions():
                     out.write(f'act_{a.name}.add_precondition({converter.convert(p)})\n')
                 for e in a.effects():
@@ -199,8 +197,6 @@ class PythonWriter:
                 out.write(')\n')
                 for ap in a.parameters():
                     out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
-                if a.cost() is not None:
-                    out.write(f'act_{a.name}.set_cost({converter.convert(a.cost())})\n')
                 out.write(f'act_{a.name}.set_duration_constraint({_convert_interval_duration(a.duration(), converter)})\n')
                 for i, cl in a.conditions().items():
                     for c in cl:
@@ -228,18 +224,26 @@ class PythonWriter:
                     out.write(f'problem.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
                 else:
                     out.write(f'problem.add_timed_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
-        
+
         for i, gl in self.problem.timed_goals().items(): # add timed goals
             for g in gl:
                 out.write(f'problem.add_timed_goal(interval={_convert_interval(i)}, goal={converter.convert(g)})\n')
-        
+
         for g in self.problem.goals(): # add goals
             out.write(f'problem.add_goal(goal={converter.convert(g)})\n')
 
         for qm in self.problem.quality_metrics(): # adding metrics
+            if isinstance(qm, up.model.metrics.MinimizeActionCosts):
+                out.write('costs = {}\n')
+                for a, c in qm.costs.items():
+                    out.write(f'costs[act_{a.name}] = {converter.convert(c)}\n')
             out.write('problem.add_quality_metric(')
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
-                out.write('up.model.metrics.MinimizeActionCosts()')
+                out.write(f'up.model.metrics.MinimizeActionCosts(costs, {qm.default})')
+            elif isinstance(qm, up.model.metrics.MinimizeSequentialPlanLength):
+                out.write('up.model.metrics.MinimizeSequentialPlanLength()')
+            elif isinstance(qm, up.model.metrics.MinimizeMakespan):
+                out.write('up.model.metrics.MinimizeMakespan()')
             elif isinstance(qm, up.model.metrics.MinimizeExpressionOnFinalState):
                 out.write(f'up.model.metrics.MinimizeExpressionOnFinalState({converter.convert(qm.expression)})')
             elif isinstance(qm, up.model.metrics.MaximizeExpressionOnFinalState):
