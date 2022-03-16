@@ -65,7 +65,6 @@ class Grounder(solvers.solver.Solver):
         supported_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS')
         supported_kind.set_time('TIMED_EFFECT')
         supported_kind.set_time('TIMED_GOALS')
-        supported_kind.set_time('MAINTAIN_GOALS')
         supported_kind.set_time('DURATION_INEQUALITIES')
         return problem_kind <= supported_kind
 
