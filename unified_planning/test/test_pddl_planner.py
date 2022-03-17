@@ -15,7 +15,7 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.solvers.results import OPTIMAL, TIMEOUT
+from unified_planning.solvers.results import OPTIMAL
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 
@@ -137,13 +137,3 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions()[2].actual_parameters()), 3)
             self.assertEqual(len(plan.actions()[3].actual_parameters()), 3)
             self.assertEqual(len(plan.actions()[4].actual_parameters()), 3)
-
-    @skipIfSolverNotAvailable('enhsp')
-    def test_robot_loader_adv_with_timeout(self):
-        problem = self.problems['robot_loader_adv'].problem
-        with OneshotPlanner(name='enhsp') as planner:
-            self.assertNotEqual(planner, None)
-
-            final_report = planner.solve(problem, timeout_seconds = 0.001)
-            self.assertEqual(final_report.plan(), None)
-            self.assertEqual(final_report.status(), TIMEOUT)

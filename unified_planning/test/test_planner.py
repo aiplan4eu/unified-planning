@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import classical_kind, basic_numeric_kind, quality_metrics_kind
@@ -41,30 +40,6 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
-
-    @skipIfSolverNotAvailable('tamer')
-    def test_basic_with_timeout(self):
-        problem = self.problems['basic'].problem
-        a = problem.action('a')
-
-        with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
-            self.assertNotEqual(planner, None)
-            with warnings.catch_warnings(record=True) as w:
-                final_report = planner.solve(problem, timeout_seconds = 0.001)
-                self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-                plan = final_report.plan()
-                self.assertEqual(final_report.status(), SATISFIED)
-                self.assertEqual(len(plan.actions()), 1)
-                self.assertEqual(plan.actions()[0].action(), a)
-                self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
-                # Cause all warnings to always be triggered.
-                warnings.simplefilter('always')
-                self.assertEqual(len(w), 1)
-                self.assertEqual('Tamer does not support timeout.', str(w[-1].message))
-            
-
-    
-
 
     @skipIfSolverNotAvailable('tamer')
     def test_basic_parallel(self):
