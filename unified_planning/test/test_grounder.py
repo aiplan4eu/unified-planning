@@ -82,8 +82,8 @@ class TestGrounder(TestCase):
     def test_robot_locations_connected_from_factory(self):
         problem = self.problems['robot_locations_connected'].problem
 
-        with Grounder(name = 'grounder') as gro:
-            grounded_problem, rewrite_plan_funct = gro.ground(problem)
+        with Grounder(name='up_grounder') as embedded_grounder:
+            grounded_problem, rewrite_plan_funct = embedded_grounder.ground(problem)
             self.assertEqual(len(grounded_problem.actions()), 28)
             for a in grounded_problem.actions():
                 self.assertEqual(len(a.parameters()), 0)
@@ -157,7 +157,7 @@ class TestGrounder(TestCase):
 
         gro = TransformersGrounder(problem)
         grounded_problem_test = gro.get_rewritten_problem()
-        with Grounder(name='grounder') as grounder:
+        with Grounder(name='up_grounder') as grounder:
             grounded_problem_try, rewrite_back_plan_function = grounder.ground(problem)
             self.assertEqual(grounded_problem_test, grounded_problem_try)
             with OneshotPlanner(problem_kind=grounded_problem_try.kind()) as planner:
