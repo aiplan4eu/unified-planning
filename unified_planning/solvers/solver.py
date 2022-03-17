@@ -14,13 +14,11 @@
 #
 """This module defines the solver interface."""
 
-from fractions import Fraction
+
 import unified_planning as up
-import unified_planning.model
-from unified_planning.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
-from unified_planning.model import ProblemKind, Problem, Action, FNode
-from functools import partial
-from typing import Optional, Tuple, Dict, List, Callable, Union
+from unified_planning.plan import Plan
+from unified_planning.model import ProblemKind, Problem
+from typing import Optional, Tuple, Callable, Union
 
 
 OPTIMALITY_GUARANTEES = list(range(0, 2))
@@ -61,7 +59,8 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None, timeout_seconds: Optional[float] = None) -> 'up.solvers.results.PlanGenerationResult':
+    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None, timeout: Optional[float] = None) -> 'up.solvers.results.PlanGenerationResult':
+        '''The timeout parameter is in seconds.'''
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:
