@@ -14,6 +14,7 @@
 #
 """This module defines the solver interface."""
 
+from fractions import Fraction
 import unified_planning as up
 import unified_planning.model
 from unified_planning.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
@@ -60,7 +61,7 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None) -> 'up.solvers.results.PlanGenerationResult':
+    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None, timeout_seconds: Optional[float] = None) -> 'up.solvers.results.PlanGenerationResult':
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:

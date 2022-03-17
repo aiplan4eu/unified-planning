@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.solvers.results import POSITIVE_OUTCOMES
@@ -84,3 +85,17 @@ class TestPyperplan(TestCase):
             final_report = planner.solve(problem)
             self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
             self.assertEqual(str(plan), str(final_report.plan()))
+
+    @skipIfSolverNotAvailable('pyperplan')
+    def test_hierarchical_blocks_world_with_object_with_timeout(self):
+        problem, plan = self.problems['hierarchical_blocks_world_with_object']
+        with OneshotPlanner(name='pyperplan') as planner:
+            self.assertNotEqual(planner, None)
+            with warnings.catch_warnings(record=True) as w:
+                # Cause all warnings to always be triggered.
+                final_report = planner.solve(problem, timeout_seconds = 0.001)
+                self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+                self.assertEqual(str(plan), str(final_report.plan()))
+                warnings.simplefilter('always')
+                self.assertEqual(len(w), 1)
+                self.assertEqual('Pyperplan does not support timeout.', str(w[-1].message))
