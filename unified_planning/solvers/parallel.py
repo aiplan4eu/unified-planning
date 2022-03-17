@@ -15,6 +15,7 @@
 
 
 from fractions import Fraction
+import warnings
 import unified_planning as up
 import unified_planning.solvers as solvers
 from unified_planning.plan import Plan, ActionInstance
@@ -68,7 +69,9 @@ class Parallel(solvers.solver.Solver):
         return res
 
     def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None, timeout: Optional[float] = None) -> 'up.solvers.results.PlanGenerationResult':
-        final_report = self._run_parallel('solve', problem, callback, timeout)
+        if callback is not None:
+            warnings.warn('Parallel solvers do not support the callback system.', UserWarning)
+        final_report = self._run_parallel('solve', problem, None, timeout)
         new_plan = self.convert_plan(final_report.plan(), problem)
         return up.solvers.results.PlanGenerationResult(final_report.status(), new_plan, final_report.planner_name(), final_report.metrics(), final_report.log_messages())
 
