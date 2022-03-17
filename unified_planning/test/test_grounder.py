@@ -76,7 +76,29 @@ class TestGrounder(TestCase):
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
-    
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(full_numeric_kind))
+    def test_robot_locations_connected_from_factory(self):
+        problem = self.problems['robot_locations_connected'].problem
+
+        with Grounder(name = 'grounder') as gro:
+            grounded_problem, rewrite_plan_funct = gro.ground(problem)
+            self.assertEqual(len(grounded_problem.actions()), 28)
+            for a in grounded_problem.actions():
+                self.assertEqual(len(a.parameters()), 0)
+
+            with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
+                self.assertNotEqual(planner, None)
+                grounded_plan = planner.solve(grounded_problem)
+                plan = rewrite_plan_funct(grounded_plan)
+                for ai in plan.actions():
+                    a = ai.action()
+                    self.assertEqual(a, problem.action(a.name))
+                with PlanValidator(problem_kind=problem.kind()) as pv:
+                    self.assertTrue(pv.validate(problem, plan))
+
+
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     @skipIfNoPlanValidatorForProblemKind(hierarchical_kind)
     def test_hierarchical_blocks_world(self):
