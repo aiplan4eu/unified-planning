@@ -17,8 +17,7 @@
 
 import unified_planning as up
 import unified_planning.model
-from unified_planning.exceptions import UPUsageError
-from typing import Dict, Optional, Tuple, List
+from typing import Optional, Tuple, List
 from fractions import Fraction
 
 

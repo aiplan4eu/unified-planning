@@ -36,7 +36,7 @@ INTERMEDIATE # The report is not a final one but it's given through the callback
 __STATUS_STR__ = {
     SATISFIED: 'SATISFIED',
     OPTIMAL: 'OPTIMAL',
-    UNSATISFIED: 'UNSATISFIED', 
+    UNSATISFIED: 'UNSATISFIED',
     SEARCH_SPACE_EXHAUSTED: 'SEARCH_SPACE_EXHAUSTED',
     TIMEOUT: 'TIMEOUT',
     MEMOUT: 'MEMOUT',
@@ -66,6 +66,7 @@ __LOG_LEVEL_STR__ = {
     ERROR: 'ERROR'
 }
 
+
 class LogMessage:
     '''This class is composed by a message and an integer indicating this message level, like Debug, Info, Warning or Error.'''
     def __init__(self, level: int, message: str):
@@ -78,14 +79,14 @@ class LogMessage:
             return self._level == other._level and self._message == other._message
         else:
             return False
-    
+
     def __repr__(self) -> str:
         return f'Log Level: {__LOG_LEVEL_STR__[self._level]}\nLog message:\n{self._message}'
 
     def level(self) -> int:
         '''Returns the LogMessage level.'''
         return self._level
-    
+
     def message(self) -> str:
         '''Returns the LogMessage message.'''
         return self._message
@@ -119,13 +120,13 @@ class PlanGenerationResult:
             log_messages_str = "    \n".join(str(self._log_messages))
             output = f'{output}    {log_messages_str}'
         return output
-    
+
     def plan(self) -> Optional['up.plan.Plan']:
         '''Returns the Plan Generation Report plan.
         If the plan is None check the status with self.status() to get an int
         or self.status_as_str() to get a str.'''
         return self._plan
-    
+
     def planner_name(self) -> str:
         '''Returns the planner name.
         An empty string means the planner did not set a name.'''
@@ -134,7 +135,7 @@ class PlanGenerationResult:
     def metrics(self) -> Dict[str, str]:
         '''Returns the set of values that the planner specifically reported.'''
         return self._metrics
-    
+
     def log_messages(self) -> List[LogMessage]:
         '''Returns all the messages the planner gave about his activity.'''
         return self._log_messages
@@ -142,7 +143,7 @@ class PlanGenerationResult:
     def status(self) -> int:
         '''Returns the status as an int.'''
         return self._status
-    
+
     def status_as_str(self) -> str:
         '''Returns the status as a str.'''
         return __STATUS_STR__[self._status]

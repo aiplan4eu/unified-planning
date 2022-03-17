@@ -60,7 +60,6 @@ class TestPlanner(TestCase):
                 self.assertEqual(len(w), 1)
                 self.assertEqual('Tamer does not support timeout.', str(w[-1].message))
 
-
     @skipIfSolverNotAvailable('tamer')
     def test_basic_parallel(self):
         problem = self.problems['basic'].problem
