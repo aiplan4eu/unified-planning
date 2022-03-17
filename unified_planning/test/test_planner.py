@@ -50,20 +50,15 @@ class TestPlanner(TestCase):
         with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
             self.assertNotEqual(planner, None)
             with warnings.catch_warnings(record=True) as w:
-                final_report = planner.solve(problem, timeout_seconds = 0.001)
+                final_report = planner.solve(problem, timeout = 0.001)
                 self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
                 plan = final_report.plan()
                 self.assertEqual(final_report.status(), SATISFIED)
                 self.assertEqual(len(plan.actions()), 1)
                 self.assertEqual(plan.actions()[0].action(), a)
                 self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
-                # Cause all warnings to always be triggered.
-                warnings.simplefilter('always')
                 self.assertEqual(len(w), 1)
                 self.assertEqual('Tamer does not support timeout.', str(w[-1].message))
-            
-
-    
 
 
     @skipIfSolverNotAvailable('tamer')

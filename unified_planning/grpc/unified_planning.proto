@@ -407,7 +407,7 @@ message PlanRequest {
     Mode resolution_mode = 2;
 
     // Max allowed runtime time in seconds.
-    double timeout_seconds = 3;
+    double timeout = 3;
 
     // Planner specific options to be passed to the planner
     map<string, string> planner_options = 4;
