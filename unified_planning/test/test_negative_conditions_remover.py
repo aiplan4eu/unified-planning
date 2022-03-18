@@ -44,7 +44,7 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertFalse(positive_problem.kind().has_negative_conditions())
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            positive_plan = planner.solve(positive_problem).plan()
+            positive_plan = planner.solve(positive_problem).plan
             new_plan = npr.rewrite_back_plan(positive_plan)
             with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
@@ -62,7 +62,7 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertFalse(positive_problem.kind().has_negative_conditions())
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            positive_plan = planner.solve(positive_problem).plan()
+            positive_plan = planner.solve(positive_problem).plan
             new_plan = npr.rewrite_back_plan(positive_plan)
             with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
@@ -79,7 +79,7 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertFalse(positive_problem.kind().has_negative_conditions())
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            positive_plan = planner.solve(positive_problem).plan()
+            positive_plan = planner.solve(positive_problem).plan
             new_plan = npr.rewrite_back_plan(positive_plan)
             with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
@@ -118,7 +118,7 @@ class TestNegativeConditionsRemover(TestCase):
         self.assertFalse(positive_problem.kind().has_negative_conditions())
         with OneshotPlanner(problem_kind=positive_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            positive_plan = planner.solve(positive_problem).plan()
+            positive_plan = planner.solve(positive_problem).plan
             new_plan = npr.rewrite_back_plan(positive_plan)
             with PlanValidator(problem_kind=problem.kind()) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))

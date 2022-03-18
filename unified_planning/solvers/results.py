@@ -17,6 +17,7 @@
 
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
+from dataclasses import dataclass, field
 from typing import Dict, Optional, List
 
 ALL_STATUS = list(range(0, 9))
@@ -66,84 +67,37 @@ __LOG_LEVEL_STR__ = {
     ERROR: 'ERROR'
 }
 
-
+@dataclass
 class LogMessage:
     '''This class is composed by a message and an integer indicating this message level, like Debug, Info, Warning or Error.'''
-    def __init__(self, level: int, message: str):
-        assert level in LOG_LEVEL
-        self._level = level
-        self._message = message
+    level: int
+    message: str
 
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, LogMessage):
-            return self._level == other._level and self._message == other._message
-        else:
-            return False
+    def __post__init(self):
+        assert self.level in LOG_LEVEL
 
-    def __repr__(self) -> str:
-        return f'Log Level: {__LOG_LEVEL_STR__[self._level]}\nLog message:\n{self._message}'
+    def level_as_str(self):
+        '''Returns the LogMessage level as a str.'''
+        return __LOG_LEVEL_STR__[self.level]
 
-    def level(self) -> int:
-        '''Returns the LogMessage level.'''
-        return self._level
-
-    def message(self) -> str:
-        '''Returns the LogMessage message.'''
-        return self._message
-
+@dataclass
 class PlanGenerationResult:
     '''Class that represents the result of a plan generation call.'''
-    def __init__(self, status: int, plan: Optional['up.plan.Plan'], planner_name: str = '', metrics: Dict[str, str] = {}, log_messages: List[LogMessage] = []):
-        assert status in ALL_STATUS
-        self._status = status
-        self._plan = plan
-        self._planner_name = planner_name
-        self._metrics = metrics
-        self._log_messages = log_messages
+    status: int
+    plan: Optional['up.plan.Plan']
+    planner_name: str = ''
+    metrics: Dict[str, str] = field(default=dict) # type: ignore
+    log_messages: List[LogMessage] = field(default=list) # type: ignore
+
+    def __post__init(self):
+        assert self.status in ALL_STATUS
         # Checks that plan and status are consistent
-        if self._status in POSITIVE_OUTCOMES and self._plan is None:
+        if self.status in POSITIVE_OUTCOMES and self.plan is None:
             raise UPUsageError(f'The Result status is {self.status_as_str()} but no plan is set.')
-        elif self._status in NEGATIVE_OUTCOMES and self._plan is not None:
-            raise UPUsageError(f'The Result status is {self.status_as_str()} but the plan is {str(plan)}.\nWith this status the plan must be None.')
-
-    def __repr__(self) -> str:
-        output = f'Plan Generation Report\nStatus: {self.status_as_str()}\n'
-        if self._planner_name != '':
-            output = f'planner: {self._planner_name}\n{output}'
-        output = f'{output}plan: {str(self._plan)}\n'
-        if self._metrics != {}:
-            metrics_str: str = ''
-            for mn, m in self._metrics.items():
-                metrics_str = f'{metrics_str}    {mn}: {m}\n'
-            output = f'{output}metrics: {metrics_str}'
-        if self._log_messages != []:
-            log_messages_str = "    \n".join(str(self._log_messages))
-            output = f'{output}    {log_messages_str}'
-        return output
-
-    def plan(self) -> Optional['up.plan.Plan']:
-        '''Returns the Plan Generation Report plan.
-        If the plan is None check the status with self.status() to get an int
-        or self.status_as_str() to get a str.'''
-        return self._plan
-
-    def planner_name(self) -> str:
-        '''Returns the planner name.
-        An empty string means the planner did not set a name.'''
-        return self._planner_name
-
-    def metrics(self) -> Dict[str, str]:
-        '''Returns the set of values that the planner specifically reported.'''
-        return self._metrics
-
-    def log_messages(self) -> List[LogMessage]:
-        '''Returns all the messages the planner gave about his activity.'''
-        return self._log_messages
-
-    def status(self) -> int:
-        '''Returns the status as an int.'''
-        return self._status
+        elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
+            raise UPUsageError(f'The Result status is {self.status_as_str()} but the plan is {str(self.plan)}.\nWith this status the plan must be None.')
+        return self
 
     def status_as_str(self) -> str:
         '''Returns the status as a str.'''
-        return __STATUS_STR__[self._status]
+        return __STATUS_STR__[self.status]

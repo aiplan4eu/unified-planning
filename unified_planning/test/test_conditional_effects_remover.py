@@ -64,7 +64,7 @@ class TestConditionalEffectsRemover(TestCase):
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uncond_plan = planner.solve(unconditional_problem).plan()
+            uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = cer.rewrite_back_plan(uncond_plan)
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
@@ -80,7 +80,7 @@ class TestConditionalEffectsRemover(TestCase):
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uncond_plan = planner.solve(unconditional_problem).plan()
+            uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = cer.rewrite_back_plan(uncond_plan)
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
@@ -94,7 +94,7 @@ class TestConditionalEffectsRemover(TestCase):
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uncond_plan = planner.solve(unconditional_problem).plan()
+            uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = cer.rewrite_back_plan(uncond_plan)
             for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uncond_plan.actions()):
                 self.assertEqual(s, s_1)

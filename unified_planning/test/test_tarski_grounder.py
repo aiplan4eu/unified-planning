@@ -38,7 +38,7 @@ class TestTarskiGrounder(TestCase):
                 self.assertEqual(len(grounded_action.parameters()), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
-                grounded_plan = planner.solve(grounded_problem).plan()
+                grounded_plan = planner.solve(grounded_problem).plan
                 plan = rewrite_back_plan_function(grounded_plan)
                 for ai in plan.actions():
                     a = ai.action()
@@ -57,7 +57,7 @@ class TestTarskiGrounder(TestCase):
                 self.assertEqual(len(grounded_action.parameters()), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
-                grounded_plan = planner.solve(grounded_problem).plan()
+                grounded_plan = planner.solve(grounded_problem).plan
                 plan = rewrite_back_plan_function(grounded_plan)
                 for ai in plan.actions():
                     a = ai.action()
@@ -65,7 +65,7 @@ class TestTarskiGrounder(TestCase):
                 with PlanValidator(problem_kind=problem.kind()) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
-    
+
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(hierarchical_kind))
     @skipIfNoPlanValidatorForProblemKind(basic_classical_kind.union(hierarchical_kind))
     def test_hierarchical_blocks_world(self):
@@ -76,7 +76,7 @@ class TestTarskiGrounder(TestCase):
                 self.assertEqual(len(grounded_action.parameters()), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
-                grounded_plan = planner.solve(grounded_problem).plan()
+                grounded_plan = planner.solve(grounded_problem).plan
                 plan = rewrite_back_plan_function(grounded_plan)
                 for ai in plan.actions():
                     a = ai.action()
@@ -117,7 +117,7 @@ class TestTarskiGrounder(TestCase):
                 self.assertEqual(len(grounded_action.parameters()), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
-                grounded_plan = planner.solve(grounded_problem).plan()
+                grounded_plan = planner.solve(grounded_problem).plan
                 plan = rewrite_back_plan_function(grounded_plan)
                 for ai in plan.actions():
                     a = ai.action()

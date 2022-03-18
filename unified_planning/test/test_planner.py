@@ -36,8 +36,8 @@ class TestPlanner(TestCase):
         with OneshotPlanner(name='tamer', params={'weight': 0.8}) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            plan = final_report.plan()
-            self.assertEqual(final_report.status(), SATISFIED)
+            plan = final_report.plan
+            self.assertEqual(final_report.status, SATISFIED)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
@@ -51,9 +51,9 @@ class TestPlanner(TestCase):
             self.assertNotEqual(planner, None)
             with warnings.catch_warnings(record=True) as w:
                 final_report = planner.solve(problem, timeout = 0.001)
-                self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-                plan = final_report.plan()
-                self.assertEqual(final_report.status(), SATISFIED)
+                self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+                plan = final_report.plan
+                self.assertEqual(final_report.status, SATISFIED)
                 self.assertEqual(len(plan.actions()), 1)
                 self.assertEqual(plan.actions()[0].action(), a)
                 self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
@@ -69,8 +69,8 @@ class TestPlanner(TestCase):
                             params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}]) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            plan = final_report.plan()
-            self.assertEqual(final_report.status(), SATISFIED)
+            plan = final_report.plan
+            self.assertEqual(final_report.status, SATISFIED)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
@@ -84,8 +84,8 @@ class TestPlanner(TestCase):
                             optimality_guarantee=up.solvers.OPTIMAL) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            plan = final_report.plan()
-            self.assertEqual(final_report.status(), OPTIMAL)
+            plan = final_report.plan
+            self.assertEqual(final_report.status, OPTIMAL)
             self.assertEqual(plan, opt_plan)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
@@ -96,8 +96,8 @@ class TestPlanner(TestCase):
         with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            plan = final_report.plan()
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            plan = final_report.plan
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), move)
@@ -113,8 +113,8 @@ class TestPlanner(TestCase):
         with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            plan = final_report.plan()
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            plan = final_report.plan
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
             self.assertEqual(len(plan.actions()), 4)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
@@ -135,8 +135,8 @@ class TestPlanner(TestCase):
         with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            plan = final_report.plan()
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
+            plan = final_report.plan
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
             self.assertEqual(len(plan.actions()), 5)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
