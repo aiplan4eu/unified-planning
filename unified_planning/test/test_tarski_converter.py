@@ -43,14 +43,14 @@ class TestTarskiConverter(TestCase):
             new_plan = _switch_plan(plan, new_problem)
             pv = SequentialPlanValidator()
             self.assertTrue(pv.validate(new_problem, new_plan))
-    
+
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_object_as_root(self):
         problem, plan = self.problems['hierarchical_blocks_world_object_as_root']
         tarski_problem = convert_problem_to_tarski(problem)
         new_problem = convert_problem_from_tarski(problem.env, tarski_problem)
         with OneshotPlanner(problem_kind=new_problem.kind()) as planner:
-            new_plan = planner.solve(new_problem).plan()
+            new_plan = planner.solve(new_problem).plan
             self.assertEqual(str(plan), str(new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
@@ -59,7 +59,7 @@ class TestTarskiConverter(TestCase):
         tarski_problem = convert_problem_to_tarski(problem)
         new_problem = convert_problem_from_tarski(problem.env, tarski_problem)
         with OneshotPlanner(problem_kind=new_problem.kind()) as planner:
-            new_plan = planner.solve(new_problem).plan()
+            new_plan = planner.solve(new_problem).plan
             self.assertEqual(str(plan), str(new_plan))
 
 def _switch_plan(original_plan, new_problem):

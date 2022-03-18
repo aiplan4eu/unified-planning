@@ -30,5 +30,5 @@ class TestTemporalPlanner(TestCase):
 
         with OneshotPlanner(problem_kind=problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem).plan()
+            plan = planner.solve(problem).plan
             self.assertEqual(len(plan.actions()), 6)

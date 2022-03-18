@@ -34,8 +34,8 @@ class TestPyperplan(TestCase):
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-            self.assertEqual(str(plan), str(final_report.plan()))
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan))
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_basic_without_negative_preconditions(self):
@@ -43,8 +43,8 @@ class TestPyperplan(TestCase):
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-            self.assertEqual(str(plan), str(final_report.plan()))
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan))
 
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -53,8 +53,8 @@ class TestPyperplan(TestCase):
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-            self.assertEqual(str(plan), str(final_report.plan()))
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan))
 
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -63,8 +63,8 @@ class TestPyperplan(TestCase):
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-            self.assertEqual(str(plan), str(final_report.plan()))
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan))
 
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -73,8 +73,8 @@ class TestPyperplan(TestCase):
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-            self.assertEqual(str(plan), str(final_report.plan()))
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan))
 
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -83,8 +83,8 @@ class TestPyperplan(TestCase):
         with OneshotPlanner(name='pyperplan') as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-            self.assertEqual(str(plan), str(final_report.plan()))
+            self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+            self.assertEqual(str(plan), str(final_report.plan))
 
     @skipIfSolverNotAvailable('pyperplan')
     def test_hierarchical_blocks_world_with_object_with_timeout(self):
@@ -93,7 +93,7 @@ class TestPyperplan(TestCase):
             self.assertNotEqual(planner, None)
             with warnings.catch_warnings(record=True) as w:
                 final_report = planner.solve(problem, timeout = 0.001)
-                self.assertIn(final_report.status(), POSITIVE_OUTCOMES)
-                self.assertEqual(str(plan), str(final_report.plan()))
+                self.assertIn(final_report.status, POSITIVE_OUTCOMES)
+                self.assertEqual(str(plan), str(final_report.plan))
                 self.assertEqual(len(w), 1)
                 self.assertEqual('Pyperplan does not support timeout.', str(w[-1].message))
