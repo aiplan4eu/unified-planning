@@ -83,6 +83,31 @@ class TestGrounder(TestCase):
         problem = self.problems['robot_locations_connected'].problem
 
         with Grounder(name='up_grounder') as embedded_grounder:
+            self.assertTrue(embedded_grounder.supports(problem.kind()))
+            grounded_problem, rewrite_plan_funct = embedded_grounder.ground(problem)
+            self.assertEqual(len(grounded_problem.actions()), 28)
+            for a in grounded_problem.actions():
+                self.assertEqual(len(a.parameters()), 0)
+
+            with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
+                self.assertNotEqual(planner, None)
+                grounded_plan = planner.solve(grounded_problem)
+                plan = rewrite_plan_funct(grounded_plan)
+                for ai in plan.actions():
+                    a = ai.action()
+                    self.assertEqual(a, problem.action(a.name))
+                with PlanValidator(problem_kind=problem.kind()) as pv:
+                    self.assertTrue(pv.validate(problem, plan))
+
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(full_numeric_kind))
+    def test_robot_locations_connected_from_factory_with_problem_kind(self):
+        problem = self.problems['robot_locations_connected'].problem
+        kind = problem.kind()
+
+        with Grounder(problem_kind=kind) as embedded_grounder:
+            self.assertTrue(embedded_grounder.supports(kind))
             grounded_problem, rewrite_plan_funct = embedded_grounder.ground(problem)
             self.assertEqual(len(grounded_problem.actions()), 28)
             for a in grounded_problem.actions():
@@ -158,6 +183,7 @@ class TestGrounder(TestCase):
         gro = TransformersGrounder(problem)
         grounded_problem_test = gro.get_rewritten_problem()
         with Grounder(name='up_grounder') as grounder:
+            self.assertTrue(grounder.supports(problem.kind()))
             grounded_problem_try, rewrite_back_plan_function = grounder.ground(problem)
             self.assertEqual(grounded_problem_test, grounded_problem_try)
             with OneshotPlanner(problem_kind=grounded_problem_try.kind()) as planner:
