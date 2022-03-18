@@ -15,6 +15,7 @@
 """This module defines an interface for a generic PDDL planner."""
 
 
+from io import TextIOWrapper
 import tempfile
 import os
 import re
@@ -79,8 +80,11 @@ class PDDLSolver(solvers.solver.Solver):
             w.write_domain(domanin_filename)
             w.write_problem(problem_filename)
             cmd = self._get_cmd(domanin_filename, problem_filename, plan_filename)
+            stdout = MyWriter()
+
             try:
-                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+                #res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+                res = subprocess.run(cmd, stdout=stdout, stderr=subprocess.PIPE, timeout=timeout)
                 logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, res.stdout.decode()))
                 logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, res.stderr.decode()))
             except subprocess.TimeoutExpired:
@@ -88,6 +92,9 @@ class PDDLSolver(solvers.solver.Solver):
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
         status: int = self._result_status(problem, plan)
+        #print(stdout._buffer)
+        print(logs)
+        assert False
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name())
 
     def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> int:
@@ -97,3 +104,17 @@ class PDDLSolver(solvers.solver.Solver):
 
     def destroy(self):
         pass
+
+
+class MyWriter(TextIOWrapper):
+    def __init__(self, filename: str = 'pddl_log_output.txt') -> None:
+        self._fileno = open(filename, 'w')
+        self._buffer = ''
+
+    def write(self, bytes: str) -> int:
+        self._buffer = f'{self._buffer}{bytes}'
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        return len(bytes)
+
+    # def fileno(self):
+    #     return self._fileno.fileno()
