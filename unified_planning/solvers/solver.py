@@ -18,7 +18,7 @@
 import unified_planning as up
 from unified_planning.plan import Plan
 from unified_planning.model import ProblemKind, Problem
-from typing import Optional, Tuple, Callable, Union
+from typing import IO, Optional, Tuple, Callable, Union
 
 
 OPTIMALITY_GUARANTEES = list(range(0, 2))
@@ -59,8 +59,22 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'up.model.Problem', callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None, timeout: Optional[float] = None) -> 'up.solvers.results.PlanGenerationResult':
-        '''The timeout parameter is in seconds.'''
+    def solve(self, problem: 'up.model.Problem',
+                    callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
+                    timeout: Optional[float] = None,
+                    out: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+        '''This method takes a up.model.Problem and returns a up.solvers.results.PlanGenerationResult,
+        which contains information about the solution to the problem given by the planner.
+
+        Parameters description:
+        problem is the up.model.Problem to solve.
+        callback is a function used by the planner to give reports to the user during the problem resolution.
+        timeout is the time in seconds that the planner has at max to solve the problem.
+        out is a stream of strings (#NOTE not sure about "stream of strings"#) where the planner writes his
+        output (and also errors) while the planner is solving the problem.
+
+        The only required parameter is "problem" but the planner should warn the user if callback, timeout or
+        out are not None and the user set them to something, expecting a behaviour that will not be satisfied.'''
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:

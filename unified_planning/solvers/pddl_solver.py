@@ -15,7 +15,9 @@
 """This module defines an interface for a generic PDDL planner."""
 
 
-from io import TextIOWrapper
+import select
+import sys
+from threading import Timer
 import tempfile
 import os
 import re
@@ -26,7 +28,10 @@ from unified_planning.shortcuts import *
 from unified_planning.solvers.results import PlanGenerationResult
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
-from typing import Callable, Optional, List
+from typing import IO, Callable, Optional, List
+
+SIZE_TO_READ = 128
+
 
 
 class PDDLSolver(solvers.solver.Solver):
@@ -69,7 +74,8 @@ class PDDLSolver(solvers.solver.Solver):
 
     def solve(self, problem: 'up.model.Problem',
                 callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
-                timeout: Optional[float] = None) -> 'up.solvers.results.PlanGenerationResult':
+                timeout: Optional[float] = None,
+                out: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
         w = PDDLWriter(problem, self._needs_requirements)
         plan = None
         logs: List['up.solvers.results.LogMessage'] = []
@@ -80,21 +86,40 @@ class PDDLSolver(solvers.solver.Solver):
             w.write_domain(domanin_filename)
             w.write_problem(problem_filename)
             cmd = self._get_cmd(domanin_filename, problem_filename, plan_filename)
-            stdout = MyWriter()
 
-            try:
-                #res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
-                res = subprocess.run(cmd, stdout=stdout, stderr=subprocess.PIPE, timeout=timeout)
-                logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, res.stdout.decode()))
-                logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, res.stderr.decode()))
-            except subprocess.TimeoutExpired:
-                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan, planner_name=self.name())
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            timer = Timer(timeout, proc.kill)
+            timer.start()
+            proc_out: str = ''
+            proc_err: str = ''
+            if out is not None:
+                while True:
+                    r, _, _ = select.select([proc.stdout, proc.stderr], [], [])
+                    for readable_stream in r:
+                        if readable_stream == proc.stdout:
+                            out_in_bytes = proc.stdout.read(SIZE_TO_READ)
+                            out_str = out_in_bytes.decode()
+                            out.write(out_str)
+                            proc_out = f'{proc_out}{out_str}'
+                        elif readable_stream == proc.stderr:
+                            err_in_bytes = proc.stderr.read(SIZE_TO_READ)
+                            err_str = err_in_bytes.decode()
+                            out.write(err_str)
+                            proc_err = f'{proc_err}{err_str}'
+                    if len(r) == 2 and len(err_in_bytes) == 0 and len (out_in_bytes) == 0: #Both stream have nothing left to read
+                        break
+            proc_retval = proc.wait()
+            timer.cancel()
+            if out is None:
+                out_err_bytes = proc.communicate()
+                proc_out, proc_err = out_err_bytes[0].decode(), out_err_bytes[1].decode()
+            logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, proc_out))
+            logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, proc_err))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
+            if proc_retval != 0: # a Timeout might have occurred
+                return PlanGenerationResult(up.solvers.results.TIMEOUT, None, planner_name=self.name()) #The plan could be "plan" and not None, to see if a plan was found during the timeout
         status: int = self._result_status(problem, plan)
-        #print(stdout._buffer)
-        print(logs)
-        assert False
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name())
 
     def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> int:
@@ -104,17 +129,3 @@ class PDDLSolver(solvers.solver.Solver):
 
     def destroy(self):
         pass
-
-
-class MyWriter(TextIOWrapper):
-    def __init__(self, filename: str = 'pddl_log_output.txt') -> None:
-        self._fileno = open(filename, 'w')
-        self._buffer = ''
-
-    def write(self, bytes: str) -> int:
-        self._buffer = f'{self._buffer}{bytes}'
-        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        return len(bytes)
-
-    # def fileno(self):
-    #     return self._fileno.fileno()

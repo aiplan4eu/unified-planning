@@ -144,6 +144,6 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            final_report = planner.solve(problem, timeout = 0.001)
+            final_report = planner.solve(problem, timeout = 0.0001)
             self.assertEqual(final_report.plan, None)
             self.assertEqual(final_report.status, TIMEOUT)
