@@ -20,7 +20,7 @@ from collections import namedtuple
 from unified_planning.model.agent import Agent
 from unified_planning.model.ma_problem import MultiAgentProblem
 from realistic import get_example_problems
-from unified_planning.model.environment_ma import Environment_
+from unified_planning.model.environment_ma import Environment_ma
 
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.io.pddl_reader import PDDLReader
@@ -56,7 +56,7 @@ def ma_example():
     plan = examples['robot'].plan
     robot1 = Agent()
     robot2 = Agent()
-    environment = Environment_()
+    environment = Environment_ma()
 
     robot1.add_fluents(fluents_problem)
     robot2.add_fluents(fluents_problem)
@@ -81,11 +81,11 @@ def ma_example():
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
-    #w = PDDLWriter(problem)
-    #print(w.get_domain())
-    #print(w.get_problem())
+    w = PDDLWriter(problem)
+    print(w.get_domain())
+    print(w.get_problem())
 
-    ma_problem.pddl_writer()
+    #ma_problem.pddl_writer()
 
 
     #KeyError di Location ("Usertype")

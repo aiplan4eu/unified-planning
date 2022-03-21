@@ -14,7 +14,7 @@
 #
 '''This module defines the MultiAgentProblem class.'''
 
-import unified_planning
+#import unified_planning
 import sys
 import copy
 from unified_planning.shortcuts import *
@@ -22,6 +22,8 @@ import unified_planning.model.operators as op
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.environment import get_env, Environment
 from unified_planning.walkers import OperatorsExtractor
+from .fluent import Fluent
+from .action import *
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.problem import Problem
@@ -29,24 +31,46 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, U
 from unified_planning.model.agent import Agent
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.environment import Environment
-from unified_planning.model.environment_ma import Environment_
+from unified_planning.model.environment_ma import Environment_ma
 import collections
 from typing import List, Union
+
 import re
 
 
 class MultiAgentProblem(Problem):
     '''Represents a planning MultiAgentProblem.'''
     def __init__(self, *args, **kwargs):
-        super(MultiAgentProblem, self).__init__(*args, **kwargs)
+        super(MultiAgentProblem, self).__init__(
+            *args, **kwargs
+        )
+        self.env_ = None
+        self.agents_list = []
+        self.plan = []
+        self.fluents_name = []
+        self._shared_data_list: List['up.model.fluent.Fluent'] = []
+        self._new_fluents = {}
+        self._shared_data: List['up.model.fluent.Fluent'] = []
+    ######################################################################################
 
-    env_ = None
-    agents_list = []
-    plan = []
-    fluents_name = []
-    #obj_exp = []
-    #obj_exp_tot = []
-    #plan_solve = []
+
+    def add_shared_data(self, Fluent):
+        if self.has_name(Fluent.name):
+            raise UPProblemDefinitionError('Name ' + Fluent.name + ' already defined!')
+        self._shared_data.append(Fluent)
+
+
+    def get_shared_data(self) -> List['up.model.fluent.Fluent']:
+        '''Returns the fluents.'''
+        return self._shared_data
+
+
+    def add_shared_data_list(self, List_fluents):
+        for shared_data in List_fluents:
+            self._shared_data.append(shared_data)
+
+    ######################################################################################
+
 
     def set_initial_value(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
                           value: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', bool,
@@ -80,6 +104,8 @@ class MultiAgentProblem(Problem):
         for type in fluent.signature():
             if type.is_user_type() and type not in self._user_types:
                 self._user_types.append(type)'''
+
+
 
 
     def add_objects(self, objs: List['unified_planning.model.object.Object']):
@@ -125,30 +151,92 @@ class MultiAgentProblem(Problem):
         return self.agents_list
 
 
+    def chose_agent(self, name_agent :str):
+        for user_type in self.user_types():
+            if user_type._name == name_agent:
+                #self._user_types.pop(self.user_types().index(user_type))
+                #key = None
+                #self._user_types_hierarchy[key].remove(user_type)
+                #self._user_types_hierarchy[user_type].remove([])
+                agent = copy.copy(user_type)
+                c_user_type = copy.copy(user_type)
+                agent._name = 'agent'
+                agent._father = None
+                c_user_type._name = 'truck_'
+                c_user_type._father = agent
+                key = None
+                self._user_types_hierarchy[key].remove(user_type)
+                user_type._father = agent
+                self._add_user_type(agent)
+                self._user_types_hierarchy[agent] = [user_type]
+                #self._user_types.append(new_user_type)
+            else:
+                pass
+
+
     def compile(self):
         for flu in self.get_environment_().get_fluents():
-            flu = copy.deepcopy(flu)
-            setattr(flu, '_name', str(getattr(flu, '_name')) + "_env")
-            self.add_fluent(flu)
+            flu = copy.copy(flu)
+            new_flu = Fluent((flu.name() + "_env"), flu._typename, flu._signature)
+            #setattr(flu, '_name', str(getattr(flu, '_name')) + "_env")
+            self.add_fluent(new_flu)
 
         for flu, value in self.get_environment_().get_initial_values().items():
-            flu = copy.deepcopy(flu)
-            value = copy.deepcopy(value)
-            setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_env")
-            self.set_initial_value(flu, value)
+            flu = copy.copy(flu)
+            value = copy.copy(value)
+            new_flu = Fluent((flu.name() + "_env"), flu._typename, flu._signature)
+            #setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_env")
+            self.set_initial_value(new_flu, value)
 
 
         for ag in self.get_agents():
             for flu in ag.get_fluents():
-                flu = copy.deepcopy(flu)
+                flu = copy.copy(flu) #qui anche copy va bene
+                new_flu = Fluent((flu.name() + "_" + str(self.get_agents().index(ag))), flu._typename, flu._signature)
+                #flu._name = flu.name() + "_" + str(self.get_agents().index(ag))
+                self._new_fluents[flu.name()] = new_flu
+                print("_new_fluent_new_fluent_new_fluent", self._new_fluents)
                 #print(flu, "flu!")
-                setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.add_fluent(flu)
+                #setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
+                self.add_fluent(new_flu)
             #print("fluents", self.fluents())
 
             for act in ag.get_actions():
-                act = copy.deepcopy(act)
-                setattr(act, 'name', str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag)))
+                #act = copy.deepcopy(act)
+                print(act._parameters)
+                new_act = InstantaneousAction((str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag))))
+                new_act._parameters = act._parameters
+
+                from ..shortcuts import GE
+                for p in act._preconditions:
+
+                    '''print("precondition", p)
+                    print("precondition", p._content.args)
+                    for index, i in enumerate(p._content.args):
+                        if i.is_fluent_exp():
+                            key = str(i)
+                            if key in self._new_fluents.keys():
+                                new_fluent = self._new_fluents[key]
+                                print(index, "index",p._content.args[1])
+                                p._content.args[1] = new_fluent
+                                #p._content.args[index] = new_fluent
+                    print("weeeeeeeeeeeeeee", p._content.args)
+                    print("precondition", p._content.payload)
+                    print("OOOOOOO")
+                    breakpoint()'''
+                    if p.is_le():
+                        print("precondition____________________", p)
+                        key = str(p.args()[1])
+                        if key in self._new_fluents.keys():
+                            new_fluent = self._new_fluents[key]
+                            print(p.args()[0], new_fluent)
+                            #new_act.add_precondition(GE(act._preconditions[0].args()[0], self._fluents[1]))
+                            new_act.add_precondition(GE(p.args()[0], new_fluent))
+                        else:
+                            pass
+
+                #breakpoint()
+                #setattr(act, 'name', str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag)))
                 #Change l_fro e l_to. e Location
                 '''change_name = True
                 for n, t in act._parameters.items(): #n è str:l_fro e l_to. t è Location
@@ -156,7 +244,7 @@ class MultiAgentProblem(Problem):
                         setattr(t._typename, '_name', str(getattr(t._typename, '_name')) + "_" + (str(self.get_agents().index(ag))))
                     change_name = False'''
 
-                for i in act._preconditions:
+                '''for i in act._preconditions:
                     #print("prima", i._node_id)
                     #i._node_id = i._node_id + int(self.get_agents().index(ag))
                     #print("dopo", i._node_id)
@@ -176,36 +264,22 @@ class MultiAgentProblem(Problem):
                                 setattr(i.fluent(), '_name',
                                         str(getattr(i.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                                 #print("quiiiii", i.fluent()._name)
-                                self.fluents_name.append(i.fluent()._name)
+                                self.fluents_name.append(i.fluent()._name)'''
 
 
 
-                    '''if i._content.payload:
-                        print("quiiiii", i._content.payload)
-                        setattr(i.fluent(), '_name',
-                                str(getattr(i.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))'''
-                    '''if i._content.args != None:
-                        for flu in i._content.args:
-                            if flu.is_fluent_exp():
-                                setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
-                    if i.is_fluent_exp():
-                        setattr(i._content.payload, '_name', str(getattr(i._content.payload, '_name')) + "_" + str(self.get_agents().index(ag)))'''
-                self.add_action(act)
+                self.add_action(new_act)
             for flu, value in ag.get_initial_values().items():
                 flu = copy.deepcopy(flu)        #hash commentato in fnode
                 value = copy.deepcopy(value)
-                setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
+                if flu.is_fluent_exp():
+                    setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.set_initial_value(flu, value)
             for goal in ag.get_goals():
                 goal = copy.deepcopy(goal)
                 if goal.is_fluent_exp():
                     setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_goal(goal)
-            '''for obj in ag.get_all_objects():
-                obj = copy.deepcopy(obj)
-                print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOObj", obj)
-                setattr(obj, '_name', str(getattr(obj, '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.add_object(obj)'''
         return self
 
 

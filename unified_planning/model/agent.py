@@ -24,29 +24,24 @@ from typing import List, Dict, Set, Union, Optional
 class Agent:
     def __init__(
             self,
-            ID =  None,
-            obs_fluents = None,
-            actions = None,
-            goals = None,
+            ID: str = None,
             env: 'unified_planning.environment.Environment' = None,
     ):
-        self.ID =  ID
-        if obs_fluents is None:
-            self.obs_fluents = []
-        if actions is None:
-            self.actions = []
-        if goals is None:
-            self._goals = []
-
+        self._ID =  ID
+        self._obs_fluents: List['up.model.fluent.Fluent'] = []
+        self._actions: List['up.model.action.Action'] = []
+        self._goals: List['up.model.fnode.FNode'] = []
         self._env = unified_planning.environment.get_env(env)
         self._initial_value: Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode'] = {}
         self._objects: List['unified_planning.model.object.Object'] = []
         self._user_types: List['unified_planning.model.types.Type'] = []
 
+
     def add_fluent(self, Fluent):
         if self.has_name(Fluent.name):
             raise UPProblemDefinitionError('Name ' + Fluent.name + ' already defined!')
-        self.obs_fluents.append(Fluent)
+        self._obs_fluents.append(Fluent)
+
 
     def add_fluents(self, List_fluents: List):
         for flu in List_fluents:
@@ -54,11 +49,11 @@ class Agent:
 
     def get_fluents(self):
         '''Returns the individual fluents'''
-        return self.obs_fluents
+        return self._obs_fluents
 
     def get_fluent(self, name: str) -> 'unified_planning.model.fluent.Fluent':
         '''Returns the fluent with the given name.'''
-        for f in self.obs_fluents:
+        for f in self._obs_fluents:
             if f.name() == name:
                 return f
         raise UPValueError(f'Fluent of name: {name} is not defined!')
@@ -67,15 +62,15 @@ class Agent:
         '''Adds the given action.'''
         if self.has_name(Action.name):
             raise UPProblemDefinitionError('Name ' + Action.name + ' already defined!')
-        self.actions.append(Action)
+        self._actions.append(Action)
 
-    def add_actions(self, List_actions: List):
-        for act in List_actions:
+    def add_actions(self, List__actions: List):
+        for act in List__actions:
             self.add_action(act)
 
     def get_actions(self):
-        '''Returns the actions'''
-        return self.actions
+        '''Returns the _actions'''
+        return self._actions
 
 
     def add_goal(self, goal: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', bool]):
@@ -104,14 +99,14 @@ class Agent:
 
     def has_fluent(self, name: str) -> bool:
         '''Returns true if the fluent with the given name is in the agent.'''
-        for f in self.obs_fluents:
+        for f in self._obs_fluents:
             if f.name() == name:
                 return True
         return False
 
     def has_action(self, name: str) -> bool:
         '''Returns True if the agent has the action with the given name .'''
-        for a in self.actions:
+        for a in self._actions:
             if a.name == name:
                 return True
         return False

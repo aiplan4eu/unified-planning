@@ -1,10 +1,13 @@
-Metadata-Version: 1.0
+Metadata-Version: 2.1
 Name: unified-planning
-Version: 0.0.1.dev64
+Version: 0.0.1.dev115
 Summary: Unified planning framework
 Home-page: https://www.aiplan4eu-project.eu
 Author: AIPlan4EU Organization
 Author-email: aiplan4eu@fbk.eu
 License: APACHE
-Description: UNKNOWN
 Platform: UNKNOWN
+License-File: LICENSE
+
+UNKNOWN
+

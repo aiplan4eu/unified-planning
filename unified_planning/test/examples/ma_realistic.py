@@ -18,11 +18,13 @@ import unified_planning
 from unified_planning.shortcuts import *
 from collections import namedtuple
 from unified_planning.model.agent import Agent
-from unified_planning.model.ma_problem import MultiAgentProblem
+#from unified_planning.model.ma_problem import MultiAgentProblem
+from unified_planning.model.ma_problem_2 import MultiAgentProblem
 from realistic import get_example_problems
-from unified_planning.model.environment_ma import Environment_
+from unified_planning.model.environment_ma import Environment_ma
 
-from unified_planning.io.pddl_writer import PDDLWriter
+#from unified_planning.io.pddl_writer import PDDLWriter
+from unified_planning.io.pddl_writer_ma import PDDLWriter_MA
 from unified_planning.io.pddl_reader import PDDLReader
 from unified_planning.transformers import NegativeConditionsRemover
 from unified_planning.transformers import DisjunctiveConditionsRemover
@@ -34,7 +36,7 @@ problems = {}
 examples = get_example_problems()
 
 def ma_example():
-    problem = examples['robot_no_negative_preconditions'].problem
+    problem = examples['depot'].problem
 
     # examples['...'].problem supported:
     # Yes: robot
@@ -51,16 +53,18 @@ def ma_example():
     # No:  timed_connected_locations
 
     fluents_problem = problem.fluents()
-    #user_types = problem.user_types()
+    user_types = problem.user_types()
+    #shared_data = problem.get_shared_data()
     actions_problem = problem.actions()
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
-    plan = examples['robot_no_negative_preconditions'].plan
+    plan = examples['depot'].plan
+
     robot1 = Agent()
     robot2 = Agent()
-    environment = Environment_()
-
+    environment = Environment_ma()
+    print("user_types", user_types)
     robot1.add_fluents(fluents_problem)
     robot2.add_fluents(fluents_problem)
     robot1.add_actions(actions_problem)
@@ -70,36 +74,75 @@ def ma_example():
     robot1.add_goals(goals_problem)
     robot2.add_goals(goals_problem)
 
-
     ma_problem = MultiAgentProblem('robots')
     ma_problem.add_agent(robot1)
     ma_problem.add_agent(robot2)
     ma_problem.add_environment_(environment)
     ma_problem.add_objects(objects_problem)
+    #ma_problem.add_shared_data(problem.fluent())
+
+    '''ma_problem.add_shared_data(ma_problem.fluent("clear"))
+    ma_problem.add_shared_data(ma_problem.fluent("at"))
+    ma_problem.add_shared_data(ma_problem.fluent("pos"))
+    ma_problem.add_shared_data(ma_problem.fluent("pos_u"))
+    ma_problem.add_shared_data(ma_problem.fluent("on"))
+    ma_problem.add_shared_data(ma_problem.fluent("on_u"))
+    ma_problem.add_shared_data(ma_problem.fluent("on_s"))
+    print("get_shared_dataget_shared_dataget_shared_data", ma_problem.get_shared_data())'''
+
     #ma_problem.add_user_types(user_types)
     print("user_types: ", ma_problem.user_types())
     problem = ma_problem.compile()
+    problem.chose_agent('truck')
+    problem.add_shared_data_list(ma_problem.fluents())
+    problem.add_shared_data_list(ma_problem.fluents())      #oppure è possibile scegliere i fluenti
+    #ma_problem.add_shared_data_list(ma_problem.fluent())
+
+
+
     print(problem)
     print("Single agent plan:\n ", plan)
-    plan = ma_problem.extract_plans(plan)
+    if plan is not None:
+        plan = ma_problem.extract_plans(plan)
     print("Multi agent plan:\n ", plan, "\n")
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
-    problem.pddl_writer()
 
-    w = PDDLWriter(problem)
+
+    w = PDDLWriter_MA(problem)
     print(w.get_domain())
     print(w.get_problem())
 
+    w.write_domain('Dominio_depot')
+    w.write_problem('Problem_depot')
 
     #npr = NegativeConditionsRemover(problem)
     #positive_problem = npr.get_rewritten_problem()
     # print("positive_problem", positive_problem)
 
-    with OneshotPlanner(name='pyperplan') as planner:
+    '''with OneshotPlanner(name='pyperplan') as planner:
         solve_plan = planner.solve(problem)
-        print("Pyperplan returned: %s" % solve_plan)
+        print("Pyperplan returned: %s" % solve_plan)'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -118,7 +161,7 @@ def ma_example_env():
     plan = examples['robot'].plan
     robot1 = Agent()
     robot2 = Agent()
-    environment = Environment_()
+    environment = Environment_ma()
 
     robot1.add_fluents(fluents_problem)
     robot2.add_fluents(fluents_problem)

@@ -31,7 +31,7 @@ import unified_planning.model.metrics
 
 from unified_planning.model.agent import Agent
 from unified_planning.model.ma_problem import MultiAgentProblem
-from unified_planning.model.environment_ma import Environment_
+from unified_planning.model.environment_ma import Environment_ma
 
 __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction',
             'Effect',
@@ -46,5 +46,5 @@ __all__ = [ 'ActionParameter', 'Action', 'InstantaneousAction', 'DurativeAction'
             'TimeInterval', 'TimePointInterval', 'ClosedTimeInterval', 'OpenTimeInterval', 'LeftOpenTimeInterval', 'RightOpenTimeInterval',
             'Type', 'TypeManager',
             'Variable', 'FreeVarsOracle',
-            'Agent', 'MultiAgentProblem', 'Environment_'
+            'Agent', 'MultiAgentProblem', 'Environment_ma'
             ]

@@ -21,7 +21,7 @@ from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 
-class Environment_:
+class Environment_ma:
     def __init__(
             self,
             obs_fluents = None,

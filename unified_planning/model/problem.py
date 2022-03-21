@@ -48,6 +48,7 @@ class Problem:
             self._initial_defaults[k] = v_exp
         self._fluents_defaults: Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode'] = {}
 
+
     def __repr__(self) -> str:
         s = []
         if not self.name is None:
@@ -657,3 +658,5 @@ class Problem:
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         else:
             raise NotImplementedError
+
+

@@ -1,8 +1,8 @@
 (define (problem robots-problem)
  (:domain robots-domain)
  (:objects 
-   l1 l2 - location
+   l1 l2 - Location
  )
- (:init (robot_at_0 l1) )
+ (:init (robot_at_0 l1) (= (battery_charge_0) 100)  (=  100))
  (:goal (and (robot_at_0 l2) ))
 )

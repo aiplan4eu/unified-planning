@@ -605,6 +605,8 @@ def get_example_problems():
     clear = Fluent('clear', BoolType(), [Location])
     on = Fluent('on', BoolType(), [Movable, Location])
 
+
+
     move = InstantaneousAction('move', item=Movable, l_from=Location, l_to=Location)
     item = move.parameter('item')
     l_from = move.parameter('l_from')
@@ -650,6 +652,209 @@ def get_example_problems():
             unified_planning.plan.ActionInstance(move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2)))])
     hierarchical_blocks_world = Example(problem=problem, plan=plan)
     problems['hierarchical_blocks_world'] = hierarchical_blocks_world
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    place = UserType('place', None)
+    hoist = UserType('hoist', None)
+    surface = UserType('surface', None)
+    #agent = UserType('agent', None)                #questo in depot è sottointeso, per ora lo specifichaimo
+    depot = UserType('depot', place)                #ma anche ad agent
+    distributor = UserType('distributor', place)    #ma anche ad agent
+    #truck = UserType('truck', agent)
+    truck = UserType('truck', None)
+    crate = UserType('crate', hoist)
+    pallet = UserType('pallet', surface)
+
+    myAgent = Fluent('myAgent', None, [truck])
+    clear = Fluent('clear', None, [hoist])
+    clear_s = Fluent('clear', None, [surface])
+
+    located = Fluent('located', None, [hoist, place])
+    at = Fluent('at', None, [truck, place])
+    placed = Fluent('placed', None, [pallet, place])
+    pos = Fluent('pos', None, [crate, place])       # Non posso utilizzare (place or truck)?
+    pos_u = Fluent('pos_u', None, [crate, truck])   # Si può fare in un modo migliore?
+    on = Fluent('on', None, [crate, hoist])
+    on_u = Fluent('on_u', None, [crate, truck])
+    on_s = Fluent('on_s', None, [crate, surface])
+
+    truck0 = Object('truck0', truck)
+    truck1 = Object('truck1', truck)
+
+    drive = InstantaneousAction('drive', truck=truck, x=place, y=place)
+    truck = drive.parameter('truck')
+    x = drive.parameter('x')
+    y = drive.parameter('y')
+
+    drive.add_precondition(myAgent(truck))
+    # Drive.add_precondition(Equals(myAgent(truck), x)) Non supportato
+    # Equality operator is not supported for Boolean terms.Use Iff instead.
+
+    drive.add_precondition(at(truck, x))
+    drive.add_effect(at(truck, y), True)
+
+    # Load.add_precondition(pos(crate))
+    # Load.add_precondition(Not(clear(crate)))
+    load = InstantaneousAction('load', x=place, c=crate, h=hoist)
+    c = load.parameter('c')
+    # t = load.parameter('t')
+    x = load.parameter('x')
+    h = load.parameter('h')
+
+    load.add_precondition(myAgent(truck))
+    load.add_precondition(at(truck, x))
+    # load.add_precondition(clear(truck, h))
+    load.add_precondition(pos(c, x))
+    load.add_precondition(Not(clear(h)))
+    load.add_precondition(Not(clear(c)))
+    load.add_precondition(on(c, h))
+    load.add_precondition(located(h, x))
+
+    load.add_effect(pos(c, x), True)
+    load.add_effect(on(c, h), True)
+    load.add_effect(clear(c), False)
+    load.add_effect(clear(h), False)
+    # load.add_effect(Not(clear(h)))
+
+    unload = InstantaneousAction('unload', x=place, c=crate, h=hoist)
+    c = unload.parameter('c')
+    # t = load.parameter('t')
+    x = unload.parameter('x')
+    h = unload.parameter('h')
+
+    unload.add_precondition(myAgent(truck))
+    unload.add_precondition(located(h, x))
+    load.add_precondition(at(truck, x))
+    # load.add_precondition(clear(truck, h))
+    unload.add_precondition(pos_u(c, truck))
+    unload.add_precondition(on_u(c, truck))
+    unload.add_precondition(clear(h))
+    unload.add_precondition(clear(c))
+
+    unload.add_effect(pos(c, x), True)
+    unload.add_effect(on(c, h), True)
+    unload.add_effect(clear(c), False)
+    unload.add_effect(clear(h), False)
+
+
+    problem = Problem('depot')
+    depot0 = Object('depot0', depot)
+    distributor0 = Object('distributor0', distributor)
+    distributor1 = Object('distributor1', distributor)
+
+    crate0 = Object('crate0', crate)
+    crate1 = Object('crate1', crate)
+    pallet0 = Object('pallet0', pallet)
+    pallet1 = Object('pallet1', pallet)
+    pallet2 = Object('pallet2', pallet)
+    hoist0 = Object('hoist0', hoist)
+    hoist1 = Object('hoist1', hoist)
+    hoist2 = Object('hoist2', hoist)
+
+    problem.add_object(truck0)
+    problem.add_object(truck1)
+    problem.add_object(depot0)
+    problem.add_object(distributor0)
+    problem.add_object(distributor1)
+    problem.add_object(pallet0)
+    problem.add_object(pallet1)
+    problem.add_object(pallet2)
+    problem.add_object(hoist0)
+    problem.add_object(hoist1)
+    problem.add_object(hoist2)
+
+    problem.add_action(drive)
+    problem.add_action(load)
+    problem.add_action(unload)
+
+    problem.add_fluent(myAgent, default_initial_value=False)
+    problem.add_fluent(clear, default_initial_value=False)
+
+
+    problem.add_fluent(located, default_initial_value=False)
+    problem.add_fluent(at, default_initial_value=False)
+    problem.add_fluent(placed, default_initial_value=False)
+    problem.add_fluent(pos, default_initial_value=False)
+    problem.add_fluent(pos_u, default_initial_value=False)
+    problem.add_fluent(on_u, default_initial_value=False)
+    problem.add_fluent(on, default_initial_value=False)
+
+    #add_shared_data def in problem, in realistic decido gli shared data
+    #Non è possibile definire dopo clear, at, ecc.. perchè non sono
+    #nella lista fluents
+
+    #possibile soluzione prenderli dai predicati e decidere quali sono
+    #gli shared data in ma_realistic, in questo caso def
+    #add_shared_data in ma_problem
+
+    '''problem.add_shared_data(clear)
+    problem.add_shared_data(at)
+    problem.add_shared_data(pos)
+    problem.add_shared_data(pos_u)
+    problem.add_shared_data(on)
+    problem.add_shared_data(on_u)
+    problem.add_shared_data(on_s)
+
+    print("wwwwwwwwwwwwwwwwww", problem.get_shared_data())'''
+
+
+
+    problem.set_initial_value(myAgent(truck0), True)
+    problem.set_initial_value(pos(crate0, distributor0), True)
+    problem.set_initial_value(clear(crate0), True)
+    problem.set_initial_value(on_s(crate0, pallet1), True)
+    problem.set_initial_value(pos(crate1, depot0), True)
+    problem.set_initial_value(clear(crate1), True)
+    problem.set_initial_value(on_s(crate1, pallet0), True)
+    problem.set_initial_value(at(truck0, distributor1), True)
+    problem.set_initial_value(at(truck1, depot0), True)
+    problem.set_initial_value(located(hoist0, depot0), True)
+    problem.set_initial_value(clear(hoist0), True)
+    problem.set_initial_value(located(hoist1, distributor0), True)
+    problem.set_initial_value(clear(hoist1), True)
+    problem.set_initial_value(located(hoist2, distributor1), True)
+    problem.set_initial_value(clear(hoist2), True)
+    problem.set_initial_value(placed(pallet0, depot0), True)
+    problem.set_initial_value(Not(clear_s(pallet0)), True)
+    problem.set_initial_value(placed(pallet1, distributor0), True)
+    problem.set_initial_value(Not(clear_s(pallet1)), True)
+    problem.set_initial_value(placed(pallet2, distributor1), True)
+    problem.set_initial_value(clear_s(pallet2), True)
+    # problem.set_initial_value(at(truck0, distributor1), True)
+
+    problem.add_goal(on_s(crate0, pallet2))
+    problem.add_goal(on_s(crate1, pallet1))
+    plan = None
+    depot = Example(problem=problem, plan=plan)
+    problems['depot'] = depot
+
 
     return problems
 
