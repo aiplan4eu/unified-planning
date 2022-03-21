@@ -77,7 +77,6 @@ class TestGrounder(TestCase):
                 self.assertTrue(pv.validate(problem, plan))
 
 
-<<<<<<< HEAD
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(full_numeric_kind))
     def test_robot_locations_connected_from_factory(self):
@@ -125,8 +124,6 @@ class TestGrounder(TestCase):
                     self.assertTrue(pv.validate(problem, plan))
 
 
-=======
->>>>>>> Implemented results class (LogMessage and PlanGenerationResult) as dataclasses.
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     @skipIfNoPlanValidatorForProblemKind(hierarchical_kind)
     def test_hierarchical_blocks_world(self):
