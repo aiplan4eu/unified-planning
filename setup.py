@@ -13,12 +13,31 @@ long_description=\
 
 setup(name='unified_planning',
       version=unified_planning.__version__,
-      description='Unified planning framework',
-      author='AIPlan4EU Organization',
+      description='Unified Planning Framework',
+      author='AIPlan4EU Project',
       author_email='aiplan4eu@fbk.eu',
       url='https://www.aiplan4eu-project.eu',
       packages=find_packages(),
       include_package_data=True,
-      install_requires=['pyparsing', 'tarski @ git+https://github.com/aig-upf/tarski.git@ebfda1c13ac908904d5b74587971cc7149e73d85#egg=tarski[arithmetic]'],
-      license='APACHE'
-     )
+      python_requires='>=3.8',  # supported Python ranges
+      install_requires=['pyparsing'],
+      extras_require={
+          'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
+          'tarski': ['tarski[arithmetic]']
+      },
+      license='APACHE',
+      keywords='planning logic STRIPS RDDL',
+      classifiers=[
+          'Development Status :: 3 - Alpha',
+
+          'Intended Audience :: Science/Research',
+          'Intended Audience :: Developers',
+
+          'Topic :: Scientific/Engineering :: Artificial Intelligence',
+          'License :: OSI Approved :: Apache Software License',
+
+          'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9',
+      ],
+)

@@ -1,0 +1,28 @@
+name: Deploy on PyPI
+
+on:
+  push:
+    branches:
+      # Trigger only for pushes on master branch
+      - master
+
+jobs:
+  deploy-wiki:
+    runs-on: ubuntu-latest
+
+    steps: 
+    - name: Checkout repo
+      uses: actions/checkout@master
+    
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+
+    - name: Make distrib
+      run: bash make_distrib.sh
+
+    - name: Upload to PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }} 
