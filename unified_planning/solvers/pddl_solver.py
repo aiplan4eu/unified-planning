@@ -16,7 +16,6 @@
 
 
 import select
-import sys
 from threading import Timer
 import tempfile
 import os
@@ -88,7 +87,7 @@ class PDDLSolver(solvers.solver.Solver):
             cmd = self._get_cmd(domanin_filename, problem_filename, plan_filename)
 
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            timer = Timer(timeout, proc.kill)
+            timer = Timer(timeout, proc.kill) # type: ignore #NOTE Timer doc does not say it can accept a None timeout, but if None is given no problems are raised.
             timer.start()
             proc_out: str = ''
             proc_err: str = ''
