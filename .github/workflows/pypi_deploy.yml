@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  deploy-wiki:
+  deploy-pypi:
     runs-on: ubuntu-latest
 
     steps: 
@@ -20,7 +20,9 @@ jobs:
         python-version: 3.8
 
     - name: Make distrib
-      run: bash make_distrib.sh
+      run: |
+        python3 -m pip install wheel
+        bash make_distrib.sh
 
     - name: Upload to PyPI
       uses: pypa/gh-action-pypi-publish@master
