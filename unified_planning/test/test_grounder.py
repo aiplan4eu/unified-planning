@@ -91,7 +91,7 @@ class TestGrounder(TestCase):
 
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
-                grounded_plan = planner.solve(grounded_problem)
+                grounded_plan = planner.solve(grounded_problem).plan
                 plan = rewrite_plan_funct(grounded_plan)
                 for ai in plan.actions():
                     a = ai.action()
@@ -115,7 +115,7 @@ class TestGrounder(TestCase):
 
             with OneshotPlanner(problem_kind=grounded_problem.kind()) as planner:
                 self.assertNotEqual(planner, None)
-                grounded_plan = planner.solve(grounded_problem)
+                grounded_plan = planner.solve(grounded_problem).plan
                 plan = rewrite_plan_funct(grounded_plan)
                 for ai in plan.actions():
                     a = ai.action()
