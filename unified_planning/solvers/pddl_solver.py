@@ -15,8 +15,8 @@
 """This module defines an interface for a generic PDDL planner."""
 
 
+import datetime
 import select
-from threading import Timer
 import tempfile
 import os
 import re
@@ -74,7 +74,7 @@ class PDDLSolver(solvers.solver.Solver):
     def solve(self, problem: 'up.model.Problem',
                 callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
                 timeout: Optional[float] = None,
-                out: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+                output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
         w = PDDLWriter(problem, self._needs_requirements)
         plan = None
         logs: List['up.solvers.results.LogMessage'] = []
@@ -85,38 +85,44 @@ class PDDLSolver(solvers.solver.Solver):
             w.write_domain(domanin_filename)
             w.write_problem(problem_filename)
             cmd = self._get_cmd(domanin_filename, problem_filename, plan_filename)
+            proc_out: List[str] = []
+            proc_err: List[str] = []
 
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            timer = Timer(timeout, proc.kill) # type: ignore #NOTE Timer doc does not say it can accept a None timeout, but if None is given no problems are raised.
-            timer.start()
-            proc_out: str = ''
-            proc_err: str = ''
-            if out is not None:
+            timeout_occurred = False
+            if output_stream is None:
+                try:
+                    out_err_bytes = proc.communicate(timeout=timeout)
+                    proc_out, proc_err = [out_err_bytes[0].decode()], [out_err_bytes[1].decode()]
+                except subprocess.TimeoutExpired:
+                    timeout_occurred = True
+            else: #output_stream is not None
+                start_time = datetime.datetime.now()
                 while True:
-                    r, _, _ = select.select([proc.stdout, proc.stderr], [], [])
+                    r, _, _ = select.select([proc.stdout, proc.stderr], [], [], 1.0)
+                    last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
                     for readable_stream in r:
+                        out_in_bytes = readable_stream.read() #TODO remove SIZE_TO_READ
+                        out_str = out_in_bytes.decode()
+                        output_stream.write(out_str)
                         if readable_stream == proc.stdout:
-                            out_in_bytes = proc.stdout.read(SIZE_TO_READ)
-                            out_str = out_in_bytes.decode()
-                            out.write(out_str)
-                            proc_out = f'{proc_out}{out_str}'
-                        elif readable_stream == proc.stderr:
-                            err_in_bytes = proc.stderr.read(SIZE_TO_READ)
-                            err_str = err_in_bytes.decode()
-                            out.write(err_str)
-                            proc_err = f'{proc_err}{err_str}'
-                    if len(r) == 2 and len(err_in_bytes) == 0 and len (out_in_bytes) == 0: #Both stream have nothing left to read
+                            proc_out.append(out_str)
+                            last_red_out = len(out_in_bytes)
+                        else:
+                            proc_err.append(out_str)
+                            last_red_err = len(out_in_bytes)
+                    if len(r) == 2 and last_red_out == 0 and last_red_err == 0: #Both stream have nothing left to read
                         break
-            proc_retval = proc.wait()
-            timer.cancel()
-            if out is None:
-                out_err_bytes = proc.communicate()
-                proc_out, proc_err = out_err_bytes[0].decode(), out_err_bytes[1].decode()
-            logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, proc_out))
-            logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, proc_err))
+                    if timeout is not None:
+                        if (datetime.datetime.now() - start_time).total_seconds() > timeout:
+                            proc.kill()
+                            timeout_occurred = True
+                proc.wait()
+            logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
+            logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
-            if proc_retval != 0: # a Timeout might have occurred
+            if timeout_occurred:
                 return PlanGenerationResult(up.solvers.results.TIMEOUT, None, planner_name=self.name()) #The plan could be "plan" and not None, to see if a plan was found during the timeout
         status: int = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name())

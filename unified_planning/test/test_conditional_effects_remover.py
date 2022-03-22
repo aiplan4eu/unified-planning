@@ -65,7 +65,7 @@ class TestConditionalEffectsRemover(TestCase):
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uncond_plan = planner.solve(unconditional_problem, out=sys.stdout).plan
+            uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = cer.rewrite_back_plan(uncond_plan)
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))

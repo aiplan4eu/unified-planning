@@ -71,11 +71,11 @@ class Parallel(solvers.solver.Solver):
     def solve(self, problem: 'up.model.Problem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
                     timeout: Optional[float] = None,
-                    out: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+                    output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
         if callback is not None:
             warnings.warn('Parallel solvers do not support the callback system.', UserWarning)
-        if out is not None:
-            warnings.warn('Parallel solvers do not support the out string message system.', UserWarning)
+        if output_stream is not None:
+            warnings.warn('Parallel solvers do not support the output stream system.', UserWarning)
         final_report = self._run_parallel('solve', problem, None, timeout, None)
         new_plan = self.convert_plan(final_report.plan, problem)
         return up.solvers.results.PlanGenerationResult(final_report.status, new_plan, final_report.planner_name, final_report.metrics, final_report.log_messages)
