@@ -25,7 +25,7 @@ DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
                    'tamer' : ('up_tamer', 'SolverImpl'),
                    'pyperplan' : ('up_pyperplan', 'SolverImpl'),
                    'sequential_plan_validator' : ('unified_planning.solvers.plan_validator', 'SequentialPlanValidator'),
-                   'grounder' : ('unified_planning.solvers.grounder', 'Grounder'),
+                   'up_grounder' : ('unified_planning.solvers.grounder', 'Grounder'),
                    'tarski_grounder' : ('unified_planning.solvers.tarski_grounder', 'TarskiGrounder')}
 
 
