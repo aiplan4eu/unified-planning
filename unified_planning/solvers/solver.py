@@ -62,7 +62,7 @@ class Solver:
     def solve(self, problem: 'up.model.Problem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
                     timeout: Optional[float] = None,
-                    out: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+                    output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
         '''This method takes a up.model.Problem and returns a up.solvers.results.PlanGenerationResult,
         which contains information about the solution to the problem given by the planner.
 
@@ -70,11 +70,11 @@ class Solver:
         problem is the up.model.Problem to solve.
         callback is a function used by the planner to give reports to the user during the problem resolution.
         timeout is the time in seconds that the planner has at max to solve the problem.
-        out is a stream of strings (#NOTE not sure about "stream of strings"#) where the planner writes his
+        output_stream is a stream of strings where the planner writes his
         output (and also errors) while the planner is solving the problem.
 
         The only required parameter is "problem" but the planner should warn the user if callback, timeout or
-        out are not None and the user set them to something, expecting a behaviour that will not be satisfied.'''
+        output_stream are not None and the user set them to something, expecting a behaviour that will not be satisfied.'''
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:

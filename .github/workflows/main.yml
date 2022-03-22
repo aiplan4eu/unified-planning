@@ -33,7 +33,7 @@ jobs:
         with:
           repository: aiplan4eu/up-tamer
           path: up-tamer
-          ref: "5b64d8eb2ecf594a1f3bc1d094b4d328719ac88d"
+          ref: "bc937850e680c3f6d1f72f9ed670ab14ae9511b8"
 
       - name: Install Tamer unified-planning interface
         run: python3 -m pip install up-tamer/
@@ -43,7 +43,7 @@ jobs:
         with:
           repository: aiplan4eu/up-pyperplan
           path: up-pyperplan
-          ref: "de635d694970b0882ba96353bf714a937841138f"
+          ref: "d01f49a0c9532b6aeb4daa35cf7acf4082fbd05a"
 
       - name: Install Pyperplan unified-planning interface
         run: python3 -m pip install up-pyperplan/
