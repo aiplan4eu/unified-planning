@@ -112,7 +112,8 @@ class PDDLSolver(solvers.solver.Solver):
                         else:
                             proc_err.append(out_str)
                             last_red_err = len(out_in_bytes)
-                    if (len(r) == 2 and last_red_out == 0 and last_red_err == 0) or timeout_occurred: #Both stream have nothing left to read or the planner is out of time
+                    # Exit loop condition: Both stream have nothing left to read or the planner is out of time
+                    if (len(r) == 2 and last_red_out == 0 and last_red_err == 0) or timeout_occurred:
                         break
                 proc.wait()
             logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
