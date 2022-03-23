@@ -29,9 +29,6 @@ from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
 from typing import IO, Callable, Optional, List
 
-SIZE_TO_READ = 128
-
-
 
 class PDDLSolver(solvers.solver.Solver):
     """
