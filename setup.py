@@ -19,7 +19,7 @@ setup(name='unified_planning',
       url='https://www.aiplan4eu-project.eu',
       packages=find_packages(),
       include_package_data=True,
-      python_requires='>=3.8',  # supported Python ranges
+      python_requires='>=3.7',  # supported Python ranges
       install_requires=['pyparsing'],
       extras_require={
           'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
@@ -37,6 +37,7 @@ setup(name='unified_planning',
           'License :: OSI Approved :: Apache Software License',
 
           'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.7',
           'Programming Language :: Python :: 3.8',
           'Programming Language :: Python :: 3.9',
       ],
