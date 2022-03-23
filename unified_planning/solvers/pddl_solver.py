@@ -98,11 +98,15 @@ class PDDLSolver(solvers.solver.Solver):
                     timeout_occurred = True
             else: #output_stream is not None
                 start_time = datetime.datetime.now()
+                last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
                 while True:
-                    r, _, _ = select.select([proc.stdout, proc.stderr], [], [], 1.0)
-                    last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
+                    r, _, _ = select.select([proc.stdout, proc.stderr], [], [], 1)
+                    if timeout is not None: # Check if the planner is out of time.
+                        if (datetime.datetime.now() - start_time).total_seconds() >= timeout:
+                            proc.kill()
+                            timeout_occurred = True
                     for readable_stream in r:
-                        out_in_bytes = readable_stream.read() #TODO remove SIZE_TO_READ
+                        out_in_bytes = readable_stream.read()
                         out_str = out_in_bytes.decode()
                         output_stream.write(out_str)
                         if readable_stream == proc.stdout:
@@ -111,19 +115,15 @@ class PDDLSolver(solvers.solver.Solver):
                         else:
                             proc_err.append(out_str)
                             last_red_err = len(out_in_bytes)
-                    if len(r) == 2 and last_red_out == 0 and last_red_err == 0: #Both stream have nothing left to read
+                    if (len(r) == 2 and last_red_out == 0 and last_red_err == 0) or timeout_occurred: #Both stream have nothing left to read or the planner is out of time
                         break
-                    if timeout is not None:
-                        if (datetime.datetime.now() - start_time).total_seconds() > timeout:
-                            proc.kill()
-                            timeout_occurred = True
                 proc.wait()
             logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
-            if timeout_occurred:
-                return PlanGenerationResult(up.solvers.results.TIMEOUT, None, planner_name=self.name()) #The plan could be "plan" and not None, to see if a plan was found during the timeout
+            if timeout_occurred and proc.returncode != 0: # Also check returncode, in case the planner did finish normally
+                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name()) #The plan could be "plan" and not None, to see if a plan was found during the timeout
         status: int = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name())
 

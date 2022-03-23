@@ -96,6 +96,8 @@ class PlanGenerationResult:
             raise UPUsageError(f'The Result status is {self.status_as_str()} but no plan is set.')
         elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
             raise UPUsageError(f'The Result status is {self.status_as_str()} but the plan is {str(self.plan)}.\nWith this status the plan must be None.')
+        self.metrics = {}
+        self.log_messages = []
         return self
 
     def status_as_str(self) -> str:
