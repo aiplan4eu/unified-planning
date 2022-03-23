@@ -10,10 +10,12 @@ jobs:
   deploy-pypi:
     runs-on: ubuntu-latest
 
-    steps: 
+    steps:
     - name: Checkout repo
       uses: actions/checkout@master
-    
+      with:
+        fetch-depth: 0
+
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
@@ -27,4 +29,4 @@ jobs:
     - name: Upload to PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
-        password: ${{ secrets.PYPI_API_TOKEN }} 
+        password: ${{ secrets.PYPI_API_TOKEN }}
