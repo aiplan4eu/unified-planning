@@ -32,7 +32,7 @@ from unified_planning.model.variable import Variable, FreeVarsOracle
 import unified_planning.model.metrics
 
 __all__ = [ 'Action', 'InstantaneousAction', 'DurativeAction',
-            'Effect', 'EffectKind',
+            'Effect', 'SimulatedEffects', 'EffectKind',
             'BoolExpression', 'Expression', 'ExpressionManager',
             'FNode',
             'Fluent',
