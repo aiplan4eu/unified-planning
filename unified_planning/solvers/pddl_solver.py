@@ -15,19 +15,19 @@
 """This module defines an interface for a generic PDDL planner."""
 
 
-import datetime
 import select
 import tempfile
 import os
 import re
 import subprocess
+import time
 import unified_planning as up
 import unified_planning.solvers as solvers
 from unified_planning.shortcuts import *
 from unified_planning.solvers.results import PlanGenerationResult
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
-from typing import IO, Callable, Optional, List
+from typing import IO, Any, Callable, Optional, List
 
 
 class PDDLSolver(solvers.solver.Solver):
@@ -94,15 +94,16 @@ class PDDLSolver(solvers.solver.Solver):
                 except subprocess.TimeoutExpired:
                     timeout_occurred = True
             else: #output_stream is not None
-                start_time = datetime.datetime.now()
+                start_time = time.time()
                 last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
-                while True:
-                    r, _, _ = select.select([proc.stdout, proc.stderr], [], [], 1)
-                    if timeout is not None: # Check if the planner is out of time.
-                        if (datetime.datetime.now() - start_time).total_seconds() >= timeout:
-                            proc.kill()
-                            timeout_occurred = True
-                    for readable_stream in r:
+                readable_streams: List[Any] = []
+                # Exit loop condition: Both stream have nothing left to read or the planner is out of time
+                while not timeout_occurred and (len(readable_streams) != 2 or last_red_out != 0 or last_red_err != 0):
+                    readable_streams, _, _ = select.select([proc.stdout, proc.stderr], [], [], 1.0) #1.0 is the timeout
+                    if timeout is not None and time.time() - start_time >= timeout: # Check if the planner is out of time.
+                        proc.kill()
+                        timeout_occurred = True
+                    for readable_stream in readable_streams:
                         out_in_bytes = readable_stream.read()
                         out_str = out_in_bytes.decode()
                         output_stream.write(out_str)
@@ -112,9 +113,6 @@ class PDDLSolver(solvers.solver.Solver):
                         else:
                             proc_err.append(out_str)
                             last_red_err = len(out_in_bytes)
-                    # Exit loop condition: Both stream have nothing left to read or the planner is out of time
-                    if (len(r) == 2 and last_red_out == 0 and last_red_err == 0) or timeout_occurred:
-                        break
                 proc.wait()
             logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
