@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import subprocess
+import re
+
 from unified_planning.environment import Environment
 
 
-VERSION = (0, 2, 0, "dev", 1)
+VERSION = (0, 2, 0)
 
 # Try to provide human-readable version of latest commit for dev versions
 # E.g. v0.5.1-4-g49a49f2-wip
@@ -23,18 +26,23 @@ VERSION = (0, 2, 0, "dev", 1)
 #      * Latest commit "49a49f2"
 #      * -wip: Working tree is dirty (non committed stuff)
 # See: https://git-scm.com/docs/git-describe
-
-if len(VERSION) == 5:
-    import subprocess
-    try:
-        git_version = subprocess.check_output(["git", "describe",
-                                               "--dirty=-wip"],
-                                              stderr=subprocess.STDOUT)
-        commits_from_tag = git_version.strip().decode('ascii')
-        commits_from_tag = commits_from_tag.split("-")[1]
-        VERSION = VERSION[:4] + (int(commits_from_tag),)
-    except Exception as ex:
-        pass
+try:
+    git_version = subprocess.check_output(["git", "describe",
+                                            "--dirty=-wip"],
+                                            stderr=subprocess.STDOUT)
+    output = git_version.strip().decode('ascii')
+    data = output.split("-")
+    tag = data[0]
+    match = re.match(r'^v(\d+)\.(\d)+\.(\d)$', tag)
+    if match is not None:
+        VERSION = tuple(int(x) for x in match.groups())
+    if data[1] == 'wip':
+        VERSION = (VERSION[0], VERSION[1], VERSION[2], 'post', 1)
+    else:
+        commits = int(data[1])
+        VERSION = (VERSION[0], VERSION[1], VERSION[2]+commits, 'dev', 1)        
+except Exception as ex:
+    pass
 
 # PEP440 Format
 __version__ = "%d.%d.%d.%s%d" % VERSION if len(VERSION) == 5 else \
