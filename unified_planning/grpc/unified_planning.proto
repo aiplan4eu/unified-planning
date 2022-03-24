@@ -402,7 +402,7 @@ message PlanRequest {
 
     enum Mode {
         SATISFIABLE = 0;
-        OPTIMAL = 1;
+        SOLVED_OPTIMALLY = 1;
     }
     Mode resolution_mode = 2;
 
@@ -437,18 +437,18 @@ message PlanGenerationResult {
 
         // Valid plan found
         // The `plan` field must be set.
-        SATISFIED = 0;
+        SOLVED_SATISFICING = 0;
         // Plan found with optimality guarantee
         // The `plan` field must be set and contains an optimal solution.
-        OPTIMAL = 1;
+        SOLVED_OPTIMALLY = 1;
         // No plan exists
-        UNSATISFIED = 2;
+        UNSOLVABLE_PROVEN = 2;
         // The planner was not able to find a solution but does not give any guarantee that none exist
         // (i.e. the planner might not be complete)
-        SEARCH_SPACE_EXHAUSTED = 3;
+        UNSOLVABLE_INCOMPLETELY = 3;
 
         // ====== Planner exited before making any conclusion ====
-        // Search stopped before concluding OPTIMAL or UNSATISFIED
+        // Search stopped before concluding SOLVED_OPTIMALLY or UNSOLVABLE_PROVEN
         // If a plan was found, it might be reported in the `plan` field
 
         // The planner ran out of time

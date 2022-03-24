@@ -23,10 +23,10 @@ from typing import Dict, Optional, List
 ALL_STATUS = list(range(0, 9))
 
 (
-SATISFIED, # Valid plan found.
-OPTIMAL, # Optimal plan found.
-UNSATISFIED, # The problem is impossible, no valid plan exists.
-SEARCH_SPACE_EXHAUSTED, # The planner could not find a plan, but it's not sure that the problem is impossible (The planner is incomplete)
+SOLVED_SATISFICING, # Valid plan found.
+SOLVED_OPTIMALLY, # Optimal plan found.
+UNSOLVABLE_PROVEN, # The problem is impossible, no valid plan exists.
+UNSOLVABLE_INCOMPLETELY, # The planner could not find a plan, but it's not sure that the problem is impossible (The planner is incomplete)
 TIMEOUT, # The planner ran out of time
 MEMOUT, # The planner ran out of memory
 INTERNAL_ERROR, # The planner had an internal error
@@ -35,10 +35,10 @@ INTERMEDIATE # The report is not a final one but it's given through the callback
 ) = ALL_STATUS
 
 __STATUS_STR__ = {
-    SATISFIED: 'SATISFIED',
-    OPTIMAL: 'OPTIMAL',
-    UNSATISFIED: 'UNSATISFIED',
-    SEARCH_SPACE_EXHAUSTED: 'SEARCH_SPACE_EXHAUSTED',
+    SOLVED_SATISFICING: 'SOLVED_SATISFICING',
+    SOLVED_OPTIMALLY: 'SOLVED_OPTIMALLY',
+    UNSOLVABLE_PROVEN: 'UNSOLVABLE_PROVEN',
+    UNSOLVABLE_INCOMPLETELY: 'UNSOLVABLE_INCOMPLETELY',
     TIMEOUT: 'TIMEOUT',
     MEMOUT: 'MEMOUT',
     INTERNAL_ERROR: 'INTERNAL_ERROR',
@@ -46,9 +46,9 @@ __STATUS_STR__ = {
     INTERMEDIATE: 'INTERMEDIATE'
 }
 
-POSITIVE_OUTCOMES = frozenset([SATISFIED, OPTIMAL])
+POSITIVE_OUTCOMES = frozenset([SOLVED_SATISFICING, SOLVED_OPTIMALLY])
 
-NEGATIVE_OUTCOMES = frozenset([UNSATISFIED, SEARCH_SPACE_EXHAUSTED, UNSUPPORTED_PROBLEM])
+NEGATIVE_OUTCOMES = frozenset([UNSOLVABLE_PROVEN, UNSOLVABLE_INCOMPLETELY, UNSUPPORTED_PROBLEM])
 
 
 LOG_LEVEL = list(range(0, 4))

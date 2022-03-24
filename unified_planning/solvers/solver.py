@@ -24,7 +24,7 @@ from typing import IO, Optional, Tuple, Callable, Union
 OPTIMALITY_GUARANTEES = list(range(0, 2))
 
 (
-    SATISFICING, OPTIMAL
+    SATISFICING, SOLVED_OPTIMALLY
 ) = OPTIMALITY_GUARANTEES
 
 

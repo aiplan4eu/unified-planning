@@ -17,7 +17,7 @@
 from io import StringIO
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.solvers.results import OPTIMAL, TIMEOUT
+from unified_planning.solvers.results import SOLVED_OPTIMALLY, TIMEOUT
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 
@@ -37,7 +37,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), a)
             self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
@@ -53,7 +53,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions()), 2)
             self.assertEqual(plan.actions()[0].action(), a_y)
             self.assertEqual(plan.actions()[1].action(), a_x)
@@ -70,7 +70,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), move)
@@ -86,7 +86,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions()), 1)
             self.assertEqual(plan.actions()[0].action(), move)
@@ -104,7 +104,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions()), 4)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
@@ -128,7 +128,7 @@ class TestPDDLPlanner(TestCase):
             final_report = planner.solve(problem, output_stream=output)
             plan = final_report.plan
             planner_output = output.getvalue()
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions()), 5)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
@@ -182,7 +182,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem, timeout=100)
             plan = final_report.plan
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions()), 5)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)
@@ -208,7 +208,7 @@ class TestPDDLPlanner(TestCase):
             final_report = planner.solve(problem, timeout=100, output_stream=output_stream)
             plan = final_report.plan
             planner_output = output_stream.getvalue()
-            self.assertEqual(final_report.status, OPTIMAL)
+            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions()), 5)
             self.assertEqual(plan.actions()[0].action(), move)
             self.assertEqual(plan.actions()[1].action(), load)

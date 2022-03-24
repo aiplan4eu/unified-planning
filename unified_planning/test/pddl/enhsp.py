@@ -36,12 +36,12 @@ class ENHSP(PDDLSolver):
                 os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
                 '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename,
                 '-planner', 'opt-hrmax']
-    
+
     def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> int:
         if plan is None:
-            return up.solvers.results.UNSATISFIED
+            return up.solvers.results.UNSOLVABLE_PROVEN
         else:
-            return up.solvers.results.OPTIMAL
+            return up.solvers.results.SOLVED_OPTIMALLY
 
     @staticmethod
     def satisfies(optimality_guarantee: Union[int, str]) -> bool:
