@@ -58,15 +58,36 @@ class Parallel(solvers.solver.Solver):
                                signaling_queue, fname, *args))
             processes.append(_p)
             _p.start()
+        processes_alive = len(processes)
+        results: List[up.solvers.PlanGenerationResult] = []
+        definitive_result_found: bool = False
         while True:
+            if processes_alive == 0: # Every planner gave a result
+                break
             (idx, res) = signaling_queue.get(block=True)
+            processes_alive -= 1
             if isinstance(res, BaseException):
                 raise res
             else:
-                break
+                assert isinstance(res, up.solvers.PlanGenerationResult)
+                # If the planner is sure about the result (optimality of the result or impossibility of the problem) exit the loop
+                if res.status == up.solvers.results.SOLVED_OPTIMALLY or res.status == up.solvers.results.UNSOLVABLE_PROVEN:
+                    definitive_result_found = True
+                    break
+                else:
+                    results.append(res)
         for p in processes:
             p.terminate()
-        return res
+        if definitive_result_found: # A planner found an unimprovable result
+            return res
+        else:
+            result_order: List[int] = [ up.solvers.results.SOLVED_SATISFICING,  # List containing the results in the order we prefer them
+                                        up.solvers.results.UNSOLVABLE_INCOMPLETELY] #NOTE this list can be extended to support the other cases
+            for ro in result_order:
+                for r in results:
+                    if r.status == ro:
+                        return r
+            return None #TODO insert a default value to return if no one of the planners give a result
 
     def solve(self, problem: 'up.model.Problem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
