@@ -19,7 +19,7 @@ from unified_planning.grpc.converter import Converter, handles
 import unified_planning.model
 import unified_planning.plan
 from unified_planning.model import Timing, TimeInterval, Effect
-
+from unified_planning.shortcuts import BoolType, UserType, RealType, IntType
 
 def convert_type_str(s, env):
     if s == 'bool':
@@ -59,10 +59,9 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Expression)
     def _convert_expression(self, msg, problem, param_map):
-        kind = self.convert(msg.kind)
         if msg.atom is not None:
-            atom = self.convert(msg.atom)
-            return problem.env.expression_manager.create_node(kind, tuple(), atom)
+            atom = self.convert(msg.atom, problem)
+            return atom # problem.env.expression_manager.create_node(msg.kind, tuple(), atom)
 
         args = []
         for arg_msg in msg.args:
@@ -70,6 +69,49 @@ class ProtobufReader(Converter):
         payload = self.convert(msg.payload, problem, param_map)
 
         return problem.env.expression_manager.create_node(kind, tuple(args), payload)
+
+    @handles(unified_planning_pb2.Atom)
+    def _convert_atom(self, msg, problem):
+        field = msg.WhichOneof('content')
+        value = getattr(msg, msg.WhichOneof('content'))
+        if field == "int":
+            return problem.env.expression_manager.Int(value)
+        elif field == "real":
+            return problem.env.expression_manager.Real(value)
+        elif field == "boolean":
+            return problem.env.expression_manager.Bool(value)
+        else:
+            return problem.object(value)
+
+    @handles(unified_planning_pb2.TypeDeclaration)
+    def _convert_type_declaration(self, msg):
+        if msg.type_name == "bool":
+            return BoolType()
+        elif msg.type_name.startswith("integer["):
+            tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
+            lb = None
+            ub = None
+            if tmp[0] != "-inf":
+                lb = int(tmp[0])
+            elif tmp[1] != "inf":
+                ub = int(tmp[1])
+            return IntType(lower_bound=lb, upper_bound=ub)
+        elif msg.type_name.startswith("real["):
+            tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
+            lb = None
+            ub = None
+            if tmp[0] != "-inf":
+                lb = fractions.Fraction(tmp[0])
+            elif tmp[1] != "inf":
+                ub = fractions.Fraction(tmp[1])
+            return RealType(lower_bound=lb, upper_bound=ub)
+        else:
+            parent = None
+            if msg.parent_type is not None:
+                parent = UserType(msg.parent_type)
+            return UserType(msg.type_name, parent)
+
+
 
     # @handles(unified_planning_pb2.Payload)
     # def _convert_payload(self, msg, problem, param_map):

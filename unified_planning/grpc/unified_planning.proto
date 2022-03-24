@@ -104,7 +104,7 @@ message Fluent {
 // Declares an object with the given name and type.
 message ObjectDeclaration {
     // Name of the object.
-    string name = 1;
+    string name = 1; //TODO: Not used by fluents
     // Type of the object.
     // The type must have been previously declared in the problem definition.
     string type = 2;
@@ -218,7 +218,7 @@ message Timepoint {
 // Note that an absolute time can be defined by setting the `delay` relative to the `GLOBAL_START`` which is the reference time.
 message Timing {
     Timepoint timepoint = 1;
-    double delay = 2;
+    double delay = 2; //TODO: In the UP this can be a fraction as well
 }
 
 
@@ -264,7 +264,7 @@ message Goal {
     Expression goal = 1;
 
     // Optional. If specified the goal should hold over the specified temporal interval (instead of on the final state).
-    // features: timed_goals
+    // features: timed_goals TODO: The UP has a list of goals assigned to timings
     TimeInterval timing = 2;
 }
 
@@ -331,7 +331,7 @@ message Problem {
     repeated Action actions = 6;
 
     // Initial state. It is asssumed that the initial state is fully defined by assignments.
-    repeated Assignment initial_state = 7;
+    repeated Assignment initial_state = 7; //TODO: Missing initial defaults
 
     // Facts and effects that are expected to occur strictly later than the initial state.
     // features: timed_effects

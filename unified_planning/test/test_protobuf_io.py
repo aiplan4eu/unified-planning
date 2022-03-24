@@ -56,7 +56,40 @@ class TestProtobufIO(TestCase):
         self.assertTrue(ex_pb.type == "BOOL_CONSTANT")
         self.assertTrue(ex_pb.kind == up_pb2.ExpressionKind.Value("CONSTANT"))
 
-        # TODO: Next convert back with reader
+        ex_up = self.pb_reader.convert(ex_pb, problem, {})
+        self.assertTrue(ex == ex_up)
+
+        ex = problem.env.expression_manager.Int(10)
+
+        ex_pb = self.pb_writer.convert(ex)
+        self.assertTrue(ex_pb.type == "INT_CONSTANT")
+        self.assertTrue(ex_pb.kind == up_pb2.ExpressionKind.Value("CONSTANT"))
+
+        ex_up = self.pb_reader.convert(ex_pb, problem, {})
+        self.assertTrue(ex == ex_up)
+
+    def test_type_declaration(self):
+        problem = Problem("test")
+        ex = BoolType()
+        ex_pb = self.pb_writer.convert(ex)
+        ex_up = self.pb_reader.convert(ex_pb)
+        self.assertTrue(ex == ex_up)
+
+        ex = UserType("location", UserType("object"))
+        ex_pb = self.pb_writer.convert(ex)
+        ex_up = self.pb_reader.convert(ex_pb)
+        self.assertTrue(ex == ex_up)
+
+    def test_object_declaration(self):
+        problem = Problem("test")
+
+        loc_type = UserType("location")
+        obj = Object("l1", loc_type)
+        obj_pb = self.pb_writer.convert(obj)
+        obj_up = self.pb_reader.convert(obj_pb, problem)
+        self.assertTrue(obj == obj_up)
+
+    # TODO: Next convert back with reader
 
     # def test_basic_writer(self):
     #     problem = self.problems['basic'].problem
