@@ -19,6 +19,7 @@ from unified_planning.environment import Environment
 
 
 VERSION = (0, 2, 0)
+__version__ = ".".join(str(x) for x in VERSION)
 
 # Try to provide human-readable version of latest commit for dev versions
 # E.g. v0.5.1-4-g49a49f2-wip
@@ -35,15 +36,22 @@ try:
     tag = data[0]
     match = re.match(r'^v(\d+)\.(\d)+\.(\d)$', tag)
     if match is not None:
-        VERSION = tuple(int(x) for x in match.groups())
-    if data[1] == 'wip':
-        VERSION = (VERSION[0], VERSION[1], VERSION[2], 'post', 1)
+        MAJOR, MINOR, REL = tuple(int(x) for x in match.groups())
+    
+    try:
+        COMMITS = int(data[1])
+    except ValueError:
+        COMMITS = 0
+
+    if data[-1] == 'wip':
+        if COMMITS == 0:
+            VERSION = (MAJOR, MINOR, REL, 'post', 1)
+            __version__ = f'{MAJOR}.{MINOR}.{REL}.post1'
+        else:
+            VERSION = (MAJOR, MINOR, REL, COMMITS, 'post', 1)
+            __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.post1'
     else:
-        commits = int(data[1])
-        VERSION = (VERSION[0], VERSION[1], VERSION[2]+commits, 'dev', 1)        
+        VERSION = (MAJOR, MINOR, REL, COMMITS, 'dev', 1)
+        __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1'      
 except Exception as ex:
     pass
-
-# PEP440 Format
-__version__ = "%d.%d.%d.%s%d" % VERSION if len(VERSION) == 5 else \
-              "%d.%d.%d" % VERSION[:3]
