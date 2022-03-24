@@ -18,7 +18,7 @@ import re
 from unified_planning.environment import Environment
 
 
-VERSION = (0, 2, 1)
+VERSION = (0, 2, 2)
 __version__ = ".".join(str(x) for x in VERSION)
 
 # Try to provide human-readable version of latest commit for dev versions
@@ -45,13 +45,13 @@ try:
 
     if data[-1] == 'wip':
         if COMMITS == 0:
-            VERSION = (MAJOR, MINOR, REL, 'post', 1)
+            VERSION = (MAJOR, MINOR, REL, 'post', 1) #type: ignore
             __version__ = f'{MAJOR}.{MINOR}.{REL}.post1'
         else:
-            VERSION = (MAJOR, MINOR, REL, COMMITS, 'post', 1)
+            VERSION = (MAJOR, MINOR, REL, COMMITS, 'post', 1) #type: ignore
             __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.post1'
     else:
-        VERSION = (MAJOR, MINOR, REL, COMMITS, 'dev', 1)
+        VERSION = (MAJOR, MINOR, REL, COMMITS, 'dev', 1) #type: ignore
         __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1'      
 except Exception as ex:
     pass
