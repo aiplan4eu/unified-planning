@@ -66,6 +66,7 @@ class Grounder(solvers.solver.Solver):
         supported_kind.set_time('TIMED_EFFECT')
         supported_kind.set_time('TIMED_GOALS')
         supported_kind.set_time('DURATION_INEQUALITIES')
+        supported_kind.set_simulated_entities('SIMULATED_EFFECTS')
         return problem_kind <= supported_kind
 
     @staticmethod

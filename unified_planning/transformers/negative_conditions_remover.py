@@ -15,7 +15,7 @@
 """This module defines the negative preconditions remover class."""
 
 
-
+import unified_planning as up
 from unified_planning.transformers.transformer import Transformer
 from unified_planning.model import Fluent, Problem, InstantaneousAction, DurativeAction, FNode, Action, Effect, Timing
 from unified_planning.walkers.identitydag import IdentityDagWalker
@@ -147,6 +147,8 @@ class NegativeConditionsRemover(Transformer):
 
         for action in self._problem.actions:
             if isinstance(action, InstantaneousAction):
+                if action.simulated_effects() is not None:
+                    raise up.exceptions.UPUsageError('NegativeConditionsRemover does not work with simulated effects')
                 new_action = name_action_map[action.name]
                 new_effects: List[Effect] = []
                 for e in new_action.effects:
@@ -162,6 +164,8 @@ class NegativeConditionsRemover(Transformer):
                 self._old_to_new[action] = [new_action]
                 self._new_to_old[new_action] = action
             elif isinstance(action, DurativeAction):
+                if len(action.simulated_effects()) > 0:
+                    raise up.exceptions.UPUsageError('NegativeConditionsRemover does not work with simulated effects')
                 new_durative_action = name_action_map[action.name]
                 new_durative_action.set_duration_constraint(action.duration)
 

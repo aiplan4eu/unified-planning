@@ -21,7 +21,7 @@ A condition can be added to make it a conditional effect.
 
 import unified_planning as up
 from enum import Enum, auto
-from typing import List, Callable
+from typing import List, Callable, Dict
 
 
 class EffectKind(Enum):
@@ -111,7 +111,8 @@ class Effect:
 
 class SimulatedEffects:
     def __init__(self, fluents: List['up.model.fnode.FNode'],
-                 function: Callable[['up.model.problem.Problem', 'up.model.state.State'],
+                 function: Callable[['up.model.problem.Problem', 'up.model.state.State',
+                                     Dict['up.model.parameter.Parameter', 'up.model.fnode.FNode']],
                                     List['up.model.fnode.FNode']]):
         self._fluents = fluents
         self._function = function
@@ -126,12 +127,17 @@ class SimulatedEffects:
             return False
 
     def __hash__(self) -> int:
-        return hash(self._fluents) + hash(self._function)
+        res = hash(self._function)
+        for f in self._fluents:
+            res += hash(f)
+        return res
 
     @property
     def fluents(self) -> List['up.model.fnode.FNode']:
         return self._fluents
 
     @property
-    def function(self) -> Callable[['up.model.problem.Problem', 'up.model.state.State'], List['up.model.fnode.FNode']]:
+    def function(self) -> Callable[['up.model.problem.Problem', 'up.model.state.State',
+                                    Dict['up.model.parameter.Parameter', 'up.model.fnode.FNode']],
+                                   List['up.model.fnode.FNode']]:
         return self._function
