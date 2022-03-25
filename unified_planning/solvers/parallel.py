@@ -60,6 +60,7 @@ class Parallel(solvers.solver.Solver):
             _p.start()
         processes_alive = len(processes)
         results: List[up.solvers.PlanGenerationResult] = []
+        planners_final_status: List[str] = []
         definitive_result_found: bool = False
         timeout: bool = False
         while True:
@@ -76,6 +77,7 @@ class Parallel(solvers.solver.Solver):
                     definitive_result_found = True
                     break
                 else:
+                    planners_final_status.append(res.status_as_str())
                     if res.plan is not None:
                         results.append(res)
                     if res.status == up.solvers.results.TIMEOUT:
@@ -87,16 +89,16 @@ class Parallel(solvers.solver.Solver):
         else:
             result_order: List[int] = [ up.solvers.results.SOLVED_SATISFICING,  # List containing the results in the order we prefer them
                                         up.solvers.results.TIMEOUT,
-                                        up.solvers.results.UNSOLVABLE_INCOMPLETELY,
                                         up.solvers.results.MEMOUT,
                                         up.solvers.results.INTERNAL_ERROR]
+            logs = up.solvers.LogMessage(up.solvers.results.INFO, ' '.join(planners_final_status))
             for ro in result_order:
                 for r in results:
                     if r.status == ro:
-                        return r
+                        return r # NOTE Here we may want to append the logs variable to log_messages
             # if no results are given by the planner, we create a default one
             return up.solvers.PlanGenerationResult(up.solvers.results.TIMEOUT if timeout else up.solvers.results.UNSOLVABLE_INCOMPLETELY,
-                                                    None, 'parallel_default')
+                                                    None, self.name(), log_messages=[logs])
 
 
     def solve(self, problem: 'up.model.Problem',

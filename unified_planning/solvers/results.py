@@ -97,7 +97,7 @@ class PlanGenerationResult:
         elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
             raise UPUsageError(f'The Result status is {self.status_as_str()} but the plan is {str(self.plan)}.\nWith this status the plan must be None.')
         self.metrics = {}
-        self.log_messages = []
+        self.log_messages = [] #NOTE Here, is this initi right? Since it is done after the __init__ the value might be deleted
         return self
 
     def status_as_str(self) -> str:
