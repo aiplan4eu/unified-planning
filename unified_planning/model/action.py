@@ -23,7 +23,7 @@ import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError
 from fractions import Fraction
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 from collections import OrderedDict
 
 class Action:
