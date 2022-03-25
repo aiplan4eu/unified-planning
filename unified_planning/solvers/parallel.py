@@ -61,6 +61,7 @@ class Parallel(solvers.solver.Solver):
         processes_alive = len(processes)
         results: List[up.solvers.PlanGenerationResult] = []
         definitive_result_found: bool = False
+        timeout: bool = False
         while True:
             if processes_alive == 0: # Every planner gave a result
                 break
@@ -75,19 +76,28 @@ class Parallel(solvers.solver.Solver):
                     definitive_result_found = True
                     break
                 else:
-                    results.append(res)
+                    if res.plan is not None:
+                        results.append(res)
+                    if res.status == up.solvers.results.TIMEOUT:
+                        timeout = True
         for p in processes:
             p.terminate()
-        if definitive_result_found: # A planner found an unimprovable result
+        if definitive_result_found: # A planner found a definitive result
             return res
         else:
             result_order: List[int] = [ up.solvers.results.SOLVED_SATISFICING,  # List containing the results in the order we prefer them
-                                        up.solvers.results.UNSOLVABLE_INCOMPLETELY] #NOTE this list can be extended to support the other cases
+                                        up.solvers.results.TIMEOUT,
+                                        up.solvers.results.UNSOLVABLE_INCOMPLETELY,
+                                        up.solvers.results.MEMOUT,
+                                        up.solvers.results.INTERNAL_ERROR]
             for ro in result_order:
                 for r in results:
                     if r.status == ro:
                         return r
-            return None #TODO insert a default value to return if no one of the planners give a result
+            # if no results are given by the planner, we create a default one
+            return up.solvers.PlanGenerationResult(up.solvers.results.TIMEOUT if timeout else up.solvers.results.UNSOLVABLE_INCOMPLETELY,
+                                                    None, 'parallel_default')
+
 
     def solve(self, problem: 'up.model.Problem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
