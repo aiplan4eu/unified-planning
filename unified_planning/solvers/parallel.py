@@ -62,7 +62,6 @@ class Parallel(solvers.solver.Solver):
         results: List[up.solvers.PlanGenerationResult] = []
         planners_final_status: List[str] = []
         definitive_result_found: bool = False
-        timeout: bool = False
         while True:
             if processes_alive == 0: # Every planner gave a result
                 break
@@ -77,11 +76,9 @@ class Parallel(solvers.solver.Solver):
                     definitive_result_found = True
                     break
                 else:
-                    planners_final_status.append(res.status_as_str())
+                    planners_final_status.append(f'{res.planner_name}: {res.status_as_str()}')
                     if res.plan is not None:
                         results.append(res)
-                    if res.status == up.solvers.results.TIMEOUT:
-                        timeout = True
         for p in processes:
             p.terminate()
         if definitive_result_found: # A planner found a definitive result
@@ -91,13 +88,13 @@ class Parallel(solvers.solver.Solver):
                                         up.solvers.results.TIMEOUT,
                                         up.solvers.results.MEMOUT,
                                         up.solvers.results.INTERNAL_ERROR]
-            logs = up.solvers.LogMessage(up.solvers.results.INFO, ' '.join(planners_final_status))
+            logs = up.solvers.LogMessage(up.solvers.results.INFO, ', '.join(planners_final_status))
             for ro in result_order:
                 for r in results:
                     if r.status == ro:
                         return r # NOTE Here we may want to append the logs variable to log_messages
             # if no results are given by the planner, we create a default one
-            return up.solvers.PlanGenerationResult(up.solvers.results.TIMEOUT if timeout else up.solvers.results.UNSOLVABLE_INCOMPLETELY,
+            return up.solvers.PlanGenerationResult(up.solvers.results.UNSOLVABLE_INCOMPLETELY,
                                                     None, self.name(), log_messages=[logs])
 
 
