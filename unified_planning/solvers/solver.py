@@ -35,8 +35,8 @@ class Solver:
         if len(kwargs) > 0:
             raise
 
-    @staticmethod
-    def name() -> str:
+    @property
+    def name(self) -> str:
         raise NotImplementedError
 
     @staticmethod

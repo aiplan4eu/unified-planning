@@ -39,8 +39,8 @@ class Grounder(solvers.solver.Solver):
         trace_back_map = grounder.get_rewrite_back_map()
         return (grounded_problem, partial(lift_plan, map=trace_back_map))
 
-    @staticmethod
-    def name():
+    @property
+    def name(self):
         return 'grounder'
 
     @staticmethod

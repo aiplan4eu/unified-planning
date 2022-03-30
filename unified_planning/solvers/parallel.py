@@ -32,8 +32,8 @@ class Parallel(solvers.solver.Solver):
     def __init__(self, solvers: List[Tuple[type, Dict[str, str]]]):
         self.solvers = solvers
 
-    @staticmethod
-    def name() -> str:
+    @property
+    def name(self) -> str:
         return 'Parallel'
 
     @staticmethod
@@ -63,7 +63,7 @@ class Parallel(solvers.solver.Solver):
         results: List[up.solvers.PlanGenerationResult] = []
         planners_final_status: List[str] = []
         definitive_result_found: bool = False
-        optimality_required: bool = len(args[0].quality_metrics()) > 0 # Require optimality if the problem has at least one quality metric.
+        optimality_required: bool = len(args[0].quality_metrics) > 0 # Require optimality if the problem has at least one quality metric.
         while True:
             if processes_alive == 0: # Every planner gave a result
                 break
@@ -97,7 +97,7 @@ class Parallel(solvers.solver.Solver):
                         return r # NOTE Here we may want to append the logs variable to log_messages
             # if no results are given by the planner, we create a default one
             return up.solvers.PlanGenerationResult(up.solvers.results.UNSOLVABLE_INCOMPLETELY,
-                                                    None, self.name(), log_messages=[logs])
+                                                    None, self.name, log_messages=[logs])
 
 
     def solve(self, problem: 'up.model.Problem',

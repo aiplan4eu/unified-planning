@@ -234,8 +234,8 @@ class SequentialPlanValidator(solvers.solver.Solver):
         assert r.is_constant()
         return r
 
-    @staticmethod
-    def name():
+    @property
+    def name(self):
         return 'sequential_plan_validator'
 
     @staticmethod
