@@ -43,7 +43,7 @@ class TestQuantifiersRemover(TestCase):
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uq_plan = planner.solve(uq_problem)
+            uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
@@ -60,7 +60,7 @@ class TestQuantifiersRemover(TestCase):
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uq_plan = planner.solve(uq_problem)
+            uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
@@ -77,7 +77,7 @@ class TestQuantifiersRemover(TestCase):
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uq_plan = planner.solve(uq_problem)
+            uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
@@ -96,7 +96,7 @@ class TestQuantifiersRemover(TestCase):
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uq_plan = planner.solve(uq_problem)
+            uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
             with PlanValidator(problem_kind=problem.kind()) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
@@ -123,7 +123,7 @@ class TestQuantifiersRemover(TestCase):
 
         with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            uq_plan = planner.solve(uq_problem)
+            uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
             for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uq_plan.actions()):
                 self.assertEqual(s, s_1)

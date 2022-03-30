@@ -126,7 +126,7 @@ def OneshotPlanner(*, name: Optional[str] = None,
       e.g. OneshotPlanner(names=['tamer', 'tamer'],
                           params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
     - using 'problem_kind' and 'optimality_guarantee'.
-          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=OPTIMAL)
+          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=SOLVED_OPTIMALLY)
     """
     return get_env().factory.OneshotPlanner(name=name, names=names, params=params,
                                             problem_kind=problem_kind,

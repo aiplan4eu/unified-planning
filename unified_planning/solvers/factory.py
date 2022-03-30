@@ -16,7 +16,7 @@
 import importlib
 import unified_planning as up
 from unified_planning.model import ProblemKind
-from unified_planning.solvers import SATISFICING, OPTIMAL
+from unified_planning.solvers import SATISFICING, SOLVED_OPTIMALLY
 from typing import Dict, Tuple, Optional, List, Union, Type
 
 
@@ -95,7 +95,7 @@ class Factory:
           e.g. OneshotPlanner(names=['tamer', 'tamer'],
                               params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
         - using 'problem_kind' and 'optimality_guarantee'.
-          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=OPTIMAL)
+          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=SOLVED_OPTIMALLY)
         """
         return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 

@@ -14,18 +14,17 @@
 #
 """This module defines the solver interface."""
 
+
 import unified_planning as up
-import unified_planning.model
-from unified_planning.plan import Plan, ActionInstance, SequentialPlan, TimeTriggeredPlan
-from unified_planning.model import ProblemKind, Problem, Action, FNode
-from functools import partial
-from typing import Optional, Tuple, Dict, List, Callable, Union
+from unified_planning.plan import Plan
+from unified_planning.model import ProblemKind, Problem
+from typing import IO, Optional, Tuple, Callable, Union
 
 
 OPTIMALITY_GUARANTEES = list(range(0, 2))
 
 (
-    SATISFICING, OPTIMAL
+    SATISFICING, SOLVED_OPTIMALLY
 ) = OPTIMALITY_GUARANTEES
 
 
@@ -60,7 +59,23 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features()) == 0
 
-    def solve(self, problem: 'up.model.Problem') -> Optional['up.plan.Plan']:
+    def solve(self, problem: 'up.model.Problem',
+                    callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
+                    timeout: Optional[float] = None,
+                    output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+        '''This method takes a up.model.Problem and returns a up.solvers.results.PlanGenerationResult,
+        which contains information about the solution to the problem given by the planner.
+
+        :param problem: is the up.model.Problem to solve.
+        :param callback: is a function used by the planner to give reports to the user during the problem resolution, defaults to None.
+        :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to None.
+        :param output_stream: is a stream of strings where the planner writes his
+        output (and also errors) while the planner is solving the problem, defaults to None
+        :return: the up.solvers.results.PlanGenerationResult created by the planner; a data structure containing the up.plan.Plan found
+        and some additional information about it.
+
+        The only required parameter is "problem" but the planner should warn the user if callback, timeout or
+        output_stream are not None and the planner ignores them.'''
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:

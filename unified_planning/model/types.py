@@ -168,7 +168,7 @@ class TypeManager:
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
             return ut
-    
+
     def user_type_ancestors(self, user_type: Type) -> Iterator[Type]:
         '''Returns all the ancestors of the given UserType, including itself.'''
         if not user_type.is_user_type():

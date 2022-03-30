@@ -402,12 +402,12 @@ message PlanRequest {
 
     enum Mode {
         SATISFIABLE = 0;
-        OPTIMAL = 1;
+        SOLVED_OPTIMALLY = 1;
     }
     Mode resolution_mode = 2;
 
     // Max allowed runtime time in seconds.
-    double timeout_seconds = 3;
+    double timeout = 3;
 
     // Planner specific options to be passed to the planner
     map<string, string> planner_options = 4;
@@ -429,38 +429,27 @@ message LogMessage {
 }
 
 
-// Intermediate report sent by the planner while running.
-message IntermediateReport {
-    // Optional. If set, it is the latest found plan not already reported.
-    Plan plan = 1;
-
-    repeated LogMessage logs = 2;
-
-    // Planner specific messages
-    map<string, string> metrics = 3;
-}
-
 // Last message sent by planner before exiting.
 // Contains the planner exit status as well as the best plan found if any.
-message FinalReport {
+message PlanGenerationResult {
     enum Status {
         // ==== Planner stopped normally ======
 
-        // Valid plan found and search stopped immediately
-        // The `best_plan` field must be set.
-        SAT = 0;
+        // Valid plan found
+        // The `plan` field must be set.
+        SOLVED_SATISFICING = 0;
         // Plan found with optimality guarantee
-        // The `best_plan` field must be set and contain an optimal solution.
-        OPT = 1;
+        // The `plan` field must be set and contains an optimal solution.
+        SOLVED_OPTIMALLY = 1;
         // No plan exists
-        UNSAT = 2;
+        UNSOLVABLE_PROVEN = 2;
         // The planner was not able to find a solution but does not give any guarantee that none exist
         // (i.e. the planner might not be complete)
-        SEARCH_SPACE_EXHAUSTED = 3;
+        UNSOLVABLE_INCOMPLETELY = 3;
 
         // ====== Planner exited before making any conclusion ====
-        // Search stopped before concluding OPT or UNSAT
-        // If a plan was found, it might be reported in the `best_plan` field
+        // Search stopped before concluding SOLVED_OPTIMALLY or UNSOLVABLE_PROVEN
+        // If a plan was found, it might be reported in the `plan` field
 
         // The planner ran out of time
         TIMEOUT = 13;
@@ -470,11 +459,15 @@ message FinalReport {
         INTERNAL_ERROR = 15;
         // The problem submitted is not supported by the planner.
         UNSUPPORTED_PROBLEM = 16;
+
+        // ====== Intermediate answer ======
+        // This Answer is an Intermediate Answer and not a Final one
+        INTERMEDIATE = 17;
     }
     Status status = 1;
 
     // Optional. Best plan found if any.
-    Plan best_plan = 2;
+    Plan plan = 2;
 
     // A set of planner specific values that can be reported, for instance
     // - "grounding-time": "10ms"
@@ -485,15 +478,6 @@ message FinalReport {
     // Note that it should not be expected that logging messages are visible to the end user.
     // If used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM, it would be expected to have at least one log message at the ERROR level.
     repeated LogMessage logs = 4;
-}
-
-
-
-message Answer {
-    oneof content {
-        IntermediateReport intermediate = 1;
-        FinalReport final = 2;
-    }
 }
 
 

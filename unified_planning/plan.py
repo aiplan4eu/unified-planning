@@ -14,9 +14,10 @@
 #
 '''This module defines the different plan classes.'''
 
-import unified_planning
+
+import unified_planning as up
 import unified_planning.model
-from typing import Dict, Optional, Tuple, List
+from typing import Optional, Tuple, List
 from fractions import Fraction
 
 

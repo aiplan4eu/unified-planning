@@ -62,7 +62,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         with OneshotPlanner(problem_kind=dnf_problem.kind()) as planner:
             self.assertNotEqual(planner, None)
-            dnf_plan = planner.solve(dnf_problem)
+            dnf_plan = planner.solve(dnf_problem).plan
             plan = dnfr.rewrite_back_plan(dnf_plan)
             for ai in plan.actions():
                 a = ai.action()
