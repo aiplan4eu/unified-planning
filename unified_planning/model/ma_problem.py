@@ -34,6 +34,7 @@ from unified_planning.environment import Environment
 from unified_planning.model.environment_ma import Environment_ma
 import collections
 from typing import List, Union
+from unified_planning.transformers.transformer import Transformer
 
 import re
 
@@ -50,6 +51,7 @@ class MultiAgentProblem(Problem):
         self.fluents_name = []
         self._shared_data_list: List['up.model.fluent.Fluent'] = []
         self._new_fluents = {}
+        self._new_objects = {}
         self._shared_data: List['up.model.fluent.Fluent'] = []
     ######################################################################################
 
@@ -195,49 +197,84 @@ class MultiAgentProblem(Problem):
                 new_flu = Fluent((flu.name() + "_" + str(self.get_agents().index(ag))), flu._typename, flu._signature)
                 #flu._name = flu.name() + "_" + str(self.get_agents().index(ag))
                 self._new_fluents[flu.name()] = new_flu
-                print("_new_fluent_new_fluent_new_fluent", self._new_fluents)
+
                 #print(flu, "flu!")
                 #setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_fluent(new_flu)
             #print("fluents", self.fluents())
-
+            for obj in self.get_all_objects():
+                self._new_objects[obj.name()] = obj
+            #Actions
             for act in ag.get_actions():
                 #act = copy.deepcopy(act)
-                print(act._parameters)
                 new_act = InstantaneousAction((str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag))))
-                new_act._parameters = act._parameters
-
-                from ..shortcuts import GE
+                # Preconditions
                 for p in act._preconditions:
+                    is_fluent = False
 
-                    '''print("precondition", p)
-                    print("precondition", p._content.args)
-                    for index, i in enumerate(p._content.args):
-                        if i.is_fluent_exp():
-                            key = str(i)
+                    print("precondition: ", p)
+                    for arg in p._content.args:
+                        if arg.is_fluent_exp():
+                            is_fluent = True
+                    if is_fluent:
+                        if p.is_le():
+                            print("precondition: ", p)
+                            key = str(p.args()[1])
+                            if key in self._new_fluents.keys(): #mappa dei fluenti
+                                new_fluent = self._new_fluents[key]
+                                sl = p.args()[0]
+                                sr = new_fluent
+                                new_p = self.env.expression_manager.LE(sl, sr)
+                                print(sl, new_fluent)
+                                new_act.add_precondition(new_p)
+                            else:
+                                pass
+                        elif p.is_equals():
+                            print("precondition: ", p)
+                            key = str(p.args()[1])
                             if key in self._new_fluents.keys():
                                 new_fluent = self._new_fluents[key]
-                                print(index, "index",p._content.args[1])
-                                p._content.args[1] = new_fluent
-                                #p._content.args[index] = new_fluent
-                    print("weeeeeeeeeeeeeee", p._content.args)
-                    print("precondition", p._content.payload)
-                    print("OOOOOOO")
-                    breakpoint()'''
-                    if p.is_le():
-                        print("precondition____________________", p)
-                        key = str(p.args()[1])
+                                sl = p.args()[0]
+                                sr = new_fluent
+                                new_p = self.env.expression_manager.Equals(sl, sr)
+                                print(sl, new_fluent)
+                                new_act.add_precondition(new_p)
+                        elif p.args()[0].is_fluent_exp():
+                            params = p._content.args[0]._content.args
+                            key = p.args()[0].fluent().name()
+                            if key in self._new_fluents.keys():
+                                new_fluent = self._new_fluents[key]
+                                new_p = self.env.expression_manager.FluentExp(new_fluent, params)
+                                new_act.add_precondition(self.env.expression_manager.Not(new_p))
+                    elif p.is_fluent_exp():
+                        print("precondition: ", p)
+                        key = p.fluent().name()
                         if key in self._new_fluents.keys():
                             new_fluent = self._new_fluents[key]
-                            print(p.args()[0], new_fluent)
-                            #new_act.add_precondition(GE(act._preconditions[0].args()[0], self._fluents[1]))
-                            new_act.add_precondition(GE(p.args()[0], new_fluent))
+                            new_p = self.env.expression_manager.FluentExp(new_fluent, p.args())
+                            new_act.add_precondition(new_p)
                         else:
                             pass
+                    else:
+                        new_act.add_precondition(p)
+                        print(new_act)
+                # Effects
+                for e in act._effects:
+                    if e.fluent().is_fluent_exp():
+                        key = e.fluent().fluent().name()
+                        if e.fluent()._content.args != ():
+                            args = e.fluent()._content.args
+                            if key in self._new_fluents.keys():
+                                new_fluent = self._new_fluents[key]
+                                new_fluent = new_fluent(args)
+                            new_act.add_effect(new_fluent, e._value, e._condition)
+                        else:
+                            if key in self._new_fluents.keys():
+                                new_fluent = self._new_fluents[key]
+                                args_flu = e._value.args()[0]                       #(battery_charge_0 - 10) not (battery_charge - 10)
+                            new_act.add_effect(new_fluent, e._value, e._condition)
 
-                #breakpoint()
-                #setattr(act, 'name', str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag)))
-                #Change l_fro e l_to. e Location
+
                 '''change_name = True
                 for n, t in act._parameters.items(): #n è str:l_fro e l_to. t è Location
                     if change_name == True:
@@ -266,20 +303,40 @@ class MultiAgentProblem(Problem):
                                 #print("quiiiii", i.fluent()._name)
                                 self.fluents_name.append(i.fluent()._name)'''
 
-
-
                 self.add_action(new_act)
+
+            # Initial Value
             for flu, value in ag.get_initial_values().items():
-                flu = copy.deepcopy(flu)        #hash commentato in fnode
-                value = copy.deepcopy(value)
                 if flu.is_fluent_exp():
-                    setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.set_initial_value(flu, value)
+                    key = flu.fluent()._name
+                    if key in self._new_fluents.keys():
+                        new_flu = self._new_fluents[key]
+                        if flu.args() != ():
+                            key = str(flu.args()[0])
+                            if key in self._new_objects.keys():
+                                obj = self._new_objects[key]
+                            new_flu = new_flu(obj)
+
+
+                '''if flu.is_fluent_exp():
+                    setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))'''
+                self.set_initial_value(new_flu, value)
+            # Goals
             for goal in ag.get_goals():
-                goal = copy.deepcopy(goal)
+                #goal = copy.deepcopy(goal)
+                breakpoint()
                 if goal.is_fluent_exp():
-                    setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.add_goal(goal)
+                    key = goal.fluent()._name
+                    if key in self._new_fluents.keys():
+                        new_goal = self._new_fluents[key]
+                        if goal.args() != ():
+                            key = str(goal.args()[0])
+                            if key in self._new_objects.keys():
+                                obj = self._new_objects[key]
+                            new_goal = new_goal(obj)
+                #if goal.is_fluent_exp():
+                #    setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
+                self.add_goal(new_goal)
         return self
 
 

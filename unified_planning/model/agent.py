@@ -185,3 +185,4 @@ class Agent:
     def user_types(self) -> List['unified_planning.model.types.Type']:
         '''Returns the user types.'''
         return self._user_types
+
