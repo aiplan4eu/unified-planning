@@ -52,5 +52,9 @@ class TestProblem(TestCase):
             env = unified_planning.environment.Environment()
             env.factory.solvers.pop('tamer', None)
             with env.factory.PlanValidator(problem_kind=problem.kind) as pv:
+<<<<<<< HEAD
                 self.assertEqual(pv.name, 'sequential_plan_validator')
+=======
+                self.assertEqual(pv.name(), 'sequential_plan_validator')
+>>>>>>> Refacrtored all the code by using properties where we see fit and methods elsewhere. Some properties do computation, this is documented as an IMPORTANT NOTE
                 self.assertTrue(pv.validate(problem, plan))

@@ -57,15 +57,10 @@ class TestTarskiConverter(TestCase):
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_with_object(self):
         problem, plan = self.problems['hierarchical_blocks_world_with_object']
-<<<<<<< HEAD
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         new_problem = up.interop.convert_problem_from_tarski(problem.env, tarski_problem)
         with OneshotPlanner(problem_kind=new_problem.kind()) as planner:
-=======
-        tarski_problem = convert_problem_to_tarski(problem)
-        new_problem = convert_problem_from_tarski(problem.env, tarski_problem)
         with OneshotPlanner(problem_kind=new_problem.kind) as planner:
->>>>>>> Refacrtored all the code by using properties where we see fit and methods elsewhere. Some properties do computation, this is documented as an IMPORTANT NOTE
             new_plan = planner.solve(new_problem).plan
             self.assertEqual(str(plan), str(new_plan))
 
