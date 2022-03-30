@@ -324,7 +324,6 @@ class MultiAgentProblem(Problem):
             # Goals
             for goal in ag.get_goals():
                 #goal = copy.deepcopy(goal)
-                breakpoint()
                 if goal.is_fluent_exp():
                     key = goal.fluent()._name
                     if key in self._new_fluents.keys():
