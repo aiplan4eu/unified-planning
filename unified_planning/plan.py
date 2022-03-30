@@ -29,7 +29,7 @@ class Plan:
 class ActionInstance:
     '''Represents an action instance with the actual parameters.'''
     def __init__(self, action: 'unified_planning.model.Action', params: Tuple['unified_planning.model.FNode', ...] = tuple()):
-        assert len(action.parameters()) == len(params)
+        assert len(action.parameters) == len(params)
         self._action = action
         self._params = tuple(params)
 
@@ -48,14 +48,16 @@ class ActionInstance:
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ActionInstance):
-            return self.action() == oth.action() and self.actual_parameters() == oth.actual_parameters()
+            return self.action == oth.action and self.actual_parameters == oth.actual_parameters
         else:
             return False
 
+    @property
     def action(self) -> 'unified_planning.model.Action':
         '''Returns the action.'''
         return self._action
 
+    @property
     def actual_parameters(self) -> Tuple['unified_planning.model.FNode', ...]:
         '''Returns the actual parameters.'''
         return self._params
@@ -71,10 +73,11 @@ class SequentialPlan(Plan):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SequentialPlan):
-            return self.actions() == oth.actions()
+            return self.actions == oth.actions
         else:
             return False
 
+    @property
     def actions(self) -> List[ActionInstance]:
         '''Returns the sequence of action instances.'''
         return self._actions
@@ -96,10 +99,11 @@ class TimeTriggeredPlan(Plan):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, TimeTriggeredPlan):
-            return self.actions() == oth.actions()
+            return self.actions == oth.actions
         else:
             return False
 
+    @property
     def actions(self) -> List[Tuple[Fraction, ActionInstance, Optional[Fraction]]]:
         '''Returns the sequence of action instances.'''
         return self._actions

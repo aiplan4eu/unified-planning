@@ -114,24 +114,24 @@ class Parallel(solvers.solver.Solver):
 
     def convert_plan(self, plan: 'up.plan.Plan', problem: 'up.model.Problem')-> 'up.plan.Plan':
         objects = {}
-        for ut in problem.user_types():
+        for ut in problem.user_types:
             for obj in problem.objects(ut):
-                objects[obj.name()] = obj
+                objects[obj.name] = obj
         em = problem.env.expression_manager
         actions: List[ActionInstance] = []
         if isinstance(plan, up.plan.SequentialPlan):
-            actions = plan.actions()
+            actions = plan.actions
         elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            actions = [a for _, a, _ in plan.actions()]
+            actions = [a for _, a, _ in plan.actions]
         else:
             raise NotImplementedError
         new_actions: List[ActionInstance] = []
         for a in actions:
-            new_a = problem.action(a.action().name)
+            new_a = problem.action(a.action.name)
             params = []
-            for p in a.actual_parameters():
+            for p in a.actual_parameters:
                 if p.is_object_exp():
-                    obj = objects[p.object().name()]
+                    obj = objects[p.object().name]
                     params.append(em.ObjectExp(obj))
                 elif p.is_bool_constant():
                     params.append(em.Bool(p.is_true()))
@@ -145,7 +145,7 @@ class Parallel(solvers.solver.Solver):
         if isinstance(plan, up.plan.SequentialPlan):
             return up.plan.SequentialPlan(new_actions)
         elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            return up.plan.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions(), new_actions)])
+            return up.plan.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions, new_actions)])
         else:
             raise NotImplementedError
 

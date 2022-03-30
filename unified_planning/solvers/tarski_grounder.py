@@ -73,14 +73,14 @@ class TarskiGrounder(Solver):
         except tarski.grounding.errors.ReachabilityLPUnsolvable:
             raise unified_planning.exceptions.UPUsageError('tarski grounder can not find a solvable grounding.')
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
-        fluents = {fluent.name(): fluent for fluent in problem.fluents()}
-        objects = {object.name(): object for object in problem.all_objects()}
+        fluents = {fluent.name: fluent for fluent in problem.fluents}
+        objects = {object.name: object for object in problem.all_objects}
         types: Dict[str, Optional['unified_planning.model.Type']] = {}
         if not problem.has_type('object'):
             types['object'] = None # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
         for action_name, list_of_tuple_of_parameters in actions.items():
             action = problem.action(action_name)
-            parameters = {parameter.name(): parameter for parameter in action.parameters()}
+            parameters = {parameter.name: parameter for parameter in action.parameters}
             grounded_actions_map[action] = []
             for tuple_of_parameters in list_of_tuple_of_parameters:
                 temp_list_of_converted_parameters = []
@@ -94,7 +94,7 @@ class TarskiGrounder(Solver):
         unified_planning_grounder = Grounder(problem, grounding_actions_map=grounded_actions_map)
         grounded_problem = unified_planning_grounder.get_rewritten_problem()
         trace_back_map = unified_planning_grounder.get_rewrite_back_map()
-        return (grounded_problem, partial(lift_plan, map=trace_back_map)) 
-            
+        return (grounded_problem, partial(lift_plan, map=trace_back_map))
+
     def destroy(self):
         pass

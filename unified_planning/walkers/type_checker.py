@@ -45,10 +45,10 @@ class TypeChecker(walkers.DagWalker):
                 (t_left.is_real_type() and t_right.is_real_type()) or
                 (t_left.is_real_type() and t_right.is_int_type())):
             return False
-        left_lower = -float('inf') if t_left.lower_bound() is None else t_left.lower_bound() # type: ignore
-        left_upper = float('inf') if t_left.upper_bound() is None else t_left.upper_bound() # type: ignore
-        right_lower = -float('inf') if t_right.lower_bound() is None else t_right.lower_bound() # type: ignore
-        right_upper = float('inf') if t_right.upper_bound() is None else t_right.upper_bound() # type: ignore
+        left_lower = -float('inf') if t_left.lower_bound is None else t_left.lower_bound # type: ignore
+        left_upper = float('inf') if t_left.upper_bound is None else t_left.upper_bound # type: ignore
+        right_lower = -float('inf') if t_right.lower_bound is None else t_right.lower_bound # type: ignore
+        right_upper = float('inf') if t_right.upper_bound is None else t_right.upper_bound # type: ignore
         if right_upper < left_lower or right_lower > left_upper:
             return False
         else:
@@ -72,27 +72,27 @@ class TypeChecker(walkers.DagWalker):
     def walk_fluent_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> Optional['unified_planning.model.types.Type']:
         assert expression.is_fluent_exp()
         f = expression.fluent()
-        if len(args) != len(f.signature()):
+        if len(args) != len(f.signature):
             return None
-        for (arg, param) in zip(args, f.signature()):
-            if not self.is_compatible_type(arg, param.type()):
+        for (arg, param) in zip(args, f.signature):
+            if not self.is_compatible_type(arg, param.type):
                 return None
-        return f.type()
+        return f.type
 
     def walk_param_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
         assert expression is not None
         assert len(args) == 0
-        return expression.parameter().type()
+        return expression.parameter().type
 
     def walk_variable_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
         assert expression is not None
         assert len(args) == 0
-        return expression.variable().type()
+        return expression.variable().type
 
     def walk_object_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
         assert expression is not None
         assert len(args) == 0
-        return expression.object().type()
+        return expression.object().type
 
     @walkers.handles(op.BOOL_CONSTANT)
     def walk_identity_bool(self, expression: FNode,
@@ -123,18 +123,18 @@ class TypeChecker(walkers.DagWalker):
             if x.is_real_type():
                 has_real = True
         for x in args:
-            if x.lower_bound() is None:
+            if x.lower_bound is None:
                 lower = -float('inf')
             elif lower is None:
-                lower = x.lower_bound()
+                lower = x.lower_bound
             else:
-                lower += x.lower_bound()
-            if x.upper_bound() is None:
+                lower += x.lower_bound
+            if x.upper_bound is None:
                 upper = float('inf')
             elif upper is None:
-                upper = x.upper_bound()
+                upper = x.upper_bound
             else:
-                upper += x.upper_bound()
+                upper += x.upper_bound
         if lower == -float('inf'):
             lower = None
         if upper == float('inf'):
@@ -156,10 +156,10 @@ class TypeChecker(walkers.DagWalker):
                 has_real = True
         left = args[0]
         right = args[1]
-        left_lower = -float('inf') if left.lower_bound() is None else left.lower_bound()
-        left_upper = float('inf') if left.upper_bound() is None else left.upper_bound()
-        right_lower = -float('inf') if right.lower_bound() is None else right.lower_bound()
-        right_upper = float('inf') if right.upper_bound() is None else right.upper_bound()
+        left_lower = -float('inf') if left.lower_bound is None else left.lower_bound
+        left_upper = float('inf') if left.upper_bound is None else left.upper_bound
+        right_lower = -float('inf') if right.lower_bound is None else right.lower_bound
+        right_upper = float('inf') if right.upper_bound is None else right.upper_bound
         lower = left_lower - right_upper
         upper = left_upper - right_lower
         if lower == -float('inf'):
@@ -181,8 +181,8 @@ class TypeChecker(walkers.DagWalker):
             if x.is_real_type():
                 has_real = True
         for x in args:
-            l = -float('inf') if x.lower_bound() is None else x.lower_bound()
-            u = float('inf') if x.upper_bound() is None else x.upper_bound()
+            l = -float('inf') if x.lower_bound is None else x.lower_bound
+            u = float('inf') if x.upper_bound is None else x.upper_bound
             if lower is None:
                 lower = l
                 upper = u
@@ -209,16 +209,16 @@ class TypeChecker(walkers.DagWalker):
                 return None
             if x.is_real_type():
                 has_real = True
-            if x.lower_bound() is None and x.upper_bound() is None:
+            if x.lower_bound is None and x.upper_bound is None:
                 to_skip = True
         left = args[0]
         right = args[1]
-        if to_skip or right.lower_bound() != right.upper_bound():
+        if to_skip or right.lower_bound != right.upper_bound:
             pass
         else:
-            left_lower = -float('inf') if left.lower_bound() is None else left.lower_bound()
-            left_upper = float('inf') if left.upper_bound() is None else left.upper_bound()
-            right = right.lower_bound()
+            left_lower = -float('inf') if left.lower_bound is None else left.lower_bound
+            left_upper = float('inf') if left.upper_bound is None else left.upper_bound
+            right = right.lower_bound
             lower = min(left_lower/right, left_upper/right)
             upper = max(left_lower/right, left_upper/right)
         if lower == -float('inf'):

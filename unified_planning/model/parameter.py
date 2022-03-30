@@ -28,7 +28,7 @@ class Parameter:
         self._typename = typename
 
     def __repr__(self) -> str:
-        return f'{str(self.type())} {self.name()}'
+        return f'{str(self.type)} {self.name}'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Parameter):
@@ -39,10 +39,12 @@ class Parameter:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)
 
+    @property
     def name(self) -> str:
         '''Returns the parameter name.'''
         return self._name
 
+    @property
     def type(self) -> 'up.model.types.Type':
         '''Returns the parameter type.'''
         return self._typename

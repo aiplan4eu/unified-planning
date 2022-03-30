@@ -55,16 +55,16 @@ class Transformer:
         This method MUST be rewritten if the specific Transformer extension changes
         the action's parameters!'''
         if isinstance(plan, SequentialPlan):
-            new_actions: List[ActionInstance] = plan.actions()
+            new_actions: List[ActionInstance] = plan.actions
             old_actions: List[ActionInstance] = []
             for ai in new_actions:
-                old_actions.append(ActionInstance(self.get_original_action(ai.action()), ai.actual_parameters()))
+                old_actions.append(ActionInstance(self.get_original_action(ai.action), ai.actual_parameters))
             return SequentialPlan(old_actions)
         elif isinstance(plan, TimeTriggeredPlan):
-            s_new_actions_d = plan.actions()
+            s_new_actions_d = plan.actions
             s_old_actions_d = []
             for s, ai, d in s_new_actions_d:
-                s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action()), ai.actual_parameters()), d))
+                s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action), ai.actual_parameters), d))
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 
@@ -81,7 +81,7 @@ class Transformer:
         #new action conditions
         nac: List[Tuple[TimeInterval, FNode]] = []
         # t = timing, lc = list condition
-        for i, lc in action.conditions().items():
+        for i, lc in action.conditions.items():
             #conditions (as an And FNode)
             c = self._env.expression_manager.And(lc)
             #conditions simplified
@@ -94,7 +94,7 @@ class Transformer:
                     return (False, [],)
             else:
                 if cs.is_and():
-                    for new_cond in cs.args():
+                    for new_cond in cs.args:
                         nac.append((i, new_cond))
                 else:
                     nac.append((i, cs))
@@ -111,7 +111,7 @@ class Transformer:
         Then, the new preconditions are returned as a List[FNode] and the user can
         decide how to use the new preconditions.'''
         #action preconditions
-        ap = action.preconditions()
+        ap = action.preconditions
         if len(ap) == 0:
             return (True, [])
         #preconditions (as an And FNode)
@@ -128,7 +128,7 @@ class Transformer:
                 return (False, [])
         else:
             if ps.is_and():
-                nap.extend(ps.args())
+                nap.extend(ps.args)
             else:
                 nap.append(ps)
         action._set_preconditions(nap)

@@ -57,7 +57,7 @@ class Solver:
 
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
-        return len(problem_kind.features()) == 0
+        return len(problem_kind.features) == 0
 
     def solve(self, problem: 'up.model.Problem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,

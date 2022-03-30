@@ -39,35 +39,35 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         is_connected = problem.fluent("is_connected")
         move = problem.action("move")
-        robot, l_from, l_to = move.parameters()
-        self.assertEqual(len(problem.actions()), 2)
-        self.assertEqual(len(dnf_problem.actions()), 3)
+        robot, l_from, l_to = move.parameters
+        self.assertEqual(len(problem.actions), 2)
+        self.assertEqual(len(dnf_problem.actions), 3)
 
         cond = Or(is_connected(l_from, l_to), is_connected(l_to, l_from))
-        self.assertIn(cond, move.preconditions())
+        self.assertIn(cond, move.preconditions)
         new_moves = dnfr.get_transformed_actions(move)
         for m in new_moves:
-            self.assertNotIn(cond, m.preconditions())
+            self.assertNotIn(cond, m.preconditions)
 
-        self.assertTrue(is_connected(l_from, l_to) in new_moves[0].preconditions() or
-                        is_connected(l_from, l_to) in new_moves[1].preconditions())
-        if is_connected(l_from, l_to) in new_moves[0].preconditions():
-            self.assertIn(is_connected(l_to, l_from), new_moves[1].preconditions())
-            self.assertNotIn(is_connected(l_to, l_from), new_moves[0].preconditions())
-            self.assertNotIn(is_connected(l_from, l_to), new_moves[1].preconditions())
-        elif is_connected(l_from, l_to) in new_moves[1].preconditions():
-            self.assertIn(is_connected(l_to, l_from), new_moves[0].preconditions())
-            self.assertNotIn(is_connected(l_from, l_to), new_moves[0].preconditions())
-            self.assertNotIn(is_connected(l_to, l_from), new_moves[1].preconditions())
+        self.assertTrue(is_connected(l_from, l_to) in new_moves[0].preconditions or
+                        is_connected(l_from, l_to) in new_moves[1].preconditions)
+        if is_connected(l_from, l_to) in new_moves[0].preconditions:
+            self.assertIn(is_connected(l_to, l_from), new_moves[1].preconditions)
+            self.assertNotIn(is_connected(l_to, l_from), new_moves[0].preconditions)
+            self.assertNotIn(is_connected(l_from, l_to), new_moves[1].preconditions)
+        elif is_connected(l_from, l_to) in new_moves[1].preconditions:
+            self.assertIn(is_connected(l_to, l_from), new_moves[0].preconditions)
+            self.assertNotIn(is_connected(l_from, l_to), new_moves[0].preconditions)
+            self.assertNotIn(is_connected(l_to, l_from), new_moves[1].preconditions)
 
-        with OneshotPlanner(problem_kind=dnf_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             dnf_plan = planner.solve(dnf_problem).plan
             plan = dnfr.rewrite_back_plan(dnf_plan)
-            for ai in plan.actions():
-                a = ai.action()
+            for ai in plan.actions:
+                a = ai.action
                 self.assertEqual(a, problem.action(a.name))
-            with PlanValidator(problem_kind=problem.kind()) as pv:
+            with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
     def test_ad_hoc_1(self):
@@ -100,17 +100,17 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnf_problem = dnfr.get_rewritten_problem()
         new_act = dnfr.get_transformed_actions(act)
 
-        self.assertEqual(len(dnf_problem.actions()), 4)
+        self.assertEqual(len(dnf_problem.actions), 4)
         self.assertEqual(len(new_act), 4)
-        self.assertEqual(set(dnf_problem.actions()), set(new_act))
+        self.assertEqual(set(dnf_problem.actions), set(new_act))
         # Cycle over all actions. For every new action assume that the precondition is equivalent
         # to one in the possible_preconditions and that no other action has the same precondition.
-        for i, new_action in enumerate(dnf_problem.actions()):
-            self.assertEqual(new_action.effects(), act.effects())
-            preconditions = set(new_action.preconditions())
+        for i, new_action in enumerate(dnf_problem.actions):
+            self.assertEqual(new_action.effects, act.effects)
+            preconditions = set(new_action.preconditions)
             self.assertIn(preconditions, possible_conditions)
-            for j, new_action_oth_acts in enumerate(dnf_problem.actions()):
-                preconditions_oth_acts = set(new_action_oth_acts.preconditions())
+            for j, new_action_oth_acts in enumerate(dnf_problem.actions):
+                preconditions_oth_acts = set(new_action_oth_acts.preconditions)
                 if i != j:
                     self.assertNotEqual(preconditions, preconditions_oth_acts)
 
@@ -130,12 +130,12 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnf_problem = dnfr.get_rewritten_problem()
         new_act = dnfr.get_transformed_actions(act)
 
-        self.assertEqual(len(dnf_problem.actions()), 1)
+        self.assertEqual(len(dnf_problem.actions), 1)
         self.assertEqual(len(new_act), 1)
-        self.assertEqual(set(dnf_problem.actions()), set(new_act))
+        self.assertEqual(set(dnf_problem.actions), set(new_act))
         new_action = new_act[0]
-        self.assertEqual(new_action.effects(), act.effects())
-        preconditions = set(new_action.preconditions())
+        self.assertEqual(new_action.effects, act.effects)
+        preconditions = set(new_action.preconditions)
         self.assertEqual(preconditions, set((FluentExp(a), )))
 
     def test_temproal_mockup_1(self):
@@ -169,9 +169,9 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
         new_act = dnfr.get_transformed_actions(act)
-        self.assertEqual(len(dnf_problem.actions()), 81)
+        self.assertEqual(len(dnf_problem.actions), 81)
         self.assertEqual(len(new_act), 81)
-        self.assertEqual(set(dnf_problem.actions()), set(new_act))
+        self.assertEqual(set(dnf_problem.actions), set(new_act))
 
     def test_temproal_mockup_2(self):
         # temporal mockup
@@ -195,6 +195,6 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover(problem)
         dnf_problem = dnfr.get_rewritten_problem()
         new_act = dnfr.get_transformed_actions(act)
-        self.assertEqual(len(dnf_problem.actions()), 1)
+        self.assertEqual(len(dnf_problem.actions), 1)
         self.assertEqual(len(new_act), 1)
-        self.assertEqual(set(dnf_problem.actions()), set(new_act))
+        self.assertEqual(set(dnf_problem.actions), set(new_act))

@@ -41,7 +41,7 @@ class DagWalker(Walker):
         return
 
     def _get_children(self, expression: FNode):
-        return expression.args()
+        return expression.args
 
     def _push_with_children_to_stack(self, expression: FNode, **kwargs):
         """Add children to the stack."""
@@ -60,7 +60,7 @@ class DagWalker(Walker):
         key = self._get_key(expression, **kwargs)
         if key not in self.memoization:
             try:
-                f = self.functions[expression.node_type()]
+                f = self.functions[expression.node_type]
             except KeyError:
                 f = self.walk_error
 

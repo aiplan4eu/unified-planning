@@ -49,14 +49,14 @@ class Nnf:
             p, e, status = stack.pop()
             if status:
                 if e.is_and():
-                    args = [solved.pop() for _ in range(len(e.args()))]
+                    args = [solved.pop() for _ in range(len(e.args))]
                     if p:
                         new_e = self.manager.And(args)
                     else:
                         new_e = self.manager.Or(args)
                     solved.append(new_e)
                 elif e.is_or():
-                    args = [solved.pop() for _ in range(len(e.args()))]
+                    args = [solved.pop() for _ in range(len(e.args))]
                     if p:
                         new_e = self.manager.Or(args)
                     else:
@@ -69,7 +69,7 @@ class Nnf:
                     stack.append((not p, e.arg(0), False))
                 elif e.is_and() or e.is_or():
                     stack.append((p, e, True))
-                    for arg in e.args():
+                    for arg in e.args:
                         stack.append((p, arg, False))
                 elif e.is_implies():
                     na1 = self.manager.Not(e.arg(0))
@@ -159,7 +159,7 @@ class Dnf(walkers.DagWalker):
             elif simp.is_false():
                 pass
             elif simp.is_and():
-                res.append(simp.args())
+                res.append(simp.args)
             else:
                res.append([simp])
         return res

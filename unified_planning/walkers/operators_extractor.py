@@ -30,4 +30,4 @@ class OperatorsExtractor(walkers.DagWalker):
 
     @walkers.handles(op.ALL_TYPES)
     def walk_all_types(self, expression: FNode, args: List[Set[int]]) -> Set[int]:
-        return set(x for y in args for x in y) | {expression.node_type()}
+        return set(x for y in args for x in y) | {expression.node_type}

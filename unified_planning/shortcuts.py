@@ -126,7 +126,7 @@ def OneshotPlanner(*, name: Optional[str] = None,
       e.g. OneshotPlanner(names=['tamer', 'tamer'],
                           params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
     - using 'problem_kind' and 'optimality_guarantee'.
-          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=SOLVED_OPTIMALLY)
+          e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
     """
     return get_env().factory.OneshotPlanner(name=name, names=names, params=params,
                                             problem_kind=problem_kind,
@@ -146,7 +146,7 @@ def PlanValidator(*, name: Optional[str] = None,
       e.g. PlanValidator(names=['tamer', 'tamer'],
                          params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
     - using 'problem_kind' parameter.
-      e.g. PlanValidator(problem_kind=problem.kind())
+      e.g. PlanValidator(problem_kind=problem.kind)
     """
     return get_env().factory.PlanValidator(name=name, names=names, params=params,
                                            problem_kind=problem_kind)
@@ -159,7 +159,7 @@ def Grounder(*, name: Optional[str] = None, params: Union[Dict[str, str], List[D
         (grounder dependent options).
         e.g. Grounder(name='tamer', params={'opt': 'val'})
     - using 'problem_kind' parameter.
-        e.g. Grounder(problem_kind=problem.kind())
+        e.g. Grounder(problem_kind=problem.kind)
     """
     return get_env().factory.Grounder(name=name, params=params,
                                            problem_kind=problem_kind)

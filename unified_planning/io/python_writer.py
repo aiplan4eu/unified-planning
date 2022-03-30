@@ -36,18 +36,18 @@ class ConverterToPythonString(walkers.DagWalker):
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f'up.model.Variable("{v.name()}", {_print_python_type(v.type())})' for v in expression.variables()]
+        vars_string_list = [f'up.model.Variable("{v.name}", {_print_python_type(v.type)})' for v in expression.variables()]
         return f'emgr.Exists({args[0]}, {", ".join(vars_string_list)})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f'up.model.Variable("{v.name()}", {_print_python_type(v.type())})' for v in expression.variables()]
+        vars_string_list = [f'up.model.Variable("{v.name}", {_print_python_type(v.type)})' for v in expression.variables()]
         return f'emgr.Forall({args[0]}, {", ".join(vars_string_list)})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
         v = expression.variable()
-        return f'emgr.VariableExp(up.model.Variable("{v.name()}", {_print_python_type(v.type())}))'
+        return f'emgr.VariableExp(up.model.Variable("{v.name}", {_print_python_type(v.type)}))'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -72,18 +72,18 @@ class ConverterToPythonString(walkers.DagWalker):
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
         if args:
-            return f'fluent_{fluent.name()}({", ".join(args)})'
-        return f'emgr.FluentExp(fluent_{fluent.name()})'
+            return f'fluent_{fluent.name}({", ".join(args)})'
+        return f'emgr.FluentExp(fluent_{fluent.name})'
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'emgr.ParameterExp(up.model.Parameter("{p.name()}", {_print_python_type(p.type())}))'
+        return f'emgr.ParameterExp(up.model.Parameter("{p.name}", {_print_python_type(p.type)}))'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
         o = expression.object()
-        return f'emgr.ObjectExp(object_{o.name()})'
+        return f'emgr.ObjectExp(object_{o.name})'
 
     def walk_bool_constant(self, expression, args):
         assert len(args) == 0
@@ -144,95 +144,95 @@ class PythonWriter:
         out.write('emgr = env.expression_manager\n')
         out.write('tm = env.type_manager\n')
 
-        for type in self.problem.user_types(): # define user_types
+        for type in self.problem.user_types: # define user_types
             utype = cast(_UserType, type)
-            if utype.father() is None:
-                out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}")\n')
+            if utype.father is None:
+                out.write(f'type_{utype.name} = tm.UserType("{utype.name}")\n')
             else:
-                out.write(f'type_{utype.name()} = tm.UserType("{utype.name()}", type_{cast(_UserType, utype.father()).name()})\n')
+                out.write(f'type_{utype.name} = tm.UserType("{utype.name}", type_{cast(_UserType, utype.father).name})\n')
 
-        for f in self.problem.fluents(): # define fluents
-            params = ', '.join(f'{p.name()}={_print_python_type(p.type())} ' for p in f.signature())
-            out.write(f'fluent_{f.name()} = up.model.Fluent("{f.name()}", {_print_python_type(f.type())}, {params})\n')
+        for f in self.problem.fluents: # define fluents
+            params = ', '.join(f'{p.name}={_print_python_type(p.type)} ' for p in f.signature)
+            out.write(f'fluent_{f.name} = up.model.Fluent("{f.name}", {_print_python_type(f.type)}, {params})\n')
 
-        for o in self.problem.all_objects(): # define objects
-            out.write(f'object_{o.name()} = up.model.Object("{o.name()}", type_{cast(_UserType, o.type()).name()})\n')
+        for o in self.problem.all_objects: # define objects
+            out.write(f'object_{o.name} = up.model.Object("{o.name}", type_{cast(_UserType, o.type).name})\n')
 
         out.write('problem_initial_defaults = {}\n') # define initial_defaults
-        for type, exp in self.problem.initial_defaults().items():
+        for type, exp in self.problem.initial_defaults.items():
             out.write(f'problem_initial_defaults[{_print_python_type(type)}] = {converter.convert(exp)}')
         out.write(f'problem = up.model.Problem("{self.problem.name}", env, initial_defaults=problem_initial_defaults)\n')
 
-        for o in self.problem.all_objects(): # add objects to the problem
-            out.write(f'problem.add_object(object_{o.name()})\n')
+        for o in self.problem.all_objects: # add objects to the problem
+            out.write(f'problem.add_object(object_{o.name})\n')
 
-        for f in self.problem.fluents(): # add fluents to the problem, with their fluents_default, if they have one
-            default = self.problem.fluents_defaults().get(f, None)
-            out.write(f'problem.add_fluent(fluent_{f.name()}')
+        for f in self.problem.fluents: # add fluents to the problem, with their fluents_default, if they have one
+            default = self.problem.fluents_defaults.get(f, None)
+            out.write(f'problem.add_fluent(fluent_{f.name}')
             if default is not None: # the fluent has a default value
                 out.write(f', default_initial_value={converter.convert(default)}')
             out.write(')\n')
 
-        for a in self.problem.actions(): # define actions and add them to the problem
+        for a in self.problem.actions: # define actions and add them to the problem
             if isinstance(a, up.model.InstantaneousAction):
                 out.write(f'act_{a.name} = up.model.InstantaneousAction("{a.name}"')
-                for ap in a.parameters():
-                    out.write(f', {ap.name()}={_print_python_type(ap.type())}')
+                for ap in a.parameters:
+                    out.write(f', {ap.name}={_print_python_type(ap.type)}')
                 out.write(')\n')
-                for ap in a.parameters():
-                    out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
-                for p in a.preconditions():
+                for ap in a.parameters:
+                    out.write(f'parameter_{ap.name} = act_{a.name}.parameter("{ap.name}")\n')
+                for p in a.preconditions:
                     out.write(f'act_{a.name}.add_precondition({converter.convert(p)})\n')
-                for e in a.effects():
+                for e in a.effects:
                     if e.is_increase():
-                        out.write(f'act_{a.name}.add_increase_effect(fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                        out.write(f'act_{a.name}.add_increase_effect(fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
                     elif e.is_decrease():
-                        out.write(f'act_{a.name}.add_decrease_effect(fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                        out.write(f'act_{a.name}.add_decrease_effect(fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
                     else:
-                        out.write(f'act_{a.name}.add_effect(fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                        out.write(f'act_{a.name}.add_effect(fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
             elif isinstance(a, up.model.DurativeAction):
                 out.write(f'act_{a.name} = up.model.DurativeAction("{a.name}"')
-                for ap in a.parameters():
-                    out.write(f', {ap.name()}={_print_python_type(ap.type())}')
+                for ap in a.parameters:
+                    out.write(f', {ap.name}={_print_python_type(ap.type)}')
                 out.write(')\n')
-                for ap in a.parameters():
-                    out.write(f'parameter_{ap.name()} = act_{a.name}.parameter("{ap.name()}")\n')
-                out.write(f'act_{a.name}.set_duration_constraint({_convert_interval_duration(a.duration(), converter)})\n')
-                for i, cl in a.conditions().items():
+                for ap in a.parameters:
+                    out.write(f'parameter_{ap.name} = act_{a.name}.parameter("{ap.name}")\n')
+                out.write(f'act_{a.name}.set_duration_constraint({_convert_interval_duration(a.duration, converter)})\n')
+                for i, cl in a.conditions.items():
                     for c in cl:
                         out.write(f'act_{a.name}.add_condition({_convert_interval(i)}, {converter.convert(c)})\n')
-                for t, el in a.effects().items():
+                for t, el in a.effects.items():
                     for e in el:
                         if e.is_increase():
-                            out.write(f'act_{a.name}.add_increase_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                            out.write(f'act_{a.name}.add_increase_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
                         elif e.is_decrease():
-                            out.write(f'act_{a.name}.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                            out.write(f'act_{a.name}.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
                         else:
-                            out.write(f'act_{a.name}.add_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                            out.write(f'act_{a.name}.add_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
             else:
                 raise NotImplementedError
             out.write(f'problem.add_action(act_{a.name})\n')
 
-        for f_exp, v_exp in self.problem.explicit_initial_values().items(): # add only previously added initial values
+        for f_exp, v_exp in self.problem.explicit_initial_values.items(): # add only previously added initial values
             out.write(f'problem.set_initial_value({converter.convert(f_exp)}, {converter.convert(v_exp)})\n')
 
-        for t, el in self.problem.timed_effects().items(): # add timed effects
+        for t, el in self.problem.timed_effects.items(): # add timed effects
             for e in el:
                 if e.is_increase():
-                    out.write(f'problem.add_increase_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                    out.write(f'problem.add_increase_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
                 elif e.is_decrease():
-                    out.write(f'problem.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                    out.write(f'problem.add_decrease_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
                 else:
-                    out.write(f'problem.add_timed_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent())}, value={converter.convert(e.value())}, condition={converter.convert(e.condition())})\n')
+                    out.write(f'problem.add_timed_effect(timing={_convert_timing(t)}, fluent={converter.convert(e.fluent)}, value={converter.convert(e.value)}, condition={converter.convert(e.condition)})\n')
 
-        for i, gl in self.problem.timed_goals().items(): # add timed goals
+        for i, gl in self.problem.timed_goals.items(): # add timed goals
             for g in gl:
                 out.write(f'problem.add_timed_goal(interval={_convert_interval(i)}, goal={converter.convert(g)})\n')
 
-        for g in self.problem.goals(): # add goals
+        for g in self.problem.goals: # add goals
             out.write(f'problem.add_goal(goal={converter.convert(g)})\n')
 
-        for qm in self.problem.quality_metrics(): # adding metrics
+        for qm in self.problem.quality_metrics: # adding metrics
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
                 out.write('costs = {}\n')
                 for a, c in qm.costs.items():
@@ -272,22 +272,22 @@ def _print_python_type(type: 'up.model.types.Type') -> str:
     '''This method takes a type and returns how to use it from command line.
     For the user_types it assumes they have already been created and just refers to them.'''
     if type.is_user_type():
-        return f'type_{cast(_UserType, type).name()}'
+        return f'type_{cast(_UserType, type).name}'
     elif type.is_bool_type():
         return 'tm.BoolType()'
     elif type.is_int_type():
         itype = cast(_IntType, type)
-        return f'tm.IntType({str(itype.lower_bound())}, {str(itype.upper_bound())})'
+        return f'tm.IntType({str(itype.lower_bound)}, {str(itype.upper_bound)})'
     elif type.is_real_type():
         rtype = cast(_RealType, type)
-        return f'tm.RealType({str(rtype.lower_bound())}, {str(rtype.upper_bound())})'
+        return f'tm.RealType({str(rtype.lower_bound)}, {str(rtype.upper_bound)})'
     else:
         raise NotImplementedError
 
 def _convert_timing(timing: up.model.Timing) -> str:
-    delay: str = f'{str(timing.delay())}'
-    if isinstance(timing.delay(), Fraction):
-        delay = f'Fraction({str(timing.delay().numerator)}, {str(timing.delay().denominator)})'
+    delay: str = f'{str(timing.delay)}'
+    if isinstance(timing.delay, Fraction):
+        delay = f'Fraction({str(timing.delay.numerator)}, {str(timing.delay.denominator)})'
     if timing.is_from_start():
         return f'up.model.StartTiming({delay})'
     else:
@@ -301,7 +301,7 @@ def _convert_interval(interval: up.model.TimeInterval) -> str:
         interval_feature = 'up.model.LeftOpenTimeInterval'
     elif not interval.is_left_open() and interval.is_right_open():
         interval_feature = 'up.model.RightOpenTimeInterval'
-    return f'{interval_feature}({_convert_timing(interval.lower())}, {_convert_timing(interval.upper())})'
+    return f'{interval_feature}({_convert_timing(interval.lower)}, {_convert_timing(interval.upper)})'
 
 def _convert_interval_duration(interval: up.model.DurationInterval, converter: ConverterToPythonString) -> str:
     interval_feature: str = 'up.model.ClosedDurationInterval'
@@ -311,4 +311,4 @@ def _convert_interval_duration(interval: up.model.DurationInterval, converter: C
         interval_feature = 'up.model.LeftOpenDurationInterval'
     elif not interval.is_left_open() and interval.is_right_open():
         interval_feature = 'up.model.RightOpenDurationInterval'
-    return f'{interval_feature}({converter.convert(interval.lower())}, {converter.convert(interval.upper())})'
+    return f'{interval_feature}({converter.convert(interval.lower)}, {converter.convert(interval.upper)})'

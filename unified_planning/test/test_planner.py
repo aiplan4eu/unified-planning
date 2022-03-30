@@ -38,9 +38,9 @@ class TestPlanner(TestCase):
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertEqual(final_report.status, SOLVED_SATISFICING)
-            self.assertEqual(len(plan.actions()), 1)
-            self.assertEqual(plan.actions()[0].action(), a)
-            self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
+            self.assertEqual(len(plan.actions), 1)
+            self.assertEqual(plan.actions[0].action, a)
+            self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfSolverNotAvailable('tamer')
     def test_basic_with_timeout(self):
@@ -54,9 +54,9 @@ class TestPlanner(TestCase):
                 self.assertIn(final_report.status, POSITIVE_OUTCOMES)
                 plan = final_report.plan
                 self.assertEqual(final_report.status, SOLVED_SATISFICING)
-                self.assertEqual(len(plan.actions()), 1)
-                self.assertEqual(plan.actions()[0].action(), a)
-                self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
+                self.assertEqual(len(plan.actions), 1)
+                self.assertEqual(plan.actions[0].action, a)
+                self.assertEqual(len(plan.actions[0].actual_parameters), 0)
                 self.assertEqual(len(w), 1)
                 self.assertEqual('Tamer does not support timeout.', str(w[-1].message))
 
@@ -71,16 +71,16 @@ class TestPlanner(TestCase):
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertEqual(final_report.status, SOLVED_SATISFICING)
-            self.assertEqual(len(plan.actions()), 1)
-            self.assertEqual(plan.actions()[0].action(), a)
-            self.assertEqual(len(plan.actions()[0].actual_parameters()), 0)
+            self.assertEqual(len(plan.actions), 1)
+            self.assertEqual(plan.actions[0].action, a)
+            self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(up.solvers.SOLVED_OPTIMALLY)
     def test_actions_cost(self):
         problem = self.problems['basic_with_costs'].problem
         opt_plan = self.problems['basic_with_costs'].plan
-        with OneshotPlanner(problem_kind=problem.kind(),
+        with OneshotPlanner(problem_kind=problem.kind,
                             optimality_guarantee=up.solvers.SOLVED_OPTIMALLY) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -93,15 +93,15 @@ class TestPlanner(TestCase):
         problem = self.problems['robot'].problem
         move = problem.action('move')
 
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertIn(final_report.status, POSITIVE_OUTCOMES)
             self.assertNotEqual(plan, None)
-            self.assertEqual(len(plan.actions()), 1)
-            self.assertEqual(plan.actions()[0].action(), move)
-            self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
+            self.assertEqual(len(plan.actions), 1)
+            self.assertEqual(plan.actions[0].action, move)
+            self.assertEqual(len(plan.actions[0].actual_parameters), 2)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_loader(self):
@@ -110,20 +110,20 @@ class TestPlanner(TestCase):
         load = problem.action('load')
         unload = problem.action('unload')
 
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertIn(final_report.status, POSITIVE_OUTCOMES)
-            self.assertEqual(len(plan.actions()), 4)
-            self.assertEqual(plan.actions()[0].action(), move)
-            self.assertEqual(plan.actions()[1].action(), load)
-            self.assertEqual(plan.actions()[2].action(), move)
-            self.assertEqual(plan.actions()[3].action(), unload)
-            self.assertEqual(len(plan.actions()[0].actual_parameters()), 2)
-            self.assertEqual(len(plan.actions()[1].actual_parameters()), 1)
-            self.assertEqual(len(plan.actions()[2].actual_parameters()), 2)
-            self.assertEqual(len(plan.actions()[3].actual_parameters()), 1)
+            self.assertEqual(len(plan.actions), 4)
+            self.assertEqual(plan.actions[0].action, move)
+            self.assertEqual(plan.actions[1].action, load)
+            self.assertEqual(plan.actions[2].action, move)
+            self.assertEqual(plan.actions[3].action, unload)
+            self.assertEqual(len(plan.actions[0].actual_parameters), 2)
+            self.assertEqual(len(plan.actions[1].actual_parameters), 1)
+            self.assertEqual(len(plan.actions[2].actual_parameters), 2)
+            self.assertEqual(len(plan.actions[3].actual_parameters), 1)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_robot_loader_adv(self):
@@ -132,22 +132,22 @@ class TestPlanner(TestCase):
         load = problem.action('load')
         unload = problem.action('unload')
 
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertIn(final_report.status, POSITIVE_OUTCOMES)
-            self.assertEqual(len(plan.actions()), 5)
-            self.assertEqual(plan.actions()[0].action(), move)
-            self.assertEqual(plan.actions()[1].action(), load)
-            self.assertEqual(plan.actions()[2].action(), move)
-            self.assertEqual(plan.actions()[3].action(), unload)
-            self.assertEqual(plan.actions()[4].action(), move)
-            self.assertEqual(len(plan.actions()[0].actual_parameters()), 3)
-            self.assertEqual(len(plan.actions()[1].actual_parameters()), 3)
-            self.assertEqual(len(plan.actions()[2].actual_parameters()), 3)
-            self.assertEqual(len(plan.actions()[3].actual_parameters()), 3)
-            self.assertEqual(len(plan.actions()[4].actual_parameters()), 3)
+            self.assertEqual(len(plan.actions), 5)
+            self.assertEqual(plan.actions[0].action, move)
+            self.assertEqual(plan.actions[1].action, load)
+            self.assertEqual(plan.actions[2].action, move)
+            self.assertEqual(plan.actions[3].action, unload)
+            self.assertEqual(plan.actions[4].action, move)
+            self.assertEqual(len(plan.actions[0].actual_parameters), 3)
+            self.assertEqual(len(plan.actions[1].actual_parameters), 3)
+            self.assertEqual(len(plan.actions[2].actual_parameters), 3)
+            self.assertEqual(len(plan.actions[3].actual_parameters), 3)
+            self.assertEqual(len(plan.actions[4].actual_parameters), 3)
 
 if __name__ == "__main__":
     main()

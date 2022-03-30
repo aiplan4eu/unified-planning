@@ -61,12 +61,14 @@ class _UserType(Type):
         self._father = father
 
     def __repr__(self) -> str:
-        return self._name if self._father is None else f'{self._name} - {self._father.name()}' # type: ignore
+        return self._name if self._father is None else f'{self._name} - {self._father.name}' # type: ignore
 
+    @property
     def name(self) -> str:
         """Returns the type name."""
         return self._name
 
+    @property
     def father(self) -> Optional[Type]:
         """Returns the type s father."""
         return self._father
@@ -84,17 +86,19 @@ class _IntType(Type):
 
     def __repr__(self) -> str:
         b = []
-        if (not self.lower_bound() is None) or (not self.upper_bound() is None):
+        if (not self.lower_bound is None) or (not self.upper_bound is None):
             b.append('[')
-            b.append('-inf' if self.lower_bound() is None else str(self.lower_bound()))
+            b.append('-inf' if self.lower_bound is None else str(self.lower_bound))
             b.append(', ')
-            b.append('inf' if self.upper_bound() is None else str(self.upper_bound()))
+            b.append('inf' if self.upper_bound is None else str(self.upper_bound))
             b.append(']')
         return 'integer' + ''.join(b)
 
+    @property
     def lower_bound(self) -> Optional[int]:
         return self._lower_bound
 
+    @property
     def upper_bound(self) -> Optional[int]:
         return self._upper_bound
 
@@ -110,17 +114,19 @@ class _RealType(Type):
 
     def __repr__(self) -> str:
         b = []
-        if (not self.lower_bound() is None) or (not self.upper_bound() is None):
+        if (not self.lower_bound is None) or (not self.upper_bound is None):
             b.append('[')
-            b.append('-inf' if self.lower_bound() is None else str(self.lower_bound()))
+            b.append('-inf' if self.lower_bound is None else str(self.lower_bound))
             b.append(', ')
-            b.append('inf' if self.upper_bound() is None else str(self.upper_bound()))
+            b.append('inf' if self.upper_bound is None else str(self.upper_bound))
             b.append(']')
         return 'real' + ''.join(b)
 
+    @property
     def lower_bound(self) -> Optional[Fraction]:
         return self._lower_bound
 
+    @property
     def upper_bound(self) -> Optional[Fraction]:
         return self._upper_bound
 
@@ -163,7 +169,7 @@ class TypeManager:
             return self._user_types[(name, father)]
         else:
             if father is not None:
-                if any(ancestor.name() == name for ancestor in self.user_type_ancestors(father)): # type: ignore
+                if any(ancestor.name == name for ancestor in self.user_type_ancestors(father)): # type: ignore
                     raise UPTypeError('The name: {name} is already used in the UserType: {ancestor}. An UserType and one of his ancestors can not share the name.')
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
@@ -174,10 +180,10 @@ class TypeManager:
         if not user_type.is_user_type():
             raise UPTypeError('The function user_type_ancestors can be called only on UserTypes.')
         yield user_type
-        father: Optional[Type] = user_type.father() # type: ignore
+        father: Optional[Type] = user_type.father # type: ignore
         while father is not None:
             yield father
-            father = father.father() # type: ignore
+            father = father.father # type: ignore
 
 
 def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'unified_planning.model.types.Type') -> int:
@@ -187,8 +193,8 @@ def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'un
     elif typename.is_user_type():
         return len(list(problem.objects_hierarchy(typename)))
     elif typename.is_int_type():
-        lb = typename.lower_bound() # type: ignore
-        ub = typename.upper_bound() # type: ignore
+        lb = typename.lower_bound # type: ignore
+        ub = typename.upper_bound # type: ignore
         if lb is None or ub is None:
             raise UPProblemDefinitionError('Parameter not groundable!')
         return ub - lb
@@ -202,8 +208,8 @@ def domain_item(problem: 'unified_planning.model.problem.Problem', typename: 'un
     elif typename.is_user_type():
         return problem._env.expression_manager.ObjectExp(list(problem.objects_hierarchy(typename))[idx])
     elif typename.is_int_type():
-        lb = typename.lower_bound() # type: ignore
-        ub = typename.upper_bound() # type: ignore
+        lb = typename.lower_bound # type: ignore
+        ub = typename.upper_bound # type: ignore
         if lb is None or ub is None:
             raise UPProblemDefinitionError('Parameter not groundable!')
         return problem._env.expression_manager.Int(lb + idx)

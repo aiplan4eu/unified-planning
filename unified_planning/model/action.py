@@ -60,6 +60,7 @@ class Action:
         """Sets the parameter name."""
         self._name = new_name
 
+    @property
     def parameters(self) -> List['up.model.parameter.Parameter']:
         """Returns the list of the action parameters."""
         return list(self._parameters.values())
@@ -85,7 +86,7 @@ class InstantaneousAction(Action):
         s = []
         s.append(f'action {self.name}')
         first = True
-        for p in self.parameters():
+        for p in self.parameters:
             if first:
                 s.append('(')
                 first = False
@@ -96,11 +97,11 @@ class InstantaneousAction(Action):
             s.append(')')
         s.append(' {\n')
         s.append('    preconditions = [\n')
-        for c in self.preconditions():
+        for c in self.preconditions:
             s.append(f'      {str(c)}\n')
         s.append('    ]\n')
         s.append('    effects = [\n')
-        for e in self.effects():
+        for e in self.effects:
             s.append(f'      {str(e)}\n')
         s.append('    ]\n')
         s.append('  }')
@@ -126,12 +127,13 @@ class InstantaneousAction(Action):
     def clone(self):
         new_params = {}
         for param_name, param in self._parameters.items():
-            new_params[param_name] = param.type()
+            new_params[param_name] = param.type
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
         return new_instantaneous_action
 
+    @property
     def preconditions(self) -> List['up.model.fnode.FNode']:
         """Returns the list of the action preconditions."""
         return self._preconditions
@@ -140,6 +142,7 @@ class InstantaneousAction(Action):
         """Removes all action preconditions"""
         self._preconditions = []
 
+    @property
     def effects(self) -> List['up.model.effect.Effect']:
         """Returns the list of the action effects."""
         return self._effects
@@ -148,16 +151,24 @@ class InstantaneousAction(Action):
         """Removes all effects."""
         self._effects = []
 
+    @property
     def conditional_effects(self) -> List['up.model.effect.Effect']:
-        """Returns the list of the action conditional effects."""
+        """Returns the list of the action conditional effects.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        minimum time as possible."""
         return [e for e in self._effects if e.is_conditional()]
 
     def is_conditional(self) -> bool:
         """Returns True if the action has conditional effects."""
         return any(e.is_conditional() for e in self._effects)
 
+    @property
     def unconditional_effects(self) -> List['up.model.effect.Effect']:
-        """Returns the list of the action unconditional effects."""
+        """Returns the list of the action unconditional effects.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        minimum time as possible."""
         return [e for e in self._effects if not e.is_conditional()]
 
     def add_precondition(self, precondition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
@@ -226,7 +237,7 @@ class DurativeAction(Action):
         s = []
         s.append(f'durative action {self.name}')
         first = True
-        for p in self.parameters():
+        for p in self.parameters:
             if first:
                 s.append('(')
                 first = False
@@ -238,13 +249,13 @@ class DurativeAction(Action):
         s.append(' {\n')
         s.append(f'    duration = {str(self._duration)}\n')
         s.append('    conditions = [\n')
-        for i, cl in self.conditions().items():
+        for i, cl in self.conditions.items():
             s.append(f'      {str(i)}:\n')
             for c in cl:
                 s.append(f'        {str(c)}\n')
         s.append('    ]\n')
         s.append('    effects = [\n')
-        for t, el in self.effects().items():
+        for t, el in self.effects.items():
             s.append(f'      {str(t)}:\n')
             for e in el:
                 s.append(f'        {str(e)}:\n')
@@ -291,17 +302,19 @@ class DurativeAction(Action):
         return res
 
     def clone(self):
-        new_params = {param_name: param.type() for param_name, param in self._parameters.items()}
+        new_params = {param_name: param.type for param_name, param in self._parameters.items()}
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
         return new_durative_action
 
+    @property
     def duration(self) -> 'up.model.timing.DurationInterval':
         '''Returns the action duration interval.'''
         return self._duration
 
+    @property
     def conditions(self) -> Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']]:
         '''Returns the action conditions.'''
         return self._conditions
@@ -310,6 +323,7 @@ class DurativeAction(Action):
         '''Removes all conditions.'''
         self._conditions = {}
 
+    @property
     def effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
         '''Returns the action effects.'''
         return self._effects
@@ -318,8 +332,12 @@ class DurativeAction(Action):
         '''Removes all effects.'''
         self._effects = {}
 
+    @property
     def conditional_effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
-        '''Return the action conditional effects.'''
+        '''Return the action conditional effects.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        minimum time as possible.'''
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             cond_effect_list = [e for e in effect_list if e.is_conditional()]
@@ -327,8 +345,12 @@ class DurativeAction(Action):
                 retval[timing] = cond_effect_list
         return retval
 
+    @property
     def unconditional_effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
-        '''Return the action unconditional effects.'''
+        '''Return the action unconditional effects.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        minimum time as possible.'''
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             uncond_effect_list = [e for e in effect_list if not e.is_conditional()]
@@ -342,7 +364,7 @@ class DurativeAction(Action):
 
     def set_duration_constraint(self, duration: 'up.model.timing.DurationInterval'):
         '''Sets the duration interval.'''
-        lower, upper = duration.lower(), duration.upper()
+        lower, upper = duration.lower, duration.upper
         if not (lower.is_int_constant() or lower.is_real_constant()):
             raise UPProblemDefinitionError('Duration bound must be constant.')
         elif not (upper.is_int_constant() or upper.is_real_constant()):

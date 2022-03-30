@@ -336,44 +336,44 @@ class PDDLReader:
         return False
 
     def _durative_action_has_cost(self, dur_act: up.model.DurativeAction):
-        if self._totalcost in self._fve.get(dur_act.duration().lower()) or \
-           self._totalcost in self._fve.get(dur_act.duration().upper()):
+        if self._totalcost in self._fve.get(dur_act.duration.lower) or \
+           self._totalcost in self._fve.get(dur_act.duration.upper):
             return False
-        for _, cl in dur_act.conditions().items():
+        for _, cl in dur_act.conditions.items():
             for c in cl:
                 if self._totalcost in self._fve.get(c):
                     return False
-        for _, el in dur_act.effects().items():
+        for _, el in dur_act.effects.items():
             for e in el:
-                if self._totalcost in self._fve.get(e.fluent()) or self._totalcost in self._fve.get(e.value()) \
-                   or self._totalcost in self._fve.get(e.condition()):
+                if self._totalcost in self._fve.get(e.fluent) or self._totalcost in self._fve.get(e.value) \
+                   or self._totalcost in self._fve.get(e.condition):
                     return False
         return True
 
     def _instantaneous_action_has_cost(self, act: up.model.InstantaneousAction):
-        for c in act.preconditions():
+        for c in act.preconditions:
             if self._totalcost in self._fve.get(c):
                 return False
-        for e in act.effects():
-            if self._totalcost in self._fve.get(e.value()) or self._totalcost in self._fve.get(e.condition()):
+        for e in act.effects:
+            if self._totalcost in self._fve.get(e.value) or self._totalcost in self._fve.get(e.condition):
                 return False
-            if e.fluent() == self._totalcost:
+            if e.fluent == self._totalcost:
                 if not e.is_increase() or \
-                   not e.condition().is_true() or \
-                   not (e.value().is_int_constant() or \
-                        e.value().is_real_constant()):
+                   not e.condition.is_true() or \
+                   not (e.value.is_int_constant() or \
+                        e.value.is_real_constant()):
                     return False
         return True
 
     def _problem_has_actions_cost(self, problem: up.model.Problem):
         if not problem.initial_value(self._totalcost).constant_value() == 0:
             return False
-        for _, el in problem.timed_effects().items():
+        for _, el in problem.timed_effects.items():
             for e in el:
-                if self._totalcost in self._fve.get(e.fluent()) or self._totalcost in self._fve.get(e.value()) \
-                   or self._totalcost in self._fve.get(e.condition()):
+                if self._totalcost in self._fve.get(e.fluent) or self._totalcost in self._fve.get(e.value) \
+                   or self._totalcost in self._fve.get(e.condition):
                     return False
-        for c in problem.goals():
+        for c in problem.goals:
             if self._totalcost in self._fve.get(c):
                 return False
         return True
@@ -531,17 +531,17 @@ class PDDLReader:
                         costs = {}
                         problem._fluents.remove(self._totalcost.fluent())
                         problem._initial_value.pop(self._totalcost)
-                        use_plan_length = all(False for _ in problem.durative_actions())
-                        for a in problem.instantaneous_actions():
+                        use_plan_length = all(False for _ in problem.durative_actions)
+                        for a in problem.instantaneous_actions:
                             cost = None
-                            for e in a.effects():
-                                if e.fluent() == self._totalcost:
+                            for e in a.effects:
+                                if e.fluent == self._totalcost:
                                     cost = e
                                     break
                             if cost is not None:
-                                costs[a] = cost.value()
+                                costs[a] = cost.value
                                 a._effects.remove(cost)
-                                if cost.value() != 1:
+                                if cost.value != 1:
                                     use_plan_length = False
                             else:
                                 use_plan_length = False

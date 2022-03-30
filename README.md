@@ -29,9 +29,9 @@ problem.add_action(a)
 problem.set_initial_value(x, False)
 problem.add_goal(x)
 
-with OneshotPlanner(problem_kind=problem.kind()) as planner:
-    result = planner.solve(problem)
-    print(result.plan)
+with OneshotPlanner(problem_kind=problem.kind) as planner:
+    plan = planner.solve(problem)
+    print(plan)
 ```
 
 A more complex live demo is available as a notebook on [Google Colab](https://colab.research.google.com/drive/1kbNu3k1SxO1CbTtqfLEUTmU1AuAyxuHG?usp=sharing)

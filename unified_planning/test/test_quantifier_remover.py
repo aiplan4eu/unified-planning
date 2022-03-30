@@ -37,15 +37,15 @@ class TestQuantifiersRemover(TestCase):
         uq_problem = qr.get_rewritten_problem()
         uq_problem_2 = qr.get_rewritten_problem()
         self.assertEqual(uq_problem, uq_problem_2)
-        self.assertTrue(problem.kind().has_existential_conditions())
-        self.assertFalse(uq_problem.kind().has_existential_conditions())
-        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
+        self.assertTrue(problem.kind.has_existential_conditions())
+        self.assertFalse(uq_problem.kind.has_existential_conditions())
+        self.assertEqual(len(problem.actions), len(uq_problem.actions))
 
-        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=problem.kind()) as pv:
+            with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
@@ -54,15 +54,15 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['basic_forall'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertTrue(problem.kind().has_universal_conditions())
-        self.assertFalse(uq_problem.kind().has_universal_conditions())
-        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
+        self.assertTrue(problem.kind.has_universal_conditions())
+        self.assertFalse(uq_problem.kind.has_universal_conditions())
+        self.assertEqual(len(problem.actions), len(uq_problem.actions))
 
-        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=problem.kind()) as pv:
+            with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
@@ -71,15 +71,15 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertTrue(problem.kind().has_existential_conditions())
-        self.assertFalse(uq_problem.kind().has_existential_conditions())
-        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
+        self.assertTrue(problem.kind.has_existential_conditions())
+        self.assertFalse(uq_problem.kind.has_existential_conditions())
+        self.assertEqual(len(problem.actions), len(uq_problem.actions))
 
-        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=problem.kind()) as pv:
+            with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
@@ -88,17 +88,17 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['robot_locations_visited'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertTrue(problem.kind().has_existential_conditions())
-        self.assertFalse(uq_problem.kind().has_existential_conditions())
-        self.assertTrue(problem.kind().has_universal_conditions())
-        self.assertFalse(uq_problem.kind().has_universal_conditions())
-        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
+        self.assertTrue(problem.kind.has_existential_conditions())
+        self.assertFalse(uq_problem.kind.has_existential_conditions())
+        self.assertTrue(problem.kind.has_universal_conditions())
+        self.assertFalse(uq_problem.kind.has_universal_conditions())
+        self.assertEqual(len(problem.actions), len(uq_problem.actions))
 
-        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
-            with PlanValidator(problem_kind=problem.kind()) as pv:
+            with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
 
@@ -106,11 +106,11 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['hierarchical_blocks_world_exists'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertTrue(problem.kind().has_existential_conditions())
-        self.assertFalse(uq_problem.kind().has_existential_conditions())
-        self.assertTrue(uq_problem.kind().has_disjunctive_conditions())
-        self.assertFalse(problem.kind().has_disjunctive_conditions())
-        self.assertIn('(on(block_1, block_1) or on(block_2, block_1) or on(block_3, block_1))', str(uq_problem.goals()))
+        self.assertTrue(problem.kind.has_existential_conditions())
+        self.assertFalse(uq_problem.kind.has_existential_conditions())
+        self.assertTrue(uq_problem.kind.has_disjunctive_conditions())
+        self.assertFalse(problem.kind.has_disjunctive_conditions())
+        self.assertIn('(on(block_1, block_1) or on(block_2, block_1) or on(block_3, block_1))', str(uq_problem.goals))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
     def test_timed_connected_locations(self):
@@ -119,16 +119,16 @@ class TestQuantifiersRemover(TestCase):
         uq_problem = qr.get_rewritten_problem()
         self.assertTrue(problem.has_quantifiers())
         self.assertFalse(uq_problem.has_quantifiers())
-        self.assertEqual(len(problem.actions()), len(uq_problem.actions()))
+        self.assertEqual(len(problem.actions), len(uq_problem.actions))
 
-        with OneshotPlanner(problem_kind=uq_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=uq_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
-            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uq_plan.actions()):
+            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions, uq_plan.actions):
                 self.assertEqual(s, s_1)
                 self.assertEqual(d, d_1)
-                self.assertIn(a.action(), problem.actions())
+                self.assertIn(a.action, problem.actions)
 
     def test_ad_hoc_1(self):
         Obj = UserType('Obj')
@@ -165,8 +165,8 @@ class TestQuantifiersRemover(TestCase):
         unq_as = qr.get_transformed_actions(a)
         self.assertEqual(len(unq_as), 1)
         unq_a = unq_as[0]
-        self.assertTrue(unq_a.effects()[0].condition().is_or())
+        self.assertTrue(unq_a.effects[0].condition.is_or())
         unq_das = qr.get_transformed_actions(da)
         self.assertEqual(len(unq_das), 1)
         unq_da = unq_das[0]
-        self.assertTrue((unq_da.effects()[StartTiming()])[0].condition().is_and())
+        self.assertTrue((unq_da.effects[StartTiming()])[0].condition.is_and())

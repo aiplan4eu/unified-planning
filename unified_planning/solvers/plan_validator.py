@@ -60,7 +60,7 @@ class QuantifierSimplifier(walkers.Simplifier):
         key = self._get_key(expression, **kwargs)
         if key not in self.memoization:
             try:
-                f = self.functions[expression.node_type()]
+                f = self.functions[expression.node_type]
             except KeyError:
                 f = self.walk_error
 
@@ -69,7 +69,7 @@ class QuantifierSimplifier(walkers.Simplifier):
                         for s in self._get_children(expression)]
                 self.memoization[key] = f(expression, args=args, **kwargs)
             else:
-                self.memoization[key] = f(expression, args=expression.args(), **kwargs)
+                self.memoization[key] = f(expression, args=expression.args, **kwargs)
         else:
             pass
 
@@ -91,7 +91,7 @@ class QuantifierSimplifier(walkers.Simplifier):
                 return self.manager.TRUE()
             return self.manager.FALSE()
         vars = expression.variables()
-        type_list = [v.type() for v in vars]
+        type_list = [v.type for v in vars]
         possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
@@ -114,7 +114,7 @@ class QuantifierSimplifier(walkers.Simplifier):
                 return self.manager.TRUE()
             return self.manager.FALSE()
         vars = expression.variables()
-        type_list = [v.type() for v in vars]
+        type_list = [v.type for v in vars]
         possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
@@ -176,40 +176,40 @@ class SequentialPlanValidator(solvers.solver.Solver):
         assert isinstance(plan, SequentialPlan)
         self._qsimplifier = QuantifierSimplifier(self._env, problem)
         self._last_error = None
-        assignments: Dict[Expression, Expression] = problem.initial_values().copy() # type: ignore
+        assignments: Dict[Expression, Expression] = problem.initial_values.copy() # type: ignore
         count = 0 #used for better error indexing
-        for ai in plan.actions():
-            action = ai.action()
+        for ai in plan.actions:
+            action = ai.action
             assert isinstance(action, unified_planning.model.InstantaneousAction)
             count = count + 1
             new_assignments: Dict[Expression, Expression] = {}
-            for ap, oe in zip(ai.action().parameters(), ai.actual_parameters()):
+            for ap, oe in zip(ai.action.parameters, ai.actual_parameters):
                 assignments[ap] = oe
-            for p in action.preconditions():
+            for p in action.preconditions:
                 ps = self._subs_simplify(p, assignments)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
                     self._last_error = f'Precondition {p} of {str(count)}-th action instance {str(ai)} is not satisfied.'
                     return False
-            for e in action.effects():
+            for e in action.effects:
                 cond = True
                 if e.is_conditional():
-                    ec = self._subs_simplify(e.condition(), assignments)
+                    ec = self._subs_simplify(e.condition, assignments)
                     assert ec.is_bool_constant()
                     cond = ec.bool_constant_value()
                 if cond:
-                    ge = self._get_ground_fluent(e.fluent(), assignments)
+                    ge = self._get_ground_fluent(e.fluent, assignments)
                     if e.is_assignment():
-                        new_assignments[ge] = self._subs_simplify(e.value(), assignments)
+                        new_assignments[ge] = self._subs_simplify(e.value, assignments)
                     elif e.is_increase():
-                        new_assignments[ge] = self._subs_simplify(self.manager.Plus(e.fluent(),
-                                                e.value()), assignments)
+                        new_assignments[ge] = self._subs_simplify(self.manager.Plus(e.fluent,
+                                                e.value), assignments)
                     elif e.is_decrease():
-                        new_assignments[ge] = self._subs_simplify(self.manager.Minus(e.fluent(),
-                                                e.value()), assignments)
+                        new_assignments[ge] = self._subs_simplify(self.manager.Minus(e.fluent,
+                                                e.value), assignments)
             assignments.update(new_assignments)
-            for ap in action.parameters():
+            for ap in action.parameters:
                 del assignments[ap]
-        for g in problem.goals():
+        for g in problem.goals:
             gs = self._subs_simplify(g, assignments)
             if not (gs.is_bool_constant() and gs.bool_constant_value()):
                     self._last_error = f'Goal {str(g)} is not reached by the plan.'
@@ -225,7 +225,7 @@ class SequentialPlanValidator(solvers.solver.Solver):
     def _get_ground_fluent(self, fluent:FNode, assignments: Dict[Expression, Expression]) -> FNode:
         assert fluent.is_fluent_exp()
         new_args = []
-        for p in fluent.args():
+        for p in fluent.args:
             new_args.append(self._subs_simplify(p, assignments))
         return self.manager.FluentExp(fluent.fluent(), tuple(new_args))
 

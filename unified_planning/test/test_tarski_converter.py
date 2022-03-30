@@ -49,7 +49,7 @@ class TestTarskiConverter(TestCase):
         problem, plan = self.problems['hierarchical_blocks_world_object_as_root']
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         new_problem = up.interop.convert_problem_from_tarski(problem.env, tarski_problem)
-        with OneshotPlanner(problem_kind=new_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             new_plan = planner.solve(new_problem).plan
             self.assertEqual(str(plan), str(new_plan))
 
@@ -57,16 +57,22 @@ class TestTarskiConverter(TestCase):
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_with_object(self):
         problem, plan = self.problems['hierarchical_blocks_world_with_object']
+<<<<<<< HEAD
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         new_problem = up.interop.convert_problem_from_tarski(problem.env, tarski_problem)
         with OneshotPlanner(problem_kind=new_problem.kind()) as planner:
+=======
+        tarski_problem = convert_problem_to_tarski(problem)
+        new_problem = convert_problem_from_tarski(problem.env, tarski_problem)
+        with OneshotPlanner(problem_kind=new_problem.kind) as planner:
+>>>>>>> Refacrtored all the code by using properties where we see fit and methods elsewhere. Some properties do computation, this is documented as an IMPORTANT NOTE
             new_plan = planner.solve(new_problem).plan
             self.assertEqual(str(plan), str(new_plan))
 
 def _switch_plan(original_plan, new_problem):
     #This function switches a plan to be a plan of the given problem
     new_plan_action_instances = []
-    for ai in original_plan.actions():
-        new_plan_action_instances.append(ActionInstance(new_problem.action(ai.action().name), ai.actual_parameters()))
+    for ai in original_plan.actions:
+        new_plan_action_instances.append(ActionInstance(new_problem.action(ai.action.name), ai.actual_parameters))
     new_plan = SequentialPlan(new_plan_action_instances)
     return new_plan

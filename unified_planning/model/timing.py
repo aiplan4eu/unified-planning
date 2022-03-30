@@ -45,6 +45,7 @@ class Timepoint:
     def __hash__(self) -> int:
         return hash(self._kind)
 
+    @property
     def kind(self) -> int:
         return self._kind
 
@@ -69,16 +70,17 @@ class Timing:
     def __hash__(self) -> int:
         return hash(self._delay) ^ hash(self._timepoint)
 
+    @property
     def delay(self) -> Union[int, Fraction]:
         return self._delay
 
     def is_global(self) -> bool:
-        return self._timepoint.kind() == GLOBAL_START or \
-            self._timepoint.kind() == GLOBAL_END
+        return self._timepoint.kind == GLOBAL_START or \
+            self._timepoint.kind == GLOBAL_END
 
     def is_from_start(self) -> bool:
-        return self._timepoint.kind() == START or \
-            self._timepoint.kind() == GLOBAL_START
+        return self._timepoint.kind == START or \
+            self._timepoint.kind == GLOBAL_START
 
     def is_from_end(self) -> bool:
         return not self.is_from_start()
@@ -140,7 +142,7 @@ class Interval:
             right_bound = ')'
         else:
             right_bound = ']'
-        return f'{left_bound}{str(self.lower())}, {str(self.upper())}{right_bound}'
+        return f'{left_bound}{str(self.lower)}, {str(self.upper)}{right_bound}'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Interval):
@@ -156,9 +158,11 @@ class Interval:
             res ^= hash('is_right_open')
         return res
 
+    @property
     def lower(self) -> FNode:
         return self._lower
 
+    @property
     def upper(self) -> FNode:
         return self._upper
 
@@ -228,10 +232,10 @@ class TimeInterval:
             right_bound = ')'
         else:
             right_bound = ']'
-        if self.lower() == self.upper():
-            return f'{left_bound}{str(self.lower())}{right_bound}'
+        if self.lower == self.upper:
+            return f'{left_bound}{str(self.lower)}{right_bound}'
         else:
-            return f'{left_bound}{str(self.lower())}, {str(self.upper())}{right_bound}'
+            return f'{left_bound}{str(self.lower)}, {str(self.upper)}{right_bound}'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, TimeInterval):
@@ -247,9 +251,11 @@ class TimeInterval:
             res ^= hash('is_right_open')
         return res
 
+    @property
     def lower(self) -> Timing:
         return self._lower
 
+    @property
     def upper(self) -> Timing:
         return self._upper
 

@@ -28,7 +28,7 @@ class TestModel(TestCase):
         for _, (problem, _) in self.problems.items():
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
-            for action_1, action_2 in zip(problem_clone_1.actions(), problem_clone_2.actions()):
+            for action_1, action_2 in zip(problem_clone_1.actions, problem_clone_2.actions):
                 if isinstance(action_2, InstantaneousAction):
                     action_2._effects = []
                     action_1_clone = action_1.clone()
@@ -74,8 +74,8 @@ class TestModel(TestCase):
         self.assertEqual(e, e_clone_1)
         self.assertNotEqual(e_clone_2, e)
         self.assertNotEqual(e, e_clone_2)
-        self.assertNotEqual(e, e.value())
-        self.assertNotEqual(e.value(), e)
+        self.assertNotEqual(e, e.value)
+        self.assertNotEqual(e.value, e)
 
     def test_istantaneous_action(self):
         Location = UserType('Location')
@@ -83,7 +83,7 @@ class TestModel(TestCase):
         km = Fluent('km', IntType())
         move.add_increase_effect(km, 10)
         e = Effect(FluentExp(km), Int(10), TRUE(), unified_planning.model.effect.INCREASE)
-        self.assertEqual(move.effects()[0], e)
+        self.assertEqual(move.effects[0], e)
 
     def test_durative_action(self):
         Location = UserType('Location')
@@ -95,15 +95,15 @@ class TestModel(TestCase):
         e_end = Effect(FluentExp(km), Int(20), TRUE(), unified_planning.model.effect.INCREASE)
         e_start = Effect(FluentExp(km), Int(5), TRUE(), unified_planning.model.effect.DECREASE)
         effects_test = {StartTiming(): [e_start], EndTiming(): [e_end]}
-        self.assertEqual(effects_test, move.effects())
+        self.assertEqual(effects_test, move.effects)
         move.set_closed_duration_interval(1, 2)
-        self.assertEqual(move.duration(), ClosedDurationInterval(Int(1), Int(2)))
+        self.assertEqual(move.duration, ClosedDurationInterval(Int(1), Int(2)))
         move.set_open_duration_interval(2, Fraction(7, 2))
-        self.assertEqual(move.duration(), OpenDurationInterval(Int(2), Real(Fraction(7, 2))))
+        self.assertEqual(move.duration, OpenDurationInterval(Int(2), Real(Fraction(7, 2))))
         move.set_left_open_duration_interval(1, 2)
-        self.assertEqual(move.duration(), LeftOpenDurationInterval(Int(1), Int(2)))
+        self.assertEqual(move.duration, LeftOpenDurationInterval(Int(1), Int(2)))
         move.set_right_open_duration_interval(1, 2)
-        self.assertEqual(move.duration(), RightOpenDurationInterval(Int(1), Int(2)))
+        self.assertEqual(move.duration, RightOpenDurationInterval(Int(1), Int(2)))
         move.add_condition(StartTiming(), x)
         move.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), x)
         self.assertIn('duration = [1, 2)', str(move))
@@ -121,11 +121,11 @@ class TestModel(TestCase):
         problem.add_timed_goal(TimeInterval(GlobalStartTiming(5), GlobalStartTiming(9)), x)
         problem.add_action(DurativeAction('move'))
         problem.add_action(InstantaneousAction('stop_moving'))
-        stop_moving_list = [a for a in problem.instantaneous_actions()]
+        stop_moving_list = [a for a in problem.instantaneous_actions]
         self.assertEqual(len(stop_moving_list), 1)
         stop_moving = stop_moving_list[0]
         self.assertEqual(stop_moving.name, 'stop_moving')
-        move_list = [a for a in problem.durative_actions()]
+        move_list = [a for a in problem.durative_actions]
         self.assertEqual(len(move_list), 1)
         move = move_list[0]
         self.assertEqual(move.name, 'move')
