@@ -41,7 +41,7 @@ class Problem:
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
         self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._goals: List['up.model.fnode.FNode'] = list()
-        self._metrics : List['up.model.metrics.PlanQualityMetric'] = []
+        self._metrics: List['up.model.metrics.PlanQualityMetric'] = []
         self._initial_defaults: Dict['up.model.types.Type', 'up.model.fnode.FNode'] = {}
         for k, v in initial_defaults.items():
             v_exp, = self._env.expression_manager.auto_promote(v)
@@ -458,15 +458,15 @@ class Problem:
                     f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                     res[f_exp] = self.initial_value(f_exp)
         return res
-    
+
     def initial_defaults(self) -> Dict['up.model.types.Type', 'up.model.fnode.FNode']:
         '''Returns the problem's initial defaults.'''
         return self._initial_defaults
-    
+
     def fluents_defaults(self) -> Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode']:
         '''Returns the problem's fluents defaults.'''
         return self._fluents_defaults
-    
+
     def explicit_initial_values(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
         '''Returns the problem's defined initial values.
         IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values().'''

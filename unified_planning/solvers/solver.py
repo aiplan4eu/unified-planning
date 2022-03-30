@@ -66,15 +66,16 @@ class Solver:
         '''This method takes a up.model.Problem and returns a up.solvers.results.PlanGenerationResult,
         which contains information about the solution to the problem given by the planner.
 
-        Parameters description:
-        problem is the up.model.Problem to solve.
-        callback is a function used by the planner to give reports to the user during the problem resolution.
-        timeout is the time in seconds that the planner has at max to solve the problem.
-        output_stream is a stream of strings where the planner writes his
-        output (and also errors) while the planner is solving the problem.
+        :param problem: is the up.model.Problem to solve.
+        :param callback: is a function used by the planner to give reports to the user during the problem resolution, defaults to None.
+        :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to None.
+        :param output_stream: is a stream of strings where the planner writes his
+        output (and also errors) while the planner is solving the problem, defaults to None
+        :return: the up.solvers.results.PlanGenerationResult created by the planner; a data structure containing the up.plan.Plan found
+        and some additional information about it.
 
         The only required parameter is "problem" but the planner should warn the user if callback, timeout or
-        output_stream are not None and the user set them to something, expecting a behaviour that will not be satisfied.'''
+        output_stream are not None and the planner ignores them.'''
         raise NotImplementedError
 
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:

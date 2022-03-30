@@ -21,6 +21,7 @@ import unified_planning.solvers as solvers
 from unified_planning.plan import Plan, ActionInstance
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
+from unified_planning.solvers.results import SOLVED_OPTIMALLY, SOLVED_SATISFICING, UNSOLVABLE_PROVEN
 from typing import IO, Callable, Dict, List, Optional, Tuple, cast
 from multiprocessing import Process, Queue
 
@@ -62,6 +63,7 @@ class Parallel(solvers.solver.Solver):
         results: List[up.solvers.PlanGenerationResult] = []
         planners_final_status: List[str] = []
         definitive_result_found: bool = False
+        optimality_required: bool = len(args[0].quality_metrics()) > 0 # Require optimality if the problem has at least one quality metric.
         while True:
             if processes_alive == 0: # Every planner gave a result
                 break
@@ -71,8 +73,8 @@ class Parallel(solvers.solver.Solver):
                 raise res
             else:
                 assert isinstance(res, up.solvers.PlanGenerationResult)
-                # If the planner is sure about the result (optimality of the result or impossibility of the problem) exit the loop
-                if res.status == up.solvers.results.SOLVED_OPTIMALLY or res.status == up.solvers.results.UNSOLVABLE_PROVEN:
+                # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
+                if res.status == SOLVED_OPTIMALLY or res.status == UNSOLVABLE_PROVEN or (res.status == SOLVED_SATISFICING and not optimality_required):
                     definitive_result_found = True
                     break
                 else:
