@@ -38,9 +38,10 @@ class TestSimulatedEffects(TestCase):
         problem.set_initial_value(x, False)
         problem.add_goal(x)
 
-        with OneshotPlanner(name='tamer', params={'heuristic': 'blind'}) as planner:
+        with OneshotPlanner(name='tamer') as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
+            res = planner.solve(problem)
+            plan = res.plan
             self.assertEqual(len(plan.actions()), 1)
 
     @skipIfSolverNotAvailable('tamer')
@@ -75,7 +76,33 @@ class TestSimulatedEffects(TestCase):
         problem.set_initial_value(battery_charge(r1), 100)
         problem.add_goal(Equals(at(r1), l2))
 
-        with OneshotPlanner(name='tamer', params={'heuristic': 'blind'}) as planner:
+        with OneshotPlanner(name='tamer', params={'heuristic': 'hff'}) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(problem)
+            res = planner.solve(problem)
+            plan = res.plan
+            self.assertEqual(len(plan.actions()), 1)
+
+    @skipIfSolverNotAvailable('tamer')
+    def test_temporal_basic(self):
+        x = Fluent('x')
+        y = Fluent('y')
+        a = DurativeAction('a')
+        a.set_fixed_duration(1)
+        a.add_condition(StartTiming(), Not(x))
+        a.add_condition(StartTiming(), y)
+        def fun(problem, state, actual_params):
+            return [TRUE(), FALSE()]
+        a.add_simulated_effects(EndTiming(), SimulatedEffects([FluentExp(x), FluentExp(y)], fun))
+        problem = Problem('temporal_basic_with_simulated_effects')
+        problem.add_fluent(x)
+        problem.add_fluent(y)
+        problem.add_action(a)
+        problem.set_initial_value(x, False)
+        problem.set_initial_value(y, True)
+        problem.add_goal(And(x, Not(y)))
+
+        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+            self.assertNotEqual(planner, None)
+            res = planner.solve(problem)
+            plan = res.plan
             self.assertEqual(len(plan.actions()), 1)
