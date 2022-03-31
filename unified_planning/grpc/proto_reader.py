@@ -13,13 +13,17 @@
 # limitations under the License.
 #
 import fractions
+from collections import OrderedDict
 
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
 from unified_planning.grpc.converter import Converter, handles
 import unified_planning.model
 import unified_planning.plan
-from unified_planning.model import Timing, TimeInterval, Effect
+from unified_planning.model import Timing, TimeInterval, Effect, DurativeAction, InstantaneousAction
 from unified_planning.shortcuts import BoolType, UserType, RealType, IntType
+from unified_planning.model.effect import ASSIGN
+from unified_planning.model.effect import INCREASE
+from unified_planning.model.effect import DECREASE
 
 def convert_type_str(s, env):
     if s == 'bool':
@@ -38,7 +42,6 @@ def convert_type_str(s, env):
 
 
 class ProtobufReader(Converter):
-
     @handles(unified_planning_pb2.Parameter)
     def _convert_parameter(self, msg, problem):
         pass
@@ -58,22 +61,23 @@ class ProtobufReader(Converter):
         return obj
 
     @handles(unified_planning_pb2.Expression)
-    def _convert_expression(self, msg, problem, param_map):
-        if msg.atom is not None:
+    def _convert_expression(self, msg, problem):
+        if msg.HasField('atom'):
             atom = self.convert(msg.atom, problem)
             return atom # problem.env.expression_manager.create_node(msg.kind, tuple(), atom)
 
         args = []
-        for arg_msg in msg.args:
-            args.append(self.convert(arg_msg, problem, param_map))
-        payload = self.convert(msg.payload, problem, param_map)
+        for arg_msg in msg.list:
+            args.append(self.convert(arg_msg, problem))
+        kind = args[0]
+        args = args[1:]
 
-        return problem.env.expression_manager.create_node(kind, tuple(args), payload)
+        return problem.env.expression_manager.create_node(kind.int_constant_value(), tuple(args))
 
     @handles(unified_planning_pb2.Atom)
     def _convert_atom(self, msg, problem):
         field = msg.WhichOneof('content')
-        value = getattr(msg, msg.WhichOneof('content'))
+        value = getattr(msg, field)
         if field == "int":
             return problem.env.expression_manager.Int(value)
         elif field == "real":
@@ -81,7 +85,9 @@ class ProtobufReader(Converter):
         elif field == "boolean":
             return problem.env.expression_manager.Bool(value)
         else:
-            return problem.object(value)
+            if problem.has_object(value):
+                return problem.object(value)
+            return problem.env.expression_manager.FluentExp(problem.fluent(value))
 
     @handles(unified_planning_pb2.TypeDeclaration)
     def _convert_type_declaration(self, msg):
@@ -107,165 +113,61 @@ class ProtobufReader(Converter):
             return RealType(lower_bound=lb, upper_bound=ub)
         else:
             parent = None
-            if msg.parent_type is not None:
+            if parent != "":
                 parent = UserType(msg.parent_type)
             return UserType(msg.type_name, parent)
 
+    @handles(unified_planning_pb2.Condition)
+    def _convert_condition(self, msg, problem):
+        if not msg.HasField('span'):
+            return self.convert(msg.cond, problem)
+        else:
+            return (self.convert(msg.cond, problem), self.convert(msg.span))
+
+    @handles(unified_planning_pb2.EffectExpression)
+    def _convert_effect_expression(self, msg, problem):
+        return (msg.kind-1, (self.convert(msg.fluent, problem),
+                             self.convert(msg.value, problem),
+                             self.convert(msg.condition, problem)))
+
+    @handles(unified_planning_pb2.Effect)
+    def _convert_effect(self, msg, problem):
+        if not msg.HasField('occurence_time'):
+            return self.convert(msg.effect, problem)
+        else:
+            return (self.convert(msg.effect, problem), self.convert(msg.occurence_time))
 
 
-    # @handles(unified_planning_pb2.Payload)
-    # def _convert_payload(self, msg, problem, param_map):
-    #     p_type = msg.type
-    #     p_data = msg.value
-    #     if p_type == "none":
-    #         return None
-    #     elif p_type == "bool":
-    #         return p_data == "True"
-    #     elif p_type == "int":
-    #         return int(p_data)
-    #     elif p_type == "real":
-    #         return float(p_data)
-    #     elif "real" in p_type:
-    #         return float(p_data)
-    #     elif p_type == "fluent":
-    #         return problem.fluent(p_data)
-    #     elif p_type == "obj":
-    #         return problem.object(p_data)
-    #     elif p_type == "aparam":
-    #         return param_map[p_data]
-    #     else:
-    #         return p_data
+    @handles(unified_planning_pb2.Action)
+    def _convert_action(self, msg, problem):
+        name = msg.name
+        params = OrderedDict()
+        for p in msg.parameters:
+            params[p.name] = convert_type_str(p.type, env)
 
-    # @handles(unified_planning_pb2.Assignment)
-    # def _convert_assignment(self, msg, problem, param_map):
-    #     x = self.convert(msg.x, problem, param_map)
-    #     v = self.convert(msg.v, problem, param_map)
-    #     return x, v
-    #
-    # @handles(unified_planning_pb2.InstantaneousAction)
-    # def _convert_instantaneous_action(self, msg, problem):
-    #     op_name = msg.name
-    #     op_sig = {}
-    #     for i in range(len(msg.parameters)):
-    #         p_name = msg.parameters[i].name
-    #         t_name = msg.parameters[i].typename
-    #         if t_name not in problem.user_types().keys():
-    #             raise ValueError("Unknown type: " + msg.signatures[i])
-    #         op_sig[p_name] = problem.user_type(t_name) # TODO: deal with non user-defined types
-    #
-    #     op_unified_planning = unified_planning.model.InstantaneousAction(op_name, **op_sig)
-    #     op_params = {}
-    #     for k in op_sig.keys():
-    #         op_params[k] = op_unified_planning.parameter(k)
-    #
-    #     for pre in msg.preconditions:
-    #         op_unified_planning.add_precondition(self.convert(pre, problem, op_params))
-    #
-    #     for eff in msg.effects:
-    #         fluent, value = self.convert(eff, problem, op_params)
-    #         op_unified_planning.add_effect(fluent, value)
-    #     return op_unified_planning
-    #
-    # @handles(unified_planning_pb2.TimedEffect)
-    # def _convert_timed_effect(self, msg, problem):
-    #     timing = self.convert(msg.timing, problem)
-    #     effect = self.convert(msg.effect, problem)
-    #     return timing, effect
-    #
-    # @handles(unified_planning_pb2.DurativeAction)
-    # def _convert_durative_action(self, msg, problem):
-    #     op_name = msg.name
-    #     op_sig = {}
-    #     for i in range(len(msg.parameters)):
-    #         p_name = msg.parameters[i].name
-    #         t_name = msg.parameters[i].typename
-    #         if t_name not in problem.user_types().keys():
-    #             raise ValueError("Unknown type: " + msg.signatures[i])
-    #         op_sig[p_name] = problem.user_type(t_name) # TODO: deal with non user-defined types
-    #     op_params = {}
-    #     op_unified_planning = unified_planning.model.DurativeAction(op_name, **op_sig)
-    #     for k in op_sig.keys():
-    #         op_params[k] = op_unified_planning.parameter(k)
-    #     op_unified_planning._duration = self.convert(msg.duration)
-    #
-    #     for con in msg.conditions:
-    #         op_unified_planning.add_condition(self.convert(con))
-    #
-    #     for dc in msg.durativeConditions:
-    #         op_unified_planning.add_durative_condition(self.convert(dc))
-    #
-    #     for eff in msg.effects:
-    #         timing, effect = self.convert(eff)
-    #         op_unified_planning.add_effect(timing, effect.fluent(), effect.value(), effect.condition())
-    #
-    #     return op_unified_planning
-    #
-    # @handles(unified_planning_pb2.Effect)
-    # def _convert_fraction(self, msg, env=None):
-    #     Effect(self.convert(msg.fluent), self.convert(msg.value), self.convert(msg.condition), msg.kind)
-    #
-    # @handles(unified_planning_pb2.Fraction)
-    # def _convert_fraction(self, msg, env=None):
-    #     fractions.Fraction(msg.n, msg.d)
-    #
-    # @handles(unified_planning_pb2.Timing)
-    # def _convert_timing(self, msg, env=None):
-    #     Timing(self.convert(msg.bound), msg.isFromStart)
-    #
-    # @handles(unified_planning_pb2.IntervalDuration)
-    # def _convert_interval(self, msg, env=None):
-    #     TimeInterval(self.convert(msg.lower), self.convert(msg.upper), msg.isLeftOpen, msg.isRightOpen)
-    #
-    # @handles(unified_planning_pb2.Interval)
-    # def _convert_interval(self, msg, env=None):
-    #     TimeInterval(self.convert(msg.lower), self.convert(msg.upper), msg.isLeftOpen, msg.isRightOpen)
-    #
-    # @handles(unified_planning_pb2.Problem)
-    # def _convert_problem(self, msg, env=None):
-    #     initial_defaults = [(m.typename, self.convert(m.default)) for m in msg.initialDefaults]
-    #     fluents_defaults = [(self.convert(m.fluent), self.convert(m.default)) for m in msg.fluentDefaults]
-    #
-    #     problem = unified_planning.model.Problem(msg.name, env, initial_defaults, fluents_defaults)
-    #     for fluent in msg.fluents:
-    #         problem.add_fluent(self.convert(fluent, problem))
-    #
-    #     for obj in msg.objects:
-    #         problem.add_object(self.convert(obj, problem))
-    #
-    #     for action in msg.actions:
-    #         problem.add_action(self.convert(action, problem))
-    #
-    #     for sva in msg.initialState:
-    #         fluent, value = self.convert(sva, problem, {})
-    #         problem.set_initial_value(fluent, value)
-    #
-    #     for m_goal in msg.goals:
-    #         goal = self.convert(m_goal, problem, {})
-    #         problem.add_goal(goal)
-    #
-    #     durative_actions = [self.convert(a) for a in msg.durativeActions]
-    #     for a in durative_actions:
-    #         problem.add_action(a)
-    #
-    #     for x in msg.timedEffects:
-    #         problem.add_timed_effect(self.convert(x.timing), self.convert(x.effect))
-    #     for x in msg.timedGoals:
-    #         problem.add_timed_goal(self.convert(x.timing), self.convert(x.condition))
-    #     for x in msg.maintainGoals:
-    #         problem.add_maintain_goal(self.convert(x.interval), self.convert(x.condition))
-    #
-    #     return problem
-    #
-    # @handles(unified_planning_pb2.ActionInstance)
-    # def _convert_action_instance(self, msg, problem):
-    #     a = self.convert(msg.action, problem)
-    #     ps = tuple([self.convert(p, problem, {}) for p in msg.parameters])
-    #     return unified_planning.plan.ActionInstance(a, ps)
-    #
-    # @handles(unified_planning_pb2.Answer)
-    # def _convert_plan(self, msg, problem):
-    #     if msg.status > 0:
-    #         return None
-    #     else:
-    #         ais = [self.convert(ai, problem) for ai in msg.plan.actions]
-    #         return unified_planning.plan.SequentialPlan(ais)
+        if not msg.HasField("duration"):
+            a = InstantaneousAction(name, params)
+            for c in msg.conditions:
+                cond = self.convert(c, problem)
+                a.add_precondition(cond)
+            for e in msg.effects:
+                (kind, args) = self.convert(e, problem)
+                if kind == ASSIGN:
+                    a.add_effect(*args)
+                elif kind == INCREASE:
+                    a.add_increase_effect(*args)
+                elif kind == DECREASE:
+                    a.add_increase_effect(*args)
+
+        else:
+            a = DurativeAction(name, params)
+            a.set_duration_constraint(self.convert(msg.duration))
+            for c in msg.conditions:
+                a.add_condition(self.convert(c.span), self.convert(c.cond, problem))
+            for e in msg.effects:
+                a.add_effect(self.convert(e.occurence_time), self.convert(e.effect, problem))
+        if msg.HasField("cost"):
+            a.set_cost(self.convert(msg.cost))
+
+        return a
+

@@ -90,7 +90,6 @@ message Parameter {
     string type = 2;
 }
 
-
 // A state-dependent variable.
 message Fluent {
     string name = 1;
@@ -104,7 +103,7 @@ message Fluent {
 // Declares an object with the given name and type.
 message ObjectDeclaration {
     // Name of the object.
-    string name = 1; //TODO: Not used by fluents
+    string name = 1; //TODO: Not used by fluent definitions
     // Type of the object.
     // The type must have been previously declared in the problem definition.
     string type = 2;
