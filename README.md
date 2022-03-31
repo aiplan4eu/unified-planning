@@ -30,11 +30,11 @@ problem.set_initial_value(x, False)
 problem.add_goal(x)
 
 with OneshotPlanner(problem_kind=problem.kind()) as planner:
-    plan = planner.solve(problem)
-    print(plan)
+    result = planner.solve(problem)
+    print(result.plan)
 ```
 
-A more complex live demo is available as a notebook on [Google Colab](https://colab.research.google.com/drive/1kbNu3k1SxO1CbTtqfLEUTmU1AuAyxuHG?usp=sharing) 
+A more complex live demo is available as a notebook on [Google Colab](https://colab.research.google.com/drive/1kbNu3k1SxO1CbTtqfLEUTmU1AuAyxuHG?usp=sharing)
 
 
 
@@ -42,4 +42,4 @@ A more complex live demo is available as a notebook on [Google Colab](https://co
 
 <img src="https://www.aiplan4eu-project.eu/wp-content/uploads/2021/07/euflag.png" width="60" height="40">
 
-This library is being developed for the AIPlan4EU H2020 project (https://aiplan4eu-project.eu) that is funded by the European Commission under grant agreement number 101016442.  
+This library is being developed for the AIPlan4EU H2020 project (https://aiplan4eu-project.eu) that is funded by the European Commission under grant agreement number 101016442.
