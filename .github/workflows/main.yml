@@ -82,7 +82,7 @@ jobs:
       - name: Run tests
         run: |
           python3 -m pip install pytest
-          bash run_tests.sh
+          python3 -m pytest unified_planning/test
 
 
   deploy-pypi:
