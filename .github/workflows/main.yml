@@ -45,7 +45,8 @@ jobs:
       - name: Download ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp-20; ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp-20
+          bash ../unified_planning/test/pddl/compile_enhsp.sh; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
@@ -78,6 +79,13 @@ jobs:
 
       - name: Install Pyperplan unified-planning interface
         run: python3 -m pip install up-pyperplan/
+
+      - name: Download ENHSP
+        run: |
+          git clone https://gitlab.com/enricos83/ENHSP-Public.git
+          cd ENHSP-Public; git checkout enhsp-20
+          bash ../unified_planning/test/pddl/compile_enhsp.sh; cd ..
+          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
         run: |
