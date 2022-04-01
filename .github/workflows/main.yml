@@ -59,11 +59,43 @@ jobs:
           fail_ci_if_error: true
 
 
+  run-tests-win:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Python dependencies
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Install Development Python dependencies
+        run: python3 -m pip install -r dev-requirements.txt
+
+      - name: MyPy check
+        run: |
+          python3 -m mypy --version
+          python3 -m mypy unified_planning
+
+      - name: Checkout Pyperplan unified-planning interface
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-pyperplan
+          path: up-pyperplan
+          ref: "b161db9bc89e8f204c82511d3b01298b9c170e6b"
+
+      - name: Install Pyperplan unified-planning interface
+        run: python3 -m pip install up-pyperplan/
+
+      - name: Run tests
+        run: bash run_tests.sh
+
+
   deploy-pypi:
     runs-on: ubuntu-latest
-    needs: run-tests # We only deploy if the tests were successful 
+    needs: run-tests # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
-    
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@master
