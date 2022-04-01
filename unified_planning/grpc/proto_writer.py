@@ -80,6 +80,8 @@ class ProtobufWriter(Converter):
         else:
             atom = None
             arg_list = [unified_planning_pb2.Expression(atom=unified_planning_pb2.Atom(int=exp.node_type()))]
+            if p_type == "fluent":
+                arg_list.append(unified_planning_pb2.Expression(atom=unified_planning_pb2.Atom(symbol=value)))
             arg_list = arg_list + [self.convert(a) for a in exp._content.args]
 
         # TODO: Missing FUNCTION_SYMBOL, STATE_VARIABLE, FUNCTION_APPLICATION

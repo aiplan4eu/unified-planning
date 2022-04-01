@@ -263,7 +263,7 @@ message Goal {
     Expression goal = 1;
 
     // Optional. If specified the goal should hold over the specified temporal interval (instead of on the final state).
-    // features: timed_goals TODO: The UP has a list of goals assigned to timings
+    // features: timed_goals
     TimeInterval timing = 2;
 }
 

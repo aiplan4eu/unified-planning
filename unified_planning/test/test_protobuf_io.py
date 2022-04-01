@@ -67,6 +67,7 @@ class TestProtobufIO(TestCase):
 
         ex = Not(x)
         ex_pb = self.pb_writer.convert(ex)
+        print(ex_pb)
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertTrue(ex == ex_up)
 
@@ -110,31 +111,32 @@ class TestProtobufIO(TestCase):
         problem.add_goal(x)
 
         p_pb = self.pb_writer.convert(problem)
-        p_up = self.pb_reader.convert(p_pb) # TODO: Next up
-        assertEquals(p, p_up)
+        p_up = self.pb_reader.convert(p_pb)
+
+        print(problem)
+        print("---------------") # TODO: Precondition comes back without "not"
+        print(p_up)
+
+        self.assertEqual(problem, p_up)
 
     def test_durative_action(self):
-        Fuse = UserType('Fuse')
-        handfree = Fluent('handfree')
-        light = Fluent('light')
-        fuse_mended = Fluent('fuse_mended', BoolType(), [Fuse])
-        mend_fuse = DurativeAction('mend_fuse', f=Fuse)
-        f = mend_fuse.parameter('f')
-        mend_fuse.set_fixed_duration(5)
-        mend_fuse.add_condition(StartTiming(), handfree)
-        mend_fuse.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), light)
-        mend_fuse.add_effect(StartTiming(), handfree, False)
-        mend_fuse.add_effect(EndTiming(), fuse_mended(f), True)
-        mend_fuse.add_effect(EndTiming(), handfree, True)
-
+        match_cellar = self.problems['matchcellar'].problem
+        mend_fuse = match_cellar.action('mend_fuse')
+        eff = mend_fuse.effects()[EndTiming()][0]
+        eff_fluent = eff.fluent()
+        eff_fluent_pb = self.pb_writer.convert(eff_fluent)
+        self.pb_reader.current_action = mend_fuse
+        eff_fluent_up = self.pb_reader.convert(eff_fluent_pb, match_cellar)
+        self.assertEqual(eff_fluent, eff_fluent_up)
         a_pb = self.pb_writer.convert(mend_fuse)
-        print(a_pb)
-        #TODO: Assertion on reader output
+        a_up = self.pb_reader.convert(a_pb, match_cellar)
+        self.assertEqual(mend_fuse, a_up)
+
 
     def test_durative_problem(self):
         match_cellar = self.problems['matchcellar'].problem
         p_pb = self.pb_writer.convert(match_cellar)
-        print(p_pb)
-        #TODO: Assertion on reader output
+        p_up = self.pb_reader.convert(p_pb)
+        self.assertEqual(match_cellar, p_up)
 
 
