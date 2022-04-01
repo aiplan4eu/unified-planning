@@ -85,7 +85,7 @@ jobs:
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
           cd ENHSP-Public; git checkout enhsp-20
           bash ../unified_planning/test/pddl/compile_enhsp.sh; cd ..
-          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
+          bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
         run: |

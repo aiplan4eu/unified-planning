@@ -1,6 +1,5 @@
 #!/bin/bash
-rm -r out 2> /dev/null
-rm -r enhsp-dist 2> /dev/null
+mkdir out
 javac -d out -classpath "libs/*" src/planners/*.java src/*.java
 jar --create --file enhsp.jar --manifest manifest.mf -C out/ .
 mkdir enhsp-dist
