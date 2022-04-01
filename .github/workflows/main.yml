@@ -74,7 +74,7 @@ jobs:
         with:
           repository: aiplan4eu/up-pyperplan
           path: up-pyperplan
-          ref: "b161db9bc89e8f204c82511d3b01298b9c170e6b"
+          ref: "41311391cb847e860d99c8bfd3d1b91276df3bed"
 
       - name: Install Pyperplan unified-planning interface
         run: python3 -m pip install up-pyperplan/
