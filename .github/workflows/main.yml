@@ -69,14 +69,6 @@ jobs:
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
 
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
-
-      - name: MyPy check
-        run: |
-          python3 -m mypy --version
-          python3 -m mypy unified_planning
-
       - name: Checkout Pyperplan unified-planning interface
         uses: actions/checkout@v2
         with:
@@ -88,7 +80,9 @@ jobs:
         run: python3 -m pip install up-pyperplan/
 
       - name: Run tests
-        run: bash run_tests.sh
+        run: |
+          python3 -m pip install pytest
+          bash run_tests.sh
 
 
   deploy-pypi:
