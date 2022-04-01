@@ -110,10 +110,23 @@ class Effect:
 
 
 class SimulatedEffects:
+    """
+    This class represents simulated effects over a list of fluent expressions.
+    The fluents parameters must be constants or action parameters.
+    The callable function must return the result of the simulated effects applied
+    in the given state for the specified fluent expressions.
+    """
+
     def __init__(self, fluents: List['up.model.fnode.FNode'],
                  function: Callable[['up.model.problem.Problem', 'up.model.state.State',
                                      Dict['up.model.parameter.Parameter', 'up.model.fnode.FNode']],
                                     List['up.model.fnode.FNode']]):
+        for f in fluents:
+            if not f.is_fluent_exp():
+                raise up.exceptions.UPUsageError('Simulated effects can be defined on fluent expressions with constant parameters')
+            for c in f.args():
+                if not (c.is_constant or c.is_parameter_exp()):
+                    raise up.exceptions.UPUsageError('Simulated effects can be defined on fluent expressions with constant parameters')
         self._fluents = fluents
         self._function = function
 
