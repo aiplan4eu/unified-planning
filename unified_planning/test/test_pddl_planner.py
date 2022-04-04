@@ -17,7 +17,7 @@
 from io import StringIO
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.solvers.results import SOLVED_OPTIMALLY, TIMEOUT
+from unified_planning.solvers import PlanGenerationResultStatus
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 
@@ -38,7 +38,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions), 1)
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
@@ -54,7 +54,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions), 2)
             self.assertEqual(plan.actions[0].action, a_y)
             self.assertEqual(plan.actions[1].action, a_x)
@@ -71,7 +71,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions), 1)
             self.assertEqual(plan.actions[0].action, move)
@@ -87,7 +87,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertNotEqual(plan, None)
             self.assertEqual(len(plan.actions), 1)
             self.assertEqual(plan.actions[0].action, move)
@@ -105,7 +105,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions), 4)
             self.assertEqual(plan.actions[0].action, move)
             self.assertEqual(plan.actions[1].action, load)
@@ -129,7 +129,7 @@ class TestPDDLPlanner(TestCase):
             final_report = planner.solve(problem, output_stream=output)
             plan = final_report.plan
             planner_output = output.getvalue()
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions), 5)
             self.assertEqual(plan.actions[0].action, move)
             self.assertEqual(plan.actions[1].action, load)
@@ -169,7 +169,7 @@ class TestPDDLPlanner(TestCase):
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem, timeout = VERYSMALL_TIMEOUT)
-            self.assertIn(final_report.status, [TIMEOUT, SOLVED_OPTIMALLY]) # It could happen that the PDDL solver manages to solve the problem
+            self.assertIn(final_report.status, [PlanGenerationResultStatus.TIMEOUT, PlanGenerationResultStatus.SOLVED_OPTIMALLY]) # It could happen that the PDDL solver manages to solve the problem
             self.assertTrue(final_report.plan is None or final_report.plan == right_plan)
 
     @skipIfSolverNotAvailable('opt-pddl-solver')
@@ -183,7 +183,7 @@ class TestPDDLPlanner(TestCase):
 
             final_report = planner.solve(problem, timeout=100)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions), 5)
             self.assertEqual(plan.actions[0].action, move)
             self.assertEqual(plan.actions[1].action, load)
@@ -209,7 +209,7 @@ class TestPDDLPlanner(TestCase):
             final_report = planner.solve(problem, timeout=100, output_stream=output_stream)
             plan = final_report.plan
             planner_output = output_stream.getvalue()
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertEqual(len(plan.actions), 5)
             self.assertEqual(plan.actions[0].action, move)
             self.assertEqual(plan.actions[1].action, load)
@@ -243,10 +243,10 @@ class TestPDDLPlanner(TestCase):
             self.assertIn('\nNumber of Duplicates detected:8\n', planner_output)
 
             for lm in final_report.log_messages:
-                if lm.level_as_str() == 'INFO':
+                if lm.level == up.solvers.LogLevel.INFO:
                     self.assertEqual(planner_output, lm.message)
                 else:
-                    self.assertEqual(lm.level_as_str(), 'ERROR')
+                    self.assertEqual(lm.level, up.solvers.LogLevel.ERROR)
                     self.assertEqual(lm.message, '')
 
     @skipIfSolverNotAvailable('opt-pddl-solver')
@@ -259,12 +259,11 @@ class TestPDDLPlanner(TestCase):
             final_report = planner.solve(problem, timeout=VERYSMALL_TIMEOUT, output_stream=output_stream)
             plan = final_report.plan
             planner_output = output_stream.getvalue()
-            self.assertIn(final_report.status, [TIMEOUT, SOLVED_OPTIMALLY]) # It could happen that the PDDL solver manages to solve the problem
             self.assertTrue(plan is None or plan == right_plan)
 
             for lm in final_report.log_messages:
-                if lm.level_as_str() == 'INFO':
+                if lm.level == up.solvers.LogLevel.INFO:
                     self.assertEqual(planner_output, lm.message)
                 else:
-                    self.assertEqual(lm.level_as_str(), 'ERROR')
+                    self.assertEqual(lm.level, up.solvers.LogLevel.ERROR)
                     self.assertEqual(lm.message, '')

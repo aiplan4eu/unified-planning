@@ -17,6 +17,7 @@ This module defines a global environment, so that most methods can be
 called without the need to specify an environment or a ExpressionManager.
 """
 
+import unified_planning as up
 import unified_planning.model.types
 from unified_planning.environment import get_env
 from unified_planning.model import *
@@ -116,7 +117,7 @@ def OneshotPlanner(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
-                   optimality_guarantee: Optional[Union[int, str]] = None) -> Optional[Solver]:
+                   optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Optional[Solver]:
     """
     Returns a oneshot planner. There are three ways to call this method:
     - using 'name' (the name of a specific planner) and 'params' (planner dependent options).

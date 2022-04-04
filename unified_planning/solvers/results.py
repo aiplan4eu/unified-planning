@@ -18,88 +18,56 @@
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import Dict, Optional, List
 
-ALL_STATUS = list(range(0, 9))
 
-(
-SOLVED_SATISFICING, # Valid plan found.
-SOLVED_OPTIMALLY, # Optimal plan found.
-UNSOLVABLE_PROVEN, # The problem is impossible, no valid plan exists.
-UNSOLVABLE_INCOMPLETELY, # The planner could not find a plan, but it's not sure that the problem is impossible (The planner is incomplete)
-TIMEOUT, # The planner ran out of time
-MEMOUT, # The planner ran out of memory
-INTERNAL_ERROR, # The planner had an internal error
-UNSUPPORTED_PROBLEM, # The problem given is not supported by the planner
-INTERMEDIATE # The report is not a final one but it's given through the callback function
-) = ALL_STATUS
-
-__STATUS_STR__ = {
-    SOLVED_SATISFICING: 'SOLVED_SATISFICING',
-    SOLVED_OPTIMALLY: 'SOLVED_OPTIMALLY',
-    UNSOLVABLE_PROVEN: 'UNSOLVABLE_PROVEN',
-    UNSOLVABLE_INCOMPLETELY: 'UNSOLVABLE_INCOMPLETELY',
-    TIMEOUT: 'TIMEOUT',
-    MEMOUT: 'MEMOUT',
-    INTERNAL_ERROR: 'INTERNAL_ERROR',
-    UNSUPPORTED_PROBLEM: 'UNSUPPORTED_PROBLEM',
-    INTERMEDIATE: 'INTERMEDIATE'
-}
-
-POSITIVE_OUTCOMES = frozenset([SOLVED_SATISFICING, SOLVED_OPTIMALLY])
-
-NEGATIVE_OUTCOMES = frozenset([UNSOLVABLE_PROVEN, UNSOLVABLE_INCOMPLETELY, UNSUPPORTED_PROBLEM])
+class PlanGenerationResultStatus(Enum):
+    SOLVED_SATISFICING = auto() # Valid plan found.
+    SOLVED_OPTIMALLY = auto() # Optimal plan found.
+    UNSOLVABLE_PROVEN = auto() # The problem is impossible, no valid plan exists.
+    UNSOLVABLE_INCOMPLETELY = auto() # The planner could not find a plan, but it's not sure that the problem is impossible (The planner is incomplete)
+    TIMEOUT = auto() # The planner ran out of time
+    MEMOUT = auto() # The planner ran out of memory
+    INTERNAL_ERROR = auto() # The planner had an internal error
+    UNSUPPORTED_PROBLEM = auto() # The problem given is not supported by the planner
+    INTERMEDIATE = auto()# The report is not a final one but it's given through the callback function
 
 
-LOG_LEVEL = list(range(0, 4))
+POSITIVE_OUTCOMES = frozenset([PlanGenerationResultStatus.SOLVED_SATISFICING, PlanGenerationResultStatus.SOLVED_OPTIMALLY])
 
-(
-DEBUG,
-INFO,
-WARNING,
-ERROR
-) = LOG_LEVEL
+NEGATIVE_OUTCOMES = frozenset([PlanGenerationResultStatus.UNSOLVABLE_PROVEN, PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY, PlanGenerationResultStatus.UNSUPPORTED_PROBLEM])
 
-__LOG_LEVEL_STR__ = {
-    DEBUG: 'DEBUG',
-    INFO: 'INFO',
-    WARNING: 'WARNING',
-    ERROR: 'ERROR'
-}
+
+class LogLevel(Enum):
+    DEBUG = auto()
+    INFO = auto()
+    WARNING = auto()
+    ERROR = auto()
+
 
 @dataclass
 class LogMessage:
     '''This class is composed by a message and an integer indicating this message level, like Debug, Info, Warning or Error.'''
-    level: int
+    level: LogLevel
     message: str
 
-    def __post__init(self):
-        assert self.level in LOG_LEVEL
-
-    def level_as_str(self):
-        '''Returns the LogMessage level as a str.'''
-        return __LOG_LEVEL_STR__[self.level]
 
 @dataclass
 class PlanGenerationResult:
     '''Class that represents the result of a plan generation call.'''
-    status: int
+    status: PlanGenerationResultStatus
     plan: Optional['up.plan.Plan']
     planner_name: str = ''
     metrics: Dict[str, str] = field(default=dict) # type: ignore
     log_messages: List[LogMessage] = field(default=list) # type: ignore
 
     def __post__init(self):
-        assert self.status in ALL_STATUS
         # Checks that plan and status are consistent
         if self.status in POSITIVE_OUTCOMES and self.plan is None:
             raise UPUsageError(f'The Result status is {self.status_as_str()} but no plan is set.')
         elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
             raise UPUsageError(f'The Result status is {self.status_as_str()} but the plan is {str(self.plan)}.\nWith this status the plan must be None.')
         self.metrics = {}
-        self.log_messages = [] #NOTE Here, is this initi right? Since it is done after the __init__ the value might be deleted
+        self.log_messages = [] #NOTE Here, is this init right? Since it is done after the __init__ the value might be deleted
         return self
-
-    def status_as_str(self) -> str:
-        '''Returns the status as a str.'''
-        return __STATUS_STR__[self.status]

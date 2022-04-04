@@ -20,19 +20,19 @@ else:
     from collections import Iterable
 
 
-from unified_planning.model import FNode, operators as op
+from unified_planning.model import FNode, OperatorKind
 
 # NodeType to Function Name
-def nt_to_fun(o: int) -> str:
+def nt_to_fun(o: OperatorKind) -> str:
     """Returns the name of the walk function for the given nodetype."""
-    return "walk_%s" % op.op_to_str(o).lower()
+    return "walk_%s" % (str(o).replace('OperatorKind.', '')).lower()
 
 class handles(object):
     """Decorator for walker functions.
     Use it by specifying the nodetypes that need to be handled by the
-    given function. It is possible to use groupd (e.g., op.RELATIONS)
+    given function. It is possible to use groupd (e.g., OperatorKind.RELATIONS)
     directly. ::
-      @handles(op.NODE, ...)
+      @handles(OperatorKind.NODE, ...)
       def walk_special(...):
          ...
     """
@@ -65,7 +65,7 @@ class Walker(object, metaclass=MetaNodeTypeHandler):
 
     def __init__(self):
         self.functions = {}
-        for o in iter(op.ALL_TYPES):
+        for o in iter(OperatorKind):
             try:
                 # getattr will raise an AttributeError exception if a
                 # method does not exist
@@ -95,7 +95,7 @@ class Walker(object, metaclass=MetaNodeTypeHandler):
         f = getattr(cls, nt_to_fun(expression.node_type))
         return f(self, expression, *args, **kwargs)
 
-    @handles(op.ALL_TYPES)
+    @handles(OperatorKind)
     def walk_error(self, expression: FNode, **kwargs):
         raise NotImplementedError
 

@@ -203,7 +203,7 @@ class InstantaneousAction(Action):
             raise UPTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
-        self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.INCREASE))
+        self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.EffectKind.INCREASE))
 
     def add_decrease_effect(self, fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
                    value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
@@ -214,7 +214,7 @@ class InstantaneousAction(Action):
             raise UPTypeError('Effect condition is not a Boolean condition!')
         if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
-        self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.DECREASE))
+        self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, effect: 'up.model.effect.Effect'):
         if effect not in self._effects:
@@ -437,7 +437,7 @@ class DurativeAction(Action):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   up.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = up.model.effect.INCREASE))
+                                         condition_exp, kind = up.model.effect.EffectKind.INCREASE))
 
     def add_decrease_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
                             value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
@@ -450,7 +450,7 @@ class DurativeAction(Action):
             raise UPTypeError('InstantaneousAction effect has not compatible types!')
         self._add_effect_instance(timing,
                                   up.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = up.model.effect.DECREASE))
+                                         condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
         if timing in self._effects:

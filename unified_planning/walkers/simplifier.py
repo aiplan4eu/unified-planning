@@ -320,6 +320,6 @@ class Simplifier(walkers.DagWalker):
         return self._number_to_fnode(value)
 
     @walkers.handles(op.CONSTANTS)
-    @walkers.handles(op.PARAM_EXP, op.VARIABLE_EXP, op.OBJECT_EXP)
+    @walkers.handles(op.OperatorKind.PARAM_EXP, op.OperatorKind.VARIABLE_EXP, op.OperatorKind.OBJECT_EXP)
     def walk_identity(self, expression: FNode, args: List[FNode]) -> FNode:
         return expression

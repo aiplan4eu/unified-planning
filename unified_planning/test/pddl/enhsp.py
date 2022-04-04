@@ -37,14 +37,14 @@ class ENHSP(PDDLSolver):
                 '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename,
                 '-planner', 'opt-hrmax']
 
-    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> int:
+    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
         if plan is None:
-            return up.solvers.results.UNSOLVABLE_PROVEN
+            return up.solvers.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         else:
-            return up.solvers.results.SOLVED_OPTIMALLY
+            return up.solvers.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
 
     @staticmethod
-    def satisfies(optimality_guarantee: Union[int, str]) -> bool:
+    def satisfies(optimality_guarantee: Union[up.solvers.solver.OptimalityGuarantee, str]) -> bool:
         return True
 
     @staticmethod

@@ -21,7 +21,7 @@ import unified_planning.solvers as solvers
 from unified_planning.plan import Plan, ActionInstance
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
-from unified_planning.solvers.results import SOLVED_OPTIMALLY, SOLVED_SATISFICING, UNSOLVABLE_PROVEN
+from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus
 from typing import IO, Callable, Dict, List, Optional, Tuple, cast
 from multiprocessing import Process, Queue
 
@@ -74,7 +74,7 @@ class Parallel(solvers.solver.Solver):
             else:
                 assert isinstance(res, up.solvers.PlanGenerationResult)
                 # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
-                if res.status == SOLVED_OPTIMALLY or res.status == UNSOLVABLE_PROVEN or (res.status == SOLVED_SATISFICING and not optimality_required):
+                if res.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY or res.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN or (res.status == PlanGenerationResultStatus.SOLVED_SATISFICING and not optimality_required):
                     definitive_result_found = True
                     break
                 else:
@@ -86,17 +86,17 @@ class Parallel(solvers.solver.Solver):
         if definitive_result_found: # A planner found a definitive result
             return res
         else:
-            result_order: List[int] = [ up.solvers.results.SOLVED_SATISFICING,  # List containing the results in the order we prefer them
-                                        up.solvers.results.TIMEOUT,
-                                        up.solvers.results.MEMOUT,
-                                        up.solvers.results.INTERNAL_ERROR]
-            logs = up.solvers.LogMessage(up.solvers.results.INFO, ', '.join(planners_final_status))
+            result_order: List[int] = [  PlanGenerationResultStatus.SOLVED_SATISFICING,  # List containing the results in the order we prefer them
+                                         PlanGenerationResultStatus.TIMEOUT,
+                                         PlanGenerationResultStatus.MEMOUT,
+                                         PlanGenerationResultStatus.INTERNAL_ERROR]
+            logs = up.solvers.LogMessage(LogLevel.INFO, ', '.join(planners_final_status))
             for ro in result_order:
                 for r in results:
                     if r.status == ro:
                         return r # NOTE Here we may want to append the logs variable to log_messages
             # if no results are given by the planner, we create a default one
-            return up.solvers.PlanGenerationResult(up.solvers.results.UNSOLVABLE_INCOMPLETELY,
+            return up.solvers.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
                                                     None, self.name, log_messages=[logs])
 
 

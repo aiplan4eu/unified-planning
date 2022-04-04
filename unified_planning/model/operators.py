@@ -13,53 +13,38 @@
 # limitations under the License.
 #
 """This module defines all the operators used by the Unified Planning library."""
+from enum import Enum, auto
 
-ALL_TYPES = list(range(0, 21))
+class OperatorKind(Enum):
+    AND = auto()
+    OR = auto()
+    NOT = auto()
+    IMPLIES = auto()
+    IFF = auto()
+    EXISTS = auto()
+    FORALL = auto()
+    FLUENT_EXP = auto()
+    PARAM_EXP = auto()
+    VARIABLE_EXP = auto()
+    OBJECT_EXP = auto()
+    BOOL_CONSTANT = auto()
+    INT_CONSTANT = auto()
+    REAL_CONSTANT = auto()
+    PLUS = auto()
+    MINUS = auto()
+    TIMES = auto()
+    DIV = auto()
+    LE = auto()
+    LT = auto()
+    EQUALS = auto()
 
-(
-AND, OR, NOT, IMPLIES, IFF, EXISTS, FORALL,
-FLUENT_EXP, PARAM_EXP, VARIABLE_EXP, OBJECT_EXP,
-BOOL_CONSTANT, INT_CONSTANT, REAL_CONSTANT,
-PLUS, MINUS, TIMES, DIV,
-LE, LT, EQUALS
-) = ALL_TYPES
+BOOL_OPERATORS = frozenset([OperatorKind.AND, OperatorKind.OR, OperatorKind.NOT,
+                            OperatorKind.IMPLIES, OperatorKind.IFF, OperatorKind.EXISTS, OperatorKind.FORALL])
 
-BOOL_OPERATORS = frozenset([AND, OR, NOT, IMPLIES, IFF, EXISTS, FORALL])
+CONSTANTS = frozenset([OperatorKind.BOOL_CONSTANT, OperatorKind.REAL_CONSTANT, OperatorKind.INT_CONSTANT])
 
-CONSTANTS = frozenset([BOOL_CONSTANT, REAL_CONSTANT, INT_CONSTANT])
+IRA_RELATIONS = frozenset([OperatorKind.LE, OperatorKind.LT])
 
-IRA_RELATIONS = frozenset([LE, LT])
+RELATIONS = frozenset((OperatorKind.EQUALS,)) | IRA_RELATIONS
 
-RELATIONS = frozenset((EQUALS,)) | IRA_RELATIONS
-
-IRA_OPERATORS = frozenset([PLUS, MINUS, TIMES, DIV])
-
-
-def op_to_str(node_id: int) -> str:
-    """Returns a string representation of the given node."""
-    return __OP_STR__[node_id]
-
-
-__OP_STR__ = {
-    AND : "AND",
-    OR : "OR",
-    NOT : "NOT",
-    IMPLIES : "IMPLIES",
-    IFF : "IFF",
-    EXISTS : "EXISTS",
-    FORALL : "FORALL",
-    FLUENT_EXP : "FLUENT_EXP",
-    PARAM_EXP: "PARAM_EXP",
-    VARIABLE_EXP: "VARIABLE_EXP",
-    OBJECT_EXP: "OBJECT_EXP",
-    BOOL_CONSTANT : "BOOL_CONSTANT",
-    INT_CONSTANT : "INT_CONSTANT",
-    REAL_CONSTANT : "REAL_CONSTANT",
-    PLUS : "PLUS",
-    MINUS : "MINUS",
-    TIMES : "TIMES",
-    DIV : "DIV",
-    LE : "LE",
-    LT : "LT",
-    EQUALS : "EQUALS"
-}
+IRA_OPERATORS = frozenset([OperatorKind.PLUS, OperatorKind.MINUS, OperatorKind.TIMES, OperatorKind.DIV])

@@ -254,10 +254,12 @@ def _convert_effect(effect: 'unified_planning.model.Effect', tfc: TarskiFormulaC
         else:
             return tarski.fstrips.DelEffect(predicate, condition)
     else:
-        if effect.kind == unified_planning.model.effect.ASSIGN:
+        if effect.kind == unified_planning.model.EffectKind.ASSIGN:
             value = tfc.convert_formula(effect.value)
-        elif effect.kind == unified_planning.model.effect.INCREASE:
+        elif effect.kind == unified_planning.model.EffectKind.INCREASE:
             value = tfc.convert_formula(em.Plus(effect.fluent, effect.value))
-        else:
+        elif effect.kind == unified_planning.model.EffectKind.DECREASE:
             value = tfc.convert_formula(em.Minus(effect.fluent, effect.value))
+        else:
+            raise NotImplementedError
         return tarski.fstrips.FunctionalEffect(predicate, value, condition)
