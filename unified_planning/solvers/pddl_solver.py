@@ -16,6 +16,7 @@
 
 
 import asyncio
+from asyncio.subprocess import PIPE
 import select
 import sys
 import tempfile
@@ -29,7 +30,7 @@ from unified_planning.shortcuts import *
 from unified_planning.solvers.results import PlanGenerationResult
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
-from typing import IO, Any, Callable, Optional, List
+from typing import IO, Any, Callable, Optional, List, cast
 
 
 class PDDLSolver(solvers.solver.Solver):
@@ -88,38 +89,22 @@ class PDDLSolver(solvers.solver.Solver):
             w.write_domain(domanin_filename)
             w.write_problem(problem_filename)
             cmd = self._get_cmd(domanin_filename, problem_filename, plan_filename)
-            proc_out: List[str] = []
-            proc_err: List[str] = []
 
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            timeout_occurred = False
-            if output_stream is None:
-                try:
-                    out_err_bytes = proc.communicate(timeout=timeout)
-                    proc_out, proc_err = [out_err_bytes[0].decode()], [out_err_bytes[1].decode()]
-                except subprocess.TimeoutExpired:
-                    timeout_occurred = True
-            else: #output_stream is not None
-                start_time = time.time()
-                last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
-                readable_streams: List[Any] = []
+            if sys.platform == "win32":
+                loop = asyncio.ProactorEventLoop() # For subprocess' pipes on Windows
+                asyncio.set_event_loop(loop)
+            else:
+                loop = asyncio.get_event_loop()
 
-                if sys.platform == "win32":
-                    loop = asyncio.ProactorEventLoop() # For subprocess' pipes on Windows
-                    asyncio.set_event_loop(loop)
-                else:
-                    loop = asyncio.get_event_loop()
+            timeout_occurred, (proc_out, proc_err) = loop.run_until_complete(run_command(cmd, timeout=timeout, output_stream=output_stream))
 
-                res, data = loop.run_until_complete(run_command(cmd, timeout=timeout))
-
-
-            loop.close()
             logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
-            if timeout_occurred and proc.returncode != 0: # Also check returncode, in case the planner did finish normally
-                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name) #The plan could be "plan" and not None, to see if a plan was found during the timeout
+
+            if timeout_occurred:  #NOTE The plan could be "plan" and not None, to see if a plan was found during the timeout
+                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=None, log_messages=logs, planner_name=self.name)
         status: int = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name)
 
@@ -131,16 +116,17 @@ class PDDLSolver(solvers.solver.Solver):
     def destroy(self):
         pass
 
-async def run_command(cmd, timeout=None):
+async def run_command(cmd, timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None):
     start = time.time()
     process = await asyncio.create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
 
-    res = "OK"
-    data = [[], []] #stdout, stderr
+    timeout_occoured = False
+    process_output: Tuple[List[str], List[str]] = ([], []) #stdout, stderr
     while True:
         lines = [b"", b""]
         oks = [True, True]
         for idx, stream in enumerate([process.stdout, process.stderr]):
+            assert stream is not None
             try:
                 lines[idx] = await asyncio.wait_for(stream.readline(), 0.5)
             except asyncio.TimeoutError:
@@ -150,12 +136,14 @@ async def run_command(cmd, timeout=None):
             break
         else:
             for idx in range(2):
-                data[idx].append(lines[idx].decode())
-
-        if time.time() - start >= timeout:
+                output_string = lines[idx].decode()
+                if output_stream is not None:
+                    cast(IO[str], output_stream).write(output_string)
+                process_output[idx].append(output_string)
+        if timeout is not None and time.time() - start >= timeout:
             process.kill() # Timeout or some criterion is not satisfied
-            res = "TimeoutError"
+            timeout_occoured = True
             break
 
     await process.wait() # Wait for the child process to exit
-    return res, data
+    return timeout_occoured, process_output
