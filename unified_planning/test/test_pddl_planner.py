@@ -141,34 +141,35 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions[3].actual_parameters), 3)
             self.assertEqual(len(plan.actions[4].actual_parameters), 3)
 
-            self.assertIn('Domain parsed\nProblem parsed\n', planner_output)
-            self.assertIn('\nGrounding..\nGrounding Time:', planner_output)
-            self.assertIn('Aibr Preprocessing\n|F|:7\n', planner_output)
-            self.assertIn('\n|X|:0\n|A|:15\n', planner_output)
-            self.assertIn('\n|P|:0\n|E|:0\nH1 Setup Time (msec): ', planner_output)
-            self.assertIn('Setting horizon to:NaN\nHelpful Action Pruning Activated\n', planner_output)
-            self.assertIn('\nRunning WA-STAR\nh(n = s_0)=3.0\n', planner_output)
-            self.assertIn('f(n) = 3.0 (Expanded Nodes: 0, Evaluated States: 0, Time: ', planner_output)
-            self.assertIn('f(n) = 4.0 (Expanded Nodes: 2, Evaluated States: 3, Time: ', planner_output)
-            self.assertIn('f(n) = 5.0 (Expanded Nodes: 5, Evaluated States: 6, Time: ', planner_output)
-            self.assertIn('Problem Solved\n\nFound Plan:\n', planner_output)
-            self.assertIn('\n0.0: (move l1 l2 r1)\n1.0: (load l2 r1 c1)\n2.0: (move l2 l3 r1)', planner_output)
-            self.assertIn('3.0: (unload l3 r1 c1)\n4.0: (move l3 l1 r1)\n\nPlan-Length:5\n', planner_output)
-            self.assertIn('\nMetric (Search):5.0\nPlanning Time (msec):', planner_output)
-            self.assertIn('\nHeuristic Time (msec): ', planner_output)
-            self.assertIn('\nSearch Time (msec): ', planner_output)
-            self.assertIn('\nExpanded Nodes:7\nStates Evaluated:8\n', planner_output)
-            self.assertIn('\nFixed constraint violations during search (zero-crossing):0\nNumber of Dead-Ends detected:0\n', planner_output)
-            self.assertIn('\nNumber of Duplicates detected:8\n', planner_output)
+            expected_planner_output = planner_output.replace('\r\n', '\n')
+            self.assertIn(f'Domain parsed\nProblem parsed\n', expected_planner_output)
+            self.assertIn(f'\nGrounding..\nGrounding Time:', expected_planner_output)
+            self.assertIn(f'Aibr Preprocessing\n|F|:7\n', expected_planner_output)
+            self.assertIn(f'\n|X|:0\n|A|:15\n', expected_planner_output)
+            self.assertIn(f'\n|P|:0\n|E|:0\nH1 Setup Time (msec): ', expected_planner_output)
+            self.assertIn(f'Setting horizon to:NaN\nHelpful Action Pruning Activated\n', expected_planner_output)
+            self.assertIn(f'\nRunning WA-STAR\nh(n = s_0)=3.0\n', expected_planner_output)
+            self.assertIn(f'f(n) = 3.0 (Expanded Nodes: 0, Evaluated States: 0, Time: ', expected_planner_output)
+            self.assertIn(f'f(n) = 4.0 (Expanded Nodes: 2, Evaluated States: 3, Time: ', expected_planner_output)
+            self.assertIn(f'f(n) = 5.0 (Expanded Nodes: 5, Evaluated States: 6, Time: ', expected_planner_output)
+            self.assertIn(f'Problem Solved\n\nFound Plan:\n', expected_planner_output)
+            self.assertIn(f'\n0.0: (move l1 l2 r1)\n1.0: (load l2 r1 c1)\n2.0: (move l2 l3 r1)', expected_planner_output)
+            self.assertIn(f'3.0: (unload l3 r1 c1)\n4.0: (move l3 l1 r1)\n\nPlan-Length:5\n', expected_planner_output)
+            self.assertIn(f'\nMetric (Search):5.0\nPlanning Time (msec):', expected_planner_output)
+            self.assertIn(f'\nHeuristic Time (msec): ', expected_planner_output)
+            self.assertIn(f'\nSearch Time (msec): ', expected_planner_output)
+            self.assertIn(f'\nExpanded Nodes:7\nStates Evaluated:8\n', expected_planner_output)
+            self.assertIn(f'\nFixed constraint violations during search (zero-crossing):0\nNumber of Dead-Ends detected:0\n', expected_planner_output)
+            self.assertIn(f'\nNumber of Duplicates detected:8\n', expected_planner_output)
 
     @skipIfSolverNotAvailable('enhsp')
     def test_robot_loader_adv_with_timeout(self):
-        problem = self.problems['robot_loader_adv'].problem
+        problem, right_plan = self.problems['robot_loader_adv'].problem, self.problems['robot_loader_adv'].plan
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem, timeout = 0.0001)
-            self.assertEqual(final_report.plan, None)
+            self.assertTrue(final_report.plan is None or final_report.plan == right_plan)
             self.assertEqual(final_report.status, TIMEOUT)
 
     @skipIfSolverNotAvailable('enhsp')
@@ -221,25 +222,26 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions[3].actual_parameters), 3)
             self.assertEqual(len(plan.actions[4].actual_parameters), 3)
 
-            self.assertIn('Domain parsed\nProblem parsed\n', planner_output)
-            self.assertIn('\nGrounding..\nGrounding Time:', planner_output)
-            self.assertIn('Aibr Preprocessing\n|F|:7\n', planner_output)
-            self.assertIn('\n|X|:0\n|A|:15\n', planner_output)
-            self.assertIn('\n|P|:0\n|E|:0\nH1 Setup Time (msec): ', planner_output)
-            self.assertIn('Setting horizon to:NaN\nHelpful Action Pruning Activated\n', planner_output)
-            self.assertIn('\nRunning WA-STAR\nh(n = s_0)=3.0\n', planner_output)
-            self.assertIn('f(n) = 3.0 (Expanded Nodes: 0, Evaluated States: 0, Time: ', planner_output)
-            self.assertIn('f(n) = 4.0 (Expanded Nodes: 2, Evaluated States: 3, Time: ', planner_output)
-            self.assertIn('f(n) = 5.0 (Expanded Nodes: 5, Evaluated States: 6, Time: ', planner_output)
-            self.assertIn('Problem Solved\n\nFound Plan:\n', planner_output)
-            self.assertIn('\n0.0: (move l1 l2 r1)\n1.0: (load l2 r1 c1)\n2.0: (move l2 l3 r1)', planner_output)
-            self.assertIn('3.0: (unload l3 r1 c1)\n4.0: (move l3 l1 r1)\n\nPlan-Length:5\n', planner_output)
-            self.assertIn('\nMetric (Search):5.0\nPlanning Time (msec):', planner_output)
-            self.assertIn('\nHeuristic Time (msec): ', planner_output)
-            self.assertIn('\nSearch Time (msec): ', planner_output)
-            self.assertIn('\nExpanded Nodes:7\nStates Evaluated:8\n', planner_output)
-            self.assertIn('\nFixed constraint violations during search (zero-crossing):0\nNumber of Dead-Ends detected:0\n', planner_output)
-            self.assertIn('\nNumber of Duplicates detected:8\n', planner_output)
+            expected_planner_output = planner_output.replace('\r\n', '\n')
+            self.assertIn(f'Domain parsed\nProblem parsed\n', expected_planner_output)
+            self.assertIn(f'\nGrounding..\nGrounding Time:', expected_planner_output)
+            self.assertIn(f'Aibr Preprocessing\n|F|:7\n', expected_planner_output)
+            self.assertIn(f'\n|X|:0\n|A|:15\n', expected_planner_output)
+            self.assertIn(f'\n|P|:0\n|E|:0\nH1 Setup Time (msec): ', expected_planner_output)
+            self.assertIn(f'Setting horizon to:NaN\nHelpful Action Pruning Activated\n', expected_planner_output)
+            self.assertIn(f'\nRunning WA-STAR\nh(n = s_0)=3.0\n', expected_planner_output)
+            self.assertIn(f'f(n) = 3.0 (Expanded Nodes: 0, Evaluated States: 0, Time: ', expected_planner_output)
+            self.assertIn(f'f(n) = 4.0 (Expanded Nodes: 2, Evaluated States: 3, Time: ', expected_planner_output)
+            self.assertIn(f'f(n) = 5.0 (Expanded Nodes: 5, Evaluated States: 6, Time: ', expected_planner_output)
+            self.assertIn(f'Problem Solved\n\nFound Plan:\n', expected_planner_output)
+            self.assertIn(f'\n0.0: (move l1 l2 r1)\n1.0: (load l2 r1 c1)\n2.0: (move l2 l3 r1)', expected_planner_output)
+            self.assertIn(f'3.0: (unload l3 r1 c1)\n4.0: (move l3 l1 r1)\n\nPlan-Length:5\n', expected_planner_output)
+            self.assertIn(f'\nMetric (Search):5.0\nPlanning Time (msec):', expected_planner_output)
+            self.assertIn(f'\nHeuristic Time (msec): ', expected_planner_output)
+            self.assertIn(f'\nSearch Time (msec): ', expected_planner_output)
+            self.assertIn(f'\nExpanded Nodes:7\nStates Evaluated:8\n', expected_planner_output)
+            self.assertIn(f'\nFixed constraint violations during search (zero-crossing):0\nNumber of Dead-Ends detected:0\n', expected_planner_output)
+            self.assertIn(f'\nNumber of Duplicates detected:8\n', expected_planner_output)
 
             for lm in final_report.log_messages:
                 if lm.level_as_str() == 'INFO':
@@ -250,7 +252,7 @@ class TestPDDLPlanner(TestCase):
 
     @skipIfSolverNotAvailable('enhsp')
     def test_robot_loader_adv_with_short_timeout_and_output_stream(self):
-        problem = self.problems['robot_loader_adv'].problem
+        problem, right_plan = self.problems['robot_loader_adv'].problem, self.problems['robot_loader_adv'].plan
         output_stream = StringIO()
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
@@ -259,7 +261,7 @@ class TestPDDLPlanner(TestCase):
             plan = final_report.plan
             planner_output = output_stream.getvalue()
             self.assertEqual(final_report.status, TIMEOUT)
-            self.assertEqual(plan, None)
+            self.assertTrue(plan is None or plan == right_plan)
 
             for lm in final_report.log_messages:
                 if lm.level_as_str() == 'INFO':

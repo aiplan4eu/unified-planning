@@ -94,17 +94,18 @@ class PDDLSolver(solvers.solver.Solver):
                 loop = asyncio.ProactorEventLoop() # For subprocess' pipes on Windows
                 asyncio.set_event_loop(loop)
             else:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.new_event_loop()
 
             timeout_occurred, (proc_out, proc_err) = loop.run_until_complete(run_command(cmd, timeout=timeout, output_stream=output_stream))
 
+            loop.close()
             logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
 
             if timeout_occurred:  #NOTE The plan could be "plan" and not None, to see if a plan was found during the timeout
-                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=None, log_messages=logs, planner_name=self.name)
+                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name)
         status: int = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name)
 
