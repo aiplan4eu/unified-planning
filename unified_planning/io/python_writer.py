@@ -34,7 +34,7 @@ class ConverterToPythonString(walkers.DagWalker):
         self._names_mapping = names_mapping
 
     def convert(self, expression):
-        '''Converts the given expression to a PDDL string.'''
+        '''Converts the given expression to a python command.'''
         if expression is None:
             return 'None'
         return self.walk(expression)
@@ -143,6 +143,25 @@ class PythonWriter:
     def _write_problem_code(self, out: IO[str]):
 
         names_mapping: Dict[str, str] = {}
+        # Initialize names_mapping with valid names
+        for type in self.problem.user_types: # define user_types
+            utype = cast(_UserType, type)
+            type_var_name = f'type_{utype.name}'
+            if type_var_name.isidentifier():
+                names_mapping[type_var_name] = type_var_name
+        for fluent in self.problem.fluents:
+            fluent_var_name = f'fluent_{fluent.name}'
+            if fluent_var_name.isidentifier():
+                names_mapping[fluent_var_name] = fluent_var_name
+        for object in self.problem.all_objects:
+            object_var_name = f'object_{object.name}'
+            if object_var_name.isidentifier():
+                names_mapping[object_var_name] = object_var_name
+        for action in self.problem.actions:
+            action_var_name = f'act_{action.name}'
+            if action_var_name.isidentifier():
+                names_mapping[action_var_name] = action_var_name
+
         converter = ConverterToPythonString(self.problem.env, names_mapping)
         out.write('from fractions import Fraction\n')
         out.write('from collections import OrderedDict\n')
@@ -274,7 +293,9 @@ class PythonWriter:
 
 
 def _get_mangled_name(original_name: str, names_mapping: Dict[str, str]) -> str:
-    '''Important note: This method updates the nammes_mapping '''
+    '''Important note: This method updates the names_mapping '''
+    regex = re.compile('^[a-zA-Z_]+.*')
+    assert re.match(regex, original_name) is not None
     new_name: Optional[str] = names_mapping.get(original_name, None)
     if new_name is None: # The name is not in the map, so it must be added
         if not original_name.isidentifier(): # Make the name a python identifier
@@ -283,11 +304,11 @@ def _get_mangled_name(original_name: str, names_mapping: Dict[str, str]) -> str:
             new_name = original_name
         test_name = new_name # Init values
         count = 0
-        while test_name in names_mapping.values(): # Loop until we find a fresh name #NOTE is it a problem to always call names_mapping.values()? Is it better to define something like "invalid_names = [names_mapping.values()]" and use invalid_names instead?
+        while test_name in names_mapping.values(): # Loop until we find a fresh name
             test_name = f'{new_name}_{str(count)}'
             count += 1
         new_name = test_name
-        names_mapping[original_name] = new_name #Once a fresh valid name is found, update the map.
+        names_mapping[original_name] = new_name # Once a fresh valid name is found, update the map.
     assert new_name is not None
     assert new_name.isidentifier()
     return new_name
