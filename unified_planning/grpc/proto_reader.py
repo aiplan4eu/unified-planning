@@ -78,6 +78,8 @@ def op_to_node_type(op: str) -> int:
     elif op == "iff":
         return operators.IFF
 
+    raise ValueError(f"Unknown operator `{op}`")
+
 
 class ProtobufReader(Converter):
     current_action = None
@@ -132,12 +134,11 @@ class ProtobufReader(Converter):
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"):
             node_type = op_to_node_type(msg.atom.symbol)
-            if node_type is not None:
-                return problem.env.expression_manager.create_node(
-                    node_type=node_type,
-                    args=tuple(args),
-                    payload=None,
-                )
+            return problem.env.expression_manager.create_node(
+                node_type=node_type,
+                args=tuple(args),
+                payload=None,
+            )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
             return problem.env.expression_manager.create_node(
                 node_type=operators.OBJECT_EXP,
@@ -257,16 +258,19 @@ class ProtobufReader(Converter):
         for eff in msg.effects:
             exp = self.convert(eff.effect, problem, parameters)
             try:
-                action.add_timed_effect(
+                action.add_effect(
                     timing=self.convert(eff.occurence_time),
                     fluent=exp.fluent(),
                     value=exp.value(),
+                    condition=exp.condition(),
                 )
-            except AttributeError:
-                action.add_effect(fluent=exp.fluent(), value=exp.value())
+            except TypeError:
+                action.add_effect(
+                    fluent=exp.fluent(), value=exp.value(), condition=exp.condition()
+                )
 
         if msg.HasField("cost"):
-            action.set_cost(self.convert(msg.cost, problem))
+            action.set_cost(self.convert(msg.cost, problem, []))
 
         return action
 
@@ -290,6 +294,15 @@ class ProtobufReader(Converter):
             value=self.convert(msg.value, problem, param_map),
             condition=self.convert(msg.condition, problem, param_map),
             kind=kind,
+        )
+
+    @handles(unified_planning_pb2.Duration)
+    def _convert_duration(self, msg, problem):
+        return unified_planning.model.timing.DurationInterval(
+            lower=self.convert(msg.controllable_in_bounds.lower, problem, []),
+            upper=self.convert(msg.controllable_in_bounds.upper, problem, []),
+            is_left_open=bool(msg.controllable_in_bounds.is_left_open),
+            is_right_open=bool(msg.controllable_in_bounds.is_right_open),
         )
 
     @handles(unified_planning_pb2.TimeInterval)

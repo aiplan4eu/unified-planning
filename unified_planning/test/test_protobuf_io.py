@@ -12,18 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import os
-import tempfile
-from typing import cast
 import pytest
-import unified_planning
-from unified_planning.model import problem, problem_kind
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import TestCase
 from unified_planning.grpc.proto_reader import ProtobufReader
 from unified_planning.grpc.proto_writer import ProtobufWriter
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.types import _UserType
 import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 
 

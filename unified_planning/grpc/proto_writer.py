@@ -50,6 +50,8 @@ def map_operator(op: int) -> str:
     elif op == "FORALL":
         return "forall"
 
+    raise ValueError(f"Unknown operator `{op}`")
+
 
 class ProtobufWriter(Converter):
     @handles(unified_planning.model.Fluent)
@@ -194,19 +196,23 @@ class ProtobufWriter(Converter):
             cost = self.convert(a.cost())
 
         for span, cond in a.conditions().items():
-            conditions.append(
-                unified_planning_pb2.Condition(
-                    cond=self.convert(cond),
-                    span=self.convert(span),
+            span = self.convert(span)
+            for c in cond:
+                conditions.append(
+                    unified_planning_pb2.Condition(
+                        cond=self.convert(c),
+                        span=span,
+                    )
                 )
-            )
         for ot, eff in a.effects().items():
-            effects.append(
-                unified_planning_pb2.Effect(
-                    effect=self.convert(eff),
-                    occurence_time=self.convert(ot),
+            ot = self.convert(ot)
+            for e in eff:
+                effects.append(
+                    unified_planning_pb2.Effect(
+                        effect=self.convert(e),
+                        occurence_time=ot,
+                    )
                 )
-            )
 
         return unified_planning_pb2.Action(
             name=a.name,
@@ -238,18 +244,18 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.TimeInterval)
     def _convert_time_interval(self, interval):
-        return unified_planning_pb2.Interval(
+        return unified_planning_pb2.TimeInterval(
             is_left_open=interval.is_left_open(),
             lower=self.convert(interval.lower()),
             is_right_open=interval.is_right_open(),
-            upper=self.convert(interval.lower()),
+            upper=self.convert(interval.upper()),
         )
 
     @handles(unified_planning.model.DurationInterval)
     def _convert_duration_interval(self, interval):
         return unified_planning_pb2.Duration(
             controllable_in_bounds=unified_planning_pb2.Interval(
-                s_left_open=interval.is_left_open(),
+                is_left_open=interval.is_left_open(),
                 lower=self.convert(interval.lower()),
                 is_right_open=interval.is_right_open(),
                 upper=self.convert(interval.lower()),
@@ -267,12 +273,12 @@ class ProtobufWriter(Converter):
                 for g in gs
             ]
 
+        # TODO: Add quality metrics to parsing
+
         return unified_planning_pb2.Problem(
             domain_name=str(problem.name + "_domain"),
             problem_name=problem.name,
-            types=[
-                self.convert(t) for t in problem.user_types()
-            ],  # TODO: only user types?
+            types=[self.convert(t) for t in problem.user_types()],
             fluents=[self.convert(f) for f in problem.fluents()],
             objects=[self.convert(o) for o in problem.all_objects()],
             actions=[self.convert(a) for a in problem.actions()],
