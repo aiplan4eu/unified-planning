@@ -18,15 +18,8 @@ from typing import OrderedDict
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
 from unified_planning.grpc.converter import Converter, handles
 import unified_planning.model
+from unified_planning.model import operators
 from unified_planning.model.effect import ASSIGN, INCREASE, DECREASE
-from unified_planning.model.operators import (
-    BOOL_CONSTANT,
-    FLUENT_EXP,
-    INT_CONSTANT,
-    OBJECT_EXP,
-    PARAM_EXP,
-    REAL_CONSTANT,
-)
 import unified_planning.plan
 from unified_planning.model import (
     Effect,
@@ -54,12 +47,36 @@ def convert_type_str(s, env):
     return value_type
 
 
+# The operators are based on Sexpressions supported in PDDL.
+def op_to_node_type(op: str) -> int:
+    # TODO: Not all operators are added currently
+    if op == "+":
+        return operators.PLUS
+    elif op == "-":
+        return operators.MINUS
+    elif op == "*":
+        return operators.TIMES
+    elif op == "/":
+        return operators.DIV
+    elif op == "=":
+        return operators.EQUALS
+    elif op == "<=":
+        return operators.LE
+    elif op == "<":
+        return operators.LT
+    elif op == "and":
+        return operators.AND
+    elif op == "or":
+        return operators.OR
+    elif op == "not":
+        return operators.NOT
+
+
 class ProtobufReader(Converter):
     current_action = None
 
     @handles(unified_planning_pb2.Parameter)
     def _convert_parameter(self, msg, problem):
-        # TODO: Convert parameter names into parameter types?
         return ActionParameter(
             msg.name,
             convert_type_str(msg.type, problem.env),
@@ -85,36 +102,36 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Expression)
     def _convert_expression(self, msg, problem, param_map):
-        payload = self.convert(msg.atom, problem)
         args = []
         for arg_msg in msg.list:
             args.append(self.convert(arg_msg, problem, param_map))
 
         if msg.kind == unified_planning_pb2.ExpressionKind.Value("CONSTANT"):
             assert msg.atom is not None
+            payload = self.convert(msg.atom, problem)
 
             if msg.type == "bool":
                 return problem.env.expression_manager.create_node(
-                    node_type=BOOL_CONSTANT,
+                    node_type=operators.BOOL_CONSTANT,
                     args=tuple(args),
                     payload=payload,
                 )
             elif msg.type == "int":
                 return problem.env.expression_manager.create_node(
-                    node_type=INT_CONSTANT,
+                    node_type=operators.INT_CONSTANT,
                     args=tuple(args),
                     payload=payload,
                 )
             elif msg.type == "real":
                 return problem.env.expression_manager.create_node(
-                    node_type=REAL_CONSTANT,
+                    node_type=operators.REAL_CONSTANT,
                     args=tuple(args),
                     payload=payload,
                 )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
             # IN UP, parameters are the user types and not the parameter name itself
             return problem.env.expression_manager.create_node(
-                node_type=PARAM_EXP,
+                node_type=operators.PARAM_EXP,
                 args=tuple(args),
                 payload=ActionParameter(
                     msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
@@ -123,17 +140,25 @@ class ProtobufReader(Converter):
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL"):
             assert problem.has_fluent(msg.atom.symbol)
             return problem.env.expression_manager.create_node(
-                node_type=FLUENT_EXP,
+                node_type=operators.FLUENT_EXP,
                 args=tuple(args),
-                payload=payload,
+                payload=self.convert(msg.atom, problem),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"):
-            # TODO: complete the function symbol conversion
-            return
+            # TODO: fix problem with `TypeChecker`
+            # For example, battery charge of type `real[0, 100]` is operational with `10`
+            node_type = op_to_node_type(msg.atom.symbol)
+            if node_type is not None:
+                return problem.env.expression_manager.create_node(
+                    node_type=node_type,
+                    args=tuple(args),
+                    payload=None,
+                )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
-            atom = self.convert(msg.atom, problem)
             return problem.env.expression_manager.create_node(
-                node_type=OBJECT_EXP, args=(), payload=payload
+                node_type=operators.OBJECT_EXP,
+                args=(),
+                payload=self.convert(msg.atom, problem),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value(
             "FUNCTION_APPLICATION"
@@ -156,7 +181,6 @@ class ProtobufReader(Converter):
         elif field == "real":
             return problem.env.expression_manager.Real(value)
         elif field == "boolean":
-            # TODO: fix BoolExp returning always False Expressions
             return problem.env.expression_manager.Bool(value)
         else:
             if problem.has_object(value):
@@ -237,9 +261,6 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Action)
     def _convert_action(self, msg, problem):
-        # TODO: fix `NOT`conditions and assignments are currently returning None
-        # TODO: fix `FUNCTION_SYMBOLS` are currently returning None
-
         parameters = OrderedDict()
         action: unified_planning.model.Action
 
@@ -255,8 +276,6 @@ class ProtobufReader(Converter):
         self.current_action = action
         for cond in msg.conditions:
             exp = self.convert(cond.cond, problem, parameters)
-            if exp is None:
-                continue
             try:
                 action.add_condition(self.convert(cond.span), exp)
             except AttributeError:
@@ -264,8 +283,6 @@ class ProtobufReader(Converter):
 
         for eff in msg.effects:
             exp = self.convert(eff.effect, problem, parameters)
-            if exp.fluent() is None or exp.value() is None:
-                continue
             try:
                 action.add_timed_effect(
                     timing=self.convert(eff.occurence_time),
@@ -295,19 +312,13 @@ class ProtobufReader(Converter):
         ):
             kind = DECREASE
 
-        if msg.HasField("condition"):
-            return Effect(
-                self.convert(msg.fluent, problem, param_map),
-                self.convert(msg.value, problem, param_map),
-                self.convert(msg.condition, problem, param_map),
-                kind,
-            )
-        else:
-            return Effect(
-                self.convert(msg.fluent, problem, param_map),
-                self.convert(msg.value, problem, param_map),
-                kind,
-            )
+        # TODO: fix `effect.value` is always returning false for BoolExp
+        return Effect(
+            fluent=self.convert(msg.fluent, problem, param_map),
+            value=self.convert(msg.value, problem, param_map),
+            condition=self.convert(msg.condition, problem, param_map),
+            kind=kind,
+        )
 
     @handles(unified_planning_pb2.TimeInterval)
     def _convert_timed_interval(self, msg):
@@ -364,7 +375,9 @@ class ProtobufReader(Converter):
 
             parameters.append(
                 problem.env.expression_manager.create_node(
-                    node_type=OBJECT_EXP, args=(), payload=problem.object(param.symbol)
+                    node_type=operators.OBJECT_EXP,
+                    args=(),
+                    payload=problem.object(param.symbol),
                 )
             )
 

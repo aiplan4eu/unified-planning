@@ -19,6 +19,31 @@ import unified_planning.model
 import unified_planning.plan
 
 
+def map_operator(op: int) -> str:
+    # TODO: Not all operators are added currently
+    op = op_to_str(op)
+    if op == "PLUS":
+        return "+"
+    elif op == "MINUS":
+        return "-"
+    elif op == "TIMES":
+        return "*"
+    elif op == "DIV":
+        return "/"
+    elif op == "LE":
+        return "<="
+    elif op == "LT":
+        return "<"
+    elif op == "EQUALS":
+        return "="
+    elif op == "AND":
+        return "and"
+    elif op == "OR":
+        return "or"
+    elif op == "NOT":
+        return "not"
+
+
 class ProtobufWriter(Converter):
     @handles(unified_planning.model.Fluent)
     def _convert_fluent(self, fluent):
@@ -73,11 +98,9 @@ class ProtobufWriter(Converter):
             kind = unified_planning_pb2.ExpressionKind.Value("PARAMETER")
             p_type = str(payload.type())
             atom = unified_planning_pb2.Atom(symbol=payload.name())
-        elif payload is not None:
+        else:
             kind = unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL")
-            atom = unified_planning_pb2.Atom(symbol=payload.name())
-            # TODO: check function symbols types
-            # TODO: Add function symbols as atoms to be parsed
+            atom = unified_planning_pb2.Atom(symbol=map_operator(exp.node_type()))
 
         for arg in args:
             arg_list.append(self.convert(arg))
@@ -114,49 +137,74 @@ class ProtobufWriter(Converter):
         elif effect.is_decrease():
             kind = unified_planning_pb2.EffectExpression.EffectKind.Value("DECREASE")
 
-        return unified_planning_pb2.Effect(
-            effect=unified_planning_pb2.EffectExpression(
-                kind=kind,
-                fluent=self.convert(effect.fluent()),
-                value=self.convert(effect.value()),
-                condition=self.convert(effect.condition()),
-            ),
-            occurence_time=None,
-        )  # TODO: Not clear where this is supposed to come from
+        return unified_planning_pb2.EffectExpression(
+            kind=kind,
+            fluent=self.convert(effect.fluent()),
+            value=self.convert(effect.value()),
+            condition=self.convert(effect.condition()),
+        )
 
     @handles(unified_planning.model.InstantaneousAction)
     def _convert_instantaneous_action(self, a):
         cost = None
+        effects = []
+        conditions = []
         if a.cost() is not None:
             cost = self.convert(a.cost())
+
+        for cond in a.preconditions():
+            conditions.append(
+                unified_planning_pb2.Condition(
+                    cond=self.convert(cond),
+                    span=None,
+                )
+            )
+
+        for eff in a.effects():
+            effects.append(
+                unified_planning_pb2.Effect(
+                    effect=self.convert(eff), occurence_time=None
+                )
+            )
 
         return unified_planning_pb2.Action(
             name=a.name,
             parameters=[self.convert(p) for p in a.parameters()],
             duration=None,
-            conditions=[
-                unified_planning_pb2.Condition(cond=self.convert(c))
-                for c in a.preconditions()
-            ],
-            effects=[self.convert(e) for e in a.effects()],
+            conditions=conditions,
+            effects=effects,
             cost=cost,
         )
 
     @handles(unified_planning.model.DurativeAction)
     def _convert_durative_action(self, a):
         cost = None
+        effects = []
+        conditions = []
         if a.cost() is not None:
             cost = self.convert(a.cost())
+
+        for span, cond in a.conditions().items():
+            conditions.append(
+                unified_planning_pb2.Condition(
+                    cond=self.convert(cond),
+                    span=self.convert(span),
+                )
+            )
+        for ot, eff in a.effects().items():
+            effects.append(
+                unified_planning_pb2.Effect(
+                    effect=self.convert(eff),
+                    occurence_time=self.convert(ot),
+                )
+            )
 
         return unified_planning_pb2.Action(
             name=a.name,
             parameters=[self.convert(p) for p in a.parameters()],
             duration=self.convert(a.duration()),
-            conditions=[
-                unified_planning_pb2.Condition(cond=self.convert(c))
-                for c in a.preconditions()
-            ],
-            effects=[self.convert(e) for e in a.effects()],
+            conditions=conditions,
+            effects=effects,
             cost=cost,
         )
 
@@ -211,15 +259,13 @@ class ProtobufWriter(Converter):
             ]
 
         return unified_planning_pb2.Problem(
-            domain_name=problem.name,  # TODO: fix
-            problem_name=problem.name,  # TODO: fix
+            domain_name=str(problem.name + "_domain"),
+            problem_name=problem.name,
             types=[
                 self.convert(t) for t in problem.user_types()
             ],  # TODO: only user types?
             fluents=[self.convert(f) for f in problem.fluents()],
-            actions=[
-                self.convert(a) for a in problem.actions()
-            ],  # TODO: add durative actions
+            actions=[self.convert(a) for a in problem.actions()],
             initial_state=[
                 unified_planning_pb2.Assignment(
                     fluent=self.convert(x), value=self.convert(v)
@@ -250,7 +296,6 @@ class ProtobufWriter(Converter):
 
         parameters = []
         for param in a.actual_parameters():
-            # TODO: check if action parameters kind is state variable
             param_expr = self.convert(param)
             if param_expr.kind == unified_planning_pb2.ExpressionKind.Value(
                 "STATE_VARIABLE"
