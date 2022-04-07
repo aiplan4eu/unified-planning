@@ -21,7 +21,7 @@ from unified_planning.solvers.results import SOLVED_OPTIMALLY, TIMEOUT
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 
-IMPOSSIBLE_TIMEOUT=0.0001
+VERYSMALL_TIMEOUT=0.0001
 
 class TestPDDLPlanner(TestCase):
     def setUp(self):
@@ -168,9 +168,9 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            final_report = planner.solve(problem, timeout = IMPOSSIBLE_TIMEOUT)
+            final_report = planner.solve(problem, timeout = VERYSMALL_TIMEOUT)
+            self.assertIn(final_report.status, [TIMEOUT, SOLVED_OPTIMALLY]) # It could happen that ENHSP manages to solve the problem
             self.assertTrue(final_report.plan is None or final_report.plan == right_plan)
-            self.assertEqual(final_report.status, TIMEOUT)
 
     @skipIfSolverNotAvailable('enhsp')
     def test_robot_loader_adv_with_long_timeout(self):
@@ -256,10 +256,10 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            final_report = planner.solve(problem, timeout=IMPOSSIBLE_TIMEOUT, output_stream=output_stream)
+            final_report = planner.solve(problem, timeout=VERYSMALL_TIMEOUT, output_stream=output_stream)
             plan = final_report.plan
             planner_output = output_stream.getvalue()
-            self.assertEqual(final_report.status, TIMEOUT)
+            self.assertIn(final_report.status, [TIMEOUT, SOLVED_OPTIMALLY]) # It could happen that ENHSP manages to solve the problem
             self.assertTrue(plan is None or plan == right_plan)
 
             for lm in final_report.log_messages:
