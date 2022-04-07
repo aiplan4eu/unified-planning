@@ -17,6 +17,7 @@ import tempfile
 from typing import cast
 import pytest
 import unified_planning
+from unified_planning.model import problem, problem_kind
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.grpc.proto_reader import ProtobufReader
@@ -25,13 +26,13 @@ from unified_planning.test.examples import get_example_problems
 from unified_planning.model.types import _UserType
 import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 
+
 class TestProtobufIO(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
-
 
     def test_fluent(self):
         problem = Problem("test")
@@ -52,23 +53,21 @@ class TestProtobufIO(TestCase):
         ex = problem.env.expression_manager.true_expression
 
         ex_pb = self.pb_writer.convert(ex)
-        ex_up = self.pb_reader.convert(ex_pb, problem)
+        self.assertTrue(ex_pb.type == "BOOL_CONSTANT")
+        self.assertTrue(ex_pb.kind == up_pb2.ExpressionKind.Value("CONSTANT"))
+
+        ex_up = self.pb_reader.convert(ex_pb, problem, {})
         self.assertTrue(ex == ex_up)
 
         ex = problem.env.expression_manager.Int(10)
-        ex_pb = self.pb_writer.convert(ex)
-        ex_up = self.pb_reader.convert(ex_pb, problem)
-        self.assertTrue(ex == ex_up)
 
-    def test_not_expression(self):
-        x = Fluent('x')
-        problem = Problem('basic')
-        problem.add_fluent(x)
-
-        ex = Not(x)
         ex_pb = self.pb_writer.convert(ex)
-        print(ex_pb)
-        ex_up = self.pb_reader.convert(ex_pb, problem)
+        self.assertTrue(ex_pb.type == "INT_CONSTANT")
+        self.assertTrue(ex_pb.kind == up_pb2.ExpressionKind.Value("CONSTANT"))
+
+        # TODO: tests for AtomExpression and sublist expressions
+
+        ex_up = self.pb_reader.convert(ex_pb, problem, {})
         self.assertTrue(ex == ex_up)
 
     def test_type_declaration(self):
@@ -92,51 +91,43 @@ class TestProtobufIO(TestCase):
         obj_up = self.pb_reader.convert(obj_pb, problem)
         self.assertTrue(obj == obj_up)
 
-    def test_basic_action(self):
-        problem = self.problems['basic'].problem
-        a = problem.action('a')
-        a_pb = self.pb_writer.convert(a)
-        a_up = self.pb_reader.convert(a_pb, problem)
-        self.assertEqual(a, a_up)
+    # @pytest.mark.skip(reason="Not implemented")
+    def test_problem(self):
+        problem = self.problems["robot"].problem
 
-    def test_simple_problem(self):
-        x = Fluent('x')
-        a = InstantaneousAction('a')
-        a.add_precondition(Not(x))
-        a.add_effect(x, True)
-        problem = Problem('basic')
-        problem.add_fluent(x)
-        problem.add_action(a)
-        problem.set_initial_value(x, False)
-        problem.add_goal(x)
+        problem_pb = self.pb_writer.convert(problem)
+        problem_up = self.pb_reader.convert(problem_pb, problem)
 
-        p_pb = self.pb_writer.convert(problem)
-        p_up = self.pb_reader.convert(p_pb)
+        self.assertTrue(problem == problem_up)
 
-        print(problem)
-        print("---------------") # TODO: Precondition comes back without "not"
-        print(p_up)
+    def test_action(self):
+        problem = self.problems["robot"].problem
+        action = problem.action("move")
 
-        self.assertEqual(problem, p_up)
+        action_pb = self.pb_writer.convert(action)
+        action_up = self.pb_reader.convert(action_pb, problem)
 
-    def test_durative_action(self):
-        match_cellar = self.problems['matchcellar'].problem
-        mend_fuse = match_cellar.action('mend_fuse')
-        eff = mend_fuse.effects()[EndTiming()][0]
-        eff_fluent = eff.fluent()
-        eff_fluent_pb = self.pb_writer.convert(eff_fluent)
-        self.pb_reader.current_action = mend_fuse
-        eff_fluent_up = self.pb_reader.convert(eff_fluent_pb, match_cellar)
-        self.assertEqual(eff_fluent, eff_fluent_up)
-        a_pb = self.pb_writer.convert(mend_fuse)
-        a_up = self.pb_reader.convert(a_pb, match_cellar)
-        self.assertEqual(mend_fuse, a_up)
+        self.assertTrue(action == action_up)
+
+        self.assertTrue(action == action_up)
+
+    def test_action_instance(self):
+        problem = self.problems["robot"].problem
+        plan = self.problems["robot"].plan
+        action_instance = plan.actions()[0]
+
+        action_instance_pb = self.pb_writer.convert(action_instance)
+        action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
+
+        self.assertTrue(action_instance == action_instance_up)
 
 
-    def test_durative_problem(self):
-        match_cellar = self.problems['matchcellar'].problem
-        p_pb = self.pb_writer.convert(match_cellar)
-        p_up = self.pb_reader.convert(p_pb)
-        self.assertEqual(match_cellar, p_up)
+@pytest.mark.skip(reason="Not ready yet")
+class TestProblems(TestCase):
+    @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
+    def test_all_problems(self, problem_name):
+        problem = self.problems[problem_name].problem
+        problem_pb = self.pb_writer.convert(problem)
+        problem_up = self.pb_reader.convert(problem_pb)
 
-
+        self.assertTrue(problem == problem_up)
