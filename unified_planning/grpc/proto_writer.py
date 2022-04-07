@@ -38,63 +38,49 @@ class ProtobufWriter(Converter):
             name=obj.name(), type=obj.type().name()
         )
 
-    @handles(unified_planning.model.fnode.FNode)
+    @handles(unified_planning.model.FNode)
     def _convert_fnode(self, exp):
         payload = exp._content.payload
-        args = exp.args()
-        value = None
-        if payload is None:
-            p_type = "none"
-            value = "-"
-        elif isinstance(payload, bool):
+        args = exp._content.args
+        atom = None
+        p_type = ""
+        kind = unified_planning_pb2.ExpressionKind.Value("UNKNOWN")
+        arg_list = []
+
+        if isinstance(payload, bool):
+            atom = unified_planning_pb2.Atom(boolean=payload)
+            kind = unified_planning_pb2.ExpressionKind.Value("CONSTANT")
             p_type = "bool"
         elif isinstance(payload, int):
+            atom = unified_planning_pb2.Atom(int=payload)
+            kind = unified_planning_pb2.ExpressionKind.Value("CONSTANT")
             p_type = "int"
         elif isinstance(payload, float):
-            p_type = "real"
-        elif isinstance(payload, unified_planning.model.Fluent):
-            p_type = "fluent"
-            value = payload.name()
-        elif isinstance(payload, unified_planning.model.Object):
-            p_type = "obj"
-            value = payload.name()
-        elif isinstance(payload, unified_planning.model.ActionParameter):
-            p_type = "aparam"
-            value = payload.name()
-        else:
-            p_type = "str"
-        if value is None:
-            value = str(payload)
-
-        if len(args) == 0:
-            if isinstance(payload, bool):
-                atom = unified_planning_pb2.Atom(boolean=payload)
-            elif isinstance(payload, int):
-                atom = unified_planning_pb2.Atom(int=payload)
-            elif isinstance(payload, float):
-                atom = unified_planning_pb2.Atom(float=payload)
-            else:
-                atom = unified_planning_pb2.Atom(symbol=str(payload))
-            arg_list = None
-        else:
-            atom = None
-            arg_list = [self.convert(a) for a in exp._content.args]
-
-        # TODO: Missing FUNCTION_SYMBOL, STATE_VARIABLE, FUNCTION_APPLICATION
-        if exp.is_constant():
+            atom = unified_planning_pb2.Atom(float=payload)
             kind = unified_planning_pb2.ExpressionKind.Value("CONSTANT")
-        elif exp.is_parameter_exp():
-            kind = unified_planning_pb2.ExpressionKind.Value("PARAMETER")
-        elif exp.is_fluent_exp():
+            p_type = "real"
+        elif isinstance(payload, str):
+            atom = unified_planning_pb2.Atom(symbol=payload)
+        elif isinstance(payload, unified_planning.model.Fluent):
             kind = unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL")
-        else:
-            kind = unified_planning_pb2.ExpressionKind.Value("UNKNOWN")
+            p_type = payload.name()
+        elif isinstance(payload, unified_planning.model.Object):
+            # TODO: check if first element is fluent symbol
+            kind = unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE")
+            p_type = payload.name()
+        elif isinstance(payload, unified_planning.model.ActionParameter):
+            kind = unified_planning_pb2.ExpressionKind.Value("PARAMETER")
+            p_type = payload.name()
+        elif payload is not None:
+            kind = unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL")
+            atom = unified_planning_pb2.Atom(symbol=payload.name())
+            # TODO: check function symbols
 
-        value_type = op_to_str(exp.node_type())
+        for arg in args:
+            arg_list.append(self.convert(arg))
 
-        # TODO: fix value_type to represent function symbols
         return unified_planning_pb2.Expression(
-            atom=atom, list=arg_list, type=value_type, kind=kind
+            atom=atom, list=arg_list, kind=kind, type=p_type
         )
 
     @handles(unified_planning.model.types._BoolType)
@@ -145,6 +131,24 @@ class ProtobufWriter(Converter):
             name=a.name,
             parameters=[self.convert(p) for p in a.parameters()],
             duration=None,
+            conditions=[
+                unified_planning_pb2.Condition(cond=self.convert(c))
+                for c in a.preconditions()
+            ],
+            effects=[self.convert(e) for e in a.effects()],
+            cost=cost,
+        )
+
+    @handles(unified_planning.model.DurativeAction)
+    def _convert_durative_action(self, a):
+        cost = None
+        if a.cost() is not None:
+            cost = self.convert(a.cost())
+
+        return unified_planning_pb2.Action(
+            name=a.name,
+            parameters=[self.convert(p) for p in a.parameters()],
+            duration=self.convert(a.duration()),
             conditions=[
                 unified_planning_pb2.Condition(cond=self.convert(c))
                 for c in a.preconditions()
@@ -232,13 +236,31 @@ class ProtobufWriter(Converter):
         self,
         a: unified_planning_pb2.ActionInstance,
     ):
+        action = self.convert(a.action())
+        start_time = 0  # TODO:fix action instance start time
+        end_time = (
+            0
+            if action.duration is None
+            else 0
+            # else start_time + action.duration.controllable_in_bounds.upper  # TODO: fix
+        )
+
+        parameters = []
+        for param in a.actual_parameters():
+            # TODO: check if action parameters kind is state variable
+            param_expr = self.convert(param)
+            if param_expr.kind == unified_planning_pb2.ExpressionKind.Value(
+                "STATE_VARIABLE"
+            ):
+                parameters.append(unified_planning_pb2.Atom(symbol=param_expr.type))
+            else:
+                raise ValueError(f"Unsupported parameter type: {param_expr.type}")
+
         return unified_planning_pb2.ActionInstance(
-            action_name=a.action().name,
-            parameters=[
-                self.convert(p) for p in a.action()._parameters
-            ],  # TODO: fix parameter name with parameter type
-            start_time=0,  # TODO: fix temporal case
-            end_time=0,  # TODO: fix temporal case
+            action_name=action.name,
+            parameters=parameters,
+            start_time=start_time,
+            end_time=end_time,
         )
 
     @handles(str)

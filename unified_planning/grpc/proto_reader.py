@@ -19,6 +19,14 @@ import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_
 from unified_planning.grpc.converter import Converter, handles
 import unified_planning.model
 from unified_planning.model.effect import ASSIGN, INCREASE, DECREASE
+from unified_planning.model.operators import (
+    BOOL_CONSTANT,
+    FLUENT_EXP,
+    INT_CONSTANT,
+    OBJECT_EXP,
+    PARAM_EXP,
+    REAL_CONSTANT,
+)
 import unified_planning.plan
 from unified_planning.model import Effect, ActionParameter, Problem, DurativeAction
 from unified_planning.shortcuts import BoolType, UserType, RealType, IntType
@@ -44,7 +52,10 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.Parameter)
     def _convert_parameter(self, msg, problem):
         # TODO: Convert parameter names into parameter types?
-        return ActionParameter(msg.name, convert_type_str(msg.type, problem.env))
+        return ActionParameter(
+            msg.name,
+            convert_type_str(msg.type, problem.env),
+        )
 
     @handles(unified_planning_pb2.Fluent)
     def _convert_fluent(self, msg, problem):
@@ -66,31 +77,76 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Expression)
     def _convert_expression(self, msg, problem, param_map):
-        if msg.atom is not None:
-            atom = self.convert(msg.atom, problem)
-            return atom  # problem.env.expression_manager.create_node(msg.kind, tuple(), atom)
-
         args = []
-        for arg_msg in msg.args:
+        for arg_msg in msg.list:
             args.append(self.convert(arg_msg, problem, param_map))
-        payload = self.convert(msg.payload, problem, param_map)
 
-        return problem.env.expression_manager.create_node(kind, tuple(args), payload)
+        if msg.kind == unified_planning_pb2.ExpressionKind.Value("CONSTANT"):
+            assert msg.atom is not None
+
+            if msg.type == "bool":
+                return problem.env.expression_manager.create_node(
+                    node_type=BOOL_CONSTANT,
+                    args=(),
+                    payload=self.convert(msg.atom, problem),
+                )
+            elif msg.type == "int":
+                return problem.env.expression_manager.create_node(
+                    node_type=INT_CONSTANT,
+                    args=(),
+                    payload=self.convert(msg.atom, problem),
+                )
+            elif msg.type == "real":
+                return problem.env.expression_manager.create_node(
+                    node_type=REAL_CONSTANT,
+                    args=(),
+                    payload=self.convert(msg.atom, problem),
+                )
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
+            return problem.env.expression_manager.create_node(
+                node_type=PARAM_EXP,
+                args=(),
+                payload=self.convert(msg.atom, problem),
+            )
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL"):
+            assert msg.atom is not None
+
+            return problem.env.expression_manager.create_node(
+                node_type=FLUENT_EXP,
+                args=(),
+                payload=problem.fluent(msg.type),
+            )
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"):
+            # TODO: complete the function symbol conversion
+            return
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
+            atom = self.convert(msg.atom, problem)
+            return problem.env.expression_manager.create_node(
+                node_type=OBJECT_EXP, args=(), payload=problem.object(msg.type)
+            )
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value(
+            "FUNCTION_APPLICATION"
+        ):
+            # TODO: complete the function application conversion
+            return
+
+        return
 
     @handles(unified_planning_pb2.Atom)
     def _convert_atom(self, msg, problem):
         field = msg.WhichOneof("content")
+
+        # No atom
         if field is None:
             return None
 
         value = getattr(msg, msg.WhichOneof("content"))
-        # TODO: fix atom.value for whitespaces
         if field == "int":
-            return problem.env.expression_manager.Int(value)
+            return int(value)
         elif field == "real":
-            return problem.env.expression_manager.Real(value)
+            return float(value)
         elif field == "boolean":
-            return problem.env.expression_manager.Bool(value)
+            return bool(value)
         else:
             return problem.object(value)
 
@@ -170,19 +226,21 @@ class ProtobufReader(Converter):
             parameters[param.name] = self.convert(param, problem)
 
         for cond in msg.conditions:
+            condition = self.convert(cond.cond, problem, parameters)
+            if condition is None:
+                continue
             if cond.HasField("span"):
-                conditions[self.convert(cond.span, problem)] = self.convert(
-                    cond, problem
-                )
+                conditions[self.convert(cond.span, problem)] = condition
             else:
-                conditions.update(self.convert(cond, problem, parameters))
+                conditions.update(condition)
         for eff in msg.effects:
+            effect = self.convert(eff.effect, problem)
+            if effect is None:
+                continue
             if eff.HasField("occurence_time"):
-                effects[
-                    self.convert(eff.occurence_time, problem, parameters)
-                ] = self.convert(eff.effect, problem, parameters)
+                effects[self.convert(eff.occurence_time, problem, parameters)] = effect
             else:
-                effects.update(self.convert(eff.effect, problem, parameters))
+                effects.update(effect)
 
         if msg.HasField("duration"):
             action = DurativeAction(
@@ -280,11 +338,20 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.ActionInstance)
     def _convert_action_instance(self, msg, problem):
-        params = {}
+        # action instance paramaters are atoms but in UP they are FNodes
+        # converting to up.model.FNode
+        parameters = []
         for param in msg.parameters:
-            params[param.name] = self.convert(param, problem)
-        # TODO: Get action instance parameters as user_types
+            assert param.HasField("symbol")
+            assert problem.has_object(param.symbol)
+
+            parameters.append(
+                problem.env.expression_manager.create_node(
+                    node_type=OBJECT_EXP, args=(), payload=problem.object(param.symbol)
+                )
+            )
+
         return unified_planning.plan.ActionInstance(
             problem.action(msg.action_name),
-            params,
+            parameters,
         )
