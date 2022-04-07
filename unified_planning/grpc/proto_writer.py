@@ -20,6 +20,7 @@ import unified_planning.plan
 
 
 def map_operator(op: int) -> str:
+    # TODO: Add support for other types which share the operators space. Eg: REALCONSTANTS, VARIABLE_EXP
     op = op_to_str(op)
     if op == "PLUS":
         return "+"
@@ -278,6 +279,7 @@ class ProtobufWriter(Converter):
         return unified_planning_pb2.Problem(
             domain_name=str(problem.name + "_domain"),
             problem_name=problem.name,
+            # TODO: Add problem support types for `int`
             types=[self.convert(t) for t in problem.user_types()],
             fluents=[self.convert(f) for f in problem.fluents()],
             objects=[self.convert(o) for o in problem.all_objects()],
@@ -333,6 +335,7 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.plan.SequentialPlan)
     def _convert(self, plan):
+        # TODO: Add support for time triggered plans `TimeTriggeredPlan`
         return unified_planning_pb2.Plan(
             actions=[self.convert(a) for a in plan.actions()]
         )

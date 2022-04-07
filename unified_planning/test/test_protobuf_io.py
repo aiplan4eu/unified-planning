@@ -114,7 +114,7 @@ class TestProtobufIO(TestCase):
         self.assertTrue(action_instance == action_instance_up)
 
 
-class TestProblems:
+class TestProtobufProblems:
     problems = get_example_problems()
     pb_writer = ProtobufWriter()
     pb_reader = ProtobufReader()
@@ -126,3 +126,12 @@ class TestProblems:
         problem_up = self.pb_reader.convert(problem_pb, problem)
 
         assert problem == problem_up
+
+    @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
+    def test_all_plans(self, problem_name):
+        problem = self.problems[problem_name].problem
+        plan = self.problems[problem_name].plan
+        plan_pb = self.pb_writer.convert(plan)
+        plan_up = self.pb_reader.convert(plan_pb, problem)
+
+        assert plan == plan_up
