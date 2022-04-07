@@ -12,37 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import fractions
-
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model.operators import op_to_str
 import unified_planning.model
-from unified_planning.model.effect import ASSIGN
-from unified_planning.model.effect import INCREASE
-from unified_planning.model.effect import DECREASE
-
 import unified_planning.plan
-
 
 
 class ProtobufWriter(Converter):
     @handles(unified_planning.model.Fluent)
     def _convert_fluent(self, fluent):
         name = fluent.name()
-        sig = [unified_planning_pb2.Parameter(name="", type=str(t)) for t in fluent.signature()]
+        sig = [
+            unified_planning_pb2.Parameter(name="", type=str(t))
+            for t in fluent.signature()
+        ]
         valType = str(fluent.type())
-
-        return unified_planning_pb2.Fluent(name=name, value_type=valType, parameters=sig)
+        return unified_planning_pb2.Fluent(
+            name=name, value_type=valType, parameters=sig
+        )
 
     @handles(unified_planning.model.Object)
     def _convert_object(self, obj):
-        return unified_planning_pb2.ObjectDeclaration(name=obj.name(), type=obj.type().name())
+        return unified_planning_pb2.ObjectDeclaration(
+            name=obj.name(), type=obj.type().name()
+        )
 
     @handles(unified_planning.model.fnode.FNode)
     def _convert_fnode(self, exp):
         payload = exp._content.payload
-        args = exp._content.args
+        args = exp.args()
         value = None
         if payload is None:
             p_type = "none"
@@ -75,14 +74,11 @@ class ProtobufWriter(Converter):
             elif isinstance(payload, float):
                 atom = unified_planning_pb2.Atom(float=payload)
             else:
-                atom = unified_planning_pb2.Atom(symbol=str(value))
+                atom = unified_planning_pb2.Atom(symbol=str(payload))
             arg_list = None
         else:
             atom = None
-            arg_list = [unified_planning_pb2.Expression(atom=unified_planning_pb2.Atom(int=exp.node_type()))]
-            if p_type == "fluent":
-                arg_list.append(unified_planning_pb2.Expression(atom=unified_planning_pb2.Atom(symbol=value)))
-            arg_list = arg_list + [self.convert(a) for a in exp._content.args]
+            arg_list = [self.convert(a) for a in exp._content.args]
 
         # TODO: Missing FUNCTION_SYMBOL, STATE_VARIABLE, FUNCTION_APPLICATION
         if exp.is_constant():
@@ -96,11 +92,9 @@ class ProtobufWriter(Converter):
 
         value_type = op_to_str(exp.node_type())
 
+        # TODO: fix value_type to represent function symbols
         return unified_planning_pb2.Expression(
-            atom=atom,
-            list=arg_list,
-            type=p_type,
-            kind=kind
+            atom=atom, list=arg_list, type=value_type, kind=kind
         )
 
     @handles(unified_planning.model.types._BoolType)
@@ -109,7 +103,9 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.types._UserType)
     def _convert_user_type(self, t):
-        return unified_planning_pb2.TypeDeclaration(type_name=t.name(), parent_type=str(t.father()))
+        return unified_planning_pb2.TypeDeclaration(
+            type_name=t.name(), parent_type=str(t.father())
+        )
 
     @handles(unified_planning.model.types._IntType)
     def _convert_integer_type(self, t):
@@ -122,17 +118,22 @@ class ProtobufWriter(Converter):
     @handles(unified_planning.model.Effect)
     def _convert_effect(self, effect):
         kind = unified_planning_pb2.EffectExpression.EffectKind.Value("UNDEFINED")
-        if effect.kind() == ASSIGN:
+        if effect.is_assignment():
             kind = unified_planning_pb2.EffectExpression.EffectKind.Value("ASSIGN")
-        elif effect.kind() == INCREASE:
+        elif effect.is_increase():
             kind = unified_planning_pb2.EffectExpression.EffectKind.Value("INCREASE")
-        elif effect.kind() == DECREASE:
+        elif effect.is_decrease():
             kind = unified_planning_pb2.EffectExpression.EffectKind.Value("DECREASE")
 
-        return unified_planning_pb2.EffectExpression(kind=kind,
-                                                     fluent=self.convert(effect.fluent()),
-                                                     value=self.convert(effect.value()),
-                                                     condition=self.convert(effect.condition()))
+        return unified_planning_pb2.Effect(
+            effect=unified_planning_pb2.EffectExpression(
+                kind=kind,
+                fluent=self.convert(effect.fluent()),
+                value=self.convert(effect.value()),
+                condition=self.convert(effect.condition()),
+            ),
+            occurence_time=None,
+        )  # TODO: Not clear where this is supposed to come from
 
     @handles(unified_planning.model.InstantaneousAction)
     def _convert_instantaneous_action(self, a):
@@ -144,10 +145,12 @@ class ProtobufWriter(Converter):
             name=a.name,
             parameters=[self.convert(p) for p in a.parameters()],
             duration=None,
-            conditions=[unified_planning_pb2.Condition(cond=self.convert(c)) for c in a.preconditions()],
-            effects=[unified_planning_pb2.Effect(effect=self.convert(e),
-                                                 occurence_time=None) for e in a.effects()],
-            cost=cost
+            conditions=[
+                unified_planning_pb2.Condition(cond=self.convert(c))
+                for c in a.preconditions()
+            ],
+            effects=[self.convert(e) for e in a.effects()],
+            cost=cost,
         )
 
     @handles(unified_planning.model.timing.Timepoint)
@@ -156,82 +159,94 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.Timing)
     def _convert_timing(self, timing):
-        return unified_planning_pb2.Timing(timepoint=self.convert(timing._timepoint),
-                                           delay=float(timing.delay())) #TODO: Will change fraction or int to float because of current PB definition
+        return unified_planning_pb2.Timing(
+            timepoint=self.convert(timing._timepoint), delay=float(timing.delay())
+        )  # TODO: Will change fraction or int to float because of current PB definition
 
     @handles(unified_planning.model.timing.Interval)
     def _convert_interval(self, interval):
-        return unified_planning_pb2.Interval(is_left_open=interval.is_left_open(),
-                                             lower=self.convert(interval.lower()),
-                                             is_right_open=interval.is_right_open(),
-                                             upper=self.convert(interval.lower()) )
+        return unified_planning_pb2.Interval(
+            is_left_open=interval.is_left_open(),
+            lower=self.convert(interval.lower()),
+            is_right_open=interval.is_right_open(),
+            upper=self.convert(interval.lower()),
+        )
 
     @handles(unified_planning.model.TimeInterval)
     def _convert_time_interval(self, interval):
-        return unified_planning_pb2.TimeInterval(is_left_open=interval.is_left_open(),
-                                                 lower=self.convert(interval.lower()),
-                                                 is_right_open=interval.is_right_open(),
-                                                 upper=self.convert(interval.upper()) )
+        return unified_planning_pb2.Interval(
+            is_left_open=interval.is_left_open(),
+            lower=self.convert(interval.lower()),
+            is_right_open=interval.is_right_open(),
+            upper=self.convert(interval.lower()),
+        )
 
     @handles(unified_planning.model.DurationInterval)
     def _convert_duration_interval(self, interval):
-        return unified_planning_pb2.Duration(controllable_in_bounds=unified_planning_pb2.Interval(is_left_open=interval.is_left_open(),
-                                                                                                  lower=self.convert(interval.lower()),
-                                                                                                  is_right_open=interval.is_right_open(),
-                                                                                                  upper=self.convert(interval.lower()) ))
-
-    @handles(unified_planning.model.DurativeAction)
-    def _convert_durative_action(self, a):
-        cost = None
-        if a.cost() is not None:
-            cost = self.convert(a.cost())
-
-        conditions = []
-        for (t, cs) in a.conditions().items():
-            span = self.convert(t)
-            conditions += [unified_planning_pb2.Condition(cond=self.convert(c),
-                                                          span=span) for c in cs]
-        effects = []
-        for (t, es) in a.effects().items():
-            time = self.convert(t)
-            effects += [unified_planning_pb2.Effect(effect=self.convert(e),
-                                                    occurence_time=time) for e in es]
-
-        return unified_planning_pb2.Action(
-            name=a.name,
-            parameters=[self.convert(p) for p in a.parameters()],
-            duration=self.convert(a.duration()),
-            conditions=conditions,
-            effects=effects,
-            cost=cost
+        return unified_planning_pb2.Duration(
+            controllable_in_bounds=unified_planning_pb2.Interval(
+                s_left_open=interval.is_left_open(),
+                lower=self.convert(interval.lower()),
+                is_right_open=interval.is_right_open(),
+                upper=self.convert(interval.lower()),
+            )
         )
 
     @handles(unified_planning.model.Problem)
     def _convert_problem(self, problem):
-        goals = [unified_planning_pb2.Goal(goal=self.convert(g)) for g in problem.goals()]
+        goals = [
+            unified_planning_pb2.Goal(goal=self.convert(g)) for g in problem.goals()
+        ]
         for (t, gs) in problem.timed_goals():
-            goals += [unified_planning_pb2.Goal(goal=self.convert(g), timing=self.convert(t)) for g in gs]
-        timed_effects = []
-        for (t, es) in problem.timed_effects():
-            occurence_time = self.convert(t)
-            timed_effects += [unified_planning_pb2.TimedEffect(effect=self.convert(e),
-                                                               occurence_time=occurence_time) for e in es]
+            goals += [
+                unified_planning_pb2.Goal(goal=self.convert(g), timing=self.convert(t))
+                for g in gs
+            ]
 
         return unified_planning_pb2.Problem(
-            domain_name=problem.name,  #TODO: fix
-            problem_name=problem.name, #TODO: fix
-            types=[self.convert(t) for t in problem.user_types()], #TODO: only user types?
+            domain_name=problem.name,  # TODO: fix
+            problem_name=problem.name,  # TODO: fix
+            types=[
+                self.convert(t) for t in problem.user_types()
+            ],  # TODO: only user types?
             fluents=[self.convert(f) for f in problem.fluents()],
-            actions=[self.convert(a) for a in problem.actions()],
+            actions=[
+                self.convert(a) for a in problem.actions()
+            ],  # TODO: add durative actions
             initial_state=[
                 unified_planning_pb2.Assignment(
-                    fluent=self.convert(x),
-                    value=self.convert(v)) for (x, v) in problem.initial_values().items()],
-            timed_effects=timed_effects,
-            goals=goals
+                    fluent=self.convert(x), value=self.convert(v)
+                )
+                for (x, v) in problem.initial_values().items()
+            ],
+            timed_effects=[],  # TODO: Add
+            goals=goals,
         )
 
     @handles(unified_planning.model.ActionParameter)
-    def _convert_action_parameter(self, ap):
-        return unified_planning_pb2.Parameter(name=ap.name(),
-                                              type=str(ap.type()))
+    def _convert_action_parameter(self, p):
+        return unified_planning_pb2.Parameter(name=p.name(), type=str(p.type()))
+
+    @handles(unified_planning.plan.ActionInstance)
+    def _convert_action_instance(
+        self,
+        a: unified_planning_pb2.ActionInstance,
+    ):
+        return unified_planning_pb2.ActionInstance(
+            action_name=a.action().name,
+            parameters=[
+                self.convert(p) for p in a.action()._parameters
+            ],  # TODO: fix parameter name with parameter type
+            start_time=0,  # TODO: fix temporal case
+            end_time=0,  # TODO: fix temporal case
+        )
+
+    @handles(str)
+    def _convert_str_atom(self, s):
+        return unified_planning_pb2.Atom(symbol=s)
+
+    @handles(unified_planning.plan.SequentialPlan)
+    def _convert(self, plan):
+        return unified_planning_pb2.Plan(
+            actions=[self.convert(a) for a in plan.actions()]
+        )
