@@ -45,7 +45,7 @@ jobs:
       - name: Download ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp-20; ./compile.sh; cd ..
+          cd ENHSP-Public; git checkout enhsp-20; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
@@ -88,7 +88,7 @@ jobs:
       - name: Download ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp-20; bash ./compile.sh; cd ..
+          cd ENHSP-Public; git checkout enhsp-20; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
