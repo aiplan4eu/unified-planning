@@ -91,7 +91,7 @@ class PDDLSolver(solvers.solver.Solver):
                     loop = asyncio.ProactorEventLoop() 
                 else:
                     loop = asyncio.new_event_loop()
-                timeout_occurred, (proc_out, proc_err) = loop.run_until_complete(run_command(cmd, timeout=timeout, output_stream=output_stream))
+                timeout_occurred, (proc_out, proc_err), retval = loop.run_until_complete(run_command(cmd, timeout=timeout, output_stream=output_stream))
             finally:
                 loop.close()
             
@@ -99,7 +99,7 @@ class PDDLSolver(solvers.solver.Solver):
             logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
-            if timeout_occurred:
+            if timeout_occurred and retval != 0:
                 return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name)
         status: int = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name)
@@ -113,7 +113,7 @@ class PDDLSolver(solvers.solver.Solver):
         pass
 
 
-async def run_command(cmd, timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None):
+async def run_command(cmd, timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     start = time.time()
     process = await asyncio.create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
 
@@ -146,4 +146,4 @@ async def run_command(cmd, timeout: Optional[float] = None, output_stream: Optio
             break
 
     await process.wait() # Wait for the child process to exit
-    return timeout_occoured, process_output
+    return timeout_occoured, process_output, cast(int, process.returncode)

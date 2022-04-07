@@ -21,6 +21,7 @@ from unified_planning.solvers.results import SOLVED_OPTIMALLY, TIMEOUT
 from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 
+IMPOSSIBLE_TIMEOUT=0.0001
 
 class TestPDDLPlanner(TestCase):
     def setUp(self):
@@ -167,7 +168,7 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            final_report = planner.solve(problem, timeout = 0.0001)
+            final_report = planner.solve(problem, timeout = IMPOSSIBLE_TIMEOUT)
             self.assertTrue(final_report.plan is None or final_report.plan == right_plan)
             self.assertEqual(final_report.status, TIMEOUT)
 
@@ -255,7 +256,7 @@ class TestPDDLPlanner(TestCase):
         with OneshotPlanner(name='enhsp') as planner:
             self.assertNotEqual(planner, None)
 
-            final_report = planner.solve(problem, timeout=0.01, output_stream=output_stream)
+            final_report = planner.solve(problem, timeout=IMPOSSIBLE_TIMEOUT, output_stream=output_stream)
             plan = final_report.plan
             planner_output = output_stream.getvalue()
             self.assertEqual(final_report.status, TIMEOUT)
