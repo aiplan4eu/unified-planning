@@ -48,6 +48,7 @@ class TestProtobufIO(TestCase):
         self.assertTrue(x_up.name() == "x")
         self.assertTrue(str(x_up.type()) == "bool")
 
+    @pytest.mark.skip(reason="Not implemented")
     def test_expression(self):
         problem = Problem("test")
         ex = problem.env.expression_manager.true_expression
@@ -91,7 +92,6 @@ class TestProtobufIO(TestCase):
         obj_up = self.pb_reader.convert(obj_pb, problem)
         self.assertTrue(obj == obj_up)
 
-    # @pytest.mark.skip(reason="Not implemented")
     def test_problem(self):
         problem = self.problems["robot"].problem
 
@@ -109,8 +109,6 @@ class TestProtobufIO(TestCase):
 
         self.assertTrue(action == action_up)
 
-        self.assertTrue(action == action_up)
-
     def test_action_instance(self):
         problem = self.problems["robot"].problem
         plan = self.problems["robot"].plan
@@ -122,12 +120,15 @@ class TestProtobufIO(TestCase):
         self.assertTrue(action_instance == action_instance_up)
 
 
-@pytest.mark.skip(reason="Not ready yet")
-class TestProblems(TestCase):
+class TestProblems:
+    problems = get_example_problems()
+    pb_writer = ProtobufWriter()
+    pb_reader = ProtobufReader()
+
     @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
     def test_all_problems(self, problem_name):
         problem = self.problems[problem_name].problem
         problem_pb = self.pb_writer.convert(problem)
-        problem_up = self.pb_reader.convert(problem_pb)
+        problem_up = self.pb_reader.convert(problem_pb, problem)
 
-        self.assertTrue(problem == problem_up)
+        assert problem == problem_up

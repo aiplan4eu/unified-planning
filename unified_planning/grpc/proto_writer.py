@@ -20,7 +20,6 @@ import unified_planning.plan
 
 
 def map_operator(op: int) -> str:
-    # TODO: Not all operators are added currently
     op = op_to_str(op)
     if op == "PLUS":
         return "+"
@@ -42,6 +41,14 @@ def map_operator(op: int) -> str:
         return "or"
     elif op == "NOT":
         return "not"
+    elif op == "IMPLIES":
+        return "implies"
+    elif op == "IFF":
+        return "iff"
+    elif op == "EXISTS":
+        return "exists"
+    elif op == "FORALL":
+        return "forall"
 
 
 class ProtobufWriter(Converter):
@@ -71,6 +78,8 @@ class ProtobufWriter(Converter):
         p_type = ""
         kind = unified_planning_pb2.ExpressionKind.Value("UNKNOWN")
         arg_list = []
+
+        # TODO: add variable support
 
         if isinstance(payload, bool):
             atom = unified_planning_pb2.Atom(boolean=payload)
@@ -265,6 +274,7 @@ class ProtobufWriter(Converter):
                 self.convert(t) for t in problem.user_types()
             ],  # TODO: only user types?
             fluents=[self.convert(f) for f in problem.fluents()],
+            objects=[self.convert(o) for o in problem.all_objects()],
             actions=[self.convert(a) for a in problem.actions()],
             initial_state=[
                 unified_planning_pb2.Assignment(
@@ -272,7 +282,7 @@ class ProtobufWriter(Converter):
                 )
                 for (x, v) in problem.initial_values().items()
             ],
-            timed_effects=[],  # TODO: Add
+            timed_effects=[self.convert(e) for e in problem.timed_effects()],
             goals=goals,
         )
 

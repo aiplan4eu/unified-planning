@@ -49,7 +49,6 @@ def convert_type_str(s, env):
 
 # The operators are based on Sexpressions supported in PDDL.
 def op_to_node_type(op: str) -> int:
-    # TODO: Not all operators are added currently
     if op == "+":
         return operators.PLUS
     elif op == "-":
@@ -70,6 +69,14 @@ def op_to_node_type(op: str) -> int:
         return operators.OR
     elif op == "not":
         return operators.NOT
+    elif op == "exists":
+        return operators.EXISTS
+    elif op == "forall":
+        return operators.FORALL
+    elif op == "implies":
+        return operators.IMPLIES
+    elif op == "iff":
+        return operators.IFF
 
 
 class ProtobufReader(Converter):
@@ -210,29 +217,20 @@ class ProtobufReader(Converter):
             PROBLEM.add_timed_effect(self.convert(eff, problem))
 
         for assign in msg.initial_state:
-            (fluent, value) = self.convert(assign, problem)
-            PROBLEM.set_initial_value(fluent, value)
+            PROBLEM.set_initial_value(
+                fluent=self.convert(assign.fluent, problem, []),
+                value=self.convert(assign.value, problem, []),
+            )
 
         for goal in msg.goals:
-            PROBLEM.add_goal(self.convert(goal, problem))
+            timing = self.convert(goal.timing)
+            goal = self.convert(goal.goal, problem, [])
+            # TODO: Add timed goals
+            PROBLEM.add_goal(goal)
 
         # TODO: add features
 
         return PROBLEM
-
-    @handles(unified_planning_pb2.Assignment)
-    def _convert_initial_state(self, msg, problem):
-        return (self.convert(msg.fluent, problem), self.convert(msg.value, problem))
-
-    @handles(unified_planning_pb2.Goal)
-    def _convert_goal(self, msg, problem):
-        goal = self.convert(msg.goal, problem)
-        if msg.timing is not None:
-            timing = self.convert(msg.timing)
-            # TODO: deal with timed goals
-            return goal
-        else:
-            return goal
 
     @handles(unified_planning_pb2.Action)
     def _convert_action(self, msg, problem):
