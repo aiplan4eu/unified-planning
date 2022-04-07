@@ -112,10 +112,10 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_plannin
             return em.ParameterExp(action_parameters[formula.symbol])
         else:
             return em.VariableExp(unified_planning.model.Variable(formula.symbol, \
-                cast(unified_planning.model.Type, _convert_type_and_update_dict(formula.sort, types, env.type_manager, formula.sort.language)))) 
+                cast(unified_planning.model.Type, _convert_type_and_update_dict(formula.sort, types, env.type_manager, formula.sort.language))))
     elif isinstance(formula, QuantifiedFormula):
         expression = convert_tarski_formula(env, fluents, objects, action_parameters, types, formula.formula)
-        variables = [unified_planning.model.Variable(v.symbol, 
+        variables = [unified_planning.model.Variable(v.symbol,
             cast(unified_planning.model.Type, _convert_type_and_update_dict(v.sort, types, env.type_manager, v.sort.language)))
             for v in formula.variables]
         if formula.quantifier == Quantifier.Exists:
@@ -191,7 +191,7 @@ def _convert_type_and_update_dict(sort: tarski.syntax.Sort, types_dict: Dict[str
     assert up_type is not None #sanity check
     types_dict[str(sort.name)] = up_type
     return up_type
-    
+
 
 def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips.Problem) -> 'unified_planning.model.Problem':
     """Converts a tarski problem in a unified_planning.Problem."""
@@ -221,7 +221,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
             assert type is not None
             signature[f'p{str(i+1)}'] = type
         fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
-        fluents[fluent.name()] = fluent
+        fluents[fluent.name] = fluent
         problem.add_fluent(fluent)
     for p in lang.functions:
         if str(p.name) in ['ite', '@', '+', '-', '*', '/', '**', '%', 'sqrt']:
@@ -238,7 +238,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
                     fluent = unified_planning.model.Fluent(p.name, tm.RealType(), signature)
                 else:
                     fluent = unified_planning.model.Fluent(p.name, tm.RealType(lower_bound=\
-                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature) 
+                        Fraction(func_sort.lower_bound), upper_bound=Fraction(func_sort.upper_bound)), signature)
             else:
                 assert func_sort.encode == lang.Integer.encode or func_sort.encode == lang.Natural.encode
                 if func_sort.name == 'Integer':
@@ -250,7 +250,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
                         func_sort.lower_bound, upper_bound=func_sort.upper_bound), signature)
         else:
             fluent = unified_planning.model.Fluent(p.name, types[func_sort.name], signature)
-        fluents[fluent.name()] = fluent
+        fluents[fluent.name] = fluent
         problem.add_fluent(fluent)
 
     # Convert objects
@@ -259,7 +259,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
         type = types[str(c.sort.name)]
         assert type is not None
         o = unified_planning.model.Object(str(c.name), type)
-        objects[o.name()] = o
+        objects[o.name] = o
         problem.add_object(o)
 
     # Convert actions
@@ -295,14 +295,14 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     # Set initial values
     initial_values = {}
     for fluent in fluents.values():
-        l = [problem.objects_hierarchy(p.type()) for p in fluent.signature()]
-        if fluent.type().is_bool_type():
+        l = [problem.objects_hierarchy(p.type) for p in fluent.signature]
+        if fluent.type.is_bool_type():
             default_value = em.FALSE()
-        elif fluent.type().is_real_type():
+        elif fluent.type.is_real_type():
             default_value = em.Real(Fraction(0))
-        elif fluent.type().is_int_type():
+        elif fluent.type.is_int_type():
             default_value = em.Int(0)
-        elif fluent.type().is_user_type():
+        elif fluent.type.is_user_type():
             continue
         if len(l) == 0:
             initial_values[em.FluentExp(fluent)] = default_value

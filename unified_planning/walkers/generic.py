@@ -92,7 +92,7 @@ class Walker(object, metaclass=MetaNodeTypeHandler):
     @classmethod
     def super(cls, self, expression: FNode, *args, **kwargs):
         """Call the correct walk_* function of cls for the given expression."""
-        f = getattr(cls, nt_to_fun(expression.node_type()))
+        f = getattr(cls, nt_to_fun(expression.node_type))
         return f(self, expression, *args, **kwargs)
 
     @handles(op.ALL_TYPES)

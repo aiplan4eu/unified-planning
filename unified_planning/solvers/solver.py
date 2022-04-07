@@ -35,8 +35,8 @@ class Solver:
         if len(kwargs) > 0:
             raise
 
-    @staticmethod
-    def name() -> str:
+    @property
+    def name(self) -> str:
         raise NotImplementedError
 
     @staticmethod
@@ -57,7 +57,7 @@ class Solver:
 
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
-        return len(problem_kind.features()) == 0
+        return len(problem_kind.features) == 0
 
     def solve(self, problem: 'up.model.Problem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,

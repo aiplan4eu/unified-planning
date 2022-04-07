@@ -53,45 +53,45 @@ class ConditionalEffectsRemover(Transformer):
         self._new_problem = self._problem.clone()
         self._new_problem.name = f'{self._name}_{self._problem.name}'
         self._new_problem.clear_timed_effects()
-        for t, el in self._problem.timed_effects().items():
+        for t, el in self._problem.timed_effects.items():
             for e in el:
                 if e.is_conditional():
-                    f, v = e.fluent().fluent(), e.value()
-                    if not f.type().is_bool_type():
+                    f, v = e.fluent.fluent(), e.value
+                    if not f.type.is_bool_type():
                         raise UPProblemDefinitionError(f'The condition of effect: {e}\ncould not be removed without changing the problem.')
                     else:
                         em = self._env.expression_manager
-                        c = e.condition()
+                        c = e.condition
                         nv = self._simplifier.simplify(em.Or(em.And(c, v), em.And(em.Not(c), f)))
-                        self._new_problem.add_timed_effect(t, e.fluent(), nv)
+                        self._new_problem.add_timed_effect(t, e.fluent, nv)
                 else:
                     self._new_problem._add_effect_instance(t, e.clone())
         self._new_problem.clear_actions()
-        for ua in self._problem.unconditional_actions():
+        for ua in self._problem.unconditional_actions:
             new_uncond_action = ua.clone()
             self._new_problem.add_action(new_uncond_action)
             self._new_to_old[new_uncond_action] = ua
             self._map_old_to_new_action(ua, new_uncond_action)
-        for action in self._problem.conditional_actions():
+        for action in self._problem.conditional_actions:
             if isinstance(action, unified_planning.model.InstantaneousAction):
-                cond_effects = action.conditional_effects()
+                cond_effects = action.conditional_effects
                 for p in self.powerset(range(len(cond_effects))):
                     new_action = action.clone()
                     new_action.name = self.get_fresh_name(action.name)
                     new_action.clear_effects()
-                    for e in action.unconditional_effects():
+                    for e in action.unconditional_effects:
                         new_action._add_effect_instance(e.clone())
                     for i, e in enumerate(cond_effects):
                         if i in p:
                             # positive precondition
-                            new_action.add_precondition(e.condition())
-                            ne = unified_planning.model.Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
+                            new_action.add_precondition(e.condition)
+                            ne = unified_planning.model.Effect(e.fluent, e.value, self._env.expression_manager.TRUE(), e.kind)
                             new_action._add_effect_instance(ne)
                         else:
                             #negative precondition
-                            new_action.add_precondition(self._env.expression_manager.Not(e.condition()))
+                            new_action.add_precondition(self._env.expression_manager.Not(e.condition))
                     #new action is created, then is checked if it has any impact and if it can be simplified
-                    if len(new_action.effects()) > 0:
+                    if len(new_action.effects) > 0:
                         action_is_feasible, simplified_preconditions = self._check_and_simplify_preconditions(new_action)
                         if action_is_feasible:
                             new_action._set_preconditions(simplified_preconditions)
@@ -99,26 +99,26 @@ class ConditionalEffectsRemover(Transformer):
                             self._map_old_to_new_action(action, new_action)
                             self._new_problem.add_action(new_action)
             elif isinstance(action, unified_planning.model.DurativeAction):
-                timing_cond_effects: Dict['unified_planning.model.Timing', List['unified_planning.model.Effect']] = action.conditional_effects()
+                timing_cond_effects: Dict['unified_planning.model.Timing', List['unified_planning.model.Effect']] = action.conditional_effects
                 cond_effects_timing: List[Tuple['unified_planning.model.Effect', 'unified_planning.model.Timing']] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
                 for p in self.powerset(range(len(cond_effects_timing))):
                     new_action = action.clone()
                     new_action.name = self.get_fresh_name(action.name)
                     new_action.clear_effects()
-                    for t, el in action.unconditional_effects().items():
+                    for t, el in action.unconditional_effects.items():
                         for e in el:
                             new_action._add_effect_instance(t, e.clone())
                     for i, (e, t) in enumerate(cond_effects_timing):
                         if i in p:
                             # positive precondition
-                            new_action.add_condition(t, e.condition())
-                            ne = unified_planning.model.Effect(e.fluent(), e.value(), self._env.expression_manager.TRUE(), e.kind())
+                            new_action.add_condition(t, e.condition)
+                            ne = unified_planning.model.Effect(e.fluent, e.value, self._env.expression_manager.TRUE(), e.kind)
                             new_action._add_effect_instance(t, ne)
                         else:
                             #negative precondition
-                            new_action.add_condition(t, self._env.expression_manager.Not(e.condition()))
+                            new_action.add_condition(t, self._env.expression_manager.Not(e.condition))
                     #new action is created, then is checked if it has any impact and if it can be simplified
-                    if len(new_action.effects()) > 0:
+                    if len(new_action.effects) > 0:
                         action_is_feasible, simplified_conditions = self._check_and_simplify_conditions(new_action)
                         if action_is_feasible:
                             new_action.clear_conditions()

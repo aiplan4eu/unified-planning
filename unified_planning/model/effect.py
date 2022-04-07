@@ -65,10 +65,12 @@ class Effect:
         """Returns True if the Effect condition is not True."""
         return not self._condition.is_true()
 
+    @property
     def fluent(self) -> FNode:
         """Returns the Fluent that is modified by this effect."""
         return self._fluent
 
+    @property
     def value(self) -> FNode:
         """Returns the value given to the Fluent by this Effect."""
         return self._value
@@ -77,6 +79,7 @@ class Effect:
         """Sets the value given to the Fluent by this Effect."""
         self._value = new_value
 
+    @property
     def condition(self) -> FNode:
         """Returns the condition required for this Effect to be applied."""
         return self._condition
@@ -85,6 +88,7 @@ class Effect:
         """Sets the condition required for this Effect to be applied."""
         self._condition = new_condition
 
+    @property
     def kind(self) -> int:
         """Returns the kind of this Effect."""
         return self._kind

@@ -50,10 +50,10 @@ class Fluent:
 
     def __repr__(self) -> str:
         sign = ''
-        if self.arity() > 0:
-            sign_items = [f'{p.name()}={str(p.type())}' for p in self.signature()]
+        if self.arity > 0:
+            sign_items = [f'{p.name}={str(p.type)}' for p in self.signature]
             sign = f'[{", ".join(sign_items)}]'
-        return f'{str(self.type())} {self.name()}{sign}'
+        return f'{str(self.type)} {self.name}{sign}'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Fluent):
@@ -67,22 +67,29 @@ class Fluent:
             res += hash(p)
         return res ^ hash(self._name)
 
+    @property
     def name(self) -> str:
         '''Returns the fluent name.'''
         return self._name
 
+    @property
     def type(self) -> 'up.model.types.Type':
         '''Returns the fluent type.'''
         return self._typename
 
+    @property
     def signature(self) -> List['up.model.parameter.Parameter']:
         '''Returns the fluent signature.
         The signature is the List of Parameters.
         '''
         return self._signature
 
+    @property
     def arity(self) -> int:
-        '''Returns the fluent arity.'''
+        '''Returns the fluent arity.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        minimum time as possible.'''
         return len(self._signature)
 
     def __call__(self, *args: 'up.model.expression.Expression') -> 'up.model.fnode.FNode':

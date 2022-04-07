@@ -45,17 +45,17 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{v.name()} - {str(v.type())}" for v in expression.variables()]
+        vars_string_list = [f"?{v.name} - {str(v.type)}" for v in expression.variables()]
         return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{v.name()} - {str(v.type())}" for v in expression.variables()]
+        vars_string_list = [f"?{v.name} - {str(v.type)}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
-        return f'?{expression.variable().name()}'
+        return f'?{expression.variable().name}'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -79,17 +79,17 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        return f'({fluent.name()}{" " if len(args) > 0 else ""}{" ".join(args)})'
+        return f'({fluent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'?{p.name()}'
+        return f'?{p.name}'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
         o = expression.object()
-        return f'{o.name()}'
+        return f'{o.name}'
 
     def walk_bool_constant(self, expression, args):
         raise up.exceptions.UPUnreachableCodeError
@@ -148,10 +148,10 @@ class PDDLWriter:
         self.object_freshname = 'object'
 
     def _type_name_or_object_freshname(self, type: 'unified_planning.model.Type') -> str:
-        return type.name() if type.name() != "object" else self.object_freshname # type: ignore
+        return type.name if type.name != "object" else self.object_freshname # type: ignore
 
     def _write_domain(self, out: IO[str]):
-        problem_kind = self.problem.kind()
+        problem_kind = self.problem.kind
         if problem_kind.has_intermediate_conditions_and_effects(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
         if problem_kind.has_timed_effect() or problem_kind.has_timed_goals(): # type: ignore
@@ -187,8 +187,8 @@ class PDDLWriter:
                 out.write(' :durative-actions')
             if problem_kind.has_duration_inequalities(): # type: ignore
                 out.write(' :duration-inequalities')
-            if (self.problem.kind().has_actions_cost() or # type: ignore
-                self.problem.kind().has_plan_length()): # type: ignore
+            if (self.problem.kind.has_actions_cost() or # type: ignore
+                self.problem.kind.has_plan_length()): # type: ignore
                 out.write(' :action-costs')
             out.write(')\n')
 
@@ -196,7 +196,7 @@ class PDDLWriter:
         if problem_kind.has_hierarchical_typing(): # type: ignore
             while self.problem.has_type(self.object_freshname):
                 self.object_freshname = self.object_freshname + '_'
-            user_types_hierarchy = self.problem.user_types_hierarchy()
+            user_types_hierarchy = self.problem.user_types_hierarchy
             out.write(f' (:types\n')
             stack: List['unified_planning.model.Type'] = user_types_hierarchy[None] if None in user_types_hierarchy else []
             out.write(f'    {" ".join(self._type_name_or_object_freshname(t) for t in stack)} - object\n')
@@ -208,79 +208,79 @@ class PDDLWriter:
                     out.write(f'    {" ".join([self._type_name_or_object_freshname(t) for t in direct_sons])} - {self._type_name_or_object_freshname(current_type)}\n')
             out.write(' )\n')
         else:
-            out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
+            out.write(f' (:types {" ".join([t.name for t in self.problem.user_types])})\n' if len(self.problem.user_types) > 0 else '') # type: ignore
 
         predicates = []
         functions = []
-        for f in self.problem.fluents():
-            if f.type().is_bool_type():
+        for f in self.problem.fluents:
+            if f.type.is_bool_type():
                 params = []
                 i = 0
-                for param in f.signature():
-                    if param.type().is_user_type():
-                        params.append(f' ?{param.name()} - {self._type_name_or_object_freshname(param.type())}')
+                for param in f.signature:
+                    if param.type.is_user_type():
+                        params.append(f' ?{param.name} - {self._type_name_or_object_freshname(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
-                predicates.append(f'({f.name()}{"".join(params)})')
-            elif f.type().is_int_type() or f.type().is_real_type():
+                predicates.append(f'({f.name}{"".join(params)})')
+            elif f.type.is_int_type() or f.type.is_real_type():
                 params = []
                 i = 0
-                for param in f.signature():
-                    if param.type().is_user_type():
-                        params.append(f' ?{param.name()} - {self._type_name_or_object_freshname(param.type())}')
+                for param in f.signature:
+                    if param.type.is_user_type():
+                        params.append(f' ?{param.name} - {self._type_name_or_object_freshname(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
-                functions.append(f'({f.name()}{"".join(params)})')
+                functions.append(f'({f.name}{"".join(params)})')
             else:
                 raise UPTypeError('PDDL supports only boolean and numerical fluents')
-        if (self.problem.kind().has_actions_cost() or # type: ignore
-            self.problem.kind().has_plan_length()): # type: ignore
+        if (self.problem.kind.has_actions_cost() or # type: ignore
+            self.problem.kind.has_plan_length()): # type: ignore
             functions.append('(total-cost)')
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
         converter = ConverterToPDDLString(self.problem.env)
         costs = {}
-        metrics = self.problem.quality_metrics()
+        metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
             if isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                for a in self.problem.actions():
+                for a in self.problem.actions:
                     costs[a] = metric.get_action_cost(a)
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
-                for a in self.problem.actions():
+                for a in self.problem.actions:
                     costs[a] = self.problem.env.expression_manager.Int(1)
         elif len(metrics) > 1:
             raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
-        for a in self.problem.actions():
+        for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 out.write(f' (:action {a.name}')
                 out.write(f'\n  :parameters (')
-                for ap in a.parameters():
-                    if ap.type().is_user_type():
-                        out.write(f' ?{ap.name()} - {self._type_name_or_object_freshname(ap.type())}')
+                for ap in a.parameters:
+                    if ap.type.is_user_type():
+                        out.write(f' ?{ap.name} - {self._type_name_or_object_freshname(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
-                if len(a.preconditions()) > 0:
-                    out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions()])})')
-                if len(a.effects()) > 0:
+                if len(a.preconditions) > 0:
+                    out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions])})')
+                if len(a.effects) > 0:
                     out.write('\n  :effect (and')
-                    for e in a.effects():
+                    for e in a.effects:
                         if e.is_conditional():
-                            out.write(f' (when {converter.convert(e.condition())}')
-                        if e.value().is_true():
-                            out.write(f' {converter.convert(e.fluent())}')
-                        elif e.value().is_false():
-                            out.write(f' (not {converter.convert(e.fluent())})')
+                            out.write(f' (when {converter.convert(e.condition)}')
+                        if e.value.is_true():
+                            out.write(f' {converter.convert(e.fluent)}')
+                        elif e.value.is_false():
+                            out.write(f' (not {converter.convert(e.fluent)})')
                         elif e.is_increase():
-                            out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            out.write(f' (increase {converter.convert(e.fluent)} {converter.convert(e.value)})')
                         elif e.is_decrease():
-                            out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            out.write(f' (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})')
                         else:
-                            out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            out.write(f' (assign {converter.convert(e.fluent)} {converter.convert(e.value)})')
                         if e.is_conditional():
                             out.write(f')')
 
@@ -291,32 +291,32 @@ class PDDLWriter:
             elif isinstance(a, DurativeAction):
                 out.write(f' (:durative-action {a.name}')
                 out.write(f'\n  :parameters (')
-                for ap in a.parameters():
-                    if ap.type().is_user_type():
-                        out.write(f' ?{ap.name()} - {self._type_name_or_object_freshname(ap.type())}')
+                for ap in a.parameters:
+                    if ap.type.is_user_type():
+                        out.write(f' ?{ap.name} - {self._type_name_or_object_freshname(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
-                l, r = a.duration().lower(), a.duration().upper()
+                l, r = a.duration.lower, a.duration.upper
                 if l == r:
                     out.write(f'\n  :duration (= ?duration {str(l)})')
                 else:
                     out.write(f'\n  :duration (and ')
-                    if a.duration().is_left_open():
+                    if a.duration.is_left_open():
                         out.write(f'(> ?duration {str(l)})')
                     else:
                         out.write(f'(>= ?duration {str(l)})')
-                    if a.duration().is_right_open():
+                    if a.duration.is_right_open():
                         out.write(f'(< ?duration {str(r)})')
                     else:
                         out.write(f'(<= ?duration {str(r)})')
                     out.write(')')
-                if len(a.conditions()) > 0:
+                if len(a.conditions) > 0:
                     out.write(f'\n  :condition (and ')
-                    for interval, cl in a.conditions().items():
+                    for interval, cl in a.conditions.items():
                         for c in cl:
-                            if interval.lower() == interval.upper():
-                                if interval.lower().is_from_start():
+                            if interval.lower == interval.upper:
+                                if interval.lower.is_from_start():
                                     out.write(f'(at start {converter.convert(c)})')
                                 else:
                                     out.write(f'(at end {converter.convert(c)})')
@@ -327,26 +327,26 @@ class PDDLWriter:
                                 if not interval.is_right_open():
                                     out.write(f'(at end {converter.convert(c)})')
                     out.write(')')
-                if len(a.effects()) > 0:
+                if len(a.effects) > 0:
                     out.write('\n  :effect (and')
-                    for t, el in a.effects().items():
+                    for t, el in a.effects.items():
                         for e in el:
                             if t.is_from_start():
                                 out.write(f' (at start')
                             else:
                                 out.write(f' (at end')
                             if e.is_conditional():
-                                out.write(f' (when {converter.convert(e.condition())}')
-                            if e.value().is_true():
-                                out.write(f' {converter.convert(e.fluent())}')
-                            elif e.value().is_false():
-                                out.write(f' (not {converter.convert(e.fluent())})')
+                                out.write(f' (when {converter.convert(e.condition)}')
+                            if e.value.is_true():
+                                out.write(f' {converter.convert(e.fluent)}')
+                            elif e.value.is_false():
+                                out.write(f' (not {converter.convert(e.fluent)})')
                             elif e.is_increase():
-                                out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                                out.write(f' (increase {converter.convert(e.fluent)} {converter.convert(e.value)})')
                             elif e.is_decrease():
-                                out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                                out.write(f' (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})')
                             else:
-                                out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                                out.write(f' (assign {converter.convert(e.fluent)} {converter.convert(e.value)})')
                             if e.is_conditional():
                                 out.write(f')')
                             out.write(')')
@@ -365,27 +365,27 @@ class PDDLWriter:
             name = f'{self.problem.name}'
         out.write(f'(define (problem {name}-problem)\n')
         out.write(f' (:domain {name}-domain)\n')
-        if len(self.problem.user_types()) > 0:
+        if len(self.problem.user_types) > 0:
             out.write(' (:objects ')
-            for t in self.problem.user_types():
+            for t in self.problem.user_types:
                 objects: List['unified_planning.model.Object'] = list(self.problem.objects(t))
                 if len(objects) > 0:
-                    out.write(f'\n   {" ".join([o.name() for o in objects])} - {self._type_name_or_object_freshname(t)}')
+                    out.write(f'\n   {" ".join([o.name for o in objects])} - {self._type_name_or_object_freshname(t)}')
             out.write('\n )\n')
         converter = ConverterToPDDLString(self.problem.env)
         out.write(' (:init')
-        for f, v in self.problem.initial_values().items():
+        for f, v in self.problem.initial_values.items():
             if v.is_true():
                 out.write(f' {converter.convert(f)}')
             elif v.is_false():
                 pass
             else:
                 out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
-        if self.problem.kind().has_actions_cost(): # type: ignore
+        if self.problem.kind.has_actions_cost(): # type: ignore
             out.write(f' (= total-cost 0)')
         out.write(')\n')
-        out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals()])}))\n')
-        metrics = self.problem.quality_metrics()
+        out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n')
+        metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
             out.write(' (:metric ')

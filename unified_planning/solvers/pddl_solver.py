@@ -119,9 +119,9 @@ class PDDLSolver(solvers.solver.Solver):
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
             if timeout_occurred and proc.returncode != 0: # Also check returncode, in case the planner did finish normally
-                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name()) #The plan could be "plan" and not None, to see if a plan was found during the timeout
+                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name) #The plan could be "plan" and not None, to see if a plan was found during the timeout
         status: int = self._result_status(problem, plan)
-        return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name())
+        return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name)
 
     def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> int:
         '''Takes a problem and a plan and returns the status that represents this plan.

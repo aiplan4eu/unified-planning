@@ -53,11 +53,11 @@ class DisjunctiveConditionsRemover(Transformer):
 
     def _handle_actions(self):
         dnf = Dnf(self._env)
-        for a in self._problem.actions():
+        for a in self._problem.actions:
             if isinstance(a, InstantaneousAction):
-                new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions()))
+                new_precond = dnf.get_dnf_expression(self._env.expression_manager.And(a.preconditions))
                 if new_precond.is_or():
-                    for and_exp in new_precond.args():
+                    for and_exp in new_precond.args:
                         na = self._create_new_action_with_given_precond(and_exp, a)
                         self._new_problem.add_action(na)
                 else:
@@ -69,11 +69,11 @@ class DisjunctiveConditionsRemover(Transformer):
                 # save the timing, calculate the dnf of the and of all the conditions at the same time
                 # and then save it in conditions.
                 # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
-                for i, cl in a.conditions().items():
+                for i, cl in a.conditions.items():
                     interval_list.append(i)
                     new_cond = dnf.get_dnf_expression(self._env.expression_manager.And(cl))
                     if new_cond.is_or():
-                        conditions.append(new_cond.args())
+                        conditions.append(new_cond.args)
                     else:
                         conditions.append([new_cond])
                 conditions_tuple: Tuple[List[FNode], ...] = product(*conditions)
@@ -89,7 +89,7 @@ class DisjunctiveConditionsRemover(Transformer):
         new_action.clear_conditions()
         for i, c in zip(interval_list, cond_list):
             if c.is_and():
-                for co in c.args():
+                for co in c.args:
                     new_action.add_condition(i, co)
             else:
                 new_action.add_condition(i, c)
@@ -103,7 +103,7 @@ class DisjunctiveConditionsRemover(Transformer):
         new_action.name = self.get_fresh_name(original_action.name)
         new_action.clear_preconditions()
         if precond.is_and():
-            for leaf in precond.args():
+            for leaf in precond.args:
                 new_action.add_precondition(leaf)
         else:
             new_action.add_precondition(precond)

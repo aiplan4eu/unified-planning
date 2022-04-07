@@ -60,7 +60,7 @@ class Simplifier(walkers.DagWalker):
             if a.is_false():
                 return self.manager.FALSE()
             if a.is_and():
-                for s in a.args():
+                for s in a.args:
                     if self.walk_not(self.manager.Not(s), [s]) in new_args:
                         return self.manager.FALSE()
                     new_args[s] = True
@@ -87,7 +87,7 @@ class Simplifier(walkers.DagWalker):
             if a.is_true():
                 return self.manager.TRUE()
             if a.is_or():
-                for s in a.args():
+                for s in a.args:
                     if self.walk_not(self.manager.Not(s), [s]) in new_args:
                         return self.manager.TRUE()
                     new_args[s] = True
@@ -235,7 +235,7 @@ class Simplifier(walkers.DagWalker):
             if a.is_int_constant() or a.is_real_constant():
                 accumulator += a.constant_value()
             elif a.is_plus():
-                for s in a.args():
+                for s in a.args:
                     if s.is_int_constant() or s.is_real_constant():
                         accumulator += s.constant_value()
                     else:
@@ -282,7 +282,7 @@ class Simplifier(walkers.DagWalker):
                 else:
                     accumulator *= a.constant_value()
             elif a.is_times():
-                for s in a.args():
+                for s in a.args:
                     if s.is_int_constant() or s.is_real_constant():
                         if s.constant_value() == 0:
                             return self.manager.Int(0)

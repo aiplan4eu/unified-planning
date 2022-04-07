@@ -62,7 +62,7 @@ class Grounder(Transformer):
         if self._new_problem is None:
             raise UPUsageError('The get_rewrite_back_map method must be called after the function get_rewritten_problem!')
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
-        for grounded_action in self._new_problem.actions():
+        for grounded_action in self._new_problem.actions:
             trace_back_map[grounded_action] = (self.get_original_action(grounded_action), self._map_parameters[grounded_action])
         return trace_back_map
 
@@ -80,9 +80,9 @@ class Grounder(Transformer):
         self._new_problem = self._problem.clone()
         self._new_problem.name = f'{self._name}_{self._problem.name}'
         self._new_problem.clear_actions()
-        for old_action in self._problem.actions():
+        for old_action in self._problem.actions:
             #contains the type of every parameter of the action
-            type_list: List[Type] = [param.type() for param in old_action.parameters()]
+            type_list: List[Type] = [param.type for param in old_action.parameters]
             #if the action does not have parameters, it does not need to be grounded.
             if len(type_list) == 0:
                 if self._grounding_actions_map is None or \
@@ -118,7 +118,7 @@ class Grounder(Transformer):
                 grounded_params_list = iter(self._grounding_actions_map[old_action])
             assert grounded_params_list is not None
             for grounded_params in grounded_params_list:
-                subs: Dict[Expression, Expression] = dict(zip(old_action.parameters(), list(grounded_params)))
+                subs: Dict[Expression, Expression] = dict(zip(old_action.parameters, list(grounded_params)))
                 new_action = self._create_action_with_given_subs(old_action, subs)
                 #when the action is None it means it is not feasible,
                 # it's conditions are in contraddiction within one another.
@@ -130,13 +130,13 @@ class Grounder(Transformer):
         return self._new_problem
 
     def _create_effect_with_given_subs(self, old_effect: Effect, subs: Dict[Expression, Expression]) -> Optional[Effect]:
-        new_fluent = self._substituter.substitute(old_effect.fluent(), subs)
-        new_value = self._substituter.substitute(old_effect.value(), subs)
-        new_condition = self._simplifier.simplify(self._substituter.substitute(old_effect.condition(), subs), self._problem)
+        new_fluent = self._substituter.substitute(old_effect.fluent, subs)
+        new_value = self._substituter.substitute(old_effect.value, subs)
+        new_condition = self._simplifier.simplify(self._substituter.substitute(old_effect.condition, subs), self._problem)
         if new_condition == self._env.expression_manager.FALSE():
             return None
         else:
-            return Effect(new_fluent, new_value, new_condition, old_effect.kind())
+            return Effect(new_fluent, new_value, new_condition, old_effect.kind)
 
     def _create_action_with_given_subs(self, old_action: Action, subs: Dict[Expression, Expression]) -> Optional[Action]:
         naming_list: List[str] = []
@@ -146,9 +146,9 @@ class Grounder(Transformer):
             naming_list.append(str(value))
         if isinstance(old_action, InstantaneousAction):
             new_action = InstantaneousAction(self.get_fresh_name(old_action.name, naming_list))
-            for p in old_action.preconditions():
+            for p in old_action.preconditions:
                 new_action.add_precondition(self._substituter.substitute(p, subs))
-            for e in old_action.effects():
+            for e in old_action.effects:
                 new_effect = self._create_effect_with_given_subs(e, subs)
                 if new_effect is not None:
                     new_action._add_effect_instance(new_effect)
@@ -159,11 +159,11 @@ class Grounder(Transformer):
             return new_action
         elif isinstance(old_action, DurativeAction):
             new_durative_action = DurativeAction(self.get_fresh_name(old_action.name, naming_list))
-            new_durative_action.set_duration_constraint(old_action.duration())
-            for i, cl in old_action.conditions().items():
+            new_durative_action.set_duration_constraint(old_action.duration)
+            for i, cl in old_action.conditions.items():
                 for c in cl:
                     new_durative_action.add_condition(i, self._substituter.substitute(c, subs))
-            for t, el in old_action.effects().items():
+            for t, el in old_action.effects.items():
                 for e in el:
                     new_effect = self._create_effect_with_given_subs(e, subs)
                     if new_effect is not None:
@@ -200,16 +200,16 @@ class Grounder(Transformer):
         to be a plan of the original problem, considering the absence of parameters
         in the actions of the plan.'''
         if isinstance(plan, SequentialPlan):
-            new_actions: List[ActionInstance] = plan.actions()
+            new_actions: List[ActionInstance] = plan.actions
             old_actions: List[ActionInstance] = []
             for ai in new_actions:
-                old_actions.append(ActionInstance(self.get_original_action(ai.action()), tuple(self._map_parameters[ai.action()])))
+                old_actions.append(ActionInstance(self.get_original_action(ai.action), tuple(self._map_parameters[ai.action])))
             return SequentialPlan(old_actions)
         elif isinstance(plan, TimeTriggeredPlan):
-            s_new_actions_d = plan.actions()
+            s_new_actions_d = plan.actions
             s_old_actions_d = []
             for s, ai, d in s_new_actions_d:
-                s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action()), tuple(self._map_parameters[ai.action()])), d))
+                s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action), tuple(self._map_parameters[ai.action])), d))
             return TimeTriggeredPlan(s_old_actions_d)
         raise NotImplementedError
 

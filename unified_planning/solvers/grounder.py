@@ -39,8 +39,8 @@ class Grounder(solvers.solver.Solver):
         trace_back_map = grounder.get_rewrite_back_map()
         return (grounded_problem, partial(lift_plan, map=trace_back_map))
 
-    @staticmethod
-    def name():
+    @property
+    def name(self):
         return 'grounder'
 
     @staticmethod
@@ -84,14 +84,14 @@ def lift_plan(plan: Plan, map: Dict['unified_planning.model.Action', Tuple['unif
         the "original_action" with the specific "parameters".'''
     if isinstance(plan, SequentialPlan):
         original_actions: List[ActionInstance] = []
-        for ai in plan.actions():
-            original_action, parameters = map[ai.action()]
+        for ai in plan.actions:
+            original_action, parameters = map[ai.action]
             original_actions.append(ActionInstance(original_action, tuple(parameters)))
         return SequentialPlan(original_actions)
     elif isinstance(plan, TimeTriggeredPlan):
         s_original_actions_d = []
-        for s, ai, d in plan.actions():
-            original_action, parameters = map[ai.action()]
+        for s, ai, d in plan.actions:
+            original_action, parameters = map[ai.action]
             s_original_actions_d.append((s, ActionInstance(original_action, tuple(parameters)), d))
         return TimeTriggeredPlan(s_original_actions_d)
     raise NotImplementedError

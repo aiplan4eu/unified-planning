@@ -27,7 +27,7 @@ class Object:
         self._typename = typename
 
     def __repr__(self) -> str:
-        return self.name()
+        return self.name
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Object):
@@ -38,10 +38,12 @@ class Object:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)
 
+    @property
     def name(self) -> str:
         """Returns the object name."""
         return self._name
 
+    @property
     def type(self) -> 'unified_planning.model.types.Type':
         """Returns the object type."""
         return self._typename

@@ -32,7 +32,7 @@ class Variable:
         self._typename = typename
 
     def __repr__(self) -> str:
-        return f'{str(self.type())} {self.name()}'
+        return f'{str(self.type)} {self.name}'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Variable):
@@ -43,10 +43,12 @@ class Variable:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)
 
+    @property
     def name(self) -> str:
         """Returns the variable name."""
         return self._name
 
+    @property
     def type(self) -> 'unified_planning.model.types.Type':
         """Returns the variable type."""
         return self._typename

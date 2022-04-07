@@ -68,11 +68,12 @@ class ProblemKind(metaclass=ProblemKindMeta):
             raise
         return self._features.issubset(oth._features)
 
+    @property
     def features(self) -> Set[str]:
         return self._features
 
     def union(self, oth: 'ProblemKind') -> 'ProblemKind':
-        return ProblemKind(self.features().union(oth.features()))
+        return ProblemKind(self.features.union(oth.features))
 
 
 basic_classical_kind = ProblemKind()

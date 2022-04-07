@@ -37,37 +37,37 @@ class TestConditionalEffectsRemover(TestCase):
         problem = self.problems['basic_conditional'].problem
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
-        u_actions = unconditional_problem.actions()
+        u_actions = unconditional_problem.actions
         a_x = problem.action("a_x")
         a_x_new_list = cer.get_transformed_actions(a_x)
         self.assertEqual(len(a_x_new_list), 1)
         new_action = unconditional_problem.action(a_x_new_list[0].name)
         y = FluentExp(problem.fluent("y"))
-        a_x_e = a_x.effects()
-        new_action_e = new_action.effects()
+        a_x_e = a_x.effects
+        new_action_e = new_action.effects
 
         self.assertEqual(len(u_actions), 2)
         self.assertEqual(problem.action("a_y"), unconditional_problem.action("a_y"))
         self.assertTrue(a_x.is_conditional())
         self.assertFalse(unconditional_problem.has_action("a_x"))
         self.assertFalse(new_action.is_conditional())
-        self.assertIn(y, new_action.preconditions())
-        self.assertNotIn(y, a_x.preconditions())
+        self.assertIn(y, new_action.preconditions)
+        self.assertNotIn(y, a_x.preconditions)
         for e, ue in zip(a_x_e, new_action_e):
-            self.assertEqual(e.fluent(), ue.fluent())
-            self.assertEqual(e.value(), ue.value())
+            self.assertEqual(e.fluent, ue.fluent)
+            self.assertEqual(e.value, ue.value)
             self.assertFalse(ue.is_conditional())
 
-        self.assertTrue(problem.kind().has_conditional_effects())
-        self.assertFalse(unconditional_problem.kind().has_conditional_effects())
-        for a in unconditional_problem.actions():
+        self.assertTrue(problem.kind.has_conditional_effects())
+        self.assertFalse(unconditional_problem.kind.has_conditional_effects())
+        for a in unconditional_problem.actions:
             self.assertFalse(a.is_conditional())
 
-        with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = cer.rewrite_back_plan(uncond_plan)
-            with PlanValidator(problem_kind=problem.kind()) as pv:
+            with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
@@ -79,11 +79,11 @@ class TestConditionalEffectsRemover(TestCase):
         unconditional_problem_2 = cer.get_rewritten_problem()
         self.assertEqual(unconditional_problem, unconditional_problem_2)
 
-        with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = cer.rewrite_back_plan(uncond_plan)
-            with PlanValidator(problem_kind=problem.kind()) as pv:
+            with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))
@@ -93,14 +93,14 @@ class TestConditionalEffectsRemover(TestCase):
         cer = ConditionalEffectsRemover(problem)
         unconditional_problem = cer.get_rewritten_problem()
 
-        with OneshotPlanner(problem_kind=unconditional_problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = cer.rewrite_back_plan(uncond_plan)
-            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions(), uncond_plan.actions()):
+            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions, uncond_plan.actions):
                 self.assertEqual(s, s_1)
                 self.assertEqual(d, d_1)
-                self.assertIn(a.action(), problem.actions())
+                self.assertIn(a.action, problem.actions)
 
     def test_ad_hoc_1(self):
         ct = GlobalStartTiming(2)
@@ -113,10 +113,10 @@ class TestConditionalEffectsRemover(TestCase):
         problem.add_goal(Not(y))
         cer = ConditionalEffectsRemover(problem)
         uncond_problem = cer.get_rewritten_problem()
-        eff = uncond_problem.timed_effects()[ct][0]
+        eff = uncond_problem.timed_effects[ct][0]
         self.assertFalse(eff.is_conditional())
-        self.assertEqual(FluentExp(y), eff.fluent())
-        self.assertEqual(And(Not(x), y), eff.value())
+        self.assertEqual(FluentExp(y), eff.fluent)
+        self.assertEqual(And(Not(x), y), eff.value)
 
     def test_mockup_1(self):
         ct = GlobalStartTiming(2)

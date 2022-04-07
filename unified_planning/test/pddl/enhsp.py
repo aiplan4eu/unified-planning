@@ -27,8 +27,8 @@ class ENHSP(PDDLSolver):
     def __init__(self):
         PDDLSolver.__init__(self, False)
 
-    @staticmethod
-    def name() -> str:
+    @property
+    def name(self) -> str:
         return 'ENHSP'
 
     def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:

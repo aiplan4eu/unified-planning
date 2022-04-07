@@ -95,7 +95,7 @@ class Factory:
           e.g. OneshotPlanner(names=['tamer', 'tamer'],
                               params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
         - using 'problem_kind' and 'optimality_guarantee'.
-          e.g. OneshotPlanner(problem_kind=problem.kind(), optimality_guarantee=SOLVED_OPTIMALLY)
+          e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 
@@ -113,7 +113,7 @@ class Factory:
           e.g. PlanValidator(names=['tamer', 'tamer'],
                              params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
         - using 'problem_kind' parameter.
-          e.g. PlanValidator(problem_kind=problem.kind())
+          e.g. PlanValidator(problem_kind=problem.kind)
         """
         return self._get_solver('plan_validator', name, names, params, problem_kind)
 
@@ -125,6 +125,6 @@ class Factory:
           (grounder dependent options).
           e.g. Grounder(name='tamer', params={'opt': 'val'})
         - using 'problem_kind' parameter.
-          e.g. Grounder(problem_kind=problem.kind())
+          e.g. Grounder(problem_kind=problem.kind)
         """
         return self._get_solver('grounder', name, None, params, problem_kind)
