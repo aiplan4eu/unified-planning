@@ -63,18 +63,21 @@ class ProtobufWriter(Converter):
             atom = unified_planning_pb2.Atom(symbol=payload)
         elif isinstance(payload, unified_planning.model.Fluent):
             kind = unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL")
-            p_type = payload.name()
+            atom = unified_planning_pb2.Atom(symbol=payload.name())
+            p_type = str(payload.type())
         elif isinstance(payload, unified_planning.model.Object):
             # TODO: check if first element is fluent symbol
             kind = unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE")
-            p_type = payload.name()
+            atom = unified_planning_pb2.Atom(symbol=payload.name())
         elif isinstance(payload, unified_planning.model.ActionParameter):
             kind = unified_planning_pb2.ExpressionKind.Value("PARAMETER")
-            p_type = payload.name()
+            p_type = str(payload.type())
+            atom = unified_planning_pb2.Atom(symbol=payload.name())
         elif payload is not None:
             kind = unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL")
             atom = unified_planning_pb2.Atom(symbol=payload.name())
-            # TODO: check function symbols
+            # TODO: check function symbols types
+            # TODO: Add function symbols as atoms to be parsed
 
         for arg in args:
             arg_list.append(self.convert(arg))
@@ -252,7 +255,7 @@ class ProtobufWriter(Converter):
             if param_expr.kind == unified_planning_pb2.ExpressionKind.Value(
                 "STATE_VARIABLE"
             ):
-                parameters.append(unified_planning_pb2.Atom(symbol=param_expr.type))
+                parameters.append(param_expr.atom)
             else:
                 raise ValueError(f"Unsupported parameter type: {param_expr.type}")
 

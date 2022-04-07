@@ -28,7 +28,13 @@ from unified_planning.model.operators import (
     REAL_CONSTANT,
 )
 import unified_planning.plan
-from unified_planning.model import Effect, ActionParameter, Problem, DurativeAction
+from unified_planning.model import (
+    Effect,
+    ActionParameter,
+    Problem,
+    DurativeAction,
+    InstantaneousAction,
+)
 from unified_planning.shortcuts import BoolType, UserType, RealType, IntType
 
 
@@ -49,6 +55,8 @@ def convert_type_str(s, env):
 
 
 class ProtobufReader(Converter):
+    current_action = None
+
     @handles(unified_planning_pb2.Parameter)
     def _convert_parameter(self, msg, problem):
         # TODO: Convert parameter names into parameter types?
@@ -77,6 +85,7 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Expression)
     def _convert_expression(self, msg, problem, param_map):
+        payload = self.convert(msg.atom, problem)
         args = []
         for arg_msg in msg.list:
             args.append(self.convert(arg_msg, problem, param_map))
@@ -87,34 +96,36 @@ class ProtobufReader(Converter):
             if msg.type == "bool":
                 return problem.env.expression_manager.create_node(
                     node_type=BOOL_CONSTANT,
-                    args=(),
-                    payload=self.convert(msg.atom, problem),
+                    args=tuple(args),
+                    payload=payload,
                 )
             elif msg.type == "int":
                 return problem.env.expression_manager.create_node(
                     node_type=INT_CONSTANT,
-                    args=(),
-                    payload=self.convert(msg.atom, problem),
+                    args=tuple(args),
+                    payload=payload,
                 )
             elif msg.type == "real":
                 return problem.env.expression_manager.create_node(
                     node_type=REAL_CONSTANT,
-                    args=(),
-                    payload=self.convert(msg.atom, problem),
+                    args=tuple(args),
+                    payload=payload,
                 )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
+            # IN UP, parameters are the user types and not the parameter name itself
             return problem.env.expression_manager.create_node(
                 node_type=PARAM_EXP,
-                args=(),
-                payload=self.convert(msg.atom, problem),
+                args=tuple(args),
+                payload=ActionParameter(
+                    msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
+                ),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL"):
-            assert msg.atom is not None
-
+            assert problem.has_fluent(msg.atom.symbol)
             return problem.env.expression_manager.create_node(
                 node_type=FLUENT_EXP,
-                args=(),
-                payload=problem.fluent(msg.type),
+                args=tuple(args),
+                payload=payload,
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"):
             # TODO: complete the function symbol conversion
@@ -122,7 +133,7 @@ class ProtobufReader(Converter):
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
             atom = self.convert(msg.atom, problem)
             return problem.env.expression_manager.create_node(
-                node_type=OBJECT_EXP, args=(), payload=problem.object(msg.type)
+                node_type=OBJECT_EXP, args=(), payload=payload
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value(
             "FUNCTION_APPLICATION"
@@ -135,20 +146,29 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.Atom)
     def _convert_atom(self, msg, problem):
         field = msg.WhichOneof("content")
-
         # No atom
         if field is None:
             return None
 
-        value = getattr(msg, msg.WhichOneof("content"))
+        value = getattr(msg, field)
         if field == "int":
-            return int(value)
+            return problem.env.expression_manager.Int(value)
         elif field == "real":
-            return float(value)
+            return problem.env.expression_manager.Real(value)
         elif field == "boolean":
-            return bool(value)
+            # TODO: fix BoolExp returning always False Expressions
+            return problem.env.expression_manager.Bool(value)
         else:
-            return problem.object(value)
+            if problem.has_object(value):
+                return problem.object(value)
+            elif self.current_action is not None:
+                try:
+                    return problem.env.expression_manager.ParameterExp(
+                        self.current_action.parameter(value)
+                    )
+                except KeyError:
+                    return problem.fluent(value)
+        return problem.fluent(value)
 
     @handles(unified_planning_pb2.TypeDeclaration)
     def _convert_type_declaration(self, msg):
@@ -217,46 +237,43 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Action)
     def _convert_action(self, msg, problem):
+        # TODO: fix `NOT`conditions and assignments are currently returning None
+        # TODO: fix `FUNCTION_SYMBOLS` are currently returning None
+
         parameters = OrderedDict()
-        conditions = {}
-        effects = {}
         action: unified_planning.model.Action
 
         for param in msg.parameters:
             parameters[param.name] = self.convert(param, problem)
 
-        for cond in msg.conditions:
-            condition = self.convert(cond.cond, problem, parameters)
-            if condition is None:
-                continue
-            if cond.HasField("span"):
-                conditions[self.convert(cond.span, problem)] = condition
-            else:
-                conditions.update(condition)
-        for eff in msg.effects:
-            effect = self.convert(eff.effect, problem)
-            if effect is None:
-                continue
-            if eff.HasField("occurence_time"):
-                effects[self.convert(eff.occurence_time, problem, parameters)] = effect
-            else:
-                effects.update(effect)
-
         if msg.HasField("duration"):
-            action = DurativeAction(
-                name=msg.name,
-                parameters=parameters,
-                conditions=conditions,
-                effects=effects,
-                duration=self.convert(msg.duration, problem),
-            )
+            action = DurativeAction(msg.name, parameters)
+            action.set_duration_constraint(self.convert(msg.duration, problem))
         else:
-            action = unified_planning.model.InstantaneousAction(
-                msg.name,
-                parameters=parameters,
-                conditions=conditions,
-                effects=effects,
-            )
+            action = InstantaneousAction(msg.name, parameters)
+
+        self.current_action = action
+        for cond in msg.conditions:
+            exp = self.convert(cond.cond, problem, parameters)
+            if exp is None:
+                continue
+            try:
+                action.add_condition(self.convert(cond.span), exp)
+            except AttributeError:
+                action.add_precondition(exp)
+
+        for eff in msg.effects:
+            exp = self.convert(eff.effect, problem, parameters)
+            if exp.fluent() is None or exp.value() is None:
+                continue
+            try:
+                action.add_timed_effect(
+                    timing=self.convert(eff.occurence_time),
+                    fluent=exp.fluent(),
+                    value=exp.value(),
+                )
+            except AttributeError:
+                action.add_effect(fluent=exp.fluent(), value=exp.value())
 
         if msg.HasField("cost"):
             action.set_cost(self.convert(msg.cost, problem))
