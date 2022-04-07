@@ -35,13 +35,13 @@ def convert_type_str(s, env):
     if s == "bool":
         value_type = env.type_manager.BoolType()
     elif s == "int":
-        value_type = env.type_manager.IntType()  # TODO: deal with bounds
+        value_type = env.type_manager.IntType()
     elif s == "float":
-        value_type = env.type_manager.RealType()  # TODO: deal with bounds
+        value_type = env.type_manager.RealType()
     elif "real" in s:
         a = float(s.split("[")[1].split(",")[0])
         b = float(s.split(",")[1].split("]")[0])
-        value_type = env.type_manager.RealType(a, b)  # TODO: deal with bounds
+        value_type = env.type_manager.RealType(a, b)
     else:
         value_type = env.type_manager.UserType(s)
     return value_type
@@ -108,32 +108,11 @@ class ProtobufReader(Converter):
 
         if msg.kind == unified_planning_pb2.ExpressionKind.Value("CONSTANT"):
             assert msg.atom is not None
-            payload = self.convert(msg.atom, problem)
+            return self.convert(msg.atom, problem)
 
-            if msg.type == "bool":
-                return problem.env.expression_manager.create_node(
-                    node_type=operators.BOOL_CONSTANT,
-                    args=tuple(args),
-                    payload=payload,
-                )
-            elif msg.type == "int":
-                return problem.env.expression_manager.create_node(
-                    node_type=operators.INT_CONSTANT,
-                    args=tuple(args),
-                    payload=payload,
-                )
-            elif msg.type == "real":
-                return problem.env.expression_manager.create_node(
-                    node_type=operators.REAL_CONSTANT,
-                    args=tuple(args),
-                    payload=payload,
-                )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
-            # IN UP, parameters are the user types and not the parameter name itself
-            return problem.env.expression_manager.create_node(
-                node_type=operators.PARAM_EXP,
-                args=tuple(args),
-                payload=ActionParameter(
+            return problem.env.expression_manager.ParameterExp(
+                param=ActionParameter(
                     msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
                 ),
             )
@@ -145,8 +124,6 @@ class ProtobufReader(Converter):
                 payload=self.convert(msg.atom, problem),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"):
-            # TODO: fix problem with `TypeChecker`
-            # For example, battery charge of type `real[0, 100]` is operational with `10`
             node_type = op_to_node_type(msg.atom.symbol)
             if node_type is not None:
                 return problem.env.expression_manager.create_node(
@@ -177,22 +154,20 @@ class ProtobufReader(Converter):
 
         value = getattr(msg, field)
         if field == "int":
+            # TODO: deal with bounds
             return problem.env.expression_manager.Int(value)
         elif field == "real":
+            # TODO: deal with bounds
             return problem.env.expression_manager.Real(value)
         elif field == "boolean":
             return problem.env.expression_manager.Bool(value)
         else:
+            # If atom symbols, return the equivalent UP alternative
+            # Note that parameters are directly handled at expression level
             if problem.has_object(value):
                 return problem.object(value)
-            elif self.current_action is not None:
-                try:
-                    return problem.env.expression_manager.ParameterExp(
-                        self.current_action.parameter(value)
-                    )
-                except KeyError:
-                    return problem.fluent(value)
-        return problem.fluent(value)
+            else:
+                return problem.fluent(value)
 
     @handles(unified_planning_pb2.TypeDeclaration)
     def _convert_type_declaration(self, msg):
@@ -265,7 +240,7 @@ class ProtobufReader(Converter):
         action: unified_planning.model.Action
 
         for param in msg.parameters:
-            parameters[param.name] = self.convert(param, problem)
+            parameters[param.name] = convert_type_str(param.type, problem.env)
 
         if msg.HasField("duration"):
             action = DurativeAction(msg.name, parameters)
@@ -312,7 +287,6 @@ class ProtobufReader(Converter):
         ):
             kind = DECREASE
 
-        # TODO: fix `effect.value` is always returning false for BoolExp
         return Effect(
             fluent=self.convert(msg.fluent, problem, param_map),
             value=self.convert(msg.value, problem, param_map),
