@@ -29,7 +29,7 @@ jobs:
         with:
           repository: aiplan4eu/up-tamer
           path: up-tamer
-          ref: "68ee3d1d58d606e145cc8e234a386b9d815c4a3e"
+          ref: "909d7f1f7bb58c4696586612fbfb2c7d572ee29d"
 
       - name: Install up-tamer
         run: python3 -m pip install up-tamer/
@@ -85,7 +85,7 @@ jobs:
         with:
           repository: aiplan4eu/up-tamer
           path: up-tamer
-          ref: "68ee3d1d58d606e145cc8e234a386b9d815c4a3e"
+          ref: "909d7f1f7bb58c4696586612fbfb2c7d572ee29d"
 
       - name: Install up-tamer
         run: python3 -m pip install up-tamer/
@@ -133,6 +133,16 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
           brew install gringo
+
+      - name: Checkout up-tamer
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-tamer
+          path: up-tamer
+          ref: "909d7f1f7bb58c4696586612fbfb2c7d572ee29d"
+
+      - name: Install up-tamer
+        run: python3 -m pip install up-tamer/
 
       - name: Checkout up-pyperplan
         uses: actions/checkout@v2
