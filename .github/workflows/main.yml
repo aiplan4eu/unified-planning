@@ -37,7 +37,7 @@ jobs:
         with:
           repository: aiplan4eu/up-tamer
           path: up-tamer
-          ref: "9ff6693e35834e965cb96ac5f3498e3e004b5f06"
+          ref: "68ee3d1d58d606e145cc8e234a386b9d815c4a3e"
 
       - name: Install Tamer unified-planning interface
         run: python3 -m pip install up-tamer/
@@ -87,6 +87,16 @@ jobs:
 
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
+
+      - name: Checkout Tamer unified-planning interface
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-tamer
+          path: up-tamer
+          ref: "68ee3d1d58d606e145cc8e234a386b9d815c4a3e"
+
+      - name: Install Tamer unified-planning interface
+        run: python3 -m pip install up-tamer/
 
       - name: Checkout Pyperplan unified-planning interface
         uses: actions/checkout@v2
