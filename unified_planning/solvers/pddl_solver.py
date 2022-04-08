@@ -15,7 +15,10 @@
 """This module defines an interface for a generic PDDL planner."""
 
 
+import asyncio
+from asyncio.subprocess import PIPE
 import select
+import sys
 import tempfile
 import os
 import re
@@ -27,7 +30,7 @@ from unified_planning.shortcuts import *
 from unified_planning.solvers.results import PlanGenerationResult
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
-from typing import IO, Any, Callable, Optional, List
+from typing import IO, Any, Callable, Optional, List, cast
 
 
 class PDDLSolver(solvers.solver.Solver):
@@ -82,44 +85,22 @@ class PDDLSolver(solvers.solver.Solver):
             w.write_domain(domanin_filename)
             w.write_problem(problem_filename)
             cmd = self._get_cmd(domanin_filename, problem_filename, plan_filename)
-            proc_out: List[str] = []
-            proc_err: List[str] = []
 
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            timeout_occurred = False
-            if output_stream is None:
-                try:
-                    out_err_bytes = proc.communicate(timeout=timeout)
-                    proc_out, proc_err = [out_err_bytes[0].decode()], [out_err_bytes[1].decode()]
-                except subprocess.TimeoutExpired:
-                    timeout_occurred = True
-            else: #output_stream is not None
-                start_time = time.time()
-                last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
-                readable_streams: List[Any] = []
-                # Exit loop condition: Both stream have nothing left to read or the planner is out of time
-                while not timeout_occurred and (len(readable_streams) != 2 or last_red_out != 0 or last_red_err != 0):
-                    readable_streams, _, _ = select.select([proc.stdout, proc.stderr], [], [], 1.0) #1.0 is the timeout
-                    if timeout is not None and time.time() - start_time >= timeout: # Check if the planner is out of time.
-                        proc.kill()
-                        timeout_occurred = True
-                    for readable_stream in readable_streams:
-                        out_in_bytes = readable_stream.read()
-                        out_str = out_in_bytes.decode()
-                        output_stream.write(out_str)
-                        if readable_stream == proc.stdout:
-                            proc_out.append(out_str)
-                            last_red_out = len(out_in_bytes)
-                        else:
-                            proc_err.append(out_str)
-                            last_red_err = len(out_in_bytes)
-                proc.wait()
+            try:
+                if sys.platform == "win32":
+                    loop = asyncio.ProactorEventLoop() 
+                else:
+                    loop = asyncio.new_event_loop()
+                timeout_occurred, (proc_out, proc_err), retval = loop.run_until_complete(run_command(cmd, timeout=timeout, output_stream=output_stream))
+            finally:
+                loop.close()
+            
             logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
-            if timeout_occurred and proc.returncode != 0: # Also check returncode, in case the planner did finish normally
-                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name) #The plan could be "plan" and not None, to see if a plan was found during the timeout
+            if timeout_occurred and retval != 0:
+                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name)
         status: int = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name)
 
@@ -130,3 +111,39 @@ class PDDLSolver(solvers.solver.Solver):
 
     def destroy(self):
         pass
+
+
+async def run_command(cmd, timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
+    start = time.time()
+    process = await asyncio.create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
+
+    timeout_occoured = False
+    process_output: Tuple[List[str], List[str]] = ([], []) #stdout, stderr
+    while True:
+        lines = [b"", b""]
+        oks = [True, True]
+        for idx, stream in enumerate([process.stdout, process.stderr]):
+            assert stream is not None
+            try:
+                lines[idx] = await asyncio.wait_for(stream.readline(), 0.5)
+            except asyncio.TimeoutError:
+                oks[idx] = False
+
+        if all(oks) and (not lines[0] and not lines[1]): # EOF
+            break
+        else:
+            for idx in range(2):
+                output_string = lines[idx].decode().replace('\r\n', '\n')
+                if output_stream is not None:
+                    cast(IO[str], output_stream).write(output_string)
+                process_output[idx].append(output_string)
+        if timeout is not None and time.time() - start >= timeout:
+            try:
+                process.kill()
+            except OSError:
+                pass # This can happen if the process is already terminated
+            timeout_occoured = True
+            break
+
+    await process.wait() # Wait for the child process to exit
+    return timeout_occoured, process_output, cast(int, process.returncode)
