@@ -366,7 +366,7 @@ class PDDLReader:
         return True
 
     def _problem_has_actions_cost(self, problem: up.model.Problem):
-        if not problem.initial_value(self._totalcost).constant_value() == 0:
+        if self._totalcost is None or not problem.initial_value(self._totalcost).constant_value() == 0:
             return False
         for _, el in problem.timed_effects.items():
             for e in el:
