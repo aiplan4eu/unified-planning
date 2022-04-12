@@ -3,9 +3,8 @@ name: CI
 on: push
 
 jobs:
-  run-tests:
+  run-tests-ubuntu:
     runs-on: ubuntu-latest
-    container: aiplan4eu/unified-planning
 
     steps:
       - name: Checkout
@@ -18,31 +17,40 @@ jobs:
         run: python3 -m pip install -r dev-requirements.txt
 
       - name: MyPy check
-        run: |
-          python3 -m mypy --version
-          python3 -m mypy unified_planning
+        run: python3 -m mypy unified_planning
 
-      - name: Checkout Tamer unified-planning interface
+      - name: Install tarski
+        run: |
+          python3 -m pip install tarski[arithmetic]
+          sudo apt install -y gringo
+
+      - name: Checkout up-tamer
         uses: actions/checkout@v2
         with:
           repository: aiplan4eu/up-tamer
           path: up-tamer
-          ref: "9ff6693e35834e965cb96ac5f3498e3e004b5f06"
+          ref: "143810ee83eb918005210038f3b69453ff163fa5"
 
-      - name: Install Tamer unified-planning interface
+      - name: Install up-tamer
         run: python3 -m pip install up-tamer/
 
-      - name: Checkout Pyperplan unified-planning interface
+      - name: Checkout up-pyperplan
         uses: actions/checkout@v2
         with:
           repository: aiplan4eu/up-pyperplan
           path: up-pyperplan
           ref: "41311391cb847e860d99c8bfd3d1b91276df3bed"
 
-      - name: Install Pyperplan unified-planning interface
+      - name: Install up-pyperplan
         run: python3 -m pip install up-pyperplan/
 
-      - name: Download ENHSP
+      - name: Setup java for ENHSP
+        uses: actions/setup-java@v2
+        with:
+            distribution: 'microsoft'
+            java-version: '16'
+
+      - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
           cd ENHSP-Public; git checkout enhsp-20; ./compile; cd ..
@@ -59,47 +67,112 @@ jobs:
           fail_ci_if_error: true
 
 
-  run-tests-win:
+  run-tests-windows:
     runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup java
-        uses: actions/setup-java@v2
-        with:
-            distribution: 'microsoft'
-            java-version: '16'
-
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
 
-      - name: Checkout Pyperplan unified-planning interface
+      - name: Install Development Python dependencies
+        run: python3 -m pip install -r dev-requirements.txt
+
+      - name: Checkout up-tamer
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-tamer
+          path: up-tamer
+          ref: "143810ee83eb918005210038f3b69453ff163fa5"
+
+      - name: Install up-tamer
+        run: python3 -m pip install up-tamer/
+
+      - name: Checkout up-pyperplan
         uses: actions/checkout@v2
         with:
           repository: aiplan4eu/up-pyperplan
           path: up-pyperplan
           ref: "41311391cb847e860d99c8bfd3d1b91276df3bed"
 
-      - name: Install Pyperplan unified-planning interface
+      - name: Install up-pyperplan
         run: python3 -m pip install up-pyperplan/
 
-      - name: Download ENHSP
+      - name: Setup java for ENHSP
+        uses: actions/setup-java@v2
+        with:
+            distribution: 'microsoft'
+            java-version: '16'
+
+      - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
           cd ENHSP-Public; git checkout enhsp-20; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
+        run: bash run_tests.sh
+
+
+  run-tests-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Python dependencies
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Install Development Python dependencies
+        run: python3 -m pip install -r dev-requirements.txt
+
+      - name: Install tarski
         run: |
-          python3 -m pip install pytest
-          python3 -m pytest unified_planning/test
+          python3 -m pip install tarski[arithmetic]
+          brew install gringo
+
+      - name: Checkout up-tamer
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-tamer
+          path: up-tamer
+          ref: "143810ee83eb918005210038f3b69453ff163fa5"
+
+      - name: Install up-tamer
+        run: python3 -m pip install up-tamer/
+
+      - name: Checkout up-pyperplan
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-pyperplan
+          path: up-pyperplan
+          ref: "41311391cb847e860d99c8bfd3d1b91276df3bed"
+
+      - name: Install up-pyperplan
+        run: python3 -m pip install up-pyperplan/
+
+      - name: Setup java for ENHSP
+        uses: actions/setup-java@v2
+        with:
+            distribution: 'microsoft'
+            java-version: '16'
+
+      - name: Download and install ENHSP
+        run: |
+          git clone https://gitlab.com/enricos83/ENHSP-Public.git
+          cd ENHSP-Public; git checkout enhsp-20; bash ./compile; cd ..
+          bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
+
+      - name: Run tests
+        run: bash run_tests.sh
 
 
   deploy-pypi:
     runs-on: ubuntu-latest
-    needs: run-tests # We only deploy if the tests were successful
+    needs: [run-tests-ubuntu, run-tests-windows, run-tests-macos] # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
 
     steps:
