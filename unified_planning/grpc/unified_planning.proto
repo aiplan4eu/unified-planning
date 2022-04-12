@@ -478,7 +478,7 @@ message Problem {
 
     // features: hierarchies
     TaskNetwork initial_task_network = 12;
-    repeated TaskDeclaration tasks = 13;
+    repeated AbstractTaskDeclaration abstract_tasks = 13;
     repeated Method methods = 14;
 
 }
