@@ -30,7 +30,7 @@ from unified_planning.shortcuts import *
 from unified_planning.solvers.results import PlanGenerationResult
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
-from typing import IO, Any, Callable, Optional, List, cast
+from typing import IO, Any, Callable, Optional, List, Tuple, cast
 
 
 class PDDLSolver(solvers.solver.Solver):
@@ -88,13 +88,13 @@ class PDDLSolver(solvers.solver.Solver):
 
             try:
                 if sys.platform == "win32":
-                    loop = asyncio.ProactorEventLoop() 
+                    loop = asyncio.ProactorEventLoop()
                 else:
                     loop = asyncio.new_event_loop()
                 timeout_occurred, (proc_out, proc_err), retval = loop.run_until_complete(run_command(cmd, timeout=timeout, output_stream=output_stream))
             finally:
                 loop.close()
-            
+
             logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
