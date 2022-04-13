@@ -67,8 +67,18 @@ class Problem:
             for ty in self.user_types:
                 s.append(f'  {str(ty)}: {str(list(self.objects(ty)))}\n')
             s.append(']\n\n')
+        s.append('initial fluents default = [\n')
+        for f in self._fluents:
+            if f in self._fluents_defaults:
+                v = self._fluents_defaults[f]
+            elif f.type in self._initial_defaults:
+                v = self._initial_defaults[f.type]
+            else:
+                continue
+            s.append(f'  {str(f)} := {str(v)}\n')
+        s.append(']\n\n')
         s.append('initial values = [\n')
-        for k, v in self.initial_values.items():
+        for k, v in self._initial_value.items():
             s.append(f'  {str(k)} := {str(v)}\n')
         s.append(']\n\n')
         if len(self.timed_effects) > 0:

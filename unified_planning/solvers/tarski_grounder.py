@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 """This module implements the grounder that uses tarski."""
-
 
 
 from functools import partial
@@ -29,9 +27,12 @@ from unified_planning.model import Action, FNode
 from unified_planning.solvers.grounder import lift_plan
 from unified_planning.solvers.solver import Solver
 from unified_planning.transformers import Grounder
+from tarski.grounding import LPGroundingStrategy # type: ignore
 
 
-from tarski.grounding import LPGroundingStrategy, NaiveGroundingStrategy # type: ignore
+gringo = shutil.which('gringo')
+if gringo is None:
+    raise ImportError('Tarski grounder needs gringo installed')
 
 
 class TarskiGrounder(Solver):
@@ -64,9 +65,6 @@ class TarskiGrounder(Solver):
     def ground(self, problem: 'unified_planning.model.Problem') -> Tuple['unified_planning.model.Problem', Callable[[unified_planning.plan.Plan], unified_planning.plan.Plan]]:
         tarski_problem = unified_planning.interop.convert_problem_to_tarski(problem)
         actions = None
-        gringo = shutil.which('gringo')
-        if gringo is None:
-            raise tarski.errors.CommandNotFoundError('gringo')
         try:
             lpgs = LPGroundingStrategy(tarski_problem)
             actions = lpgs.ground_actions()
