@@ -32,7 +32,7 @@ from tarski.grounding import LPGroundingStrategy # type: ignore
 
 gringo = shutil.which('gringo')
 if gringo is None:
-    raise ImportError('Tarski needs gringo installed')
+    raise ImportError('Tarski grounder needs gringo installed')
 
 
 class TarskiGrounder(Solver):
