@@ -14,7 +14,18 @@
 #
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
 from unified_planning.grpc.converter import Converter, handles
-from unified_planning.model.operators import op_to_str
+from unified_planning.model.operators import (
+    BOOL_CONSTANT,
+    BOOL_OPERATORS,
+    FLUENT_EXP,
+    INT_CONSTANT,
+    IRA_OPERATORS,
+    OBJECT_EXP,
+    PARAM_EXP,
+    REAL_CONSTANT,
+    RELATIONS,
+    op_to_str,
+)
 import unified_planning.model
 import unified_planning.plan
 
@@ -35,7 +46,7 @@ def map_operator(op: int) -> str:
     elif op == "LT":
         return "<"
     elif op == "EQUALS":
-        return "="
+        return "=="
     elif op == "AND":
         return "and"
     elif op == "OR":
@@ -75,50 +86,86 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.FNode)
     def _convert_fnode(self, exp):
-        payload = exp._content.payload
+        node_type = exp._content.node_type
         args = exp._content.args
-        atom = None
-        p_type = ""
-        kind = unified_planning_pb2.ExpressionKind.Value("UNKNOWN")
-        arg_list = []
+        payload = exp._content.payload
 
         # TODO: add variable support
 
-        if isinstance(payload, bool):
-            atom = unified_planning_pb2.Atom(boolean=payload)
-            kind = unified_planning_pb2.ExpressionKind.Value("CONSTANT")
-            p_type = "bool"
-        elif isinstance(payload, int):
-            atom = unified_planning_pb2.Atom(int=payload)
-            kind = unified_planning_pb2.ExpressionKind.Value("CONSTANT")
-            p_type = "int"
-        elif isinstance(payload, float):
-            atom = unified_planning_pb2.Atom(float=payload)
-            kind = unified_planning_pb2.ExpressionKind.Value("CONSTANT")
-            p_type = "real"
-        elif isinstance(payload, str):
-            atom = unified_planning_pb2.Atom(symbol=payload)
-        elif isinstance(payload, unified_planning.model.Fluent):
-            kind = unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL")
-            atom = unified_planning_pb2.Atom(symbol=payload.name())
-            p_type = str(payload.type())
-        elif isinstance(payload, unified_planning.model.Object):
-            # TODO: check if first element is fluent symbol
-            kind = unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE")
-            atom = unified_planning_pb2.Atom(symbol=payload.name())
-        elif isinstance(payload, unified_planning.model.ActionParameter):
-            kind = unified_planning_pb2.ExpressionKind.Value("PARAMETER")
-            p_type = str(payload.type())
-            atom = unified_planning_pb2.Atom(symbol=payload.name())
-        else:
-            kind = unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL")
-            atom = unified_planning_pb2.Atom(symbol=map_operator(exp.node_type()))
+        if node_type == BOOL_CONSTANT:
+            return unified_planning_pb2.Expression(
+                atom=unified_planning_pb2.Atom(boolean=payload),
+                list=[],
+                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                type="bool",
+            )
 
-        for arg in args:
-            arg_list.append(self.convert(arg))
+        elif node_type == INT_CONSTANT:
+            return unified_planning_pb2.Expression(
+                atom=unified_planning_pb2.Atom(int=payload),
+                list=[],
+                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                type="int",
+            )
+        elif node_type == REAL_CONSTANT:
+            return unified_planning_pb2.Expression(
+                atom=unified_planning_pb2.Atom(float=payload),
+                list=[],
+                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                type="real",
+            )
+        elif node_type == OBJECT_EXP:
+            return unified_planning_pb2.Expression(
+                atom=unified_planning_pb2.Atom(symbol=payload.name()),
+                list=[],
+                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                type=str(payload.type()),
+            )
+        elif node_type == PARAM_EXP:
+            return unified_planning_pb2.Expression(
+                atom=unified_planning_pb2.Atom(symbol=payload.name()),
+                list=[],
+                kind=unified_planning_pb2.ExpressionKind.Value("PARAMETER"),
+                type=str(payload.type()),
+            )
+        elif node_type == FLUENT_EXP:
+            sub_list = []
+            sub_list.append(
+                unified_planning_pb2.Expression(
+                    atom=unified_planning_pb2.Atom(symbol=payload.name()),
+                    kind=unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL"),
+                    type=str(payload.type()),
+                )
+            )
+            sub_list.extend([self.convert(a) for a in args])
+            return unified_planning_pb2.Expression(
+                atom=None,
+                list=sub_list,
+                kind=unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"),
+                type=str(payload.type()),
+            )
+        elif node_type in RELATIONS | BOOL_OPERATORS | IRA_OPERATORS:
+            sub_list = []
+            sub_list.append(
+                unified_planning_pb2.Expression(
+                    atom=unified_planning_pb2.Atom(
+                        symbol=map_operator(exp.node_type())
+                    ),
+                    list=[],
+                    kind=unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"),
+                    type="",
+                )
+            )
+            sub_list.extend([self.convert(a) for a in args])
+            return unified_planning_pb2.Expression(
+                atom=None,
+                list=sub_list,
+                kind=unified_planning_pb2.ExpressionKind.Value("FUNCTION_APPLICATION"),
+                type="",
+            )
 
-        return unified_planning_pb2.Expression(
-            atom=atom, list=arg_list, kind=kind, type=p_type
+        raise ValueError(
+            f"Unable to handle expression of type {op_to_str(node_type)}: {exp}"
         )
 
     @handles(unified_planning.model.types._BoolType)
@@ -301,26 +348,25 @@ class ProtobufWriter(Converter):
     @handles(unified_planning.plan.ActionInstance)
     def _convert_action_instance(
         self,
-        a: unified_planning_pb2.ActionInstance,
+        a,
     ):
-        action = self.convert(a.action())
+        action = a.action()
         start_time = 0  # TODO:fix action instance start time
-        end_time = (
-            0
-            if action.duration is None
-            else 0
-            # else start_time + action.duration.controllable_in_bounds.upper  # TODO: fix
-        )
+        try:
+            dur = action.duration()
+            end_time = start_time + dur.delay()
+        except AttributeError:
+            # Consider as Instantaneous Action
+            end_time = 0
 
         parameters = []
         for param in a.actual_parameters():
-            param_expr = self.convert(param)
-            if param_expr.kind == unified_planning_pb2.ExpressionKind.Value(
-                "STATE_VARIABLE"
-            ):
-                parameters.append(param_expr.atom)
-            else:
-                raise ValueError(f"Unsupported parameter type: {param_expr.type}")
+            # The parameters are OBJECT_EXP
+            parameters.append(
+                unified_planning_pb2.Atom(
+                    symbol=param.object().name(),
+                )
+            )
 
         return unified_planning_pb2.ActionInstance(
             action_name=action.name,

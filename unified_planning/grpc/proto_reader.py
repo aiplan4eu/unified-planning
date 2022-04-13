@@ -57,7 +57,7 @@ def op_to_node_type(op: str) -> int:
         return operators.TIMES
     elif op == "/":
         return operators.DIV
-    elif op == "=":
+    elif op == "==":
         return operators.EQUALS
     elif op == "<=":
         return operators.LE
@@ -96,9 +96,7 @@ class ProtobufReader(Converter):
         value_type = convert_type_str(msg.value_type, problem.env)
         sig = []
         for p in msg.parameters:
-            sig.append(
-                convert_type_str(p.type, problem.env)
-            )  # TODO: Ignores p.name from parameter message
+            sig.append(convert_type_str(p.type, problem.env))
         fluent = unified_planning.model.Fluent(msg.name, value_type, sig, problem.env)
         return fluent
 
@@ -111,10 +109,6 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Expression)
     def _convert_expression(self, msg, problem, param_map):
-        args = []
-        for arg_msg in msg.list:
-            args.append(self.convert(arg_msg, problem, param_map))
-
         if msg.kind == unified_planning_pb2.ExpressionKind.Value("CONSTANT"):
             assert msg.atom is not None
             return self.convert(msg.atom, problem)
@@ -125,33 +119,50 @@ class ProtobufReader(Converter):
                     msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
                 ),
             )
-        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL"):
-            assert problem.has_fluent(msg.atom.symbol)
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
+            args = []
+            payload = None
+
+            fluent = msg.list.pop(0)
+            if fluent.kind == unified_planning_pb2.ExpressionKind.Value(
+                "FLUENT_SYMBOL"
+            ):
+                payload = self.convert(fluent.atom, problem)
+            else:
+                args.append(self.convert(fluent, problem, param_map))
+
+            args.extend([self.convert(m, problem, param_map) for m in msg.list])
+
             return problem.env.expression_manager.create_node(
                 node_type=operators.FLUENT_EXP,
                 args=tuple(args),
-                payload=self.convert(msg.atom, problem),
+                payload=payload,
             )
-        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"):
-            node_type = op_to_node_type(msg.atom.symbol)
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value(
+            "FUNCTION_APPLICATION"
+        ):
+            node_type = None
+            args = []
+
+            symbol = msg.list.pop(0)
+            if symbol.kind == unified_planning_pb2.ExpressionKind.Value(
+                "FUNCTION_SYMBOL"
+            ):
+                node_type = op_to_node_type(symbol.atom.symbol)
+            else:
+                args.append(self.convert(symbol, problem, param_map))
+
+            args.extend([self.convert(m, problem, param_map) for m in msg.list])
+
+            assert node_type is not None
+
             return problem.env.expression_manager.create_node(
                 node_type=node_type,
                 args=tuple(args),
                 payload=None,
             )
-        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
-            return problem.env.expression_manager.create_node(
-                node_type=operators.OBJECT_EXP,
-                args=(),
-                payload=self.convert(msg.atom, problem),
-            )
-        elif msg.kind == unified_planning_pb2.ExpressionKind.Value(
-            "FUNCTION_APPLICATION"
-        ):
-            # TODO: complete the function application conversion
-            return
 
-        return
+        raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
     @handles(unified_planning_pb2.Atom)
     def _convert_atom(self, msg, problem):
@@ -173,7 +184,9 @@ class ProtobufReader(Converter):
             # If atom symbols, return the equivalent UP alternative
             # Note that parameters are directly handled at expression level
             if problem.has_object(value):
-                return problem.object(value)
+                return problem.env.expression_manager.ObjectExp(
+                    obj=problem.object(value)
+                )
             else:
                 return problem.fluent(value)
 
