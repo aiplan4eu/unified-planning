@@ -168,6 +168,19 @@ jobs:
 
       - name: Run tests
         run: bash run_tests.sh
+  
+  check-protobuf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Protobuf compiler
+        run: sudo apt install -y protobuf-compiler && protoc --version
+
+      - name: Check Protobuf validity
+        run: cd unified_planning/grpc && protoc --python_out=. unified_planning.proto
 
 
   deploy-pypi:
