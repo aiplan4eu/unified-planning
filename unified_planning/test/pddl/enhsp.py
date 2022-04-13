@@ -69,4 +69,4 @@ class ENHSP(PDDLSolver):
 
 env = get_env()
 if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-    env.factory.add_solver('enhsp', 'unified_planning.test.pddl.enhsp', 'ENHSP')
+    env.factory.add_solver('opt-pddl-solver', 'unified_planning.test.pddl.enhsp', 'ENHSP')
