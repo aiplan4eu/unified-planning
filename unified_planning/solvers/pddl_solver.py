@@ -14,8 +14,10 @@
 #
 """This module defines an interface for a generic PDDL planner."""
 
-
 import asyncio
+from asyncio.subprocess import PIPE
+import select
+import subprocess
 import sys
 import tempfile
 import os
@@ -29,6 +31,25 @@ from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
 from asyncio.subprocess import PIPE
 from typing import IO, Any, Callable, Optional, List, Tuple, cast
+
+# This module implements two different mechanisms to execute a PDDL planner in a
+# subprocess, processing the output in real-time and imposing a timeout.
+# The first one uses the "select" module to process the output and error streams
+# while the subprocess is running. This method does not require multi-threading
+# as it relies on the POSIX select to monitor multiple streams. Unfortunately,
+# this method does not work in Windows because the select function only works
+# with sockets. So, a second implementation uses asyncio futures to deal with
+# the parallelism. This second method also has a limitation: it does not work in
+# an environment that already uses asyncio (most notably in a google colab or in
+# a python notebook).
+#
+# By default, on non-Windows OSs we use the first method and on Windows we
+# always use the second. It is possible to use asyncio under unix by setting
+# the environment variable UP_USE_ASYNCIO_PDDL_SOLVER to true.
+USE_ASYNCIO_ON_UNIX = False
+ENV_USE_ASYNCIO = os.environ.get("UP_USE_ASYNCIO_PDDL_SOLVER")
+if ENV_USE_ASYNCIO is not None:
+    USE_ASYNCIO_ON_UNIX = ENV_USE_ASYNCIO.lower() in ["true", "1"]
 
 
 class PDDLSolver(solvers.solver.Solver):
@@ -77,21 +98,24 @@ class PDDLSolver(solvers.solver.Solver):
         plan = None
         logs: List['up.solvers.results.LogMessage'] = []
         with tempfile.TemporaryDirectory() as tempdir:
-            domanin_filename = os.path.join(tempdir, 'domain.pddl')
+            domain_filename = os.path.join(tempdir, 'domain.pddl')
             problem_filename = os.path.join(tempdir, 'problem.pddl')
             plan_filename = os.path.join(tempdir, 'plan.txt')
-            w.write_domain(domanin_filename)
+            w.write_domain(domain_filename)
             w.write_problem(problem_filename)
-            cmd = self._get_cmd(domanin_filename, problem_filename, plan_filename)
+            cmd = self._get_cmd(domain_filename, problem_filename, plan_filename)
 
-            try:
-                if sys.platform == "win32":
+            if sys.platform == "win32":
+                try:
                     loop = asyncio.ProactorEventLoop()
+                    timeout_occurred, (proc_out, proc_err), retval = loop.run_until_complete(run_command_asyncio(cmd, timeout=timeout, output_stream=output_stream))
+                finally:
+                    loop.close()
+            else:
+                if USE_ASYNCIO_ON_UNIX:
+                    timeout_occurred, (proc_out, proc_err), retval = asyncio.run(run_command_asyncio(cmd, timeout=timeout, output_stream=output_stream))
                 else:
-                    loop = asyncio.new_event_loop()
-                timeout_occurred, (proc_out, proc_err), retval = loop.run_until_complete(run_command(cmd, timeout=timeout, output_stream=output_stream))
-            finally:
-                loop.close()
+                    timeout_occurred, (proc_out, proc_err), retval = run_command_unix_select(cmd, timeout=timeout, output_stream=output_stream)
 
             logs.append(up.solvers.results.LogMessage(LogLevel.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(LogLevel.ERROR, ''.join(proc_err)))
@@ -111,11 +135,15 @@ class PDDLSolver(solvers.solver.Solver):
         pass
 
 
-async def run_command(cmd, timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
+async def run_command_asyncio(cmd: List[str], timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
+    '''
+    Executed the specified command line using asyncio primitives, imposing the specified timeout and printing online the output on output_stream.
+    The function returns a boolean flag telling if a timeout occurred, a pair of string lists containing the captured standard output and standard error and the return code of the command as an integer
+    '''
     start = time.time()
     process = await asyncio.create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
 
-    timeout_occoured = False
+    timeout_occurred = False
     process_output: Tuple[List[str], List[str]] = ([], []) #stdout, stderr
     while True:
         lines = [b"", b""]
@@ -140,8 +168,73 @@ async def run_command(cmd, timeout: Optional[float] = None, output_stream: Optio
                 process.kill()
             except OSError:
                 pass # This can happen if the process is already terminated
-            timeout_occoured = True
+            timeout_occurred = True
             break
 
     await process.wait() # Wait for the child process to exit
-    return timeout_occoured, process_output, cast(int, process.returncode)
+    return timeout_occurred, process_output, cast(int, process.returncode)
+
+
+def run_command_unix_select(cmd: List[str], timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
+    '''
+    Executed the specified command line using posix select, imposing the specified timeout and printing online the output on output_stream.
+    The function returns a boolean flag telling if a timeout occurred, a pair of string lists containing the captured standard output and standard error and the return code of the command as an integer
+
+    WARNING: this does not work under Windows because the select function only support sockets and not pipes
+    WARNING: The resolution of the timeout parameter is ~ 1 second if output_stream is specified
+    '''
+    proc_out: List[str] = []
+    proc_err: List[str] = []
+    proc_out_buff: List[str] = []
+    proc_err_buff: List[str] = []
+
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    timeout_occurred: bool = False
+    if output_stream is None:
+        try:
+            out_err_bytes = process.communicate(timeout=timeout)
+            proc_out, proc_err = [out_err_bytes[0].decode()], [out_err_bytes[1].decode()]
+        except subprocess.TimeoutExpired:
+            timeout_occurred = True
+    else: #output_stream is not None
+        start_time = time.time()
+        last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
+        readable_streams: List[Any] = []
+        # Exit loop condition: Both stream have nothing left to read or the planner is out of time
+        while not timeout_occurred and (len(readable_streams) != 2 or last_red_out != 0 or last_red_err != 0):
+            readable_streams, _, _ = select.select([process.stdout, process.stderr], [], [], 1.0) #1.0 is the timeout resolution
+            if timeout is not None and time.time() - start_time >= timeout: # Check if the planner is out of time.
+                try:
+                    process.kill()
+                except OSError:
+                    pass # This can happen if the process is already terminated
+                timeout_occurred = True
+            for readable_stream in readable_streams:
+                out_in_bytes = readable_stream.read()
+                out_str = out_in_bytes.decode().replace('\r\n', '\n')
+                output_stream.write(out_str)
+                if readable_stream == process.stdout:
+                    last_red_out = len(out_in_bytes)
+                    buff = proc_out_buff
+                    lst = proc_out
+                else:
+                    last_red_err = len(out_in_bytes)
+                    buff = proc_err_buff
+                    lst = proc_err
+                buff.append(out_str)
+                if '\n' in out_str:
+                    lines = ''.join(buff).split('\n')
+                    for x in lines[:-1]:
+                        lst.append(x+'\n')
+
+                    buff.clear()
+                    if lines[-1]:
+                        buff.append(lines[-1])
+        process.wait()
+        lastout = ''.join(proc_out_buff)
+        if lastout:
+            proc_out.append(lastout+'\n')
+        lasterr = ''.join(proc_err_buff)
+        if lasterr:
+            proc_err.append(lasterr+'\n')
+    return timeout_occurred, (proc_out, proc_err), cast(int, process.returncode)
