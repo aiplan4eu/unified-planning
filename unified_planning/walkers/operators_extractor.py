@@ -14,7 +14,7 @@
 #
 
 import unified_planning.walkers as walkers
-from unified_planning.model import FNode, operators as op
+from unified_planning.model import FNode, OperatorKind
 from typing import List, Set
 
 
@@ -28,6 +28,6 @@ class OperatorsExtractor(walkers.DagWalker):
         """Returns all the operators of the given expression."""
         return self.walk(expression)
 
-    @walkers.handles(op.ALL_TYPES)
-    def walk_all_types(self, expression: FNode, args: List[Set[int]]) -> Set[int]:
+    @walkers.handles(OperatorKind)
+    def walk_all_types(self, expression: FNode, args: List[Set[OperatorKind]]) -> Set[OperatorKind]:
         return set(x for y in args for x in y) | {expression.node_type}

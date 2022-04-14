@@ -66,7 +66,7 @@ class TestModel(TestCase):
         x = FluentExp(Fluent('x'))
         y = FluentExp(Fluent('y'))
         z = FluentExp(Fluent('z'))
-        e = Effect(x, z, y, unified_planning.model.effect.ASSIGN)
+        e = Effect(x, z, y, unified_planning.model.EffectKind.ASSIGN)
         e_clone_1 = e.clone()
         e_clone_2 = e.clone()
         e_clone_2._condition = TRUE()
@@ -82,7 +82,7 @@ class TestModel(TestCase):
         move = InstantaneousAction('move', l_from=Location, l_to=Location)
         km = Fluent('km', IntType())
         move.add_increase_effect(km, 10)
-        e = Effect(FluentExp(km), Int(10), TRUE(), unified_planning.model.effect.INCREASE)
+        e = Effect(FluentExp(km), Int(10), TRUE(), unified_planning.model.EffectKind.INCREASE)
         self.assertEqual(move.effects[0], e)
 
     def test_durative_action(self):
@@ -92,8 +92,8 @@ class TestModel(TestCase):
         km = Fluent('km', IntType())
         move.add_decrease_effect(StartTiming(), km, 5)
         move.add_increase_effect(EndTiming(), km, 20)
-        e_end = Effect(FluentExp(km), Int(20), TRUE(), unified_planning.model.effect.INCREASE)
-        e_start = Effect(FluentExp(km), Int(5), TRUE(), unified_planning.model.effect.DECREASE)
+        e_end = Effect(FluentExp(km), Int(20), TRUE(), unified_planning.model.EffectKind.INCREASE)
+        e_start = Effect(FluentExp(km), Int(5), TRUE(), unified_planning.model.EffectKind.DECREASE)
         effects_test = {StartTiming(): [e_start], EndTiming(): [e_end]}
         self.assertEqual(effects_test, move.effects)
         move.set_closed_duration_interval(1, 2)
@@ -131,4 +131,4 @@ class TestModel(TestCase):
         self.assertEqual(move.name, 'move')
         problem.add_increase_effect(GlobalStartTiming(5), km, 10)
         problem.add_decrease_effect(GlobalStartTiming(10), km, 5)
-        self.assertIn(str(Effect(FluentExp(km), Int(10), TRUE(), unified_planning.model.effect.INCREASE)), str(problem))
+        self.assertIn(str(Effect(FluentExp(km), Int(10), TRUE(), unified_planning.model.EffectKind.INCREASE)), str(problem))

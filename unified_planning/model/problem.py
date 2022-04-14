@@ -15,7 +15,7 @@
 '''This module defines the problem class.'''
 
 import unified_planning as up
-import unified_planning.model.operators as op
+from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.walkers import OperatorsExtractor
@@ -561,7 +561,7 @@ class Problem:
             raise UPTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing,
                                   up.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = up.model.effect.INCREASE))
+                                         condition_exp, kind = up.model.effect.EffectKind.INCREASE))
 
     def add_decrease_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
                             value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
@@ -575,7 +575,7 @@ class Problem:
             raise UPTypeError('Timed effect has not compatible types!')
         self._add_effect_instance(timing,
                                   up.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = up.model.effect.DECREASE))
+                                         condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
         if timing in self._timed_effects:
@@ -673,15 +673,15 @@ class Problem:
 
     def _update_problem_kind_condition(self, exp: 'up.model.fnode.FNode'):
         ops = self._operators_extractor.get(exp)
-        if op.EQUALS in ops:
+        if OperatorKind.EQUALS in ops:
             self._kind.set_conditions_kind('EQUALITY') # type: ignore
-        if op.NOT in ops:
+        if OperatorKind.NOT in ops:
             self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        if op.OR in ops:
+        if OperatorKind.OR in ops:
             self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        if op.EXISTS in ops:
+        if OperatorKind.EXISTS in ops:
             self._kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        if op.FORALL in ops:
+        if OperatorKind.FORALL in ops:
             self._kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
 
     def _update_problem_kind_type(self, type: 'up.model.types.Type'):

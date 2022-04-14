@@ -20,15 +20,16 @@ A condition can be added to make it a conditional effect.
 
 
 from unified_planning.model.fnode import FNode
+from enum import Enum, auto
 
-KINDS = list(range(0, 3))
 
-(
-    ASSIGN, INCREASE, DECREASE
-) = KINDS
+class EffectKind(Enum):
+    ASSIGN = auto()
+    INCREASE = auto()
+    DECREASE = auto()
 
 class Effect:
-    def __init__(self, fluent: FNode, value: FNode, condition: FNode, kind: int = ASSIGN):
+    def __init__(self, fluent: FNode, value: FNode, condition: FNode, kind: EffectKind = EffectKind.ASSIGN):
         self._fluent = fluent
         self._value = value
         self._condition = condition
@@ -89,18 +90,18 @@ class Effect:
         self._condition = new_condition
 
     @property
-    def kind(self) -> int:
+    def kind(self) -> EffectKind:
         """Returns the kind of this Effect."""
         return self._kind
 
     def is_assignment(self) -> bool:
         """Returns True if the kind of this Effect is an assignment."""
-        return self._kind == ASSIGN
+        return self._kind == EffectKind.ASSIGN
 
     def is_increase(self) -> bool:
         """Returns True if the kind of this Effect is an increase."""
-        return self._kind == INCREASE
+        return self._kind == EffectKind.INCREASE
 
     def is_decrease(self) -> bool:
         """Returns True if the kind of this Effect is a decrease."""
-        return self._kind == DECREASE
+        return self._kind == EffectKind.DECREASE

@@ -20,7 +20,7 @@ are represented by the same object.
 
 import unified_planning
 import unified_planning.model.types
-import unified_planning.model.operators as op
+from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
@@ -36,10 +36,10 @@ class ExpressionManager(object):
         self.expressions: Dict['unified_planning.model.fnode.FNodeContent', 'unified_planning.model.fnode.FNode'] = {}
         self._next_free_id = 1
 
-        self.true_expression = self.create_node(node_type=op.BOOL_CONSTANT,
+        self.true_expression = self.create_node(node_type=OperatorKind.BOOL_CONSTANT,
                                                 args=tuple(),
                                                 payload=True)
-        self.false_expression = self.create_node(node_type=op.BOOL_CONSTANT,
+        self.false_expression = self.create_node(node_type=OperatorKind.BOOL_CONSTANT,
                                                  args=tuple(),
                                                  payload=False)
         return
@@ -83,7 +83,7 @@ class ExpressionManager(object):
                 res.append(e)
         return res
 
-    def create_node(self, node_type: int, args: Iterable['unified_planning.model.fnode.FNode'],
+    def create_node(self, node_type: OperatorKind, args: Iterable['unified_planning.model.fnode.FNode'],
                     payload: Union['unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.parameter.Parameter', 'unified_planning.model.variable.Variable', bool, int, Fraction, Tuple['unified_planning.model.variable.Variable', ...]] = None) ->'unified_planning.model.fnode.FNode':
         content = unified_planning.model.fnode.FNodeContent(node_type, args, payload)
         if content in self.expressions:
@@ -109,7 +109,7 @@ class ExpressionManager(object):
         elif len(tuple_args) == 1:
             return tuple_args[0]
         else:
-            return self.create_node(node_type=op.AND,
+            return self.create_node(node_type=OperatorKind.AND,
                                     args=tuple_args)
 
     def Or(self, *args: Union[BoolExpression, Iterable[BoolExpression]]) ->'unified_planning.model.fnode.FNode':
@@ -126,7 +126,7 @@ class ExpressionManager(object):
         elif len(tuple_args) == 1:
             return tuple_args[0]
         else:
-            return self.create_node(node_type=op.OR,
+            return self.create_node(node_type=OperatorKind.OR,
                                     args=tuple_args)
 
     def Not(self, expression: BoolExpression) ->'unified_planning.model.fnode.FNode':
@@ -137,7 +137,7 @@ class ExpressionManager(object):
         expression, = self.auto_promote(expression)
         if expression.is_not():
             return expression.arg(0)
-        return self.create_node(node_type=op.NOT, args=(expression,))
+        return self.create_node(node_type=OperatorKind.NOT, args=(expression,))
 
     def Implies(self, left: BoolExpression, right: BoolExpression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form:
@@ -145,7 +145,7 @@ class ExpressionManager(object):
         Restriction: Left and Right must be of boolean type
         """
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.IMPLIES, args=(left, right))
+        return self.create_node(node_type=OperatorKind.IMPLIES, args=(left, right))
 
     def Iff(self, left: BoolExpression, right: BoolExpression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form:
@@ -153,7 +153,7 @@ class ExpressionManager(object):
         Restriction: Left and Right must be of boolean type
         """
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.IFF, args=(left, right))
+        return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
 
     def Exists(self, expression: BoolExpression, *vars: 'unified_planning.model.variable.Variable') ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form:
@@ -167,7 +167,7 @@ class ExpressionManager(object):
         for v in vars:
             if not isinstance(v, unified_planning.model.variable.Variable):
                 raise UPTypeError("Expecting 'unified_planning.Variable', got %s", type(v))
-        return self.create_node(node_type=op.EXISTS, args=expressions, payload=vars)
+        return self.create_node(node_type=OperatorKind.EXISTS, args=expressions, payload=vars)
 
     def Forall(self, expression: BoolExpression, *vars: 'unified_planning.model.variable.Variable') ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form:
@@ -181,7 +181,7 @@ class ExpressionManager(object):
         for v in vars:
             if not isinstance(v, unified_planning.model.variable.Variable):
                 raise UPTypeError("Expecting 'unified_planning.Variable', got %s", type(v))
-        return self.create_node(node_type=op.FORALL, args=expressions, payload=vars)
+        return self.create_node(node_type=OperatorKind.FORALL, args=expressions, payload=vars)
 
     def FluentExp(self, fluent: 'unified_planning.model.fluent.Fluent', params: Tuple[Expression, ...] = tuple()) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression for the given fluent and parameters.
@@ -189,19 +189,19 @@ class ExpressionManager(object):
         """
         assert fluent.arity == len(params)
         params_exp = self.auto_promote(*params)
-        return self.create_node(node_type=op.FLUENT_EXP, args=tuple(params_exp), payload=fluent)
+        return self.create_node(node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent)
 
     def ParameterExp(self, param: 'unified_planning.model.parameter.Parameter') ->'unified_planning.model.fnode.FNode':
         """Returns an expression for the given action parameter."""
-        return self.create_node(node_type=op.PARAM_EXP, args=tuple(), payload=param)
+        return self.create_node(node_type=OperatorKind.PARAM_EXP, args=tuple(), payload=param)
 
     def VariableExp(self, var: 'unified_planning.model.variable.Variable') ->'unified_planning.model.fnode.FNode':
         """Returns an expression for the given variable."""
-        return self.create_node(node_type=op.VARIABLE_EXP, args=tuple(), payload=var)
+        return self.create_node(node_type=OperatorKind.VARIABLE_EXP, args=tuple(), payload=var)
 
     def ObjectExp(self, obj: 'unified_planning.model.object.Object') ->'unified_planning.model.fnode.FNode':
         """Returns an expression for the given object."""
-        return self.create_node(node_type=op.OBJECT_EXP, args=tuple(), payload=obj)
+        return self.create_node(node_type=OperatorKind.OBJECT_EXP, args=tuple(), payload=obj)
 
     def TRUE(self) ->'unified_planning.model.fnode.FNode':
         """Return the boolean constant True."""
@@ -225,13 +225,13 @@ class ExpressionManager(object):
         """Return an int constant."""
         if type(value) != int:
             raise UPTypeError("Expecting int, got %s" % type(value))
-        return self.create_node(node_type=op.INT_CONSTANT, args=tuple(), payload=value)
+        return self.create_node(node_type=OperatorKind.INT_CONSTANT, args=tuple(), payload=value)
 
     def Real(self, value: Fraction) ->'unified_planning.model.fnode.FNode':
         """Return a real constant."""
         if type(value) != Fraction:
             raise UPTypeError("Expecting Fraction, got %s" % type(value))
-        return self.create_node(node_type=op.REAL_CONSTANT, args=tuple(), payload=value)
+        return self.create_node(node_type=OperatorKind.REAL_CONSTANT, args=tuple(), payload=value)
 
     def Plus(self, *args: Union[Expression, Iterable[Expression]]) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form:
@@ -244,13 +244,13 @@ class ExpressionManager(object):
         elif len(tuple_args) == 1:
             return tuple_args[0]
         else:
-            return self.create_node(node_type=op.PLUS,
+            return self.create_node(node_type=OperatorKind.PLUS,
                                     args=tuple_args)
 
     def Minus(self, left: Expression, right: Expression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form: left - right."""
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.MINUS, args=(left, right))
+        return self.create_node(node_type=OperatorKind.MINUS, args=(left, right))
 
     def Times(self, *args: Union[Expression, Iterable[Expression]]) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form:
@@ -263,35 +263,35 @@ class ExpressionManager(object):
         elif len(tuple_args) == 1:
             return tuple_args[0]
         else:
-            return self.create_node(node_type=op.TIMES,
+            return self.create_node(node_type=OperatorKind.TIMES,
                                     args=tuple_args)
 
     def Div(self, left: Expression, right: Expression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form: left / right."""
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.DIV, args=(left, right))
+        return self.create_node(node_type=OperatorKind.DIV, args=(left, right))
 
     def LE(self, left: Expression, right: Expression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form: left <= right."""
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.LE, args=(left, right))
+        return self.create_node(node_type=OperatorKind.LE, args=(left, right))
 
     def GE(self, left: Expression, right: Expression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form: left >= right."""
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.LE, args=(right, left))
+        return self.create_node(node_type=OperatorKind.LE, args=(right, left))
 
     def LT(self, left: Expression, right: Expression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form: left < right."""
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.LT, args=(left, right))
+        return self.create_node(node_type=OperatorKind.LT, args=(left, right))
 
     def GT(self, left: Expression, right: Expression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form: left > right."""
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.LT, args=(right, left))
+        return self.create_node(node_type=OperatorKind.LT, args=(right, left))
 
     def Equals(self, left: Expression, right: Expression) ->'unified_planning.model.fnode.FNode':
         """ Creates an expression of the form: left == right."""
         left, right = self.auto_promote(left, right)
-        return self.create_node(node_type=op.EQUALS, args=(left, right))
+        return self.create_node(node_type=OperatorKind.EQUALS, args=(left, right))

@@ -14,7 +14,7 @@
 #
 
 import unified_planning.walkers as walkers
-from unified_planning.model import FNode, operators as op
+from unified_planning.model import FNode, OperatorKind
 from typing import List, Set
 
 
@@ -28,7 +28,7 @@ class FreeVarsExtractor(walkers.DagWalker):
         """Returns all the free vars of the given expression."""
         return self.walk(expression)
 
-    @walkers.handles(op.ALL_TYPES)
+    @walkers.handles(OperatorKind)
     def walk_all_types(self, expression: FNode, args: List[Set[FNode]]) -> Set[FNode]:
         res = set(x for y in args for x in y)
         if expression.is_fluent_exp():

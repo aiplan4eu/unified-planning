@@ -16,7 +16,6 @@
 import importlib
 import unified_planning as up
 from unified_planning.model import ProblemKind
-from unified_planning.solvers import SATISFICING, SOLVED_OPTIMALLY
 from typing import Dict, Tuple, Optional, List, Union, Type
 
 
@@ -45,7 +44,7 @@ class Factory:
 
     def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind(),
-                          optimality_guarantee: Optional[Union[int, str]] = None) -> Optional[Type['up.solvers.solver.Solver']]:
+                          optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Optional[Type['up.solvers.solver.Solver']]:
         if name is not None:
             return self.solvers[name]
         for SolverClass in self.solvers.values():
@@ -58,7 +57,7 @@ class Factory:
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
-                    optimality_guarantee: Optional[Union[int, str]] = None) -> Optional['up.solvers.solver.Solver']:
+                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Optional['up.solvers.solver.Solver']:
         if names is not None:
             assert name is None
             if params is None:
@@ -85,7 +84,7 @@ class Factory:
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind(),
-                       optimality_guarantee: Optional[Union[int, str]] = None) -> Optional['up.solvers.solver.Solver']:
+                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Optional['up.solvers.solver.Solver']:
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).

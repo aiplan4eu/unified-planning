@@ -18,7 +18,7 @@
 import unified_planning.model
 import unified_planning.walkers as walkers
 from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.model import Object, FNode, operators as op
+from unified_planning.model import Object, FNode, OperatorKind
 from unified_planning.model.expression import Expression
 from typing import List, Dict
 from itertools import product
@@ -49,12 +49,12 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
             subs_results.append(self._substituter.substitute(args[0], subs))
         return subs_results
 
-    @walkers.handles(op.EXISTS)
+    @walkers.handles(OperatorKind.EXISTS)
     def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         subs_results = self._help_walk_quantifiers(expression, args)
         return self._env.expression_manager.Or(subs_results)
 
-    @walkers.handles(op.FORALL)
+    @walkers.handles(OperatorKind.FORALL)
     def walk_forall(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         subs_results = self._help_walk_quantifiers(expression, args)
         return self._env.expression_manager.And(subs_results)

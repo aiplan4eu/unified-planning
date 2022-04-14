@@ -20,7 +20,8 @@ from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.test.examples import get_example_problems
-from unified_planning.solvers.results import SOLVED_SATISFICING, SOLVED_OPTIMALLY, POSITIVE_OUTCOMES
+from unified_planning.solvers import PlanGenerationResultStatus
+from unified_planning.solvers.results import POSITIVE_OUTCOMES
 
 
 class TestPlanner(TestCase):
@@ -37,7 +38,7 @@ class TestPlanner(TestCase):
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_SATISFICING)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
             self.assertEqual(len(plan.actions), 1)
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
@@ -53,7 +54,7 @@ class TestPlanner(TestCase):
                 final_report = planner.solve(problem, timeout = 0.001)
                 self.assertIn(final_report.status, POSITIVE_OUTCOMES)
                 plan = final_report.plan
-                self.assertEqual(final_report.status, SOLVED_SATISFICING)
+                self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
                 self.assertEqual(len(plan.actions), 1)
                 self.assertEqual(plan.actions[0].action, a)
                 self.assertEqual(len(plan.actions[0].actual_parameters), 0)
@@ -70,22 +71,22 @@ class TestPlanner(TestCase):
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_SATISFICING)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
             self.assertEqual(len(plan.actions), 1)
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
-    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(up.solvers.SOLVED_OPTIMALLY)
+    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(PlanGenerationResultStatus.SOLVED_OPTIMALLY)
     def test_actions_cost(self):
         problem = self.problems['basic_with_costs'].problem
         opt_plan = self.problems['basic_with_costs'].plan
         with OneshotPlanner(problem_kind=problem.kind,
-                            optimality_guarantee=up.solvers.SOLVED_OPTIMALLY) as planner:
+                            optimality_guarantee=PlanGenerationResultStatus.SOLVED_OPTIMALLY) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
-            self.assertEqual(final_report.status, SOLVED_OPTIMALLY)
+            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
             self.assertEqual(plan, opt_plan)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))

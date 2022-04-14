@@ -14,19 +14,19 @@
 #
 
 
-from unified_planning.solvers.solver import Solver, SATISFICING, SOLVED_OPTIMALLY
+from unified_planning.solvers.solver import Solver, OptimalityGuarantee
 from unified_planning.solvers.factory import Factory
 from unified_planning.solvers.grounder import Grounder
 from unified_planning.solvers.parallel import Parallel
 from unified_planning.solvers.pddl_solver import PDDLSolver
 from unified_planning.solvers.plan_validator import SequentialPlanValidator
-from unified_planning.solvers.results import LogMessage, PlanGenerationResult
+from unified_planning.solvers.results import LogMessage, PlanGenerationResult, LogLevel, PlanGenerationResultStatus
 
 __all__ = [ 'Factory',
             'Grounder',
             'Parallel',
             'PDDLSolver',
             'SequentialPlanValidator',
-            'Solver',
-            'LogMessage', 'PlanGenerationResult'
+            'Solver', 'OptimalityGuarantee',
+            'LogMessage', 'PlanGenerationResult', 'LogLevel', 'PlanGenerationResultStatus'
         ]

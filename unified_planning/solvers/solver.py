@@ -18,14 +18,14 @@
 import unified_planning as up
 from unified_planning.plan import Plan
 from unified_planning.model import ProblemKind, Problem
+from enum import Enum, auto
 from typing import IO, Optional, Tuple, Callable, Union
 
 
-OPTIMALITY_GUARANTEES = list(range(0, 2))
 
-(
-    SATISFICING, SOLVED_OPTIMALLY
-) = OPTIMALITY_GUARANTEES
+class OptimalityGuarantee(Enum):
+    SATISFICING = auto()
+    SOLVED_OPTIMALLY = auto()
 
 
 class Solver:
@@ -44,7 +44,7 @@ class Solver:
         return False
 
     @staticmethod
-    def satisfies(optimality_guarantee: Union[int, str]) -> bool:
+    def satisfies(optimality_guarantee: Union[OptimalityGuarantee, str]) -> bool:
         return False
 
     @staticmethod

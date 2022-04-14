@@ -16,8 +16,8 @@
 
 import unified_planning
 import unified_planning.model.fluent
-import unified_planning.model.operators as op
 import collections
+from unified_planning.model.operators import OperatorKind
 from typing import List, Union
 from fractions import Fraction
 
@@ -104,7 +104,7 @@ class FNode(object):
         return self._node_id
 
     @property
-    def node_type(self) -> int:
+    def node_type(self) -> OperatorKind:
         return self._content.node_type
 
     @property
@@ -118,10 +118,10 @@ class FNode(object):
 
     def is_constant(self) -> bool:
         """Test whether the expression is a constant."""
-        return self.node_type == op.BOOL_CONSTANT or \
-            self.node_type == op.INT_CONSTANT or \
-            self.node_type == op.REAL_CONSTANT or \
-            self.node_type == op.OBJECT_EXP
+        return self.node_type == OperatorKind.BOOL_CONSTANT or \
+            self.node_type == OperatorKind.INT_CONSTANT or \
+            self.node_type == OperatorKind.REAL_CONSTANT or \
+            self.node_type == OperatorKind.OBJECT_EXP
 
     def constant_value(self) -> Union[bool, int, Fraction]:
         """Return the value of the Constant."""
@@ -170,15 +170,15 @@ class FNode(object):
 
     def is_bool_constant(self) -> bool:
         """Test whether the expression is a boolean constant."""
-        return self.node_type == op.BOOL_CONSTANT
+        return self.node_type == OperatorKind.BOOL_CONSTANT
 
     def is_int_constant(self) -> bool:
         """Test whether the expression is an integer constant."""
-        return self.node_type == op.INT_CONSTANT
+        return self.node_type == OperatorKind.INT_CONSTANT
 
     def is_real_constant(self) -> bool:
         """Test whether the expression is a real constant."""
-        return self.node_type == op.REAL_CONSTANT
+        return self.node_type == OperatorKind.REAL_CONSTANT
 
     def is_true(self) -> bool:
         """Test whether the expression is the True Boolean constant."""
@@ -190,72 +190,72 @@ class FNode(object):
 
     def is_and(self) -> bool:
         """Test whether the node is the And operator."""
-        return self.node_type == op.AND
+        return self.node_type == OperatorKind.AND
 
     def is_or(self) -> bool:
         """Test whether the node is the Or operator."""
-        return self.node_type == op.OR
+        return self.node_type == OperatorKind.OR
 
     def is_not(self) -> bool:
         """Test whether the node is the Not operator."""
-        return self.node_type == op.NOT
+        return self.node_type == OperatorKind.NOT
 
     def is_implies(self) -> bool:
         """Test whether the node is the Implies operator."""
-        return self.node_type == op.IMPLIES
+        return self.node_type == OperatorKind.IMPLIES
 
     def is_iff(self) -> bool:
         """Test whether the node is the Iff operator."""
-        return self.node_type == op.IFF
+        return self.node_type == OperatorKind.IFF
 
     def is_exists(self) -> bool:
         """Test whether the node is the Exists operator."""
-        return self.node_type == op.EXISTS
+        return self.node_type == OperatorKind.EXISTS
 
     def is_forall(self) -> bool:
         """Test whether the node is the Forall operator."""
-        return self.node_type == op.FORALL
+        return self.node_type == OperatorKind.FORALL
 
     def is_fluent_exp(self) -> bool:
         """Test whether the node is a fluent."""
-        return self.node_type == op.FLUENT_EXP
+        return self.node_type == OperatorKind.FLUENT_EXP
 
     def is_parameter_exp(self) -> bool:
         """Test whether the node is an action parameter."""
-        return self.node_type == op.PARAM_EXP
+        return self.node_type == OperatorKind.PARAM_EXP
 
     def is_variable_exp(self) -> bool:
         """Test whether the node is a variable."""
-        return self.node_type == op.VARIABLE_EXP
+        return self.node_type == OperatorKind.VARIABLE_EXP
 
     def is_object_exp(self) -> bool:
         """Test whether the node is an action object."""
-        return self.node_type == op.OBJECT_EXP
+        return self.node_type == OperatorKind.OBJECT_EXP
 
     def is_plus(self) -> bool:
         """Test whether the node is the Plus operator."""
-        return self.node_type == op.PLUS
+        return self.node_type == OperatorKind.PLUS
 
     def is_minus(self) -> bool:
         """Test whether the node is the Minus operator."""
-        return self.node_type == op.MINUS
+        return self.node_type == OperatorKind.MINUS
 
     def is_times(self) -> bool:
         """Test whether the node is the Times operator."""
-        return self.node_type == op.TIMES
+        return self.node_type == OperatorKind.TIMES
 
     def is_div(self) -> bool:
         """Test whether the node is the Div operator."""
-        return self.node_type == op.DIV
+        return self.node_type == OperatorKind.DIV
 
     def is_equals(self) -> bool:
         """Test whether the node is the Equals operator."""
-        return self.node_type == op.EQUALS
+        return self.node_type == OperatorKind.EQUALS
 
     def is_le(self) -> bool:
         """Test whether the node is the LE operator."""
-        return self.node_type == op.LE
+        return self.node_type == OperatorKind.LE
 
     def is_lt(self) -> bool:
         """Test whether the node is the LT operator."""
-        return self.node_type == op.LT
+        return self.node_type == OperatorKind.LT

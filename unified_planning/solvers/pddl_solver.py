@@ -16,20 +16,18 @@
 
 
 import asyncio
-from asyncio.subprocess import PIPE
-import select
 import sys
 import tempfile
 import os
 import re
-import subprocess
 import time
 import unified_planning as up
 import unified_planning.solvers as solvers
 from unified_planning.shortcuts import *
-from unified_planning.solvers.results import PlanGenerationResult
+from unified_planning.solvers.results import LogLevel, PlanGenerationResult, PlanGenerationResultStatus
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
+from asyncio.subprocess import PIPE
 from typing import IO, Any, Callable, Optional, List, Tuple, cast
 
 
@@ -95,16 +93,16 @@ class PDDLSolver(solvers.solver.Solver):
             finally:
                 loop.close()
 
-            logs.append(up.solvers.results.LogMessage(up.solvers.results.INFO, ''.join(proc_out)))
-            logs.append(up.solvers.results.LogMessage(up.solvers.results.ERROR, ''.join(proc_err)))
+            logs.append(up.solvers.results.LogMessage(LogLevel.INFO, ''.join(proc_out)))
+            logs.append(up.solvers.results.LogMessage(LogLevel.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
             if timeout_occurred and retval != 0:
-                return PlanGenerationResult(up.solvers.results.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name)
-        status: int = self._result_status(problem, plan)
+                return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name)
+        status: PlanGenerationResultStatus = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name)
 
-    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> int:
+    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
         '''Takes a problem and a plan and returns the status that represents this plan.
         The possible status with their interpretation can be found in the up.plan file.'''
         raise NotImplementedError

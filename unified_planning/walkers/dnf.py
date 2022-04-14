@@ -17,7 +17,7 @@
 import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.exceptions import UPUnreachableCodeError
-from unified_planning.model import FNode, operators as op
+from unified_planning.model import FNode, OperatorKind
 from typing import List, Tuple
 from itertools import product
 
@@ -167,6 +167,6 @@ class Dnf(walkers.DagWalker):
     def walk_or(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
         return [conjunction for disjunction in args for conjunction in disjunction]
 
-    @walkers.handles(set(op.ALL_TYPES) - set({op.AND, op.OR}))
+    @walkers.handles(set(OperatorKind) - set({OperatorKind.AND, OperatorKind.OR}))
     def walk_all(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
         return [[expression]]

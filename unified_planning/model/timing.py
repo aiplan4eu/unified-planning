@@ -15,23 +15,24 @@
 
 
 from unified_planning.model.fnode import FNode
+from enum import Enum, auto
 from fractions import Fraction
 from typing import Union
 
 
-TIMEPOINTS = list(range(0, 4))
-
-(
-    GLOBAL_START, GLOBAL_END, START, END
-) = TIMEPOINTS
+class TimepointKind(Enum):
+    GLOBAL_START = auto()
+    GLOBAL_END = auto()
+    START = auto()
+    END = auto()
 
 
 class Timepoint:
-    def __init__(self, kind: int):
+    def __init__(self, kind: TimepointKind):
         self._kind = kind
 
     def __repr__(self):
-        if self._kind == GLOBAL_START or self._kind == START:
+        if self._kind == TimepointKind.GLOBAL_START or self._kind == TimepointKind.START:
             return 'start'
         else:
             return 'end'
@@ -46,7 +47,7 @@ class Timepoint:
         return hash(self._kind)
 
     @property
-    def kind(self) -> int:
+    def kind(self) -> TimepointKind:
         return self._kind
 
 
@@ -75,12 +76,12 @@ class Timing:
         return self._delay
 
     def is_global(self) -> bool:
-        return self._timepoint.kind == GLOBAL_START or \
-            self._timepoint.kind == GLOBAL_END
+        return self._timepoint.kind == TimepointKind.GLOBAL_START or \
+            self._timepoint.kind == TimepointKind.GLOBAL_END
 
     def is_from_start(self) -> bool:
-        return self._timepoint.kind == START or \
-            self._timepoint.kind == GLOBAL_START
+        return self._timepoint.kind == TimepointKind.START or \
+            self._timepoint.kind == TimepointKind.GLOBAL_START
 
     def is_from_end(self) -> bool:
         return not self.is_from_start()
@@ -95,7 +96,7 @@ def StartTiming(delay: Union[int, Fraction] = 0) -> Timing:
     StartTiming() = 5
     StartTiming(3) = 5+3 = 8'''
 
-    return Timing(delay, Timepoint(START))
+    return Timing(delay, Timepoint(TimepointKind.START))
 
 
 def EndTiming(delay: Union[int, Fraction] = 0) -> Timing:
@@ -107,7 +108,7 @@ def EndTiming(delay: Union[int, Fraction] = 0) -> Timing:
     EndTiming() = 10
     EndTiming(1.5) = 10-Fraction(3, 2) = Fraction(17, 2) = 8.5'''
 
-    return Timing(delay, Timepoint(END))
+    return Timing(delay, Timepoint(TimepointKind.END))
 
 
 def GlobalStartTiming(delay: Union[int, Fraction] = 0):
@@ -115,7 +116,7 @@ def GlobalStartTiming(delay: Union[int, Fraction] = 0):
     Created with a delay > 0 represents "delay" time
     after the start of the execution.'''
 
-    return Timing(delay, Timepoint(GLOBAL_START))
+    return Timing(delay, Timepoint(TimepointKind.GLOBAL_START))
 
 
 def GlobalEndTiming(delay: Union[int, Fraction] = 0):
@@ -123,7 +124,7 @@ def GlobalEndTiming(delay: Union[int, Fraction] = 0):
     Created with a delay > 0 represents "delay" time
     before the end of the execution.'''
 
-    return Timing(delay, Timepoint(GLOBAL_END))
+    return Timing(delay, Timepoint(TimepointKind.GLOBAL_END))
 
 
 class Interval:

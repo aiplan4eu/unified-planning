@@ -18,7 +18,7 @@ import unified_planning.walkers as walkers
 
 import unified_planning.environment
 from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.model import FNode, operators as op
+from unified_planning.model import FNode, OperatorKind
 from unified_planning.exceptions import UPTypeError
 from unified_planning.model import Expression
 from typing import List, Dict
@@ -69,7 +69,7 @@ class Substituter(IdentityDagWalker):
                     f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}")
         return self.walk(expression, subs = new_substitutions)
 
-    @walkers.handles(op.ALL_TYPES)
+    @walkers.handles(OperatorKind)
     def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: Dict[FNode, FNode] = {}, **kwargs) -> FNode:
         res = subs.get(expression, None)
         if res is not None:

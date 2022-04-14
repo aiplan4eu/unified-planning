@@ -20,9 +20,11 @@ A Variable has a name and a type.
 
 from typing import List, Set
 from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
 import unified_planning
 import unified_planning.walkers as walkers
 import unified_planning.model.operators as op
+
 
 
 class Variable:
@@ -64,12 +66,12 @@ class FreeVarsOracle(walkers.DagWalker):
         """Returns the set of Symbols appearing free in the expression."""
         return self.walk(expression)
 
-    @walkers.handles(op.VARIABLE_EXP)
+    @walkers.handles(OperatorKind.VARIABLE_EXP)
     def walk_variable_exp(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
         #pylint: disable=unused-argument
         return {expression.variable()}
 
-    @walkers.handles(op.EXISTS, op.FORALL)
+    @walkers.handles(OperatorKind.EXISTS, OperatorKind.FORALL)
     def walk_quantifier(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
         #pylint: disable=unused-argument
         return args[0].difference(expression.variables())
@@ -79,6 +81,6 @@ class FreeVarsOracle(walkers.DagWalker):
         #pylint: disable=unused-argument
         return set()
 
-    @walkers.handles(set(op.ALL_TYPES) - {op.VARIABLE_EXP, op.EXISTS, op.FORALL})
+    @walkers.handles(set(OperatorKind) - {OperatorKind.VARIABLE_EXP, OperatorKind.EXISTS, OperatorKind.FORALL})
     def walk_all(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
         return {v for s in args for v in s}

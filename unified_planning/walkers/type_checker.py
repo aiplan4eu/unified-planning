@@ -18,7 +18,7 @@ import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model.types import BOOL
-from unified_planning.model import FNode, operators as op
+from unified_planning.model import FNode, OperatorKind
 from unified_planning.exceptions import UPTypeError
 from typing import List, Optional
 
@@ -60,7 +60,7 @@ class TypeChecker(walkers.DagWalker):
         t_right = self.get_type(value_exp)
         return self.is_compatible_type(t_left, t_right)
 
-    @walkers.handles(op.AND, op.OR, op.NOT, op.IMPLIES, op.IFF, op.EXISTS, op.FORALL)
+    @walkers.handles(OperatorKind.AND, OperatorKind.OR, OperatorKind.NOT, OperatorKind.IMPLIES, OperatorKind.IFF, OperatorKind.EXISTS, OperatorKind.FORALL)
     def walk_bool_to_bool(self, expression: FNode,
                           args: List['unified_planning.model.types.Type']) -> Optional['unified_planning.model.types.Type']:
         assert expression is not None
@@ -94,20 +94,20 @@ class TypeChecker(walkers.DagWalker):
         assert len(args) == 0
         return expression.object().type
 
-    @walkers.handles(op.BOOL_CONSTANT)
+    @walkers.handles(OperatorKind.BOOL_CONSTANT)
     def walk_identity_bool(self, expression: FNode,
                            args: List['unified_planning.model.types.Type']) -> Optional['unified_planning.model.types.Type']:
         assert expression is not None
         assert len(args) == 0
         return BOOL
 
-    @walkers.handles(op.REAL_CONSTANT)
+    @walkers.handles(OperatorKind.REAL_CONSTANT)
     def walk_identity_real(self, expression, args):
         assert expression is not None
         assert len(args) == 0
         return self.env.type_manager.RealType(expression.constant_value(), expression.constant_value())
 
-    @walkers.handles(op.INT_CONSTANT)
+    @walkers.handles(OperatorKind.INT_CONSTANT)
     def walk_identity_int(self, expression, args):
         assert expression is not None
         assert len(args) == 0
@@ -230,7 +230,7 @@ class TypeChecker(walkers.DagWalker):
         else:
             return self.env.type_manager.IntType(lower, upper)
 
-    @walkers.handles(op.LE, op.LT)
+    @walkers.handles(OperatorKind.LE, OperatorKind.LT)
     def walk_math_relation(self, expression, args):
         for x in args:
             if x is None or not (x.is_int_type() or x.is_real_type()):

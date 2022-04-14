@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import unittest
+import unified_planning as up
 from functools import wraps
 from unified_planning.environment import get_env
 from unified_planning.model import ProblemKind
@@ -58,7 +59,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
 class skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(object):
     """Skip a test if there are no oneshot planner satisfies optimality guarantee."""
 
-    def __init__(self, optimality_guarantee: int):
+    def __init__(self, optimality_guarantee: up.solvers.results.PlanGenerationResultStatus):
         self.optimality_guarantee = optimality_guarantee
 
     def __call__(self, test_fun):
