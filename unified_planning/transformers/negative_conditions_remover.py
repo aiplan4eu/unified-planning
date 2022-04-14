@@ -147,7 +147,7 @@ class NegativeConditionsRemover(Transformer):
 
         for action in self._problem.actions:
             if isinstance(action, InstantaneousAction):
-                if action.simulated_effects() is not None:
+                if action.simulated_effects is not None:
                     raise up.exceptions.UPUsageError('NegativeConditionsRemover does not work with simulated effects')
                 new_action = name_action_map[action.name]
                 new_effects: List[Effect] = []
@@ -164,7 +164,7 @@ class NegativeConditionsRemover(Transformer):
                 self._old_to_new[action] = [new_action]
                 self._new_to_old[new_action] = action
             elif isinstance(action, DurativeAction):
-                if len(action.simulated_effects()) > 0:
+                if len(action.simulated_effects) > 0:
                     raise up.exceptions.UPUsageError('NegativeConditionsRemover does not work with simulated effects')
                 new_durative_action = name_action_map[action.name]
                 new_durative_action.set_duration_constraint(action.duration)

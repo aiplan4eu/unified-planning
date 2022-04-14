@@ -224,6 +224,7 @@ class InstantaneousAction(Action):
         if effect not in self._effects:
             self._effects.append(effect)
 
+    @property
     def simulated_effects(self) -> Optional['up.model.effect.SimulatedEffects']:
         return self._simulated_effects
 
@@ -272,7 +273,7 @@ class DurativeAction(Action):
                 s.append(f'        {str(e)}:\n')
         s.append('    ]\n')
         s.append('    simulated effects = [\n')
-        for t, se in self.simulated_effects().items():
+        for t, se in self.simulated_effects.items():
             s.append(f'      {str(t)}: {se}\n')
         s.append('    ]\n')
         s.append('  }')
@@ -483,6 +484,7 @@ class DurativeAction(Action):
         else:
             self._effects[timing] = [effect]
 
+    @property
     def simulated_effects(self) -> Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffects']:
         '''Returns the action simulated effects.'''
         return self._simulated_effects

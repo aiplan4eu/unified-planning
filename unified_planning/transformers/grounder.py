@@ -152,7 +152,7 @@ class Grounder(Transformer):
                 new_effect = self._create_effect_with_given_subs(e, subs)
                 if new_effect is not None:
                     new_action._add_effect_instance(new_effect)
-            se = old_action.simulated_effects()
+            se = old_action.simulated_effects
             if se is not None:
                 new_fluents = []
                 for f in se.fluents():
@@ -177,7 +177,7 @@ class Grounder(Transformer):
                     new_effect = self._create_effect_with_given_subs(e, subs)
                     if new_effect is not None:
                         new_durative_action._add_effect_instance(t, new_effect)
-            for t, se in old_action.simulated_effects().items():
+            for t, se in old_action.simulated_effects.items():
                 new_fluents = []
                 for f in se.fluents():
                     new_fluents.append(self._substituter.substitute(f, subs))
