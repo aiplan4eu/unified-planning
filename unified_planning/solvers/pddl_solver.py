@@ -105,17 +105,35 @@ class PDDLSolver(solvers.solver.Solver):
             w.write_problem(problem_filename)
             cmd = self._get_cmd(domain_filename, problem_filename, plan_filename)
 
-            if sys.platform == "win32":
+            if output_stream is None:
+                # If we do not have an output stream to write to, we simply call
+                # a subprocess and retrieve the final output and error with communicate
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                timeout_occurred: bool = False
+                proc_out: List[str] = []
+                proc_err: List[str] = []
                 try:
-                    loop = asyncio.ProactorEventLoop()
-                    timeout_occurred, (proc_out, proc_err), retval = loop.run_until_complete(run_command_asyncio(cmd, timeout=timeout, output_stream=output_stream))
-                finally:
-                    loop.close()
+                    out_err_bytes = process.communicate(timeout=timeout)
+                    proc_out, proc_err = [[x.decode()] for x in out_err_bytes]
+                except subprocess.TimeoutExpired:
+                    timeout_occurred = True
+                retval = process.returncode
             else:
-                if USE_ASYNCIO_ON_UNIX:
-                    timeout_occurred, (proc_out, proc_err), retval = asyncio.run(run_command_asyncio(cmd, timeout=timeout, output_stream=output_stream))
+                if sys.platform == "win32":
+                    # On windows we have to use asyncio (does not work inside notebooks)
+                    try:
+                        loop = asyncio.ProactorEventLoop()
+                        exec_res = loop.run_until_complete(run_command_asyncio(cmd, output_stream=output_stream, timeout=timeout))
+                    finally:
+                        loop.close()
                 else:
-                    timeout_occurred, (proc_out, proc_err), retval = run_command_unix_select(cmd, timeout=timeout, output_stream=output_stream)
+                    # On non-windows OSs, we can choose between asyncio and posix
+                    # select (see comment on USE_ASYNCIO_ON_UNIX variable for details)
+                    if USE_ASYNCIO_ON_UNIX:
+                        exec_res = asyncio.run(run_command_asyncio(cmd, output_stream=output_stream, timeout=timeout))
+                    else:
+                        exec_res = run_command_posix_select(cmd, output_stream=output_stream, timeout=timeout)
+                timeout_occurred, (proc_out, proc_err), retval = exec_res
 
             logs.append(up.solvers.results.LogMessage(LogLevel.INFO, ''.join(proc_out)))
             logs.append(up.solvers.results.LogMessage(LogLevel.ERROR, ''.join(proc_err)))
@@ -135,7 +153,7 @@ class PDDLSolver(solvers.solver.Solver):
         pass
 
 
-async def run_command_asyncio(cmd: List[str], timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
+async def run_command_asyncio(cmd: List[str], output_stream: IO[str], timeout: Optional[float] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     '''
     Executed the specified command line using asyncio primitives, imposing the specified timeout and printing online the output on output_stream.
     The function returns a boolean flag telling if a timeout occurred, a pair of string lists containing the captured standard output and standard error and the return code of the command as an integer
@@ -160,8 +178,7 @@ async def run_command_asyncio(cmd: List[str], timeout: Optional[float] = None, o
         else:
             for idx in range(2):
                 output_string = lines[idx].decode().replace('\r\n', '\n')
-                if output_stream is not None:
-                    cast(IO[str], output_stream).write(output_string)
+                output_stream.write(output_string)
                 process_output[idx].append(output_string)
         if timeout is not None and time.time() - start >= timeout:
             try:
@@ -175,7 +192,7 @@ async def run_command_asyncio(cmd: List[str], timeout: Optional[float] = None, o
     return timeout_occurred, process_output, cast(int, process.returncode)
 
 
-def run_command_unix_select(cmd: List[str], timeout: Optional[float] = None, output_stream: Optional[IO[str]] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
+def run_command_posix_select(cmd: List[str], output_stream: IO[str], timeout: Optional[float] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     '''
     Executed the specified command line using posix select, imposing the specified timeout and printing online the output on output_stream.
     The function returns a boolean flag telling if a timeout occurred, a pair of string lists containing the captured standard output and standard error and the return code of the command as an integer
@@ -190,46 +207,39 @@ def run_command_unix_select(cmd: List[str], timeout: Optional[float] = None, out
 
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     timeout_occurred: bool = False
-    if output_stream is None:
-        try:
-            out_err_bytes = process.communicate(timeout=timeout)
-            proc_out, proc_err = [out_err_bytes[0].decode()], [out_err_bytes[1].decode()]
-        except subprocess.TimeoutExpired:
+    start_time = time.time()
+    last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
+    readable_streams: List[Any] = []
+    # Exit loop condition: Both stream have nothing left to read or the planner is out of time
+    while not timeout_occurred and (len(readable_streams) != 2 or last_red_out != 0 or last_red_err != 0):
+        readable_streams, _, _ = select.select([process.stdout, process.stderr], [], [], 1.0) #1.0 is the timeout resolution
+        if timeout is not None and time.time() - start_time >= timeout: # Check if the planner is out of time.
+            try:
+                process.kill()
+            except OSError:
+                pass # This can happen if the process is already terminated
             timeout_occurred = True
-    else: #output_stream is not None
-        start_time = time.time()
-        last_red_out, last_red_err = 0, 0 #Variables needed for the correct loop exit
-        readable_streams: List[Any] = []
-        # Exit loop condition: Both stream have nothing left to read or the planner is out of time
-        while not timeout_occurred and (len(readable_streams) != 2 or last_red_out != 0 or last_red_err != 0):
-            readable_streams, _, _ = select.select([process.stdout, process.stderr], [], [], 1.0) #1.0 is the timeout resolution
-            if timeout is not None and time.time() - start_time >= timeout: # Check if the planner is out of time.
-                try:
-                    process.kill()
-                except OSError:
-                    pass # This can happen if the process is already terminated
-                timeout_occurred = True
-            for readable_stream in readable_streams:
-                out_in_bytes = readable_stream.read()
-                out_str = out_in_bytes.decode().replace('\r\n', '\n')
-                output_stream.write(out_str)
-                if readable_stream == process.stdout:
-                    last_red_out = len(out_in_bytes)
-                    buff = proc_out_buff
-                    lst = proc_out
-                else:
-                    last_red_err = len(out_in_bytes)
-                    buff = proc_err_buff
-                    lst = proc_err
-                buff.append(out_str)
-                if '\n' in out_str:
-                    lines = ''.join(buff).split('\n')
-                    for x in lines[:-1]:
-                        lst.append(x+'\n')
+        for readable_stream in readable_streams:
+            out_in_bytes = readable_stream.read()
+            out_str = out_in_bytes.decode().replace('\r\n', '\n')
+            output_stream.write(out_str)
+            if readable_stream == process.stdout:
+                last_red_out = len(out_in_bytes)
+                buff = proc_out_buff
+                lst = proc_out
+            else:
+                last_red_err = len(out_in_bytes)
+                buff = proc_err_buff
+                lst = proc_err
+            buff.append(out_str)
+            if '\n' in out_str:
+                lines = ''.join(buff).split('\n')
+                for x in lines[:-1]:
+                    lst.append(x+'\n')
 
-                    buff.clear()
-                    if lines[-1]:
-                        buff.append(lines[-1])
+                buff.clear()
+                if lines[-1]:
+                    buff.append(lines[-1])
         process.wait()
         lastout = ''.join(proc_out_buff)
         if lastout:
