@@ -155,10 +155,10 @@ class Grounder(Transformer):
             se = old_action.simulated_effects
             if se is not None:
                 new_fluents = []
-                for f in se.fluents():
+                for f in se.fluents:
                     new_fluents.append(self._substituter.substitute(f, subs))
                 def fun(_problem, _state, _):
-                    return se.function()(_problem, _state, subs)
+                    return se.function(_problem, _state, subs)
                 new_action.add_simulated_effects(SimulatedEffects(new_fluents, fun))
 
             is_feasible, new_preconditions = self._check_and_simplify_preconditions(new_action, simplify_constants=True)
@@ -179,10 +179,10 @@ class Grounder(Transformer):
                         new_durative_action._add_effect_instance(t, new_effect)
             for t, se in old_action.simulated_effects.items():
                 new_fluents = []
-                for f in se.fluents():
+                for f in se.fluents:
                     new_fluents.append(self._substituter.substitute(f, subs))
                 def fun(_problem, _state, _):
-                    return se.function()(_problem, _state, subs)
+                    return se.function(_problem, _state, subs)
                 new_durative_action.add_simulated_effects(t, SimulatedEffects(new_fluents, fun))
             is_feasible, new_conditions = self._check_and_simplify_conditions(new_durative_action, simplify_constants=True)
             if not is_feasible:

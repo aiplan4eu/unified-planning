@@ -124,7 +124,7 @@ class SimulatedEffects:
         for f in fluents:
             if not f.is_fluent_exp():
                 raise up.exceptions.UPUsageError('Simulated effects can be defined on fluent expressions with constant parameters')
-            for c in f.args():
+            for c in f.args:
                 if not (c.is_constant or c.is_parameter_exp()):
                     raise up.exceptions.UPUsageError('Simulated effects can be defined on fluent expressions with constant parameters')
         self._fluents = fluents

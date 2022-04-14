@@ -24,6 +24,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.problem import Problem
 from unified_planning.model.problem_kind import ProblemKind
+from unified_planning.model.state import State
 from unified_planning.model.timing import TimepointKind, Timing, StartTiming, EndTiming, GlobalStartTiming, GlobalEndTiming, DurationInterval, ClosedDurationInterval
 from unified_planning.model.timing import FixedDuration, OpenDurationInterval, LeftOpenDurationInterval, RightOpenDurationInterval
 from unified_planning.model.timing import TimeInterval, TimePointInterval, ClosedTimeInterval, OpenTimeInterval, LeftOpenTimeInterval, RightOpenTimeInterval
@@ -39,8 +40,8 @@ __all__ = [ 'Action', 'InstantaneousAction', 'DurativeAction',
             'Object',
             'OperatorKind',
             'Parameter',
-            'Problem',
-            'ProblemKind',
+            'Problem', 'ProblemKind',
+            'State',
             'TimepointKind', 'Timing', 'StartTiming', 'EndTiming', 'GlobalStartTiming', 'GlobalEndTiming',
             'DurationInterval', 'ClosedDurationInterval', 'FixedDuration', 'OpenDurationInterval', 'LeftOpenDurationInterval', 'RightOpenDurationInterval',
             'TimeInterval', 'TimePointInterval', 'ClosedTimeInterval', 'OpenTimeInterval', 'LeftOpenTimeInterval', 'RightOpenTimeInterval',

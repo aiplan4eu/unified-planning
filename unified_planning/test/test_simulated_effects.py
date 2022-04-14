@@ -42,7 +42,7 @@ class TestSimulatedEffects(TestCase):
             self.assertNotEqual(planner, None)
             res = planner.solve(problem)
             plan = res.plan
-            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(len(plan.actions), 1)
 
     @skipIfSolverNotAvailable('tamer')
     def test_with_parameters(self):
@@ -80,7 +80,7 @@ class TestSimulatedEffects(TestCase):
             self.assertNotEqual(planner, None)
             res = planner.solve(problem)
             plan = res.plan
-            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(len(plan.actions), 1)
 
     @skipIfSolverNotAvailable('tamer')
     def test_temporal_basic(self):
@@ -101,8 +101,8 @@ class TestSimulatedEffects(TestCase):
         problem.set_initial_value(y, True)
         problem.add_goal(And(x, Not(y)))
 
-        with OneshotPlanner(problem_kind=problem.kind()) as planner:
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
             res = planner.solve(problem)
             plan = res.plan
-            self.assertEqual(len(plan.actions()), 1)
+            self.assertEqual(len(plan.actions), 1)
