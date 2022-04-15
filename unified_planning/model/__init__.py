@@ -15,7 +15,7 @@
 
 
 from unified_planning.model.action import Action, InstantaneousAction, DurativeAction
-from unified_planning.model.effect import Effect, EffectKind
+from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import BoolExpression, Expression, ExpressionManager
 from unified_planning.model.fnode import FNode
 from unified_planning.model.fluent import Fluent
@@ -24,6 +24,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.problem import Problem
 from unified_planning.model.problem_kind import ProblemKind
+from unified_planning.model.state import State
 from unified_planning.model.timing import TimepointKind, Timing, StartTiming, EndTiming, GlobalStartTiming, GlobalEndTiming, DurationInterval, ClosedDurationInterval
 from unified_planning.model.timing import FixedDuration, OpenDurationInterval, LeftOpenDurationInterval, RightOpenDurationInterval
 from unified_planning.model.timing import TimeInterval, TimePointInterval, ClosedTimeInterval, OpenTimeInterval, LeftOpenTimeInterval, RightOpenTimeInterval
@@ -32,15 +33,15 @@ from unified_planning.model.variable import Variable, FreeVarsOracle
 import unified_planning.model.metrics
 
 __all__ = [ 'Action', 'InstantaneousAction', 'DurativeAction',
-            'Effect', 'EffectKind',
+            'Effect', 'SimulatedEffect', 'EffectKind',
             'BoolExpression', 'Expression', 'ExpressionManager',
             'FNode',
             'Fluent',
             'Object',
             'OperatorKind',
             'Parameter',
-            'Problem',
-            'ProblemKind',
+            'Problem', 'ProblemKind',
+            'State',
             'TimepointKind', 'Timing', 'StartTiming', 'EndTiming', 'GlobalStartTiming', 'GlobalEndTiming',
             'DurationInterval', 'ClosedDurationInterval', 'FixedDuration', 'OpenDurationInterval', 'LeftOpenDurationInterval', 'RightOpenDurationInterval',
             'TimeInterval', 'TimePointInterval', 'ClosedTimeInterval', 'OpenTimeInterval', 'LeftOpenTimeInterval', 'RightOpenTimeInterval',
