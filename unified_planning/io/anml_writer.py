@@ -17,18 +17,11 @@
 from fractions import Fraction
 import re
 import sys
-<<<<<<< Updated upstream
-
-from decimal import Decimal, localcontext
-from warnings import warn
-
-=======
->>>>>>> Stashed changes
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction
-from unified_planning.model.types import _UserType, _IntType, _RealType
+from unified_planning.model.types import _UserType, _RealType
 from typing import IO, Dict, List, Optional, cast
 from io import StringIO
 

@@ -27,7 +27,6 @@ class TestPythonWriter(TestCase):
         problem = self.problems['basic'].problem
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
-        aw.write_problem(f'{problem.name}.anml')
         self.assertIn('fluent boolean x;\n', anml_problem)
         self.assertIn('action a() {\n', anml_problem)
         self.assertIn('   [ start ] (not x);\n', anml_problem)
@@ -41,7 +40,6 @@ class TestPythonWriter(TestCase):
         problem = self.problems['hierarchical_blocks_world'].problem
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
-        aw.write_problem(f'{problem.name}.anml')
         self.assertIn('type Entity;\n', anml_problem)
         self.assertIn('type Location < Entity;\n', anml_problem)
         self.assertIn('type Movable < Location;\n', anml_problem)
@@ -94,7 +92,6 @@ class TestPythonWriter(TestCase):
         problem = self.problems['timed_connected_locations'].problem
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
-        aw.write_problem(f'{problem.name}.anml')
         expected_result = '''type Location;
 fluent boolean is_at;
 constant boolean is_connected;
@@ -145,7 +142,6 @@ is_connected(l5, l5) := false;
         problem = self.problems['matchcellar'].problem
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
-        aw.write_problem(f'{problem.name}.anml')
         expected_result = '''type Match;
 type Fuse;
 fluent boolean handfree;
@@ -185,7 +181,6 @@ instance Fuse f1, f2, f3;
         problem = self.problems['robot_fluent_of_user_type'].problem
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
-        aw.write_problem(f'{problem.name}.anml')
         expected_result = '''type Location;
 type Robot;
 fluent Location is_at;
@@ -207,7 +202,6 @@ instance Robot r1, r2;
         problem = self.problems['robot'].problem
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
-        aw.write_problem(f'{problem.name}.anml')
         expected_result = '''type Location;
 fluent boolean robot_at;
 fluent rational[0, 100] battery_charge;
