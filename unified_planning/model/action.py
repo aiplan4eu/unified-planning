@@ -81,7 +81,7 @@ class InstantaneousAction(Action):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
         self._preconditions: List[up.model.fnode.FNode] = []
         self._effects: List[up.model.effect.Effect] = []
-        self._simulated_effects: Optional[up.model.effect.SimulatedEffects] = None
+        self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
 
     def __repr__(self) -> str:
         s = []
@@ -105,14 +105,14 @@ class InstantaneousAction(Action):
         for e in self.effects:
             s.append(f'      {str(e)}\n')
         s.append('    ]\n')
-        s.append(f'    simulated effects = {self._simulated_effects}\n')
+        s.append(f'    simulated effect = {self._simulated_effect}\n')
         s.append('  }')
         return ''.join(s)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InstantaneousAction):
             cond = self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
-            return cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects) and self._simulated_effects == oth._simulated_effects
+            return cond and set(self._preconditions) == set(oth._preconditions) and set(self._effects) == set(oth._effects) and self._simulated_effect == oth._simulated_effect
         else:
             return False
 
@@ -124,7 +124,7 @@ class InstantaneousAction(Action):
             res += hash(p)
         for e in self._effects:
             res += hash(e)
-        res += hash(self._simulated_effects)
+        res += hash(self._simulated_effect)
         return res
 
     def clone(self):
@@ -134,7 +134,7 @@ class InstantaneousAction(Action):
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
-        new_instantaneous_action._simulated_effects = self._simulated_effects
+        new_instantaneous_action._simulated_effect = self._simulated_effect
         return new_instantaneous_action
 
     @property
@@ -225,11 +225,13 @@ class InstantaneousAction(Action):
             self._effects.append(effect)
 
     @property
-    def simulated_effects(self) -> Optional['up.model.effect.SimulatedEffects']:
-        return self._simulated_effects
+    def simulated_effect(self) -> Optional['up.model.effect.SimulatedEffect']:
+        '''Returns the action simulated effect.'''
+        return self._simulated_effect
 
-    def add_simulated_effects(self, simulated_effects: 'up.model.effect.SimulatedEffects'):
-        self._simulated_effects = simulated_effects
+    def set_simulated_effect(self, simulated_effect: 'up.model.effect.SimulatedEffect'):
+        '''Sets the given simulated effect.'''
+        self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List['up.model.fnode.FNode']):
         self._preconditions = preconditions
@@ -243,7 +245,7 @@ class DurativeAction(Action):
         self._duration: 'up.model.timing.DurationInterval' = up.model.timing.FixedDuration(self._env.expression_manager.Int(0))
         self._conditions: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
-        self._simulated_effects: Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffects'] = {}
+        self._simulated_effects: Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffect'] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -485,11 +487,11 @@ class DurativeAction(Action):
             self._effects[timing] = [effect]
 
     @property
-    def simulated_effects(self) -> Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffects']:
+    def simulated_effects(self) -> Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffect']:
         '''Returns the action simulated effects.'''
         return self._simulated_effects
 
-    def add_simulated_effects(self, timing: 'up.model.timing.Timing',
-                              simulated_effects: 'up.model.effect.SimulatedEffects'):
-        '''Adds the given simulated effects at the specified timing'''
-        self._simulated_effects[timing] = simulated_effects
+    def set_simulated_effect(self, timing: 'up.model.timing.Timing',
+                             simulated_effect: 'up.model.effect.SimulatedEffect'):
+        '''Sets the given simulated effect at the specified timing'''
+        self._simulated_effects[timing] = simulated_effect

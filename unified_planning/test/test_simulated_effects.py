@@ -31,12 +31,14 @@ class TestSimulatedEffects(TestCase):
                 return [TRUE()]
             else:
                 return [FALSE()]
-        a.add_simulated_effects(SimulatedEffects([FluentExp(x)], fun))
+        a.set_simulated_effect(SimulatedEffect([FluentExp(x)], fun))
         problem = Problem('basic_with_simulated_effects')
         problem.add_fluent(x)
         problem.add_action(a)
         problem.set_initial_value(x, False)
         problem.add_goal(x)
+
+        self.assertTrue(problem.kind.has_simulated_effects())
 
         with OneshotPlanner(name='tamer') as planner:
             self.assertNotEqual(planner, None)
@@ -61,7 +63,7 @@ class TestSimulatedEffects(TestCase):
         def fun(problem, state, actual_params):
             value = state.get_value(battery_charge(actual_params.get(robot))).constant_value()
             return [Int(value - 10)]
-        move.add_simulated_effects(SimulatedEffects([battery_charge(robot)], fun))
+        move.set_simulated_effect(SimulatedEffect([battery_charge(robot)], fun))
         l1 = Object('l1', Location)
         l2 = Object('l2', Location)
         r1 = Object('r1', Robot)
@@ -75,6 +77,8 @@ class TestSimulatedEffects(TestCase):
         problem.set_initial_value(at(r1), l1)
         problem.set_initial_value(battery_charge(r1), 100)
         problem.add_goal(Equals(at(r1), l2))
+
+        self.assertTrue(problem.kind.has_simulated_effects())
 
         with OneshotPlanner(name='tamer', params={'heuristic': 'hff'}) as planner:
             self.assertNotEqual(planner, None)
@@ -92,7 +96,7 @@ class TestSimulatedEffects(TestCase):
         a.add_condition(StartTiming(), y)
         def fun(problem, state, actual_params):
             return [TRUE(), FALSE()]
-        a.add_simulated_effects(EndTiming(), SimulatedEffects([FluentExp(x), FluentExp(y)], fun))
+        a.set_simulated_effect(EndTiming(), SimulatedEffect([FluentExp(x), FluentExp(y)], fun))
         problem = Problem('temporal_basic_with_simulated_effects')
         problem.add_fluent(x)
         problem.add_fluent(y)
@@ -100,6 +104,8 @@ class TestSimulatedEffects(TestCase):
         problem.set_initial_value(x, False)
         problem.set_initial_value(y, True)
         problem.add_goal(And(x, Not(y)))
+
+        self.assertTrue(problem.kind.has_simulated_effects())
 
         with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)

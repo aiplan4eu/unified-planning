@@ -72,8 +72,11 @@ class NegativeConditionsRemover(Transformer):
         goal is replaced by the fluent representing his negative.'''
         if self._new_problem is not None:
             return self._new_problem
-        #NOTE that a different environment might be needed when multi-threading
 
+        if self._problem.kind.has_simulated_effects(): # type: ignore
+            raise up.exceptions.UPUsageError('NegativeConditionsRemover does not work with simulated effects')
+
+        #NOTE that a different environment might be needed when multi-threading
         self._new_problem = Problem(f'{self._name}_{self._problem.name}', self._env)
         for o in self._problem.all_objects:
             self._new_problem.add_object(o)
@@ -147,8 +150,6 @@ class NegativeConditionsRemover(Transformer):
 
         for action in self._problem.actions:
             if isinstance(action, InstantaneousAction):
-                if action.simulated_effects is not None:
-                    raise up.exceptions.UPUsageError('NegativeConditionsRemover does not work with simulated effects')
                 new_action = name_action_map[action.name]
                 new_effects: List[Effect] = []
                 for e in new_action.effects:
@@ -164,8 +165,6 @@ class NegativeConditionsRemover(Transformer):
                 self._old_to_new[action] = [new_action]
                 self._new_to_old[new_action] = action
             elif isinstance(action, DurativeAction):
-                if len(action.simulated_effects) > 0:
-                    raise up.exceptions.UPUsageError('NegativeConditionsRemover does not work with simulated effects')
                 new_durative_action = name_action_map[action.name]
                 new_durative_action.set_duration_constraint(action.duration)
 

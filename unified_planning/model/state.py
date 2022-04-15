@@ -17,5 +17,8 @@ import unified_planning as up
 
 
 class State:
+    '''This is an abstract class representing a classical state'''
+
     def get_value(self, f: 'up.model.FNode'):
+        '''Returns the value assignment for the given fluent expression'''
         raise NotImplementedError

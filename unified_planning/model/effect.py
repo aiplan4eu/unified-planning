@@ -109,9 +109,9 @@ class Effect:
         return self._kind == EffectKind.DECREASE
 
 
-class SimulatedEffects:
+class SimulatedEffect:
     """
-    This class represents simulated effects over a list of fluent expressions.
+    This class represents a simulated effect over a list of fluent expressions.
     The fluents parameters must be constants or action parameters.
     The callable function must return the result of the simulated effects applied
     in the given state for the specified fluent expressions.
@@ -134,7 +134,7 @@ class SimulatedEffects:
         return f'{self._fluents} := simulated'
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, SimulatedEffects):
+        if isinstance(oth, SimulatedEffect):
             return self._fluents == oth._fluents and self._function == oth._function
         else:
             return False

@@ -711,7 +711,7 @@ class Problem:
                 self._update_problem_kind_condition(c)
             for e in action.effects:
                 self._update_problem_kind_effect(e)
-            if action.simulated_effects is not None:
+            if action.simulated_effect is not None:
                 self._kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
         elif isinstance(action, up.model.action.DurativeAction):
             lower, upper = action.duration.lower, action.duration.upper
