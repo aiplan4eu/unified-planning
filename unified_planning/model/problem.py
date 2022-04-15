@@ -385,35 +385,6 @@ class Problem:
         #NOTE this returns a copy, but could also return the original map
         return dict(self._user_types_hierarchy)
 
-    @property
-    def all_types(self) -> Iterator['up.model.types.Type']:
-        '''Returns an Iterator of all the types present in the problem, considering UserTypes, IntTypes
-            and RealTypes.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-            minimum time as possible.'''
-        #NOTE this could also return the list "returned_types"
-        # Also a set could be used, but we lose order certainty. Maybe we can use the "OrderedDict" trick?
-        # But then it need to be made as a list before returning.
-        returned_types: List['up.model.types.Type'] = []
-        for t in self.user_types:
-            if t not in returned_types:
-                yield t
-                returned_types.append(t)
-        for a in self.actions:
-            for ap in a.parameters:
-                if ap.type not in returned_types:
-                    yield ap.type
-                    returned_types.append(ap.type)
-        for f in self.fluents:
-            if f.type not in returned_types:
-                yield f.type
-                returned_types.append(f.type)
-            for fp in f.signature:
-                if fp.type not in returned_types:
-                    yield fp.type
-                    returned_types.append(fp.type)
-
     def add_object(self, obj: 'up.model.object.Object'):
         '''Adds the given object.'''
         if self.has_name(obj.name):
