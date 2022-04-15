@@ -22,6 +22,10 @@ from enum import Enum, auto
 from typing import Dict, Optional, List
 
 
+class ValidationResultStatus(Enum):
+    VALID = auto() # The plan is valid for the problem, it satisfies all the hard constraints
+    INVALID = auto() # The plan is invalid for the problem, it does not satisfy all the hard constraints
+
 class PlanGenerationResultStatus(Enum):
     SOLVED_SATISFICING = auto() # Valid plan found.
     SOLVED_OPTIMALLY = auto() # Optimal plan found.
@@ -65,9 +69,20 @@ class PlanGenerationResult:
     def __post__init(self):
         # Checks that plan and status are consistent
         if self.status in POSITIVE_OUTCOMES and self.plan is None:
-            raise UPUsageError(f'The Result status is {self.status_as_str()} but no plan is set.')
+            raise UPUsageError(f'The Result status is {str(self.status)} but no plan is set.')
         elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
-            raise UPUsageError(f'The Result status is {self.status_as_str()} but the plan is {str(self.plan)}.\nWith this status the plan must be None.')
+            raise UPUsageError(f'The Result status is {str(self.status)} but the plan is {str(self.plan)}.\nWith this status the plan must be None.')
         self.metrics = {}
         self.log_messages = [] #NOTE Here, is this init right? Since it is done after the __init__ the value might be deleted
         return self
+
+@dataclass
+class ValidationResult:
+    '''Class that represents the result of a validate call.'''
+    status: ValidationResultStatus
+    error_info: str = ''
+
+    def _post_init(self):
+        # Check that status and error_info are consistent with eachother
+        if self.status == ValidationResultStatus.VALID and self.error_info != '':
+            raise UPUsageError(f'The Validation Result Status is {str(self.status)} but the error_info string is set.')

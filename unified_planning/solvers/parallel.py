@@ -149,7 +149,7 @@ class Parallel(solvers.solver.Solver):
         else:
             raise NotImplementedError
 
-    def validate(self, problem: 'up.model.Problem', plan: Plan) -> bool:
+    def validate(self, problem: 'up.model.Problem', plan: Plan) -> 'up.solvers.results.ValidationResult':
         return self._run_parallel('validate', problem, plan)
 
     def destroy(self):

@@ -78,7 +78,7 @@ class Solver:
         output_stream are not None and the planner ignores them.'''
         raise NotImplementedError
 
-    def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> bool:
+    def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> 'up.solvers.results.ValidationResult':
         raise NotImplementedError
 
     def ground(self, problem: 'up.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:

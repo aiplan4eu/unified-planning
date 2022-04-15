@@ -145,7 +145,7 @@ class PDDLSolver(solvers.solver.Solver):
 
     def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
         '''Takes a problem and a plan and returns the status that represents this plan.
-        The possible status with their interpretation can be found in the up.plan file.'''
+        The possible status with their interpretation can be found in the up.solvers.results file.'''
         raise NotImplementedError
 
     def destroy(self):
