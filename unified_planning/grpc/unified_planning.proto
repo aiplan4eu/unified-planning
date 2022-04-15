@@ -286,37 +286,38 @@ message Assignment {
 }
 
 
-message MetricBody {
-    oneof {
-      Expression expression = 1;
-
-      // map from action's name to cost
-      map<string, Expression> action_costs = 2;
-    }
-}
-
 message Metric {
     enum MetricKind {
-      // Minimize the action costs expressed in the metric body
-      MINIMIZE_ACTION_COSTS = 1;
+      // Minimize the action costs expressed in the `action_costs` field
+      MINIMIZE_ACTION_COSTS = 0;
 
       // Minimize the length of the resulting sequential plan
-      MINIMIZE_SEQUENTIAL_PLAN_LENGTH = 2;
+      MINIMIZE_SEQUENTIAL_PLAN_LENGTH = 1;
 
       // Minimize the makespan in case of temporal planning
       // features: durative_actions
-      MINIMIZE_MAKESPAN = 3;
+      MINIMIZE_MAKESPAN = 2;
 
-      // Minimize the value of the expression defined in the metric body
-      MINIMIZE_EXPRESSION_ON_FINAL_STATE = 4;
+      // Minimize the value of the expression defined in the `expression`` field
+      MINIMIZE_EXPRESSION_ON_FINAL_STATE = 3;
 
-      // Maximize the value of the expression defined in the metric body
-      MAXIMIZE_EXPRESSION_ON_FINAL_STATE = 5;
+      // Maximize the value of the expression defined in the `expression`` field
+      MAXIMIZE_EXPRESSION_ON_FINAL_STATE = 4;
     }
     MetricKind kind = 1;
+    
 
-    // Optional body
-    MetricBody = 2;
+    // Expression to minimize/maximize in the final state.
+    // Empty, if the `kind` is not {MIN/MAX}IMIZE_EXPRESSION_ON_FINAL_STATE
+    Expression expression = 2;
+
+    // If `kind == MINIMZE_ACTION_COSTS``, then each action is associated to a cost expression.
+    // 
+    // TODO: Document what is allowed in the expression. 
+    // In particular, for this metric to be useful in many practical problems, the cost expression
+    // should allow referring to the action parameters (and possibly the current state at the action start/end).
+    // This is very awkward to do in this setting where the expression is detached from its scope.
+    map<string, Expression> action_costs = 3;
 }
 
 message Problem {
@@ -486,7 +487,7 @@ service UnifiedPlanning {
     // The planner replies with a stream of N `Answer` messages where:
     //  - the first (N-1) message are of type `IntermediateReport`
     //  - the last message is of type `FinalReport`
-    rpc planOneShot(PlanRequest) returns(stream Answer);
+    rpc planOneShot(PlanRequest) returns(stream PlanGenerationResult);
 
 
     // ===== About bidirectional interaction =====
