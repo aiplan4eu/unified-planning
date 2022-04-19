@@ -20,7 +20,7 @@ from unified_planning.solvers.grounder import Grounder
 from unified_planning.solvers.parallel import Parallel
 from unified_planning.solvers.pddl_solver import PDDLSolver
 from unified_planning.solvers.plan_validator import SequentialPlanValidator
-from unified_planning.solvers.results import LogMessage, PlanGenerationResult, LogLevel, PlanGenerationResultStatus, ValidationResult, ValidationResultStatus
+from unified_planning.solvers.results import LogMessage, PlanGenerationResult, LogLevel, PlanGenerationResultStatus, ValidationResult, ValidationResultStatus, GroundingResult
 
 __all__ = [ 'Factory',
             'Grounder',
@@ -28,5 +28,5 @@ __all__ = [ 'Factory',
             'PDDLSolver',
             'SequentialPlanValidator',
             'Solver', 'OptimalityGuarantee',
-            'LogMessage', 'PlanGenerationResult', 'LogLevel', 'PlanGenerationResultStatus', 'ValidationResult', 'ValidationResultStatus'
+            'LogMessage', 'PlanGenerationResult', 'LogLevel', 'PlanGenerationResultStatus', 'ValidationResult', 'ValidationResultStatus', 'GroudingResult'
         ]

@@ -81,10 +81,11 @@ class Solver:
     def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> 'up.solvers.results.ValidationResult':
         raise NotImplementedError
 
-    def ground(self, problem: 'up.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
+    def ground(self, problem: 'up.model.Problem') -> 'up.solvers.results.GroundingResult':
         '''
         Implement only if "self.is_grounder()" returns True.
-        This function should return the tuple (grounded_problem, trace_back_plan), where
+        This function returns an instance of the up.solvers.results.GroundingResult class.
+        This class acts as a wrapper for the Tuple(grounded_problem, trace_back_plan), where
         "trace_back_plan" is a callable from a plan for the "grounded_problem" to a plan of the
         original problem.
 
@@ -92,7 +93,7 @@ class Solver:
         "up.solvers.grounder".
 
         Also, the "up.solvers.grounder.lift_plan" function can be called, if retrieving the needed map
-        fits the solver implementation better than retrieving a function.'''
+        fits the solver implementation better than retrieving a Callable.'''
         raise NotImplementedError
 
     def destroy(self):

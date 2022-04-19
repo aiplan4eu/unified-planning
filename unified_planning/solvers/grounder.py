@@ -15,14 +15,14 @@
 
 
 from functools import partial
-from typing import Dict, List,Tuple, Callable
+from typing import Dict, List, Tuple
 
 import unified_planning.environment
 import unified_planning.solvers as solvers
 import unified_planning.transformers
 from unified_planning.plan import Plan, SequentialPlan, TimeTriggeredPlan, ActionInstance
-from unified_planning.model import Problem, ProblemKind
-
+from unified_planning.model import ProblemKind
+from unified_planning.solvers.results import GroundingResult
 
 
 class Grounder(solvers.solver.Solver):
@@ -30,14 +30,14 @@ class Grounder(solvers.solver.Solver):
     def __init__(self, **options):
         pass
 
-    def ground(self, problem: 'unified_planning.model.Problem') -> Tuple[Problem, Callable[[Plan], Plan]]:
+    def ground(self, problem: 'unified_planning.model.Problem') -> GroundingResult:
         '''This method takes an "unified_planning.model.Problem" and returns the grounded version of the problem
         and a function, that called on an "unified_planning.plan.Plan" of grounded problem returns the Plan
         version to apply to the original problem.'''
         grounder = unified_planning.transformers.Grounder(problem)
         grounded_problem = grounder.get_rewritten_problem()
         trace_back_map = grounder.get_rewrite_back_map()
-        return (grounded_problem, partial(lift_plan, map=trace_back_map))
+        return GroundingResult(grounded_problem, partial(lift_plan, map=trace_back_map))
 
     @property
     def name(self):
