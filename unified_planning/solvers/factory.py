@@ -20,6 +20,8 @@ from typing import Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
+                   'fast_downward' : ('up_fast_downward', 'FastDownwardPDDLSolver'),
+                   'fast_downward_optimal' : ('up_fast_downward', 'FastDownwardOptimalPDDLSolver'),
                    'lpg' : ('up_lpg', 'LPGsolver'),
                    'tamer' : ('up_tamer', 'SolverImpl'),
                    'pyperplan' : ('up_pyperplan', 'SolverImpl'),
