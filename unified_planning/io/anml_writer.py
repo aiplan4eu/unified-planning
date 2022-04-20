@@ -192,6 +192,10 @@ class ANMLWriter:
             elif isinstance(a, DurativeAction):
                 parameters = [f'{_get_anml_name(ap.type, names_mapping)} {_get_anml_name(ap, names_mapping)}' for ap in a.parameters]
                 out.write(f'action {_get_anml_name(a, names_mapping)}({", ".join(parameters)}) {{\n')
+                left_bound = ' > ' if a.duration.is_left_open() else ' >= '
+                right_bound = ' < ' if a.duration.is_right_open() else ' <= '
+                out.write(f'   duration{left_bound}{converter.convert(a.duration.lower)} and ')
+                out.write(f'duration{right_bound}{converter.convert(a.duration.upper)}\n')
                 for i, cl in a.conditions.items():
                     for c in cl:
                         out.write(f'   {self._convert_anml_interval(i)} {converter.convert(c)};\n')

@@ -96,6 +96,7 @@ class TestPythonWriter(TestCase):
 fluent boolean is_at;
 constant boolean is_connected;
 action move(Location l_from, Location l_to) {
+   duration >= 6 and duration <= 6
    [ start, start ] is_at(l_from);
    [ start, start ] (not is_at(l_to));
    [ start, start ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))) });
@@ -149,12 +150,14 @@ fluent boolean light;
 fluent boolean match_used;
 fluent boolean fuse_mended;
 action light_match(Match m) {
+   duration >= 6 and duration <= 6
    [ start, start ] (not match_used(m));
    [ start ] match_used(m) := true;
    [ start ] light := true;
    [ end ] light := false;
 }
 action mend_fuse(Fuse f) {
+   duration >= 5 and duration <= 5
    [ start, start ] handfree;
    [ start, end ] light;
    [ start ] handfree := false;
