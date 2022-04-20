@@ -221,3 +221,29 @@ instance Location l1, l2;
 [ end ] robot_at(l2);
 '''
         self.assertEqual(anml_problem, expected_result)
+
+    def test_ad_hoc_1(self):
+        when = UserType('when')
+        fl = Fluent('action')
+        obj = Object('predicate', when)
+        act = InstantaneousAction('variable', fluent=when)
+        fluent = act.parameter('fluent')
+        act.add_effect(fl, True, Equals(fluent, obj))
+        problem = Problem('ad_hoc')
+        problem.add_fluent(fl)
+        problem.add_action(act)
+        problem.add_object(obj)
+        problem.set_initial_value(fl, False)
+        aw = ANMLWriter(problem)
+        anml_problem = aw.get_problem()
+        expected_result = '''type when_;
+fluent boolean action_;
+action variable_(when_ fluent_) {
+   when [ start ] (fluent_ == predicate_)
+   {[ start ] action_ := true;
+   }
+}
+instance when_ predicate_;
+[ start ] action_ := false;
+'''
+        self.assertEqual(anml_problem, expected_result)

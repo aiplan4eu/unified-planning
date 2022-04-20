@@ -22,15 +22,19 @@ import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction
 from unified_planning.model.types import _UserType, _RealType
-from typing import IO, Dict, List, Optional, cast
+from typing import IO, Dict, List, Optional, cast, Union
 from io import StringIO
+
+ANML_KEYWORDS = {'action', 'constant', 'duration', 'else', 'fact', 'fluent', 'function', 'goal', 'in', 'instance', 'motivated',
+        'predicate', 'symbol', 'variable', 'when', 'with', 'consume', 'decomposition', 'lend'} #NOTE only some keyword are present, more need to be added.
 
 
 class ConverterToANMLString(walkers.DagWalker):
     '''Expression converter to an ANML string.'''
 
-    def __init__(self, env: 'up.environment.Environment'):
+    def __init__(self, names_mapping: Dict[Union['up.model.Type', 'up.model.Action', 'up.model.Parameter', 'up.model.Fluent', 'up.model.Object'], str], env: 'up.environment.Environment'):
         walkers.DagWalker.__init__(self)
+        self._names_mapping = names_mapping
         self.simplifier = walkers.Simplifier(env)
 
     def convert(self, expression):
@@ -39,17 +43,17 @@ class ConverterToANMLString(walkers.DagWalker):
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_gen = (f'{str(cast(_UserType, v.type).name)} {v.name}' for v in expression.variables())
+        vars_string_gen = (f'{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}' for v in expression.variables())
         return f'(exists({", ".join(vars_string_gen)}) {{ {args[0]} }})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_gen = (f'{str(cast(_UserType, v.type).name)} {v.name}' for v in expression.variables())
+        vars_string_gen = (f'{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}' for v in expression.variables())
         return f'(forall({", ".join(vars_string_gen)}) {{ {args[0]} }})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
-        return expression.variable().name
+        return _get_anml_name(expression.variable(), self._names_mapping)
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -72,19 +76,18 @@ class ConverterToANMLString(walkers.DagWalker):
         return f'({args[0]} iff {args[1]})'
 
     def walk_fluent_exp(self, expression, args):
-        fluent = expression.fluent()
         if len(args) == 0:
-            return fluent.name
+            return self._names_mapping[expression.fluent()]
         else:
-            return f'{fluent.name}({", ".join(args)})'
+            return f'{self._names_mapping[expression.fluent()]}({", ".join(args)})'
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
-        return expression.parameter().name
+        return _get_anml_name(expression.parameter(), self._names_mapping)
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
-        return expression.object().name
+        return _get_anml_name(expression.object(), self._names_mapping)
 
     def walk_bool_constant(self, expression, args):
         assert len(args) == 0
@@ -92,7 +95,7 @@ class ConverterToANMLString(walkers.DagWalker):
             return 'true'
         return 'false'
 
-    def walk_real_constant(self, expression, args):#NOTE is this right? Same ANML Implementation
+    def walk_real_constant(self, expression, args):
         assert len(args) == 0
         frac = cast(Fraction, expression.constant_value())
         return f'({frac.numerator}/{frac.denomimator})'
@@ -137,18 +140,27 @@ class ANMLWriter:
         self.problem = problem
 
     def _write_problem(self, out: IO[str]):
-        types_mapping: Dict['up.model.Type', str] = {}
-        # Init types_mapping.
-        types_mapping[self.problem.env.type_manager.BoolType()] = 'boolean'
-        types_mapping[self.problem.env.type_manager.IntType()] = 'integer'
-        types_mapping[self.problem.env.type_manager.RealType()] = 'rational'
+        names_mapping: Dict[Union['up.model.Type', 'up.model.Action', 'up.model.Parameter', 'up.model.Fluent', 'up.model.Object'], str] = {}
+        # Init names_mapping.
+        names_mapping[self.problem.env.type_manager.BoolType()] = 'boolean'
+        names_mapping[self.problem.env.type_manager.IntType()] = 'integer'
+        names_mapping[self.problem.env.type_manager.RealType()] = 'rational'
         for t in self.problem.user_types:
             ut = cast(_UserType, t)
-            if self._is_valid_anml_name(ut.name): # No renaming needed
-                types_mapping[t] = ut.name
+            if _is_valid_anml_name(ut.name): # No renaming needed
+                names_mapping[t] = ut.name
+        for a in self.problem.actions:
+            if _is_valid_anml_name(a.name): # No renaming needed
+                names_mapping[a] = a.name
+        for f in self.problem.fluents:
+            if _is_valid_anml_name(f.name): # No renaming needed
+                names_mapping[f] = f.name
+        for o in self.problem.all_objects:
+            if _is_valid_anml_name(o.name): # No renaming needed
+                names_mapping[o] = o.name
 
         for t in self.problem.user_types:
-            anml_type_name = self._get_anml_type(t, types_mapping)
+            anml_type_name = _get_anml_name(t, names_mapping)
             out.write(f'type {anml_type_name}')
             if cast(_UserType, t).father is None:
                 out.write(';\n')
@@ -156,46 +168,45 @@ class ANMLWriter:
                 # For construction in the Problem, the father of a UserType is always added before the UserType itself.
                 father = cast(_UserType, t).father
                 assert father is not None
-                assert types_mapping[father] is not None
-                out.write(f' < {types_mapping[father]};\n')
+                assert names_mapping[father] is not None
+                out.write(f' < {names_mapping[father]};\n')
         static_fluents = self.problem.get_static_fluents()
         for f in self.problem.fluents:
             if f in static_fluents:
-                out.write(f'constant {self._get_anml_type(f.type, types_mapping)} {f.name};\n')
+                out.write(f'constant {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)};\n')
             else:
-                out.write(f'fluent {self._get_anml_type(f.type, types_mapping)} {f.name};\n')
-            #NOTE It could be nice to get the static fluents of the problem and define them as constants, if we do, also initial_values should change
+                out.write(f'fluent {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)};\n')
 
-        converter = ConverterToANMLString(self.problem.env)
+
+        converter = ConverterToANMLString(names_mapping, self.problem.env)
 
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
-                parameters = [f'{self._get_anml_type(ap.type, types_mapping)} {ap.name}' for ap in a.parameters]
-                out.write(f'action {a.name}({", ".join(parameters)}) {{\n')
+                parameters = [f'{_get_anml_name(ap.type, names_mapping)} {_get_anml_name(ap, names_mapping)}' for ap in a.parameters]
+                out.write(f'action {_get_anml_name(a, names_mapping)}({", ".join(parameters)}) {{\n')
                 for p in a.preconditions:
                     out.write(f'   [ start ] {converter.convert(p)};\n')
                 for e in a.effects:
-                    out.write(f'   {self._convert_effect(e, converter)}')
+                    out.write(f'   {self._convert_effect(e, converter, None, 3)}')
                 out.write('}\n')
             elif isinstance(a, DurativeAction):
-                parameters = [f'{self._get_anml_type(ap.type, types_mapping)} {ap.name}' for ap in a.parameters]
-                out.write(f'action {a.name}({", ".join(parameters)}) {{\n')
-                out.write
+                parameters = [f'{_get_anml_name(ap.type, names_mapping)} {_get_anml_name(ap, names_mapping)}' for ap in a.parameters]
+                out.write(f'action {_get_anml_name(a, names_mapping)}({", ".join(parameters)}) {{\n')
                 for i, cl in a.conditions.items():
                     for c in cl:
                         out.write(f'   {self._convert_anml_interval(i)} {converter.convert(c)};\n')
                 for ti, el in a.effects.items():
                     for e in el:
-                        out.write(f'   {self._convert_effect(e, converter, ti)}')
+                        out.write(f'   {self._convert_effect(e, converter, ti, 3)}')
                 out.write('}\n')
             else:
                 raise NotImplementedError
 
         for t in self.problem.user_types: # Define objects
             objects: List['unified_planning.model.Object'] = list(self.problem.objects(t))
-            obj_names = [o.name for o in self.problem.objects(t)]
+            obj_names = [_get_anml_name(o, names_mapping) for o in self.problem.objects(t)]
             if len(objects) > 0:
-                out.write(f'instance {self._get_anml_type(t, types_mapping)} {", ".join(obj_names)};\n')
+                out.write(f'instance {_get_anml_name(t, names_mapping)} {", ".join(obj_names)};\n')
 
         for fe, v in self.problem.initial_values.items():
             assert fe.is_fluent_exp()
@@ -230,11 +241,14 @@ class ANMLWriter:
         with open(filename, 'w') as f:
             self._write_problem(f)
 
-    def _convert_effect(self, effect: 'up.model.Effect', converter: ConverterToANMLString, timing: 'up.model.Timing' = None) -> str:
+    def _convert_effect(self, effect: 'up.model.Effect',
+                        converter: ConverterToANMLString,
+                        timing: 'up.model.Timing' = None,
+                        spaces_from_left: int = 0) -> str:
         results: List[str] = []
         anml_timing = self._convert_anml_timing(timing) if timing is not None else 'start'
         if effect.is_conditional():
-            results.append(f'when [ {anml_timing} ] {converter.convert(effect.condition)}\n{{')
+            results.append(f'when [ {anml_timing} ] {converter.convert(effect.condition)}\n{spaces_from_left*" "}{{')
         results.append(f'[ {anml_timing} ] ')
         results.append(converter.convert(effect.fluent))
         if effect.is_assignment():
@@ -247,7 +261,7 @@ class ANMLWriter:
             raise NotImplementedError
         results.append(f'{converter.convert(effect.value)};\n')
         if effect.is_conditional():
-            results.append('}\n')
+            results.append(f'{spaces_from_left*" "}}}\n')
         return ''.join(results)
 
     def _convert_anml_timing(self, timing: 'up.model.Timing') -> str:
@@ -264,48 +278,46 @@ class ANMLWriter:
         right_bracket = ')' if interval.is_left_open() else ']'
         return f'{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}'
 
-    def _is_valid_anml_name(self, name: str) -> bool:
-        regex = re.compile('^[a-zA-Z]+.*')
-        if re.match(regex, name) is None: # If the name does not start with an alphabetic char.
-            return False
-        return name.isidentifier() #NOTE Here I am creating a dependency between python identifiers and ANML names. For now they are (almost) the same, but in future versions?
+def _is_valid_anml_name(name: str) -> bool:
+    regex = re.compile('^[a-zA-Z]+.*')
+    if re.match(regex, name) is None or name in ANML_KEYWORDS: # If the name does not start with an alphabetic char or is a keyword
+        return False
+    return name.isidentifier() #NOTE Here I am creating a dependency between python identifiers and ANML names. For now they are (almost) the same, but in future versions?
 
-    def _get_anml_valid_name(self, type) -> str:
-        '''This function returns a valid ANML name.'''
-        if type.is_bool_type():
-            return 'boolean'
-        elif type.is_user_type():
-            name = cast(_UserType, type).name
-            regex = re.compile('^[a-zA-Z]+.*')
-            if re.match(regex, name) is None: # If the name does not start with an alphabetic char, we make it start with one.
-                name = f't_{name}'
-            return re.sub('[^0-9a-zA-Z_]', '_', name) #Substitute non-valid elements with "_"
-        elif type.is_int_type():
-            return 'integer'
-        elif type.is_real_type():
-            return 'rational'
-        else:
-            raise NotImplementedError
+def _get_anml_valid_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Parameter', 'up.model.Fluent', 'up.model.Object']) -> str:
+    '''This function returns a valid ANML name.'''
+    if isinstance(item, up.model.Type):
+        assert item.is_user_type()
+        name = cast(_UserType, item).name
+    else:
+        name = item.name
+    regex = re.compile('^[a-zA-Z]+.*')
+    if re.match(regex, name) is None: # If the name does not start with an alphabetic char, we make it start with one.
+        name = f't_{name}'
+    name = re.sub('[^0-9a-zA-Z_]', '_', name) #Substitute non-valid elements with "_"
+    while name in ANML_KEYWORDS: # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
+        name = f'{name}_'
+    return name
 
-    def _get_anml_type(self, type: 'up.model.Type', types_mapping: Dict['up.model.Type', str]) -> str:
-        '''Important note: This method updates the types_mapping '''
-        new_name: Optional[str] = types_mapping.get(type, None)
-        if new_name is None: # The type is not in the dictionary, so his name must be added
-            if type.is_user_type(): # We mangle the name and get a fresh one
-                new_name = self._get_anml_valid_name(type)
-                test_name = new_name # Init values
-                count = 0
-                while test_name in types_mapping.values(): # Loop until we find a fresh name
-                    test_name = f'{new_name}_{str(count)}'
-                    count += 1
-                new_name = test_name
-                assert self._is_valid_anml_name(new_name)
-            else:
-                assert type.is_int_type() or type.is_real_type()
-                num_type = cast(_RealType, type) # Here it can be _IntType, but both are used in the same way
-                type_kind = 'integer' if num_type.is_int_type() else 'rational'
-                left_bound = '(-infinity' if num_type.lower_bound is None else f'[{str(num_type.lower_bound)}'
-                right_bound = 'infinity)' if num_type.upper_bound is None else f'{str(num_type.upper_bound)}]'
-                new_name = f'{type_kind}{left_bound}, {right_bound}'
-            types_mapping[type] = new_name # Once a fresh valid name is found, update the map.
-        return cast(str, new_name)
+def _get_anml_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Parameter', 'up.model.Fluent', 'up.model.Object'],
+    names_mapping: Dict[Union['up.model.Type', 'up.model.Action', 'up.model.Parameter', 'up.model.Fluent', 'up.model.Object'], str]) -> str:
+    '''Important note: This method updates the names_mapping '''
+    new_name: Optional[str] = names_mapping.get(item, None)
+    if new_name is None: # The type is not in the dictionary, so his name must be added
+        if isinstance(item, up.model.Type) and (item.is_int_type() or item.is_real_type()):
+            num_type = cast(_RealType, item) # Here it can be _IntType, but both are used in the same way
+            type_kind = 'integer' if num_type.is_int_type() else 'rational'
+            left_bound = '(-infinity' if num_type.lower_bound is None else f'[{str(num_type.lower_bound)}'
+            right_bound = 'infinity)' if num_type.upper_bound is None else f'{str(num_type.upper_bound)}]'
+            new_name = f'{type_kind}{left_bound}, {right_bound}'
+        else: # We mangle the name and get a fresh one
+            new_name = _get_anml_valid_name(item)
+            test_name = new_name # Init values
+            count = 0
+            while test_name in names_mapping.values(): # Loop until we find a fresh name
+                test_name = f'{new_name}_{str(count)}'
+                count += 1
+            new_name = test_name
+            assert _is_valid_anml_name(new_name)
+        names_mapping[item] = new_name # Once a fresh valid name is found, update the map.
+    return cast(str, new_name)
