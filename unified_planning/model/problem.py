@@ -418,7 +418,8 @@ class Problem:
         elif fluent_exp.fluent().type() in self._initial_defaults:
             return self._initial_defaults[fluent_exp.fluent().type()]
         else:
-            raise UPProblemDefinitionError('Initial value not set!')
+            pass
+            #raise UPProblemDefinitionError('Initial value not set!')
 
     def _get_ith_fluent_exp(self, fluent: 'up.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'up.model.fnode.FNode':
         '''Returns the ith ground fluent expression.'''

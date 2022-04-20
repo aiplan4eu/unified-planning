@@ -187,7 +187,7 @@ class ExpressionManager(object):
         """ Creates an expression for the given fluent and parameters.
         Restriction: parameters type must be compatible with the fluent signature
         """
-        assert fluent.arity() == len(params)
+        #assert fluent.arity() == len(params)
         params_exp = self.auto_promote(*params)
         return self.create_node(node_type=op.FLUENT_EXP, args=tuple(params_exp), payload=fluent)
 

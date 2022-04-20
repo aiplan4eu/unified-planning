@@ -36,6 +36,7 @@ import collections
 from typing import List, Union
 from unified_planning.transformers.transformer import Transformer
 
+from unified_planning.walkers.substituter import Substituter
 import re
 
 
@@ -48,11 +49,11 @@ class MultiAgentProblem(Problem):
         self.env_ = None
         self.agents_list = []
         self.plan = []
-        self.fluents_name = []
         self._shared_data_list: List['up.model.fluent.Fluent'] = []
-        self._new_fluents = {}
-        self._new_objects = {}
+        self._new_fluents: Dict['up.model.fluent.Fluent'] = {}
+        self._new_objects: Dict['up.model.object.Object']  = {}
         self._shared_data: List['up.model.fluent.Fluent'] = []
+        self._flu_fuctions: List['up.model.fluent.Fluent'] = []
     ######################################################################################
 
 
@@ -63,7 +64,7 @@ class MultiAgentProblem(Problem):
 
 
     def get_shared_data(self) -> List['up.model.fluent.Fluent']:
-        '''Returns the fluents.'''
+        '''Returns the shared_data fluents.'''
         return self._shared_data
 
 
@@ -71,74 +72,27 @@ class MultiAgentProblem(Problem):
         for shared_data in List_fluents:
             self._shared_data.append(shared_data)
 
+
+    def add_flu_function(self, Fluent):
+        if self.has_name(Fluent.name):
+            raise UPProblemDefinitionError('Name ' + Fluent.name + ' already defined!')
+        self._flu_fuctions.append(Fluent)
+
+    def get_flu_functions(self) -> List['up.model.fluent.Fluent']:
+        '''Returns the shared_data fluents.'''
+        return self._flu_fuctions
+
+
+    def add_flu_functions_list(self, List_fluents):
+        for fluent in List_fluents:
+            self._flu_fuctions.append(fluent)
+
     ######################################################################################
-
-
-    def set_initial_value(self, fluent: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent'],
-                          value: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', bool,
-                                       int, float, Fraction]):
-        '''Sets the initial value for the given fluent.'''
-        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        '''if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
-            raise UPTypeError('Initial value assignment has not compatible types!')'''
-        if fluent_exp in self._initial_value:
-            raise UPProblemDefinitionError('Initial value already set!')
-        self._initial_value[fluent_exp] = value_exp
-
-
-    def initial_values(self) -> Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode']:
-        '''Gets the initial value of the fluents.'''
-        res = self._initial_value
-        return res
-
-    def add_fluent(self, fluent: 'unified_planning.model.fluent.Fluent', *,
-                   default_initial_value: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.object.Object', bool,
-                                                int, float, Fraction] = None):
-        '''Adds the given fluent.'''
-        if self.has_name(fluent.name()):
-            raise UPProblemDefinitionError('Name ' + fluent.name() + ' already defined!')
-        self._fluents.append(fluent)
-        if not default_initial_value is None:
-            v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
-            self._fluents_defaults[fluent] = v_exp
-        '''if fluent.type().is_user_type() and fluent.type() not in self._user_types:
-            self._user_types.append(fluent.type()) # type: ignore
-        for type in fluent.signature():
-            if type.is_user_type() and type not in self._user_types:
-                self._user_types.append(type)'''
-
-
-
-
-    def add_objects(self, objs: List['unified_planning.model.object.Object']):
-        '''Adds the given fluents.'''
-        #controllare##############
-        for obj in objs:
-
-            if self.has_name(obj.name()):
-                raise UPProblemDefinitionError('Name ' + obj.name() + ' already defined!')
-            self.add_object(obj)
-            if obj.type().is_user_type() and obj.type() not in self._user_types:
-                self._user_types.append(obj.type())
 
     def add_user_types(self, user_types):
         for user_type in user_types:
             if user_type.is_user_type() and user_type not in self._user_types:
                 self._user_types.append(user_type)
-
-    '''def add_objects(self, objs: List['unified_planning.model.object.Object']):
-        for ag in self.agents_list:
-            for obj in objs:
-                obj = copy.deepcopy(obj)
-                setattr(obj, '_name', str(getattr(obj, '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.add_object(obj)'''
-
-
-    def get_all_objects(self) -> List['unified_planning.model.object.Object']:
-        '''Returns all the objects.'''
-        return [o for o in self._objects]
-
-
 
     def add_environment_(self, Env):
         self.env_ = Env
@@ -175,170 +129,183 @@ class MultiAgentProblem(Problem):
             else:
                 pass
 
+    def new_agent_fluent(self, key):
+        if key in self._new_fluents.keys():
+            new_fluent = self._new_fluents[key]
+            return new_fluent
+
+    def sub_exp(self, fluent_to_replace: Fluent, expresion, params = None):
+        key = fluent_to_replace.name()
+        if key in self._new_fluents.keys():
+            new_fluent = self._new_fluents[key]
+            if params is None:
+                new_exp = self.env.expression_manager.FluentExp(new_fluent)
+                old_exp = self.env.expression_manager.FluentExp(fluent_to_replace)
+            else:
+                new_exp = self.env.expression_manager.FluentExp(new_fluent, params)
+                old_exp = self.env.expression_manager.FluentExp(fluent_to_replace, params)
+            sub = Substituter(self.env)
+            subs_map = {}
+            subs_map[old_exp] = new_exp
+            print("subs_map", subs_map)
+            new_expresion = sub.substitute(expresion, subs_map)
+
+            print("new_cnew_cnew_c", new_expresion)
+        else:
+            assert False, (key, "This fluent is not in the problem!")
+        return new_expresion
+
 
     def compile(self):
         for flu in self.get_environment_().get_fluents():
             flu = copy.copy(flu)
             new_flu = Fluent((flu.name() + "_env"), flu._typename, flu._signature)
-            #setattr(flu, '_name', str(getattr(flu, '_name')) + "_env")
+            self._new_fluents[flu.name()] = new_flu
             self.add_fluent(new_flu)
 
         for flu, value in self.get_environment_().get_initial_values().items():
-            flu = copy.copy(flu)
-            value = copy.copy(value)
-            new_flu = Fluent((flu.name() + "_env"), flu._typename, flu._signature)
-            #setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_env")
-            self.set_initial_value(new_flu, value)
+            if flu.is_fluent_exp():
+                fluent_to_replace = flu.fluent()
+                args = flu._content.args
+                new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
+            else:  # example (not clear_s(pallet0)) "depot"
+                fluent_to_replace = flu._content.args[0].fluent()
+                args = flu._content.args[0]._content.args
+                new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
+            self.set_initial_value(new_exp_init, value)
 
 
         for ag in self.get_agents():
             for flu in ag.get_fluents():
                 flu = copy.copy(flu) #qui anche copy va bene
                 new_flu = Fluent((flu.name() + "_" + str(self.get_agents().index(ag))), flu._typename, flu._signature)
-                #flu._name = flu.name() + "_" + str(self.get_agents().index(ag))
                 self._new_fluents[flu.name()] = new_flu
-
-                #print(flu, "flu!")
-                #setattr(flu, '_name', str(getattr(flu, '_name')) + "_" + str(self.get_agents().index(ag)))
                 self.add_fluent(new_flu)
-            #print("fluents", self.fluents())
-            for obj in self.get_all_objects():
+
+            for obj in self.all_objects():
                 self._new_objects[obj.name()] = obj
+
             #Actions
             for act in ag.get_actions():
-                #act = copy.deepcopy(act)
                 new_act = InstantaneousAction((str(getattr(act, 'name')) + "_" + str(self.get_agents().index(ag))))
+
                 # Preconditions
                 for p in act._preconditions:
                     is_fluent = False
 
-                    print("precondition: ", p)
                     for arg in p._content.args:
                         if arg.is_fluent_exp():
                             is_fluent = True
                     if is_fluent:
-                        if p.is_le():
-                            print("precondition: ", p)
-                            key = str(p.args()[1])
-                            if key in self._new_fluents.keys(): #mappa dei fluenti
-                                new_fluent = self._new_fluents[key]
-                                sl = p.args()[0]
-                                sr = new_fluent
-                                new_p = self.env.expression_manager.LE(sl, sr)
-                                print(sl, new_fluent)
-                                new_act.add_precondition(new_p)
-                            else:
-                                pass
-                        elif p.is_equals():
-                            print("precondition: ", p)
-                            key = str(p.args()[1])
-                            if key in self._new_fluents.keys():
-                                new_fluent = self._new_fluents[key]
-                                sl = p.args()[0]
-                                sr = new_fluent
-                                new_p = self.env.expression_manager.Equals(sl, sr)
-                                print(sl, new_fluent)
-                                new_act.add_precondition(new_p)
-                        elif p.args()[0].is_fluent_exp():
+                        if p.args()[0].is_fluent_exp(): #example: (not robot_at_0(l_to))
                             params = p._content.args[0]._content.args
-                            key = p.args()[0].fluent().name()
-                            if key in self._new_fluents.keys():
-                                new_fluent = self._new_fluents[key]
-                                new_p = self.env.expression_manager.FluentExp(new_fluent, params)
-                                new_act.add_precondition(self.env.expression_manager.Not(new_p))
-                    elif p.is_fluent_exp():
-                        print("precondition: ", p)
-                        key = p.fluent().name()
-                        if key in self._new_fluents.keys():
-                            new_fluent = self._new_fluents[key]
-                            new_p = self.env.expression_manager.FluentExp(new_fluent, p.args())
-                            new_act.add_precondition(new_p)
-                        else:
-                            pass
-                    else:
+                            fluent_to_replace = p.args()[0].fluent()
+                            new_exp_p = self.sub_exp(fluent_to_replace, p, params)
+                            new_act.add_precondition(new_exp_p)
+
+                        else: # example: (10 <= battery_charge_0) "robot"
+                            fluent_to_replace = p.args()[1].fluent()
+                            new_exp_p = self.sub_exp(fluent_to_replace, p)
+                            new_act.add_precondition(new_exp_p)
+
+                    elif p.is_fluent_exp(): #example: robot_at_0(l_from) "robot"
+                        params = p.args()
+                        fluent_to_replace = p.fluent()
+                        new_exp_p = self.sub_exp(fluent_to_replace, p, params)
+                        new_act.add_precondition(new_exp_p)
+
+                    elif p.is_not() and p._content.args[0]._content.args[0].is_fluent_exp(): #example: (not (is_at_0(robot) == l_to)) "robot_fluent_of_user_type"
+                        fluent_to_replace = p._content.args[0]._content.args[0].fluent()
+                        args = p._content.args[0]._content.args[0]._content.args
+                        new_exp_p = self.sub_exp(fluent_to_replace, p, args)
+                        new_act.add_precondition(new_exp_p)
+                    else: #example:  (not (l_from == l_to)) "robot"
                         new_act.add_precondition(p)
                         print(new_act)
+
                 # Effects
-                for e in act._effects:
+                for e in act._effects: # example robot_at_0(l_from) "robot"
                     if e.fluent().is_fluent_exp():
                         key = e.fluent().fluent().name()
                         if e.fluent()._content.args != ():
                             args = e.fluent()._content.args
-                            if key in self._new_fluents.keys():
-                                new_fluent = self._new_fluents[key]
-                                new_fluent = new_fluent(args)
+                            new_fluent = self.new_agent_fluent(key)
+                            new_fluent = new_fluent(args)
                             new_act.add_effect(new_fluent, e._value, e._condition)
-                        else:
-                            if key in self._new_fluents.keys():
-                                new_fluent = self._new_fluents[key]
-                                args_flu = e._value.args()[0]                       #(battery_charge_0 - 10) not (battery_charge - 10)
-                            new_act.add_effect(new_fluent, e._value, e._condition)
-
-
-                '''change_name = True
-                for n, t in act._parameters.items(): #n è str:l_fro e l_to. t è Location
-                    if change_name == True:
-                        setattr(t._typename, '_name', str(getattr(t._typename, '_name')) + "_" + (str(self.get_agents().index(ag))))
-                    change_name = False'''
-
-                '''for i in act._preconditions:
-                    #print("prima", i._node_id)
-                    #i._node_id = i._node_id + int(self.get_agents().index(ag))
-                    #print("dopo", i._node_id)
-                    #print("i._content", i._content, type(i._content.args), i.args())
-                    if i._content.args != None:
-                        for flu in i._content.args:
-                            if flu.is_fluent_exp():
-                                if flu.fluent()._name not in self.fluents_name:
-                                    setattr(flu.fluent(), '_name',
-                                            str(getattr(flu.fluent(), '_name')) + "_" + str(
-                                                self.get_agents().index(ag)))
-                                    self.fluents_name.append(flu.fluent()._name)
-                    #print("flu", flu, "list", self.fluents_name)
-                    if i._content.payload:
-                        if i.is_fluent_exp():
-                            if i.fluent()._name not in self.fluents_name:
-                                setattr(i.fluent(), '_name',
-                                        str(getattr(i.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
-                                #print("quiiiii", i.fluent()._name)
-                                self.fluents_name.append(i.fluent()._name)'''
-
+                        else: #example (battery_charge_0 - 10) "robot"
+                            new_fluent = self.new_agent_fluent(key)
+                            fluent_to_replace = e.fluent().fluent()  # effect (battery_charge_0 - 10)
+                            new_exp_e = self.sub_exp(fluent_to_replace, e._value)
+                            new_act.add_effect(new_fluent, new_exp_e, e._condition)
                 self.add_action(new_act)
 
             # Initial Value
             for flu, value in ag.get_initial_values().items():
                 if flu.is_fluent_exp():
-                    key = flu.fluent()._name
-                    if key in self._new_fluents.keys():
-                        new_flu = self._new_fluents[key]
-                        if flu.args() != ():
-                            key = str(flu.args()[0])
-                            if key in self._new_objects.keys():
-                                obj = self._new_objects[key]
-                            new_flu = new_flu(obj)
+                    fluent_to_replace = flu.fluent()
+                    args = flu._content.args
+                    new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
+                else: #example (not clear_s(pallet0)) "depot"
+                    fluent_to_replace = flu._content.args[0].fluent()
+                    args = flu._content.args[0]._content.args
+                    new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
+                self.set_initial_value(new_exp_init, value)
 
-
-                '''if flu.is_fluent_exp():
-                    setattr(flu.fluent(), '_name', str(getattr(flu.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))'''
-                self.set_initial_value(new_flu, value)
             # Goals
             for goal in ag.get_goals():
-                #goal = copy.deepcopy(goal)
-                if goal.is_fluent_exp():
-                    key = goal.fluent()._name
-                    if key in self._new_fluents.keys():
-                        new_goal = self._new_fluents[key]
-                        if goal.args() != ():
-                            key = str(goal.args()[0])
-                            if key in self._new_objects.keys():
-                                obj = self._new_objects[key]
-                            new_goal = new_goal(obj)
-                #if goal.is_fluent_exp():
-                #    setattr(goal.fluent(), '_name', str(getattr(goal.fluent(), '_name')) + "_" + str(self.get_agents().index(ag)))
-                self.add_goal(new_goal)
+                if goal.is_fluent_exp(): #example:  robot_at(l2) "robot"
+                    fluent_to_replace = goal.fluent()
+                    args = goal._content.args
+                    new_exp_goal = self.sub_exp(fluent_to_replace, goal, args)
+                else: #example:  (is_at(r1) == l1) "robot_fluent_of_user_type"
+                    fluent_to_replace = goal._content.args[0].fluent()
+                    args = goal._content.args[0]._content.args
+                    new_exp_goal = self.sub_exp(fluent_to_replace, goal, args)
+                self.add_goal(new_exp_goal)
         return self
 
+    def compile_ma(self, myAgent:str = None):
+        self.chose_agent(myAgent)
+        for flu in self.get_environment_().get_fluents():
+            flu = copy.copy(flu)
+            new_flu = Fluent((flu.name() + "_env"), flu._typename, flu._signature)
+            self._new_fluents[flu.name()] = new_flu
+            self.add_fluent(new_flu)
 
+        for flu, value in self.get_environment_().get_initial_values().items():
+            if flu.is_fluent_exp():
+                fluent_to_replace = flu.fluent()
+                args = flu._content.args
+                new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
+            else:  # example (not clear_s(pallet0)) "depot"
+                fluent_to_replace = flu._content.args[0].fluent()
+                args = flu._content.args[0]._content.args
+                new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
+            self.set_initial_value(new_exp_init, value)
+
+        for ag in self.get_agents():
+            for flu in ag.get_fluents():
+                if flu not in self._fluents:
+                    self.add_fluent(flu)
+                else:
+                    pass
+
+            for act in ag.get_actions():
+                if act not in self._actions:
+                    self.add_action(act)
+                else:
+                    pass
+
+            for flu, value in ag.get_initial_values().items():
+                if flu not in self._initial_value:
+                    self.set_initial_value(flu, value)
+
+            for goal in ag.get_goals():
+                if goal not in self._goals:
+
+                    self.add_goal(goal)
+
+        return self
 
     def solve_OneshotPlanner(self):
         with OneshotPlanner(name='pyperplan') as planner:

@@ -694,7 +694,7 @@ def get_example_problems():
 
     myAgent = Fluent('myAgent', None, [truck])
     clear = Fluent('clear', None, [hoist])
-    clear_s = Fluent('clear', None, [surface])
+    clear_s = Fluent('clear_s', None, [surface])
 
     located = Fluent('located', None, [hoist, place])
     at = Fluent('at', None, [truck, place])
@@ -704,6 +704,8 @@ def get_example_problems():
     on = Fluent('on', None, [crate, hoist])
     on_u = Fluent('on_u', None, [crate, truck])
     on_s = Fluent('on_s', None, [crate, surface])
+
+    #battery_charge = Fluent('battery_charge', RealType(0, 100))
 
     truck0 = Object('truck0', truck)
     truck1 = Object('truck1', truck)
@@ -804,7 +806,17 @@ def get_example_problems():
     problem.add_fluent(pos, default_initial_value=False)
     problem.add_fluent(pos_u, default_initial_value=False)
     problem.add_fluent(on_u, default_initial_value=False)
+    problem.add_fluent(on_s, default_initial_value=False)
     problem.add_fluent(on, default_initial_value=False)
+    problem.add_fluent(clear_s, default_initial_value=False)
+
+    #problem.add_fluent(battery_charge) ##### <------ da togliere
+    #problem.set_initial_value(battery_charge, 100) #da togliere
+
+
+
+
+
 
     #add_shared_data def in problem, in realistic decido gli shared data
     #Non è possibile definire dopo clear, at, ecc.. perchè non sono
@@ -847,7 +859,7 @@ def get_example_problems():
     problem.set_initial_value(Not(clear_s(pallet1)), True)
     problem.set_initial_value(placed(pallet2, distributor1), True)
     problem.set_initial_value(clear_s(pallet2), True)
-    # problem.set_initial_value(at(truck0, distributor1), True)
+    problem.set_initial_value(at(truck0, distributor1), True)
 
     problem.add_goal(on_s(crate0, pallet2))
     problem.add_goal(on_s(crate1, pallet1))
