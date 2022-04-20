@@ -25,8 +25,11 @@ from unified_planning.model.types import _UserType, _RealType
 from typing import IO, Dict, List, Optional, cast, Union
 from io import StringIO
 
-ANML_KEYWORDS = {'action', 'constant', 'duration', 'else', 'fact', 'fluent', 'function', 'goal', 'in', 'instance', 'motivated',
-        'predicate', 'symbol', 'variable', 'when', 'with', 'consume', 'decomposition', 'lend'} #NOTE only some keyword are present, more need to be added.
+ANML_KEYWORDS = {'action', 'and', 'constant', 'duration', 'else', 'fact', 'fluent', 'function', 'goal', 'in', 'instance', 'motivated',
+        'predicate', 'symbol', 'variable', 'when', 'with', 'decomposition', 'use', 'coincident',
+        'comprise', 'comprises', 'contain', 'contains', 'exists', 'forall', 'implies', 'iff', 'not', 'or', 'ordered', 'unordered',
+        'xor', 'UNDEFINED', 'all', 'end', 'false', 'infinity', 'object', 'start', 'true', 'boolean', 'rational', 'integer', 'string',
+        'type', 'set', 'subset', 'powerset', 'intersect', 'union', 'elt'}
 
 
 class ConverterToANMLString(walkers.DagWalker):
