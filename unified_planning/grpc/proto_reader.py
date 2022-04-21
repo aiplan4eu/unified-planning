@@ -18,13 +18,13 @@ from typing import OrderedDict
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
 from unified_planning.grpc.converter import Converter, handles
 import unified_planning.model
-from unified_planning.model import operators
-from unified_planning.model.effect import ASSIGN, INCREASE, DECREASE
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.effect import EffectKind
 import unified_planning.plan
 from unified_planning.model import (
     Effect,
-    ActionParameter,
     Problem,
+    Parameter,
     DurativeAction,
     InstantaneousAction,
 )
@@ -50,33 +50,33 @@ def convert_type_str(s, env):
 # The operators are based on Sexpressions supported in PDDL.
 def op_to_node_type(op: str) -> int:
     if op == "+":
-        return operators.PLUS
+        return OperatorKind.PLUS
     elif op == "-":
-        return operators.MINUS
+        return OperatorKind.MINUS
     elif op == "*":
-        return operators.TIMES
+        return OperatorKind.TIMES
     elif op == "/":
-        return operators.DIV
-    elif op == "==":
-        return operators.EQUALS
+        return OperatorKind.DIV
+    elif op == "=":
+        return OperatorKind.EQUALS
     elif op == "<=":
-        return operators.LE
+        return OperatorKind.LE
     elif op == "<":
-        return operators.LT
+        return OperatorKind.LT
     elif op == "and":
-        return operators.AND
+        return OperatorKind.AND
     elif op == "or":
-        return operators.OR
+        return OperatorKind.OR
     elif op == "not":
-        return operators.NOT
+        return OperatorKind.NOT
     elif op == "exists":
-        return operators.EXISTS
+        return OperatorKind.EXISTS
     elif op == "forall":
-        return operators.FORALL
+        return OperatorKind.FORALL
     elif op == "implies":
-        return operators.IMPLIES
+        return OperatorKind.IMPLIES
     elif op == "iff":
-        return operators.IFF
+        return OperatorKind.IFF
 
     raise ValueError(f"Unknown operator `{op}`")
 
@@ -86,7 +86,7 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Parameter)
     def _convert_parameter(self, msg, problem):
-        return ActionParameter(
+        return Parameter(
             msg.name,
             convert_type_str(msg.type, problem.env),
         )
@@ -96,7 +96,7 @@ class ProtobufReader(Converter):
         value_type = convert_type_str(msg.value_type, problem.env)
         sig = []
         for p in msg.parameters:
-            sig.append(convert_type_str(p.type, problem.env))
+            sig.append(self.convert(p, problem))
         fluent = unified_planning.model.Fluent(msg.name, value_type, sig, problem.env)
         return fluent
 
@@ -115,7 +115,7 @@ class ProtobufReader(Converter):
 
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
             return problem.env.expression_manager.ParameterExp(
-                param=ActionParameter(
+                param=Parameter(
                     msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
                 ),
             )
@@ -134,7 +134,7 @@ class ProtobufReader(Converter):
             args.extend([self.convert(m, problem, param_map) for m in msg.list])
 
             return problem.env.expression_manager.create_node(
-                node_type=operators.FLUENT_EXP,
+                node_type=OperatorKind.FLUENT_EXP,
                 args=tuple(args),
                 payload=payload,
             )
@@ -273,13 +273,13 @@ class ProtobufReader(Converter):
             try:
                 action.add_effect(
                     timing=self.convert(eff.occurence_time),
-                    fluent=exp.fluent(),
-                    value=exp.value(),
-                    condition=exp.condition(),
+                    fluent=exp.fluent,
+                    value=exp.value,
+                    condition=exp.condition,
                 )
             except TypeError:
                 action.add_effect(
-                    fluent=exp.fluent(), value=exp.value(), condition=exp.condition()
+                    fluent=exp.fluent, value=exp.value, condition=exp.condition
                 )
 
         if msg.HasField("cost"):
@@ -292,15 +292,15 @@ class ProtobufReader(Converter):
         # EffectKind
         kind = 0
         if msg.kind == unified_planning_pb2.EffectExpression.EffectKind.Value("ASSIGN"):
-            kind = ASSIGN
+            kind = EffectKind.ASSIGN
         elif msg.kind == unified_planning_pb2.EffectExpression.EffectKind.Value(
             "INCREASE"
         ):
-            kind = INCREASE
+            kind = EffectKind.INCREASE
         elif msg.kind == unified_planning_pb2.EffectExpression.EffectKind.Value(
             "DECREASE"
         ):
-            kind = DECREASE
+            kind = EffectKind.DECREASE
 
         return Effect(
             fluent=self.convert(msg.fluent, problem, param_map),
@@ -339,21 +339,21 @@ class ProtobufReader(Converter):
             "GLOBAL_START"
         ):
             return unified_planning.model.timing.Timepoint(
-                kind=unified_planning.model.timing.GLOBAL_START
+                kind=unified_planning.model.timing.TimepointKind.GLOBAL_START
             )
         elif msg.kind == unified_planning_pb2.Timepoint.TimepointKind.Value(
             "GLOBAL_END"
         ):
             return unified_planning.model.timing.Timepoint(
-                kind=unified_planning.model.timing.GLOBAL_END
+                kind=unified_planning.model.timing.TimepointKind.GLOBAL_END
             )
         elif msg.kind == unified_planning_pb2.Timepoint.TimepointKind.Value("START"):
             return unified_planning.model.timing.Timepoint(
-                kind=unified_planning.model.timing.START
+                kind=unified_planning.model.timing.TimepointKind.START,
             )
         elif msg.kind == unified_planning_pb2.Timepoint.TimepointKind.Value("END"):
             return unified_planning.model.timing.Timepoint(
-                kind=unified_planning.model.timing.END
+                kind=unified_planning.model.timing.TimepointKind.END,
             )
 
     @handles(unified_planning_pb2.Plan)
@@ -373,7 +373,7 @@ class ProtobufReader(Converter):
 
             parameters.append(
                 problem.env.expression_manager.create_node(
-                    node_type=operators.OBJECT_EXP,
+                    node_type=OperatorKind.OBJECT_EXP,
                     args=(),
                     payload=problem.object(param.symbol),
                 )

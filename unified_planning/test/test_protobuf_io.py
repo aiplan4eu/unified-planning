@@ -39,8 +39,16 @@ class TestProtobufIO(TestCase):
 
         x_up = self.pb_reader.convert(x_pb, problem)
 
-        self.assertTrue(x_up.name() == "x")
-        self.assertTrue(str(x_up.type()) == "bool")
+        self.assertTrue(x_up.name == "x")
+        self.assertTrue(str(x_up.type) == "bool")
+
+    def test_fluent_2(self):
+        problem = self.problems["robot"].problem
+
+        for f in problem.fluents:
+            f_pb = self.pb_writer.convert(f)
+            f_up = self.pb_reader.convert(f_pb, problem)
+            self.assertTrue(f == f_up)
 
     @pytest.mark.skip(reason="Not implemented")
     def test_expression(self):
@@ -106,7 +114,7 @@ class TestProtobufIO(TestCase):
     def test_action_instance(self):
         problem = self.problems["robot"].problem
         plan = self.problems["robot"].plan
-        action_instance = plan.actions()[0]
+        action_instance = plan.actions[0]
 
         action_instance_pb = self.pb_writer.convert(action_instance)
         action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
