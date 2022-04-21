@@ -94,11 +94,11 @@ class ValidationResult:
 class GroundingResult:
     '''Class that represents the result of a Solver.ground call.'''
     problem: Optional[Problem]
-    rewrite_back_plan: Optional[Callable[[Plan], Plan]] #NOTE maybe "lift_plan" is a better name
+    lift_plan: Optional[Callable[[Plan], Plan]]
 
     def _post_init(self):
-        # Check that grounded problem and rewrite_back_plan are consistent with eachother
-        if self.problem is None and self.rewrite_back_plan is not None:
-            raise UPUsageError(f'The Grounded Problem is None but the rewrite_back_plan Callable is not None.')
-        if self.problem is not None and self.rewrite_back_plan is None:
-            raise UPUsageError(f'The Grounded Problem is {str(self.problem)} but the rewrite_back_plan Callable is None.')
+        # Check that grounded problem and lift_plan are consistent with eachother
+        if self.problem is None and self.lift_plan is not None:
+            raise UPUsageError(f'The Grounded Problem is None but the lift_plan Callable is not None.')
+        if self.problem is not None and self.lift_plan is None:
+            raise UPUsageError(f'The Grounded Problem is {str(self.problem)} but the lift_plan Callable is None.')
