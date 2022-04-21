@@ -15,6 +15,7 @@
 
 
 from fractions import Fraction
+from pickle import TRUE
 import re
 import sys
 import unified_planning as up
@@ -286,10 +287,10 @@ class ANMLWriter:
         return f'{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}'
 
 def _is_valid_anml_name(name: str) -> bool:
-    regex = re.compile('^[a-zA-Z]+.*')
+    regex = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*')
     if re.match(regex, name) is None or name in ANML_KEYWORDS: # If the name does not start with an alphabetic char or is a keyword
         return False
-    return name.isidentifier() #NOTE Here I am creating a dependency between python identifiers and ANML names. For now they are (almost) the same, but in future versions?
+    return True
 
 def _get_anml_valid_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Parameter', 'up.model.Fluent', 'up.model.Object']) -> str:
     '''This function returns a valid ANML name.'''
@@ -298,7 +299,7 @@ def _get_anml_valid_name(item: Union['up.model.Type', 'up.model.Action', 'up.mod
         name = cast(_UserType, item).name
     else:
         name = item.name
-    regex = re.compile('^[a-zA-Z]+.*')
+    regex = re.compile(r'^[a-zA-Z]+.*')
     if re.match(regex, name) is None: # If the name does not start with an alphabetic char, we make it start with one.
         name = f't_{name}'
     name = re.sub('[^0-9a-zA-Z_]', '_', name) #Substitute non-valid elements with "_"
