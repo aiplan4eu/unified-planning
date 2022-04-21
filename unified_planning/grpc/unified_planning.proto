@@ -362,7 +362,7 @@ message Method {
     //  - [start] loc(robot) == source
     //  - [end(t1)] loc(robot) == intermediate
     //  - [end] loc(robot) == destination
-    repeated Condition conditions = 5;
+    repeated Condition conditions = 6;
 }
 
 // A task network defines a set of subtasks and associated constraints.
