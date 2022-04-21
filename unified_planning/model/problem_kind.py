@@ -56,7 +56,8 @@ class ProblemKind(metaclass=ProblemKindMeta):
         return f'ProblemKind([{", ".join(self._features)}])'
 
     def __str__(self) -> str:
-        return f'ProblemKind features = [{"\n   ".join(self._features)}]'
+        support_str = '\n   '
+        return f'ProblemKind features = [{support_str.join(self._features)}]'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ProblemKind):
