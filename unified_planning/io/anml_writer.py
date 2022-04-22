@@ -21,7 +21,7 @@ import sys
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.walkers as walkers
-from unified_planning.model import DurativeAction
+from unified_planning.model import DurativeAction, InstantaneousAction, Fluent, Parameter, Object
 from unified_planning.model.types import _UserType, _RealType
 from typing import IO, Dict, List, Optional, cast, Union
 from io import StringIO
@@ -31,6 +31,9 @@ ANML_KEYWORDS = {'action', 'and', 'constant', 'duration', 'else', 'fact', 'fluen
         'comprise', 'comprises', 'contain', 'contains', 'exists', 'forall', 'implies', 'iff', 'not', 'or', 'ordered', 'unordered',
         'xor', 'UNDEFINED', 'all', 'end', 'false', 'infinity', 'object', 'start', 'true', 'boolean', 'rational', 'integer', 'string',
         'type', 'set', 'subset', 'powerset', 'intersect', 'union', 'elt'}
+
+# The following map is used to mangle the invalid names by their class.
+INITIAL_LETTER: Dict[type, str] = {InstantaneousAction: 'a', DurativeAction: 'a', Fluent: 'f', Parameter: 'p', Object: 'o'}
 
 
 class ConverterToANMLString(walkers.DagWalker):
@@ -301,7 +304,7 @@ def _get_anml_valid_name(item: Union['up.model.Type', 'up.model.Action', 'up.mod
         name = item.name
     regex = re.compile(r'^[a-zA-Z]+.*')
     if re.match(regex, name) is None: # If the name does not start with an alphabetic char, we make it start with one.
-        name = f't_{name}'
+        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
     name = re.sub('[^0-9a-zA-Z_]', '_', name) #Substitute non-valid elements with "_"
     while name in ANML_KEYWORDS: # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
         name = f'{name}_'

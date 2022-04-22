@@ -227,7 +227,7 @@ instance Location l1, l2;
 
     def test_ad_hoc_1(self):
         when = UserType('when')
-        fl = Fluent('action')
+        fl = Fluent('4ction')
         obj = Object('predicate', when)
         act = InstantaneousAction('variable', fluent=when)
         fluent = act.parameter('fluent')
@@ -240,13 +240,13 @@ instance Location l1, l2;
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
         expected_result = '''type when_;
-fluent boolean action_;
+fluent boolean f_4ction;
 action variable_(when_ fluent_) {
    when [ start ] (fluent_ == predicate_)
-   {[ start ] action_ := true;
+   {[ start ] f_4ction := true;
    }
 }
 instance when_ predicate_;
-[ start ] action_ := false;
+[ start ] f_4ction := false;
 '''
         self.assertEqual(anml_problem, expected_result)
