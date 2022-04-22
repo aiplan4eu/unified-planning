@@ -14,7 +14,7 @@
 #
 
 from functools import partialmethod, total_ordering
-from typing import Set
+from typing import Dict, List, Set
 
 
 # TODO: This features map needs to be extended with all the problem characterizations.
@@ -56,8 +56,18 @@ class ProblemKind(metaclass=ProblemKindMeta):
         return f'ProblemKind([{", ".join(self._features)}])'
 
     def __str__(self) -> str:
-        support_str = '\n   '
-        return f'ProblemKind features = [{support_str.join(self._features)}]'
+        features_mapped: Dict[str, List[str]] = {}
+        for k, fl in FEATURES.items():
+            for feature in self._features:
+                if feature in fl:
+                    feature_list = features_mapped.get(k, None)
+                    if feature_list is None:
+                        features_mapped[k] = [feature]
+                    else:
+                        feature_list.append(feature)
+        result_str: List[str] = [f'{k}: {fl}' for k, fl in features_mapped.items()]
+        return '\n'.join(result_str)
+
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ProblemKind):
