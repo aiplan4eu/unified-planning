@@ -121,6 +121,24 @@ class TestProtobufIO(TestCase):
 
         self.assertTrue(action_instance == action_instance_up)
 
+    def test_plan(self):
+        problem = self.problems["robot"].problem
+        plan = self.problems["robot"].plan
+
+        plan_pb = self.pb_writer.convert(plan)
+        plan_up = self.pb_reader.convert(plan_pb, problem)
+
+        self.assertTrue(plan == plan_up)
+
+    def test_time_triggered_plan(self):
+        problem = self.problems["temporal_conditional"].problem
+        plan = self.problems["temporal_conditional"].plan
+
+        plan_pb = self.pb_writer.convert(plan)
+        plan_up = self.pb_reader.convert(plan_pb, problem)
+
+        self.assertTrue(plan == plan_up)
+
 
 class TestProtobufProblems:
     problems = get_example_problems()

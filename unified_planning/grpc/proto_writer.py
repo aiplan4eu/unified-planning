@@ -191,10 +191,6 @@ class ProtobufWriter(Converter):
         cost = None
         effects = []
         conditions = []
-        # TODO: fix cost
-        cost = None
-        # if a.cost() is not None:
-        #     cost = self.convert(a.cost())
 
         for cond in a.preconditions:
             conditions.append(
@@ -217,7 +213,6 @@ class ProtobufWriter(Converter):
             duration=None,
             conditions=conditions,
             effects=effects,
-            cost=cost,
         )
 
     @handles(unified_planning.model.DurativeAction)
@@ -225,9 +220,6 @@ class ProtobufWriter(Converter):
         cost = None
         effects = []
         conditions = []
-        # TODO: fix cost in durative actions
-        # if a.cost() is not None:
-        #     cost = self.convert(a.cost())
 
         for span, cond in a.conditions.items():
             span = self.convert(span)
@@ -254,7 +246,6 @@ class ProtobufWriter(Converter):
             duration=self.convert(a.duration),
             conditions=conditions,
             effects=effects,
-            cost=cost,
         )
 
     @handles(unified_planning.model.timing.Timepoint)
@@ -305,8 +296,6 @@ class ProtobufWriter(Converter):
                 for g in gs
             ]
 
-        # TODO: Add quality metrics to parsing
-
         return unified_planning_pb2.Problem(
             domain_name=str(problem.name + "_domain"),
             problem_name=problem.name,
@@ -323,7 +312,21 @@ class ProtobufWriter(Converter):
             ],
             timed_effects=[self.convert(e) for e in problem.timed_effects],
             goals=goals,
+            metrics=[self.convert(m) for m in problem.quality_metrics],
         )
+
+    @handles(unified_planning.model.metrics.MinimizeActionCosts)
+    def _convert_minimize_action_costs(self, metric):
+        action_costs = {}
+        for action, cost in metric.costs.items():
+            # TODO: Add default cost
+            action_costs[action.name] = self.convert(cost)
+
+        return unified_planning_pb2.Metric(
+            kind=unified_planning_pb2.Metric.MINIMIZE_ACTION_COSTS,
+            action_costs=action_costs,
+        )
+        # TODO: Complete this function
 
     @handles(unified_planning.model.Parameter)
     def _convert_action_parameter(self, p):
@@ -337,7 +340,7 @@ class ProtobufWriter(Converter):
         action = a.action
         start_time = 0  # TODO:fix action instance start time
         try:
-            dur = action.duration()
+            dur = action.duration
             end_time = start_time + dur.delay()
         except AttributeError:
             # Consider as Instantaneous Action
@@ -364,8 +367,19 @@ class ProtobufWriter(Converter):
         return unified_planning_pb2.Atom(symbol=s)
 
     @handles(unified_planning.plan.SequentialPlan)
-    def _convert(self, plan):
-        # TODO: Add support for time triggered plans `TimeTriggeredPlan`
+    def _convert_sequential_plan(self, plan):
         return unified_planning_pb2.Plan(
             actions=[self.convert(a) for a in plan.actions]
         )
+
+    @handles(unified_planning.plan.TimeTriggeredPlan)
+    def _convert_time_triggered_plan(self, plan):
+        action_instances = []
+
+        for a in plan.actions:
+            instance = self.convert(a[1])
+            instance.start_time = float(a[0])
+            instance.end_time = float(a[0] + a[2])
+            action_instances.append(instance)
+
+        return unified_planning_pb2.Plan(actions=action_instances)

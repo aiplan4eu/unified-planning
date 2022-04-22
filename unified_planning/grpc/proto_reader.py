@@ -48,7 +48,7 @@ def convert_type_str(s, env):
 
 
 # The operators are based on Sexpressions supported in PDDL.
-def op_to_node_type(op: str) -> int:
+def op_to_node_type(op: str) -> OperatorKind:
     if op == "+":
         return OperatorKind.PLUS
     elif op == "-":
@@ -243,8 +243,20 @@ class ProtobufReader(Converter):
             PROBLEM.add_goal(goal)
 
         # TODO: add features
+        for metric in msg.metrics:
+            PROBLEM.add_quality_metric(self.convert(metric, problem, None))
 
         return PROBLEM
+
+    @handles(unified_planning_pb2.Metric)
+    def _convert_metric(self, msg, problem, param_map):
+        if msg.kind == unified_planning_pb2.Metric.MINIMIZE_ACTION_COSTS:
+            costs = {}
+            for a, cost in msg.action_costs.items():
+                costs.update(
+                    {problem.action(a): self.convert(cost, problem, param_map)}
+                )
+            return unified_planning.model.metrics.MinimizeActionCosts(costs=costs)
 
     @handles(unified_planning_pb2.Action)
     def _convert_action(self, msg, problem):
@@ -281,9 +293,6 @@ class ProtobufReader(Converter):
                 action.add_effect(
                     fluent=exp.fluent, value=exp.value, condition=exp.condition
                 )
-
-        if msg.HasField("cost"):
-            action.set_cost(self.convert(msg.cost, problem, []))
 
         return action
 
@@ -358,9 +367,11 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Plan)
     def _convert_plan(self, msg, problem):
-        return unified_planning.plan.SequentialPlan(
-            actions=[self.convert(a, problem) for a in msg.actions]
-        )
+        actions = [self.convert(a, problem) for a in msg.actions]
+        if isinstance(actions[0], tuple):  # TODO: Fix this
+            return unified_planning.plan.TimeTriggeredPlan(actions)
+        else:
+            return unified_planning.plan.SequentialPlan(actions=actions)
 
     @handles(unified_planning_pb2.ActionInstance)
     def _convert_action_instance(self, msg, problem):
@@ -379,7 +390,18 @@ class ProtobufReader(Converter):
                 )
             )
 
-        return unified_planning.plan.ActionInstance(
+        action_instance = unified_planning.plan.ActionInstance(
             problem.action(msg.action_name),
             parameters,
         )
+        if msg.end_time > 0.0 or msg.start_time > 0.0:
+            # FIXME: This is a hack to get the Fraction from double
+            start_time = fractions.Fraction(str(msg.start_time))
+            end_time = fractions.Fraction(str(msg.end_time))
+            return (
+                start_time,  # Absolute Start Time
+                action_instance,
+                end_time - start_time,  # Duration
+            )
+        else:
+            return action_instance

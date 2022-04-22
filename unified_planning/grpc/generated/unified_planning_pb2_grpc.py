@@ -17,7 +17,7 @@ class UnifiedPlanningStub(object):
         self.planOneShot = channel.unary_stream(
                 '/UnifiedPlanning/planOneShot',
                 request_serializer=unified__planning__pb2.PlanRequest.SerializeToString,
-                response_deserializer=unified__planning__pb2.Answer.FromString,
+                response_deserializer=unified__planning__pb2.PlanGenerationResult.FromString,
                 )
 
 
@@ -40,7 +40,7 @@ def add_UnifiedPlanningServicer_to_server(servicer, server):
             'planOneShot': grpc.unary_stream_rpc_method_handler(
                     servicer.planOneShot,
                     request_deserializer=unified__planning__pb2.PlanRequest.FromString,
-                    response_serializer=unified__planning__pb2.Answer.SerializeToString,
+                    response_serializer=unified__planning__pb2.PlanGenerationResult.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -65,6 +65,6 @@ class UnifiedPlanning(object):
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/UnifiedPlanning/planOneShot',
             unified__planning__pb2.PlanRequest.SerializeToString,
-            unified__planning__pb2.Answer.FromString,
+            unified__planning__pb2.PlanGenerationResult.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
