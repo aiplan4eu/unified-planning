@@ -4,7 +4,7 @@ on: push
 
 env:
   up_tamer_commit: "635fa19659e6e4403a05ac9b7de8df404ea79985"
-  up_pyperplan_commit: "89d586554b3d13b117d3fbafdc8270b89e4027f9"
+  up_pyperplan_commit: "8e82678ad8de964d38ccaa73f8558f3bb04075da"
 
 jobs:
   run-tests-ubuntu:

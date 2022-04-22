@@ -18,7 +18,7 @@
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import Problem
-from unified_planning.plan import Plan
+from unified_planning.plan import ActionInstance
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, Dict, Optional, List
@@ -94,11 +94,11 @@ class ValidationResult:
 class GroundingResult:
     '''Class that represents the result of a Solver.ground call.'''
     problem: Optional[Problem]
-    lift_plan: Optional[Callable[[Plan], Plan]]
+    lift_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
 
     def _post_init(self):
-        # Check that grounded problem and lift_plan are consistent with eachother
-        if self.problem is None and self.lift_plan is not None:
-            raise UPUsageError(f'The Grounded Problem is None but the lift_plan Callable is not None.')
-        if self.problem is not None and self.lift_plan is None:
-            raise UPUsageError(f'The Grounded Problem is {str(self.problem)} but the lift_plan Callable is None.')
+        # Check that grounded problem and lift_action_instance are consistent with eachother
+        if self.problem is None and self.lift_action_instance is not None:
+            raise UPUsageError(f'The Grounded Problem is None but the lift_action_instance Callable is not None.')
+        if self.problem is not None and self.lift_action_instance is None:
+            raise UPUsageError(f'The Grounded Problem is {str(self.problem)} but the lift_action_instance Callable is None.')

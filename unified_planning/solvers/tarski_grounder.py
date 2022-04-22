@@ -17,14 +17,13 @@
 
 from functools import partial
 import shutil
-from typing import Callable, Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List
 import tarski # type: ignore
 import unified_planning
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
-from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind
 from unified_planning.model import Action, FNode
-from unified_planning.solvers.grounder import lift_plan
+from unified_planning.solvers.grounder import lift_action_instance
 from unified_planning.solvers.solver import Solver
 from unified_planning.solvers.results import GroundingResult
 from unified_planning.transformers import Grounder
@@ -93,7 +92,7 @@ class TarskiGrounder(Solver):
         unified_planning_grounder = Grounder(problem, grounding_actions_map=grounded_actions_map)
         grounded_problem = unified_planning_grounder.get_rewritten_problem()
         trace_back_map = unified_planning_grounder.get_rewrite_back_map()
-        return GroundingResult(grounded_problem, partial(lift_plan, map=trace_back_map))
+        return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map))
 
     def destroy(self):
         pass

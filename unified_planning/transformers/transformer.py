@@ -16,9 +16,9 @@
 
 
 import unified_planning
-from unified_planning.model import FNode, Timing, TimeInterval, Action, InstantaneousAction, DurativeAction, Problem
+from unified_planning.model import FNode, TimeInterval, Action, InstantaneousAction, DurativeAction, Problem
 from unified_planning.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance, Plan
-from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
+from typing import Iterable, List, Optional, Tuple
 
 
 class Transformer:
@@ -46,27 +46,18 @@ class Transformer:
         and get_transformed_actions'''
         raise NotImplementedError
 
+    def _replace_action_instance(self, action_instance: ActionInstance) -> ActionInstance:
+        return ActionInstance(self.get_original_action(action_instance.action), action_instance.actual_parameters)
+
     def rewrite_back_plan(self, plan: Plan) -> Plan:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem.
 
         NOTE:
-        This method MUST be rewritten if the specific Transformer extension changes
-        the action's parameters!'''
-        if isinstance(plan, SequentialPlan):
-            new_actions: List[ActionInstance] = plan.actions
-            old_actions: List[ActionInstance] = []
-            for ai in new_actions:
-                old_actions.append(ActionInstance(self.get_original_action(ai.action), ai.actual_parameters))
-            return SequentialPlan(old_actions)
-        elif isinstance(plan, TimeTriggeredPlan):
-            s_new_actions_d = plan.actions
-            s_old_actions_d = []
-            for s, ai, d in s_new_actions_d:
-                s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action), ai.actual_parameters), d))
-            return TimeTriggeredPlan(s_old_actions_d)
-        raise NotImplementedError
+        This method uses self._replace_action_instance; which MUST be rewritten if the specific Transformer extension changes
+        the action's parameters; for example a Grounder!'''
+        return plan.replace_action_instances(self._replace_action_instance)
 
     def _check_and_simplify_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
         '''Simplifies conditions and if it is False (a contraddiction)

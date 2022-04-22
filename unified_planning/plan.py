@@ -17,13 +17,8 @@
 
 import unified_planning as up
 import unified_planning.model
-from typing import Optional, Tuple, List
+from typing import Callable, Optional, Tuple, List
 from fractions import Fraction
-
-
-class Plan:
-    '''Represents a generic plan.'''
-    pass
 
 
 class ActionInstance:
@@ -63,6 +58,14 @@ class ActionInstance:
         return self._params
 
 
+class Plan:
+    '''Represents a generic plan.'''
+    def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
+        '''This function takes a function from ActionInstance to ActionInstance and returns a new Plan
+        that have the ActionInstance modified by the "replace_function" function.'''
+        raise NotImplementedError
+
+
 class SequentialPlan(Plan):
     '''Represents a sequential plan.'''
     def __init__(self, actions: List[ActionInstance]):
@@ -81,6 +84,9 @@ class SequentialPlan(Plan):
     def actions(self) -> List[ActionInstance]:
         '''Returns the sequence of action instances.'''
         return self._actions
+
+    def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
+        return SequentialPlan([replace_function(ai) for ai in self._actions])
 
 
 class TimeTriggeredPlan(Plan):
@@ -107,3 +113,6 @@ class TimeTriggeredPlan(Plan):
     def actions(self) -> List[Tuple[Fraction, ActionInstance, Optional[Fraction]]]:
         '''Returns the sequence of action instances.'''
         return self._actions
+
+    def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
+        return TimeTriggeredPlan([(s, replace_function(ai), d) for s, ai, d in self._actions])

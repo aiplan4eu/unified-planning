@@ -31,13 +31,12 @@ class Grounder(solvers.solver.Solver):
         pass
 
     def ground(self, problem: 'unified_planning.model.Problem') -> GroundingResult:
-        '''This method takes an "unified_planning.model.Problem" and returns the grounded version of the problem
-        and a function, that called on an "unified_planning.plan.Plan" of grounded problem returns the Plan
-        version to apply to the original problem.'''
+        '''This method takes an "unified_planning.model.Problem" and returns the generated
+        "up.solvers.results.GroundingResult".'''
         grounder = unified_planning.transformers.Grounder(problem)
         grounded_problem = grounder.get_rewritten_problem()
         trace_back_map = grounder.get_rewrite_back_map()
-        return GroundingResult(grounded_problem, partial(lift_plan, map=trace_back_map))
+        return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map))
 
     @property
     def name(self):
@@ -96,3 +95,12 @@ def lift_plan(plan: Plan, map: Dict['unified_planning.model.Action', Tuple['unif
             s_original_actions_d.append((s, ActionInstance(original_action, tuple(parameters)), d))
         return TimeTriggeredPlan(s_original_actions_d)
     raise NotImplementedError
+
+def lift_action_instance(action_instance: ActionInstance, map: Dict['unified_planning.model.Action', Tuple['unified_planning.model.Action', List['unified_planning.model.FNode']]]) -> ActionInstance:
+    '''"map" is a map from every action in the "grounded_problem" to the tuple
+        (original_action, parameters).
+
+        Where the grounded actions is obtained by grounding
+        the "original_action" with the specific "parameters".'''
+    lifted_action, parameters = map[action_instance.action]
+    return ActionInstance(lifted_action, tuple(parameters))
