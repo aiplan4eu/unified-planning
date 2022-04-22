@@ -53,7 +53,8 @@ class ProblemKind(metaclass=ProblemKindMeta):
         self._features: Set[str] = set(features)
 
     def __repr__(self) -> str:
-        return f'ProblemKind([{", ".join(self._features)}])'
+        features_gen = (f"'{feature}'" for feature in self._features)
+        return f'ProblemKind([{", ".join(features_gen)}])'
 
     def __str__(self) -> str:
         features_mapped: Dict[str, List[str]] = {}
