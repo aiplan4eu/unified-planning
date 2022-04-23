@@ -91,18 +91,6 @@ class PDDLWriter_MA(PDDLWriter):
         functions = []
 
 
-        if self.problem.get_flu_functions():
-            for f in self.problem.get_flu_functions():
-                if f.type().is_bool_type():
-                    params = []
-                    i = 0
-                    for p in f.signature():
-                        if p.is_user_type():
-                            params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
-                            i += 1
-                        else:
-                            raise UPTypeError('PDDL supports only user type parameters')
-                    functions.append(f'({f.name()}{"".join(params)})\n')
 
         for f in self.problem.fluents():
             if f.type().is_bool_type():
@@ -131,7 +119,23 @@ class PDDLWriter_MA(PDDLWriter):
         if self.problem.kind().has_actions_cost(): # type: ignore
             functions.append('(total-cost)')
         out.write(f'(:predicates \n  {"  ".join(predicates)})\n' if len(predicates) > 0 else '')
-        out.write(f'(:functions \n  {"  ".join(functions)})\n' if len(functions) > 0 else '')
+
+        if self.problem.get_flu_functions():
+            out.write(f'(:functions')
+            for f in self.problem.get_flu_functions():
+                if f.type().is_bool_type():
+                    user_type_name = f.name()
+                    out.write(f'\n  ({user_type_name} ?{(f.signature()[0].name())[0]} {") - ".join([str(o.name()) for o in f.signature()])}')
+                    #params = []
+                    #i = 0
+                    #for p in f.signature():
+                    #    if p.is_user_type():
+                    #        params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
+                    #        i += 1
+                    #    else:
+                    #        raise UPTypeError('PDDL supports only user type parameters')
+                    #functions.append(f'({f.name()}{"".join(params)})\n')
+            out.write(f')\n')
 
         converter = ConverterToPDDLString(self.problem.env)
         for a in self.problem.actions():
@@ -144,21 +148,62 @@ class PDDLWriter_MA(PDDLWriter):
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
+
+                #preconditions
                 if len(a.preconditions()) > 0:
-                    out.write(f'\n :precondition (and {" ".join([converter.convert(p) for p in a.preconditions()])})')
+                    out.write(f'\n :precondition (and')
+                    for p in a.preconditions():
+                        # print(p, "(", p.fluent().name(), "?", p._content.args[0], ")", converter.convert(p))
+                        if len(p._content.args) > 1 and p.fluent() in self.problem.get_flu_functions():
+                            flu_name = p.fluent().name()
+                            #out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                            out.write(f' (= ({flu_name} ?{")".join([str(p.arg(0))])}) ?{p.arg(1)})')
+                        else:
+                            out.write(f' {" ".join([converter.convert(p)])}')
+                out.write(')')
                 if len(a.effects()) > 0:
                     out.write('\n :effect (and')
                     for e in a.effects():
                         if e.is_conditional():
-                            out.write(f' (when {converter.convert(e.condition())}')
+                            if len(e._content.args) > 1 and e.fluent() in self.problem.get_flu_functions():
+                                flu_name = e.fluent().name()
+                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                out.write(f' (when (= ({flu_name} ?{")".join([str(e.arg(0))])}) ?{e.arg(1)})')
+                            else:
+                                out.write(f' (when {converter.convert(e.condition())}')
                         if e.value().is_true():
-                            out.write(f' {converter.convert(e.fluent())}')
+                            if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
+                                flu_name = e.fluent().fluent().name()
+                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                out.write(f' (assign ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)})')
+                            else:
+                                out.write(f' {converter.convert(e.fluent())}')
+
+
                         elif e.value().is_false():
-                            out.write(f' (not {converter.convert(e.fluent())})')
+                            if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
+                                flu_name = e.fluent().fluent().name()
+                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                out.write(f' (not (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)})')
+                            else:
+                                out.write(f' (not {converter.convert(e.fluent())})')
+
                         elif e.is_increase():
-                            out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
+                                flu_name = e.fluent().fluent().name()
+                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                out.write(f' (increase (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)} {converter.convert(e.value())})')
+                            else:
+                                out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+
                         elif e.is_decrease():
-                            out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
+                                flu_name = e.fluent().fluent().name()
+                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                out.write(f' (decrease (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)} {converter.convert(e.value())})')
+                            else:
+                                out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+
                         else:
                             out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
                         if e.is_conditional():
@@ -255,36 +300,68 @@ class PDDLWriter_MA(PDDLWriter):
                         f'\n {" ".join([o.name() for o in objects])} - {self._type_name_or_object_freshname(t)}')
             out.write('\n)\n')
         shared = []
+        out.write('(:shared-data ')
         if self.problem.get_shared_data():
             for f in self.problem.get_shared_data():
                 if f.type().is_bool_type():
-                    params = []
-                    i = 0
-                    for p in f.signature():
-                        if p.is_user_type():
-                            params.append(f'?p{str(i)} - {self._type_name_or_object_freshname(p)}')
-                            i += 1
-                        else:
-                            raise UPTypeError('PDDL supports only user type parameters')
-                    shared.append(f'\n  ({f.name()}{"".join(params)})')
+                    #params = []
+                    #i = 0
+
+                    user_type_name = f.name()
+                    if len(f.signature()) > 1:
+                        out.write(f'\n (({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name())  for o in f.signature()])})')
+                    else:
+                        out.write(
+                            f'\n ({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name()) for o in f.signature()])})')
+                    #for p in f.signature():
+                    #    if p.is_user_type():
+                    #        params.append(f'?{(str(p.name()))[0]}{str(i)} - {self._type_name_or_object_freshname(p)}')
+                    #        i += 1
+                    #    else:
+                    #        raise UPTypeError('PDDL supports only user type parameters')
+                    #shared.append(f'\n  ({f.name()}{"".join(params)})')
+
+                    #Verificare se è possibile fare: ((pos ?c - crate) - (either place truck)) "aggiungere either"
+                    #print(f, f.signature()[0].father(), f.signature()[0].name(), "ooooooooooooooooooo")
+                    #print(self._type_name_or_object_freshname(f))
+
                 else:
                     raise UPTypeError('Not boolean')
-            out.write('(:shared-data ')
-            out.write(f'{" ".join(shared)})' if len(shared) > 0 else '')
+            #out.write('(:shared-data ')
+            #out.write(f'{" ".join(shared)})' if len(shared) > 0 else '')
+        out.write('\n)')
         converter = ConverterToPDDLString(self.problem.env)
+
         out.write('\n(:init')
         for f, v in self.problem.initial_values().items():
             if v.is_true():
-                out.write(f'\n {converter.convert(f)}')
+                if f.is_fluent_exp() and f.fluent() in self.problem.get_flu_functions():
+                    fluent = f.fluent().name()
+                    out.write(f'\n (= ({fluent} {") ".join([converter.convert(o) for o in f._content.args])})')
+
+                    #print(f.fluent().name())
+                else:
+                    #fluent = f._content.args[0].fluent().name()
+                    out.write(f'\n {converter.convert(f)}')
+
             elif v.is_false():
                 pass
             else:
-                out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
+                out.write(f'\n (= {converter.convert(f)} {converter.convert(v)})')
         if self.problem.kind().has_actions_cost():  # type: ignore
             out.write(f' (= total-cost 0)')
-        out.write(')\n')
+        out.write('\n)\n')
+        out.write(f'(:global-goal (and')
         nl = '\n '
-        out.write(f'(:global-goal (and\n {nl.join([converter.convert(p) for p in self.problem.goals()])}\n))\n')
+        for p in self.problem.goals():
+            if p.fluent() in self.problem.get_flu_functions():
+                fluent = p.fluent().name()
+                out.write(f'\n (= ({fluent} {") ".join([converter.convert(o) for o in p._content.args])})')
+            #out.write(f'(:global-goal (and\n {nl.join([converter.convert(p) for p in self.problem.goals()])}\n))\n')
+            else:
+                out.write(f'\n {" ".join([converter.convert(p)])}')
+        out.write(f'\n))\n')
+
         metrics = self.problem.quality_metrics()
         if len(metrics) == 1:
             metric = metrics[0]
