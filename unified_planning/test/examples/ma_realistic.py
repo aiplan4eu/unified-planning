@@ -93,7 +93,7 @@ def ma_example():
     #ma_problem.add_user_types(user_types)
     print("user_types: ", ma_problem.user_types())
     problem = ma_problem.compile()
-    problem.chose_agent('truck')
+    #problem.chose_agent('truck')
     problem.add_shared_data_list(ma_problem.fluents())
     problem.add_shared_data_list(ma_problem.fluents())      #oppure è possibile scegliere i fluenti
     #ma_problem.add_shared_data_list(ma_problem.fluent())

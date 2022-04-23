@@ -705,7 +705,7 @@ def get_example_problems():
     on_u = Fluent('on_u', None, [crate, truck])
     on_s = Fluent('on_s', None, [crate, surface])
 
-    #battery_charge = Fluent('battery_charge', RealType(0, 100))
+    battery_charge = Fluent('battery_charge', RealType(0, 100))
 
     truck0 = Object('truck0', truck)
     truck1 = Object('truck1', truck)
@@ -741,8 +741,8 @@ def get_example_problems():
 
     load.add_effect(pos(c, x), True)
     load.add_effect(on(c, h), True)
-    load.add_effect(clear(c), False)
-    load.add_effect(clear(h), False)
+    load.add_effect(clear(c), True)
+    load.add_effect(clear(h), True)
     # load.add_effect(Not(clear(h)))
 
     unload = InstantaneousAction('unload', x=place, c=crate, h=hoist)
@@ -810,8 +810,8 @@ def get_example_problems():
     problem.add_fluent(on, default_initial_value=False)
     problem.add_fluent(clear_s, default_initial_value=False)
 
-    #problem.add_fluent(battery_charge) ##### <------ da togliere
-    #problem.set_initial_value(battery_charge, 100) #da togliere
+    problem.add_fluent(battery_charge) ##### <------ da togliere
+    problem.set_initial_value(battery_charge, 100) #da togliere
 
 
 
