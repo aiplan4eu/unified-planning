@@ -21,6 +21,7 @@ from unified_planning.model.operators import (
     BOOL_OPERATORS,
 )
 import unified_planning.model
+from unified_planning.model.timing import TimepointKind
 import unified_planning.plan
 
 
@@ -217,7 +218,6 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.DurativeAction)
     def _convert_durative_action(self, a):
-        cost = None
         effects = []
         conditions = []
 
@@ -250,7 +250,15 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.timing.Timepoint)
     def _convert_timepoint(self, tp):
-        return unified_planning_pb2.Timepoint(kind=int(tp.kind.value))
+        if tp.kind == TimepointKind.START:
+            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("START")
+        elif tp.kind == TimepointKind.END:
+            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("END")
+        elif tp.kind == TimepointKind.GLOBAL_START:
+            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("GLOBAL_START")
+        elif tp.kind == TimepointKind.GLOBAL_END:
+            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("GLOBAL_END")
+        return unified_planning_pb2.Timepoint(kind=kind)
 
     @handles(unified_planning.model.Timing)
     def _convert_timing(self, timing):

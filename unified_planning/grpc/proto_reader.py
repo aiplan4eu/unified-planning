@@ -82,8 +82,6 @@ def op_to_node_type(op: str) -> OperatorKind:
 
 
 class ProtobufReader(Converter):
-    current_action = None
-
     @handles(unified_planning_pb2.Parameter)
     def _convert_parameter(self, msg, problem):
         return Parameter(
@@ -261,6 +259,8 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.Action)
     def _convert_action(self, msg, problem):
         parameters = OrderedDict()
+        conditions = OrderedDict()
+        effects = OrderedDict()
         action: unified_planning.model.Action
 
         for param in msg.parameters:
@@ -272,37 +272,48 @@ class ProtobufReader(Converter):
         else:
             action = InstantaneousAction(msg.name, parameters)
 
-        self.current_action = action
         for cond in msg.conditions:
-            exp = self.convert(cond.cond, problem, parameters)
-            try:
-                action.add_condition(self.convert(cond.span), exp)
-            except AttributeError:
-                action.add_precondition(exp)
+            conditions[self.convert(cond.cond, problem, parameters)] = self.convert(
+                cond.span
+            )
 
         for eff in msg.effects:
-            exp = self.convert(eff.effect, problem, parameters)
-            try:
-                action.add_effect(
-                    timing=self.convert(eff.occurence_time),
-                    fluent=exp.fluent,
-                    value=exp.value,
-                    condition=exp.condition,
-                )
-            except TypeError:
-                action.add_effect(
-                    fluent=exp.fluent, value=exp.value, condition=exp.condition
-                )
+            effects[self.convert(eff.effect, problem, parameters)] = self.convert(
+                eff.occurence_time
+            )
+
+        if isinstance(action, DurativeAction):
+            # action.set_conditions(conditions)
+            # action.set_effects(effects)
+            for c, span in conditions.items():
+                action.add_condition(span, c)
+            for e, ot in effects.items():
+                if e.kind == EffectKind.ASSIGN:
+                    action.add_effect(ot, e.fluent, e.value, e.condition)
+                elif e.kind == EffectKind.DECREASE:
+                    action.add_decrease_effect(ot, e.fluent, e.value, e.condition)
+                elif e.kind == EffectKind.INCREASE:
+                    action.add_increase_effect(ot, e.fluent, e.value, e.condition)
+        elif isinstance(action, InstantaneousAction):
+            # TODO: Missing functions at the moment
+            # action.set_preconditions(list(conditions.values()))
+            # action.set_effects(effects)
+            for c in conditions.keys():
+                action.add_precondition(c)
+            for e in effects.keys():
+                if e.kind == EffectKind.ASSIGN:
+                    action.add_effect(e.fluent, e.value, e.condition)
+                elif e.kind == EffectKind.DECREASE:
+                    action.add_decrease_effect(e.fluent, e.value, e.condition)
+                elif e.kind == EffectKind.INCREASE:
+                    action.add_increase_effect(e.fluent, e.value, e.condition)
 
         return action
 
     @handles(unified_planning_pb2.EffectExpression)
     def _convert_effect(self, msg, problem, param_map):
         # EffectKind
-        kind = 0
-        if msg.kind == unified_planning_pb2.EffectExpression.EffectKind.Value("ASSIGN"):
-            kind = EffectKind.ASSIGN
-        elif msg.kind == unified_planning_pb2.EffectExpression.EffectKind.Value(
+        if msg.kind == unified_planning_pb2.EffectExpression.EffectKind.Value(
             "INCREASE"
         ):
             kind = EffectKind.INCREASE
@@ -310,6 +321,8 @@ class ProtobufReader(Converter):
             "DECREASE"
         ):
             kind = EffectKind.DECREASE
+        else:
+            kind = EffectKind.ASSIGN
 
         return Effect(
             fluent=self.convert(msg.fluent, problem, param_map),
@@ -339,7 +352,8 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.Timing)
     def _convert_timing(self, msg):
         return unified_planning.model.Timing(
-            delay=int(msg.delay), timepoint=self.convert(msg.timepoint)
+            delay=fractions.Fraction(str(msg.delay)),
+            timepoint=self.convert(msg.timepoint),
         )
 
     @handles(unified_planning_pb2.Timepoint)
