@@ -145,6 +145,7 @@ message EffectExpression {
 
     // Optional. If the effect is conditional, then the following field must be set.
     // In this case, the `effect` will only be applied if the `condition`` holds.
+    // If the effect is unconditional, the effect is set to the constant 'true' value.
     // features: conditional_effects
     Expression condition = 4;
 }
