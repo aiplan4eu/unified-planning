@@ -264,7 +264,7 @@ class ProtobufWriter(Converter):
     def _convert_timing(self, timing):
         return unified_planning_pb2.Timing(
             timepoint=self.convert(timing._timepoint), delay=float(timing.delay)
-        )  # TODO: Will change fraction or int to float because of current PB definition
+        )
 
     @handles(unified_planning.model.timing.Interval)
     def _convert_interval(self, interval):
@@ -307,7 +307,6 @@ class ProtobufWriter(Converter):
         return unified_planning_pb2.Problem(
             domain_name=str(problem.name + "_domain"),
             problem_name=problem.name,
-            # TODO: Add problem support types for `int`
             types=[self.convert(t) for t in problem.user_types],
             fluents=[self.convert(f) for f in problem.fluents],
             objects=[self.convert(o) for o in problem.all_objects],
@@ -416,3 +415,76 @@ class ProtobufWriter(Converter):
             action_instances.append(instance)
 
         return unified_planning_pb2.Plan(actions=action_instances)
+
+    @handles(unified_planning.solvers.PlanGenerationResult)
+    def _convert_plan_generation_result(self, result):
+        # FIXME: Logs and metrics are not supported yet
+        return unified_planning_pb2.PlanGenerationResult(
+            status=self.convert(result.status),
+            plan=self.convert(result.plan),
+            # metrics=result.metrics,
+            # logs=[self.convert(log) for log in result.log_messages],
+        )
+
+    @handles(unified_planning.solvers.PlanGenerationResultStatus)
+    def _convert_plan_generation_status(self, status):
+        if (
+            status
+            == unified_planning.solvers.PlanGenerationResultStatus.SOLVED_SATISFICING
+        ):
+            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+                "SOLVED_SATISFICING"
+            )
+
+        elif (
+            status
+            == unified_planning.solvers.PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        ):
+            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+                "SOLVED_OPTIMALLY"
+            )
+        elif (
+            status
+            == unified_planning.solvers.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+        ):
+            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+                "UNSOLVABLE_PROVEN"
+            )
+        elif (
+            status
+            == unified_planning.solvers.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+        ):
+            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+                "UNSOLVABLE_INCOMPLETELY"
+            )
+        elif status == unified_planning.solvers.PlanGenerationResultStatus.TIMEOUT:
+            return unified_planning_pb2.PlanGenerationResult.Status.Value("TIMEOUT")
+        elif status == unified_planning.solvers.PlanGenerationResultStatus.MEMOUT:
+            return unified_planning_pb2.PlanGenerationResult.Status.Value("MEMOUT")
+        elif (
+            status == unified_planning.solvers.PlanGenerationResultStatus.INTERNAL_ERROR
+        ):
+            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+                "INTERNAL_ERROR"
+            )
+        elif (
+            status
+            == unified_planning.solvers.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
+        ):
+
+            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+                "UNSUPPORTED_PROBLEM"
+            )
+        elif status == unified_planning.solvers.PlanGenerationResultStatus.INTERMEDIATE:
+            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+                "INTERMEDIATE"
+            )
+        else:
+            raise ValueError("Unknown status: {}".format(status))
+
+    @handles(unified_planning.solvers.LogMessage)
+    def _convert_log_messages(self, log):
+        return unified_planning_pb2.LogMessage(
+            level=int(log.level),
+            message=str(log.message),
+        )

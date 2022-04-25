@@ -15,7 +15,8 @@
 import pytest
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase
+from unified_planning.solvers.results import PlanGenerationResultStatus
+from unified_planning.test import TestCase, skipIfSolverNotAvailable
 from unified_planning.grpc.proto_reader import ProtobufReader
 from unified_planning.grpc.proto_writer import ProtobufWriter
 from unified_planning.test.examples import get_example_problems
@@ -51,26 +52,17 @@ class TestProtobufIO(TestCase):
             f_up = self.pb_reader.convert(f_pb, problem)
             self.assertTrue(f == f_up)
 
-    @pytest.mark.skip(reason="Not implemented")
     def test_expression(self):
         problem = Problem("test")
         ex = problem.env.expression_manager.true_expression
 
         ex_pb = self.pb_writer.convert(ex)
-        self.assertTrue(ex_pb.type == "BOOL_CONSTANT")
-        self.assertTrue(ex_pb.kind == up_pb2.ExpressionKind.Value("CONSTANT"))
-
         ex_up = self.pb_reader.convert(ex_pb, problem, {})
         self.assertTrue(ex == ex_up)
 
         ex = problem.env.expression_manager.Int(10)
 
         ex_pb = self.pb_writer.convert(ex)
-        self.assertTrue(ex_pb.type == "INT_CONSTANT")
-        self.assertTrue(ex_pb.kind == up_pb2.ExpressionKind.Value("CONSTANT"))
-
-        # TODO: tests for AtomExpression and sublist expressions
-
         ex_up = self.pb_reader.convert(ex_pb, problem, {})
         self.assertTrue(ex == ex_up)
 
@@ -160,6 +152,20 @@ class TestProtobufIO(TestCase):
 
             self.assertTrue(str(metric) == str(metric_up))  # FIXME: compare metrics
 
+    @pytest.mark.skip("Metrics and logs in result object are not supported yet")
+    @skipIfSolverNotAvailable("tamer")
+    def test_plan_generation(self):
+        problem = self.problems["robot"].problem
+
+        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+            self.assertNotEqual(planner, None)
+            final_report = planner.solve(problem)
+
+            final_report_pb = self.pb_writer.convert(final_report)
+            final_report_up = self.pb_reader.convert(final_report_pb, problem)
+
+            self.assertTrue(final_report == final_report_up)
+
 
 class TestProtobufProblems:
     problems = get_example_problems()
@@ -168,6 +174,13 @@ class TestProtobufProblems:
 
     @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
     def test_all_problems(self, problem_name):
+        # FIXME: Int types are not added to user types in the base problem
+        if problem_name in [
+            "robot_int_battery",
+            "robot_fluent_of_user_type_with_int_id",
+        ]:
+            pytest.skip("Internal problem")
+
         problem = self.problems[problem_name].problem
         problem_pb = self.pb_writer.convert(problem)
         problem_up = self.pb_reader.convert(problem_pb, problem)
@@ -176,9 +189,39 @@ class TestProtobufProblems:
 
     @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
     def test_all_plans(self, problem_name):
+        if problem_name in [
+            "robot_fluent_of_user_type_with_int_id",
+        ]:
+            pytest.skip("Internal problem")
         problem = self.problems[problem_name].problem
         plan = self.problems[problem_name].plan
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
         assert plan == plan_up
+
+    @pytest.mark.skip("Metrics and logs in result object are not supported yet")
+    @skipIfSolverNotAvailable("tamer")
+    def test_some_plan_generations(self):
+        problems = [
+            "basic",
+            "basic_without_negative_preconditions",
+            "basic_nested_conjunctions",
+            "robot_loader",
+            "robot_loader_mod",
+            "robot_loader_adv",
+            "robot_real_constants",
+            "robot_int_battery",
+            "robot",
+        ]
+        for p in problems:
+            problem = self.problems[p].problem
+
+            with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+                self.assertNotEqual(planner, None)
+                final_report = planner.solve(problem)
+
+                final_report_pb = self.pb_writer.convert(final_report)
+                final_report_up = self.pb_reader.convert(final_report_pb, problem)
+
+                self.assertTrue(final_report == final_report_up)

@@ -130,7 +130,6 @@ class ProtobufReader(Converter):
                 args.append(self.convert(fluent, problem, param_map))
 
             args.extend([self.convert(m, problem, param_map) for m in msg.list])
-
             return problem.env.expression_manager.create_node(
                 node_type=OperatorKind.FLUENT_EXP,
                 args=tuple(args),
@@ -165,17 +164,12 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.Atom)
     def _convert_atom(self, msg, problem):
         field = msg.WhichOneof("content")
-        # No atom
-        if field is None:
-            return None
 
         value = getattr(msg, field)
         if field == "int":
-            # TODO: deal with bounds
             return problem.env.expression_manager.Int(value)
-        elif field == "real":
-            # TODO: deal with bounds
-            return problem.env.expression_manager.Real(value)
+        elif field == "real" or field == "float":
+            return problem.env.expression_manager.Real(fractions.Fraction(value))
         elif field == "boolean":
             return problem.env.expression_manager.Bool(value)
         else:
@@ -435,3 +429,58 @@ class ProtobufReader(Converter):
             )
         else:
             return action_instance
+
+    @handles(unified_planning_pb2.PlanGenerationResult)
+    def _convert_plan_generation_result(self, result, problem):
+        if result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "SOLVED_SATISFICING"
+        ):
+            status = (
+                unified_planning.solvers.results.PlanGenerationResultStatus.SOLVED_SATISFICING
+            )
+        elif result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "SOLVED_OPTIMALLY"
+        ):
+            status = (
+                unified_planning.solvers.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
+            )
+        elif result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "UNSOLVABLE_PROVEN"
+        ):
+            status = (
+                unified_planning.solvers.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+            )
+        elif result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "UNSOLVABLE_INCOMPLETELY"
+        ):
+            status = (
+                unified_planning.solvers.results.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+            )
+        elif result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "TIMEOUT"
+        ):
+            status = unified_planning.solvers.results.PlanGenerationResultStatus.TIMEOUT
+        elif result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "MEMOUT"
+        ):
+            status = unified_planning.solvers.results.PlanGenerationResultStatus.MEMOUT
+        elif result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "INTERNAL_ERROR"
+        ):
+            status = (
+                unified_planning.solvers.results.PlanGenerationResultStatus.INTERNAL_ERROR
+            )
+        elif result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
+            "UNSUPPORTED_PROBLEM"
+        ):
+            status = (
+                unified_planning.solvers.results.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
+            )
+
+        # FIXME: Metrics and logs are not supported yet
+        return unified_planning.solvers.PlanGenerationResult(
+            status=status,
+            plan=self.convert(result.plan, problem),
+            # metrics=result.metrics,
+            # log_messages=[self.convert(log) for log in result.logs],
+        )
