@@ -13,6 +13,7 @@
 # limitations under the License
 
 import pytest
+from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 from unified_planning.grpc.proto_reader import ProtobufReader
@@ -111,6 +112,15 @@ class TestProtobufIO(TestCase):
 
         self.assertTrue(action == action_up)
 
+    def test_durative_action(self):
+        problem = self.problems["matchcellar"].problem
+        action = problem.action("mend_fuse")
+
+        action_pb = self.pb_writer.convert(action)
+        action_up = self.pb_reader.convert(action_pb, problem)
+
+        self.assertTrue(action == action_up)
+
     def test_action_instance(self):
         problem = self.problems["robot"].problem
         plan = self.problems["robot"].plan
@@ -138,6 +148,17 @@ class TestProtobufIO(TestCase):
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
         self.assertTrue(plan == plan_up)
+
+    def test_metric(self):
+        problem = Problem("test")
+        problem.add_quality_metric(metric=MinimizeSequentialPlanLength())
+        problem.add_quality_metric(metric=MinimizeMakespan())
+
+        for metric in problem.quality_metrics:
+            metric_pb = self.pb_writer.convert(metric)
+            metric_up = self.pb_reader.convert(metric_pb, problem, [])
+
+            self.assertTrue(str(metric) == str(metric_up))  # FIXME: compare metrics
 
 
 class TestProtobufProblems:

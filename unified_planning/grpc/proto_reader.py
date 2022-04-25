@@ -256,6 +256,22 @@ class ProtobufReader(Converter):
                 )
             return unified_planning.model.metrics.MinimizeActionCosts(costs=costs)
 
+        elif msg.kind == unified_planning_pb2.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH:
+            return unified_planning.model.metrics.MinimizeSequentialPlanLength()
+
+        elif msg.kind == unified_planning_pb2.Metric.MINIMIZE_MAKESPAN:
+            return unified_planning.model.metrics.MinimizeMakespan()
+
+        elif msg.kind == unified_planning_pb2.Metric.MINIMIZE_EXPRESSION_ON_FINAL_STATE:
+            return unified_planning.model.metrics.MinimizeExpressionOnFinalState(
+                expression=self.convert(msg.expression, problem, param_map)
+            )
+
+        elif msg.kind == unified_planning_pb2.Metric.MAXIMIZE_EXPRESSION_ON_FINAL_STATE:
+            return unified_planning.model.metrics.MaximizeExpressionOnFinalState(
+                expression=self.convert(msg.expression, problem, param_map)
+            )
+
     @handles(unified_planning_pb2.Action)
     def _convert_action(self, msg, problem):
         parameters = OrderedDict()

@@ -334,7 +334,32 @@ class ProtobufWriter(Converter):
             kind=unified_planning_pb2.Metric.MINIMIZE_ACTION_COSTS,
             action_costs=action_costs,
         )
-        # TODO: Complete this function
+
+    @handles(unified_planning.model.metrics.MinimizeSequentialPlanLength)
+    def _convert_minimize_sequential_plan_length(self, metric):
+        return unified_planning_pb2.Metric(
+            kind=unified_planning_pb2.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH,
+        )
+
+    @handles(unified_planning.model.metrics.MinimizeMakespan)
+    def _convert_minimize_makespan(self, metric):
+        return unified_planning_pb2.Metric(
+            kind=unified_planning_pb2.Metric.MINIMIZE_MAKESPAN,
+        )
+
+    @handles(unified_planning.model.metrics.MinimizeExpressionOnFinalState)
+    def _convert_minimize_expression_on_final_state(self, metric):
+        return unified_planning_pb2.Metric(
+            kind=unified_planning_pb2.Metric.MINIMIZE_EXPRESSION_ON_FINAL_STATE,
+            expression=self.convert(metric.expression),
+        )
+
+    @handles(unified_planning.model.metrics.MaximizeExpressionOnFinalState)
+    def _convert_maximize_expression_on_final_state(self, metric):
+        return unified_planning_pb2.Metric(
+            kind=unified_planning_pb2.Metric.MAXIMIZE_EXPRESSION_ON_FINAL_STATE,
+            expression=self.convert(metric.expression),
+        )
 
     @handles(unified_planning.model.Parameter)
     def _convert_action_parameter(self, p):
