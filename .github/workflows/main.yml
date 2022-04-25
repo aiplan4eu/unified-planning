@@ -174,7 +174,7 @@ jobs:
         run: bash run_tests.sh
   
   check-protobuf:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout
@@ -184,7 +184,13 @@ jobs:
         run: sudo apt install -y protobuf-compiler && protoc --version
 
       - name: Check Protobuf validity
-        run: cd unified_planning/grpc && protoc --python_out=. unified_planning.proto
+        run: cd unified_planning/grpc && protoc --python_out=generated unified_planning.proto
+
+      - name: Check Protobuf bindings
+        run: |
+          echo "Checking that the committed protobuf bindings are exactly the one generated from the declaration"
+          echo "Based on protoc version: $(protoc --version)"
+          git diff --exit-code
 
 
   deploy-pypi:
