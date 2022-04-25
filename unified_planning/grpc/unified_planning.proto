@@ -46,7 +46,10 @@ enum ExpressionKind {
     CONSTANT = 1;
     // Atom symbol representing a parameter from an outer scope. For instance `from` that would appear inside a `(move from to - location)` action.
     PARAMETER = 2;
-    // Atom symbol reprenting a fluent of the problem. For instance `at-robot`.
+    // Atom symbol representing a variable from an outer scope.
+    // This is typically used to represent the variables that are existentially or universally qualified in expressions.
+    VARIABLE = 7;
+    // Atom symbol representing a fluent of the problem. For instance `at-robot`.
     FLUENT_SYMBOL = 3;
     // Atom representing a function. For instance `+`, `=`, `and`, ...
     FUNCTION_SYMBOL = 4;
