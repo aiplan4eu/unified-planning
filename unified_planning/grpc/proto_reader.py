@@ -25,6 +25,7 @@ from unified_planning.model import (
     Effect,
     Problem,
     Parameter,
+    Variable,
     DurativeAction,
     InstantaneousAction,
 )
@@ -117,6 +118,12 @@ class ProtobufReader(Converter):
                     msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
                 ),
             )
+        elif msg.kind == unified_planning_pb2.ExpressionKind.Value("VARIABLE"):
+            return problem.env.expression_manager.VariableExp(
+                var=Variable(
+                    msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
+                ),
+            )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
             args = []
             payload = None
@@ -140,6 +147,7 @@ class ProtobufReader(Converter):
         ):
             node_type = None
             args = []
+            payload = None
 
             symbol = msg.list.pop(0)
             if symbol.kind == unified_planning_pb2.ExpressionKind.Value(
@@ -149,14 +157,20 @@ class ProtobufReader(Converter):
             else:
                 args.append(self.convert(symbol, problem, param_map))
 
-            args.extend([self.convert(m, problem, param_map) for m in msg.list])
+            if node_type in [OperatorKind.EXISTS, OperatorKind.FORALL]:
+                variables = msg.list[:-1]
+                quantified_expression = msg.list[-1]
+                args.append(self.convert(quantified_expression, problem, param_map))
+                payload = tuple([self.convert(var, problem, param_map).variable() for var in variables])
+            else:
+                args.extend([self.convert(m, problem, param_map) for m in msg.list])
 
             assert node_type is not None
 
             return problem.env.expression_manager.create_node(
                 node_type=node_type,
                 args=tuple(args),
-                payload=None,
+                payload=payload,
             )
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")

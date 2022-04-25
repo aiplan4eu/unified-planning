@@ -142,12 +142,23 @@ class ProtobufWriter(Converter):
                     type="",
                 )
             )
+            # forall/exits: add the declared variables from the payload to the beginning of the parameter list.
+            if node_type in [OperatorKind.EXISTS, OperatorKind.FORALL]:
+                sub_list.extend([self.convert(p) for p in payload])
+
             sub_list.extend([self.convert(a) for a in args])
             return unified_planning_pb2.Expression(
                 atom=None,
                 list=sub_list,
                 kind=unified_planning_pb2.ExpressionKind.Value("FUNCTION_APPLICATION"),
                 type="",
+            )
+        elif node_type == OperatorKind.VARIABLE_EXP:
+            return unified_planning_pb2.Expression(
+                atom=unified_planning_pb2.Atom(symbol=payload.name),
+                list=[],
+                kind=unified_planning_pb2.ExpressionKind.Value("VARIABLE"),
+                type=str(payload.type),
             )
 
         raise ValueError(f"Unable to handle expression of type {node_type}: {exp}")
@@ -363,6 +374,16 @@ class ProtobufWriter(Converter):
     @handles(unified_planning.model.Parameter)
     def _convert_action_parameter(self, p):
         return unified_planning_pb2.Parameter(name=p.name, type=str(p.type))
+
+    @handles(unified_planning.model.Variable)
+    def _convert_expression_variable(self, variable):
+        # a variable declaration (in forall/exists) is converted directly as an expression
+        return unified_planning_pb2.Expression(
+                atom=unified_planning_pb2.Atom(symbol=variable.name),
+                list=[],
+                kind=unified_planning_pb2.ExpressionKind.Value("VARIABLE"),
+                type=str(variable.type),
+            )
 
     @handles(unified_planning.plan.ActionInstance)
     def _convert_action_instance(

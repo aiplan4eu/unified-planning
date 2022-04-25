@@ -175,23 +175,19 @@ class TestProtobufProblems:
     @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
     def test_all_problems(self, problem_name):
         # FIXME: Int types are not added to user types in the base problem
-        # Unable to handle variable expressions
         # HACK: skip the test for now
-        if problem_name in [
+        ignored_problems = [
             "robot_int_battery",
             "robot_fluent_of_user_type_with_int_id",
-            "basic_exists",
-            "basic_forall",
-            "robot_locations_connected",
-            "robot_locations_visited",
             "timed_connected_locations",
             "hierarchical_blocks_world",
             "robot_locations_connected_without_battery",
             "hierarchical_blocks_world_exists",
             "hierarchical_blocks_world_object_as_root",
             "hierarchical_blocks_world_with_object",
-        ]:
-            pytest.skip("Internal problem")
+        ]
+        if problem_name in ignored_problems:
+            pytest.skip("Unsupported problem")
 
         problem = self.problems[problem_name].problem
         problem_pb = self.pb_writer.convert(problem)
@@ -204,7 +200,7 @@ class TestProtobufProblems:
         if problem_name in [
             "robot_fluent_of_user_type_with_int_id",
         ]:
-            pytest.skip("Internal problem")
+            pytest.skip("Unsupported problem")
         problem = self.problems[problem_name].problem
         plan = self.problems[problem_name].plan
         plan_pb = self.pb_writer.convert(plan)
