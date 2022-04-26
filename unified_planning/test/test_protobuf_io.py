@@ -34,7 +34,7 @@ class TestProtobufIO(TestCase):
         problem = Problem("test")
         x = Fluent("x")
 
-        x_pb = self.pb_writer.convert(x)
+        x_pb = self.pb_writer.convert(x, problem)
 
         self.assertEquals(x_pb.name, "x")
         self.assertEquals(x_pb.value_type, "bool")
@@ -48,7 +48,7 @@ class TestProtobufIO(TestCase):
         problem = self.problems["robot"].problem
 
         for f in problem.fluents:
-            f_pb = self.pb_writer.convert(f)
+            f_pb = self.pb_writer.convert(f, problem)
             f_up = self.pb_reader.convert(f_pb, problem)
             self.assertEquals(f, f_up)
 
