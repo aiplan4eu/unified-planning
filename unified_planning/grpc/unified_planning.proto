@@ -109,6 +109,12 @@ message Fluent {
     string value_type = 2;
     // Typed and named parameters of the fluent.
     repeated Parameter parameters = 3;
+
+    // If non-empty, then any state variable using this fluent that is not explicitly given a value in the initial state
+    // will be assumed to have this default value.
+    // This allows mimicking the closed world assumption by setting a "false" default value to predicates.
+    // Note that in the initial state of the problem message, it is assumed that all default values are set.
+    Expression default_value = 4;
 }
 
 
@@ -337,8 +343,8 @@ message Problem {
     // List of actions in the domain.
     repeated Action actions = 6;
 
-    // Initial state. It is assumed that the initial state is fully defined by assignments.
-    repeated Assignment initial_state = 7; // TODO: Missing initial defaults
+    // Initial state, including default values of state variables.
+    repeated Assignment initial_state = 7;
 
     // Facts and effects that are expected to occur strictly later than the initial state.
     // features: TIMED_EFFECT

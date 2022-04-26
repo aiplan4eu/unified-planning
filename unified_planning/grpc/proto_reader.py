@@ -234,7 +234,9 @@ class ProtobufReader(Converter):
         for obj in msg.objects:
             PROBLEM.add_object(self.convert(obj, problem))
         for f in msg.fluents:
-            PROBLEM.add_fluent(self.convert(f, problem))
+            PROBLEM.add_fluent(
+                self.convert(f, problem),
+                default_initial_value=self.convert(f.default_value, problem, []) if f.HasField("default_value") else None)
         for f in msg.actions:
             PROBLEM.add_action(self.convert(f, problem))
         for eff in msg.timed_effects:

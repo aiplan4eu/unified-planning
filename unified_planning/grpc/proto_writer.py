@@ -14,6 +14,7 @@
 #
 import fractions
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
+from unified_planning import model
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model.operators import (
     OperatorKind,
@@ -68,12 +69,14 @@ def map_feature(feature: str) -> unified_planning_pb2.Feature:
 
 class ProtobufWriter(Converter):
     @handles(unified_planning.model.Fluent)
-    def _convert_fluent(self, fluent):
+    def _convert_fluent(self, fluent, problem: model.Problem):
         name = fluent.name
         sig = [self.convert(t) for t in fluent.signature]
-        valType = str(fluent.type)
         return unified_planning_pb2.Fluent(
-            name=name, value_type=valType, parameters=sig
+            name=name,
+            value_type=str(fluent.type),
+            parameters=sig,
+            default_value=self.convert(problem.fluents_defaults[fluent]) if fluent in problem.fluents_defaults else None
         )
 
     @handles(unified_planning.model.Object)
@@ -334,7 +337,7 @@ class ProtobufWriter(Converter):
             domain_name=str(problem.name + "_domain"),
             problem_name=problem.name,
             types=[self.convert(t) for t in problem.user_types],
-            fluents=[self.convert(f) for f in problem.fluents],
+            fluents=[self.convert(f, problem) for f in problem.fluents],
             objects=[self.convert(o) for o in problem.all_objects],
             actions=[self.convert(a) for a in problem.actions],
             initial_state=[
