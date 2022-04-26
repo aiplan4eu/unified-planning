@@ -13,14 +13,15 @@
 # limitations under the License
 
 import pytest
-from unified_planning.model.metrics import *
-from unified_planning.shortcuts import *
-from unified_planning.solvers.results import PlanGenerationResultStatus
-from unified_planning.test import TestCase, skipIfSolverNotAvailable
+import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 from unified_planning.grpc.proto_reader import ProtobufReader
 from unified_planning.grpc.proto_writer import ProtobufWriter
+from unified_planning.model.metrics import *
+from unified_planning.shortcuts import *
+from unified_planning.solvers import LogMessage
+from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus
+from unified_planning.test import TestCase, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
-import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 
 
 class TestProtobufIO(TestCase):
@@ -93,7 +94,9 @@ class TestProtobufIO(TestCase):
         problem_pb = self.pb_writer.convert(problem)
         problem_up = self.pb_reader.convert(problem_pb, problem)
 
-        pb_features = set([up_pb2.Feature.Name(feature) for feature in problem_pb.features])
+        pb_features = set(
+            [up_pb2.Feature.Name(feature) for feature in problem_pb.features]
+        )
         assert set(problem.kind.features) == pb_features
         assert problem == problem_up
 
@@ -154,7 +157,21 @@ class TestProtobufIO(TestCase):
 
             assert str(metric) == str(metric_up)  # FIXME: compare metrics
 
-    @pytest.mark.skip("Metrics and logs in result object are not supported yet")
+    def test_log_message(self):
+        def assert_log(log):
+            logger_pb = self.pb_writer.convert(log)
+            logger_up = self.pb_reader.convert(logger_pb)
+            self.assertEqual(log, logger_up)
+
+        log = LogMessage(LogLevel.DEBUG, "test message")
+        assert_log(log)
+        log = LogMessage(LogLevel.INFO, "test message")
+        assert_log(log)
+        log = LogMessage(LogLevel.WARNING, "test message")
+        assert_log(log)
+        log = LogMessage(LogLevel.ERROR, "test message")
+        assert_log(log)
+
     @skipIfSolverNotAvailable("tamer")
     def test_plan_generation(self):
         problem = self.problems["robot"].problem
@@ -207,10 +224,10 @@ class TestProtobufProblems:
 
         assert plan == plan_up
 
-    @pytest.mark.skip("Metrics and logs in result object are not supported yet")
     @skipIfSolverNotAvailable("tamer")
-    def test_some_plan_generations(self):
-        problems = [
+    @pytest.mark.parametrize(
+        "p",
+        [
             "basic",
             "basic_without_negative_preconditions",
             "basic_nested_conjunctions",
@@ -220,15 +237,16 @@ class TestProtobufProblems:
             "robot_real_constants",
             "robot_int_battery",
             "robot",
-        ]
-        for p in problems:
-            problem = self.problems[p].problem
+        ],
+    )
+    def test_some_plan_generations(self, p):
+        problem = self.problems[p].problem
 
-            with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
-                assert planner is not None
-                final_report = planner.solve(problem)
+        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+            assert planner is not None
+            final_report = planner.solve(problem)
 
-                final_report_pb = self.pb_writer.convert(final_report)
-                final_report_up = self.pb_reader.convert(final_report_pb, problem)
+            final_report_pb = self.pb_writer.convert(final_report)
+            final_report_up = self.pb_reader.convert(final_report_pb, problem)
 
-                assert final_report == final_report_up
+            assert final_report == final_report_up

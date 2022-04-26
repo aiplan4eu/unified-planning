@@ -13,18 +13,20 @@
 # limitations under the License.
 #
 import fractions
+
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
+import unified_planning.model
+import unified_planning.plan
 from unified_planning import model
+from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model.operators import (
-    OperatorKind,
-    RELATIONS,
-    IRA_OPERATORS,
     BOOL_OPERATORS,
+    IRA_OPERATORS,
+    RELATIONS,
+    OperatorKind,
 )
-import unified_planning.model
 from unified_planning.model.timing import TimepointKind
-import unified_planning.plan
 
 
 def map_operator(op: int) -> str:
@@ -76,7 +78,9 @@ class ProtobufWriter(Converter):
             name=name,
             value_type=str(fluent.type),
             parameters=sig,
-            default_value=self.convert(problem.fluents_defaults[fluent]) if fluent in problem.fluents_defaults else None
+            default_value=self.convert(problem.fluents_defaults[fluent])
+            if fluent in problem.fluents_defaults
+            else None,
         )
 
     @handles(unified_planning.model.Object)
@@ -285,7 +289,8 @@ class ProtobufWriter(Converter):
     @handles(unified_planning.model.Timing)
     def _convert_timing(self, timing):
         return unified_planning_pb2.Timing(
-            timepoint=self.convert(timing._timepoint), delay=self._convert_to_real(timing.delay)
+            timepoint=self.convert(timing._timepoint),
+            delay=self._convert_to_real(timing.delay),
         )
 
     def _convert_to_real(self, element):
@@ -293,7 +298,9 @@ class ProtobufWriter(Converter):
 
     @handles(fractions.Fraction)
     def _convert_fraction(self, fraction):
-        return unified_planning_pb2.Real(numerator=fraction.numerator, denominator=fraction.denominator)
+        return unified_planning_pb2.Real(
+            numerator=fraction.numerator, denominator=fraction.denominator
+        )
 
     @handles(unified_planning.model.timing.Interval)
     def _convert_interval(self, interval):
@@ -398,11 +405,11 @@ class ProtobufWriter(Converter):
     def _convert_expression_variable(self, variable):
         # a variable declaration (in forall/exists) is converted directly as an expression
         return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(symbol=variable.name),
-                list=[],
-                kind=unified_planning_pb2.ExpressionKind.Value("VARIABLE"),
-                type=str(variable.type),
-            )
+            atom=unified_planning_pb2.Atom(symbol=variable.name),
+            list=[],
+            kind=unified_planning_pb2.ExpressionKind.Value("VARIABLE"),
+            type=str(variable.type),
+        )
 
     @handles(unified_planning.plan.ActionInstance)
     def _convert_action_instance(self, a, start_time=None, end_time=None):
@@ -439,7 +446,9 @@ class ProtobufWriter(Converter):
         for a in plan.actions:
             start_time = self.convert(a[0])
             end_time = self.convert(a[0] + a[2])
-            instance = self._convert_action_instance(a[1], start_time=start_time, end_time=end_time)
+            instance = self._convert_action_instance(
+                a[1], start_time=start_time, end_time=end_time
+            )
             action_instances.append(instance)
 
         return unified_planning_pb2.Plan(actions=action_instances)
@@ -513,7 +522,18 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.solvers.LogMessage)
     def _convert_log_messages(self, log):
+        if log.level == unified_planning.solvers.LogLevel.INFO:
+            level = unified_planning_pb2.LogMessage.LogLevel.Value("INFO")
+        elif log.level == unified_planning.solvers.LogLevel.WARNING:
+            level = unified_planning_pb2.LogMessage.LogLevel.Value("WARNING")
+        elif log.level == unified_planning.solvers.LogLevel.ERROR:
+            level = unified_planning_pb2.LogMessage.LogLevel.Value("ERROR")
+        elif log.level == unified_planning.solvers.LogLevel.DEBUG:
+            level = unified_planning_pb2.LogMessage.LogLevel.Value("DEBUG")
+        else:
+            raise UPException(f"Unknown log level: {log.level}")
+
         return unified_planning_pb2.LogMessage(
-            level=int(log.level),
+            level=level,
             message=str(log.message),
         )
