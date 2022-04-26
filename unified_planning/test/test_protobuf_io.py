@@ -36,13 +36,13 @@ class TestProtobufIO(TestCase):
 
         x_pb = self.pb_writer.convert(x, problem)
 
-        self.assertEquals(x_pb.name, "x")
-        self.assertEquals(x_pb.value_type, "bool")
+        assert x_pb.name == "x"
+        assert x_pb.value_type == "bool"
 
         x_up = self.pb_reader.convert(x_pb, problem)
 
-        self.assertEquals(x_up.name, "x")
-        self.assertEquals(str(x_up.type), "bool")
+        assert x_up.name == "x"
+        assert str(x_up.type) == "bool"
 
     def test_fluent_2(self):
         problem = self.problems["robot"].problem
@@ -50,7 +50,7 @@ class TestProtobufIO(TestCase):
         for f in problem.fluents:
             f_pb = self.pb_writer.convert(f, problem)
             f_up = self.pb_reader.convert(f_pb, problem)
-            self.assertEquals(f, f_up)
+            assert f == f_up
 
     def test_expression(self):
         problem = Problem("test")
@@ -58,25 +58,25 @@ class TestProtobufIO(TestCase):
 
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem, {})
-        self.assertEquals(ex, ex_up)
+        assert ex == ex_up
 
         ex = problem.env.expression_manager.Int(10)
 
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem, {})
-        self.assertEquals(ex, ex_up)
+        assert ex == ex_up
 
     def test_type_declaration(self):
         problem = Problem("test")
         ex = BoolType()
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb)
-        self.assertEquals(ex, ex_up)
+        assert ex == ex_up
 
         ex = UserType("location", UserType("object"))
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb)
-        self.assertEquals(ex, ex_up)
+        assert ex == ex_up
 
     def test_object_declaration(self):
         problem = Problem("test")
@@ -85,7 +85,7 @@ class TestProtobufIO(TestCase):
         obj = Object("l1", loc_type)
         obj_pb = self.pb_writer.convert(obj)
         obj_up = self.pb_reader.convert(obj_pb, problem)
-        self.assertEquals(obj, obj_up)
+        assert obj == obj_up
 
     def test_problem(self):
         problem = self.problems["robot"].problem
@@ -94,8 +94,8 @@ class TestProtobufIO(TestCase):
         problem_up = self.pb_reader.convert(problem_pb, problem)
 
         pb_features = set([up_pb2.Feature.Name(feature) for feature in problem_pb.features])
-        self.assertEquals(set(problem.kind.features), pb_features)
-        self.assertEquals(problem, problem_up)
+        assert set(problem.kind.features) == pb_features
+        assert problem == problem_up
 
     def test_action(self):
         problem = self.problems["robot"].problem
@@ -104,7 +104,7 @@ class TestProtobufIO(TestCase):
         action_pb = self.pb_writer.convert(action)
         action_up = self.pb_reader.convert(action_pb, problem)
 
-        self.assertEquals(action, action_up)
+        assert action == action_up
 
     def test_durative_action(self):
         problem = self.problems["matchcellar"].problem
@@ -113,7 +113,7 @@ class TestProtobufIO(TestCase):
         action_pb = self.pb_writer.convert(action)
         action_up = self.pb_reader.convert(action_pb, problem)
 
-        self.assertEquals(action, action_up)
+        assert action == action_up
 
     def test_action_instance(self):
         problem = self.problems["robot"].problem
@@ -123,7 +123,7 @@ class TestProtobufIO(TestCase):
         action_instance_pb = self.pb_writer.convert(action_instance)
         action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
 
-        self.assertEquals(action_instance, action_instance_up)
+        assert action_instance == action_instance_up
 
     def test_plan(self):
         problem = self.problems["robot"].problem
@@ -132,7 +132,7 @@ class TestProtobufIO(TestCase):
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
-        self.assertEquals(plan, plan_up)
+        assert plan == plan_up
 
     def test_time_triggered_plan(self):
         problem = self.problems["temporal_conditional"].problem
@@ -141,7 +141,7 @@ class TestProtobufIO(TestCase):
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
-        self.assertEquals(plan, plan_up)
+        assert plan == plan_up
 
     def test_metric(self):
         problem = Problem("test")
@@ -152,7 +152,7 @@ class TestProtobufIO(TestCase):
             metric_pb = self.pb_writer.convert(metric)
             metric_up = self.pb_reader.convert(metric_pb, problem, [])
 
-            self.assertEquals(str(metric), str(metric_up))  # FIXME: compare metrics
+            assert str(metric) == str(metric_up)  # FIXME: compare metrics
 
     @pytest.mark.skip("Metrics and logs in result object are not supported yet")
     @skipIfSolverNotAvailable("tamer")
@@ -166,7 +166,7 @@ class TestProtobufIO(TestCase):
             final_report_pb = self.pb_writer.convert(final_report)
             final_report_up = self.pb_reader.convert(final_report_pb, problem)
 
-            self.assertEquals(final_report, final_report_up)
+            assert final_report == final_report_up
 
 
 class TestProtobufProblems:
@@ -225,10 +225,10 @@ class TestProtobufProblems:
             problem = self.problems[p].problem
 
             with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
-                self.assertNotEqual(planner, None)
+                assert planner is not None
                 final_report = planner.solve(problem)
 
                 final_report_pb = self.pb_writer.convert(final_report)
                 final_report_up = self.pb_reader.convert(final_report_pb, problem)
 
-                self.assertEquals(final_report, final_report_up)
+                assert final_report == final_report_up
