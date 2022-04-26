@@ -212,9 +212,7 @@ class TestProtobufProblems:
 
     @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
     def test_all_plans(self, problem_name):
-        if problem_name in [
-            "robot_fluent_of_user_type_with_int_id",
-        ]:
+        if problem_name in []:  # add problem name here to skip it.
             pytest.skip("Unsupported problem")
         problem = self.problems[problem_name].problem
         plan = self.problems[problem_name].plan

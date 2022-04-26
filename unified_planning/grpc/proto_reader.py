@@ -437,18 +437,7 @@ class ProtobufReader(Converter):
     def _convert_action_instance(self, msg, problem):
         # action instance paramaters are atoms but in UP they are FNodes
         # converting to up.model.FNode
-        parameters = []
-        for param in msg.parameters:
-            assert param.HasField("symbol")
-            assert problem.has_object(param.symbol)
-
-            parameters.append(
-                problem.env.expression_manager.create_node(
-                    node_type=OperatorKind.OBJECT_EXP,
-                    args=(),
-                    payload=problem.object(param.symbol),
-                )
-            )
+        parameters = tuple([self.convert(param, problem) for param in msg.parameters])
 
         action_instance = unified_planning.plan.ActionInstance(
             problem.action(msg.action_name),

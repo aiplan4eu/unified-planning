@@ -415,12 +415,8 @@ class ProtobufWriter(Converter):
     def _convert_action_instance(self, a, start_time=None, end_time=None):
         parameters = []
         for param in a.actual_parameters:
-            # The parameters are OBJECT_EXP
-            parameters.append(
-                unified_planning_pb2.Atom(
-                    symbol=param.object().name,
-                )
-            )
+            # The parameters are atoms
+            parameters.append(self.convert(param).atom)
 
         return unified_planning_pb2.ActionInstance(
             action_name=a.action.name,
