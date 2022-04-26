@@ -60,7 +60,7 @@ def map_operator(op: int) -> str:
     raise ValueError(f"Unknown operator `{op}`")
 
 
-def map_feature(feature: str) -> unified_planning_pb2.Feature:
+def map_feature(feature: str):
     pb_feature = unified_planning_pb2.Feature.Value(feature)
     if pb_feature is None:
         raise ValueError(f"Cannot convert feature to protobuf {feature}")
