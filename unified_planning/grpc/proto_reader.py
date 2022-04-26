@@ -105,7 +105,7 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.ObjectDeclaration)  # type: ignore
     def _convert_object(self, msg, problem):
         obj = unified_planning.model.Object(
-            msg.name, problem.env.type_manager.UserType(msg.type)
+            msg.name, convert_type_str(msg.type, problem.env)
         )
         return obj
 
@@ -118,13 +118,13 @@ class ProtobufReader(Converter):
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
             return problem.env.expression_manager.ParameterExp(
                 param=Parameter(
-                    msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
+                    msg.atom.symbol, convert_type_str(msg.type, problem.env)
                 ),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("VARIABLE"):
             return problem.env.expression_manager.VariableExp(
                 var=Variable(
-                    msg.atom.symbol, problem.env.type_manager.UserType(msg.type)
+                    msg.atom.symbol, convert_type_str(msg.type, problem.env)
                 ),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
