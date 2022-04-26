@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import fractions
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model.operators import (
@@ -102,7 +103,7 @@ class ProtobufWriter(Converter):
             )
         elif node_type == OperatorKind.REAL_CONSTANT:
             return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(float=payload),
+                atom=unified_planning_pb2.Atom(real=self._convert_to_real(payload)),
                 list=[],
                 kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
                 type="real",
@@ -222,7 +223,7 @@ class ProtobufWriter(Converter):
         for eff in a.effects:
             effects.append(
                 unified_planning_pb2.Effect(
-                    effect=self.convert(eff), occurence_time=None
+                    effect=self.convert(eff), occurrence_time=None
                 )
             )
 
@@ -254,7 +255,7 @@ class ProtobufWriter(Converter):
                 effects.append(
                     unified_planning_pb2.Effect(
                         effect=self.convert(e),
-                        occurence_time=ot,
+                        occurrence_time=ot,
                     )
                 )
 
@@ -281,8 +282,15 @@ class ProtobufWriter(Converter):
     @handles(unified_planning.model.Timing)
     def _convert_timing(self, timing):
         return unified_planning_pb2.Timing(
-            timepoint=self.convert(timing._timepoint), delay=float(timing.delay)
+            timepoint=self.convert(timing._timepoint), delay=self._convert_to_real(timing.delay)
         )
+
+    def _convert_to_real(self, element):
+        return self.convert(fractions.Fraction(element))
+
+    @handles(fractions.Fraction)
+    def _convert_fraction(self, fraction):
+        return unified_planning_pb2.Real(numerator=fraction.numerator, denominator=fraction.denominator)
 
     @handles(unified_planning.model.timing.Interval)
     def _convert_interval(self, interval):
@@ -394,19 +402,7 @@ class ProtobufWriter(Converter):
             )
 
     @handles(unified_planning.plan.ActionInstance)
-    def _convert_action_instance(
-        self,
-        a,
-    ):
-        action = a.action
-        start_time = 0  # TODO:fix action instance start time
-        try:
-            dur = action.duration
-            end_time = start_time + dur.delay()
-        except AttributeError:
-            # Consider as Instantaneous Action
-            end_time = 0
-
+    def _convert_action_instance(self, a, start_time=None, end_time=None):
         parameters = []
         for param in a.actual_parameters:
             # The parameters are OBJECT_EXP
@@ -417,7 +413,7 @@ class ProtobufWriter(Converter):
             )
 
         return unified_planning_pb2.ActionInstance(
-            action_name=action.name,
+            action_name=a.action.name,
             parameters=parameters,
             start_time=start_time,
             end_time=end_time,
@@ -438,9 +434,9 @@ class ProtobufWriter(Converter):
         action_instances = []
 
         for a in plan.actions:
-            instance = self.convert(a[1])
-            instance.start_time = float(a[0])
-            instance.end_time = float(a[0] + a[2])
+            start_time = self.convert(a[0])
+            end_time = self.convert(a[0] + a[2])
+            instance = self._convert_action_instance(a[1], start_time=start_time, end_time=end_time)
             action_instances.append(instance)
 
         return unified_planning_pb2.Plan(actions=action_instances)

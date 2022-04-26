@@ -66,9 +66,17 @@ message Atom {
     oneof content {
         string symbol = 1;
         int64 int = 2;
-        double float = 3;
+        Real real = 3;
         bool boolean = 4;
     }
+}
+
+// Representation of a constant real number, as the fraction `(numerator / denominator)`.
+// A real should be in its canonical form (with smallest possible denominator).
+// Notably, if this number is an integer, then it is guaranteed that `denominator == 1`.
+message Real {
+    int64 numerator = 1;
+    int64 denominator = 2;
 }
 
 
@@ -157,7 +165,7 @@ message Effect {
 
     // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
     // features: DURATIVE_ACTIONS
-    Timing occurence_time = 2;
+    Timing occurrence_time = 2;
 }
 
 
@@ -218,7 +226,7 @@ message Timepoint {
 // Note that an absolute time can be defined by setting the `delay` relative to the `GLOBAL_START`` which is the reference time.
 message Timing {
     Timepoint timepoint = 1;
-    double delay = 2; // TODO: In the UP this can be a fraction as well
+    Real delay = 2;
 }
 
 
@@ -399,11 +407,11 @@ message ActionInstance {
     // Parameters of the action instance, required to be constants.
     repeated Atom parameters = 3;
     // Start time of the action. The default 0 value is OK in the case of non-temporal planning
-    // feature: [durative_actions]
-    double start_time = 4; // TODO: fractions
+    // feature: [DURATIVE_ACTIONS]
+    Real start_time = 4;
     // End time of the action. The default 0 value is OK in the case of non-temporal planning
-    // feature: [durative_actions]
-    double end_time = 5; // TODO: fractions
+    // feature: [DURATIVE_ACTIONS]
+    Real end_time = 5;
 
 }
 

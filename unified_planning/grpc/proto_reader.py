@@ -182,8 +182,8 @@ class ProtobufReader(Converter):
         value = getattr(msg, field)
         if field == "int":
             return problem.env.expression_manager.Int(value)
-        elif field == "real" or field == "float":
-            return problem.env.expression_manager.Real(fractions.Fraction(value))
+        elif field == "real":
+            return problem.env.expression_manager.Real(fractions.Fraction(value.numerator, value.denominator))
         elif field == "boolean":
             return problem.env.expression_manager.Bool(value)
         else:
@@ -247,7 +247,6 @@ class ProtobufReader(Converter):
             goal = self.convert(goal.goal, problem, [])
             PROBLEM.add_goal(goal)
 
-        # TODO: add features
         for metric in msg.metrics:
             PROBLEM.add_quality_metric(self.convert(metric, problem, None))
 
@@ -298,12 +297,12 @@ class ProtobufReader(Converter):
         for cond in msg.conditions:
             conditions[self.convert(cond.cond, problem, parameters)] = self.convert(
                 cond.span
-            )
+            ) if cond.HasField("span") else None
 
         for eff in msg.effects:
             effects[self.convert(eff.effect, problem, parameters)] = self.convert(
-                eff.occurence_time
-            )
+                eff.occurrence_time
+            ) if eff.HasField("occurrence_time") else None
 
         if isinstance(action, DurativeAction):
             # action.set_conditions(conditions)
@@ -372,9 +371,13 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.Timing) # type: ignore
     def _convert_timing(self, msg):
         return unified_planning.model.Timing(
-            delay=fractions.Fraction(str(msg.delay)),
+            delay=self.convert(msg.delay) if msg.HasField("delay") else fractions.Fraction(0),
             timepoint=self.convert(msg.timepoint),
         )
+
+    @handles(unified_planning_pb2.Real)
+    def _convert_real(self, msg):
+        return fractions.Fraction(msg.numerator, msg.denominator)
 
     @handles(unified_planning_pb2.Timepoint) # type: ignore
     def _convert_timepoint(self, msg):
@@ -428,14 +431,14 @@ class ProtobufReader(Converter):
             problem.action(msg.action_name),
             parameters,
         )
-        if msg.end_time > 0.0 or msg.start_time > 0.0:
-            # FIXME: This is a hack to get the Fraction from double
-            start_time = fractions.Fraction(str(msg.start_time))
-            end_time = fractions.Fraction(str(msg.end_time))
+
+        start_time = self.convert(msg.start_time) if msg.HasField("start_time") else None
+        end_time = self.convert(msg.end_time) if msg.HasField("end_time") else None
+        if start_time is not None:
             return (
                 start_time,  # Absolute Start Time
                 action_instance,
-                end_time - start_time,  # Duration
+                end_time - start_time if end_time else None,  # Duration
             )
         else:
             return action_instance
