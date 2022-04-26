@@ -245,7 +245,6 @@ class ProtobufReader(Converter):
         for goal in msg.goals:
             timing = self.convert(goal.timing)
             goal = self.convert(goal.goal, problem, [])
-            # TODO: Add timed goals
             PROBLEM.add_goal(goal)
 
         # TODO: add features
@@ -319,9 +318,6 @@ class ProtobufReader(Converter):
                 elif e.kind == EffectKind.INCREASE:
                     action.add_increase_effect(ot, e.fluent, e.value, e.condition)
         elif isinstance(action, InstantaneousAction):
-            # TODO: Missing functions at the moment
-            # action.set_preconditions(list(conditions.values()))
-            # action.set_effects(effects)
             for c in conditions.keys():
                 action.add_precondition(c)
             for e in effects.keys():
@@ -406,7 +402,7 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.Plan) # type: ignore
     def _convert_plan(self, msg, problem):
         actions = [self.convert(a, problem) for a in msg.actions]
-        if isinstance(actions[0], tuple):  # TODO: Fix this
+        if len(actions) > 0 and isinstance(actions[0], tuple): # TODO: document action instance format
             return unified_planning.plan.TimeTriggeredPlan(actions)
         else:
             return unified_planning.plan.SequentialPlan(actions=actions)
