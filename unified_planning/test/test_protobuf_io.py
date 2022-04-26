@@ -150,12 +150,22 @@ class TestProtobufIO(TestCase):
         problem = Problem("test")
         problem.add_quality_metric(metric=MinimizeSequentialPlanLength())
         problem.add_quality_metric(metric=MinimizeMakespan())
+        problem.add_quality_metric(
+            metric=MinimizeExpressionOnFinalState(
+                problem.env.expression_manager.true_expression
+            )
+        )
+        problem.add_quality_metric(
+            metric=MaximizeExpressionOnFinalState(
+                problem.env.expression_manager.true_expression
+            )
+        )
 
         for metric in problem.quality_metrics:
             metric_pb = self.pb_writer.convert(metric)
             metric_up = self.pb_reader.convert(metric_pb, problem, [])
 
-            assert str(metric) == str(metric_up)  # FIXME: compare metrics
+            assert str(metric) == str(metric_up)
 
     def test_log_message(self):
         def assert_log(log):
@@ -193,8 +203,7 @@ class TestProtobufProblems:
 
     @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
     def test_all_problems(self, problem_name):
-        # FIXME: Int types are not added to user types in the base problem
-        # HACK: skip the test for now
+        # FIXME: Fluent Expressions are not well formed in the protobuf
         ignored_problems = [
             "hierarchical_blocks_world",
             "hierarchical_blocks_world_exists",

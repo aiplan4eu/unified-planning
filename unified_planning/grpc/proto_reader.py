@@ -14,6 +14,7 @@
 #
 import fractions
 from typing import OrderedDict
+from unified_planning.exceptions import UPException
 
 import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
 import unified_planning.model
@@ -51,7 +52,7 @@ def convert_type_str(s, env):
         return env.type_manager.UserType(s)
 
 
-# The operators are based on Sexpressions supported in PDDL.
+# The operators are based on SExpressions supported in PDDL.
 def op_to_node_type(op: str) -> OperatorKind:
     if op == "+":
         return OperatorKind.PLUS
@@ -123,9 +124,7 @@ class ProtobufReader(Converter):
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("VARIABLE"):
             return problem.env.expression_manager.VariableExp(
-                var=Variable(
-                    msg.atom.symbol, convert_type_str(msg.type, problem.env)
-                ),
+                var=Variable(msg.atom.symbol, convert_type_str(msg.type, problem.env)),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
             args = []
@@ -292,6 +291,8 @@ class ProtobufReader(Converter):
             return unified_planning.model.metrics.MaximizeExpressionOnFinalState(
                 expression=self.convert(msg.expression, problem, param_map)
             )
+        else:
+            raise UPException(f"Unknown metric kind `{msg.kind}`")
 
     @handles(unified_planning_pb2.Action)  # type: ignore
     def _convert_action(self, msg, problem):
@@ -324,8 +325,6 @@ class ProtobufReader(Converter):
             effects.append((eff, time))
 
         if isinstance(action, DurativeAction):
-            # action.set_conditions(conditions)
-            # action.set_effects(effects)
             for c, span in conditions:
                 action.add_condition(span, c)
             for e, ot in effects:
@@ -422,15 +421,18 @@ class ProtobufReader(Converter):
             return unified_planning.model.timing.Timepoint(
                 kind=unified_planning.model.timing.TimepointKind.END,
             )
+        else:
+            raise UPException("Unknown timepoint kind: {}".format(msg.kind))
 
     @handles(unified_planning_pb2.Plan)  # type: ignore
     def _convert_plan(self, msg, problem):
         actions = [self.convert(a, problem) for a in msg.actions]
-        if len(actions) > 0 and isinstance(
-            actions[0], tuple
-        ):  # TODO: document action instance format
+        if all(isinstance(a, tuple) for a in actions):
+            # If all actions are tuples, we can assume that they are
+            # (absolute start time, action, duration)
             return unified_planning.plan.TimeTriggeredPlan(actions)
         else:
+            # Otherwise, we assume they are instantenous actions
             return unified_planning.plan.SequentialPlan(actions=actions)
 
     @handles(unified_planning_pb2.ActionInstance)  # type: ignore
@@ -503,6 +505,8 @@ class ProtobufReader(Converter):
             status = (
                 unified_planning.solvers.results.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
             )
+        else:
+            raise UPException(f"Unknown Planner Status: {result.status}")
 
         # FIXME: Metrics and logs are not supported yet
         return unified_planning.solvers.PlanGenerationResult(

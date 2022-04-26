@@ -215,7 +215,6 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.InstantaneousAction)
     def _convert_instantaneous_action(self, a):
-        cost = None
         effects = []
         conditions = []
 
@@ -372,13 +371,13 @@ class ProtobufWriter(Converter):
         )
 
     @handles(unified_planning.model.metrics.MinimizeSequentialPlanLength)
-    def _convert_minimize_sequential_plan_length(self, metric):
+    def _convert_minimize_sequential_plan_length(self, _):
         return unified_planning_pb2.Metric(
             kind=unified_planning_pb2.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH,
         )
 
     @handles(unified_planning.model.metrics.MinimizeMakespan)
-    def _convert_minimize_makespan(self, metric):
+    def _convert_minimize_makespan(self, _):
         return unified_planning_pb2.Metric(
             kind=unified_planning_pb2.Metric.MINIMIZE_MAKESPAN,
         )
