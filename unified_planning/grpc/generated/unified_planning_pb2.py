@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x16unified_planning.proto\"i\n\nExpression\x12\x13\n\x04\x61tom\x18\x01 \x01(\x0b\x32\x05.Atom\x12\x19\n\x04list\x18\x02 \x03(\x0b\x32\x0b.Expression\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x1d\n\x04kind\x18\x04 \x01(\x0e\x32\x0f.ExpressionKind\"V\n\x04\x41tom\x12\x10\n\x06symbol\x18\x01 \x01(\tH\x00\x12\r\n\x03int\x18\x02 \x01(\x03H\x00\x12\x0f\n\x05\x66loat\x18\x03 \x01(\x01H\x00\x12\x11\n\x07\x62oolean\x18\x04 \x01(\x08H\x00\x42\t\n\x07\x63ontent\"9\n\x0fTypeDeclaration\x12\x11\n\ttype_name\x18\x01 \x01(\t\x12\x13\n\x0bparent_type\x18\x02 \x01(\t\"\'\n\tParameter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"J\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nvalue_type\x18\x02 \x01(\t\x12\x1e\n\nparameters\x18\x03 \x03(\x0b\x32\n.Parameter\"/\n\x11ObjectDeclaration\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"\xdc\x01\n\x10\x45\x66\x66\x65\x63tExpression\x12*\n\x04kind\x18\x01 \x01(\x0e\x32\x1c.EffectExpression.EffectKind\x12\x1b\n\x06\x66luent\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x03 \x01(\x0b\x32\x0b.Expression\x12\x1e\n\tcondition\x18\x04 \x01(\x0b\x32\x0b.Expression\"C\n\nEffectKind\x12\r\n\tUNDEFINED\x10\x00\x12\n\n\x06\x41SSIGN\x10\x01\x12\x0c\n\x08INCREASE\x10\x02\x12\x0c\n\x08\x44\x45\x43REASE\x10\x03\"L\n\x06\x45\x66\x66\x65\x63t\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12\x1f\n\x0eoccurence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"C\n\tCondition\x12\x19\n\x04\x63ond\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1b\n\x04span\x18\x02 \x01(\x0b\x32\r.TimeInterval\"\x8d\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1e\n\nparameters\x18\x02 \x03(\x0b\x32\n.Parameter\x12\x1b\n\x08\x64uration\x18\x03 \x01(\x0b\x32\t.Duration\x12\x1e\n\nconditions\x18\x04 \x03(\x0b\x32\n.Condition\x12\x18\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x07.Effect\"z\n\tTimepoint\x12&\n\x04kind\x18\x01 \x01(\x0e\x32\x18.Timepoint.TimepointKind\"E\n\rTimepointKind\x12\x10\n\x0cGLOBAL_START\x10\x00\x12\x0e\n\nGLOBAL_END\x10\x01\x12\t\n\x05START\x10\x02\x12\x07\n\x03\x45ND\x10\x03\"6\n\x06Timing\x12\x1d\n\ttimepoint\x18\x01 \x01(\x0b\x32\n.Timepoint\x12\r\n\x05\x64\x65lay\x18\x02 \x01(\x01\"o\n\x08Interval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x1a\n\x05lower\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x1a\n\x05upper\x18\x04 \x01(\x0b\x32\x0b.Expression\"k\n\x0cTimeInterval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x16\n\x05lower\x18\x02 \x01(\x0b\x32\x07.Timing\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x16\n\x05upper\x18\x04 \x01(\x0b\x32\x07.Timing\"5\n\x08\x44uration\x12)\n\x16\x63ontrollable_in_bounds\x18\x01 \x01(\x0b\x32\t.Interval\"@\n\x04Goal\x12\x19\n\x04goal\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1d\n\x06timing\x18\x02 \x01(\x0b\x32\r.TimeInterval\"Q\n\x0bTimedEffect\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12\x1f\n\x0eoccurence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"E\n\nAssignment\x12\x1b\n\x06\x66luent\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression\"\xf2\x02\n\x06Metric\x12 \n\x04kind\x18\x01 \x01(\x0e\x32\x12.Metric.MetricKind\x12\x1f\n\nexpression\x18\x02 \x01(\x0b\x32\x0b.Expression\x12.\n\x0c\x61\x63tion_costs\x18\x03 \x03(\x0b\x32\x18.Metric.ActionCostsEntry\x1a?\n\x10\x41\x63tionCostsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression:\x02\x38\x01\"\xb3\x01\n\nMetricKind\x12\x19\n\x15MINIMIZE_ACTION_COSTS\x10\x00\x12#\n\x1fMINIMIZE_SEQUENTIAL_PLAN_LENGTH\x10\x01\x12\x15\n\x11MINIMIZE_MAKESPAN\x10\x02\x12&\n\"MINIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x03\x12&\n\"MAXIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x04\"\xc3\x02\n\x07Problem\x12\x13\n\x0b\x64omain_name\x18\x01 \x01(\t\x12\x14\n\x0cproblem_name\x18\x02 \x01(\t\x12\x1f\n\x05types\x18\x03 \x03(\x0b\x32\x10.TypeDeclaration\x12\x18\n\x07\x66luents\x18\x04 \x03(\x0b\x32\x07.Fluent\x12#\n\x07objects\x18\x05 \x03(\x0b\x32\x12.ObjectDeclaration\x12\x18\n\x07\x61\x63tions\x18\x06 \x03(\x0b\x32\x07.Action\x12\"\n\rinitial_state\x18\x07 \x03(\x0b\x32\x0b.Assignment\x12#\n\rtimed_effects\x18\x08 \x03(\x0b\x32\x0c.TimedEffect\x12\x14\n\x05goals\x18\t \x03(\x0b\x32\x05.Goal\x12\x1a\n\x08\x66\x65\x61tures\x18\n \x03(\x0e\x32\x08.Feature\x12\x18\n\x07metrics\x18\x0b \x03(\x0b\x32\x07.Metric\"r\n\x0e\x41\x63tionInstance\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x61\x63tion_name\x18\x02 \x01(\t\x12\x19\n\nparameters\x18\x03 \x03(\x0b\x32\x05.Atom\x12\x12\n\nstart_time\x18\x04 \x01(\x01\x12\x10\n\x08\x65nd_time\x18\x05 \x01(\x01\"(\n\x04Plan\x12 \n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x0f.ActionInstance\"\x86\x02\n\x0bPlanRequest\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12*\n\x0fresolution_mode\x18\x02 \x01(\x0e\x32\x11.PlanRequest.Mode\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x39\n\x0fplanner_options\x18\x04 \x03(\x0b\x32 .PlanRequest.PlannerOptionsEntry\x1a\x35\n\x13PlannerOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"-\n\x04Mode\x12\x0f\n\x0bSATISFIABLE\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\"{\n\nLogMessage\x12#\n\x05level\x18\x01 \x01(\x0e\x32\x14.LogMessage.LogLevel\x12\x0f\n\x07message\x18\x02 \x01(\t\"7\n\x08LogLevel\x12\t\n\x05\x44\x45\x42UG\x10\x00\x12\x08\n\x04INFO\x10\x01\x12\x0b\n\x07WARNING\x10\x02\x12\t\n\x05\x45RROR\x10\x03\"\x9e\x03\n\x14PlanGenerationResult\x12,\n\x06status\x18\x01 \x01(\x0e\x32\x1c.PlanGenerationResult.Status\x12\x13\n\x04plan\x18\x02 \x01(\x0b\x32\x05.Plan\x12\x33\n\x07metrics\x18\x03 \x03(\x0b\x32\".PlanGenerationResult.MetricsEntry\x12\x19\n\x04logs\x18\x04 \x03(\x0b\x32\x0b.LogMessage\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xc2\x01\n\x06Status\x12\x16\n\x12SOLVED_SATISFICING\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\x12\x15\n\x11UNSOLVABLE_PROVEN\x10\x02\x12\x1b\n\x17UNSOLVABLE_INCOMPLETELY\x10\x03\x12\x0b\n\x07TIMEOUT\x10\r\x12\n\n\x06MEMOUT\x10\x0e\x12\x12\n\x0eINTERNAL_ERROR\x10\x0f\x12\x17\n\x13UNSUPPORTED_PROBLEM\x10\x10\x12\x10\n\x0cINTERMEDIATE\x10\x11*\x9e\x01\n\x0e\x45xpressionKind\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08\x43ONSTANT\x10\x01\x12\r\n\tPARAMETER\x10\x02\x12\x0c\n\x08VARIABLE\x10\x07\x12\x11\n\rFLUENT_SYMBOL\x10\x03\x12\x13\n\x0f\x46UNCTION_SYMBOL\x10\x04\x12\x12\n\x0eSTATE_VARIABLE\x10\x05\x12\x18\n\x14\x46UNCTION_APPLICATION\x10\x06*n\n\x07\x46\x65\x61ture\x12\x14\n\x10\x44URATIVE_ACTIONS\x10\x00\x12\x17\n\x13\x43ONDITIONAL_EFFECTS\x10\x01\x12\x10\n\x0c\x41\x43TION_COSTS\x10\x02\x12\x11\n\rTIMED_EFFECTS\x10\x03\x12\x0f\n\x0bTIMED_GOALS\x10\x04\x32G\n\x0fUnifiedPlanning\x12\x34\n\x0bplanOneShot\x12\x0c.PlanRequest\x1a\x15.PlanGenerationResult0\x01\x62\x06proto3')
+  serialized_pb=_b('\n\x16unified_planning.proto\"i\n\nExpression\x12\x13\n\x04\x61tom\x18\x01 \x01(\x0b\x32\x05.Atom\x12\x19\n\x04list\x18\x02 \x03(\x0b\x32\x0b.Expression\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x1d\n\x04kind\x18\x04 \x01(\x0e\x32\x0f.ExpressionKind\"V\n\x04\x41tom\x12\x10\n\x06symbol\x18\x01 \x01(\tH\x00\x12\r\n\x03int\x18\x02 \x01(\x03H\x00\x12\x0f\n\x05\x66loat\x18\x03 \x01(\x01H\x00\x12\x11\n\x07\x62oolean\x18\x04 \x01(\x08H\x00\x42\t\n\x07\x63ontent\"9\n\x0fTypeDeclaration\x12\x11\n\ttype_name\x18\x01 \x01(\t\x12\x13\n\x0bparent_type\x18\x02 \x01(\t\"\'\n\tParameter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"n\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nvalue_type\x18\x02 \x01(\t\x12\x1e\n\nparameters\x18\x03 \x03(\x0b\x32\n.Parameter\x12\"\n\rdefault_value\x18\x04 \x01(\x0b\x32\x0b.Expression\"/\n\x11ObjectDeclaration\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"\xcd\x01\n\x10\x45\x66\x66\x65\x63tExpression\x12*\n\x04kind\x18\x01 \x01(\x0e\x32\x1c.EffectExpression.EffectKind\x12\x1b\n\x06\x66luent\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x03 \x01(\x0b\x32\x0b.Expression\x12\x1e\n\tcondition\x18\x04 \x01(\x0b\x32\x0b.Expression\"4\n\nEffectKind\x12\n\n\x06\x41SSIGN\x10\x00\x12\x0c\n\x08INCREASE\x10\x01\x12\x0c\n\x08\x44\x45\x43REASE\x10\x02\"L\n\x06\x45\x66\x66\x65\x63t\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12\x1f\n\x0eoccurence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"C\n\tCondition\x12\x19\n\x04\x63ond\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1b\n\x04span\x18\x02 \x01(\x0b\x32\r.TimeInterval\"\x8d\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1e\n\nparameters\x18\x02 \x03(\x0b\x32\n.Parameter\x12\x1b\n\x08\x64uration\x18\x03 \x01(\x0b\x32\t.Duration\x12\x1e\n\nconditions\x18\x04 \x03(\x0b\x32\n.Condition\x12\x18\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x07.Effect\"z\n\tTimepoint\x12&\n\x04kind\x18\x01 \x01(\x0e\x32\x18.Timepoint.TimepointKind\"E\n\rTimepointKind\x12\x10\n\x0cGLOBAL_START\x10\x00\x12\x0e\n\nGLOBAL_END\x10\x01\x12\t\n\x05START\x10\x02\x12\x07\n\x03\x45ND\x10\x03\"6\n\x06Timing\x12\x1d\n\ttimepoint\x18\x01 \x01(\x0b\x32\n.Timepoint\x12\r\n\x05\x64\x65lay\x18\x02 \x01(\x01\"o\n\x08Interval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x1a\n\x05lower\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x1a\n\x05upper\x18\x04 \x01(\x0b\x32\x0b.Expression\"k\n\x0cTimeInterval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x16\n\x05lower\x18\x02 \x01(\x0b\x32\x07.Timing\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x16\n\x05upper\x18\x04 \x01(\x0b\x32\x07.Timing\"5\n\x08\x44uration\x12)\n\x16\x63ontrollable_in_bounds\x18\x01 \x01(\x0b\x32\t.Interval\"@\n\x04Goal\x12\x19\n\x04goal\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1d\n\x06timing\x18\x02 \x01(\x0b\x32\r.TimeInterval\"R\n\x0bTimedEffect\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12 \n\x0foccurrence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"E\n\nAssignment\x12\x1b\n\x06\x66luent\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression\"\xf2\x02\n\x06Metric\x12 \n\x04kind\x18\x01 \x01(\x0e\x32\x12.Metric.MetricKind\x12\x1f\n\nexpression\x18\x02 \x01(\x0b\x32\x0b.Expression\x12.\n\x0c\x61\x63tion_costs\x18\x03 \x03(\x0b\x32\x18.Metric.ActionCostsEntry\x1a?\n\x10\x41\x63tionCostsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression:\x02\x38\x01\"\xb3\x01\n\nMetricKind\x12\x19\n\x15MINIMIZE_ACTION_COSTS\x10\x00\x12#\n\x1fMINIMIZE_SEQUENTIAL_PLAN_LENGTH\x10\x01\x12\x15\n\x11MINIMIZE_MAKESPAN\x10\x02\x12&\n\"MINIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x03\x12&\n\"MAXIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x04\"\xc3\x02\n\x07Problem\x12\x13\n\x0b\x64omain_name\x18\x01 \x01(\t\x12\x14\n\x0cproblem_name\x18\x02 \x01(\t\x12\x1f\n\x05types\x18\x03 \x03(\x0b\x32\x10.TypeDeclaration\x12\x18\n\x07\x66luents\x18\x04 \x03(\x0b\x32\x07.Fluent\x12#\n\x07objects\x18\x05 \x03(\x0b\x32\x12.ObjectDeclaration\x12\x18\n\x07\x61\x63tions\x18\x06 \x03(\x0b\x32\x07.Action\x12\"\n\rinitial_state\x18\x07 \x03(\x0b\x32\x0b.Assignment\x12#\n\rtimed_effects\x18\x08 \x03(\x0b\x32\x0c.TimedEffect\x12\x14\n\x05goals\x18\t \x03(\x0b\x32\x05.Goal\x12\x1a\n\x08\x66\x65\x61tures\x18\n \x03(\x0e\x32\x08.Feature\x12\x18\n\x07metrics\x18\x0b \x03(\x0b\x32\x07.Metric\"r\n\x0e\x41\x63tionInstance\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x61\x63tion_name\x18\x02 \x01(\t\x12\x19\n\nparameters\x18\x03 \x03(\x0b\x32\x05.Atom\x12\x12\n\nstart_time\x18\x04 \x01(\x01\x12\x10\n\x08\x65nd_time\x18\x05 \x01(\x01\"(\n\x04Plan\x12 \n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x0f.ActionInstance\"\x86\x02\n\x0bPlanRequest\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12*\n\x0fresolution_mode\x18\x02 \x01(\x0e\x32\x11.PlanRequest.Mode\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x39\n\x0fplanner_options\x18\x04 \x03(\x0b\x32 .PlanRequest.PlannerOptionsEntry\x1a\x35\n\x13PlannerOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"-\n\x04Mode\x12\x0f\n\x0bSATISFIABLE\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\"{\n\nLogMessage\x12#\n\x05level\x18\x01 \x01(\x0e\x32\x14.LogMessage.LogLevel\x12\x0f\n\x07message\x18\x02 \x01(\t\"7\n\x08LogLevel\x12\t\n\x05\x44\x45\x42UG\x10\x00\x12\x08\n\x04INFO\x10\x01\x12\x0b\n\x07WARNING\x10\x02\x12\t\n\x05\x45RROR\x10\x03\"\x9e\x03\n\x14PlanGenerationResult\x12,\n\x06status\x18\x01 \x01(\x0e\x32\x1c.PlanGenerationResult.Status\x12\x13\n\x04plan\x18\x02 \x01(\x0b\x32\x05.Plan\x12\x33\n\x07metrics\x18\x03 \x03(\x0b\x32\".PlanGenerationResult.MetricsEntry\x12\x19\n\x04logs\x18\x04 \x03(\x0b\x32\x0b.LogMessage\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xc2\x01\n\x06Status\x12\x16\n\x12SOLVED_SATISFICING\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\x12\x15\n\x11UNSOLVABLE_PROVEN\x10\x02\x12\x1b\n\x17UNSOLVABLE_INCOMPLETELY\x10\x03\x12\x0b\n\x07TIMEOUT\x10\r\x12\n\n\x06MEMOUT\x10\x0e\x12\x12\n\x0eINTERNAL_ERROR\x10\x0f\x12\x17\n\x13UNSUPPORTED_PROBLEM\x10\x10\x12\x10\n\x0cINTERMEDIATE\x10\x11*\x9e\x01\n\x0e\x45xpressionKind\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08\x43ONSTANT\x10\x01\x12\r\n\tPARAMETER\x10\x02\x12\x0c\n\x08VARIABLE\x10\x07\x12\x11\n\rFLUENT_SYMBOL\x10\x03\x12\x13\n\x0f\x46UNCTION_SYMBOL\x10\x04\x12\x12\n\x0eSTATE_VARIABLE\x10\x05\x12\x18\n\x14\x46UNCTION_APPLICATION\x10\x06*\xb0\x04\n\x07\x46\x65\x61ture\x12\x13\n\x0f\x43ONTINUOUS_TIME\x10\x00\x12\x11\n\rDISCRETE_TIME\x10\x01\x12\'\n#INTERMEDIATE_CONDITIONS_AND_EFFECTS\x10\x02\x12\x10\n\x0cTIMED_EFFECT\x10\x03\x12\x0f\n\x0bTIMED_GOALS\x10\x04\x12\x19\n\x15\x44URATION_INEQUALITIES\x10\x05\x12\x16\n\x12\x43ONTINUOUS_NUMBERS\x10\x06\x12\x14\n\x10\x44ISCRETE_NUMBERS\x10\x07\x12\x17\n\x13NEGATIVE_CONDITIONS\x10\x08\x12\x1a\n\x16\x44ISJUNCTIVE_CONDITIONS\x10\t\x12\x0c\n\x08\x45QUALITY\x10\n\x12\x1a\n\x16\x45XISTENTIAL_CONDITIONS\x10\x0b\x12\x18\n\x14UNIVERSAL_CONDITIONS\x10\x0c\x12\x17\n\x13\x43ONDITIONAL_EFFECTS\x10\r\x12\x14\n\x10INCREASE_EFFECTS\x10\x0e\x12\x14\n\x10\x44\x45\x43REASE_EFFECTS\x10\x0f\x12\x0f\n\x0b\x46LAT_TYPING\x10\x10\x12\x17\n\x13HIERARCHICAL_TYPING\x10\x11\x12\x13\n\x0fNUMERIC_FLUENTS\x10\x12\x12\x12\n\x0eOBJECT_FLUENTS\x10\x13\x12\x10\n\x0c\x41\x43TIONS_COST\x10\x14\x12\x0f\n\x0b\x46INAL_VALUE\x10\x15\x12\x0c\n\x08MAKESPAN\x10\x16\x12\x0f\n\x0bPLAN_LENGTH\x10\x17\x12\x15\n\x11SIMULATED_EFFECTS\x10\x18\x32G\n\x0fUnifiedPlanning\x12\x34\n\x0bplanOneShot\x12\x0c.PlanRequest\x1a\x15.PlanGenerationResult0\x01\x62\x06proto3')
 )
 
 _EXPRESSIONKIND = _descriptor.EnumDescriptor(
@@ -64,8 +64,8 @@ _EXPRESSIONKIND = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3302,
-  serialized_end=3460,
+  serialized_start=3324,
+  serialized_end=3482,
 )
 _sym_db.RegisterEnumDescriptor(_EXPRESSIONKIND)
 
@@ -77,30 +77,110 @@ _FEATURE = _descriptor.EnumDescriptor(
   file=DESCRIPTOR,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='DURATIVE_ACTIONS', index=0, number=0,
+      name='CONTINUOUS_TIME', index=0, number=0,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='CONDITIONAL_EFFECTS', index=1, number=1,
+      name='DISCRETE_TIME', index=1, number=1,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='ACTION_COSTS', index=2, number=2,
+      name='INTERMEDIATE_CONDITIONS_AND_EFFECTS', index=2, number=2,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='TIMED_EFFECTS', index=3, number=3,
+      name='TIMED_EFFECT', index=3, number=3,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
       name='TIMED_GOALS', index=4, number=4,
       serialized_options=None,
       type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DURATION_INEQUALITIES', index=5, number=5,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='CONTINUOUS_NUMBERS', index=6, number=6,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DISCRETE_NUMBERS', index=7, number=7,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NEGATIVE_CONDITIONS', index=8, number=8,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DISJUNCTIVE_CONDITIONS', index=9, number=9,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='EQUALITY', index=10, number=10,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='EXISTENTIAL_CONDITIONS', index=11, number=11,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='UNIVERSAL_CONDITIONS', index=12, number=12,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='CONDITIONAL_EFFECTS', index=13, number=13,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='INCREASE_EFFECTS', index=14, number=14,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='DECREASE_EFFECTS', index=15, number=15,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FLAT_TYPING', index=16, number=16,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='HIERARCHICAL_TYPING', index=17, number=17,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NUMERIC_FLUENTS', index=18, number=18,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='OBJECT_FLUENTS', index=19, number=19,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='ACTIONS_COST', index=20, number=20,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='FINAL_VALUE', index=21, number=21,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='MAKESPAN', index=22, number=22,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='PLAN_LENGTH', index=23, number=23,
+      serialized_options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SIMULATED_EFFECTS', index=24, number=24,
+      serialized_options=None,
+      type=None),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3462,
-  serialized_end=3572,
+  serialized_start=3485,
+  serialized_end=4045,
 )
 _sym_db.RegisterEnumDescriptor(_FEATURE)
 
@@ -113,11 +193,31 @@ FLUENT_SYMBOL = 3
 FUNCTION_SYMBOL = 4
 STATE_VARIABLE = 5
 FUNCTION_APPLICATION = 6
-DURATIVE_ACTIONS = 0
-CONDITIONAL_EFFECTS = 1
-ACTION_COSTS = 2
-TIMED_EFFECTS = 3
+CONTINUOUS_TIME = 0
+DISCRETE_TIME = 1
+INTERMEDIATE_CONDITIONS_AND_EFFECTS = 2
+TIMED_EFFECT = 3
 TIMED_GOALS = 4
+DURATION_INEQUALITIES = 5
+CONTINUOUS_NUMBERS = 6
+DISCRETE_NUMBERS = 7
+NEGATIVE_CONDITIONS = 8
+DISJUNCTIVE_CONDITIONS = 9
+EQUALITY = 10
+EXISTENTIAL_CONDITIONS = 11
+UNIVERSAL_CONDITIONS = 12
+CONDITIONAL_EFFECTS = 13
+INCREASE_EFFECTS = 14
+DECREASE_EFFECTS = 15
+FLAT_TYPING = 16
+HIERARCHICAL_TYPING = 17
+NUMERIC_FLUENTS = 18
+OBJECT_FLUENTS = 19
+ACTIONS_COST = 20
+FINAL_VALUE = 21
+MAKESPAN = 22
+PLAN_LENGTH = 23
+SIMULATED_EFFECTS = 24
 
 
 _EFFECTEXPRESSION_EFFECTKIND = _descriptor.EnumDescriptor(
@@ -127,26 +227,22 @@ _EFFECTEXPRESSION_EFFECTKIND = _descriptor.EnumDescriptor(
   file=DESCRIPTOR,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='UNDEFINED', index=0, number=0,
+      name='ASSIGN', index=0, number=0,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='ASSIGN', index=1, number=1,
+      name='INCREASE', index=1, number=1,
       serialized_options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='INCREASE', index=2, number=2,
-      serialized_options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='DECREASE', index=3, number=3,
+      name='DECREASE', index=2, number=2,
       serialized_options=None,
       type=None),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=600,
-  serialized_end=667,
+  serialized_start=636,
+  serialized_end=688,
 )
 _sym_db.RegisterEnumDescriptor(_EFFECTEXPRESSION_EFFECTKIND)
 
@@ -175,8 +271,8 @@ _TIMEPOINT_TIMEPOINTKIND = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1013,
-  serialized_end=1082,
+  serialized_start=1034,
+  serialized_end=1103,
 )
 _sym_db.RegisterEnumDescriptor(_TIMEPOINT_TIMEPOINTKIND)
 
@@ -209,8 +305,8 @@ _METRIC_METRICKIND = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1829,
-  serialized_end=2008,
+  serialized_start=1851,
+  serialized_end=2030,
 )
 _sym_db.RegisterEnumDescriptor(_METRIC_METRICKIND)
 
@@ -231,8 +327,8 @@ _PLANREQUEST_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2712,
-  serialized_end=2757,
+  serialized_start=2734,
+  serialized_end=2779,
 )
 _sym_db.RegisterEnumDescriptor(_PLANREQUEST_MODE)
 
@@ -261,8 +357,8 @@ _LOGMESSAGE_LOGLEVEL = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2827,
-  serialized_end=2882,
+  serialized_start=2849,
+  serialized_end=2904,
 )
 _sym_db.RegisterEnumDescriptor(_LOGMESSAGE_LOGLEVEL)
 
@@ -311,8 +407,8 @@ _PLANGENERATIONRESULT_STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3105,
-  serialized_end=3299,
+  serialized_start=3127,
+  serialized_end=3321,
 )
 _sym_db.RegisterEnumDescriptor(_PLANGENERATIONRESULT_STATUS)
 
@@ -528,6 +624,13 @@ _FLUENT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='default_value', full_name='Fluent.default_value', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -541,7 +644,7 @@ _FLUENT = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=321,
-  serialized_end=395,
+  serialized_end=431,
 )
 
 
@@ -578,8 +681,8 @@ _OBJECTDECLARATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=397,
-  serialized_end=444,
+  serialized_start=433,
+  serialized_end=480,
 )
 
 
@@ -631,8 +734,8 @@ _EFFECTEXPRESSION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=447,
-  serialized_end=667,
+  serialized_start=483,
+  serialized_end=688,
 )
 
 
@@ -669,8 +772,8 @@ _EFFECT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=669,
-  serialized_end=745,
+  serialized_start=690,
+  serialized_end=766,
 )
 
 
@@ -707,8 +810,8 @@ _CONDITION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=747,
-  serialized_end=814,
+  serialized_start=768,
+  serialized_end=835,
 )
 
 
@@ -766,8 +869,8 @@ _ACTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=817,
-  serialized_end=958,
+  serialized_start=838,
+  serialized_end=979,
 )
 
 
@@ -798,8 +901,8 @@ _TIMEPOINT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=960,
-  serialized_end=1082,
+  serialized_start=981,
+  serialized_end=1103,
 )
 
 
@@ -836,8 +939,8 @@ _TIMING = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1084,
-  serialized_end=1138,
+  serialized_start=1105,
+  serialized_end=1159,
 )
 
 
@@ -888,8 +991,8 @@ _INTERVAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1140,
-  serialized_end=1251,
+  serialized_start=1161,
+  serialized_end=1272,
 )
 
 
@@ -940,8 +1043,8 @@ _TIMEINTERVAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1253,
-  serialized_end=1360,
+  serialized_start=1274,
+  serialized_end=1381,
 )
 
 
@@ -971,8 +1074,8 @@ _DURATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1362,
-  serialized_end=1415,
+  serialized_start=1383,
+  serialized_end=1436,
 )
 
 
@@ -1009,8 +1112,8 @@ _GOAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1417,
-  serialized_end=1481,
+  serialized_start=1438,
+  serialized_end=1502,
 )
 
 
@@ -1029,7 +1132,7 @@ _TIMEDEFFECT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='occurence_time', full_name='TimedEffect.occurence_time', index=1,
+      name='occurrence_time', full_name='TimedEffect.occurrence_time', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -1047,8 +1150,8 @@ _TIMEDEFFECT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1483,
-  serialized_end=1564,
+  serialized_start=1504,
+  serialized_end=1586,
 )
 
 
@@ -1085,8 +1188,8 @@ _ASSIGNMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1566,
-  serialized_end=1635,
+  serialized_start=1588,
+  serialized_end=1657,
 )
 
 
@@ -1123,8 +1226,8 @@ _METRIC_ACTIONCOSTSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1763,
-  serialized_end=1826,
+  serialized_start=1785,
+  serialized_end=1848,
 )
 
 _METRIC = _descriptor.Descriptor(
@@ -1168,8 +1271,8 @@ _METRIC = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1638,
-  serialized_end=2008,
+  serialized_start=1660,
+  serialized_end=2030,
 )
 
 
@@ -1269,8 +1372,8 @@ _PROBLEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2011,
-  serialized_end=2334,
+  serialized_start=2033,
+  serialized_end=2356,
 )
 
 
@@ -1328,8 +1431,8 @@ _ACTIONINSTANCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2336,
-  serialized_end=2450,
+  serialized_start=2358,
+  serialized_end=2472,
 )
 
 
@@ -1359,8 +1462,8 @@ _PLAN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2452,
-  serialized_end=2492,
+  serialized_start=2474,
+  serialized_end=2514,
 )
 
 
@@ -1397,8 +1500,8 @@ _PLANREQUEST_PLANNEROPTIONSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2657,
-  serialized_end=2710,
+  serialized_start=2679,
+  serialized_end=2732,
 )
 
 _PLANREQUEST = _descriptor.Descriptor(
@@ -1449,8 +1552,8 @@ _PLANREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2495,
-  serialized_end=2757,
+  serialized_start=2517,
+  serialized_end=2779,
 )
 
 
@@ -1488,8 +1591,8 @@ _LOGMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2759,
-  serialized_end=2882,
+  serialized_start=2781,
+  serialized_end=2904,
 )
 
 
@@ -1526,8 +1629,8 @@ _PLANGENERATIONRESULT_METRICSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3056,
-  serialized_end=3102,
+  serialized_start=3078,
+  serialized_end=3124,
 )
 
 _PLANGENERATIONRESULT = _descriptor.Descriptor(
@@ -1578,8 +1681,8 @@ _PLANGENERATIONRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2885,
-  serialized_end=3299,
+  serialized_start=2907,
+  serialized_end=3321,
 )
 
 _EXPRESSION.fields_by_name['atom'].message_type = _ATOM
@@ -1598,6 +1701,7 @@ _ATOM.oneofs_by_name['content'].fields.append(
   _ATOM.fields_by_name['boolean'])
 _ATOM.fields_by_name['boolean'].containing_oneof = _ATOM.oneofs_by_name['content']
 _FLUENT.fields_by_name['parameters'].message_type = _PARAMETER
+_FLUENT.fields_by_name['default_value'].message_type = _EXPRESSION
 _EFFECTEXPRESSION.fields_by_name['kind'].enum_type = _EFFECTEXPRESSION_EFFECTKIND
 _EFFECTEXPRESSION.fields_by_name['fluent'].message_type = _EXPRESSION
 _EFFECTEXPRESSION.fields_by_name['value'].message_type = _EXPRESSION
@@ -1622,7 +1726,7 @@ _DURATION.fields_by_name['controllable_in_bounds'].message_type = _INTERVAL
 _GOAL.fields_by_name['goal'].message_type = _EXPRESSION
 _GOAL.fields_by_name['timing'].message_type = _TIMEINTERVAL
 _TIMEDEFFECT.fields_by_name['effect'].message_type = _EFFECTEXPRESSION
-_TIMEDEFFECT.fields_by_name['occurence_time'].message_type = _TIMING
+_TIMEDEFFECT.fields_by_name['occurrence_time'].message_type = _TIMING
 _ASSIGNMENT.fields_by_name['fluent'].message_type = _EXPRESSION
 _ASSIGNMENT.fields_by_name['value'].message_type = _EXPRESSION
 _METRIC_ACTIONCOSTSENTRY.fields_by_name['value'].message_type = _EXPRESSION
@@ -1894,8 +1998,8 @@ _UNIFIEDPLANNING = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=3574,
-  serialized_end=3645,
+  serialized_start=4047,
+  serialized_end=4118,
   methods=[
   _descriptor.MethodDescriptor(
     name='planOneShot',

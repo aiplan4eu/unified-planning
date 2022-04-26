@@ -93,6 +93,8 @@ class TestProtobufIO(TestCase):
         problem_pb = self.pb_writer.convert(problem)
         problem_up = self.pb_reader.convert(problem_pb, problem)
 
+        pb_features = set([up_pb2.Feature.Name(feature) for feature in problem_pb.features])
+        self.assertEquals(set(problem.kind.features), pb_features)
         self.assertEquals(problem, problem_up)
 
     def test_action(self):

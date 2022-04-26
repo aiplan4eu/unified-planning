@@ -58,6 +58,13 @@ def map_operator(op: int) -> str:
     raise ValueError(f"Unknown operator `{op}`")
 
 
+def map_feature(feature: str) -> unified_planning_pb2.Feature:
+    pb_feature = unified_planning_pb2.Feature.Value(feature)
+    if pb_feature is None:
+        raise ValueError(f"Cannot convert feature to protobuf {feature}")
+    return pb_feature
+
+
 class ProtobufWriter(Converter):
     @handles(unified_planning.model.Fluent)
     def _convert_fluent(self, fluent):
@@ -77,8 +84,6 @@ class ProtobufWriter(Converter):
         node_type = exp._content.node_type
         args = exp._content.args
         payload = exp._content.payload
-
-        # TODO: add variable support
 
         if node_type == OperatorKind.BOOL_CONSTANT:
             return unified_planning_pb2.Expression(
@@ -183,13 +188,15 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.Effect)
     def _convert_effect(self, effect):
-        kind = unified_planning_pb2.EffectExpression.EffectKind.Value("UNDEFINED")
+        kind = None
         if effect.is_assignment():
             kind = unified_planning_pb2.EffectExpression.EffectKind.Value("ASSIGN")
         elif effect.is_increase():
             kind = unified_planning_pb2.EffectExpression.EffectKind.Value("INCREASE")
         elif effect.is_decrease():
             kind = unified_planning_pb2.EffectExpression.EffectKind.Value("DECREASE")
+        else:
+            raise ValueError(f"Unsupported effect: {effect}")
 
         return unified_planning_pb2.EffectExpression(
             kind=kind,
@@ -330,6 +337,7 @@ class ProtobufWriter(Converter):
             ],
             timed_effects=[self.convert(e) for e in problem.timed_effects],
             goals=goals,
+            features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
         )
 
