@@ -505,6 +505,14 @@ message PlanGenerationResult {
     // Note that it should not be expected that logging messages are visible to the end user.
     // If used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM, it would be expected to have at least one log message at the ERROR level.
     repeated LogMessage logs = 4;
+
+    // Synthetic description of the planner that generated this message.
+    Engine planner = 5;
+}
+
+message Engine {
+    // Short name of the engine (planner, validator, ...)
+    string name = 1;
 }
 
 

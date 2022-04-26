@@ -451,6 +451,7 @@ class ProtobufWriter(Converter):
         return unified_planning_pb2.PlanGenerationResult(
             status=self.convert(result.status),
             plan=self.convert(result.plan),
+            planner=unified_planning_pb2.Engine(name=result.planner_name),
             # metrics=result.metrics,
             # logs=[self.convert(log) for log in result.log_messages],
         )

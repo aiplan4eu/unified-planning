@@ -491,6 +491,7 @@ class ProtobufReader(Converter):
         return unified_planning.solvers.PlanGenerationResult(
             status=status,
             plan=self.convert(result.plan, problem),
+            planner_name=result.planner.name,
             # metrics=result.metrics,
             # log_messages=[self.convert(log) for log in result.logs],
         )
