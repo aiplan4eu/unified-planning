@@ -34,18 +34,22 @@ from unified_planning.shortcuts import BoolType, UserType, RealType, IntType
 
 def convert_type_str(s, env):
     if s == "bool":
-        value_type = env.type_manager.BoolType()
-    elif s == "int":
-        value_type = env.type_manager.IntType()
-    elif s == "float":
-        value_type = env.type_manager.RealType()
-    elif "real" in s:
-        a = float(s.split("[")[1].split(",")[0])
-        b = float(s.split(",")[1].split("]")[0])
-        value_type = env.type_manager.RealType(a, b)
+        return env.type_manager.BoolType()
+    elif s == "integer":
+        return env.type_manager.IntType()
+    elif "integer[" in s:
+        lb = int(s.split("[")[1].split(",")[0])
+        ub = int(s.split(",")[1].split("]")[0])
+        return env.type_manager.IntType(lb, ub)
+    elif s == "real":
+        return env.type_manager.RealType()
+    elif "real[" in s:
+        lb = float(s.split("[")[1].split(",")[0])
+        ub = float(s.split(",")[1].split("]")[0])
+        return env.type_manager.RealType(lb, ub)
     else:
-        value_type = env.type_manager.UserType(s)
-    return value_type
+        return env.type_manager.UserType(s)
+
 
 
 # The operators are based on Sexpressions supported in PDDL.

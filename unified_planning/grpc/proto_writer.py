@@ -99,7 +99,7 @@ class ProtobufWriter(Converter):
                 atom=unified_planning_pb2.Atom(int=payload),
                 list=[],
                 kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
-                type="int",
+                type="integer",
             )
         elif node_type == OperatorKind.REAL_CONSTANT:
             return unified_planning_pb2.Expression(

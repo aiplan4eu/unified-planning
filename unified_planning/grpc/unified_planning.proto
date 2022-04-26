@@ -9,7 +9,7 @@ syntax = "proto3";
 
 // Built-in types:
 //  - "bool"
-//  - "int"
+//  - "integer"
 //  - "real"
 //
 // Any other string (e.g. "location") refers to a symbolic type and must have been declared in the problem definition.

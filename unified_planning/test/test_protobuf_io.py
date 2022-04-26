@@ -179,11 +179,9 @@ class TestProtobufProblems:
         # FIXME: Int types are not added to user types in the base problem
         # HACK: skip the test for now
         ignored_problems = [
-            "robot_int_battery",
             "robot_fluent_of_user_type_with_int_id",
             "timed_connected_locations",
             "hierarchical_blocks_world",
-            "robot_locations_connected_without_battery",
             "hierarchical_blocks_world_exists",
             "hierarchical_blocks_world_object_as_root",
             "hierarchical_blocks_world_with_object",
