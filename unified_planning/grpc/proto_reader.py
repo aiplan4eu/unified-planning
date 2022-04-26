@@ -286,11 +286,9 @@ class ProtobufReader(Converter):
 
     @handles(unified_planning_pb2.Action) # type: ignore
     def _convert_action(self, msg, problem):
-        parameters = OrderedDict()
-        conditions = OrderedDict()
-        effects = OrderedDict()
         action: unified_planning.model.Action
 
+        parameters = OrderedDict()
         for param in msg.parameters:
             parameters[param.name] = convert_type_str(param.type, problem.env)
 
@@ -300,22 +298,24 @@ class ProtobufReader(Converter):
         else:
             action = InstantaneousAction(msg.name, parameters)
 
-        for cond in msg.conditions:
-            conditions[self.convert(cond.cond, problem, parameters)] = self.convert(
-                cond.span
-            ) if cond.HasField("span") else None
+        conditions = []
+        for condition in msg.conditions:
+            cond = self.convert(condition.cond, problem, parameters)
+            span = self.convert(condition.span) if condition.HasField("span") else None
+            conditions.append((cond, span))
 
-        for eff in msg.effects:
-            effects[self.convert(eff.effect, problem, parameters)] = self.convert(
-                eff.occurrence_time
-            ) if eff.HasField("occurrence_time") else None
+        effects = []
+        for effect in msg.effects:
+            eff = self.convert(effect.effect, problem, parameters)
+            time = self.convert(effect.occurrence_time) if effect.HasField("occurrence_time") else None
+            effects.append((eff, time))
 
         if isinstance(action, DurativeAction):
             # action.set_conditions(conditions)
             # action.set_effects(effects)
-            for c, span in conditions.items():
+            for c, span in conditions:
                 action.add_condition(span, c)
-            for e, ot in effects.items():
+            for e, ot in effects:
                 if e.kind == EffectKind.ASSIGN:
                     action.add_effect(ot, e.fluent, e.value, e.condition)
                 elif e.kind == EffectKind.DECREASE:
@@ -323,9 +323,9 @@ class ProtobufReader(Converter):
                 elif e.kind == EffectKind.INCREASE:
                     action.add_increase_effect(ot, e.fluent, e.value, e.condition)
         elif isinstance(action, InstantaneousAction):
-            for c in conditions.keys():
+            for c, _ in conditions:
                 action.add_precondition(c)
-            for e in effects.keys():
+            for e, _ in effects:
                 if e.kind == EffectKind.ASSIGN:
                     action.add_effect(e.fluent, e.value, e.condition)
                 elif e.kind == EffectKind.DECREASE:
