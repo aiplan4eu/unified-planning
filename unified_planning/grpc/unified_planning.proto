@@ -540,7 +540,7 @@ message ValidationResult {
         INVALID = 1;
     }
     ValidationResultStatus status = 1;
-    // Optional. Informations about why the Plan is not valid fo the Problem
+    // Optional. Information about why the Plan is not valid for the Problem
     string error_info = 2;
 }
 

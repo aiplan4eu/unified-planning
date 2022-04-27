@@ -36,5 +36,3 @@ class TestQuantifiersRemover(TestCase):
             t.get_transformed_actions(a)
         with self.assertRaises(NotImplementedError):
             t.get_rewritten_problem()
-        with self.assertRaises(AttributeError):
-            t.rewrite_back_plan(None) # type: ignore
