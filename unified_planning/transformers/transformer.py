@@ -55,8 +55,8 @@ class Transformer:
         to be a plan of the original problem.
 
         NOTE:
-        This method uses self._replace_action_instance; which MUST be rewritten if the specific Transformer extension changes
-        the action's parameters; for example a Grounder!'''
+        This method uses self._replace_action_instance; if the specific Transformer extension changes
+        the action's parameters the "self._replace_action_instance" method MUST be rewritten (for example a Grounder)!'''
         return plan.replace_action_instances(self._replace_action_instance)
 
     def _check_and_simplify_conditions(self, action: DurativeAction, simplify_constants: bool = False) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
