@@ -165,7 +165,6 @@ class TypeManager:
             return rt
 
     def UserType(self, name: str, father: Optional[Type] = None) -> Type:
-        assert name.isidentifier(), f"Invalid user type: {name}"
         if (name, father) in self._user_types:
             return self._user_types[(name, father)]
         else:

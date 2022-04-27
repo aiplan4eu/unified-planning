@@ -53,6 +53,25 @@ class TestProtobufIO(TestCase):
             f_up = self.pb_reader.convert(f_pb, problem)
             assert f == f_up
 
+    def test_fluent_3(self):
+        """Test to handle subtypes of usertypes of Fluent Expression"""
+        problem = self.problems["hierarchical_blocks_world"].problem
+
+        for f in problem.fluents:
+            f_pb = self.pb_writer.convert(f, problem)
+            f_up = self.pb_reader.convert(f_pb, problem)
+            assert f == f_up
+
+    def test_objects(self):
+        """Test to handle subtypes of usertypes of Fluent Expression"""
+        problem = self.problems["hierarchical_blocks_world"].problem
+
+        for o in problem.all_objects:
+            o_pb = self.pb_writer.convert(o)
+            o_up = self.pb_reader.convert(o_pb, problem)
+
+            assert o == o_up
+
     def test_expression(self):
         problem = Problem("test")
         ex = problem.env.expression_manager.true_expression
@@ -66,6 +85,14 @@ class TestProtobufIO(TestCase):
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem, {})
         assert ex == ex_up
+
+    def test_fluent_expressions(self):
+        problem = self.problems["hierarchical_blocks_world"].problem
+
+        problem_pb = self.pb_writer.convert(problem)
+        problem_up = self.pb_reader.convert(problem_pb, problem)
+
+        assert problem == problem_up
 
     def test_type_declaration(self):
         problem = Problem("test")
@@ -203,13 +230,7 @@ class TestProtobufProblems:
 
     @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
     def test_all_problems(self, problem_name):
-        # FIXME: Fluent Expressions are not well formed in the protobuf
-        ignored_problems = [
-            "hierarchical_blocks_world",
-            "hierarchical_blocks_world_exists",
-            "hierarchical_blocks_world_object_as_root",
-            "hierarchical_blocks_world_with_object",
-        ]
+        ignored_problems = [] # add problem name here to skip it
         if problem_name in ignored_problems:
             pytest.skip("Unsupported problem")
 

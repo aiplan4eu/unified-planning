@@ -33,23 +33,26 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.shortcuts import BoolType, IntType, RealType, UserType
 
 
-def convert_type_str(s, env):
+def convert_type_str(s, problem):
     if s == "bool":
-        return env.type_manager.BoolType()
+        return problem.env.type_manager.BoolType()
     elif s == "integer":
-        return env.type_manager.IntType()
+        return problem.env.type_manager.IntType()
     elif "integer[" in s:
         lb = int(s.split("[")[1].split(",")[0])
         ub = int(s.split(",")[1].split("]")[0])
-        return env.type_manager.IntType(lb, ub)
+        return problem.env.type_manager.IntType(lb, ub)
     elif s == "real":
-        return env.type_manager.RealType()
+        return problem.env.type_manager.RealType()
     elif "real[" in s:
         lb = float(s.split("[")[1].split(",")[0])
         ub = float(s.split(",")[1].split("]")[0])
-        return env.type_manager.RealType(lb, ub)
+        return problem.env.type_manager.RealType(lb, ub)
     else:
-        return env.type_manager.UserType(s)
+        if " - " in s:
+            return problem.user_type(s.split(" - ")[0])
+        else:
+            return problem.env.type_manager.UserType(s)
 
 
 # The operators are based on SExpressions supported in PDDL.
@@ -91,12 +94,12 @@ class ProtobufReader(Converter):
     def _convert_parameter(self, msg, problem):
         return Parameter(
             msg.name,
-            convert_type_str(msg.type, problem.env),
+            convert_type_str(msg.type, problem),
         )
 
     @handles(unified_planning_pb2.Fluent)  # type: ignore
     def _convert_fluent(self, msg, problem):
-        value_type = convert_type_str(msg.value_type, problem.env)
+        value_type = convert_type_str(msg.value_type, problem)
         sig = []
         for p in msg.parameters:
             sig.append(self.convert(p, problem))
@@ -106,7 +109,7 @@ class ProtobufReader(Converter):
     @handles(unified_planning_pb2.ObjectDeclaration)  # type: ignore
     def _convert_object(self, msg, problem):
         obj = unified_planning.model.Object(
-            msg.name, convert_type_str(msg.type, problem.env)
+            msg.name, convert_type_str(msg.type, problem)
         )
         return obj
 
@@ -119,12 +122,12 @@ class ProtobufReader(Converter):
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
             return problem.env.expression_manager.ParameterExp(
                 param=Parameter(
-                    msg.atom.symbol, convert_type_str(msg.type, problem.env)
+                    msg.atom.symbol, convert_type_str(msg.type, problem)
                 ),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("VARIABLE"):
             return problem.env.expression_manager.VariableExp(
-                var=Variable(msg.atom.symbol, convert_type_str(msg.type, problem.env)),
+                var=Variable(msg.atom.symbol, convert_type_str(msg.type, problem)),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"):
             args = []
@@ -300,7 +303,7 @@ class ProtobufReader(Converter):
 
         parameters = OrderedDict()
         for param in msg.parameters:
-            parameters[param.name] = convert_type_str(param.type, problem.env)
+            parameters[param.name] = convert_type_str(param.type, problem)
 
         if msg.HasField("duration"):
             action = DurativeAction(msg.name, parameters)

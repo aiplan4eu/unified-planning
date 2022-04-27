@@ -85,7 +85,7 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.model.Object)
     def _convert_object(self, obj):
-        return unified_planning_pb2.ObjectDeclaration(name=obj.name, type=obj.type.name)
+        return unified_planning_pb2.ObjectDeclaration(name=obj.name, type=str(obj.type))
 
     @handles(unified_planning.model.FNode)
     def _convert_fnode(self, exp):
