@@ -14,9 +14,11 @@
 
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import ANMLWriter
+import tempfile
+import os
 
 class TestPythonWriter(TestCase):
     def setUp(self):
@@ -31,7 +33,7 @@ class TestPythonWriter(TestCase):
         self.assertIn('action a() {\n', anml_problem)
         self.assertIn('   [ start ] (not x);\n', anml_problem)
         self.assertIn('   [ start ] x := true;\n', anml_problem)
-        self.assertIn('}\n', anml_problem)
+        self.assertIn('};\n', anml_problem)
         self.assertIn('[ start ] x := false;\n', anml_problem)
         self.assertIn('[ end ] x;\n', anml_problem)
         self.assertEqual(anml_problem.count('\n'), 7)
@@ -46,8 +48,8 @@ class TestPythonWriter(TestCase):
         self.assertIn('type Unmovable < Location;\n', anml_problem)
         self.assertIn('type TableSpace < Unmovable;\n', anml_problem)
         self.assertIn('type Block < Movable;\n', anml_problem)
-        self.assertIn('fluent boolean clear;\n', anml_problem)
-        self.assertIn('fluent boolean on;\n', anml_problem)
+        self.assertIn('fluent boolean clear(Location space);\n', anml_problem)
+        self.assertIn('fluent boolean on(Movable object_, Location space);\n', anml_problem)
         self.assertIn('action move(Movable item, Location l_from, Location l_to) {\n', anml_problem)
         self.assertIn('   [ start ] clear(item);\n', anml_problem)
         self.assertIn('   [ start ] clear(l_to);\n', anml_problem)
@@ -56,7 +58,7 @@ class TestPythonWriter(TestCase):
         self.assertIn('   [ start ] on(item, l_from) := false;\n', anml_problem)
         self.assertIn('   [ start ] clear(l_to) := false;\n', anml_problem)
         self.assertIn('[ start ] on(item, l_to) := true;\n', anml_problem)
-        self.assertIn('}\n', anml_problem)
+        self.assertIn('};\n', anml_problem)
         self.assertIn('instance TableSpace ts_1, ts_2, ts_3;\n', anml_problem)
         self.assertIn('instance Block block_1, block_2, block_3;\n', anml_problem)
         self.assertIn('[ start ] clear(ts_2) := true;\n', anml_problem)
@@ -93,17 +95,17 @@ class TestPythonWriter(TestCase):
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
         expected_result = '''type Location;
-fluent boolean is_at;
-constant boolean is_connected;
+fluent boolean is_at(Location position);
+constant boolean is_connected(Location location_1, Location location_2);
 action move(Location l_from, Location l_to) {
-   duration >= 6 and duration <= 6
+   duration >= 6 and duration <= 6;
    [ start, start ] is_at(l_from);
    [ start, start ] (not is_at(l_to));
    [ start, start ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))) });
    [ start, end ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))) });
    [ start + 1 ] is_at(l_from) := false;
    [ end + 5 ] is_at(l_to) := true;
-}
+};
 instance Location l1, l2, l3, l4, l5;
 [ start ] is_at(l1) := true;
 is_connected(l1, l2) := true;
@@ -147,23 +149,23 @@ is_connected(l5, l5) := false;
 type Fuse;
 fluent boolean handfree;
 fluent boolean light;
-fluent boolean match_used;
-fluent boolean fuse_mended;
+fluent boolean match_used(Match match);
+fluent boolean fuse_mended(Fuse fuse);
 action light_match(Match m) {
-   duration >= 6 and duration <= 6
+   duration >= 6 and duration <= 6;
    [ start, start ] (not match_used(m));
    [ start ] match_used(m) := true;
    [ start ] light := true;
    [ end ] light := false;
-}
+};
 action mend_fuse(Fuse f) {
-   duration >= 5 and duration <= 5
+   duration >= 5 and duration <= 5;
    [ start, start ] handfree;
    [ start, end ] light;
    [ start ] handfree := false;
    [ end ] fuse_mended(f) := true;
    [ end ] handfree := true;
-}
+};
 instance Match m1, m2, m3;
 instance Fuse f1, f2, f3;
 [ start ] light := false;
@@ -186,12 +188,12 @@ instance Fuse f1, f2, f3;
         anml_problem = aw.get_problem()
         expected_result = '''type Location;
 type Robot;
-fluent Location is_at;
+fluent Location is_at(Robot robot);
 action move(Robot robot, Location l_from, Location l_to) {
    [ start ] (is_at(robot) == l_from);
    [ start ] (not (is_at(robot) == l_to));
    [ start ] is_at(robot) := l_to;
-}
+};
 instance Location l1, l2;
 instance Robot r1, r2;
 [ start ] is_at(r1) := l2;
@@ -206,8 +208,8 @@ instance Robot r1, r2;
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
         expected_result = '''type Location;
-fluent boolean robot_at;
-fluent rational[0, 100] battery_charge;
+fluent boolean robot_at(Location position);
+fluent float [0.0, 100.0] battery_charge;
 action move(Location l_from, Location l_to) {
    [ start ] (10 <= battery_charge);
    [ start ] (not (l_from == l_to));
@@ -216,7 +218,7 @@ action move(Location l_from, Location l_to) {
    [ start ] robot_at(l_from) := false;
    [ start ] robot_at(l_to) := true;
    [ start ] battery_charge := (battery_charge - 10);
-}
+};
 instance Location l1, l2;
 [ start ] robot_at(l1) := true;
 [ start ] robot_at(l2) := false;
@@ -245,8 +247,44 @@ action variable_(when_ fluent_) {
    when [ start ] (fluent_ == predicate_)
    {[ start ] f_4ction := true;
    }
-}
+};
 instance when_ predicate_;
 [ start ] f_4ction := false;
 '''
         self.assertEqual(anml_problem, expected_result)
+
+    @skipIfSolverNotAvailable('tamer')
+    def test_with_pytamer(self):
+        import pytamer # type: ignore
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_file_name = os.path.join(tempdir, 'test_file.anml')
+            with OneshotPlanner(name='tamer') as tamer:
+                for example in self.problems.values():
+                    problem = example.problem
+                    if tamer.supports(problem.kind):
+                        aw = ANMLWriter(problem)
+                        aw.write_problem(temp_file_name)
+                        tamer_env = pytamer.tamer_env_new()
+                        pytamer_problem = pytamer.tamer_parse_anml(tamer_env, temp_file_name)
+                        tamer_actions = list(pytamer.tamer_problem_get_actions(pytamer_problem))
+                        self.assertEqual(len(tamer_actions), len(problem.actions))
+                        for ta in tamer_actions:
+                            up_act = problem.action(pytamer.tamer_action_get_name(ta))
+                            ta_params = list(pytamer.tamer_action_get_parameters(ta))
+                            self.assertEqual(len(up_act.parameters), len(ta_params))
+                        tamer_fluents_and_constants = list(pytamer.tamer_problem_get_fluents(pytamer_problem))
+                        number_of_fluents = len(tamer_fluents_and_constants)
+                        tamer_fluents_and_constants.extend(list(pytamer.tamer_problem_get_constants(pytamer_problem)))
+                        self.assertEqual(len(tamer_fluents_and_constants), len(problem.fluents))
+                        for n, tf in enumerate(tamer_fluents_and_constants):
+                            if n < number_of_fluents: # the current element is a fluent
+                                up_fluent = problem.fluent(pytamer.tamer_fluent_get_name(tf))
+                                tf_sign = list(pytamer.tamer_fluent_get_parameters(tf))
+                            else: # The current element is a constant
+                                up_fluent = problem.fluent(pytamer.tamer_constant_get_name(tf))
+                                tf_sign = list(pytamer.tamer_constant_get_parameters(tf))
+                            self.assertEqual(len(up_fluent.signature), len(tf_sign))
+                        tamer_objects = list(pytamer.tamer_problem_get_instances(pytamer_problem))
+                        for to in tamer_objects:
+                            problem.object(pytamer.tamer_instance_get_name(to))
+                        self.assertEqual(len(tamer_objects), len(problem.all_objects))

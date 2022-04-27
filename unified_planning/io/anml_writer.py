@@ -15,14 +15,13 @@
 
 
 from fractions import Fraction
-from pickle import TRUE
 import re
 import sys
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction, InstantaneousAction, Fluent, Parameter, Object
-from unified_planning.model.types import _UserType, _RealType
+from unified_planning.model.types import _UserType, _RealType, _IntType
 from typing import IO, Dict, List, Optional, cast, Union
 from io import StringIO
 
@@ -105,7 +104,7 @@ class ConverterToANMLString(walkers.DagWalker):
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
         frac = cast(Fraction, expression.constant_value())
-        return f'({frac.numerator}/{frac.denomimator})'
+        return f'({frac.numerator}/{frac.denominator})'
 
     def walk_int_constant(self, expression, args):
         assert len(args) == 0
@@ -171,7 +170,7 @@ class ANMLWriter:
             out.write(f'type {anml_type_name}')
             if cast(_UserType, t).father is None:
                 out.write(';\n')
-            else: # and cast(_UserType, t).father is not None:
+            else:
                 # For construction in the Problem, the father of a UserType is always added before the UserType itself.
                 father = cast(_UserType, t).father
                 assert father is not None
@@ -179,10 +178,12 @@ class ANMLWriter:
                 out.write(f' < {names_mapping[father]};\n')
         static_fluents = self.problem.get_static_fluents()
         for f in self.problem.fluents:
+            parameters = [f'{_get_anml_name(ap.type, names_mapping)} {_get_anml_name(ap, names_mapping)}' for ap in f.signature]
+            params_written = f'({", ".join(parameters)})' if len(parameters) > 0 else ''
             if f in static_fluents:
-                out.write(f'constant {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)};\n')
+                out.write(f'constant {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)}{params_written};\n')
             else:
-                out.write(f'fluent {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)};\n')
+                out.write(f'fluent {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)}{params_written};\n')
 
 
         converter = ConverterToANMLString(names_mapping, self.problem.env)
@@ -195,21 +196,21 @@ class ANMLWriter:
                     out.write(f'   [ start ] {converter.convert(p)};\n')
                 for e in a.effects:
                     out.write(f'   {self._convert_effect(e, converter, None, 3)}')
-                out.write('}\n')
+                out.write('};\n')
             elif isinstance(a, DurativeAction):
                 parameters = [f'{_get_anml_name(ap.type, names_mapping)} {_get_anml_name(ap, names_mapping)}' for ap in a.parameters]
                 out.write(f'action {_get_anml_name(a, names_mapping)}({", ".join(parameters)}) {{\n')
                 left_bound = ' > ' if a.duration.is_left_open() else ' >= '
                 right_bound = ' < ' if a.duration.is_right_open() else ' <= '
                 out.write(f'   duration{left_bound}{converter.convert(a.duration.lower)} and ')
-                out.write(f'duration{right_bound}{converter.convert(a.duration.upper)}\n')
+                out.write(f'duration{right_bound}{converter.convert(a.duration.upper)};\n')
                 for i, cl in a.conditions.items():
                     for c in cl:
                         out.write(f'   {self._convert_anml_interval(i)} {converter.convert(c)};\n')
                 for ti, el in a.effects.items():
                     for e in el:
                         out.write(f'   {self._convert_effect(e, converter, ti, 3)}')
-                out.write('}\n')
+                out.write('};\n')
             else:
                 raise NotImplementedError
 
@@ -265,9 +266,9 @@ class ANMLWriter:
         if effect.is_assignment():
             results.append(' := ')
         elif effect.is_increase():
-            results.append(' :+= ')
+            results.append(f' := {converter.convert(effect.fluent)} + ')
         elif effect.is_decrease():
-            results.append(' :-= ')
+            results.append(f' := {converter.convert(effect.fluent)} - ')
         else:
             raise NotImplementedError
         results.append(f'{converter.convert(effect.value)};\n')
@@ -315,12 +316,26 @@ def _get_anml_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Par
     '''Important note: This method updates the names_mapping '''
     new_name: Optional[str] = names_mapping.get(item, None)
     if new_name is None: # The type is not in the dictionary, so his name must be added
-        if isinstance(item, up.model.Type) and (item.is_int_type() or item.is_real_type()):
-            num_type = cast(_RealType, item) # Here it can be _IntType, but both are used in the same way
-            type_kind = 'integer' if num_type.is_int_type() else 'rational'
+        if isinstance(item, up.model.Type) and item.is_int_type():
+            num_type = cast(_IntType, item)
             left_bound = '(-infinity' if num_type.lower_bound is None else f'[{str(num_type.lower_bound)}'
             right_bound = 'infinity)' if num_type.upper_bound is None else f'{str(num_type.upper_bound)}]'
-            new_name = f'{type_kind}{left_bound}, {right_bound}'
+            new_name = f'integer {left_bound}, {right_bound}'
+        elif isinstance(item, up.model.Type) and item.is_real_type():
+            num_real_type = cast(_RealType, item)
+            if num_real_type.lower_bound is None:
+                left_bound = '(-infinity'
+            elif num_real_type.lower_bound.denominator == 1:
+                left_bound = f'[{str(num_real_type.lower_bound)}.0'
+            else:
+                left_bound = f'[{str(num_real_type.lower_bound)}'
+            if num_real_type.upper_bound is None:
+                right_bound = 'infinity)'
+            elif num_real_type.upper_bound.denominator == 1:
+                right_bound = f'{str(num_real_type.upper_bound)}.0]'
+            else:
+                right_bound = f'{str(num_real_type.upper_bound)}]'
+            new_name = f'float {left_bound}, {right_bound}'
         else: # We mangle the name and get a fresh one
             new_name = _get_anml_valid_name(item)
             test_name = new_name # Init values
