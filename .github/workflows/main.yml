@@ -63,6 +63,9 @@ jobs:
       - name: Run tests
         run: bash run_tests.sh
 
+      - name: Run colabs
+        run: bash test_colab.sh
+
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v1
         with:
@@ -172,7 +175,7 @@ jobs:
 
       - name: Run tests
         run: bash run_tests.sh
-  
+
   check-protobuf:
     runs-on: ubuntu-20.04
 
