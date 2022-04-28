@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# type: ignore[attr-defined]
+from typing import Tuple, Union
 import fractions
 from typing import OrderedDict
 from unified_planning.exceptions import UPException
@@ -31,7 +33,8 @@ from unified_planning.model import (
 from unified_planning.model.effect import EffectKind
 from unified_planning.model.operators import OperatorKind
 
-def convert_type_str(s, problem):
+
+def convert_type_str(s: str, problem: Problem) -> unified_planning.model.types.Type:
     if s == "bool":
         return problem.env.type_manager.BoolType()
     elif s == "integer":
@@ -43,9 +46,10 @@ def convert_type_str(s, problem):
     elif s == "real":
         return problem.env.type_manager.RealType()
     elif "real[" in s:
-        lb = fractions.Fraction(s.split("[")[1].split(",")[0])
-        ub = fractions.Fraction(s.split(",")[1].split("]")[0])
-        return problem.env.type_manager.RealType(lb, ub)
+        return problem.env.type_manager.RealType(
+            lower_bound=fractions.Fraction(s.split("[")[1].split(",")[0]),
+            upper_bound=fractions.Fraction(s.split(",")[1].split("]")[0]),
+        )
     else:
         if " - " in s:
             return problem.user_type(s.split(" - ")[0])
@@ -88,40 +92,48 @@ def op_to_node_type(op: str) -> OperatorKind:
 
 
 class ProtobufReader(Converter):
-    @handles(unified_planning_pb2.Parameter)  # type: ignore
-    def _convert_parameter(self, msg, problem):
-        return Parameter(
+    @handles(unified_planning_pb2.Parameter)
+    def _convert_parameter(
+        self, msg: unified_planning_pb2.Parameter, problem: Problem
+    ) -> unified_planning.model.Parameter:
+        return unified_planning.model.Parameter(
             msg.name,
             convert_type_str(msg.type, problem),
         )
 
-    @handles(unified_planning_pb2.Fluent)  # type: ignore
-    def _convert_fluent(self, msg, problem):
-        value_type = convert_type_str(msg.value_type, problem)
-        sig = []
+    @handles(unified_planning_pb2.Fluent)
+    def _convert_fluent(
+        self, msg: unified_planning_pb2.Fluent, problem: Problem
+    ) -> unified_planning.model.Fluent:
+        value_type: unified_planning.model.types.Type = convert_type_str(
+            msg.value_type, problem
+        )
+        sig: list = []
         for p in msg.parameters:
             sig.append(self.convert(p, problem))
         fluent = unified_planning.model.Fluent(msg.name, value_type, sig, problem.env)
         return fluent
 
-    @handles(unified_planning_pb2.ObjectDeclaration)  # type: ignore
-    def _convert_object(self, msg, problem):
+    @handles(unified_planning_pb2.ObjectDeclaration)
+    def _convert_object(
+        self, msg: unified_planning_pb2.ObjectDeclaration, problem: Problem
+    ) -> unified_planning.model.Object:
         obj = unified_planning.model.Object(
             msg.name, convert_type_str(msg.type, problem)
         )
         return obj
 
-    @handles(unified_planning_pb2.Expression)  # type: ignore
-    def _convert_expression(self, msg, problem):
+    @handles(unified_planning_pb2.Expression)
+    def _convert_expression(
+        self, msg: unified_planning_pb2.Expression, problem: Problem
+    ) -> unified_planning.model.Expression:
         if msg.kind == unified_planning_pb2.ExpressionKind.Value("CONSTANT"):
             assert msg.atom is not None
             return self.convert(msg.atom, problem)
 
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("PARAMETER"):
             return problem.env.expression_manager.ParameterExp(
-                param=Parameter(
-                    msg.atom.symbol, convert_type_str(msg.type, problem)
-                ),
+                param=Parameter(msg.atom.symbol, convert_type_str(msg.type, problem)),
             )
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value("VARIABLE"):
             return problem.env.expression_manager.VariableExp(
@@ -138,7 +150,10 @@ class ProtobufReader(Converter):
                 payload = self.convert(fluent.atom, problem)
 
             args.extend([self.convert(m, problem) for m in msg.list])
-            return problem.env.expression_manager.FluentExp(payload, tuple(args))
+            if payload is not None:
+                return problem.env.expression_manager.FluentExp(payload, tuple(args))
+            else:
+                raise UPException(f"Unable to form fluent expression {msg}")
         elif msg.kind == unified_planning_pb2.ExpressionKind.Value(
             "FUNCTION_APPLICATION"
         ):
@@ -157,10 +172,7 @@ class ProtobufReader(Converter):
                 quantified_expression = msg.list[-1]
                 args.append(self.convert(quantified_expression, problem))
                 payload = tuple(
-                    [
-                        self.convert(var, problem).variable()
-                        for var in variables
-                    ]
+                    [self.convert(var, problem).variable() for var in variables]
                 )
             else:
                 args.extend([self.convert(m, problem) for m in msg.list])
@@ -175,8 +187,14 @@ class ProtobufReader(Converter):
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
-    @handles(unified_planning_pb2.Atom)  # type: ignore
-    def _convert_atom(self, msg, problem):
+    @handles(unified_planning_pb2.Atom)
+    def _convert_atom(
+        self, msg: unified_planning_pb2.Atom, problem: Problem
+    ) -> Union[
+        unified_planning.model.FNode,
+        unified_planning.model.Fluent,
+        unified_planning.model.Object,
+    ]:
         field = msg.WhichOneof("content")
 
         value = getattr(msg, field)
@@ -198,36 +216,35 @@ class ProtobufReader(Converter):
             else:
                 return problem.fluent(value)
 
-    @handles(unified_planning_pb2.TypeDeclaration)  # type: ignore
-    def _convert_type_declaration(self, msg, problem):
+    @handles(unified_planning_pb2.TypeDeclaration)
+    def _convert_type_declaration(
+        self, msg: unified_planning_pb2.TypeDeclaration, problem: Problem
+    ) -> unified_planning.model.Type:
         if msg.type_name == "bool":
             return problem.env.type_manager.BoolType()
         elif msg.type_name.startswith("integer["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
-            lb = None
-            ub = None
-            if tmp[0] != "-inf":
-                lb = int(tmp[0])
-            elif tmp[1] != "inf":
-                ub = int(tmp[1])
-            return problem.env.type_manager.IntType(lower_bound=lb, upper_bound=ub)
+            return problem.env.type_manager.IntType(
+                lower_bound=int(tmp[0]) if tmp[0] != "-inf" else None,
+                upper_bound=int(tmp[1]) if tmp[1] != "inf" else None,
+            )
         elif msg.type_name.startswith("real["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
-            lb = None
-            ub = None
-            if tmp[0] != "-inf":
-                lb = fractions.Fraction(tmp[0])
-            elif tmp[1] != "inf":
-                ub = fractions.Fraction(tmp[1])
-            return problem.env.type_mananger.RealType(lower_bound=lb, upper_bound=ub)
+            lower_bound = fractions.Fraction(tmp[0]) if tmp[0] != "-inf" else None
+            upper_bound = fractions.Fraction(tmp[1]) if tmp[1] != "inf" else None
+            return problem.env.type_manager.RealType(
+                lower_bound=lower_bound, upper_bound=upper_bound
+            )
         else:
             parent = None
             if parent != "":
                 parent = problem.env.type_manager.UserType(msg.parent_type)
             return problem.env.type_manager.UserType(msg.type_name, parent)
 
-    @handles(unified_planning_pb2.Problem)  # type: ignore
-    def _convert_problem(self, msg, problem):
+    @handles(unified_planning_pb2.Problem)
+    def _convert_problem(
+        self, msg: unified_planning_pb2.Problem, problem: Problem
+    ) -> Problem:
         PROBLEM = Problem(name=msg.problem_name, env=problem.env)
         for obj in msg.objects:
             PROBLEM.add_object(self.convert(obj, problem))
@@ -243,7 +260,12 @@ class ProtobufReader(Converter):
         for eff in msg.timed_effects:
             ot = self.convert(eff.occurrence_time, problem)
             effect = self.convert(eff.effect, problem)
-            PROBLEM.add_timed_effect(timing=ot, fluent=effect.fluent, value=effect.value, condition=effect.condition)
+            PROBLEM.add_timed_effect(
+                timing=ot,
+                fluent=effect.fluent,
+                value=effect.value,
+                condition=effect.condition,
+            )
 
         for assign in msg.initial_state:
             PROBLEM.set_initial_value(
@@ -264,15 +286,26 @@ class ProtobufReader(Converter):
 
         return PROBLEM
 
-    @handles(unified_planning_pb2.Metric)  # type: ignore
-    def _convert_metric(self, msg, problem):
+    @handles(unified_planning_pb2.Metric)
+    def _convert_metric(
+        self, msg: unified_planning_pb2.Metric, problem: Problem
+    ) -> Union[
+        unified_planning.model.metrics.MinimizeActionCosts,
+        unified_planning.model.metrics.MinimizeSequentialPlanLength,
+        unified_planning.model.metrics.MinimizeMakespan,
+        unified_planning.model.metrics.MinimizeExpressionOnFinalState,
+        unified_planning.model.metrics.MaximizeExpressionOnFinalState,
+    ]:
         if msg.kind == unified_planning_pb2.Metric.MINIMIZE_ACTION_COSTS:
             costs = {}
             for a, cost in msg.action_costs.items():
                 costs[problem.action(a)] = self.convert(cost, problem)
             return unified_planning.model.metrics.MinimizeActionCosts(
                 costs=costs,
-                default=self.convert(msg.default_action_cost, problem) if msg.HasField("default_action_cost") else None)
+                default=self.convert(msg.default_action_cost, problem)
+                if msg.HasField("default_action_cost")
+                else None,
+            )
 
         elif msg.kind == unified_planning_pb2.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH:
             return unified_planning.model.metrics.MinimizeSequentialPlanLength()
@@ -292,8 +325,10 @@ class ProtobufReader(Converter):
         else:
             raise UPException(f"Unknown metric kind `{msg.kind}`")
 
-    @handles(unified_planning_pb2.Action)  # type: ignore
-    def _convert_action(self, msg, problem):
+    @handles(unified_planning_pb2.Action)
+    def _convert_action(
+        self, msg: unified_planning_pb2.Action, problem: Problem
+    ) -> unified_planning.model.Action:
         action: unified_planning.model.Action
 
         parameters = OrderedDict()
@@ -345,8 +380,10 @@ class ProtobufReader(Converter):
 
         return action
 
-    @handles(unified_planning_pb2.EffectExpression)  # type: ignore
-    def _convert_effect(self, msg, problem):
+    @handles(unified_planning_pb2.EffectExpression)
+    def _convert_effect(
+        self, msg: unified_planning_pb2.EffectExpression, problem: Problem
+    ) -> unified_planning.model.Effect:
         # EffectKind
         if msg.kind == unified_planning_pb2.EffectExpression.EffectKind.Value(
             "INCREASE"
@@ -366,8 +403,10 @@ class ProtobufReader(Converter):
             kind=kind,
         )
 
-    @handles(unified_planning_pb2.Duration)  # type: ignore
-    def _convert_duration(self, msg, problem):
+    @handles(unified_planning_pb2.Duration)
+    def _convert_duration(
+        self, msg: unified_planning_pb2.Duration, problem: Problem
+    ) -> unified_planning.model.timing.DurationInterval:
         return unified_planning.model.timing.DurationInterval(
             lower=self.convert(msg.controllable_in_bounds.lower, problem),
             upper=self.convert(msg.controllable_in_bounds.upper, problem),
@@ -375,8 +414,10 @@ class ProtobufReader(Converter):
             is_right_open=bool(msg.controllable_in_bounds.is_right_open),
         )
 
-    @handles(unified_planning_pb2.TimeInterval)  # type: ignore
-    def _convert_timed_interval(self, msg):
+    @handles(unified_planning_pb2.TimeInterval)
+    def _convert_timed_interval(
+        self, msg: unified_planning_pb2.TimeInterval
+    ) -> unified_planning.model.TimeInterval:
         return unified_planning.model.TimeInterval(
             lower=self.convert(msg.lower),
             upper=self.convert(msg.upper),
@@ -384,8 +425,10 @@ class ProtobufReader(Converter):
             is_right_open=msg.is_right_open,
         )
 
-    @handles(unified_planning_pb2.Timing)  # type: ignore
-    def _convert_timing(self, msg):
+    @handles(unified_planning_pb2.Timing)
+    def _convert_timing(
+        self, msg: unified_planning_pb2.Timing
+    ) -> unified_planning.model.timing.Timing:
         return unified_planning.model.Timing(
             delay=self.convert(msg.delay)
             if msg.HasField("delay")
@@ -394,11 +437,13 @@ class ProtobufReader(Converter):
         )
 
     @handles(unified_planning_pb2.Real)
-    def _convert_real(self, msg):
+    def _convert_real(self, msg: unified_planning_pb2.Real) -> fractions.Fraction:
         return fractions.Fraction(msg.numerator, msg.denominator)
 
-    @handles(unified_planning_pb2.Timepoint)  # type: ignore
-    def _convert_timepoint(self, msg):
+    @handles(unified_planning_pb2.Timepoint)
+    def _convert_timepoint(
+        self, msg: unified_planning_pb2.Timepoint
+    ) -> unified_planning.model.timing.Timepoint:
         if msg.kind == unified_planning_pb2.Timepoint.TimepointKind.Value(
             "GLOBAL_START"
         ):
@@ -422,8 +467,10 @@ class ProtobufReader(Converter):
         else:
             raise UPException("Unknown timepoint kind: {}".format(msg.kind))
 
-    @handles(unified_planning_pb2.Plan)  # type: ignore
-    def _convert_plan(self, msg, problem):
+    @handles(unified_planning_pb2.Plan)
+    def _convert_plan(
+        self, msg: unified_planning_pb2.Plan, problem: Problem
+    ) -> unified_planning.plan.Plan:
         actions = [self.convert(a, problem) for a in msg.actions]
         if all(isinstance(a, tuple) for a in actions):
             # If all actions are tuples, we can assume that they are
@@ -433,8 +480,17 @@ class ProtobufReader(Converter):
             # Otherwise, we assume they are instantenous actions
             return unified_planning.plan.SequentialPlan(actions=actions)
 
-    @handles(unified_planning_pb2.ActionInstance)  # type: ignore
-    def _convert_action_instance(self, msg, problem):
+    @handles(unified_planning_pb2.ActionInstance)
+    def _convert_action_instance(
+        self, msg: unified_planning_pb2.ActionInstance, problem: Problem
+    ) -> Union[
+        Tuple[
+            unified_planning.model.timing.Timing,
+            unified_planning.plan.ActionInstance,
+            unified_planning.model.timing.Duration,
+        ],
+        unified_planning.plan.ActionInstance,
+    ]:
         # action instance paramaters are atoms but in UP they are FNodes
         # converting to up.model.FNode
         parameters = tuple([self.convert(param, problem) for param in msg.parameters])
@@ -457,8 +513,10 @@ class ProtobufReader(Converter):
         else:
             return action_instance
 
-    @handles(unified_planning_pb2.PlanGenerationResult)  # type: ignore
-    def _convert_plan_generation_result(self, result, problem):
+    @handles(unified_planning_pb2.PlanGenerationResult)
+    def _convert_plan_generation_result(
+        self, result: unified_planning_pb2.PlanGenerationResult, problem: Problem
+    ) -> unified_planning.solvers.PlanGenerationResult:
         if result.status == unified_planning_pb2.PlanGenerationResult.Status.Value(
             "SOLVED_SATISFICING"
         ):
@@ -515,8 +573,10 @@ class ProtobufReader(Converter):
             # log_messages=[self.convert(log) for log in result.logs],
         )
 
-    @handles(unified_planning_pb2.LogMessage)  # type: ignore
-    def _convert_log_message(self, log):
+    @handles(unified_planning_pb2.LogMessage)
+    def _convert_log_message(
+        self, log: unified_planning_pb2.LogMessage
+    ) -> unified_planning.solvers.LogMessage:
         if log.level == unified_planning_pb2.LogMessage.LogLevel.Value("INFO"):
             return unified_planning.solvers.LogMessage(
                 level=unified_planning.solvers.LogLevel.INFO,
@@ -537,3 +597,5 @@ class ProtobufReader(Converter):
                 level=unified_planning.solvers.LogLevel.DEBUG,
                 message=log.message,
             )
+        else:
+            raise UPException(f"Unexpected Log Level: {log.level}")

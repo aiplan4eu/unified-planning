@@ -14,8 +14,8 @@
 
 import pytest
 import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
-from unified_planning.grpc.proto_reader import ProtobufReader
-from unified_planning.grpc.proto_writer import ProtobufWriter
+from unified_planning.grpc.proto_reader import ProtobufReader # type: ignore[attr-defined]
+from unified_planning.grpc.proto_writer import ProtobufWriter # type: ignore[attr-defined]
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.solvers import LogMessage
