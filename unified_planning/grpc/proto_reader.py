@@ -269,10 +269,10 @@ class ProtobufReader(Converter):
         if msg.kind == unified_planning_pb2.Metric.MINIMIZE_ACTION_COSTS:
             costs = {}
             for a, cost in msg.action_costs.items():
-                costs.update(
-                    {problem.action(a): self.convert(cost, problem)}
-                )
-            return unified_planning.model.metrics.MinimizeActionCosts(costs=costs)
+                costs[problem.action(a)] = self.convert(cost, problem)
+            return unified_planning.model.metrics.MinimizeActionCosts(
+                costs=costs,
+                default=self.convert(msg.default_action_cost, problem) if msg.HasField("default_action_cost") else None)
 
         elif msg.kind == unified_planning_pb2.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH:
             return unified_planning.model.metrics.MinimizeSequentialPlanLength()

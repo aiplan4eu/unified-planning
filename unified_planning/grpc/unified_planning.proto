@@ -326,11 +326,12 @@ message Metric {
 
     // If `kind == MINIMIZE_ACTION_COSTS``, then each action is associated to a cost expression.
     // 
-    // TODO: Document what is allowed in the expression. 
+    // TODO: Document what is allowed in the expression. See issue #134
     // In particular, for this metric to be useful in many practical problems, the cost expression
     // should allow referring to the action parameters (and possibly the current state at the action start/end).
     // This is very awkward to do in this setting where the expression is detached from its scope.
     map<string, Expression> action_costs = 3;
+    Expression default_action_cost = 4;
 }
 
 message Problem {

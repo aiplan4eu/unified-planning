@@ -362,12 +362,12 @@ class ProtobufWriter(Converter):
     def _convert_minimize_action_costs(self, metric):
         action_costs = {}
         for action, cost in metric.costs.items():
-            # TODO: Add default cost
             action_costs[action.name] = self.convert(cost)
 
         return unified_planning_pb2.Metric(
             kind=unified_planning_pb2.Metric.MINIMIZE_ACTION_COSTS,
             action_costs=action_costs,
+            default_action_cost=self.convert(metric.default) if metric.default is not None else None
         )
 
     @handles(unified_planning.model.metrics.MinimizeSequentialPlanLength)
