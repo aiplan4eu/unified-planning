@@ -42,7 +42,7 @@ class Problem:
         self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._goals: List['up.model.fnode.FNode'] = list()
         self._metrics: List['up.model.metrics.PlanQualityMetric'] = []
-        # The field initial default optionally associates a non-user type to a default value. When a new fluent is
+        # The field initial default optionally associates a type to a default value. When a new fluent is
         # created with no explicit default, it will be associated with the initial-default of his type, if any.
         self._initial_defaults: Dict['up.model.types.Type', 'up.model.fnode.FNode'] = {}
         for k, v in initial_defaults.items():
@@ -73,11 +73,7 @@ class Problem:
         for f in self._fluents:
             if f in self._fluents_defaults:
                 v = self._fluents_defaults[f]
-            elif f.type in self._initial_defaults:
-                v = self._initial_defaults[f.type]
-            else:
-                continue
-            s.append(f'  {str(f)} := {str(v)}\n')
+                s.append(f'  {str(f)} := {str(v)}\n')
         s.append(']\n\n')
         s.append('initial values = [\n')
         for k, v in self._initial_value.items():
