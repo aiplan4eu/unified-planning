@@ -77,13 +77,13 @@ class TestProtobufIO(TestCase):
         ex = problem.env.expression_manager.true_expression
 
         ex_pb = self.pb_writer.convert(ex)
-        ex_up = self.pb_reader.convert(ex_pb, problem, {})
+        ex_up = self.pb_reader.convert(ex_pb, problem)
         assert ex == ex_up
 
         ex = problem.env.expression_manager.Int(10)
 
         ex_pb = self.pb_writer.convert(ex)
-        ex_up = self.pb_reader.convert(ex_pb, problem, {})
+        ex_up = self.pb_reader.convert(ex_pb, problem)
         assert ex == ex_up
 
     def test_fluent_expressions(self):
@@ -98,12 +98,12 @@ class TestProtobufIO(TestCase):
         problem = Problem("test")
         ex = BoolType()
         ex_pb = self.pb_writer.convert(ex)
-        ex_up = self.pb_reader.convert(ex_pb)
+        ex_up = self.pb_reader.convert(ex_pb, problem)
         assert ex == ex_up
 
         ex = UserType("location", UserType("object"))
         ex_pb = self.pb_writer.convert(ex)
-        ex_up = self.pb_reader.convert(ex_pb)
+        ex_up = self.pb_reader.convert(ex_pb, problem)
         assert ex == ex_up
 
     def test_object_declaration(self):
@@ -190,7 +190,7 @@ class TestProtobufIO(TestCase):
 
         for metric in problem.quality_metrics:
             metric_pb = self.pb_writer.convert(metric)
-            metric_up = self.pb_reader.convert(metric_pb, problem, [])
+            metric_up = self.pb_reader.convert(metric_pb, problem)
 
             assert str(metric) == str(metric_up)
 

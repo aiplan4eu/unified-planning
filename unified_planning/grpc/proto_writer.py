@@ -450,7 +450,7 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.solvers.PlanGenerationResult)
     def _convert_plan_generation_result(self, result):
-        # FIXME: Logs and metrics are not supported yet
+        # TODO: Extend the protobuf convertors to handle metrics and logs in results
         return unified_planning_pb2.PlanGenerationResult(
             status=self.convert(result.status),
             plan=self.convert(result.plan),
