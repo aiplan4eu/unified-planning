@@ -42,6 +42,8 @@ class Problem:
         self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._goals: List['up.model.fnode.FNode'] = list()
         self._metrics: List['up.model.metrics.PlanQualityMetric'] = []
+        # The field initial default optionally associates a type to a default value. When a new fluent is
+        # created with no explicit default, it will be associated with the initial-default of his type, if any.
         self._initial_defaults: Dict['up.model.types.Type', 'up.model.fnode.FNode'] = {}
         for k, v in initial_defaults.items():
             v_exp, = self._env.expression_manager.auto_promote(v)
@@ -71,11 +73,7 @@ class Problem:
         for f in self._fluents:
             if f in self._fluents_defaults:
                 v = self._fluents_defaults[f]
-            elif f.type in self._initial_defaults:
-                v = self._initial_defaults[f.type]
-            else:
-                continue
-            s.append(f'  {str(f)} := {str(v)}\n')
+                s.append(f'  {str(f)} := {str(v)}\n')
         s.append(']\n\n')
         s.append('initial values = [\n')
         for k, v in self._initial_value.items():
@@ -238,6 +236,8 @@ class Problem:
         if not default_initial_value is None:
             v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
+        elif fluent.type in self._initial_defaults:
+            self._fluents_defaults[fluent] = self._initial_defaults[fluent.type]
         if fluent.type.is_user_type() and fluent.type not in self._user_types:
             self._add_user_type(fluent.type)
         for param in fluent.signature:
@@ -453,8 +453,6 @@ class Problem:
             return self._initial_value[fluent_exp]
         elif fluent_exp.fluent() in self._fluents_defaults:
             return self._fluents_defaults[fluent_exp.fluent()]
-        elif fluent_exp.fluent().type in self._initial_defaults:
-            return self._initial_defaults[fluent_exp.fluent().type]
         else:
             raise UPProblemDefinitionError('Initial value not set!')
 
