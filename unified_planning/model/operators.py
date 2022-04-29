@@ -27,6 +27,7 @@ class OperatorKind(Enum):
     PARAM_EXP = auto()
     VARIABLE_EXP = auto()
     OBJECT_EXP = auto()
+    TIMING_EXP = auto()
     BOOL_CONSTANT = auto()
     INT_CONSTANT = auto()
     REAL_CONSTANT = auto()

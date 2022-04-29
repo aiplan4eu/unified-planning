@@ -66,6 +66,8 @@ class FNode(object):
             return self.variable().name
         elif self.is_object_exp():
             return self.object().name
+        elif self.is_timing_exp():
+            return str(self.timing())
         elif self.is_and():
             return self.get_nary_expression_string(' and ', self.args)
         elif self.is_or():
@@ -168,6 +170,11 @@ class FNode(object):
         assert self.is_object_exp()
         return self._content.payload
 
+    def timing(self) -> 'unified_planning.model.timing.Timing':
+        """Return the object of the ObjectExp."""
+        assert self.is_timing_exp()
+        return self._content.payload
+
     def is_bool_constant(self) -> bool:
         """Test whether the expression is a boolean constant."""
         return self.node_type == OperatorKind.BOOL_CONSTANT
@@ -231,6 +238,10 @@ class FNode(object):
     def is_object_exp(self) -> bool:
         """Test whether the node is an action object."""
         return self.node_type == OperatorKind.OBJECT_EXP
+
+    def is_timing_exp(self) -> bool:
+        """Test whether the node is an action object."""
+        return self.node_type == OperatorKind.TIMING_EXP
 
     def is_plus(self) -> bool:
         """Test whether the node is the Plus operator."""

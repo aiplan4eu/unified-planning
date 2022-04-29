@@ -28,27 +28,37 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    def __init__(self, kind: TimepointKind):
+    def __init__(self, kind: TimepointKind, container=None):
         self._kind = kind
+        self._container = container
 
     def __repr__(self):
         if self._kind == TimepointKind.GLOBAL_START or self._kind == TimepointKind.START:
-            return 'start'
+            qualifier = 'start'
         else:
-            return 'end'
+            qualifier = 'end'
+        if self._container is None:
+            return qualifier
+        else:
+            return f'{qualifier}({self._container.identifier})'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Timepoint):
-            return self._kind == oth._kind
+            return self._kind == oth._kind and self._container == oth._container
         else:
             return False
 
     def __hash__(self) -> int:
-        return hash(self._kind)
+        return hash(self._kind) + hash(self._container)
 
     @property
     def kind(self) -> TimepointKind:
         return self._kind
+
+    @property
+    def container(self):
+        """Returns a subtask or None"""
+        return self._container
 
 
 class Timing:
