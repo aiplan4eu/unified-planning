@@ -15,7 +15,7 @@
 # type: ignore[valid-type]
 import fractions
 
-import unified_planning.grpc.generated.unified_planning_pb2 as unified_planning_pb2
+import unified_planning.grpc.generated.unified_planning_pb2 as proto
 import unified_planning.model
 import unified_planning.plan
 from unified_planning import model
@@ -63,21 +63,19 @@ def map_operator(op: int) -> str:
     raise ValueError(f"Unknown operator `{op}`")
 
 
-def map_feature(feature: str) -> unified_planning_pb2.Feature:
-    pb_feature = unified_planning_pb2.Feature.Value(feature)
+def map_feature(feature: str) -> proto.Feature:
+    pb_feature = proto.Feature.Value(feature)
     if pb_feature is None:
         raise ValueError(f"Cannot convert feature to protobuf {feature}")
     return pb_feature
 
 
 class ProtobufWriter(Converter):
-    @handles(unified_planning.model.Fluent)
-    def _convert_fluent(
-        self, fluent: unified_planning.model.Fluent, problem: model.Problem
-    ) -> unified_planning_pb2.Fluent:
+    @handles(model.Fluent)
+    def _convert_fluent(self, fluent: model.Fluent, problem: model.Problem) -> proto.Fluent:
         name = fluent.name
         sig = [self.convert(t) for t in fluent.signature]
-        return unified_planning_pb2.Fluent(
+        return proto.Fluent(
             name=name,
             value_type=str(fluent.type),
             parameters=sig,
@@ -86,79 +84,75 @@ class ProtobufWriter(Converter):
             else None,
         )
 
-    @handles(unified_planning.model.Object)
-    def _convert_object(
-        self, obj: unified_planning.model.Object
-    ) -> unified_planning_pb2.ObjectDeclaration:
-        return unified_planning_pb2.ObjectDeclaration(name=obj.name, type=str(obj.type))
+    @handles(model.Object)
+    def _convert_object(self, obj: model.Object) -> proto.ObjectDeclaration:
+        return proto.ObjectDeclaration(name=obj.name, type=str(obj.type))
 
-    @handles(unified_planning.model.FNode)
-    def _convert_fnode(
-        self, exp: unified_planning.model.FNode
-    ) -> unified_planning_pb2.Expression:
+    @handles(model.FNode)
+    def _convert_fnode(self, exp: model.FNode) -> proto.Expression:
         node_type = exp._content.node_type
         args = exp._content.args
         payload = exp._content.payload
 
         if node_type == OperatorKind.BOOL_CONSTANT:
-            return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(boolean=payload),
+            return proto.Expression(
+                atom=proto.Atom(boolean=payload),
                 list=[],
-                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                kind=proto.ExpressionKind.Value("CONSTANT"),
                 type="bool",
             )
 
         elif node_type == OperatorKind.INT_CONSTANT:
-            return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(int=payload),
+            return proto.Expression(
+                atom=proto.Atom(int=payload),
                 list=[],
-                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                kind=proto.ExpressionKind.Value("CONSTANT"),
                 type="integer",
             )
         elif node_type == OperatorKind.REAL_CONSTANT:
-            return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(real=self._convert_to_real(payload)),
+            return proto.Expression(
+                atom=proto.Atom(real=self._convert_to_real(payload)),
                 list=[],
-                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                kind=proto.ExpressionKind.Value("CONSTANT"),
                 type="real",
             )
         elif node_type == OperatorKind.OBJECT_EXP:
-            return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(symbol=payload.name),
+            return proto.Expression(
+                atom=proto.Atom(symbol=payload.name),
                 list=[],
-                kind=unified_planning_pb2.ExpressionKind.Value("CONSTANT"),
+                kind=proto.ExpressionKind.Value("CONSTANT"),
                 type=str(payload.type),
             )
         elif node_type == OperatorKind.PARAM_EXP:
-            return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(symbol=payload.name),
+            return proto.Expression(
+                atom=proto.Atom(symbol=payload.name),
                 list=[],
-                kind=unified_planning_pb2.ExpressionKind.Value("PARAMETER"),
+                kind=proto.ExpressionKind.Value("PARAMETER"),
                 type=str(payload.type),
             )
         elif node_type == OperatorKind.FLUENT_EXP:
             sub_list = []
             sub_list.append(
-                unified_planning_pb2.Expression(
-                    atom=unified_planning_pb2.Atom(symbol=payload.name),
-                    kind=unified_planning_pb2.ExpressionKind.Value("FLUENT_SYMBOL"),
+                proto.Expression(
+                    atom=proto.Atom(symbol=payload.name),
+                    kind=proto.ExpressionKind.Value("FLUENT_SYMBOL"),
                     type=str(payload.type),
                 )
             )
             sub_list.extend([self.convert(a) for a in args])
-            return unified_planning_pb2.Expression(
+            return proto.Expression(
                 atom=None,
                 list=sub_list,
-                kind=unified_planning_pb2.ExpressionKind.Value("STATE_VARIABLE"),
+                kind=proto.ExpressionKind.Value("STATE_VARIABLE"),
                 type=str(payload.type),
             )
         elif node_type in RELATIONS | BOOL_OPERATORS | IRA_OPERATORS:
             sub_list = []
             sub_list.append(
-                unified_planning_pb2.Expression(
-                    atom=unified_planning_pb2.Atom(symbol=map_operator(exp.node_type)),
+                proto.Expression(
+                    atom=proto.Atom(symbol=map_operator(exp.node_type)),
                     list=[],
-                    kind=unified_planning_pb2.ExpressionKind.Value("FUNCTION_SYMBOL"),
+                    kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
                     type="",
                 )
             )
@@ -167,79 +161,67 @@ class ProtobufWriter(Converter):
                 sub_list.extend([self.convert(p) for p in payload])
 
             sub_list.extend([self.convert(a) for a in args])
-            return unified_planning_pb2.Expression(
+            return proto.Expression(
                 atom=None,
                 list=sub_list,
-                kind=unified_planning_pb2.ExpressionKind.Value("FUNCTION_APPLICATION"),
+                kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
                 type="",
             )
         elif node_type == OperatorKind.VARIABLE_EXP:
-            return unified_planning_pb2.Expression(
-                atom=unified_planning_pb2.Atom(symbol=payload.name),
+            return proto.Expression(
+                atom=proto.Atom(symbol=payload.name),
                 list=[],
-                kind=unified_planning_pb2.ExpressionKind.Value("VARIABLE"),
+                kind=proto.ExpressionKind.Value("VARIABLE"),
                 type=str(payload.type),
             )
 
         raise ValueError(f"Unable to handle expression of type {node_type}: {exp}")
 
-    @handles(unified_planning.model.types._BoolType)
-    def _convert_bool_type(
-        self, t: unified_planning.model.types._BoolType
-    ) -> unified_planning_pb2.TypeDeclaration:
-        return unified_planning_pb2.TypeDeclaration(type_name="bool")
+    @handles(model.types._BoolType)
+    def _convert_bool_type(self, _: model.types._BoolType) -> proto.TypeDeclaration:
+        return proto.TypeDeclaration(type_name="bool")
 
-    @handles(unified_planning.model.types._UserType)
-    def _convert_user_type(
-        self, t: unified_planning.model.types._UserType
-    ) -> unified_planning_pb2.TypeDeclaration:
-        return unified_planning_pb2.TypeDeclaration(
+    @handles(model.types._UserType)
+    def _convert_user_type(self, t: model.types._UserType) -> proto.TypeDeclaration:
+        return proto.TypeDeclaration(
             type_name=t.name, parent_type=str(t.father)
         )
 
-    @handles(unified_planning.model.types._IntType)
-    def _convert_integer_type(
-        self, t: unified_planning.model.types._IntType
-    ) -> unified_planning_pb2.TypeDeclaration:
-        return unified_planning_pb2.TypeDeclaration(type_name=str(t))
+    @handles(model.types._IntType)
+    def _convert_integer_type(self, t: model.types._IntType) -> proto.TypeDeclaration:
+        return proto.TypeDeclaration(type_name=str(t))
 
-    @handles(unified_planning.model.types._RealType)
-    def _convert_real(
-        self, t: unified_planning.model.types._RealType
-    ) -> unified_planning_pb2.TypeDeclaration:
-        return unified_planning_pb2.TypeDeclaration(type_name=str(t))
+    @handles(model.types._RealType)
+    def _convert_real(self, t: model.types._RealType) -> proto.TypeDeclaration:
+        return proto.TypeDeclaration(type_name=str(t))
 
-    @handles(unified_planning.model.Effect)
-    def _convert_effect(
-        self, effect: unified_planning.model.Effect
-    ) -> unified_planning_pb2.Effect:
+    @handles(model.Effect)
+    def _convert_effect(self, effect: model.Effect) -> proto.Effect:
         kind = None
         if effect.is_assignment():
-            kind = unified_planning_pb2.EffectExpression.EffectKind.Value("ASSIGN")
+            kind = proto.EffectExpression.EffectKind.Value("ASSIGN")
         elif effect.is_increase():
-            kind = unified_planning_pb2.EffectExpression.EffectKind.Value("INCREASE")
+            kind = proto.EffectExpression.EffectKind.Value("INCREASE")
         elif effect.is_decrease():
-            kind = unified_planning_pb2.EffectExpression.EffectKind.Value("DECREASE")
+            kind = proto.EffectExpression.EffectKind.Value("DECREASE")
         else:
             raise ValueError(f"Unsupported effect: {effect}")
 
-        return unified_planning_pb2.EffectExpression(
+        return proto.EffectExpression(
             kind=kind,
             fluent=self.convert(effect.fluent),
             value=self.convert(effect.value),
             condition=self.convert(effect.condition),
         )
 
-    @handles(unified_planning.model.InstantaneousAction)
-    def _convert_instantaneous_action(
-        self, a: unified_planning.model.InstantaneousAction
-    ) -> unified_planning_pb2.Action:
+    @handles(model.InstantaneousAction)
+    def _convert_instantaneous_action(self, a: model.InstantaneousAction) -> proto.Action:
         effects = []
         conditions = []
 
         for cond in a.preconditions:
             conditions.append(
-                unified_planning_pb2.Condition(
+                proto.Condition(
                     cond=self.convert(cond),
                     span=None,
                 )
@@ -247,12 +229,12 @@ class ProtobufWriter(Converter):
 
         for eff in a.effects:
             effects.append(
-                unified_planning_pb2.Effect(
+                proto.Effect(
                     effect=self.convert(eff), occurrence_time=None
                 )
             )
 
-        return unified_planning_pb2.Action(
+        return proto.Action(
             name=a.name,
             parameters=[self.convert(p) for p in a.parameters],
             duration=None,
@@ -260,10 +242,8 @@ class ProtobufWriter(Converter):
             effects=effects,
         )
 
-    @handles(unified_planning.model.DurativeAction)
-    def _convert_durative_action(
-        self, a: unified_planning.model.DurativeAction
-    ) -> unified_planning_pb2.Action:
+    @handles(model.DurativeAction)
+    def _convert_durative_action(self, a: model.DurativeAction) -> proto.Action:
         effects = []
         conditions = []
 
@@ -271,7 +251,7 @@ class ProtobufWriter(Converter):
             span = self.convert(span)
             for c in cond:
                 conditions.append(
-                    unified_planning_pb2.Condition(
+                    proto.Condition(
                         cond=self.convert(c),
                         span=span,
                     )
@@ -280,13 +260,13 @@ class ProtobufWriter(Converter):
             ot = self.convert(ot)
             for e in eff:
                 effects.append(
-                    unified_planning_pb2.Effect(
+                    proto.Effect(
                         effect=self.convert(e),
                         occurrence_time=ot,
                     )
                 )
 
-        return unified_planning_pb2.Action(
+        return proto.Action(
             name=a.name,
             parameters=[self.convert(p) for p in a.parameters],
             duration=self.convert(a.duration),
@@ -294,25 +274,21 @@ class ProtobufWriter(Converter):
             effects=effects,
         )
 
-    @handles(unified_planning.model.timing.Timepoint)
-    def _convert_timepoint(
-        self, tp: unified_planning.model.timing.Timepoint
-    ) -> unified_planning_pb2.Timepoint:
+    @handles(model.timing.Timepoint)
+    def _convert_timepoint(self, tp: model.timing.Timepoint) -> proto.Timepoint:
         if tp.kind == TimepointKind.START:
-            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("START")
+            kind = proto.Timepoint.TimepointKind.Value("START")
         elif tp.kind == TimepointKind.END:
-            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("END")
+            kind = proto.Timepoint.TimepointKind.Value("END")
         elif tp.kind == TimepointKind.GLOBAL_START:
-            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("GLOBAL_START")
+            kind = proto.Timepoint.TimepointKind.Value("GLOBAL_START")
         elif tp.kind == TimepointKind.GLOBAL_END:
-            kind = unified_planning_pb2.Timepoint.TimepointKind.Value("GLOBAL_END")
-        return unified_planning_pb2.Timepoint(kind=kind)
+            kind = proto.Timepoint.TimepointKind.Value("GLOBAL_END")
+        return proto.Timepoint(kind=kind)
 
-    @handles(unified_planning.model.Timing)
-    def _convert_timing(
-        self, timing: unified_planning.model.Timing
-    ) -> unified_planning_pb2.Timing:
-        return unified_planning_pb2.Timing(
+    @handles(model.Timing)
+    def _convert_timing(self, timing: model.Timing) -> proto.Timing:
+        return proto.Timing(
             timepoint=self.convert(timing._timepoint),
             delay=self._convert_to_real(timing.delay),
         )
@@ -322,38 +298,32 @@ class ProtobufWriter(Converter):
 
     @handles(fractions.Fraction)
     def _convert_fraction(self, fraction: fractions.Fraction) -> float:
-        return unified_planning_pb2.Real(
+        return proto.Real(
             numerator=fraction.numerator, denominator=fraction.denominator
         )
 
-    @handles(unified_planning.model.timing.Interval)
-    def _convert_interval(
-        self, interval: unified_planning.model.timing.Interval
-    ) -> unified_planning_pb2.Interval:
-        return unified_planning_pb2.Interval(
+    @handles(model.timing.Interval)
+    def _convert_interval(self, interval: model.timing.Interval) -> proto.Interval:
+        return proto.Interval(
             is_left_open=interval.is_left_open(),
             lower=self.convert(interval.lower()),
             is_right_open=interval.is_right_open(),
             upper=self.convert(interval.lower()),
         )
 
-    @handles(unified_planning.model.TimeInterval)
-    def _convert_time_interval(
-        self, interval: unified_planning.model.TimeInterval
-    ) -> unified_planning_pb2.TimeInterval:
-        return unified_planning_pb2.TimeInterval(
+    @handles(model.TimeInterval)
+    def _convert_time_interval(self, interval: model.TimeInterval) -> proto.TimeInterval:
+        return proto.TimeInterval(
             is_left_open=interval.is_left_open(),
             lower=self.convert(interval.lower),
             is_right_open=interval.is_right_open(),
             upper=self.convert(interval.upper),
         )
 
-    @handles(unified_planning.model.DurationInterval)
-    def _convert_duration_interval(
-        self, interval: unified_planning.model.DurationInterval
-    ) -> unified_planning_pb2.Interval:
-        return unified_planning_pb2.Duration(
-            controllable_in_bounds=unified_planning_pb2.Interval(
+    @handles(model.DurationInterval)
+    def _convert_duration_interval(self, interval: model.DurationInterval) -> proto.Interval:
+        return proto.Duration(
+            controllable_in_bounds=proto.Interval(
                 is_left_open=interval.is_left_open(),
                 lower=self.convert(interval.lower),
                 is_right_open=interval.is_right_open(),
@@ -361,18 +331,16 @@ class ProtobufWriter(Converter):
             )
         )
 
-    @handles(unified_planning.model.Problem)
-    def _convert_problem(
-        self, problem: unified_planning.model.Problem
-    ) -> unified_planning_pb2.Problem:
-        goals = [unified_planning_pb2.Goal(goal=self.convert(g)) for g in problem.goals]
+    @handles(model.Problem)
+    def _convert_problem(self, problem: model.Problem) -> proto.Problem:
+        goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
         for (t, gs) in problem.timed_goals:
             goals += [
-                unified_planning_pb2.Goal(goal=self.convert(g), timing=self.convert(t))
+                proto.Goal(goal=self.convert(g), timing=self.convert(t))
                 for g in gs
             ]
 
-        return unified_planning_pb2.Problem(
+        return proto.Problem(
             domain_name=str(problem.name + "_domain"),
             problem_name=problem.name,
             types=[self.convert(t) for t in problem.user_types],
@@ -380,7 +348,7 @@ class ProtobufWriter(Converter):
             objects=[self.convert(o) for o in problem.all_objects],
             actions=[self.convert(a) for a in problem.actions],
             initial_state=[
-                unified_planning_pb2.Assignment(
+                proto.Assignment(
                     fluent=self.convert(x), value=self.convert(v)
                 )
                 for (x, v) in problem.initial_values.items()
@@ -391,82 +359,68 @@ class ProtobufWriter(Converter):
             metrics=[self.convert(m) for m in problem.quality_metrics],
         )
 
-    @handles(unified_planning.model.metrics.MinimizeActionCosts)
-    def _convert_minimize_action_costs(
-        self, metric: unified_planning.model.metrics.MinimizeActionCosts
-    ) -> unified_planning_pb2.Metric:
+    @handles(model.metrics.MinimizeActionCosts)
+    def _convert_minimize_action_costs(self, metric: model.metrics.MinimizeActionCosts) -> proto.Metric:
         action_costs = {}
         for action, cost in metric.costs.items():
             action_costs[action.name] = self.convert(cost)
 
-        return unified_planning_pb2.Metric(
-            kind=unified_planning_pb2.Metric.MINIMIZE_ACTION_COSTS,
+        return proto.Metric(
+            kind=proto.Metric.MINIMIZE_ACTION_COSTS,
             action_costs=action_costs,
             default_action_cost=self.convert(metric.default)
             if metric.default is not None
             else None,
         )
 
-    @handles(unified_planning.model.metrics.MinimizeSequentialPlanLength)
-    def _convert_minimize_sequential_plan_length(
-        self, _
-    ) -> unified_planning_pb2.Metric:
-        return unified_planning_pb2.Metric(
-            kind=unified_planning_pb2.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH,
+    @handles(model.metrics.MinimizeSequentialPlanLength)
+    def _convert_minimize_sequential_plan_length(self, _) -> proto.Metric:
+        return proto.Metric(
+            kind=proto.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH,
         )
 
-    @handles(unified_planning.model.metrics.MinimizeMakespan)
-    def _convert_minimize_makespan(self, _) -> unified_planning_pb2.Metric:
-        return unified_planning_pb2.Metric(
-            kind=unified_planning_pb2.Metric.MINIMIZE_MAKESPAN,
+    @handles(model.metrics.MinimizeMakespan)
+    def _convert_minimize_makespan(self, _) -> proto.Metric:
+        return proto.Metric(
+            kind=proto.Metric.MINIMIZE_MAKESPAN,
         )
 
-    @handles(unified_planning.model.metrics.MinimizeExpressionOnFinalState)
-    def _convert_minimize_expression_on_final_state(
-        self, metric: unified_planning.model.metrics.MinimizeExpressionOnFinalState
-    ) -> unified_planning_pb2.Metric:
-        return unified_planning_pb2.Metric(
-            kind=unified_planning_pb2.Metric.MINIMIZE_EXPRESSION_ON_FINAL_STATE,
+    @handles(model.metrics.MinimizeExpressionOnFinalState)
+    def _convert_minimize_expression_on_final_state(self, metric: model.metrics.MinimizeExpressionOnFinalState) -> proto.Metric:
+        return proto.Metric(
+            kind=proto.Metric.MINIMIZE_EXPRESSION_ON_FINAL_STATE,
             expression=self.convert(metric.expression),
         )
 
-    @handles(unified_planning.model.metrics.MaximizeExpressionOnFinalState)
-    def _convert_maximize_expression_on_final_state(
-        self, metric: unified_planning.model.metrics.MaximizeExpressionOnFinalState
-    ) -> unified_planning_pb2.Metric:
-        return unified_planning_pb2.Metric(
-            kind=unified_planning_pb2.Metric.MAXIMIZE_EXPRESSION_ON_FINAL_STATE,
+    @handles(model.metrics.MaximizeExpressionOnFinalState)
+    def _convert_maximize_expression_on_final_state(self, metric: model.metrics.MaximizeExpressionOnFinalState) -> proto.Metric:
+        return proto.Metric(
+            kind=proto.Metric.MAXIMIZE_EXPRESSION_ON_FINAL_STATE,
             expression=self.convert(metric.expression),
         )
 
-    @handles(unified_planning.model.Parameter)
-    def _convert_action_parameter(
-        self, p: unified_planning.model.Parameter
-    ) -> unified_planning_pb2.Parameter:
-        return unified_planning_pb2.Parameter(name=p.name, type=str(p.type))
+    @handles(model.Parameter)
+    def _convert_action_parameter(self, p: model.Parameter) -> proto.Parameter:
+        return proto.Parameter(name=p.name, type=str(p.type))
 
-    @handles(unified_planning.model.Variable)
-    def _convert_expression_variable(
-        self, variable: unified_planning.model.Variable
-    ) -> unified_planning_pb2.Expression:
+    @handles(model.Variable)
+    def _convert_expression_variable(self, variable: model.Variable) -> proto.Expression:
         # a variable declaration (in forall/exists) is converted directly as an expression
-        return unified_planning_pb2.Expression(
-            atom=unified_planning_pb2.Atom(symbol=variable.name),
+        return proto.Expression(
+            atom=proto.Atom(symbol=variable.name),
             list=[],
-            kind=unified_planning_pb2.ExpressionKind.Value("VARIABLE"),
+            kind=proto.ExpressionKind.Value("VARIABLE"),
             type=str(variable.type),
         )
 
     @handles(unified_planning.plan.ActionInstance)
-    def _convert_action_instance(
-        self, a: unified_planning.plan.ActionInstance, start_time=None, end_time=None
-    ) -> unified_planning_pb2.ActionInstance:
+    def _convert_action_instance(self, a: unified_planning.plan.ActionInstance, start_time=None, end_time=None) -> proto.ActionInstance:
         parameters = []
         for param in a.actual_parameters:
             # The parameters are atoms
             parameters.append(self.convert(param).atom)
 
-        return unified_planning_pb2.ActionInstance(
+        return proto.ActionInstance(
             action_name=a.action.name,
             parameters=parameters,
             start_time=start_time,
@@ -474,21 +428,17 @@ class ProtobufWriter(Converter):
         )
 
     @handles(str)
-    def _convert_str_atom(self, s: str) -> unified_planning_pb2.Atom:
-        return unified_planning_pb2.Atom(symbol=s)
+    def _convert_str_atom(self, s: str) -> proto.Atom:
+        return proto.Atom(symbol=s)
 
     @handles(unified_planning.plan.SequentialPlan)
-    def _convert_sequential_plan(
-        self, plan: unified_planning.plan.SequentialPlan
-    ) -> unified_planning_pb2.Plan:
-        return unified_planning_pb2.Plan(
+    def _convert_sequential_plan(self, plan: unified_planning.plan.SequentialPlan) -> proto.Plan:
+        return proto.Plan(
             actions=[self.convert(a) for a in plan.actions]
         )
 
     @handles(unified_planning.plan.TimeTriggeredPlan)
-    def _convert_time_triggered_plan(
-        self, plan: unified_planning.plan.TimeTriggeredPlan
-    ) -> unified_planning_pb2.Plan:
+    def _convert_time_triggered_plan(self, plan: unified_planning.plan.TimeTriggeredPlan) -> proto.Plan:
         action_instances = []
 
         for a in plan.actions:
@@ -499,30 +449,26 @@ class ProtobufWriter(Converter):
             )
             action_instances.append(instance)
 
-        return unified_planning_pb2.Plan(actions=action_instances)
+        return proto.Plan(actions=action_instances)
 
     @handles(unified_planning.solvers.PlanGenerationResult)
-    def _convert_plan_generation_result(
-        self, result: unified_planning.solvers.PlanGenerationResult
-    ) -> unified_planning_pb2.PlanGenerationResult:
+    def _convert_plan_generation_result(self, result: unified_planning.solvers.PlanGenerationResult) -> proto.PlanGenerationResult:
         # TODO: Extend the protobuf convertors to handle metrics and logs in results
-        return unified_planning_pb2.PlanGenerationResult(
+        return proto.PlanGenerationResult(
             status=self.convert(result.status),
             plan=self.convert(result.plan),
-            planner=unified_planning_pb2.Engine(name=result.planner_name),
+            planner=proto.Engine(name=result.planner_name),
             # metrics=result.metrics,
             # logs=[self.convert(log) for log in result.log_messages],
         )
 
     @handles(unified_planning.solvers.PlanGenerationResultStatus)
-    def _convert_plan_generation_status(
-        self, status: unified_planning.solvers.PlanGenerationResultStatus
-    ) -> unified_planning_pb2.PlanGenerationResult.Status:
+    def _convert_plan_generation_status(self, status: unified_planning.solvers.PlanGenerationResultStatus) -> proto.PlanGenerationResult.Status:
         if (
             status
             == unified_planning.solvers.PlanGenerationResultStatus.SOLVED_SATISFICING
         ):
-            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+            return proto.PlanGenerationResult.Status.Value(
                 "SOLVED_SATISFICING"
             )
 
@@ -530,31 +476,31 @@ class ProtobufWriter(Converter):
             status
             == unified_planning.solvers.PlanGenerationResultStatus.SOLVED_OPTIMALLY
         ):
-            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+            return proto.PlanGenerationResult.Status.Value(
                 "SOLVED_OPTIMALLY"
             )
         elif (
             status
             == unified_planning.solvers.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         ):
-            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+            return proto.PlanGenerationResult.Status.Value(
                 "UNSOLVABLE_PROVEN"
             )
         elif (
             status
             == unified_planning.solvers.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
         ):
-            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+            return proto.PlanGenerationResult.Status.Value(
                 "UNSOLVABLE_INCOMPLETELY"
             )
         elif status == unified_planning.solvers.PlanGenerationResultStatus.TIMEOUT:
-            return unified_planning_pb2.PlanGenerationResult.Status.Value("TIMEOUT")
+            return proto.PlanGenerationResult.Status.Value("TIMEOUT")
         elif status == unified_planning.solvers.PlanGenerationResultStatus.MEMOUT:
-            return unified_planning_pb2.PlanGenerationResult.Status.Value("MEMOUT")
+            return proto.PlanGenerationResult.Status.Value("MEMOUT")
         elif (
             status == unified_planning.solvers.PlanGenerationResultStatus.INTERNAL_ERROR
         ):
-            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+            return proto.PlanGenerationResult.Status.Value(
                 "INTERNAL_ERROR"
             )
         elif (
@@ -562,32 +508,30 @@ class ProtobufWriter(Converter):
             == unified_planning.solvers.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
         ):
 
-            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+            return proto.PlanGenerationResult.Status.Value(
                 "UNSUPPORTED_PROBLEM"
             )
         elif status == unified_planning.solvers.PlanGenerationResultStatus.INTERMEDIATE:
-            return unified_planning_pb2.PlanGenerationResult.Status.Value(
+            return proto.PlanGenerationResult.Status.Value(
                 "INTERMEDIATE"
             )
         else:
             raise ValueError("Unknown status: {}".format(status))
 
     @handles(unified_planning.solvers.LogMessage)
-    def _convert_log_messages(
-        self, log: unified_planning.solvers.LogMessage
-    ) -> unified_planning_pb2.LogMessage:
+    def _convert_log_messages(self, log: unified_planning.solvers.LogMessage) -> proto.LogMessage:
         if log.level == unified_planning.solvers.LogLevel.INFO:
-            level = unified_planning_pb2.LogMessage.LogLevel.Value("INFO")
+            level = proto.LogMessage.LogLevel.Value("INFO")
         elif log.level == unified_planning.solvers.LogLevel.WARNING:
-            level = unified_planning_pb2.LogMessage.LogLevel.Value("WARNING")
+            level = proto.LogMessage.LogLevel.Value("WARNING")
         elif log.level == unified_planning.solvers.LogLevel.ERROR:
-            level = unified_planning_pb2.LogMessage.LogLevel.Value("ERROR")
+            level = proto.LogMessage.LogLevel.Value("ERROR")
         elif log.level == unified_planning.solvers.LogLevel.DEBUG:
-            level = unified_planning_pb2.LogMessage.LogLevel.Value("DEBUG")
+            level = proto.LogMessage.LogLevel.Value("DEBUG")
         else:
             raise UPException(f"Unknown log level: {log.level}")
 
-        return unified_planning_pb2.LogMessage(
+        return proto.LogMessage(
             level=level,
             message=str(log.message),
         )
