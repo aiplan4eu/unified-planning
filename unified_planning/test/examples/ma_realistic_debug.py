@@ -159,8 +159,11 @@ def ma_example_2():
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
     plan = examples['robot'].plan
-    robot1 = Agent()
-    robot2 = Agent()
+    robot1 = Agent('depot0')
+    robot2 = Agent('distributor0')
+    robot3 = Agent('distributor1')
+    robot4 = Agent('truck0')
+    robot5 = Agent('truck1')
     environment = Environment_ma()
 
     '''print(fluents_problem, init_values_problem, "weeeeeeeeeeeeeeee",init_values_problem.keys())
@@ -191,16 +194,29 @@ def ma_example_2():
 
     robot1.add_fluents(fluents_problem)
     robot2.add_fluents(fluents_problem)
+    robot3.add_fluents(fluents_problem)
     robot1.add_actions(actions_problem)
     robot2.add_actions(actions_problem)
+    robot3.add_actions(actions_problem)
+    robot4.add_actions(actions_problem)
+    robot5.add_actions(actions_problem)
     robot1.set_initial_values(init_values_problem)
     robot2.set_initial_values(init_values_problem)
+    robot3.set_initial_values(init_values_problem)
+    robot4.set_initial_values(init_values_problem)
+    robot5.set_initial_values(init_values_problem)
     robot1.add_goals(goals_problem)
     robot2.add_goals(goals_problem)
+    robot3.add_goals(goals_problem)
+    robot4.add_goals(goals_problem)
+    robot5.add_goals(goals_problem)
 
     ma_problem = MultiAgentProblem('robots')
     ma_problem.add_agent(robot1)
     ma_problem.add_agent(robot2)
+    ma_problem.add_agent(robot3)
+    ma_problem.add_agent(robot4)
+    ma_problem.add_agent(robot5)
     ma_problem.add_environment_(environment)
     ma_problem.add_objects(objects_problem)
 
@@ -212,14 +228,14 @@ def ma_example_2():
 
     #Add shared data
     #problem = ma_problem.compile()
-    problem = ma_problem.compile_ma('truck')
+    problem = ma_problem.compile_ma()
     print(ma_problem.fluents())
-    ma_problem.add_shared_data(ma_problem.fluent('clear'))
+    ma_problem.add_shared_data(ma_problem.fluent('clear_h'))
     ma_problem.add_shared_data(ma_problem.fluent('clear_s'))
     ma_problem.add_shared_data(ma_problem.fluent('at'))
-    ma_problem.add_shared_data(ma_problem.fluent('pos'))
+    ma_problem.add_shared_data(ma_problem.fluent('pos_p'))
     ma_problem.add_shared_data(ma_problem.fluent('pos_u'))
-    ma_problem.add_shared_data(ma_problem.fluent('on'))
+    ma_problem.add_shared_data(ma_problem.fluent('on_h'))
     ma_problem.add_shared_data(ma_problem.fluent('on_u'))
     ma_problem.add_shared_data(ma_problem.fluent('on_s'))
 
@@ -228,11 +244,13 @@ def ma_example_2():
     ma_problem.add_flu_function(ma_problem.fluent('located'))
     ma_problem.add_flu_function(ma_problem.fluent('at'))
     ma_problem.add_flu_function(ma_problem.fluent('placed'))
-    ma_problem.add_flu_function(ma_problem.fluent('pos'))
+    ma_problem.add_flu_function(ma_problem.fluent('pos_p'))
     ma_problem.add_flu_function(ma_problem.fluent('pos_u'))
-    ma_problem.add_flu_function(ma_problem.fluent('on'))
+    ma_problem.add_flu_function(ma_problem.fluent('on_h'))
     ma_problem.add_flu_function(ma_problem.fluent('on_u'))
     ma_problem.add_flu_function(ma_problem.fluent('on_s'))
+
+    #ma_problem.add_flu_function(ma_problem.fluent('we'))
 
     print(problem)
 
@@ -242,8 +260,11 @@ def ma_example_2():
     robots = Example(problem=problem, plan=plan)
     problems['robots'] = robots
 
-    w = PDDLWriter_MA(problem)
-    print(w.get_domain())
-    print(w.get_problem())
+
+    ag_list = problem.agent_list_problems = ['depot0', 'distributor0', "distributor1"]
+    #ag_list = problem.agent_list_problems = ['truck0', 'truck1'] #in caso di "depot_truck"
+
+    problem.write_ma_problem(problem, ag_list)
+
 
 ma_example_2()

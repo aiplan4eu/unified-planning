@@ -24,6 +24,7 @@ from unified_planning.environment import get_env, Environment
 from unified_planning.walkers import OperatorsExtractor
 from .fluent import Fluent
 from .action import *
+
 from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.problem import Problem
@@ -35,6 +36,7 @@ from unified_planning.model.environment_ma import Environment_ma
 import collections
 from typing import List, Union
 from unified_planning.transformers.transformer import Transformer
+from unified_planning.io.pddl_writer_ma import PDDLWriter_MA
 
 from unified_planning.walkers.substituter import Substituter
 import re
@@ -54,6 +56,7 @@ class MultiAgentProblem(Problem):
         self._new_objects: Dict['up.model.object.Object']  = {}
         self._shared_data: List['up.model.fluent.Fluent'] = []
         self._flu_fuctions: List['up.model.fluent.Fluent'] = []
+        self._agent_list_problems = []
     ######################################################################################
 
 
@@ -106,28 +109,36 @@ class MultiAgentProblem(Problem):
     def get_agents(self):
         return self.agents_list
 
+    def remove_user_type(self, user_type):
+        del (self._user_types_hierarchy[user_type])
+        self._user_types.remove(user_type)
+        key = None
+        if user_type in self._user_types_hierarchy[key]:
+            self._user_types_hierarchy[key].remove(user_type)
 
     def chose_agent(self, name_agent :str):
+
         for user_type in self.user_types():
             if user_type._name == name_agent:
-                #self._user_types.pop(self.user_types().index(user_type))
-                #key = None
-                #self._user_types_hierarchy[key].remove(user_type)
-                #self._user_types_hierarchy[user_type].remove([])
+                #from ..shortcuts import UserType
+                #agent = UserType('agent', None)
+                #self._add_user_type(agent)
+                #self._add_user_type(new_user_type)
+                #self._add_user_type(agent)
+                #new_user_type = UserType(name_agent, agent)
+                #self._add_user_type(new_user_type)
+
                 agent = copy.copy(user_type)
-                c_user_type = copy.copy(user_type)
+                self.remove_user_type(user_type)
                 agent._name = 'agent'
                 agent._father = None
-                c_user_type._name = 'truck_'
-                c_user_type._father = agent
-                key = None
-                self._user_types_hierarchy[key].remove(user_type)
                 user_type._father = agent
                 self._add_user_type(agent)
-                self._user_types_hierarchy[agent] = [user_type]
-                #self._user_types.append(new_user_type)
+
+
             else:
                 pass
+
 
     def new_agent_fluent(self, key):
         if key in self._new_fluents.keys():
@@ -264,8 +275,54 @@ class MultiAgentProblem(Problem):
                 self.add_goal(new_exp_goal)
         return self
 
-    def compile_ma(self, myAgent:str = None):
-        self.chose_agent(myAgent)
+    #Se il tipo non ha un padre, creo agent e setto come pare agent
+    def get_obj_type_father(self, name_obj):
+        for object in self.all_objects():
+            if object._name == name_obj:
+                obj_type_father = object.type()._father
+            else:
+                pass
+
+        return obj_type_father
+
+
+    def set_agents_type(self):
+        for ag in self.get_agents():
+            name_agent = ag._ID
+            for object in self.all_objects():
+
+                if object._name == name_agent:
+                    obj_type = object.type()
+                    if object.type()._father == None:
+                        agent = copy.copy(obj_type)
+                        self.remove_user_type(obj_type)
+                        agent._name = 'agent'
+                        agent._father = None
+                        obj_type._father = agent
+                        if agent not in self.user_types():
+                            self._add_user_type(agent)
+                    else:
+                        pass
+
+
+
+
+                    # from ..shortcuts import UserType
+                    # agent = UserType('agent', None)
+                    # self._add_user_type(agent)
+                    # self._add_user_type(new_user_type)
+                    # self._add_user_type(agent)
+                    # new_user_type = UserType(name_agent, agent)
+                    # self._add_user_type(new_user_type)
+
+
+
+    def compile_ma(self, my_agent:str = None):
+        self.set_agents_type()
+        #self.chose_agent(my_agent)
+        #user_type = self.user_type(my_agent)
+        #myAgent = Fluent('myAgent', None, [user_type])
+
         for flu in self.get_environment_().get_fluents():
             flu = copy.copy(flu)
             new_flu = Fluent((flu.name() + "_env"), flu._typename, flu._signature)
@@ -286,6 +343,7 @@ class MultiAgentProblem(Problem):
         for ag in self.get_agents():
             for flu in ag.get_fluents():
                 if flu not in self._fluents:
+                    print(flu, "weeeeeeeeeee")
                     self.add_fluent(flu)
                 else:
                     pass
@@ -298,13 +356,21 @@ class MultiAgentProblem(Problem):
 
             for flu, value in ag.get_initial_values().items():
                 if flu not in self._initial_value:
-                    self.set_initial_value(flu, value)
+                    if value != None:
+                        self.set_initial_value(flu, value)
+                    else:
+                        raise UPTypeError(flu, 'Initial value is not set!')
+
 
             for goal in ag.get_goals():
                 if goal not in self._goals:
 
                     self.add_goal(goal)
 
+            '''for act in self._actions:
+                act.add_precondition(myAgent)
+            self.add_fluent(myAgent, default_initial_value=False)
+            self.set_initial_value(myAgent(depot0), True)'''
         return self
 
     def solve_OneshotPlanner(self):
@@ -345,3 +411,11 @@ class MultiAgentProblem(Problem):
         domain.close()
         return problems
 
+    def write_ma_problem(self, problem, ag_list_problems):
+        wrt_domain = False
+        for ag in ag_list_problems:
+            w = PDDLWriter_MA(ag, problem)
+            if wrt_domain == False:
+                w.write_domain(f' domain_{problem._name}')
+                wrt_domain = True
+            w.write_problem(f' problem_{problem._name}_{ag}')

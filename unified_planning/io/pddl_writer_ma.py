@@ -1,3 +1,4 @@
+import re
 from fractions import Fraction
 import sys
 
@@ -14,7 +15,9 @@ from io import StringIO
 from functools import reduce
 from .pddl_writer import ConverterToPDDLString
 from .pddl_writer import PDDLWriter
+import re
 
+functions_dict = {}
 
 class ConverterToPDDLString_MA(ConverterToPDDLString):
     '''Represents a planning MultiAgentProblem.'''
@@ -24,11 +27,21 @@ class ConverterToPDDLString_MA(ConverterToPDDLString):
 
 class PDDLWriter_MA(PDDLWriter):
     '''Represents a planning MultiAgentProblem.'''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ag, *args, **kwargs):
         super(PDDLWriter_MA, self).__init__(*args, **kwargs)
+        self._ag =ag
 
+        self.shared_data = {}
+
+    def remove_underscore(self, name):
+        regex = r"_[a-zA-Z]+"
+        subst = ""
+        new_name = re.sub(regex, subst, name, 0, re.MULTILINE)
+        return new_name
 
     def _write_domain(self, out: IO[str]):
+        #for agent in self.problem.agents_list:
+
         problem_kind = self.problem.kind()
         if problem_kind.has_intermediate_conditions_and_effects(): # type: ignore
             raise UPProblemDefinitionError('PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
@@ -74,36 +87,59 @@ class PDDLWriter_MA(PDDLWriter):
             while self.problem.has_type(self.object_freshname):
                 self.object_freshname = self.object_freshname + '_'
             user_types_hierarchy = self.problem.user_types_hierarchy()
-            out.write(f'(:types\n')
+            out.write(f'(:types')
             stack: List['unified_planning.model.Type'] = user_types_hierarchy[None] if None in user_types_hierarchy else []
-            out.write(f'      {" ".join(self._type_name_or_object_freshname(t) for t in stack)} - object\n')
+            out.write(f' {" ".join(self._type_name_or_object_freshname(t) for t in stack)} - object\n')
             while stack:
                 current_type = stack.pop()
                 direct_sons: List['unified_planning.model.Type'] = user_types_hierarchy[current_type]
                 if direct_sons:
-                    stack.extend(direct_sons)
-                    out.write(f'      {" ".join([self._type_name_or_object_freshname(t) for t in direct_sons])} - {self._type_name_or_object_freshname(current_type)}\n')
-            out.write(' )\n')
+                    #verifico se il tipo è un agente o meno, nel caso in cui è un agente, aggiungo (either ... - agent9
+                    for agent in self.problem.agents_list:
+                        type = self.problem.object(agent._ID)
+                        if type.type() in direct_sons:
+                            out.write(f'        {" ".join([self._type_name_or_object_freshname(t) for t in direct_sons])} - (either {self._type_name_or_object_freshname(current_type)} agent)\n')
+                            break
+                        else:
+                            out.write(f'        {" ".join([self._type_name_or_object_freshname(t) for t in direct_sons])} - {self._type_name_or_object_freshname(current_type)}\n')
+                            break
+            out.write(')\n')
         else:
+
             out.write(f' (:types {" ".join([t.name() for t in self.problem.user_types()])})\n' if len(self.problem.user_types()) > 0 else '') # type: ignore
 
         predicates = []
         functions = []
 
-
-
+        dict = {}
+        #raggruppo i fluenti "flu_" e aggiungo either
         for f in self.problem.fluents():
             if f.type().is_bool_type():
                 if f not in self.problem.get_flu_functions():
-                    params = []
-                    i = 0
-                    for p in f.signature():
-                        if p.is_user_type():
-                            params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
-                            i += 1
-                        else:
-                            raise UPTypeError('PDDL supports only user type parameters')
-                    predicates.append(f'({f.name()}{"".join(params)})\n')
+                    import re
+                    p = re.compile(r"[a-z]+_")
+                    query = re.search(p, f.name())
+                    if query:
+                        if query[0] not in dict:
+                            dict[query[0]] = []
+                        for p in f.signature():
+                            if p.is_user_type():
+                                if self._type_name_or_object_freshname(p) not in dict[query[0]]:
+                                    type = self._type_name_or_object_freshname(p)
+                                    dict[query[0]].append(type)
+        #for f in self.problem.fluents():
+        #    if f.type().is_bool_type():
+        #        if f not in self.problem.get_flu_functions():
+        #            params = []
+        #            i = 0
+        #            for p in f.signature():
+        #                if p.is_user_type():
+        #                    params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
+        #                    i += 1
+        #                else:
+        #                    raise UPTypeError('PDDL supports only user type parameters')
+        #            predicates.append(f'({f.name()}{"".join(params)})\n')
+
             elif f.type().is_int_type() or f.type().is_real_type():
                 params = []
                 i = 0
@@ -118,14 +154,63 @@ class PDDLWriter_MA(PDDLWriter):
                 raise UPTypeError('PDDL supports only boolean and numerical fluents')
         if self.problem.kind().has_actions_cost(): # type: ignore
             functions.append('(total-cost)')
-        out.write(f'(:predicates \n  {"  ".join(predicates)})\n' if len(predicates) > 0 else '')
 
+        #type = self.problem.get_obj_type_father(self.problem.agents_list[0]._ID)
+        #type = self.problem.get_obj_type_father(self._ag)
+
+        #print(type, self._ag, ok.type().name())
+        #breakpoint()
+
+        type = self.problem.object(self._ag).type()
+        if type._father == 'agent':
+            type = type.name()
+        else:
+            type = type._father
+
+
+        #out.write(f'(:predicates \n  (myAgent ?a - {type})\n  {"  ".join(predicates)})\n' if len(predicates) > 0 else '')
+        out.write(f'(:predicates \n  (myAgent ?a - {type})')
+        for i, k in dict.items():
+            if len(k) > 1:
+                out.write(f'\n  ({i[:-1]} ?x - (either {" ".join([t for t in k])}))')
+            else:
+                out.write(f'\n  ({i[:-1]} ?x - {k[0]})')
+
+        out.write(f')\n')
         if self.problem.get_flu_functions():
-            out.write(f'(:functions')
+            out.write(f'(:functions\n')
             for f in self.problem.get_flu_functions():
                 if f.type().is_bool_type():
                     user_type_name = f.name()
-                    out.write(f'\n  ({user_type_name} ?{(f.signature()[0].name())[0]} {") - ".join([str(o.name()) for o in f.signature()])}')
+                    import re
+                    p = re.compile(r"[a-z]+_")
+                    query = re.search(p, user_type_name)
+                    if query:
+                        if query[0] not in functions_dict:
+                            functions_dict[query[0]] = []
+                        for p in f.signature():
+                            if p.is_user_type():
+                                if self._type_name_or_object_freshname(p) not in functions_dict[query[0]]:
+                                    type = self._type_name_or_object_freshname(p)
+                                    functions_dict[query[0]].append(type)
+                    else:
+                        if user_type_name not in dict:
+                            functions_dict[user_type_name] = []
+                        for p in f.signature():
+                            if p.is_user_type():
+                                if self._type_name_or_object_freshname(p) not in functions_dict[user_type_name]:
+                                    type = self._type_name_or_object_freshname(p)
+                                    functions_dict[user_type_name].append(type)
+            for i, k in functions_dict.items():
+                if len(k) > 2:
+                    i = i.replace("_", "")
+                    out.write(f'  ({i} ?{k[0][0]} - {k[0]}) - (either {" ".join([t for t in k[1:]])})\n')
+                else:
+                    i = i.replace("_", "")
+                    out.write(f'  ({i} ?{k[0][0]} - {k[0]}) - {k[1]}\n')
+
+
+                    #out.write(f'\n  ({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name()) for o in f.signature()])}')
                     #params = []
                     #i = 0
                     #for p in f.signature():
@@ -151,15 +236,29 @@ class PDDLWriter_MA(PDDLWriter):
 
                 #preconditions
                 if len(a.preconditions()) > 0:
+                    type = self.problem.get_obj_type_father(self._ag)
+                    for ap in a.parameters():
+                        if type == ap.type() :
+                            parameter_name = ap.name()
+                        elif ap.type()._father == type:
+                            parameter_name = ap.name()
+                        elif type.name() == 'agent':
+                            parameter_name = str(self.problem.object(self._ag).type().name())[0]
+
                     out.write(f'\n :precondition (and')
+                    out.write(f' (myAgent ?{parameter_name})')
                     for p in a.preconditions():
                         # print(p, "(", p.fluent().name(), "?", p._content.args[0], ")", converter.convert(p))
-                        if len(p._content.args) > 1 and p.fluent() in self.problem.get_flu_functions():
+
+                        if len(p._content.args) > 1 and p.is_fluent_exp() and p.fluent() in self.problem.get_flu_functions():
                             flu_name = p.fluent().name()
                             #out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                            flu_name = self.remove_underscore(flu_name)
                             out.write(f' (= ({flu_name} ?{")".join([str(p.arg(0))])}) ?{p.arg(1)})')
                         else:
-                            out.write(f' {" ".join([converter.convert(p)])}')
+                            p = converter.convert(p)
+                            p = self.remove_underscore(p)
+                            out.write(f' {" ".join([p])}')
                 out.write(')')
                 if len(a.effects()) > 0:
                     out.write('\n :effect (and')
@@ -168,44 +267,61 @@ class PDDLWriter_MA(PDDLWriter):
                             if len(e._content.args) > 1 and e.fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent().name()
                                 # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (when (= ({flu_name} ?{")".join([str(e.arg(0))])}) ?{e.arg(1)})')
                             else:
-                                out.write(f' (when {converter.convert(e.condition())}')
+                                new_e = converter.convert(e.condition())
+                                new_e = self.remove_underscore(new_e)
+                                out.write(f' (when {new_e}')
                         if e.value().is_true():
                             if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent().fluent().name()
                                 # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (assign ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)})')
                             else:
-                                out.write(f' {converter.convert(e.fluent())}')
+                                new_e = converter.convert(e.fluent())
+                                new_e = self.remove_underscore(new_e)
+                                out.write(f' {new_e}')
 
 
                         elif e.value().is_false():
                             if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent().fluent().name()
                                 # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (not (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)})')
                             else:
-                                out.write(f' (not {converter.convert(e.fluent())})')
+                                new_e = converter.convert(e.fluent())
+                                new_e= self.remove_underscore(new_e)
+                                out.write(f' (not {new_e})')
 
                         elif e.is_increase():
                             if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent().fluent().name()
                                 # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (increase (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)} {converter.convert(e.value())})')
                             else:
-                                out.write(f' (increase {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                                new_e = converter.convert(e.fluent())
+                                new_e = self.remove_underscore(new_e)
+                                out.write(f' (increase {new_e} {converter.convert(e.value())})')
 
                         elif e.is_decrease():
                             if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent().fluent().name()
                                 # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
+                                flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (decrease (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)} {converter.convert(e.value())})')
                             else:
-                                out.write(f' (decrease {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                                new_e = converter.convert(e.fluent())
+                                new_e = self.remove_underscore(new_e)
+                                out.write(f' (decrease {new_e} {converter.convert(e.value())})')
 
                         else:
-                            out.write(f' (assign {converter.convert(e.fluent())} {converter.convert(e.value())})')
+                            new_e = converter.convert(e.fluent())
+                            new_e = self.remove_underscore(new_e)
+                            out.write(f' (assign {new_e} {converter.convert(e.value())})')
                         if e.is_conditional():
                             out.write(f')')
 
@@ -300,19 +416,57 @@ class PDDLWriter_MA(PDDLWriter):
                         f'\n {" ".join([o.name() for o in objects])} - {self._type_name_or_object_freshname(t)}')
             out.write('\n)\n')
         shared = []
-        out.write('(:shared-data ')
+        dict = {}
+        out.write('(:shared-data')
         if self.problem.get_shared_data():
             for f in self.problem.get_shared_data():
                 if f.type().is_bool_type():
+                    data_name = f.name()
+                    p = re.compile(r"[a-z]+_")
+                    query = re.search(p, data_name)
+                    if query:
+                        if query[0] not in dict:
+                            dict[query[0]] = []
+                        for p in f.signature():
+                            if p.is_user_type():
+                                if self._type_name_or_object_freshname(p) not in dict[query[0]]:
+                                    type = self._type_name_or_object_freshname(p)
+                                    dict[query[0]].append(type)
+                    else:
+                        if data_name not in dict:
+                            dict[data_name] = []
+                        for p in f.signature():
+                            if p.is_user_type():
+                                if self._type_name_or_object_freshname(p) not in dict[data_name]:
+                                    type = self._type_name_or_object_freshname(p)
+                                    dict[data_name].append(type)
+                else:
+                    raise UPTypeError('Not boolean')
+            ok = {}
+            for i, k in dict.items():
+                if len(k) > 2:
+                    #k.pop(0)
+                    i = i.replace("_", "")
+                    out.write(f'\n  (({i} ?{k[0][0]} - {k[0]}) - (either {" ".join([t for t in k[1:]])}))')
+                else:
+                    if i not in functions_dict:
+                        i = i.replace("_", "")
+                        out.write(f'\n  ({i} ?x - (either {k[0]} {k[1]}))')
+                    else:
+                        i = i.replace("_", "")
+                        out.write(f'\n  (({i} ?{k[0][0]} - {k[0]}) - {k[1]})')
+
+
                     #params = []
                     #i = 0
 
-                    user_type_name = f.name()
-                    if len(f.signature()) > 1:
-                        out.write(f'\n (({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name())  for o in f.signature()])})')
-                    else:
-                        out.write(
-                            f'\n ({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name()) for o in f.signature()])})')
+                    #user_type_name = f.name()
+                    #if len(f.signature()) > 1:
+                    #    out.write(f'\n (({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name())  for o in f.signature()])})')
+                    #else:
+                    #    out.write(
+                    #        f'\n ({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name()) for o in f.signature()])})')
+
                     #for p in f.signature():
                     #    if p.is_user_type():
                     #        params.append(f'?{(str(p.name()))[0]}{str(i)} - {self._type_name_or_object_freshname(p)}')
@@ -325,29 +479,52 @@ class PDDLWriter_MA(PDDLWriter):
                     #print(f, f.signature()[0].father(), f.signature()[0].name(), "ooooooooooooooooooo")
                     #print(self._type_name_or_object_freshname(f))
 
-                else:
-                    raise UPTypeError('Not boolean')
+                #else:
+                #    raise UPTypeError('Not boolean')
             #out.write('(:shared-data ')
             #out.write(f'{" ".join(shared)})' if len(shared) > 0 else '')
+        shared_agents = []
+        for agent in self.problem.get_agents():
+            if agent._ID == self._ag:
+                pass
+            else:
+                shared_agents.append(agent._ID)
+        out.write(f' - \n(either {" ".join([str(o) for o in shared_agents])})')
         out.write('\n)')
         converter = ConverterToPDDLString(self.problem.env)
 
-        out.write('\n(:init')
+        out.write('\n(:init\n')
+        type = self.problem.object(self._ag)
+        out.write(f' (myAgent {type})')
         for f, v in self.problem.initial_values().items():
             if v.is_true():
                 if f.is_fluent_exp() and f.fluent() in self.problem.get_flu_functions():
                     fluent = f.fluent().name()
+                    regex = r"_[a-zA-Z]+"
+                    subst = ""
+                    fluent = re.sub(regex, subst, fluent, 0, re.MULTILINE)
                     out.write(f'\n (= ({fluent} {") ".join([converter.convert(o) for o in f._content.args])})')
 
                     #print(f.fluent().name())
                 else:
                     #fluent = f._content.args[0].fluent().name()
-                    out.write(f'\n {converter.convert(f)}')
+                    f = converter.convert(f)
+
+                    regex = r"_[a-zA-Z]+"
+                    subst = ""
+                    f = re.sub(regex, subst, f, 0, re.MULTILINE)
+                    out.write(f'\n {f}')
 
             elif v.is_false():
                 pass
             else:
-                out.write(f'\n (= {converter.convert(f)} {converter.convert(v)})')
+                f = converter.convert(f)
+                v = converter.convert(v)
+                regex = r"_[a-zA-Z]+"
+                subst = ""
+                f = re.sub(regex, subst, f, 0, re.MULTILINE)
+                v = re.sub(regex, subst, v, 0, re.MULTILINE)
+                out.write(f'\n (= {f} {v})')
         if self.problem.kind().has_actions_cost():  # type: ignore
             out.write(f' (= total-cost 0)')
         out.write('\n)\n')
@@ -356,10 +533,17 @@ class PDDLWriter_MA(PDDLWriter):
         for p in self.problem.goals():
             if p.fluent() in self.problem.get_flu_functions():
                 fluent = p.fluent().name()
+                regex = r"_[a-zA-Z]+"
+                subst = ""
+                fluent = re.sub(regex, subst, fluent, 0, re.MULTILINE)
                 out.write(f'\n (= ({fluent} {") ".join([converter.convert(o) for o in p._content.args])})')
             #out.write(f'(:global-goal (and\n {nl.join([converter.convert(p) for p in self.problem.goals()])}\n))\n')
             else:
-                out.write(f'\n {" ".join([converter.convert(p)])}')
+                p = converter.convert(p)
+                regex = r"_[a-zA-Z]+"
+                subst = ""
+                p = re.sub(regex, subst, p, 0, re.MULTILINE)
+                out.write(f'\n {" ".join([p])}')
         out.write(f'\n))\n')
 
         metrics = self.problem.quality_metrics()

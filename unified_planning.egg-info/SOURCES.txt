@@ -17,6 +17,7 @@ unified_planning/interop/to_tarski.py
 unified_planning/io/__init__.py
 unified_planning/io/pddl_reader.py
 unified_planning/io/pddl_writer.py
+unified_planning/io/pddl_writer_ma.py
 unified_planning/model/__init__.py
 unified_planning/model/action.py
 unified_planning/model/agent.py
@@ -26,6 +27,7 @@ unified_planning/model/expression.py
 unified_planning/model/fluent.py
 unified_planning/model/fnode.py
 unified_planning/model/ma_problem.py
+unified_planning/model/ma_problem_2.py
 unified_planning/model/metrics.py
 unified_planning/model/object.py
 unified_planning/model/operators.py
@@ -68,6 +70,7 @@ unified_planning/test/examples/ma_realistic.py
 unified_planning/test/examples/ma_realistic_debug.py
 unified_planning/test/examples/ma_realistic_debug2.py
 unified_planning/test/examples/minimals.py
+unified_planning/test/examples/prova.py
 unified_planning/test/examples/realistic.py
 unified_planning/test/examples/testing_variants.py
 unified_planning/test/pddl/__init__.py

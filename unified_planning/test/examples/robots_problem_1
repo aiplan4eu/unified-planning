@@ -1,8 +1,12 @@
 (define (problem robots-problem)
  (:domain robots-domain)
  (:objects 
-   l1 l2 - Location
+   truck0 truck1 - truck
+   depot0 - depot
+   distributor0 distributor1 - distributor
+   pallet0 pallet1 pallet2 - pallet
+   hoist0 hoist1 hoist2 - hoist
  )
- (:init  (=  100) (robot_at_1 l1) (= (battery_charge_1) 100))
- (:goal (and  (robot_at_1 l2)))
+ (:init (myAgent truck0)   (on_s crate0 pallet1) (pos crate1 depot0) (clear crate1) (on_s crate1 pallet0)  (at truck1 depot0)   (located hoist1 distributor0) (clear hoist1) (located hoist2 distributor1) (clear hoist2)  (not (clear_s pallet0)) (placed pallet1 distributor0) (not (clear_s pallet1)) (placed pallet2 distributor1) (clear_s pallet2))
+ (:goal (and (on_s crate0 pallet2) (on_s crate1 pallet1)))
 )

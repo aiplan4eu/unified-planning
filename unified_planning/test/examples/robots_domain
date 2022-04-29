@@ -1,14 +1,19 @@
 (define (domain robots-domain)
- (:requirements :strips :typing :negative-preconditions :equality :numeric-fluents)
- (:types Location)
- (:predicates (robot_at_0 ?p0 - Location) (robot_at_1 ?p0 - Location))
- (:functions (battery_charge_0) (battery_charge_1))
- (:action move_0
-  :parameters ( ?l_from - Location ?l_to - Location)
-  :precondition (and (<= 10 (battery_charge_0)) (not (= ?l_from ?l_to)) (robot_at_0 ?l_from) (not (robot_at_0 ?l_to)))
-  :effect (and (not (robot_at_0 ?l_from)) (robot_at_0 ?l_to) (assign (battery_charge_0) (- (battery_charge_0) 10))))
- (:action move_1
-  :parameters ( ?l_from - Location ?l_to - Location)
-  :precondition (and (<= 10 (battery_charge_1)) (not (= ?l_from ?l_to)) (robot_at_1 ?l_from) (not (robot_at_1 ?l_to)))
-  :effect (and (not (robot_at_1 ?l_from)) (robot_at_1 ?l_to) (assign (battery_charge_1) (- (battery_charge_1) 10))))
+ (:requirements :strips :typing :negative-preconditions)
+ (:types
+     - object
+ )
+ (:predicates (myAgent ?p0 - truck) (clear ?p0 - hoist) (located ?p0 - hoist ?p1 - place) (at ?p0 - truck ?p1 - place) (placed ?p0 - pallet ?p1 - place) (pos ?p0 - crate ?p1 - place) (pos_u ?p0 - crate ?p1 - truck) (on_u ?p0 - crate ?p1 - truck) (on_s ?p0 - crate ?p1 - surface) (on ?p0 - crate ?p1 - hoist) (clear_s ?p0 - surface))
+ (:action drive
+  :parameters ( ?truck - truck ?x - place ?y - place)
+  :precondition (and (myAgent ?truck) (at ?truck ?x))
+  :effect (and (at ?truck ?y)))
+ (:action load
+  :parameters ( ?x - place ?c - crate ?h - hoist)
+  :precondition (and (myAgent ?truck) (at ?truck ?x) (pos ?c ?x) (not (clear ?h)) (not (clear ?c)) (on ?c ?h) (located ?h ?x))
+  :effect (and (pos ?c ?x) (on ?c ?h) (clear ?c) (clear ?h)))
+ (:action unload
+  :parameters ( ?x - place ?c - crate ?h - hoist)
+  :precondition (and (myAgent ?truck) (located ?h ?x) (pos_u ?c ?truck) (on_u ?c ?truck) (clear ?h) (clear ?c))
+  :effect (and (pos ?c ?x) (on ?c ?h) (not (clear ?c)) (not (clear ?h))))
 )
