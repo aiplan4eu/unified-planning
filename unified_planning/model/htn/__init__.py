@@ -1,4 +1,7 @@
+from unified_planning.model.htn.hierarchical_problem import HierarchicalProblem
 from unified_planning.model.htn.method import Method
-from unified_planning.model.htn.task import Task
+from unified_planning.model.htn.task import Task, Subtask
+from unified_planning.model.htn.task_network import TaskNetwork
 
-__all__ = ['Method', 'Task']
+__all__ = ['Method', 'Task', 'HierarchicalProblem', 'Subtask', 'TaskNetwork']
+

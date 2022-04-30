@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2022 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ class Task:
 
     def __repr__(self) -> str:
         sign = ''
-        if self.arity > 0:
+        if len(self.parameters) > 0:
             sign_items = [f'{p.name}={str(p.type)}' for p in self.parameters]
             sign = f'[{", ".join(sign_items)}]'
         return f'{self.name}{sign}'
@@ -80,36 +80,23 @@ class Task:
         '''
         return self._parameters
 
-    def parameter(self, name: str) -> 'up.model.parameter.Parameter':
-        """Returns the parameter of the action with the given name."""
-        for param in self.parameters:
-            if param.name == name:
-                return param
-        raise UPValueError(f'Unknown parameter name: {name}')
-
-
-    @property
-    def arity(self) -> int:
-        '''Returns the task arity (number of parameters).
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
-        return len(self._parameters)
-
-    def __call__(self, *args: 'up.model.expression.Expression', ident: Optional[str] = None) -> 'SubTask':
+    def __call__(self, *args: 'up.model.expression.Expression', ident: Optional[str] = None) -> 'Subtask':
         '''Returns a subtask with the given parameters.'''
-        return SubTask(self, *self._env.expression_manager.auto_promote(args))
+        return Subtask(self, *self._env.expression_manager.auto_promote(args))
 
 
+# global counter to enable the creation of unique identifiers.
+# TODO: there might be a cleaner way to do this?
 _task_id_counter = 0
 
 
-class SubTask:
+class Subtask:
     def __init__(self, _task: Union[Action, Task], *args: 'up.model.FNode', ident: Optional[str] = None, _env: Environment = None):
         self._env = get_env(_env)
         self._task = _task
         self._ident = ident
         if self._ident is None:
+            # we have to create an unambiguous identifier as there might otherwise identical tasks
             global _task_id_counter
             _task_id_counter += 1
             self._ident = f"_t{_task_id_counter}"

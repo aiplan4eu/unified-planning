@@ -1,0 +1,116 @@
+# Copyright 2022 AIPlan4EU project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+from collections import OrderedDict
+from typing import List, Union, Optional
+
+import unified_planning as up
+from unified_planning.environment import get_env, Environment
+from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
+from unified_planning.model import Timing, Parameter, FNode, Type, Expression, OperatorKind
+from unified_planning.model.action import Action
+from unified_planning.model.htn.method import Method
+from unified_planning.model.htn.task import Task, Subtask
+from unified_planning.model.timing import Timepoint
+from unified_planning.walkers import OperatorsExtractor
+
+
+class TaskNetwork:
+    def __init__(self, _env: Environment = None):
+        self._env = get_env(_env)
+        self._variables: OrderedDict[str, Parameter] = OrderedDict()
+        self._subtasks: List[Subtask] = []
+        self._constraints: List[FNode] = []
+        self._operators_extractor = OperatorsExtractor()  # maybe add to Environment?
+
+    def __repr__(self):
+        s = ['task network {\n']
+        if len(self._variables) > 0:
+            s.append("  variables = [\n")
+            for v in self.variables:
+                s.append(f"    {v}\n")
+            s.append("  ]\n")
+        s.append("  subtasks = [\n")
+        for t in self.subtasks:
+            s.append(f"    {t}\n")
+        s.append("  ]\n")
+        if len(self._constraints) > 0:
+            s.append("  constraints = [\n")
+            for c in self.constraints:
+                s.append(f"    {c}\n")
+            s.append("  ]\n")
+        s.append("}")
+        return ''.join(s)
+
+    def __eq__(self, oth):
+        if not isinstance(oth, TaskNetwork):
+            return False
+        return set(self.variables) == set(oth.variables) and \
+               set(self.subtasks) == set(oth.subtasks) and \
+               set(self.constraints) == set(oth.constraints)
+
+    def __hash__(self):
+        res = 0
+        res += sum(hash(v) for v in self.variables)
+        res += sum(hash(s) for s in self.subtasks)
+        res += sum(hash(c) for c in self.constraints)
+        return res
+
+    @property
+    def variables(self) -> List[Parameter]:
+        return list(self._variables.values())
+
+    def add_variable(self, name: str, typename: Type) -> Parameter:
+        assert name not in self._variables
+        param = Parameter(name, typename)
+        self._variables[name] = param
+        return param
+
+    @property
+    def subtasks(self) -> List['Subtask']:
+        """Returns the list of the subtasks."""
+        return self._subtasks
+
+    def add_subtask(self, task: Union[Action, Task], *args, ident: Optional[str] = None) -> Subtask:
+        subtask = Subtask(task, *args, ident=ident)
+        assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
+        self._subtasks.append(subtask)
+        return subtask
+
+    @property
+    def constraints(self) -> List[FNode]:
+        return self._constraints
+
+    def add_constraint(self, constraint: Expression):
+        constraint, = self._env.expression_manager.auto_promote(constraint)
+        assert isinstance(constraint, FNode)
+        assert self._env.type_checker.get_type(constraint).is_bool_type()
+        assert OperatorKind.FLUENT_EXP not in self._operators_extractor.get(constraint),\
+            f"The expression is not static (references a fluent): {constraint}"
+        self._constraints.append(constraint)
+
+    def set_strictly_before(self, lhs: Union[Subtask, Timepoint, Timing], rhs: Union[Subtask, Timepoint, Timing]):
+        if isinstance(lhs, Subtask):
+            lhs = lhs.end
+        if isinstance(lhs, Timepoint):
+            lhs = Timing(timepoint=lhs, delay=0)
+        assert isinstance(lhs, Timing)
+        if isinstance(rhs, Subtask):
+            rhs = rhs.start
+        if isinstance(rhs, Timepoint):
+            rhs = Timing(timepoint=rhs, delay=0)
+        assert isinstance(rhs, Timing)
+        self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
+
+

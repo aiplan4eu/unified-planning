@@ -11,25 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.htn import *
-from collections import namedtuple
 
-Example = namedtuple('Example', ['problem', 'plan'])
 
 def get_example_problems():
     problems = {}
 
-    Location = UserType("Location")
-    loc = Fluent("loc", Location)
+    htn = HierarchicalProblem()
 
-    move = Action("move", l1=Location, l2=Location)
+    Location = UserType("Location")
+    l1 = Object("l1", Location)
+    htn.add_object(l1)
+    l2 = Object("l2", Location)
+    htn.add_object(l2)
+    l3 = Object("l3", Location)
+    htn.add_object(l3)
+
+    loc = Fluent("loc", Location)
+    htn.add_fluent(loc)
 
     connected = Fluent("connected", l1=Location, l2=Location)
-    go = Task("go", target=Location)
+    htn.add_fluent(connected)
+
+    move = InstantaneousAction("move", l1=Location, l2=Location)
+    htn.add_action(move)
+    go = htn.add_task("go", target=Location)
 
     go_direct = Method("go-direct", go, source=Location, target=Location)
     source = go_direct.parameter("source")
@@ -37,7 +44,7 @@ def get_example_problems():
     go_direct.add_precondition(Equals(loc, source))
     go_direct.add_precondition(connected(source, target))
     go_direct.add_subtask(move, source, target)
-    print(go_direct)
+    htn.add_method(go_direct)
 
     go_indirect = Method("go-indirect", go, source=Location, inter=Location, target=Location)
     source = go_indirect.parameter("source")
@@ -48,23 +55,16 @@ def get_example_problems():
     t1 = go_indirect.add_subtask(move, source, inter)
     t2 = go_indirect.add_subtask(go, target)
     go_indirect.set_ordered(t1, t2)
-    print(go_indirect)
+    htn.add_method(go_indirect)
 
+    go1 = htn.task_network.add_subtask(go, l1)
+    final_loc = htn.task_network.add_variable("final_loc", Location)
+    go2 = htn.task_network.add_subtask(go, final_loc)
+    htn.task_network.set_strictly_before(go1, go2)
+    htn.task_network.add_constraint(Or(Equals(final_loc, l2),
+                                       Equals(final_loc, l3)))
 
-
-    # basic
-    # x = Fluent('x')
-    # a = InstantaneousAction('a')
-    # a.add_precondition(Not(x))
-    # a.add_effect(x, True)
-    # problem = Problem('basic')
-    # problem.add_fluent(x)
-    # problem.add_action(a)
-    # problem.set_initial_value(x, False)
-    # problem.add_goal(x)
-    # plan = up.plan.SequentialPlan([up.plan.ActionInstance(a)])
-    # basic = Example(problem=problem, plan=plan)
-    # problems['basic'] = basic
+    problems['htn'] = htn
 
     return problems
 
@@ -72,4 +72,4 @@ def get_example_problems():
 if __name__ == "__main__":
     for name, problem in get_example_problems().items():
         print(f"======= {name} ======")
-        print(str(problem.problem))
+        print(str(problem))

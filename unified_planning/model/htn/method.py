@@ -25,7 +25,7 @@ from unified_planning.environment import get_env, Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
 from unified_planning.model import Timing
 from unified_planning.model.action import Action
-from unified_planning.model.htn.task import Task, SubTask
+from unified_planning.model.htn.task import Task, Subtask
 from unified_planning.model.timing import Timepoint
 
 
@@ -39,7 +39,7 @@ class Method:
         # Parameters of the method (must include the ones of the task)
         self._parameters: 'OrderedDict[str, up.model.parameter.Parameter]' = OrderedDict()
         self._preconditions: List[up.model.fnode.FNode] = []
-        self._subtasks: List[SubTask] = []
+        self._subtasks: List[Subtask] = []
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
@@ -64,34 +64,34 @@ class Method:
         if not first:
             s.append(')')
         s.append(' {\n')
-        s.append(f'    task = {self._task}\n')
-        s.append('    preconditions = [\n')
+        s.append(f'  task = {self._task}\n')
+        s.append('  preconditions = [\n')
         for c in self.preconditions:
-            s.append(f'      {str(c)}\n')
-        s.append('    ]\n')
-        s.append('    subtasks = [\n')
+            s.append(f'    {str(c)}\n')
+        s.append('  ]\n')
+        s.append('  subtasks = [\n')
         for st in self.subtasks:
             s.append(f'      {str(st)}\n')
-        s.append('    ]\n')
-        s.append('  }')
+        s.append('  ]\n')
+        s.append('}')
         return ''.join(s)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, Method):
-            cond = self._env == oth._env and self._name == oth._name and self._parameters == oth._parameters
-            return cond and self._task == oth._task and set(self._preconditions) == set(oth._preconditions) and set(self._subtasks) == set(oth._subtasks)
-        else:
+        if not isinstance(oth, Method):
             return False
+        return self._env == oth._env and \
+               self._name == oth._name and \
+               self._parameters == oth._parameters and \
+               self._task == oth._task and \
+               set(self._preconditions) == set(oth._preconditions) and \
+               set(self._subtasks) == set(oth._subtasks)
 
     def __hash__(self) -> int:
         res = hash(self._name)
         res += hash(self._task)
-        for ap in self._parameters.items():
-            res += hash(ap)
-        for p in self._preconditions:
-            res += hash(p)
-        for s in self._subtasks:
-            res += hash(s)
+        res += sum(hash(ap) for ap in self.parameters)
+        res += sum(hash(p) for p in self.preconditions)
+        res += sum(hash(s) for s in self.subtasks)
         return res
 
     @property
@@ -100,8 +100,13 @@ class Method:
         return self._name
 
     @property
+    def task(self) -> Task:
+        """Returns the task that this method achieves."""
+        return self._task
+
+    @property
     def parameters(self) -> List['up.model.parameter.Parameter']:
-        """Returns the list of the action parameters."""
+        """Returns the list of the method's parameters."""
         return list(self._parameters.values())
 
     def parameter(self, name: str) -> 'up.model.parameter.Parameter':
@@ -129,17 +134,17 @@ class Method:
             self._preconditions.append(precondition_exp)
 
     @property
-    def subtasks(self) -> List['SubTask']:
+    def subtasks(self) -> List['Subtask']:
         """Returns the list of the method's subtasks."""
         return self._subtasks
 
-    def add_subtask(self, task: Union[Action, Task], *args, ident: Optional[str] = None) -> SubTask:
-        subtask = SubTask(task, *args, ident=ident)
+    def add_subtask(self, task: Union[Action, Task], *args, ident: Optional[str] = None) -> Subtask:
+        subtask = Subtask(task, *args, ident=ident)
         assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
         self._subtasks.append(subtask)
         return subtask
 
-    def set_ordered(self, *subtasks: SubTask):
+    def set_ordered(self, *subtasks: Subtask):
         if len(subtasks) < 2:
             return
         prev = subtasks[0]
@@ -148,18 +153,19 @@ class Method:
             self.set_strictly_before(prev, next)
             prev = next
 
-    def set_strictly_before(self, lhs: Union[SubTask, Timepoint, Timing], rhs: Union[SubTask, Timepoint, Timing]):
-        if isinstance(lhs, SubTask):
+    def set_strictly_before(self, lhs: Union[Subtask, Timepoint, Timing], rhs: Union[Subtask, Timepoint, Timing]):
+        if isinstance(lhs, Subtask):
             lhs = lhs.end
         if isinstance(lhs, Timepoint):
             lhs = Timing(timepoint=lhs, delay=0)
         assert isinstance(lhs, Timing)
-        if isinstance(rhs, SubTask):
+        if isinstance(rhs, Subtask):
             rhs = rhs.start
         if isinstance(rhs, Timepoint):
             rhs = Timing(timepoint=rhs, delay=0)
         assert isinstance(rhs, Timing)
-        self._preconditions.append(self._env.expression_manager.LT(lhs, rhs))  # TODO
+        # TODO: decide where to store such constraints (currently added to preconditions)
+        self._preconditions.append(self._env.expression_manager.LT(lhs, rhs))
 
 
 
