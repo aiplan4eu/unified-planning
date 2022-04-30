@@ -226,10 +226,15 @@ class Problem:
                 return True
         return False
 
-    def add_fluent(self, fluent: 'up.model.fluent.Fluent', *,
-                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object', bool,
-                                                int, float, Fraction] = None):
+    def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str], *args,
+                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object', bool, int, float, Fraction] = None,
+                   typename: 'up.model.types.Type' = None) -> 'up.model.fluent.Fluent':
         '''Adds the given fluent.'''
+        if isinstance(fluent_or_name, up.model.fluent.Fluent):
+            assert len(args) == 0
+            fluent = fluent_or_name
+        else:
+            fluent = up.model.fluent.Fluent(fluent_or_name, typename, *args)
         if self.has_name(fluent.name):
             raise UPProblemDefinitionError('Name ' + fluent.name + ' already defined!')
         self._fluents.append(fluent)
@@ -243,6 +248,7 @@ class Problem:
         for param in fluent.signature:
             if param.type.is_user_type() and param.type not in self._user_types:
                 self._add_user_type(param.type)
+        return fluent
 
     def _add_user_type(self, type: Optional['up.model.types.Type']):
         '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''
@@ -385,13 +391,21 @@ class Problem:
         #NOTE this returns a copy, but could also return the original map
         return dict(self._user_types_hierarchy)
 
-    def add_object(self, obj: 'up.model.object.Object'):
+    def add_object(self, obj_or_name: Union['up.model.object.Object', str],
+                   typename: Optional['up.model.types.Type'] = None) -> 'up.model.object.Object':
         '''Adds the given object.'''
+        if isinstance(obj_or_name, up.model.object.Object):
+            assert typename is None
+            obj = obj_or_name
+        else:
+            assert typename is not None, "Missing type of the object"
+            obj = up.model.object.Object(obj_or_name, typename)
         if self.has_name(obj.name):
             raise UPProblemDefinitionError('Name ' + obj.name + ' already defined!')
         self._objects.append(obj)
         if obj.type.is_user_type() and obj.type not in self._user_types:
             self._add_user_type(obj.type)
+        return obj
 
     def add_objects(self, objs: List['up.model.object.Object']):
         '''Adds the given objects.'''
