@@ -17,15 +17,12 @@ This module defines the Method class.
 A Method has a name, a list of Parameters, a list of conditions
 and a list of subtasks.
 """
-from upf.model.operators import LT
+from collections import OrderedDict
+from typing import List, Union, Optional
 
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
-from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError, UPValueError
-from fractions import Fraction
-from typing import Dict, List, Union, Optional
-from collections import OrderedDict
-
+from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
 from unified_planning.model import Timing
 from unified_planning.model.action import Action
 from unified_planning.model.htn.task import Task, SubTask
@@ -73,8 +70,8 @@ class Method:
             s.append(f'      {str(c)}\n')
         s.append('    ]\n')
         s.append('    subtasks = [\n')
-        for c in self.subtasks:
-            s.append(f'      {str(c)}\n')
+        for st in self.subtasks:
+            s.append(f'      {str(st)}\n')
         s.append('    ]\n')
         s.append('  }')
         return ''.join(s)
@@ -143,7 +140,7 @@ class Method:
         return subtask
 
     def set_ordered(self, *subtasks: SubTask):
-        if len(subtasks) == 0:
+        if len(subtasks) < 2:
             return
         prev = subtasks[0]
         for i in range(1, len(subtasks)):
@@ -156,12 +153,12 @@ class Method:
             lhs = lhs.end
         if isinstance(lhs, Timepoint):
             lhs = Timing(timepoint=lhs, delay=0)
-        lhs = self._env.expression_manager.auto_promote(lhs)
+        assert isinstance(lhs, Timing)
         if isinstance(rhs, SubTask):
             rhs = rhs.start
         if isinstance(rhs, Timepoint):
             rhs = Timing(timepoint=rhs, delay=0)
-        rhs = self._env.expression_manager.auto_promote(rhs)
+        assert isinstance(rhs, Timing)
         self._preconditions.append(self._env.expression_manager.LT(lhs, rhs))  # TODO
 
 

@@ -98,8 +98,7 @@ class Task:
 
     def __call__(self, *args: 'up.model.expression.Expression', ident: Optional[str] = None) -> 'SubTask':
         '''Returns a subtask with the given parameters.'''
-        args = map(self._env.expression_manager.auto_promote, args)
-        return SubTask(self, *args)
+        return SubTask(self, *self._env.expression_manager.auto_promote(args))
 
 
 _task_id_counter = 0
