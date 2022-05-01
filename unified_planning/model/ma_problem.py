@@ -382,7 +382,7 @@ class MultiAgentProblem(Problem):
             print("Pyperplan returned: %s" % solve_plan)
         return
 
-    def extract_plans(self, plan_problem):
+    '''def extract_plans(self, plan_problem):
         for ag in self.get_agents():
             for act in plan_problem._actions:
                 act = copy.deepcopy(act)
@@ -412,18 +412,8 @@ class MultiAgentProblem(Problem):
         domain = open(str(self.name) +'_domain', "w")
         domain.write(w.get_domain())
         domain.close()
-        return problems
+        return problems'''
 
-    def write_ma_problem_(self, problems, ag_list_problems):
-        wrt_domain = False
-        for prob in problems:
-            for ag in ag_list_problems:
-                w = PDDLWriter_MA(ag, prob)
-                if wrt_domain == False:
-                    w.write_domain(f' domain_{prob._name}')
-                    wrt_domain = True
-                w.write_problem(f' problem_{prob._name}_{ag}')
-                w.write_agents_txt('agent-list.txt')
 
     def write_ma_problem(self, problems):
 
@@ -449,10 +439,11 @@ class MultiAgentProblem(Problem):
     def FMAP_palnner(self):
         #path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
         #path_file = "home/alee8/Scrivania/unified-planning/unified_planning/test/examples/"
-        path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
-        path_file = "Domains/depots/Pfile01/ok/"
+        path = "../../FMAP"
+        #path_file = "Domains/depots/Pfile01/ok/"
+        path_file = "../test/examples/"
         cwd = os.getcwd()
-        #os.chdir(path)
+            #os.chdir(path)
         try:
             os.chdir(path)
             print("Inserting inside-", os.getcwd())
@@ -483,15 +474,6 @@ class MultiAgentProblem(Problem):
 
     def add_agent_list(self, problem, agent_list):
         prob = problem._name
-        if prob not in self._agent_list_problems:
-            self._agent_list_problems[prob] = []
-        if agent_list not in self._agent_list_problems[prob]:
-            self._agent_list_problems[prob].append(agent_list)
-
-
-
-    def add_agent_list_(self, problem, agent_list):
-        prob = problem
         if prob not in self._agent_list_problems:
             self._agent_list_problems[prob] = []
         if agent_list not in self._agent_list_problems[prob]:

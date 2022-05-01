@@ -952,7 +952,7 @@ def get_example_problems():
     truck0 = Object('truck0', truck)
     truck1 = Object('truck1', truck)
 
-    drive = InstantaneousAction('drive', t=truck, x=place, y=place)
+    drive = InstantaneousAction('Drive', t=truck, x=place, y=place)
     t = drive.parameter('t')
     x = drive.parameter('x')
     y = drive.parameter('y')
@@ -966,7 +966,7 @@ def get_example_problems():
 
     # Load.add_precondition(pos(crate))
     # Load.add_precondition(Not(clear(crate)))
-    load = InstantaneousAction('load', t=truck, p=place, c=crate, h=hoist)
+    load = InstantaneousAction('Load', t=truck, p=place, c=crate, h=hoist)
     c = load.parameter('c')
     p = load.parameter('p')
     t = load.parameter('t')
@@ -989,7 +989,7 @@ def get_example_problems():
 
     # load.add_effect(Not(clear(h)))
 
-    unload = InstantaneousAction('unload', t=truck, p=place, c=crate, h=hoist)
+    unload = InstantaneousAction('Unload', t=truck, p=place, c=crate, h=hoist)
     c = unload.parameter('c')
     t = load.parameter('t')
     p = unload.parameter('p')

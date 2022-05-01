@@ -1,0 +1,15 @@
+truck0
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/DomainDepot_trucks.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/ProblemDepotsTruck0.pddl
+truck1
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/DomainDepot_trucks.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/ProblemDepotsTruck1.pddl
+depot0
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/DomainDepots.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/ProblemDepotsDepot0.pddl
+distributor0
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/DomainDepots.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/ProblemDepotsDistributor0.pddl
+distributor1
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/DomainDepots.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/ProblemDepotsDistributor1.pddl
