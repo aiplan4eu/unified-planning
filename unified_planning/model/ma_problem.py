@@ -347,7 +347,6 @@ class MultiAgentProblem(Problem):
         for ag in self.get_agents():
             for flu in ag.get_fluents():
                 if flu not in self._fluents:
-                    print(flu, "weeeeeeeeeee")
                     self.add_fluent(flu)
                 else:
                     pass
@@ -441,27 +440,45 @@ class MultiAgentProblem(Problem):
             for ag in agent_list:
                 w = PDDLWriter_MA(ag, problem)
                 if write_domain == False:
-                    w.write_domain(f' domain_{problem._name}')
+                    w.write_domain(f'Domain{problem._name.capitalize()}.pddl')
                     write_domain = True
-                w.write_problem(f' problem_{name}_{ag}')
+                w.write_problem(f'Problem{name.capitalize()}{ag.capitalize()}.pddl')
                 w.write_agents_txt('agent-list.txt')
 
 
-    def write_CL_FMAP(self):
+    def FMAP_palnner(self):
+        #path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
+        #path_file = "home/alee8/Scrivania/unified-planning/unified_planning/test/examples/"
         path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
-        path_file = "home/alee8/Scrivania/unified-planning/unified_planning/test/examples/"
-        os.chdir(path)
+        path_file = "Domains/depots/Pfile01/ok/"
+        cwd = os.getcwd()
+        #os.chdir(path)
+        try:
+            os.chdir(path)
+            print("Inserting inside-", os.getcwd())
+        # Caching the exception
+        except:
+            print("Something wrong with specified\
+                  directory. Exception- ", sys.exc_info())
+
         out = StringIO()
         out.write(f'java -jar FMAP.jar')
+        name = next(iter(self._agent_list_problems))
         for prob, agents_list in self._agent_list_problems.items():
             for agent in agents_list:
-                out.write(f' {agent} {path_file}domain_{prob}.pddl {path_file}problem_{prob}_{agent}.pddl')
-        out.write(f' {path_file}agent-list.txt')
+                out.write(f' {agent} {path_file}Domain{prob.capitalize()}.pddl {path_file}Problem{name.capitalize()}{agent.capitalize()}.pddl')
+        #out.write(f' {path_file}agent-list.txt')
+        #out.write(f' agent-list.txt')
         command = out.getvalue()
         #from os import walk
         #filenames = next(walk(path_file), (None, None, []))[2]
         print(command)
-        os.system(command)
+        #os.system(command)
+        plan = os.popen(command).read()
+        os.chdir(cwd)
+        name = f'FMAP_{name}_plan'
+        self.write_FMAP_plan(name, plan)
+        return plan
 
 
     def add_agent_list(self, problem, agent_list):
@@ -479,3 +496,9 @@ class MultiAgentProblem(Problem):
             self._agent_list_problems[prob] = []
         if agent_list not in self._agent_list_problems[prob]:
             self._agent_list_problems[prob].append(agent_list)
+
+
+    def write_FMAP_plan(self, filename: str, plan):
+        '''Dumps to file the FMAP plan.'''
+        with open(filename, 'w') as f:
+            f.write(plan)

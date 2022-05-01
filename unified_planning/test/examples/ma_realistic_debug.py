@@ -315,7 +315,9 @@ def ma_example_2():
     problems_ma = [problem_depots, problem_trucks]
     problem.write_ma_problem(problems_ma)
 
-    ok = problem.write_CL_FMAP()
+    plan = problem.FMAP_palnner()
+
+    print(plan)
 
     #problemmmm = [problem, problem]
     #ag_listsss = [['depot0', 'distributor0', "distributor1"], ['truck0', 'truck1']]
