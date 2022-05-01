@@ -1,0 +1,5 @@
+depot0 127.0.0.3
+distributor0 127.0.0.3
+distributor1 127.0.0.3
+truck0 127.0.0.3
+truck1 127.0.0.3

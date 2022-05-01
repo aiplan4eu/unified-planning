@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<comment>Magentix2 Configuration properties</comment>
+
+
+<!-- Properties thomas -->
+<entry key="OMSServiceDesciptionLocation">http://localhost:8080/omsservices/OMSservices/owl/owls/</entry>
+<entry key="SFServiceDesciptionLocation">http://localhost:8080/sfservices/SFservices/owl/owls/</entry>
+
+
+<!-- Properties servlets server -->
+<entry key="tomcat">false</entry>
+<entry key="os">linux</entry><!-- linux windows -->
+<entry key="pathTomcat">../apache-tomcat-6.0.20</entry>
+
+<!-- Properties mysql -->
+<entry key="serverName">localhost</entry>
+<entry key="databaseName">thomas</entry>
+<entry key="userName">thomas</entry>
+<entry key="password">thomas</entry>
+
+
+<!-- WITHOUT SECURITY -->
+<!-- Properties qpid broker -->
+<entry key="host">localhost</entry>
+<entry key="port">5672</entry>
+<entry key="vhost">test</entry>
+<entry key="user">guest</entry>
+<entry key="pass">guest</entry>
+<entry key="ssl">false</entry>
+<!-- Secure qpid properties -->
+<entry key="secureMode">false</entry>
+<entry key="saslMechs">EXTERNAL</entry>
+
+<!-- WITH SECURITY -->
+<!-- Properties qpid broker -->
+<!--<entry key="host">localhost</entry>
+<entry key="port">5671</entry>
+<entry key="vhost">test</entry>
+<entry key="user">guest</entry>
+<entry key="pass">guest</entry>
+<entry key="ssl">true</entry>-->
+<!-- Secure qpid properties -->
+<!--<entry key="secureMode">true</entry>
+<entry key="saslMechs">EXTERNAL</entry>-->
+
+
+
+<!-- Properties jena -->
+<entry key="dbURL">jdbc:mysql://localhost/thomas</entry>
+<entry key="dbType">MySQL</entry>
+<entry key="dbDriver">com.mysql.jdbc.Driver</entry>
+
+</properties>

@@ -40,6 +40,9 @@ from unified_planning.io.pddl_writer_ma import PDDLWriter_MA
 
 from unified_planning.walkers.substituter import Substituter
 import re
+import os
+from typing import IO
+from io import StringIO
 
 
 class MultiAgentProblem(Problem):
@@ -56,7 +59,8 @@ class MultiAgentProblem(Problem):
         self._new_objects: Dict['up.model.object.Object']  = {}
         self._shared_data: List['up.model.fluent.Fluent'] = []
         self._flu_fuctions: List['up.model.fluent.Fluent'] = []
-        self._agent_list_problems = []
+        self._agent_list_problems = {}
+
     ######################################################################################
 
 
@@ -411,11 +415,67 @@ class MultiAgentProblem(Problem):
         domain.close()
         return problems
 
-    def write_ma_problem(self, problem, ag_list_problems):
+    def write_ma_problem_(self, problems, ag_list_problems):
         wrt_domain = False
-        for ag in ag_list_problems:
-            w = PDDLWriter_MA(ag, problem)
-            if wrt_domain == False:
-                w.write_domain(f' domain_{problem._name}')
-                wrt_domain = True
-            w.write_problem(f' problem_{problem._name}_{ag}')
+        for prob in problems:
+            for ag in ag_list_problems:
+                w = PDDLWriter_MA(ag, prob)
+                if wrt_domain == False:
+                    w.write_domain(f' domain_{prob._name}')
+                    wrt_domain = True
+                w.write_problem(f' problem_{prob._name}_{ag}')
+                w.write_agents_txt('agent-list.txt')
+
+    def write_ma_problem(self, problems):
+
+        for prob, agent_list in self._agent_list_problems.items():
+            if type(problems) is list:
+                name = problems[0]._name
+                for p in problems:
+                    if p._name == prob:
+                        problem = p
+            else:
+                problem = problems
+                name = problem._name
+            write_domain = False
+            for ag in agent_list:
+                w = PDDLWriter_MA(ag, problem)
+                if write_domain == False:
+                    w.write_domain(f' domain_{problem._name}')
+                    write_domain = True
+                w.write_problem(f' problem_{name}_{ag}')
+                w.write_agents_txt('agent-list.txt')
+
+
+    def write_CL_FMAP(self):
+        path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
+        path_file = "home/alee8/Scrivania/unified-planning/unified_planning/test/examples/"
+        os.chdir(path)
+        out = StringIO()
+        out.write(f'java -jar FMAP.jar')
+        for prob, agents_list in self._agent_list_problems.items():
+            for agent in agents_list:
+                out.write(f' {agent} {path_file}domain_{prob}.pddl {path_file}problem_{prob}_{agent}.pddl')
+        out.write(f' {path_file}agent-list.txt')
+        command = out.getvalue()
+        #from os import walk
+        #filenames = next(walk(path_file), (None, None, []))[2]
+        print(command)
+        os.system(command)
+
+
+    def add_agent_list(self, problem, agent_list):
+        prob = problem._name
+        if prob not in self._agent_list_problems:
+            self._agent_list_problems[prob] = []
+        if agent_list not in self._agent_list_problems[prob]:
+            self._agent_list_problems[prob].append(agent_list)
+
+
+
+    def add_agent_list_(self, problem, agent_list):
+        prob = problem
+        if prob not in self._agent_list_problems:
+            self._agent_list_problems[prob] = []
+        if agent_list not in self._agent_list_problems[prob]:
+            self._agent_list_problems[prob].append(agent_list)

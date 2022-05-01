@@ -30,7 +30,7 @@ class PDDLWriter_MA(PDDLWriter):
     def __init__(self, ag, *args, **kwargs):
         super(PDDLWriter_MA, self).__init__(*args, **kwargs)
         self._ag =ag
-
+        self.agent_list = []
         self.shared_data = {}
 
     def remove_underscore(self, name):
@@ -38,6 +38,33 @@ class PDDLWriter_MA(PDDLWriter):
         subst = ""
         new_name = re.sub(regex, subst, name, 0, re.MULTILINE)
         return new_name
+
+    def _write_agents_txt(self, out: IO[str]):
+        for ag in self.problem.agents_list:
+            out.write(f'{ag._ID} 127.0.0.3\n')
+
+
+    def write_agents_txt(self, filename: str):
+        '''Dumps to file the agents_txt.'''
+        with open(filename, 'w') as f:
+            self._write_agents_txt(f)
+
+
+    def _write_CL_FMAP(self, out: IO[str]):
+        out.write(f'java -jar FMAP.jar ')
+        for ag in self.problem.agents_list:
+            out.write(f'{ag._ID} ')
+
+    def write_ma_problem(self, problems, ag_list_problems):
+        wrt_domain = False
+        for problem in problems:
+            for ag in ag_list_problems:
+                if wrt_domain == False:
+                    self.write_domain(f' domain_{problem._name}')
+                    wrt_domain = True
+                self.write_problem(f' problem_{problem._name}_{ag}')
+                self.write_agents_txt('agent-list.txt')
+
 
     def _write_domain(self, out: IO[str]):
         #for agent in self.problem.agents_list:
@@ -52,7 +79,8 @@ class PDDLWriter_MA(PDDLWriter):
             name = 'pddl'
         else:
             name = f'{self.problem.name}'
-        out.write(f'(domain {name}-domain)\n')
+        #out.write(f'(domain {name}-domain)\n')
+        out.write(f'(domain pddl-domain)\n')
 
         if self.needs_requirements:
             out.write('(:requirements :strips')
@@ -89,6 +117,8 @@ class PDDLWriter_MA(PDDLWriter):
             user_types_hierarchy = self.problem.user_types_hierarchy()
             out.write(f'(:types')
             stack: List['unified_planning.model.Type'] = user_types_hierarchy[None] if None in user_types_hierarchy else []
+
+
             out.write(f' {" ".join(self._type_name_or_object_freshname(t) for t in stack)} - object\n')
             while stack:
                 current_type = stack.pop()
@@ -162,13 +192,14 @@ class PDDLWriter_MA(PDDLWriter):
         #breakpoint()
 
         type = self.problem.object(self._ag).type()
-        if type._father == 'agent':
+        if type._father.name() == 'agent':
             type = type.name()
         else:
             type = type._father
 
 
         #out.write(f'(:predicates \n  (myAgent ?a - {type})\n  {"  ".join(predicates)})\n' if len(predicates) > 0 else '')
+
         out.write(f'(:predicates \n  (myAgent ?a - {type})')
         for i, k in dict.items():
             if len(k) > 1:
@@ -405,8 +436,10 @@ class PDDLWriter_MA(PDDLWriter):
             name = 'pddl'
         else:
             name = f'{self.problem.name}'
-        out.write(f'(define (problem {name}-problem)\n')
-        out.write(f'(:domain {name}-domain)\n')
+        #out.write(f'(define (problem {name}-problem)\n')
+        out.write(f'(define (problem pddl-problem)\n')
+        #out.write(f'(:domain {name}-domain)\n')
+        out.write(f'(:domain pddl-domain)\n')
         if len(self.problem.user_types()) > 0:
             out.write('(:objects ')
             for t in self.problem.user_types():

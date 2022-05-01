@@ -28,12 +28,12 @@ from unified_planning.io.pddl_reader import PDDLReader
 from unified_planning.transformers import NegativeConditionsRemover
 
 
-Example = namedtuple('Example', ['problem', 'plan'])
+Example = namedtuple('Example', ['problem'])
 problems = {}
-examples = get_example_problems()
+examples_realistic = get_example_problems()
 
 def ma_example():
-    problem = examples['depot'].problem
+    problem = examples_realistic['depot'].problem
 
     # examples['...'].problem supported:
     # Yes: robot                                 PDDL:Yes
@@ -54,7 +54,7 @@ def ma_example():
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
-    plan = examples['robot'].plan
+    plan = examples_realistic['robot'].plan
     robot1 = Agent()
     robot2 = Agent()
     environment = Environment_ma()
@@ -137,8 +137,8 @@ def ma_example():
 
 
 def ma_example_2():
-    problem = examples['depot'].problem
-
+    problems = {}
+    problem = examples_realistic['depot'].problem
     # examples['...'].problem supported:
     # Yes: robot                                 PDDL:Yes
     # Yes: robot_fluent_of_user_type             PDDL:No (PDDL supports only boolean and numerical fluents)
@@ -158,39 +158,13 @@ def ma_example_2():
     init_values_problem = problem.initial_values()
     goals_problem = problem.goals()
     objects_problem = problem.all_objects()
-    plan = examples['robot'].plan
+    #plan = examples['robot'].plan
     robot1 = Agent('depot0')
     robot2 = Agent('distributor0')
     robot3 = Agent('distributor1')
     robot4 = Agent('truck0')
     robot5 = Agent('truck1')
     environment = Environment_ma()
-
-    '''print(fluents_problem, init_values_problem, "weeeeeeeeeeeeeeee",init_values_problem.keys())
-    cargo_flu = fluents_problem[1]
-    #cargo_flu2 = fluents_problem[2]
-    key = 'cargo_at(l1)'
-    if key in init_values_problem.keys():
-        init_flu = init_values_problem[key]
-    else:
-        init_flu = None
-
-    for i in enumerate(init_values_problem.items()):
-        if str(i[1][0]) == 'cargo_at(l1)':
-            print(i[1])
-            init_flu_key = i[1][0]
-            init_flu_value = i[1][1]
-    for i in enumerate(init_values_problem.items()):
-        if str(i[1][0]) == 'cargo_at(l2)':
-            print(i[1])
-            init_flu_key2 = i[1][0]
-            init_flu_value2 = i[1][1]
-    print(init_flu_key, cargo_flu)
-    environment.add_fluent(cargo_flu)
-    #environment.add_fluent(cargo_flu2)
-    environment.set_initial_value(init_flu_key, init_flu_value)
-    environment.set_initial_value(init_flu_key2, init_flu_value2)
-    print(environment.get_initial_values(), environment.get_fluents())'''
 
     robot1.add_fluents(fluents_problem)
     robot2.add_fluents(fluents_problem)
@@ -211,7 +185,7 @@ def ma_example_2():
     robot4.add_goals(goals_problem)
     robot5.add_goals(goals_problem)
 
-    ma_problem = MultiAgentProblem('robots')
+    ma_problem = MultiAgentProblem('depots')
     ma_problem.add_agent(robot1)
     ma_problem.add_agent(robot2)
     ma_problem.add_agent(robot3)
@@ -220,16 +194,9 @@ def ma_example_2():
     ma_problem.add_environment_(environment)
     ma_problem.add_objects(objects_problem)
 
-
-
-
-
-
-
-    #Add shared data
-    #problem = ma_problem.compile()
+    # Add shared data
+    # problem = ma_problem.compile()
     problem = ma_problem.compile_ma()
-    print(ma_problem.fluents())
     ma_problem.add_shared_data(ma_problem.fluent('clear_h'))
     ma_problem.add_shared_data(ma_problem.fluent('clear_s'))
     ma_problem.add_shared_data(ma_problem.fluent('at'))
@@ -239,6 +206,77 @@ def ma_example_2():
     ma_problem.add_shared_data(ma_problem.fluent('on_u'))
     ma_problem.add_shared_data(ma_problem.fluent('on_s'))
 
+    # Add fucntions
+    ma_problem.add_flu_function(ma_problem.fluent('located'))
+    ma_problem.add_flu_function(ma_problem.fluent('at'))
+    ma_problem.add_flu_function(ma_problem.fluent('placed'))
+    ma_problem.add_flu_function(ma_problem.fluent('pos_p'))
+    ma_problem.add_flu_function(ma_problem.fluent('pos_u'))
+    ma_problem.add_flu_function(ma_problem.fluent('on_h'))
+    ma_problem.add_flu_function(ma_problem.fluent('on_u'))
+    ma_problem.add_flu_function(ma_problem.fluent('on_s'))
+
+    print(problem)
+
+    #print("Single agent plan:\n ", plan)
+    #plan = ma_problem.extract_plans(plan)
+    #print("Multi agent plan:\n ", plan, "\n")
+    robots = Example(problem=problem)
+    problems['depots'] = robots
+
+    problem = examples_realistic['depot_truck'].problem
+    fluents_problem = problem.fluents()
+    actions_problem = problem.actions()
+    init_values_problem = problem.initial_values()
+    goals_problem = problem.goals()
+    objects_problem = problem.all_objects()
+    #plan = examples['robot'].plan
+    robot1 = Agent('depot0')
+    robot2 = Agent('distributor0')
+    robot3 = Agent('distributor1')
+    robot4 = Agent('truck0')
+    robot5 = Agent('truck1')
+    environment = Environment_ma()
+
+    robot1.add_fluents(fluents_problem)
+    robot2.add_fluents(fluents_problem)
+    robot3.add_fluents(fluents_problem)
+    robot1.add_actions(actions_problem)
+    robot2.add_actions(actions_problem)
+    robot3.add_actions(actions_problem)
+    robot4.add_actions(actions_problem)
+    robot5.add_actions(actions_problem)
+    robot1.set_initial_values(init_values_problem)
+    robot2.set_initial_values(init_values_problem)
+    robot3.set_initial_values(init_values_problem)
+    robot4.set_initial_values(init_values_problem)
+    robot5.set_initial_values(init_values_problem)
+    robot1.add_goals(goals_problem)
+    robot2.add_goals(goals_problem)
+    robot3.add_goals(goals_problem)
+    robot4.add_goals(goals_problem)
+    robot5.add_goals(goals_problem)
+
+    ma_problem = MultiAgentProblem('depot_trucks')
+    ma_problem.add_agent(robot1)
+    ma_problem.add_agent(robot2)
+    ma_problem.add_agent(robot3)
+    ma_problem.add_agent(robot4)
+    ma_problem.add_agent(robot5)
+    ma_problem.add_environment_(environment)
+    ma_problem.add_objects(objects_problem)
+
+    #Add shared data
+    #problem = ma_problem.compile()
+    problem = ma_problem.compile_ma()
+    ma_problem.add_shared_data(ma_problem.fluent('clear_h'))
+    ma_problem.add_shared_data(ma_problem.fluent('clear_s'))
+    ma_problem.add_shared_data(ma_problem.fluent('at'))
+    ma_problem.add_shared_data(ma_problem.fluent('pos_p'))
+    ma_problem.add_shared_data(ma_problem.fluent('pos_u'))
+    ma_problem.add_shared_data(ma_problem.fluent('on_h'))
+    ma_problem.add_shared_data(ma_problem.fluent('on_u'))
+    ma_problem.add_shared_data(ma_problem.fluent('on_s'))
 
     #Add fucntions
     ma_problem.add_flu_function(ma_problem.fluent('located'))
@@ -250,21 +288,37 @@ def ma_example_2():
     ma_problem.add_flu_function(ma_problem.fluent('on_u'))
     ma_problem.add_flu_function(ma_problem.fluent('on_s'))
 
-    #ma_problem.add_flu_function(ma_problem.fluent('we'))
-
     print(problem)
 
-    print("Single agent plan:\n ", plan)
-    plan = ma_problem.extract_plans(plan)
-    print("Multi agent plan:\n ", plan, "\n")
-    robots = Example(problem=problem, plan=plan)
-    problems['robots'] = robots
+    #print("Single agent plan:\n ", plan)
+    #plan = ma_problem.extract_plans(plan)
+    #print("Multi agent plan:\n ", plan, "\n")
+    robots = Example(problem=problem)
+    problems['depot_trucks'] = robots
 
 
-    ag_list = problem.agent_list_problems = ['depot0', 'distributor0', "distributor1"]
+    #ag_list = ['depot0', 'distributor0', "distributor1"]
     #ag_list = problem.agent_list_problems = ['truck0', 'truck1'] #in caso di "depot_truck"
 
-    problem.write_ma_problem(problem, ag_list)
+    problem_depots = problems['depots'].problem
+    problem.add_agent_list(problem_depots, 'depot0')
+    problem.add_agent_list(problem_depots, 'distributor0')
+    problem.add_agent_list(problem_depots, 'distributor1')
 
+    problem_trucks = problems['depot_trucks'].problem
+    problem.add_agent_list(problem_trucks, 'truck0')
+    problem.add_agent_list(problem_trucks, 'truck1')
+
+
+    #print(problem._agent_list_problems)
+    #ok = problem.write_CL_FMAP()
+    problems_ma = [problem_depots, problem_trucks]
+    problem.write_ma_problem(problems_ma)
+
+    ok = problem.write_CL_FMAP()
+
+    #problemmmm = [problem, problem]
+    #ag_listsss = [['depot0', 'distributor0', "distributor1"], ['truck0', 'truck1']]
+    #problem.write_ma_problem(problemmmm, ag_listsss)
 
 ma_example_2()

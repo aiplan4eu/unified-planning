@@ -981,10 +981,12 @@ def get_example_problems():
     load.add_precondition(on_h(c, h))
     load.add_precondition(located(h, p))
 
-    load.add_effect(pos_p(c, p), True)
-    load.add_effect(on_h(c, h), True)
-    load.add_effect(clear_s(c), True)
     load.add_effect(clear_h(h), True)
+    load.add_effect(clear_s(c), True)
+    load.add_effect(pos_u(c, t), True)
+    load.add_effect(on_u(c, t), True)
+
+
     # load.add_effect(Not(clear(h)))
 
     unload = InstantaneousAction('unload', t=truck, p=place, c=crate, h=hoist)
