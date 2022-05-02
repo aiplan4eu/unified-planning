@@ -18,6 +18,7 @@ import fractions
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 import unified_planning.model
 import unified_planning.plan
+import unified_planning.walkers as walkers
 from unified_planning import model
 from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
@@ -28,6 +29,7 @@ from unified_planning.model.operators import (
     OperatorKind,
 )
 from unified_planning.model.timing import TimepointKind
+from typing import List
 
 
 def map_operator(op: int) -> str:
@@ -59,8 +61,112 @@ def map_operator(op: int) -> str:
         return "exists"
     elif op == OperatorKind.FORALL:
         return "forall"
-
     raise ValueError(f"Unknown operator `{op}`")
+
+
+class FNode2Protobuf(walkers.DagWalker):
+    def __init__(self, protobuf_writer):
+        super().__init__()
+        self._protobuf_writer = protobuf_writer
+
+    def convert(self, expression: model.FNode) -> proto.Expression:
+        return self.walk(expression)
+
+    def walk_bool_constant(self, expression: model.FNode,
+                           args: List[proto.Expression]) -> proto.Expression:
+        return proto.Expression(
+            atom=proto.Atom(boolean=expression.bool_constant_value()),
+            list=[],
+            kind=proto.ExpressionKind.Value("CONSTANT"),
+            type="bool",
+        )
+
+    def walk_int_constant(self, expression: model.FNode,
+                          args: List[proto.Expression]) -> proto.Expression:
+        return proto.Expression(
+            atom=proto.Atom(int=expression.int_constant_value()),
+            list=[],
+            kind=proto.ExpressionKind.Value("CONSTANT"),
+            type="integer",
+        )
+
+    def walk_real_constant(self, expression: model.FNode,
+                           args: List[proto.Expression]) -> proto.Expression:
+        return proto.Expression(
+            atom=proto.Atom(real=self._protobuf_writer.convert(expression.real_constant_value())),
+            list=[],
+            kind=proto.ExpressionKind.Value("CONSTANT"),
+            type="real",
+        )
+
+    def walk_param_exp(self, expression: model.FNode,
+                       args: List[proto.Expression]) -> proto.Expression:
+        return proto.Expression(
+            atom=proto.Atom(symbol=expression.parameter().name),
+            list=[],
+            kind=proto.ExpressionKind.Value("PARAMETER"),
+            type=str(expression.parameter().type),
+        )
+
+    def walk_variable_exp(self, expression: model.FNode,
+                          args: List[proto.Expression]) -> proto.Expression:
+        return proto.Expression(
+            atom=proto.Atom(symbol=expression.variable().name),
+            list=[],
+            kind=proto.ExpressionKind.Value("VARIABLE"),
+            type=str(expression.variable().type),
+        )
+
+    def walk_object_exp(self, expression: model.FNode,
+                        args: List[proto.Expression]) -> proto.Expression:
+        return proto.Expression(
+            atom=proto.Atom(symbol=expression.object().name),
+            list=[],
+            kind=proto.ExpressionKind.Value("CONSTANT"),
+            type=str(expression.object().type),
+        )
+
+    def walk_fluent_exp(self, expression: model.FNode,
+                        args: List[proto.Expression]) -> proto.Expression:
+        sub_list = []
+        sub_list.append(
+            proto.Expression(
+                atom=proto.Atom(symbol=expression.fluent().name),
+                kind=proto.ExpressionKind.Value("FLUENT_SYMBOL"),
+                type=str(expression.fluent().type),
+            )
+        )
+        sub_list.extend(args)
+        return proto.Expression(
+            atom=None,
+            list=sub_list,
+            kind=proto.ExpressionKind.Value("STATE_VARIABLE"),
+            type=str(expression.fluent().type),
+        )
+
+    @walkers.handles(BOOL_OPERATORS.union(IRA_OPERATORS).union(RELATIONS))
+    def walk_operator(self, expression: model.FNode,
+                      args: List[proto.Expression]) -> proto.Expression:
+        sub_list = []
+        sub_list.append(
+            proto.Expression(
+                atom=proto.Atom(symbol=map_operator(expression.node_type)),
+                list=[],
+                kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
+                type="",
+            )
+        )
+        # forall/exists: add the declared variables from the payload to the beginning of the parameter list.
+        if expression.is_exists() or expression.is_forall():
+            sub_list.extend([self._protobuf_writer.convert(p) for p in expression.variables()])
+
+        sub_list.extend(args)
+        return proto.Expression(
+            atom=None,
+            list=sub_list,
+            kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
+            type="",
+        )
 
 
 def map_feature(feature: str) -> proto.Feature:
@@ -71,6 +177,10 @@ def map_feature(feature: str) -> proto.Feature:
 
 
 class ProtobufWriter(Converter):
+    def __init__(self):
+        super().__init__()
+        self._fnode2proto = FNode2Protobuf(self)
+
     @handles(model.Fluent)
     def _convert_fluent(self, fluent: model.Fluent, problem: model.Problem) -> proto.Fluent:
         name = fluent.name
@@ -90,92 +200,7 @@ class ProtobufWriter(Converter):
 
     @handles(model.FNode)
     def _convert_fnode(self, exp: model.FNode) -> proto.Expression:
-        node_type = exp._content.node_type
-        args = exp._content.args
-        payload = exp._content.payload
-
-        if node_type == OperatorKind.BOOL_CONSTANT:
-            return proto.Expression(
-                atom=proto.Atom(boolean=payload),
-                list=[],
-                kind=proto.ExpressionKind.Value("CONSTANT"),
-                type="bool",
-            )
-
-        elif node_type == OperatorKind.INT_CONSTANT:
-            return proto.Expression(
-                atom=proto.Atom(int=payload),
-                list=[],
-                kind=proto.ExpressionKind.Value("CONSTANT"),
-                type="integer",
-            )
-        elif node_type == OperatorKind.REAL_CONSTANT:
-            return proto.Expression(
-                atom=proto.Atom(real=self._convert_to_real(payload)),
-                list=[],
-                kind=proto.ExpressionKind.Value("CONSTANT"),
-                type="real",
-            )
-        elif node_type == OperatorKind.OBJECT_EXP:
-            return proto.Expression(
-                atom=proto.Atom(symbol=payload.name),
-                list=[],
-                kind=proto.ExpressionKind.Value("CONSTANT"),
-                type=str(payload.type),
-            )
-        elif node_type == OperatorKind.PARAM_EXP:
-            return proto.Expression(
-                atom=proto.Atom(symbol=payload.name),
-                list=[],
-                kind=proto.ExpressionKind.Value("PARAMETER"),
-                type=str(payload.type),
-            )
-        elif node_type == OperatorKind.FLUENT_EXP:
-            sub_list = []
-            sub_list.append(
-                proto.Expression(
-                    atom=proto.Atom(symbol=payload.name),
-                    kind=proto.ExpressionKind.Value("FLUENT_SYMBOL"),
-                    type=str(payload.type),
-                )
-            )
-            sub_list.extend([self.convert(a) for a in args])
-            return proto.Expression(
-                atom=None,
-                list=sub_list,
-                kind=proto.ExpressionKind.Value("STATE_VARIABLE"),
-                type=str(payload.type),
-            )
-        elif node_type in RELATIONS | BOOL_OPERATORS | IRA_OPERATORS:
-            sub_list = []
-            sub_list.append(
-                proto.Expression(
-                    atom=proto.Atom(symbol=map_operator(exp.node_type)),
-                    list=[],
-                    kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
-                    type="",
-                )
-            )
-            # forall/exits: add the declared variables from the payload to the beginning of the parameter list.
-            if node_type in [OperatorKind.EXISTS, OperatorKind.FORALL]:
-                sub_list.extend([self.convert(p) for p in payload])
-
-            sub_list.extend([self.convert(a) for a in args])
-            return proto.Expression(
-                atom=None,
-                list=sub_list,
-                kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
-                type="",
-            )
-        elif node_type == OperatorKind.VARIABLE_EXP:
-            return proto.Expression(
-                atom=proto.Atom(symbol=payload.name),
-                list=[],
-                kind=proto.ExpressionKind.Value("VARIABLE"),
-                type=str(payload.type),
-            )
-
-        raise ValueError(f"Unable to handle expression of type {node_type}: {exp}")
+        return self._fnode2proto.convert(exp)
 
     @handles(model.types._BoolType)
     def _convert_bool_type(self, _: model.types._BoolType) -> proto.TypeDeclaration:
@@ -290,11 +315,8 @@ class ProtobufWriter(Converter):
     def _convert_timing(self, timing: model.Timing) -> proto.Timing:
         return proto.Timing(
             timepoint=self.convert(timing._timepoint),
-            delay=self._convert_to_real(timing.delay),
+            delay=self.convert(fractions.Fraction(timing.delay)),
         )
-
-    def _convert_to_real(self, element: fractions.Fraction) -> float:
-        return self.convert(fractions.Fraction(element))
 
     @handles(fractions.Fraction)
     def _convert_fraction(self, fraction: fractions.Fraction) -> float:
