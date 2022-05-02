@@ -315,7 +315,7 @@ def ma_example_2():
     problems_ma = [problem_depots, problem_trucks]
     problem.write_ma_problem(problems_ma)
 
-    plan = problem.FMAP_palnner()
+    plan = problem.FMAP_planner()
 
     print(plan)
 

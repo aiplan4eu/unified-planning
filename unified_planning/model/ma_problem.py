@@ -121,7 +121,6 @@ class MultiAgentProblem(Problem):
             self._user_types_hierarchy[key].remove(user_type)
 
     def chose_agent(self, name_agent :str):
-
         for user_type in self.user_types():
             if user_type._name == name_agent:
                 #from ..shortcuts import UserType
@@ -416,7 +415,6 @@ class MultiAgentProblem(Problem):
 
 
     def write_ma_problem(self, problems):
-
         for prob, agent_list in self._agent_list_problems.items():
             if type(problems) is list:
                 name = problems[0]._name
@@ -436,7 +434,7 @@ class MultiAgentProblem(Problem):
                 w.write_agents_txt('agent-list.txt')
 
 
-    def FMAP_palnner(self):
+    def FMAP_planner(self):
         #path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
         #path_file = "home/alee8/Scrivania/unified-planning/unified_planning/test/examples/"
         path = "../../FMAP"

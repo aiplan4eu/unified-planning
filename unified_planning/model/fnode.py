@@ -41,14 +41,6 @@ class FNode(object):
     def __hash__(self) -> int:
         return self._node_id
 
-    ##ADDED###
-    def __deepcopy__(self, memo):
-        memo[self._node_id] = newself = self.__class__(self, copy.deepcopy(self._node_id, memo))
-        newself._content = copy.deepcopy(self._content, memo)
-        newself._node_id = copy.deepcopy(self._node_id, memo)
-        return newself
-    ##ADDED###
-
     def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
         p = []
         if len(args) > 0:

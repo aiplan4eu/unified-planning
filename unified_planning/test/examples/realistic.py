@@ -918,36 +918,30 @@ def get_example_problems():
 
 
 
-
+########################################depot_truck########################################
 
 
     place = UserType('place', None)
     hoist = UserType('hoist', None)
     surface = UserType('surface', None)
-    agent = UserType('agent', None)                #questo in depot è sottointeso, per ora lo specifichaimo
-    depot = UserType('depot', place)  # ma anche ad agent
+    agent = UserType('agent', None)
+    depot = UserType('depot', place)
 
-    distributor = UserType('distributor', place)  # ma anche ad agent
+    distributor = UserType('distributor', place)
     truck = UserType('truck', agent)
-    #truck = UserType('truck', None)
     crate = UserType('crate', surface)
     pallet = UserType('pallet', surface)
 
-    #myAgent = Fluent('myAgent', None, [truck])
     clear_h = Fluent('clear_h', None, [hoist])
     clear_s = Fluent('clear_s', None, [surface])
-
     located = Fluent('located', None, [hoist, place])
     at = Fluent('at', None, [truck, place])
     placed = Fluent('placed', None, [pallet, place])
-    pos_p = Fluent('pos_p', None, [crate, place])  # Non posso utilizzare (place or truck)?
-    pos_u = Fluent('pos_u', None, [crate, truck])  # Si può fare in un modo migliore?
+    pos_p = Fluent('pos_p', None, [crate, place])
+    pos_u = Fluent('pos_u', None, [crate, truck])
     on_h = Fluent('on_h', None, [crate, hoist])
     on_u = Fluent('on_u', None, [crate, truck])
     on_s = Fluent('on_s', None, [crate, surface])
-    # we = Fluent('we', None, [crate, hoist, truck])
-
-    # battery_charge = Fluent('battery_charge', RealType(0, 100))
 
     truck0 = Object('truck0', truck)
     truck1 = Object('truck1', truck)
@@ -957,24 +951,17 @@ def get_example_problems():
     x = drive.parameter('x')
     y = drive.parameter('y')
 
-    #drive.add_precondition(myAgent(truck))
-    # Drive.add_precondition(Equals(myAgent(truck), x)) Non supportato
-    # Equality operator is not supported for Boolean terms.Use Iff instead.
-
     drive.add_precondition(at(t, x))
     drive.add_effect(at(t, y), True)
 
-    # Load.add_precondition(pos(crate))
-    # Load.add_precondition(Not(clear(crate)))
     load = InstantaneousAction('Load', t=truck, p=place, c=crate, h=hoist)
     c = load.parameter('c')
     p = load.parameter('p')
     t = load.parameter('t')
     h = load.parameter('h')
 
-    #load.add_precondition(myAgent(truck))
+
     load.add_precondition(at(t, p))
-    # load.add_precondition(clear(truck, h))
     load.add_precondition(pos_p(c, p))
     load.add_precondition(Not(clear_s(c)))
     load.add_precondition(Not(clear_h(h)))
@@ -987,24 +974,20 @@ def get_example_problems():
     load.add_effect(on_u(c, t), True)
 
 
-    # load.add_effect(Not(clear(h)))
-
     unload = InstantaneousAction('Unload', t=truck, p=place, c=crate, h=hoist)
     c = unload.parameter('c')
     t = load.parameter('t')
     p = unload.parameter('p')
     h = unload.parameter('h')
 
-    #unload.add_precondition(myAgent(truck))
+
     unload.add_precondition(located(h, p))
-    unload.add_precondition(at(t, p))#era load
-    # load.add_precondition(clear(truck, h))
+    unload.add_precondition(at(t, p))
     unload.add_precondition(pos_u(c, t))
     unload.add_precondition(on_u(c, t))
     unload.add_precondition(clear_h(h))
     unload.add_precondition(clear_s(c))
 
-    # unload.add_precondition(we(c, h, truck))
 
     unload.add_effect(pos_p(c, p), True)
     unload.add_effect(on_h(c, h), True)
@@ -1043,49 +1026,25 @@ def get_example_problems():
     problem.add_action(load)
     problem.add_action(unload)
 
-    #problem.add_fluent(myAgent, default_initial_value=False)
+
     problem.add_fluent(clear_s, default_initial_value=False)
     problem.add_fluent(clear_h, default_initial_value=False)
     problem.add_fluent(located, default_initial_value=False)
-    problem.add_fluent(at)  #
+    problem.add_fluent(at)
     problem.add_fluent(placed, default_initial_value=False)
     problem.add_fluent(pos_p, default_initial_value=False)
     problem.add_fluent(pos_u, default_initial_value=False)
-    #problem.add_fluent(pos_s, default_initial_value=False)
     problem.add_fluent(on_u, default_initial_value=False)
     problem.add_fluent(on_s, default_initial_value=False)
     problem.add_fluent(on_h, default_initial_value=False)
 
 
-    # problem.add_fluent(we,  default_initial_value=False)
-
-    # problem.add_fluent(battery_charge) ##### <------ da togliere
-    # problem.set_initial_value(battery_charge, 100) #da togliere
-
-    # add_shared_data def in problem, in realistic decido gli shared data
-    # Non è possibile definire dopo clear, at, ecc.. perchè non sono
-    # nella lista fluents
-
-    # possibile soluzione prenderli dai predicati e decidere quali sono
-    # gli shared data in ma_realistic, in questo caso def
-    # add_shared_data in ma_problem
-
-    '''problem.add_shared_data(clear)
-    problem.add_shared_data(at)
-    problem.add_shared_data(pos)
-    problem.add_shared_data(pos_u)
-    problem.add_shared_data(on)
-    problem.add_shared_data(on_u)
-    problem.add_shared_data(on_s)
-
-    print("wwwwwwwwwwwwwwwwww", problem.get_shared_data())'''
-    # problem.add_fluent(at, default_initial_value=False)
     problem.set_initial_value(at(truck0, depot0), False)
     problem.set_initial_value(at(truck0, distributor0), False)
     problem.set_initial_value(at(truck1, distributor0), False)
     problem.set_initial_value(at(truck1, distributor1), False)
 
-    #problem.set_initial_value(myAgent(truck0), True)
+
     problem.set_initial_value(pos_p(crate0, distributor0), True)
     problem.set_initial_value(clear_s(crate0), True)
     problem.set_initial_value(on_s(crate0, pallet1), True)
