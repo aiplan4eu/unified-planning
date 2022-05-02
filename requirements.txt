@@ -1,4 +1,1 @@
 pyparsing
-grpcio
-grpcio-tools
-grpc-stubs

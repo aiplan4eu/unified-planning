@@ -23,6 +23,7 @@ setup(name='unified_planning',
       install_requires=['pyparsing'],
       extras_require={
           'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
+          'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],
           'tarski': ['tarski[arithmetic]']
       },
       license='APACHE',
