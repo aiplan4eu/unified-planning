@@ -9,7 +9,7 @@ syntax = "proto3";
 
 // Built-in types:
 //  - "bool"
-//  - "int"
+//  - "integer"
 //  - "real"
 //
 // Any other string (e.g. "location") refers to a symbolic type and must have been declared in the problem definition.
@@ -46,7 +46,10 @@ enum ExpressionKind {
     CONSTANT = 1;
     // Atom symbol representing a parameter from an outer scope. For instance `from` that would appear inside a `(move from to - location)` action.
     PARAMETER = 2;
-    // Atom symbol reprenting a fluent of the problem. For instance `at-robot`.
+    // Atom symbol representing a variable from an outer scope.
+    // This is typically used to represent the variables that are existentially or universally qualified in expressions.
+    VARIABLE = 7;
+    // Atom symbol representing a fluent of the problem. For instance `at-robot`.
     FLUENT_SYMBOL = 3;
     // Atom representing a function. For instance `+`, `=`, `and`, ...
     FUNCTION_SYMBOL = 4;
@@ -63,9 +66,17 @@ message Atom {
     oneof content {
         string symbol = 1;
         int64 int = 2;
-        double float = 3;
+        Real real = 3;
         bool boolean = 4;
     }
+}
+
+// Representation of a constant real number, as the fraction `(numerator / denominator)`.
+// A real should be in its canonical form (with smallest possible denominator).
+// Notably, if this number is an integer, then it is guaranteed that `denominator == 1`.
+message Real {
+    int64 numerator = 1;
+    int64 denominator = 2;
 }
 
 
@@ -77,8 +88,9 @@ message Atom {
 message TypeDeclaration {
     // Name of the type that is declared.
     string type_name = 1;
-    // If the string is non-empty, this is the parent type of `type_name`.
+    // Optional. If the string is non-empty, this is the parent type of `type_name`.
     // If set, the parent type must have been previously declared (i.e. should appear earlier in the problem's type declarations.
+    // feature: HIERARCHICAL_TYPING
     string parent_type = 2;
 }
 
@@ -90,7 +102,6 @@ message Parameter {
     string type = 2;
 }
 
-
 // A state-dependent variable.
 message Fluent {
     string name = 1;
@@ -98,6 +109,12 @@ message Fluent {
     string value_type = 2;
     // Typed and named parameters of the fluent.
     repeated Parameter parameters = 3;
+
+    // If non-empty, then any state variable using this fluent that is not explicitly given a value in the initial state
+    // will be assumed to have this default value.
+    // This allows mimicking the closed world assumption by setting a "false" default value to predicates.
+    // Note that in the initial state of the problem message, it is assumed that all default values are set.
+    Expression default_value = 4;
 }
 
 
@@ -122,20 +139,16 @@ message ObjectDeclaration {
 // We explicitly restrict the different types of effects by setting the allowed operators.
 message EffectExpression {
     enum EffectKind {
-        // This is the value that will be taken if the operator is not explicitly set.
-        // It is currently a logic error to have this value but is needed to allow later extensions.
-        UNDEFINED = 0;
-
         // The `fluent` is set to the corresponding `value`
-        ASSIGN = 1;
+        ASSIGN = 0;
 
         // The `fluent` is increased by the amount `value`
-        // features: numeric?
-        INCREASE = 2;
+        // features: INCREASE_EFFECTS
+        INCREASE = 1;
 
         // The `fluent` is decreased by the amount `value`
-        // features: numeric?
-        DECREASE = 3;
+        // features: DECREASE_EFFECTS
+        DECREASE = 2;
     }
     EffectKind kind = 1;
 
@@ -146,7 +159,8 @@ message EffectExpression {
 
     // Optional. If the effect is conditional, then the following field must be set.
     // In this case, the `effect` will only be applied if the `condition`` holds.
-    // features: conditional_effects
+    // If the effect is unconditional, the effect is set to the constant 'true' value.
+    // features: CONDITIONAL_EFFECT
     Expression condition = 4;
 }
 
@@ -156,8 +170,8 @@ message Effect {
     EffectExpression effect = 1;
 
     // Optional. If the effect is within a durative action, the following must be set and will specify when the effect takes place.
-    // features: durative_actions
-    Timing occurence_time = 2;
+    // features: DURATIVE_ACTIONS
+    Timing occurrence_time = 2;
 }
 
 
@@ -166,7 +180,7 @@ message Condition {
 
     // Optional. Must be set for durative actions where it specifies the temporal interval
     // over which when the condition should hold.
-    // features: durative_actions
+    // features: DURATIVE_ACTIONS
     TimeInterval span = 2;
 }
 
@@ -179,7 +193,7 @@ message Action {
     repeated Parameter parameters = 2;
 
     // If set, the action is durative. Otherwise it is instantaneous.
-    // features: durative_actions
+    // features: DURATIVE_ACTIONS
     Duration duration = 3;
 
     // Conjunction of conditions that must hold for the action to be applicable.
@@ -218,9 +232,8 @@ message Timepoint {
 // Note that an absolute time can be defined by setting the `delay` relative to the `GLOBAL_START`` which is the reference time.
 message Timing {
     Timepoint timepoint = 1;
-    double delay = 2;
+    Real delay = 2;
 }
-
 
 
 // An interval `[lower, upper]` where `lower` and `upper` are arbitrary expressions.
@@ -264,19 +277,19 @@ message Goal {
     Expression goal = 1;
 
     // Optional. If specified the goal should hold over the specified temporal interval (instead of on the final state).
-    // features: timed_goals
+    // features: TIMED_GOALS
     TimeInterval timing = 2;
 }
 
 // Represents an effect that will occur sometime beyond the initial state. (similar to timed initial literals)
 message TimedEffect {
-    // Required. An effect expression taht will take place sometime in the future (i.e. not at the intial state) as specified by the temporal qualifiation.
+    // Required. An effect expression that will take place sometime in the future (i.e. not at the intial state) as specified by the temporal qualifiation.
     EffectExpression effect = 1;
     // Required. Temporal qualification denoting when the timed fact will occur.
-    Timing occurence_time = 2;
+    Timing occurrence_time = 2;
 }
 
-// An assigment of a value to a fluent, as it appears in the initial state definition.
+// An assignment of a value to a fluent, as it appears in the initial state definition.
 message Assignment {
     // State variable that is assigned the `value`.
     // It should be an expression of the STATE_VARIABLE kind for which all parameters are of the CONSTANT kind.
@@ -311,13 +324,14 @@ message Metric {
     // Empty, if the `kind` is not {MIN/MAX}IMIZE_EXPRESSION_ON_FINAL_STATE
     Expression expression = 2;
 
-    // If `kind == MINIMZE_ACTION_COSTS``, then each action is associated to a cost expression.
+    // If `kind == MINIMIZE_ACTION_COSTS``, then each action is associated to a cost expression.
     // 
-    // TODO: Document what is allowed in the expression. 
+    // TODO: Document what is allowed in the expression. See issue #134
     // In particular, for this metric to be useful in many practical problems, the cost expression
     // should allow referring to the action parameters (and possibly the current state at the action start/end).
     // This is very awkward to do in this setting where the expression is detached from its scope.
     map<string, Expression> action_costs = 3;
+    Expression default_action_cost = 4;
 }
 
 message Problem {
@@ -330,11 +344,11 @@ message Problem {
     // List of actions in the domain.
     repeated Action actions = 6;
 
-    // Initial state. It is asssumed that the initial state is fully defined by assignments.
+    // Initial state, including default values of state variables.
     repeated Assignment initial_state = 7;
 
     // Facts and effects that are expected to occur strictly later than the initial state.
-    // features: timed_effects
+    // features: TIMED_EFFECT
     repeated TimedEffect timed_effects = 8;
 
     // Goals of the planning problem.
@@ -350,13 +364,40 @@ message Problem {
 // Features of the problem.
 // Features are essential in that not supporting a feature `X` should allow disregarding any field tagged with `features: [X]`.
 enum Feature {
-    DURATIVE_ACTIONS = 0;
-    CONDITIONAL_EFFECTS = 1;
-    ACTION_COSTS = 2;
-    TIMED_EFFECTS = 3;
+    // TIME
+    CONTINUOUS_TIME = 0;
+    DISCRETE_TIME = 1;
+    INTERMEDIATE_CONDITIONS_AND_EFFECTS = 2;
+    TIMED_EFFECT = 3;
     TIMED_GOALS = 4;
+    DURATION_INEQUALITIES = 5;
+    // NUMBERS
+    CONTINUOUS_NUMBERS = 6;
+    DISCRETE_NUMBERS = 7;
+    // CONDITIONS_KIND
+    NEGATIVE_CONDITIONS = 8;
+    DISJUNCTIVE_CONDITIONS = 9;
+    EQUALITY = 10;
+    EXISTENTIAL_CONDITIONS = 11;
+    UNIVERSAL_CONDITIONS = 12;
+    // EFFECTS_KIND
+    CONDITIONAL_EFFECTS = 13;
+    INCREASE_EFFECTS = 14;
+    DECREASE_EFFECTS = 15;
+    // TYPING
+    FLAT_TYPING = 16;
+    HIERARCHICAL_TYPING = 17;
+    // FLUENTS_TYPE
+    NUMERIC_FLUENTS = 18;
+    OBJECT_FLUENTS = 19;
+    // QUALITY_METRICS
+    ACTIONS_COST = 20;
+    FINAL_VALUE = 21;
+    MAKESPAN = 22;
+    PLAN_LENGTH = 23;
+    // SIMULATED_ENTITIES
+    SIMULATED_EFFECTS = 24;
 }
-
 
 // =================== Plan ================
 
@@ -373,11 +414,11 @@ message ActionInstance {
     // Parameters of the action instance, required to be constants.
     repeated Atom parameters = 3;
     // Start time of the action. The default 0 value is OK in the case of non-temporal planning
-    // feature: [durative_actions]
-    double start_time = 4;
+    // feature: [DURATIVE_ACTIONS]
+    Real start_time = 4;
     // End time of the action. The default 0 value is OK in the case of non-temporal planning
-    // feature: [durative_actions]
-    double end_time = 5;
+    // feature: [DURATIVE_ACTIONS]
+    Real end_time = 5;
 
 }
 
@@ -479,6 +520,14 @@ message PlanGenerationResult {
     // Note that it should not be expected that logging messages are visible to the end user.
     // If used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM, it would be expected to have at least one log message at the ERROR level.
     repeated LogMessage logs = 4;
+
+    // Synthetic description of the planner that generated this message.
+    Engine planner = 5;
+}
+
+message Engine {
+    // Short name of the engine (planner, validator, ...)
+    string name = 1;
 }
 
 

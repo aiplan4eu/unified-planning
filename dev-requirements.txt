@@ -1,3 +1,6 @@
+grpcio
+grpcio-tools
+grpc-stubs
 pytest
 pytest-cov
 mypy
