@@ -37,13 +37,13 @@ class TestProtobufIO(TestCase):
 
         x_pb = self.pb_writer.convert(x, problem)
 
-        assert x_pb.name == "x"
-        assert x_pb.value_type == "bool"
+        self.assertEqual(x_pb.name, "x")
+        self.assertEqual(x_pb.value_type, "bool")
 
         x_up = self.pb_reader.convert(x_pb, problem)
 
-        assert x_up.name == "x"
-        assert str(x_up.type) == "bool"
+        self.assertEqual(x_up.name, "x")
+        self.assertEqual(str(x_up.type), "bool")
 
     def test_fluent_2(self):
         problem = self.problems["robot"].problem
@@ -51,7 +51,7 @@ class TestProtobufIO(TestCase):
         for f in problem.fluents:
             f_pb = self.pb_writer.convert(f, problem)
             f_up = self.pb_reader.convert(f_pb, problem)
-            assert f == f_up
+            self.assertEqual(f, f_up)
 
     def test_fluent_3(self):
         """Test to handle subtypes of usertypes of Fluent Expression"""
@@ -60,7 +60,7 @@ class TestProtobufIO(TestCase):
         for f in problem.fluents:
             f_pb = self.pb_writer.convert(f, problem)
             f_up = self.pb_reader.convert(f_pb, problem)
-            assert f == f_up
+            self.assertEqual(f, f_up)
 
     def test_objects(self):
         """Test to handle subtypes of usertypes of Fluent Expression"""
@@ -70,7 +70,7 @@ class TestProtobufIO(TestCase):
             o_pb = self.pb_writer.convert(o)
             o_up = self.pb_reader.convert(o_pb, problem)
 
-            assert o == o_up
+            self.assertEqual(o, o_up)
 
     def test_expression(self):
         problem = Problem("test")
@@ -78,13 +78,13 @@ class TestProtobufIO(TestCase):
 
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
-        assert ex == ex_up
+        self.assertEqual(ex, ex_up)
 
         ex = problem.env.expression_manager.Int(10)
 
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
-        assert ex == ex_up
+        self.assertEqual(ex, ex_up)
 
     def test_fluent_expressions(self):
         problem = self.problems["hierarchical_blocks_world"].problem
@@ -92,19 +92,19 @@ class TestProtobufIO(TestCase):
         problem_pb = self.pb_writer.convert(problem)
         problem_up = self.pb_reader.convert(problem_pb, problem)
 
-        assert problem == problem_up
+        self.assertEqual(problem, problem_up)
 
     def test_type_declaration(self):
         problem = Problem("test")
         ex = BoolType()
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
-        assert ex == ex_up
+        self.assertEqual(ex, ex_up)
 
         ex = UserType("location", UserType("object"))
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
-        assert ex == ex_up
+        self.assertEqual(ex, ex_up)
 
     def test_object_declaration(self):
         problem = Problem("test")
@@ -113,7 +113,7 @@ class TestProtobufIO(TestCase):
         obj = Object("l1", loc_type)
         obj_pb = self.pb_writer.convert(obj)
         obj_up = self.pb_reader.convert(obj_pb, problem)
-        assert obj == obj_up
+        self.assertEqual(obj, obj_up)
 
     def test_problem(self):
         problem = self.problems["robot"].problem
@@ -124,8 +124,8 @@ class TestProtobufIO(TestCase):
         pb_features = set(
             [up_pb2.Feature.Name(feature) for feature in problem_pb.features]
         )
-        assert set(problem.kind.features) == pb_features
-        assert problem == problem_up
+        self.assertEqual(set(problem.kind.features), pb_features)
+        self.assertEqual(problem, problem_up)
 
     def test_action(self):
         problem = self.problems["robot"].problem
@@ -134,7 +134,7 @@ class TestProtobufIO(TestCase):
         action_pb = self.pb_writer.convert(action)
         action_up = self.pb_reader.convert(action_pb, problem)
 
-        assert action == action_up
+        self.assertEqual(action, action_up)
 
     def test_durative_action(self):
         problem = self.problems["matchcellar"].problem
@@ -143,7 +143,7 @@ class TestProtobufIO(TestCase):
         action_pb = self.pb_writer.convert(action)
         action_up = self.pb_reader.convert(action_pb, problem)
 
-        assert action == action_up
+        self.assertEqual(action, action_up)
 
     def test_action_instance(self):
         problem = self.problems["robot"].problem
@@ -153,7 +153,7 @@ class TestProtobufIO(TestCase):
         action_instance_pb = self.pb_writer.convert(action_instance)
         action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
 
-        assert action_instance == action_instance_up
+        self.assertEqual(action_instance, action_instance_up)
 
     def test_plan(self):
         problem = self.problems["robot"].problem
@@ -162,7 +162,7 @@ class TestProtobufIO(TestCase):
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
-        assert plan == plan_up
+        self.assertEqual(plan, plan_up)
 
     def test_time_triggered_plan(self):
         problem = self.problems["temporal_conditional"].problem
@@ -171,7 +171,7 @@ class TestProtobufIO(TestCase):
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
-        assert plan == plan_up
+        self.assertEqual(plan, plan_up)
 
     def test_metric(self):
         problem = Problem("test")
@@ -192,7 +192,7 @@ class TestProtobufIO(TestCase):
             metric_pb = self.pb_writer.convert(metric)
             metric_up = self.pb_reader.convert(metric_pb, problem)
 
-            assert str(metric) == str(metric_up)
+            self.assertEqual(str(metric), str(metric_up))
 
     def test_log_message(self):
         def assert_log(log):
@@ -220,41 +220,36 @@ class TestProtobufIO(TestCase):
             final_report_pb = self.pb_writer.convert(final_report)
             final_report_up = self.pb_reader.convert(final_report_pb, problem)
 
-            assert final_report == final_report_up
+            self.assertEqual(final_report, final_report_up)
 
 
-class TestProtobufProblems:
-    problems = get_example_problems()
-    pb_writer = ProtobufWriter()
-    pb_reader = ProtobufReader()
+class TestProtobufProblems(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        self.problems = get_example_problems()
+        self.pb_writer = ProtobufWriter()
+        self.pb_reader = ProtobufReader()
 
-    @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
-    def test_all_problems(self, problem_name):
-        ignored_problems = [] # add problem name here to skip it
-        if problem_name in ignored_problems:
-            pytest.skip("Unsupported problem")
+    def test_all_problems(self):
+        for name, example in self.problems.items():
+            problem = example.problem
+            problem_pb = self.pb_writer.convert(problem)
+            problem_up = self.pb_reader.convert(problem_pb, problem)
 
-        problem = self.problems[problem_name].problem
-        problem_pb = self.pb_writer.convert(problem)
-        problem_up = self.pb_reader.convert(problem_pb, problem)
+            self.assertEqual(problem, problem_up)
 
-        assert problem == problem_up
+    def test_all_plans(self):
+        for name, example in self.problems.items():
+            problem = example.problem
+            plan = example.plan
+            plan_pb = self.pb_writer.convert(plan)
+            plan_up = self.pb_reader.convert(plan_pb, problem)
 
-    @pytest.mark.parametrize("problem_name", list(get_example_problems().keys()))
-    def test_all_plans(self, problem_name):
-        if problem_name in []:  # add problem name here to skip it.
-            pytest.skip("Unsupported problem")
-        problem = self.problems[problem_name].problem
-        plan = self.problems[problem_name].plan
-        plan_pb = self.pb_writer.convert(plan)
-        plan_up = self.pb_reader.convert(plan_pb, problem)
-
-        assert plan == plan_up
+            self.assertEqual(plan, plan_up)
 
     @skipIfSolverNotAvailable("tamer")
-    @pytest.mark.parametrize(
-        "p",
-        [
+    def test_some_plan_generations(self):
+        problems = [
             "basic",
             "basic_without_negative_preconditions",
             "basic_nested_conjunctions",
@@ -264,16 +259,17 @@ class TestProtobufProblems:
             "robot_real_constants",
             "robot_int_battery",
             "robot",
-        ],
-    )
-    def test_some_plan_generations(self, p):
-        problem = self.problems[p].problem
+        ]
+        for name in problems:
+            problem = self.problems[name].problem
 
-        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
-            assert planner is not None
-            final_report = planner.solve(problem)
+            with OneshotPlanner(name='tamer') as planner:
+                self.assertNotEqual(planner, None)
+                final_report = planner.solve(problem)
 
-            final_report_pb = self.pb_writer.convert(final_report)
-            final_report_up = self.pb_reader.convert(final_report_pb, problem)
+                final_report_pb = self.pb_writer.convert(final_report)
+                final_report_up = self.pb_reader.convert(final_report_pb, problem)
 
-            assert final_report == final_report_up
+                self.assertEqual(final_report.status, final_report_up.status)
+                self.assertEqual(final_report.plan, final_report_up.plan)
+                self.assertEqual(final_report.planner_name, final_report_up.planner_name)
