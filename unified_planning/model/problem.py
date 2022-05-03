@@ -250,7 +250,7 @@ class Problem:
         if type not in self._user_types_hierarchy:
             if type is not None:
                 if any(ut.name == type.name for ut in self._user_types): # type: ignore
-                    raise UPProblemDefinitionError('The type {type} is already used in the problem as {ut}')
+                    raise UPProblemDefinitionError(f'The type {type} is already used in the problem')
                 self._add_user_type(type.father) # type: ignore
                 self._user_types_hierarchy[type.father].append(type) # type: ignore
                 self._user_types.append(type)

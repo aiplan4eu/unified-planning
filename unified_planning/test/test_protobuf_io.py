@@ -90,18 +90,21 @@ class TestProtobufIO(TestCase):
         problem = self.problems["hierarchical_blocks_world"].problem
 
         problem_pb = self.pb_writer.convert(problem)
-        problem_up = self.pb_reader.convert(problem_pb, problem)
+        problem_up = self.pb_reader.convert(problem_pb)
 
         self.assertEqual(problem, problem_up)
 
     def test_type_declaration(self):
         problem = Problem("test")
-        ex = BoolType()
+        ex = UserType("object")
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertEqual(ex, ex_up)
 
-        ex = UserType("location", UserType("object"))
+        o = Object('o', ex)
+        problem.add_object(o)
+
+        ex = UserType("location", ex)
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertEqual(ex, ex_up)
@@ -119,7 +122,7 @@ class TestProtobufIO(TestCase):
         problem = self.problems["robot"].problem
 
         problem_pb = self.pb_writer.convert(problem)
-        problem_up = self.pb_reader.convert(problem_pb, problem)
+        problem_up = self.pb_reader.convert(problem_pb)
 
         pb_features = set(
             [up_pb2.Feature.Name(feature) for feature in problem_pb.features]
@@ -234,7 +237,7 @@ class TestProtobufProblems(TestCase):
         for name, example in self.problems.items():
             problem = example.problem
             problem_pb = self.pb_writer.convert(problem)
-            problem_up = self.pb_reader.convert(problem_pb, problem)
+            problem_up = self.pb_reader.convert(problem_pb)
 
             self.assertEqual(problem, problem_up)
 

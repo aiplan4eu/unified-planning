@@ -170,7 +170,7 @@ class TypeManager:
         else:
             if father is not None:
                 if any(ancestor.name == name for ancestor in self.user_type_ancestors(father)): # type: ignore
-                    raise UPTypeError('The name: {name} is already used in the UserType: {ancestor}. An UserType and one of his ancestors can not share the name.')
+                    raise UPTypeError(f'The name: {name} is already used in the UserType: {ancestor}. An UserType and one of his ancestors can not share the name.')
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
             return ut
