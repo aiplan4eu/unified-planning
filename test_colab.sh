@@ -8,7 +8,7 @@ for colab_file in ./unified_planning/notebook/*.ipynb ; do
     python_file="${file_name}.py"
     file_tested_name="${file_name}_rewritten.py"
     trim_rows="false"
-    echo "  " > ${file_tested_name}
+    touch ${file_tested_name}
     while IFS= read -r line
     do
         if [[ "${line}" == *"${boi}"* ]]
@@ -22,11 +22,15 @@ for colab_file in ./unified_planning/notebook/*.ipynb ; do
             echo "${line}" >> ${file_tested_name}
         fi
     done < "${python_file}"
-    ipython3 ${file_tested_name}
+    echo "Testing ${file_tested_name}"
+    output="$( { ipython3 ${file_tested_name}; } 2>&1 )"
     if [ ! $? == 0 ]; then
         rm ./unified_planning/notebook/*.py
+        echo "Testing ${file_tested_name} FAILED"
+        echo ${output}
         exit 1
     fi
+    echo "Testing ${file_tested_name} DONE"
 done
 rm ./unified_planning/notebook/*.py
 exit 0

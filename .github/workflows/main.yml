@@ -63,11 +63,8 @@ jobs:
       - name: Run tests
         run: bash run_tests.sh
 
-      - name: Install jupyter
-        run: sudo snap install jupyter
-
-      - name: Install ipython3
-        run: sudo apt install ipython3
+      - name: Install jupyter and ipython3
+        run: sudo apt install jupyter; sudo apt install ipython3
 
       - name: Run colabs
         run: bash test_colab.sh
