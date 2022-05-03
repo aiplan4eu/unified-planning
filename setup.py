@@ -25,10 +25,10 @@ setup(name='unified_planning',
           'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
           'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],
           'tarski': ['tarski[arithmetic]'],
-          'pyperplan': ['up-pyperplan==0.0.1.5.dev1'],
+          'pyperplan': ['up-pyperplan==0.0.1.6.dev1'],
           'solvers': [
               'tarski[arithmetic]',
-              'up-pyperplan==0.0.1.5.dev1'
+              'up-pyperplan==0.0.1.6.dev1'
           ]
       },
       license='APACHE',
