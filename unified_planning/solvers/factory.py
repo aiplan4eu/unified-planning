@@ -24,7 +24,7 @@ DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
                    'fast_downward_optimal' : ('up_fast_downward', 'FastDownwardOptimalPDDLSolver'),
                    'lpg' : ('up_lpg', 'LPGsolver'),
                    'tamer' : ('up_tamer', 'SolverImpl'),
-                   'pyperplan' : ('up_pyperplan', 'SolverImpl'),
+                   'pyperplan' : ('up_pyperplan.solver', 'SolverImpl'),
                    'sequential_plan_validator' : ('unified_planning.solvers.plan_validator', 'SequentialPlanValidator'),
                    'up_grounder' : ('unified_planning.solvers.grounder', 'Grounder'),
                    'tarski_grounder' : ('unified_planning.solvers.tarski_grounder', 'TarskiGrounder')}
