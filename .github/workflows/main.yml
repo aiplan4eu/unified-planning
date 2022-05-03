@@ -40,8 +40,8 @@ jobs:
 
       - name: Install tarski
         run: |
-          python3 -m pip install tarski[arithmetic,clingo]
-          # sudo apt install -y gringo
+          python3 -m pip install tarski[arithmetic]
+          sudo apt install -y gringo
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
@@ -152,8 +152,8 @@ jobs:
 
       - name: Install tarski
         run: |
-          python3 -m pip install tarski[arithmetic,clingo]
-          # brew install gringo
+          python3 -m pip install tarski[arithmetic]
+          brew install gringo
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2

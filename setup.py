@@ -24,10 +24,10 @@ setup(name='unified_planning',
       extras_require={
           'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
           'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],
-          'tarski': ['tarski[arithmetic,clingo]'],
+          'tarski': ['tarski[arithmetic]'],
           'pyperplan': ['up-pyperplan==0.0.1.4.dev1'],
           'solvers': [
-              'tarski[arithmetic,clingo]',
+              'tarski[arithmetic]',
               'up-pyperplan==0.0.1.4.dev1'
           ]
       },
