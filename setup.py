@@ -24,7 +24,12 @@ setup(name='unified_planning',
       extras_require={
           'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
           'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],
-          'tarski': ['tarski[arithmetic]']
+          'tarski': ['tarski[arithmetic, clingo]'],
+          'pyperplan': ['up-pyperplan==0.0.1.4.dev1'],
+          'solvers': [
+              'tarski[arithmetic,clingo]',
+              'up-pyperplan==0.0.1.4.dev1'
+          ]
       },
       license='APACHE',
       keywords='planning logic STRIPS RDDL',
