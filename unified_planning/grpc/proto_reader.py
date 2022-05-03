@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # type: ignore[attr-defined]
+from functools import partial
 from typing import Tuple, Union, Optional
 import fractions
 from typing import OrderedDict
@@ -557,3 +558,31 @@ class ProtobufReader(Converter):
             )
         else:
             raise UPException(f"Unexpected Log Level: {log.level}")
+
+    @handles(proto.GroundingResult)
+    def _convert_grounding_result(self, result: proto.GroundingResult) -> unified_planning.solvers.GroundingResult:
+        problem=self.convert(result.problem, Problem()) # TODO fix this line
+        map: Dict[unified_planning.model.Action, Tuple[unified_planning.model.Action, List[unified_planning.model.FNode]]] = {}
+        for grounded_action in problem.actions:
+            original_action_instance = self.convert(result.map_to_lift_plan[grounded_action.name])
+            map[grounded_action] = (original_action_instance.action, original_action_instance.actual_parameters)
+        return unified_planning.solvers.GroundingResult(
+            problem=problem,
+            lift_action_instance=partial(unified_planning.solvers.grounder.lift_action_instance, map=map)
+        )
+
+    @handles(proto.ValidationResult)
+    def _convert_validation_result(self, result: proto.ValidationResult) -> unified_planning.solvers.ValidationResult:
+        return unified_planning.solvers.ValidationResult(
+            status=self.convert(result.status),
+            error_info=result.error_info
+        )
+
+    @handles(proto.ValidationResult.ValidationResultStatus)
+    def _convert_validation_result_status(self, status: proto.ValidationResult.ValidationResultStatus) -> unified_planning.solvers.ValidationResultStatus:
+        if status == proto.Validationresult.ValidationResultStatus.Valude("VALID"):
+            return unified_planning.solvers.ValidationResultStatus.VALID
+        elif status == proto.Validationresult.ValidationResultStatus.Valude("INVALID"):
+            return unified_planning.solvers.ValidationResultStatus.INVALID
+        else:
+            raise UPException(f"Unexpected ValidationResult status: {status}")

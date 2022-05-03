@@ -225,6 +225,18 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(final_report, final_report_up)
 
+    @skipIfSolverNotAvailable('tarski_grounder')
+    def test_grounding_result(self):
+        problem, _ = self.problems['hierarchical_blocks_world']
+        with Grounder(name='tarski_grounder') as grounder:
+            ground_result = grounder.ground(problem)
+
+            ground_result_pb = self.pb_writer.convert(ground_result)
+            ground_result_up = self.pb_reader.convert(ground_result_pb)
+
+            self.assertEqual(ground_result, ground_result_up)
+
+
 
 class TestProtobufProblems(TestCase):
     def setUp(self):

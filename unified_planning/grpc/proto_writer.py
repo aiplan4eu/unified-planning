@@ -14,6 +14,7 @@
 #
 # type: ignore[valid-type]
 import fractions
+from unittest import result
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 import unified_planning.model
@@ -557,3 +558,30 @@ class ProtobufWriter(Converter):
             level=level,
             message=str(log.message),
         )
+
+    @handles(unified_planning.solvers.GroundingResult)
+    def _convert_grounding_result(self, result: unified_planning.solvers.GroundingResult) -> proto.GroundingResult:
+        map: Dict[str, proto.ActionInstance]= {}
+        if result.lift_action_instance is not None:
+            for grounded_action in result.problem.actions:
+                map[grounded_action.name] = self.convert(result.lift_action_instance(unified_planning.plan.ActionInstance(grounded_action)))
+        return proto.GroundingResult(
+            problem=self.convert(result.problem),
+            map_to_lift_plan=map
+        )
+
+    @handles(unified_planning.solvers.ValidationResult)
+    def _convert_validation_result(self, result: unified_planning.solvers.ValidationResult) -> proto.ValidationResult:
+        return proto.ValidationResult(
+            status=self.convert(result.status),
+            error_info=result.error_info
+        )
+
+    @handles(unified_planning.solvers.ValidationResultStatus)
+    def _convert_validation_result(self, status: unified_planning.solvers.ValidationResultStatus) -> proto.ValidationResult.ValidationResultStatus:
+        if status.status == unified_planning.solvers.ValidationResultStatus.VALID:
+            return proto.ValidationResult.ValidationResultStatus.Value("VALID")
+        elif status.status == unified_planning.solvers.ValidationResultStatus.INVALID:
+            return proto.ValidationResult.ValidationResultStatus.Value("INVALID")
+        else:
+            raise UPException(f"Unknown result status: {status.status}")
