@@ -14,7 +14,6 @@
 #
 # type: ignore[valid-type]
 import fractions
-from unittest import result
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 import unified_planning.model
@@ -578,10 +577,10 @@ class ProtobufWriter(Converter):
         )
 
     @handles(unified_planning.solvers.ValidationResultStatus)
-    def _convert_validation_result(self, status: unified_planning.solvers.ValidationResultStatus) -> proto.ValidationResult.ValidationResultStatus:
-        if status.status == unified_planning.solvers.ValidationResultStatus.VALID:
+    def _convert_validation_result_status(self, status: unified_planning.solvers.ValidationResultStatus) -> proto.ValidationResult.ValidationResultStatus:
+        if status == unified_planning.solvers.ValidationResultStatus.VALID:
             return proto.ValidationResult.ValidationResultStatus.Value("VALID")
-        elif status.status == unified_planning.solvers.ValidationResultStatus.INVALID:
+        elif status == unified_planning.solvers.ValidationResultStatus.INVALID:
             return proto.ValidationResult.ValidationResultStatus.Value("INVALID")
         else:
-            raise UPException(f"Unknown result status: {status.status}")
+            raise UPException(f"Unknown result status: {status}")

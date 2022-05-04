@@ -225,10 +225,9 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(final_report, final_report_up)
 
-    @skipIfSolverNotAvailable('tarski_grounder')
     def test_grounding_result(self):
-        problem, _ = self.problems['hierarchical_blocks_world']
-        with Grounder(name='tarski_grounder') as grounder:
+        problem, _ = self.problems["hierarchical_blocks_world"]
+        with Grounder(name="up_grounder") as grounder:
             ground_result = grounder.ground(problem)
 
             ground_result_pb = self.pb_writer.convert(ground_result)
@@ -236,6 +235,20 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(ground_result, ground_result_up)
 
+    @skipIfSolverNotAvailable("tamer")
+    def test_validation_result(self):
+        problem = self.problems["robot"].problem
+
+        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+            self.assertNotEqual(planner, None)
+            final_report = planner.solve(problem)
+            with PlanValidator(name="tamer") as validator:
+                validation_result = validator.validate(problem, final_report.plan)
+
+                validation_result_pb = self.pb_writer.convert(validation_result)
+                validation_result_up = self.pb_reader.convert(validation_result_pb)
+
+                self.assertEqual(validation_result, validation_result_up)
 
 
 class TestProtobufProblems(TestCase):
@@ -278,7 +291,7 @@ class TestProtobufProblems(TestCase):
         for name in problems:
             problem = self.problems[name].problem
 
-            with OneshotPlanner(name='tamer') as planner:
+            with OneshotPlanner(name="tamer") as planner:
                 self.assertNotEqual(planner, None)
                 final_report = planner.solve(problem)
 

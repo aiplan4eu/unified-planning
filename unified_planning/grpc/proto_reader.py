@@ -574,15 +574,15 @@ class ProtobufReader(Converter):
     @handles(proto.ValidationResult)
     def _convert_validation_result(self, result: proto.ValidationResult) -> unified_planning.solvers.ValidationResult:
         return unified_planning.solvers.ValidationResult(
-            status=self.convert(result.status),
+            status=self._convert_validation_result_status(result.status), #NOTE here result.status is an int, so calling the self.convert() does not work. It might be ugly to call the function like this, suggestions are welcome
             error_info=result.error_info
         )
 
     @handles(proto.ValidationResult.ValidationResultStatus)
     def _convert_validation_result_status(self, status: proto.ValidationResult.ValidationResultStatus) -> unified_planning.solvers.ValidationResultStatus:
-        if status == proto.Validationresult.ValidationResultStatus.Valude("VALID"):
+        if status == proto.ValidationResult.ValidationResultStatus.Value("VALID"):
             return unified_planning.solvers.ValidationResultStatus.VALID
-        elif status == proto.Validationresult.ValidationResultStatus.Valude("INVALID"):
+        elif status == proto.ValidationResult.ValidationResultStatus.Value("INVALID"):
             return unified_planning.solvers.ValidationResultStatus.INVALID
         else:
             raise UPException(f"Unexpected ValidationResult status: {status}")
