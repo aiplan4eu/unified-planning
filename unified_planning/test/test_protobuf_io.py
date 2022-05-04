@@ -22,6 +22,7 @@ from unified_planning.solvers import LogMessage
 from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus
 from unified_planning.test import TestCase, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
+from unified_planning.plan import ActionInstance
 
 
 class TestProtobufIO(TestCase):
@@ -231,9 +232,15 @@ class TestProtobufIO(TestCase):
             ground_result = grounder.ground(problem)
 
             ground_result_pb = self.pb_writer.convert(ground_result)
-            ground_result_up = self.pb_reader.convert(ground_result_pb)
+            ground_result_up = self.pb_reader.convert(ground_result_pb, problem)
 
-            self.assertEqual(ground_result, ground_result_up)
+            self.assertEqual(ground_result.problem, ground_result_up.problem)
+            for grounded_action in ground_result.problem.actions:
+                # Test both callable "lift_action_instance" act the same on every action of the grounded_problem
+                grounded_action_instance = ActionInstance(grounded_action)
+                original_action_instance_up = ground_result.lift_action_instance(grounded_action_instance)
+                original_action_instance_pb = ground_result_up.lift_action_instance(grounded_action_instance)
+                self.assertEqual(original_action_instance_pb, original_action_instance_up)
 
     @skipIfSolverNotAvailable("tamer")
     def test_validation_result(self):
