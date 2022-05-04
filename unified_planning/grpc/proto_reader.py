@@ -13,12 +13,13 @@
 # limitations under the License.
 #
 # type: ignore[attr-defined]
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 import fractions
 from typing import OrderedDict
 from unified_planning.exceptions import UPException
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
+from unified_planning import Environment
 from unified_planning import model
 from unified_planning.model import metrics
 import unified_planning.plan
@@ -222,28 +223,32 @@ class ProtobufReader(Converter):
             )
         else:
             parent = None
-            if parent != "":
-                parent = problem.env.type_manager.UserType(msg.parent_type)
+            if msg.parent_type != "":
+                parent = problem.user_type(msg.parent_type)
             return problem.env.type_manager.UserType(msg.type_name, parent)
 
     @handles(proto.Problem)
-    def _convert_problem(self, msg: proto.Problem, problem: Problem) -> Problem:
-        PROBLEM = Problem(name=msg.problem_name, env=problem.env)
+    def _convert_problem(self, msg: proto.Problem, env: Optional[Environment] = None) -> Problem:
+        problem = Problem(name=msg.problem_name, env=env)
+
+        for t in msg.types:
+            print(t.type_name, t.parent_type)
+            problem._add_user_type(self.convert(t, problem))
         for obj in msg.objects:
-            PROBLEM.add_object(self.convert(obj, problem))
+            problem.add_object(self.convert(obj, problem))
         for f in msg.fluents:
-            PROBLEM.add_fluent(
+            problem.add_fluent(
                 self.convert(f, problem),
                 default_initial_value=self.convert(f.default_value, problem)
                 if f.HasField("default_value")
                 else None,
             )
         for f in msg.actions:
-            PROBLEM.add_action(self.convert(f, problem))
+            problem.add_action(self.convert(f, problem))
         for eff in msg.timed_effects:
             ot = self.convert(eff.occurrence_time, problem)
             effect = self.convert(eff.effect, problem)
-            PROBLEM.add_timed_effect(
+            problem.add_timed_effect(
                 timing=ot,
                 fluent=effect.fluent,
                 value=effect.value,
@@ -251,7 +256,7 @@ class ProtobufReader(Converter):
             )
 
         for assign in msg.initial_state:
-            PROBLEM.set_initial_value(
+            problem.set_initial_value(
                 fluent=self.convert(assign.fluent, problem),
                 value=self.convert(assign.value, problem),
             )
@@ -259,15 +264,15 @@ class ProtobufReader(Converter):
         for g in msg.goals:
             goal = self.convert(g.goal, problem)
             if str(g.timing) == "":
-                PROBLEM.add_goal(goal)
+                problem.add_goal(goal)
             else:
                 timing = self.convert(g.timing)
-                PROBLEM.add_timed_goal(interval=timing, goal=goal)
+                problem.add_timed_goal(interval=timing, goal=goal)
 
         for metric in msg.metrics:
-            PROBLEM.add_quality_metric(self.convert(metric, problem))
+            problem.add_quality_metric(self.convert(metric, problem))
 
-        return PROBLEM
+        return problem
 
     @handles(proto.Metric)
     def _convert_metric(self, msg: proto.Metric, problem: Problem) -> Union[metrics.MinimizeActionCosts,

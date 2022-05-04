@@ -209,7 +209,7 @@ class ProtobufWriter(Converter):
     @handles(model.types._UserType)
     def _convert_user_type(self, t: model.types._UserType) -> proto.TypeDeclaration:
         return proto.TypeDeclaration(
-            type_name=t.name, parent_type=str(t.father)
+            type_name=t.name, parent_type='' if t.father is None else str(t.father.name)
         )
 
     @handles(model.types._IntType)
