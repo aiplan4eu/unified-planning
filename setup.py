@@ -26,9 +26,11 @@ setup(name='unified_planning',
           'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],
           'tarski': ['tarski[arithmetic]'],
           'pyperplan': ['up-pyperplan==0.0.1.6.dev1'],
+          'tamer': ['up-tamer==0.0.1.3.dev1']
           'solvers': [
               'tarski[arithmetic]',
-              'up-pyperplan==0.0.1.6.dev1'
+              'up-pyperplan==0.0.1.6.dev1',
+              'up-tamer==0.0.1.3.dev1'
           ]
       },
       license='APACHE',
