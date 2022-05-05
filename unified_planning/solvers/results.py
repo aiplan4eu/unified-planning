@@ -60,13 +60,22 @@ class LogMessage:
 
 
 @dataclass
-class PlanGenerationResult:
+class Result:
+    '''This class represents the base class for results given by the engines to the user.'''
+
+    def is_definitive_result(self, *args) -> bool:
+        '''This predicate should state if the Result is definitive or if it can be improved.'''
+        raise NotImplementedError
+
+
+@dataclass
+class PlanGenerationResult(Result):
     '''Class that represents the result of a plan generation call.'''
     status: PlanGenerationResultStatus
     plan: Optional['up.plan.Plan']
-    planner_name: str = ''
-    metrics: Dict[str, str] = field(default=dict) # type: ignore
-    log_messages: List[LogMessage] = field(default=list) # type: ignore
+    planner_name: str
+    log_messages: List[LogMessage] = field(default=[])
+    metrics: Dict[str, str] = field(default={})
 
     def __post__init(self):
         # Checks that plan and status are consistent
@@ -74,27 +83,29 @@ class PlanGenerationResult:
             raise UPUsageError(f'The Result status is {str(self.status)} but no plan is set.')
         elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
             raise UPUsageError(f'The Result status is {str(self.status)} but the plan is {str(self.plan)}.\nWith this status the plan must be None.')
-        self.metrics = {}
-        self.log_messages = [] #NOTE Here, is this init right? Since it is done after the __init__ the value might be deleted
         return self
 
+    def is_definitive_result(self, *args) -> bool:
+        optimality_required = False
+        if len(args) > 0:
+            optimality_required = len(args[0].quality_metrics) > 0 # Require optimality if the problem has at least one quality metric.
+        return self.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY or self.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN or (self.status)
+
+
 @dataclass
-class ValidationResult:
+class ValidationResult(Result):
     '''Class that represents the result of a validate call.'''
     status: ValidationResultStatus
-    planner_name: str = ''
-    log_messages: List[LogMessage] = field(default=list) # type: ignore
 
-    def _post_init(self):
-        self.log_messages = []
+    def is_definitive_result(self, *args) -> bool:
+        return True
+
 
 @dataclass
-class GroundingResult:
+class GroundingResult(Result):
     '''Class that represents the result of a Solver.ground call.'''
     problem: Optional[Problem]
     lift_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
-    planner_name: str = ''
-    log_messages: List[LogMessage] = field(default=list) # type: ignore
 
     def _post_init(self):
         # Check that grounded problem and lift_action_instance are consistent with eachother
@@ -102,4 +113,6 @@ class GroundingResult:
             raise UPUsageError(f'The Grounded Problem is None but the lift_action_instance Callable is not None.')
         if self.problem is not None and self.lift_action_instance is None:
             raise UPUsageError(f'The Grounded Problem is {str(self.problem)} but the lift_action_instance Callable is None.')
-        self.log_messages = []
+
+    def is_definitive_result(self, *args) -> bool:
+        return self.problem is not None

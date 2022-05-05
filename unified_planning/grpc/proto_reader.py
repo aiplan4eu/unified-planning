@@ -14,7 +14,6 @@
 #
 # type: ignore[attr-defined]
 from functools import partial
-from lib2to3.pytree import convert
 from typing import Tuple, Union, Optional
 import fractions
 from typing import OrderedDict
