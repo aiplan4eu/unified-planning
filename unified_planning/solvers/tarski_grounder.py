@@ -92,7 +92,7 @@ class TarskiGrounder(Solver):
         unified_planning_grounder = Grounder(problem, grounding_actions_map=grounded_actions_map)
         grounded_problem = unified_planning_grounder.get_rewritten_problem()
         trace_back_map = unified_planning_grounder.get_rewrite_back_map()
-        return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map))
+        return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map), self.name, [])
 
     def destroy(self):
         pass

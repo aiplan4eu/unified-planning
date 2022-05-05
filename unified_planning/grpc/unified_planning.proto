@@ -455,6 +455,14 @@ message PlanRequest {
     map<string, string> planner_options = 4;
 }
 
+message ValidationRequest {
+    // Problem to be validated.
+    Problem problem = 1;
+
+    // Plan to validate.
+    Plan plan = 2;
+}
+
 
 // A freely formatted logging message.
 // Each message is annotated with its criticality level from the minimal (DEBUG) to the maximal (ERROR).
@@ -534,14 +542,18 @@ message Engine {
 // Message sent by the validator.
 message ValidationResult {
     enum ValidationResultStatus {
-        // The Plan is valid for the Problem; error_info can't be set.
+        // The Plan is valid for the Problem.
         VALID = 0;
-        // The Plan is not valid for the Problem; error_info must be set.
+        // The Plan is not valid for the Problem.
         INVALID = 1;
     }
     ValidationResultStatus status = 1;
-    // Optional. Information about why the Plan is not valid for the Problem
-    string error_info = 2;
+
+    // Optional. Information given by the planner to the user.
+    repeated LogMessage logs = 2;
+
+    // Synthetic description of the planner that generated this message.
+    Engine planner = 3;
 }
 
 
@@ -554,6 +566,12 @@ message GroundingResult {
     // original Action and the parameters applied to the original Action to obtain the
     // grounded Action; both these informations are contained in the ActionInstance message.
     map<string, ActionInstance> map_to_lift_plan = 2;
+
+    // Optional. Information given by the planner to the user.
+    repeated LogMessage logs = 3;
+
+    // Synthetic description of the planner that generated this message.
+    Engine planner = 4;
 }
 
 service UnifiedPlanning {
@@ -562,6 +580,14 @@ service UnifiedPlanning {
     //  - the first (N-1) message are of type `IntermediateReport`
     //  - the last message is of type `FinalReport`
     rpc planOneShot(PlanRequest) returns(stream PlanGenerationResult);
+
+    // A validation request to the planner.
+    // The planner replies with the ValidationResult
+    rpc planValdation(ValidationRequest) returns(ValidationResult);
+
+    // A grounding request to the planner.
+    // The planner replies with the GroundingResult
+    rpc grounding(Problem) returns(GroundingResult);
 
 
     // ===== About bidirectional interaction =====

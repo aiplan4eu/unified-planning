@@ -566,14 +566,17 @@ class ProtobufWriter(Converter):
                 map[grounded_action.name] = self.convert(result.lift_action_instance(unified_planning.plan.ActionInstance(grounded_action)))
         return proto.GroundingResult(
             problem=self.convert(result.problem),
-            map_to_lift_plan=map
+            map_to_lift_plan=map,
+            logs=[self.convert(log) for log in result.log_messages],
+            planner=proto.Engine(name=result.planner_name)
         )
 
     @handles(unified_planning.solvers.ValidationResult)
     def _convert_validation_result(self, result: unified_planning.solvers.ValidationResult) -> proto.ValidationResult:
         return proto.ValidationResult(
             status=self.convert(result.status),
-            error_info=result.error_info
+            logs=[self.convert(log) for log in result.log_messages],
+            planner=proto.Engine(name=result.planner_name)
         )
 
     @handles(unified_planning.solvers.ValidationResultStatus)

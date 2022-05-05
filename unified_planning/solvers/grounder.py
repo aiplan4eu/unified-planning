@@ -36,7 +36,11 @@ class Grounder(solvers.solver.Solver):
         grounder = unified_planning.transformers.Grounder(problem)
         grounded_problem = grounder.get_rewritten_problem()
         trace_back_map = grounder.get_rewrite_back_map()
-        return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map))
+        return GroundingResult(
+            grounded_problem,
+            partial(lift_action_instance, map=trace_back_map),
+            self.name,
+            [])
 
     @property
     def name(self):

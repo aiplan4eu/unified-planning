@@ -82,19 +82,19 @@ class PlanGenerationResult:
 class ValidationResult:
     '''Class that represents the result of a validate call.'''
     status: ValidationResultStatus
-    error_info: str = ''
+    planner_name: str = ''
+    log_messages: List[LogMessage] = field(default=list) # type: ignore
 
     def _post_init(self):
-        # Check that status and error_info are consistent with eachother
-        if self.status == ValidationResultStatus.VALID and self.error_info != '':
-            raise UPUsageError(f'The Validation Result Status is {str(self.status)} but the error_info string is set.')
-
+        self.log_messages = []
 
 @dataclass
 class GroundingResult:
     '''Class that represents the result of a Solver.ground call.'''
     problem: Optional[Problem]
     lift_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
+    planner_name: str = ''
+    log_messages: List[LogMessage] = field(default=list) # type: ignore
 
     def _post_init(self):
         # Check that grounded problem and lift_action_instance are consistent with eachother
@@ -102,3 +102,4 @@ class GroundingResult:
             raise UPUsageError(f'The Grounded Problem is None but the lift_action_instance Callable is not None.')
         if self.problem is not None and self.lift_action_instance is None:
             raise UPUsageError(f'The Grounded Problem is {str(self.problem)} but the lift_action_instance Callable is None.')
+        self.log_messages = []

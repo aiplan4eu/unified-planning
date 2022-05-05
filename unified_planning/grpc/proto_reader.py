@@ -14,6 +14,7 @@
 #
 # type: ignore[attr-defined]
 from functools import partial
+from lib2to3.pytree import convert
 from typing import Tuple, Union, Optional
 import fractions
 from typing import OrderedDict
@@ -567,7 +568,9 @@ class ProtobufReader(Converter):
             map[grounded_action] = (original_action_instance.action, original_action_instance.actual_parameters)
         return unified_planning.solvers.GroundingResult(
             problem=problem,
-            lift_action_instance=partial(unified_planning.solvers.grounder.lift_action_instance, map=map)
+            lift_action_instance=partial(unified_planning.solvers.grounder.lift_action_instance, map=map),
+            planner_name=result.planner.name,
+            log_messages=[self.convert(log) for log in result.logs]
         )
 
     @handles(proto.ValidationResult)
@@ -580,5 +583,6 @@ class ProtobufReader(Converter):
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
         return unified_planning.solvers.ValidationResult(
             status=r_status,
-            error_info=result.error_info
+            planner_name=result.planner.name,
+            log_messages=[self.convert(log) for log in result.logs]
         )
