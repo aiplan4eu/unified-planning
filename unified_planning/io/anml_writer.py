@@ -28,7 +28,7 @@ from io import StringIO
 ANML_KEYWORDS = {'action', 'and', 'constant', 'duration', 'else', 'fact', 'fluent', 'function', 'goal', 'in', 'instance', 'motivated',
         'predicate', 'symbol', 'variable', 'when', 'with', 'decomposition', 'use', 'coincident',
         'comprise', 'comprises', 'contain', 'contains', 'exists', 'forall', 'implies', 'iff', 'not', 'or', 'ordered', 'unordered',
-        'xor', 'UNDEFINED', 'all', 'end', 'false', 'infinity', 'object', 'start', 'true', 'boolean', 'rational', 'integer', 'string',
+        'xor', 'UNDEFINED', 'all', 'end', 'false', 'infinity', 'object', 'start', 'true', 'boolean', 'float', 'rational', 'integer', 'string',
         'type', 'set', 'subset', 'powerset', 'intersect', 'union', 'elt'}
 
 # The following map is used to mangle the invalid names by their class.
@@ -150,7 +150,7 @@ class ANMLWriter:
         # Init names_mapping.
         names_mapping[self.problem.env.type_manager.BoolType()] = 'boolean'
         names_mapping[self.problem.env.type_manager.IntType()] = 'integer'
-        names_mapping[self.problem.env.type_manager.RealType()] = 'rational'
+        names_mapping[self.problem.env.type_manager.RealType()] = 'float'
         for t in self.problem.user_types:
             ut = cast(_UserType, t)
             if _is_valid_anml_name(ut.name): # No renaming needed
@@ -266,9 +266,9 @@ class ANMLWriter:
         if effect.is_assignment():
             results.append(' := ')
         elif effect.is_increase():
-            results.append(f' := {converter.convert(effect.fluent)} + ')
+            results.append(f' :increase ')
         elif effect.is_decrease():
-            results.append(f' := {converter.convert(effect.fluent)} - ')
+            results.append(f' :decrease ')
         else:
             raise NotImplementedError
         results.append(f'{converter.convert(effect.value)};\n')
