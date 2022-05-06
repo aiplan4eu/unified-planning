@@ -15,7 +15,6 @@
 
 import importlib
 import unified_planning as up
-from tabulate import tabulate # type: ignore
 from unified_planning.model import ProblemKind
 from typing import Dict, Tuple, Optional, List, Union, Type
 
@@ -29,6 +28,19 @@ DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
                    'sequential_plan_validator' : ('unified_planning.solvers.plan_validator', 'SequentialPlanValidator'),
                    'up_grounder' : ('unified_planning.solvers.grounder', 'Grounder'),
                    'tarski_grounder' : ('unified_planning.solvers.tarski_grounder', 'TarskiGrounder')}
+
+
+def format_table(header: List[str], rows: List[List[str]]) -> str:
+    row_template = '|'
+    for i in range(len(header)):
+        l = max(len(r[i]) for r in [header] + rows)
+        row_template += ' {:<' + str(l) + '} |'
+    header_msg = row_template.format(*header)
+    res = '\n' + '-'*len(header_msg) + '\n' + header_msg + '\n' + '='*len(header_msg)
+    for row in rows:
+        res += '\n' + row_template.format(*row)
+        res += '\n' + '-'*len(header_msg)
+    return res
 
 
 class Factory:
@@ -53,23 +65,23 @@ class Factory:
                 return self.solvers[name]
             else:
                 raise up.exceptions.UPNoRequestedSolverAvailableException
-        features = list(problem_kind.features)
-        error_message = []
+        problem_features = list(problem_kind.features)
+        planners_features = []
         for name, SolverClass in self.solvers.items():
             if getattr(SolverClass, 'is_'+solver_kind)():
                 if SolverClass.supports(problem_kind) \
                    and (optimality_guarantee is None or SolverClass.satisfies(optimality_guarantee)):
                     return SolverClass
                 else:
-                    x = [name] + [str(SolverClass.supports(ProblemKind({f}))) for f in features]
+                    x = [name] + [str(SolverClass.supports(ProblemKind({f}))) for f in problem_features]
                     if optimality_guarantee is not None:
                         x.append(str(SolverClass.satisfies(optimality_guarantee)))
-                    error_message.append(x)
-        header = ['Planner'] + features
+                    planners_features.append(x)
+        header = ['Planner'] + problem_features
         if optimality_guarantee is not None:
             header.append('OPTIMALITY_GUARANTEE')
-        msg = str(tabulate(error_message, header, tablefmt="grid"))
-        raise up.exceptions.UPNoSuitableSolverAvailableException('No available solver supports all the problem features:\n'+msg)
+        msg = f'No available solver supports all the problem features:{format_table(header, planners_features)}'
+        raise up.exceptions.UPNoSuitableSolverAvailableException(msg)
 
     def _get_solver(self, solver_kind: str, name: Optional[str] = None,
                     names: Optional[List[str]] = None,
