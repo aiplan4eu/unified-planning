@@ -60,7 +60,7 @@ class Parallel(solvers.solver.Solver):
             processes.append(_p)
             _p.start()
         processes_alive = len(processes)
-        results: List[up.solvers.results.Result] = []
+        results: List[Result] = []
         definitive_result_found: bool = False
         while True:
             if processes_alive == 0: # Every planner gave a result
@@ -70,9 +70,9 @@ class Parallel(solvers.solver.Solver):
             if isinstance(res, BaseException):
                 raise res
             else:
-                assert isinstance(res, up.solvers.results.Result)
+                assert isinstance(res, Result)
                 # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
-                if res.is_definitive_result(args[0]):
+                if res.is_definitive_result(*args):
                     definitive_result_found = True
                     break
                 else:
