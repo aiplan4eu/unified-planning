@@ -7,7 +7,7 @@ env:
   up_pyperplan_commit: "f274bd3db62ca7349cc43113c7ea536cd75f14da"
 
 jobs:
-  run-tests-ubuntu:
+  mypy-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +22,21 @@ jobs:
 
       - name: MyPy check
         run: python3 -m mypy unified_planning
+
+
+  run-tests-ubuntu:
+    runs-on: ubuntu-latest
+    needs: [mypy-check]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Python dependencies
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Install Development Python dependencies
+        run: python3 -m pip install -r dev-requirements.txt
 
       - name: Install tarski
         run: |
@@ -73,6 +88,7 @@ jobs:
 
   run-tests-windows:
     runs-on: windows-latest
+    needs: [mypy-check]
 
     steps:
       - name: Checkout
@@ -122,6 +138,7 @@ jobs:
 
   run-tests-macos:
     runs-on: macos-latest
+    needs: [mypy-check]
 
     steps:
       - name: Checkout
@@ -196,7 +213,7 @@ jobs:
 
   run-colab-notebooks:
     runs-on: ubuntu-latest
-    needs: [run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf] # We only test colabs if the base tests were succesful
+    needs: [mypy-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf] # We only test colabs if the base tests were succesful
 
     steps:
       - name: Checkout
@@ -237,7 +254,7 @@ jobs:
 
   deploy-pypi:
     runs-on: ubuntu-latest
-    needs: [run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf, run-colab-notebooks] # We only deploy if the tests were successful
+    needs: [mypy-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf, run-colab-notebooks] # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
 
     steps:
