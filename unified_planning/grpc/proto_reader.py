@@ -524,13 +524,13 @@ class ProtobufReader(Converter):
         else:
             raise UPException(f"Unknown Planner Status: {result.status}")
 
-        # TODO: Extend the protobuf convertors to handle metrics and logs in results
+        # TODO: Extend the protobuf convertors to handle metrics and log_messages in results
         return unified_planning.solvers.PlanGenerationResult(
             status=status,
             plan=self.convert(result.plan, problem),
-            planner_name=result.engine.name,
+            engine_name=result.engine.name,
             # metrics=result.metrics,
-            # log_messages=[self.convert(log) for log in result.logs],
+            # log_messages=[self.convert(log) for log in result.log_messages],
         )
 
     @handles(proto.LogMessage)
@@ -569,7 +569,7 @@ class ProtobufReader(Converter):
             problem=problem,
             lift_action_instance=partial(unified_planning.solvers.grounder.lift_action_instance, map=map),
             engine_name=result.engine.name,
-            log_messages=[self.convert(log) for log in result.logs]
+            log_messages=[self.convert(log) for log in result.log_messages]
         )
 
     @handles(proto.ValidationResult)
@@ -583,5 +583,5 @@ class ProtobufReader(Converter):
         return unified_planning.solvers.ValidationResult(
             status=r_status,
             engine_name=result.engine.name,
-            log_messages=[self.convert(log) for log in result.logs]
+            log_messages=[self.convert(log) for log in result.log_messages]
         )

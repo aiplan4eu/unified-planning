@@ -524,10 +524,10 @@ message PlanGenerationResult {
     // - "expanded-states": "1290"
     map<string, string> metrics = 3;
 
-    // Optional logs about the planner's activity.
+    // Optional log messages about the planner's activity.
     // Note that it should not be expected that logging messages are visible to the end user.
     // If used in conjunction with INTERNAL_ERROR or UNSUPPORTED_PROBLEM, it would be expected to have at least one log message at the ERROR level.
-    repeated LogMessage logs = 4;
+    repeated LogMessage log_messages = 4;
 
     // Synthetic description of the planner that generated this message.
     Engine engine = 5;
@@ -550,7 +550,7 @@ message ValidationResult {
     ValidationResultStatus status = 1;
 
     // Optional. Information given by the planner to the user.
-    repeated LogMessage logs = 2;
+    repeated LogMessage log_messages = 2;
 
     // Synthetic description of the planner that generated this message.
     Engine engine = 3;
@@ -568,7 +568,7 @@ message GroundingResult {
     map<string, ActionInstance> map_to_lift_plan = 2;
 
     // Optional. Information given by the planner to the user.
-    repeated LogMessage logs = 3;
+    repeated LogMessage log_messages = 3;
 
     // Synthetic description of the planner that generated this message.
     Engine engine = 4;

@@ -73,7 +73,7 @@ class PlanGenerationResult(Result):
     '''Class that represents the result of a plan generation call.'''
     status: PlanGenerationResultStatus
     plan: Optional['up.plan.Plan']
-    planner_name: str
+    engine_name: str
     metrics: Optional[Dict[str, str]] = field(default=None)
     log_messages: Optional[List[LogMessage]] = field(default=None)
 

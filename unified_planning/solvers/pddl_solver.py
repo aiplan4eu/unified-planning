@@ -139,9 +139,9 @@ class PDDLSolver(solvers.solver.Solver):
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
             if timeout_occurred and retval != 0:
-                return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, plan=plan, log_messages=logs, planner_name=self.name)
+                return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, plan=plan, log_messages=logs, engine_name=self.name)
         status: PlanGenerationResultStatus = self._result_status(problem, plan)
-        return PlanGenerationResult(status, plan, log_messages=logs, planner_name=self.name)
+        return PlanGenerationResult(status, plan, log_messages=logs, engine_name=self.name)
 
     def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
         '''Takes a problem and a plan and returns the status that represents this plan.

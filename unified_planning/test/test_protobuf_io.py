@@ -307,4 +307,4 @@ class TestProtobufProblems(TestCase):
 
                 self.assertEqual(final_report.status, final_report_up.status)
                 self.assertEqual(final_report.plan, final_report_up.plan)
-                self.assertEqual(final_report.planner_name, final_report_up.planner_name)
+                self.assertEqual(final_report.engine_name, final_report_up.engine_name)

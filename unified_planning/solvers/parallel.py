@@ -124,7 +124,7 @@ class Parallel(solvers.solver.Solver):
         return up.solvers.results.PlanGenerationResult(
             final_result.status,
             new_plan,
-            final_result.planner_name,
+            final_result.engine_name,
             final_result.metrics,
             logs
         )

@@ -475,13 +475,13 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.solvers.PlanGenerationResult)
     def _convert_plan_generation_result(self, result: unified_planning.solvers.PlanGenerationResult) -> proto.PlanGenerationResult:
-        # TODO: Extend the protobuf convertors to handle metrics and logs in results
+        # TODO: Extend the protobuf convertors to handle metrics and log_messages in results
         return proto.PlanGenerationResult(
             status=self.convert(result.status),
             plan=self.convert(result.plan),
-            engine=proto.Engine(name=result.planner_name),
+            engine=proto.Engine(name=result.engine_name),
             # metrics=result.metrics,
-            # logs=[self.convert(log) for log in result.log_messages],
+            # log_messages=[self.convert(log) for log in result.log_messages],
         )
 
     @handles(unified_planning.solvers.PlanGenerationResultStatus)
@@ -567,7 +567,7 @@ class ProtobufWriter(Converter):
         return proto.GroundingResult(
             problem=self.convert(result.problem),
             map_to_lift_plan=map,
-            logs=[self.convert(log) for log in result.log_messages],
+            log_messages=[self.convert(log) for log in result.log_messages],
             engine=proto.Engine(name=result.engine_name)
         )
 
@@ -575,7 +575,7 @@ class ProtobufWriter(Converter):
     def _convert_validation_result(self, result: unified_planning.solvers.ValidationResult) -> proto.ValidationResult:
         return proto.ValidationResult(
             status=self.convert(result.status),
-            logs=[self.convert(log) for log in result.log_messages],
+            log_messages=[self.convert(log) for log in result.log_messages],
             engine=proto.Engine(name=result.engine_name)
         )
 
