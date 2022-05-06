@@ -206,14 +206,6 @@ jobs:
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
 
-      - name: MyPy check
-        run: python3 -m mypy unified_planning
-
-      - name: Install tarski
-        run: |
-          python3 -m pip install tarski[arithmetic]
-          sudo apt install -y gringo
-
       - name: Checkout up-tamer
         uses: actions/checkout@v2
         with:
@@ -233,18 +225,6 @@ jobs:
 
       - name: Install up-pyperplan
         run: python3 -m pip install up-pyperplan/
-
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v2
-        with:
-            distribution: 'microsoft'
-            java-version: '16'
-
-      - name: Download and install ENHSP
-        run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp-20; ./compile; cd ..
-          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Install jupyter and ipython3
         run: sudo apt install jupyter; sudo apt install ipython3
