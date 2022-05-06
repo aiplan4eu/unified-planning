@@ -5,7 +5,13 @@ eoi="# end of installation"
 for colab_file in ./notebooks/*.ipynb ; do
     file_name="${colab_file%.ipynb}"
     python_file="${file_name}.py"
-    jupyter nbconvert --to python ${colab_file}
+    python_basename_file=$(basename ${python_file})
+    jupyter nbconvert --to python ${colab_file} --output ${python_basename_file}
+    if [ ! $? == 0 ]; then
+        rm ./notebooks/*.py
+        echo " FAILED ${colab_file} conversion to python"
+        exit 1
+    fi
     file_tested_name="${file_name}_rewritten.py"
     trim_rows="false"
     touch ${file_tested_name}
