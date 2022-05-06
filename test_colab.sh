@@ -5,7 +5,7 @@ eoi="# end of installation"
 for colab_file in ./notebooks/*.ipynb ; do
     file_name="${colab_file%.ipynb}"
     python_file="${file_name}.py"
-    jupyter nbconvert --to python ${colab_file} --output ${python_file}
+    jupyter nbconvert --to python ${colab_file}
     file_tested_name="${file_name}_rewritten.py"
     trim_rows="false"
     touch ${file_tested_name}
@@ -25,12 +25,12 @@ for colab_file in ./notebooks/*.ipynb ; do
     echo -n "  -> Testing ${file_tested_name}..."
     output=`ipython3 ${file_tested_name} 2>&1`
     if [ ! $? == 0 ]; then
-        rm ./unified_planning/notebook/*.py
+        rm ./notebooks/*.py
         echo " FAILED for the following reason:"
         echo "${output}"
         exit 1
     fi
     echo " DONE!"
 done
-rm ./unified_planning/notebook/*.py
+rm ./notebooks/*.py
 exit 0
