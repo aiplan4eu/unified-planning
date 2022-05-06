@@ -2,7 +2,7 @@
 
 boi="# begin of installation"
 eoi="# end of installation"
-for colab_file in ./notebook/*.ipynb ; do
+for colab_file in ./notebooks/*.ipynb ; do
     file_name="${colab_file%.ipynb}"
     python_file="${file_name}.py"
     jupyter nbconvert --to python ${colab_file} --output ${python_file}
