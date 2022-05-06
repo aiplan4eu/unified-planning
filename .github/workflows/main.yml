@@ -173,6 +173,7 @@ jobs:
       - name: Run tests
         run: bash run_tests.sh
 
+
   check-protobuf:
     runs-on: ubuntu-20.04
 
@@ -191,6 +192,7 @@ jobs:
           echo "Checking that the committed protobuf bindings are exactly the one generated from the declaration"
           echo "Based on protoc version: $(protoc --version)"
           git diff --exit-code
+
 
   run-colab-notebooks:
     runs-on: ubuntu-latest
@@ -231,6 +233,7 @@ jobs:
 
       - name: Run colabs
         run: bash test_colab.sh
+
 
   deploy-pypi:
     runs-on: ubuntu-latest
