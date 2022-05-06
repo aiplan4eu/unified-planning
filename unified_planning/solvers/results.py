@@ -74,8 +74,8 @@ class PlanGenerationResult(Result):
     status: PlanGenerationResultStatus
     plan: Optional['up.plan.Plan']
     planner_name: str
-    log_messages: List[LogMessage] = field(default=list)
-    metrics: Dict[str, str] = field(default=dict)
+    metrics: Optional[Dict[str, str]] = field(default=None)
+    log_messages: Optional[List[LogMessage]] = field(default=None)
 
     def __post__init(self):
         # Checks that plan and status are consistent
@@ -98,7 +98,7 @@ class ValidationResult(Result):
     '''Class that represents the result of a validate call.'''
     status: ValidationResultStatus
     engine_name: str
-    log_messages: List[LogMessage] = field(default=list)
+    log_messages: Optional[List[LogMessage]] = field(default=None)
 
     def is_definitive_result(self, *args) -> bool:
         return True
@@ -110,7 +110,7 @@ class GroundingResult(Result):
     problem: Optional[Problem]
     lift_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
     engine_name: str
-    log_messages: List[LogMessage] = field(default=list)
+    log_messages: Optional[List[LogMessage]] = field(default=None)
 
     def _post_init(self):
         # Check that grounded problem and lift_action_instance are consistent with eachother

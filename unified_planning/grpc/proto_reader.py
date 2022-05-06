@@ -528,7 +528,7 @@ class ProtobufReader(Converter):
         return unified_planning.solvers.PlanGenerationResult(
             status=status,
             plan=self.convert(result.plan, problem),
-            planner_name=result.planner.name,
+            planner_name=result.engine.name,
             # metrics=result.metrics,
             # log_messages=[self.convert(log) for log in result.logs],
         )
@@ -568,7 +568,7 @@ class ProtobufReader(Converter):
         return unified_planning.solvers.GroundingResult(
             problem=problem,
             lift_action_instance=partial(unified_planning.solvers.grounder.lift_action_instance, map=map),
-            engine_name=result.planner.name,
+            engine_name=result.engine.name,
             log_messages=[self.convert(log) for log in result.logs]
         )
 
@@ -582,6 +582,6 @@ class ProtobufReader(Converter):
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
         return unified_planning.solvers.ValidationResult(
             status=r_status,
-            engine_name=result.planner.name,
+            engine_name=result.engine.name,
             log_messages=[self.convert(log) for log in result.logs]
         )

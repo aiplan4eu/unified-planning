@@ -102,7 +102,6 @@ class Parallel(solvers.solver.Solver):
                     PlanGenerationResultStatus.MEMOUT,
                     PlanGenerationResultStatus.INTERNAL_ERROR,
                     PlanGenerationResultStatus.UNSUPPORTED_PROBLEM]
-        logs = [up.solvers.LogMessage(LogLevel.INFO, str(fr)) for fr in final_reports]
         final_result: Optional[PlanGenerationResult] = None
         result_found: bool = False
         for ro in result_order:
@@ -111,16 +110,24 @@ class Parallel(solvers.solver.Solver):
             for r in final_reports:
                 pgr = cast(PlanGenerationResult, r)
                 if pgr.status == ro:
-                    # pgr.log_messages.extend(logs) #NOTE This line raises a TypeError. It would be nice to add, as an INFO LogMessage, all the results already found.
                     result_found = True
                     final_result = pgr
                     break
+        logs = [up.solvers.LogMessage(LogLevel.INFO, str(fr)) for fr in final_reports]
         # if no results are given by the planner, we create a default one
         if final_result is None:
             return up.solvers.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
                                                  None, self.name, log_messages=logs)
         new_plan = self.convert_plan(final_result.plan, problem) if final_result.plan is not None else None
-        return up.solvers.results.PlanGenerationResult(final_result.status, new_plan, final_result.planner_name, final_result.log_messages, final_result.metrics)
+        if final_result.log_messages is not None:
+            logs = final_result.log_messages + logs
+        return up.solvers.results.PlanGenerationResult(
+            final_result.status,
+            new_plan,
+            final_result.planner_name,
+            final_result.metrics,
+            logs
+        )
 
     def convert_plan(self, plan: 'up.plan.Plan', problem: 'up.model.Problem')-> 'up.plan.Plan':
         objects = {}

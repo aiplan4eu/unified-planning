@@ -530,7 +530,7 @@ message PlanGenerationResult {
     repeated LogMessage logs = 4;
 
     // Synthetic description of the planner that generated this message.
-    Engine planner = 5;
+    Engine engine = 5;
 }
 
 message Engine {
@@ -553,7 +553,7 @@ message ValidationResult {
     repeated LogMessage logs = 2;
 
     // Synthetic description of the planner that generated this message.
-    Engine planner = 3;
+    Engine engine = 3;
 }
 
 
@@ -571,7 +571,7 @@ message GroundingResult {
     repeated LogMessage logs = 3;
 
     // Synthetic description of the planner that generated this message.
-    Engine planner = 4;
+    Engine engine = 4;
 }
 
 service UnifiedPlanning {
