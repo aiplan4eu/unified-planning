@@ -74,8 +74,8 @@ class PlanGenerationResult(Result):
     status: PlanGenerationResultStatus
     plan: Optional['up.plan.Plan']
     planner_name: str
-    log_messages: List[LogMessage] = field(default=[])
-    metrics: Dict[str, str] = field(default={})
+    log_messages: List[LogMessage] = field(default=list)
+    metrics: Dict[str, str] = field(default=dict)
 
     def __post__init(self):
         # Checks that plan and status are consistent
@@ -89,13 +89,16 @@ class PlanGenerationResult(Result):
         optimality_required = False
         if len(args) > 0:
             optimality_required = len(args[0].quality_metrics) > 0 # Require optimality if the problem has at least one quality metric.
-        return self.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY or self.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN or (self.status)
+        return self.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY or self.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN \
+            or (optimality_required and self.status == PlanGenerationResultStatus.SOLVED_SATISFICING)
 
 
 @dataclass
 class ValidationResult(Result):
     '''Class that represents the result of a validate call.'''
     status: ValidationResultStatus
+    engine_name: str
+    log_messages: List[LogMessage] = field(default=list)
 
     def is_definitive_result(self, *args) -> bool:
         return True
@@ -106,6 +109,8 @@ class GroundingResult(Result):
     '''Class that represents the result of a Solver.ground call.'''
     problem: Optional[Problem]
     lift_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
+    engine_name: str
+    log_messages: List[LogMessage] = field(default=list)
 
     def _post_init(self):
         # Check that grounded problem and lift_action_instance are consistent with eachother

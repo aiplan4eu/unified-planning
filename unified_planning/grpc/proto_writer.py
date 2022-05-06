@@ -568,7 +568,7 @@ class ProtobufWriter(Converter):
             problem=self.convert(result.problem),
             map_to_lift_plan=map,
             logs=[self.convert(log) for log in result.log_messages],
-            planner=proto.Engine(name=result.planner_name)
+            planner=proto.Engine(name=result.engine_name)
         )
 
     @handles(unified_planning.solvers.ValidationResult)
@@ -576,7 +576,7 @@ class ProtobufWriter(Converter):
         return proto.ValidationResult(
             status=self.convert(result.status),
             logs=[self.convert(log) for log in result.log_messages],
-            planner=proto.Engine(name=result.planner_name)
+            planner=proto.Engine(name=result.engine_name)
         )
 
     @handles(unified_planning.solvers.ValidationResultStatus)
