@@ -34,13 +34,14 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
     row_template = '|'
     for i in range(len(header)):
         l = max(len(r[i]) for r in [header] + rows)
-        row_template += ' {:<' + str(l) + '} |'
-    header_msg = row_template.format(*header)
-    res = '\n' + '-'*len(header_msg) + '\n' + header_msg + '\n' + '='*len(header_msg)
+        row_template += f' {{:<{str(l)}}} |'
+    header_str = row_template.format(*header)
+    row_len = len(header_str)
+    rows_str = [f'{"-"*row_len}', f'{header_str}', f'{"="*row_len}']
     for row in rows:
-        res += '\n' + row_template.format(*row)
-        res += '\n' + '-'*len(header_msg)
-    return res
+        rows_str.append(f'{row_template.format(*row)}')
+        rows_str.append(f'{"-"*row_len}')
+    return '\n'.join(rows_str)
 
 
 class Factory:
@@ -80,7 +81,7 @@ class Factory:
         header = ['Planner'] + problem_features
         if optimality_guarantee is not None:
             header.append('OPTIMALITY_GUARANTEE')
-        msg = f'No available solver supports all the problem features:{format_table(header, planners_features)}'
+        msg = f'No available solver supports all the problem features:\n{format_table(header, planners_features)}'
         raise up.exceptions.UPNoSuitableSolverAvailableException(msg)
 
     def _get_solver(self, solver_kind: str, name: Optional[str] = None,
