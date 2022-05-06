@@ -15,6 +15,7 @@
 
 import importlib
 import unified_planning as up
+from tabulate import tabulate # type: ignore
 from unified_planning.model import ProblemKind
 from typing import Dict, Tuple, Optional, List, Union, Type
 
@@ -46,20 +47,35 @@ class Factory:
 
     def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind(),
-                          optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Optional[Type['up.solvers.solver.Solver']]:
+                          optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Type['up.solvers.solver.Solver']:
         if name is not None:
-            return self.solvers[name]
-        for SolverClass in self.solvers.values():
-            if getattr(SolverClass, 'is_'+solver_kind)() and SolverClass.supports(problem_kind) \
-               and (optimality_guarantee is None or SolverClass.satisfies(optimality_guarantee)):
-                return SolverClass
-        return None
+            if name in self.solvers:
+                return self.solvers[name]
+            else:
+                raise up.exceptions.UPNoRequestedSolverAvailableException
+        features = list(problem_kind.features)
+        error_message = []
+        for name, SolverClass in self.solvers.items():
+            if getattr(SolverClass, 'is_'+solver_kind)():
+                if SolverClass.supports(problem_kind) \
+                   and (optimality_guarantee is None or SolverClass.satisfies(optimality_guarantee)):
+                    return SolverClass
+                else:
+                    x = [name] + [str(SolverClass.supports(ProblemKind({f}))) for f in features]
+                    if optimality_guarantee is not None:
+                        x.append(str(SolverClass.satisfies(optimality_guarantee)))
+                    error_message.append(x)
+        header = ['Planner'] + features
+        if optimality_guarantee is not None:
+            header.append('OPTIMALITY_GUARANTEE')
+        msg = str(tabulate(error_message, header, tablefmt="grid"))
+        raise up.exceptions.UPNoSuitableSolverAvailableException('No available solver supports all the problem features:\n'+msg)
 
     def _get_solver(self, solver_kind: str, name: Optional[str] = None,
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
-                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Optional['up.solvers.solver.Solver']:
+                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> 'up.solvers.solver.Solver':
         if names is not None:
             assert name is None
             if params is None:
@@ -68,8 +84,6 @@ class Factory:
             solvers = []
             for name, param in zip(names, params):
                 SolverClass = self._get_solver_class(solver_kind, name)
-                if SolverClass is None:
-                    raise
                 solvers.append((SolverClass, param))
             return up.solvers.parallel.Parallel(solvers)
         else:
@@ -77,16 +91,13 @@ class Factory:
                 params = {}
             assert isinstance(params, Dict)
             SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
-            if SolverClass is None:
-                raise
             return SolverClass(**params)
-        return None
 
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind(),
-                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Optional['up.solvers.solver.Solver']:
+                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> 'up.solvers.solver.Solver':
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -101,9 +112,9 @@ class Factory:
         return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 
     def PlanValidator(self, *, name: Optional[str] = None,
-                       names: Optional[List[str]] = None,
-                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional['up.solvers.solver.Solver']:
+                      names: Optional[List[str]] = None,
+                      params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                      problem_kind: ProblemKind = ProblemKind()) -> 'up.solvers.solver.Solver':
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
@@ -119,7 +130,7 @@ class Factory:
         return self._get_solver('plan_validator', name, names, params, problem_kind)
 
     def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()) -> Optional['up.solvers.solver.Solver']:
+                 problem_kind: ProblemKind = ProblemKind()) -> 'up.solvers.solver.Solver':
         """
         Returns a Grounder. There are three ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
