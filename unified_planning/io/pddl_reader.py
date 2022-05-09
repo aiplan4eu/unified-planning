@@ -231,6 +231,9 @@ class PDDLReader:
         to_add = [(exp, cond)]
         while to_add:
             exp, cond = to_add.pop(0)
+            # ignore the case where the effect list is empty, e.g., `:effect ()`
+            if len(exp) == 0:
+                continue
             op = exp[0]
             if op == 'and':
                 exp = exp[1:]
