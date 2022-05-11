@@ -165,7 +165,7 @@ class PDDLReader:
         self._fve = up.walkers.FreeVarsExtractor()
         self._totalcost: Optional[up.model.FNode] = None
 
-    def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[up.model.Action],
+    def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
                    types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
                    exp: Union[ParseResults, str]) -> up.model.FNode:
         stack = [(var, exp, False)]
@@ -335,6 +335,35 @@ class PDDLReader:
             else:
                 raise SyntaxError(f'Not able to handle: {eff}')
 
+    def _parse_subtask(self, e, method: htn.Method, problem: htn.HierarchicalProblem, types_map: Dict[str, up.model.Type]) -> typing.Optional[htn.Subtask]:
+        """Returns the Subtask corresponding to the given expression e or
+           None if the expression cannot be interpreted as a subtask."""
+        if len(e) == 0:
+            return None
+        task_name = e[0]
+        task: Union[htn.Task, up.model.Action]
+        if problem.has_task(task_name):
+            task = problem.get_task(task_name)
+        elif problem.has_action(task_name):
+            task = problem.action(task_name)
+        else:
+            return None
+        assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
+        parameters = [self._parse_exp(problem, method, types_map, {}, param) for param in e[1:]]
+        return htn.Subtask(task, *parameters)
+
+    def _parse_subtasks(self, e, method: htn.Method, problem: htn.HierarchicalProblem, types_map: Dict[str, up.model.Type],) -> List[htn.Subtask]:
+        """Returns the list of subtasks of the expression"""
+        single_task = self._parse_subtask(e, method, problem, types_map)
+        if single_task is not None:
+            return [single_task]
+        elif len(e) == 0:
+            return []
+        elif e[0] == 'and':
+            return [subtask for e2 in e[1:] for subtask in self._parse_subtasks(e2, method, problem, types_map)]
+        else:
+            raise SyntaxError(f"Could not parse the subtasks list: {e}")
+
     def _check_if_object_type_is_needed(self, domain_res) -> bool:
         for p in domain_res.get('predicates', []):
             for g in p[1]:
@@ -400,6 +429,7 @@ class PDDLReader:
                       problem_filename: typing.Optional[str] = None) -> 'up.model.Problem':
         domain_res = self._pp_domain.parseFile(domain_filename)
 
+        problem: up.model.Problem
         if ":hierarchy" in set(domain_res.get('features', [])):
             problem = htn.HierarchicalProblem(domain_res['name'], self._env,
                                               initial_defaults={self._tm.BoolType(): self._em.FALSE()})
@@ -533,15 +563,15 @@ class PDDLReader:
             achieved_task = m['task'][0]  # a list of the form ["go", "?robot", "?target"]
             assert all([pname[0] == '?' for pname in achieved_task[1:]]),\
                 f"All arguments of the task should be parameters: {achieved_task}"
-            params = [method.parameter(pname[1:]) for pname in achieved_task[1:]]
-            method.set_task(problem.get_task(achieved_task[0]), *params)
+            achieved_task_params = [method.parameter(pname[1:]) for pname in achieved_task[1:]]
+            method.set_task(problem.get_task(achieved_task[0]), *achieved_task_params)
             for ord_subs in m.get('ordered-subtasks', []):
-                ord_subs = read_subtasks(ord_subs, problem)
+                ord_subs = self._parse_subtasks(ord_subs, method, problem, types_map)
                 for s in ord_subs:
                     method.add_subtask(s)
                 method.set_ordered(*ord_subs)
             for subs in m.get('subtasks', []):
-                subs = read_subtasks(subs, problem)
+                subs = self._parse_subtasks(subs, method, problem, types_map)
                 for s in subs:
                     method.add_subtask(s)
             problem.add_method(method)
@@ -615,33 +645,3 @@ class PDDLReader:
                             problem.add_quality_metric(up.model.metrics.MaximizeExpressionOnFinalState(metric_exp))
 
         return problem
-
-
-def read_subtask(e, problem: htn.HierarchicalProblem) -> typing.Optional[htn.Subtask]:
-    """Returns the Subtask corresponding to the given expression e or
-       None if the expression cannot be interpreted as a subtask."""
-    if len(e) == 0:
-        return None
-    task_name = e[0]
-    if problem.has_task(task_name):
-        task = problem.get_task(task_name)
-    elif problem.has_action(task_name):
-        task = problem.action(task_name)
-    else:
-        return None
-    assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
-    parameters = problem.env.expression_manager.auto_promote(e[1:])
-    return htn.Subtask(task, parameters)
-
-
-def read_subtasks(e, problem: htn.HierarchicalProblem) -> List[htn.Subtask]:
-    """Returns the list of subtasks of the expression"""
-    single_task = read_subtask(e, problem)
-    if single_task is not None:
-        return [single_task]
-    elif len(e) == 0:
-        return []
-    elif e[0] == 'and':
-        return [st for e2 in e[1:] for st in read_subtasks(e2, problem)]
-    else:
-        raise SyntaxError(f"Could not parse the subtasks list: {e}")
