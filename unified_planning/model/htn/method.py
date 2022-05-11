@@ -63,6 +63,7 @@ class Method:
         self._name = _name
         self._parameters: 'OrderedDict[str, up.model.parameter.Parameter]' = OrderedDict()
         self._preconditions: List[up.model.fnode.FNode] = []
+        self._constraints: List[up.model.fnode.FNode] = []
         self._subtasks: List[Subtask] = []
         if _parameters is not None:
             assert len(kwargs) == 0
@@ -91,6 +92,10 @@ class Method:
         for c in self.preconditions:
             s.append(f'    {str(c)}\n')
         s.append('  ]\n')
+        s.append('  constraints = [\n')
+        for c in self.constraints:
+            s.append(f'    {str(c)}\n')
+        s.append('  ]\n')
         s.append('  subtasks = [\n')
         for st in self.subtasks:
             s.append(f'      {str(st)}\n')
@@ -101,18 +106,20 @@ class Method:
     def __eq__(self, oth: object) -> bool:
         if not isinstance(oth, Method):
             return False
-        return self._env == oth._env and \
-               self._name == oth._name and \
-               self._parameters == oth._parameters and \
-               self._task == oth._task and \
-               set(self._preconditions) == set(oth._preconditions) and \
-               set(self._subtasks) == set(oth._subtasks)
+        return (self._env == oth._env and
+                self._name == oth._name and
+                self._parameters == oth._parameters and
+                self._task == oth._task and
+                set(self._preconditions) == set(oth._preconditions) and
+                set(self._subtasks) == set(oth._subtasks) and
+                set(self._constraints) == set(oth._constraints))
 
     def __hash__(self) -> int:
         res = hash(self._name)
         res += hash(self._task)
         res += sum(map(hash, self.parameters))
-        res += sum(map(hash, self.preconditions))
+        res += sum(map(hash, self._preconditions))
+        res += sum(map(hash, self._constraints))
         res += sum(map(hash, self.subtasks))
         return res
 
@@ -159,7 +166,7 @@ class Method:
         return self._preconditions
 
     def add_precondition(self, precondition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
-        """Adds the given action precondition."""
+        """Adds the given method precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         if precondition_exp == self._env.expression_manager.TRUE():
@@ -169,6 +176,23 @@ class Method:
             raise UPUnboundedVariablesError(f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}")
         if precondition_exp not in self._preconditions:
             self._preconditions.append(precondition_exp)
+
+    @property
+    def constraints(self) -> List['up.model.fnode.FNode']:
+        """Returns the list of the method's constraints."""
+        return self._constraints
+
+    def add_constraint(self, constraint: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
+        """Adds the given constraint to the method."""
+        constraint_exp, = self._env.expression_manager.auto_promote(constraint)
+        assert self._env.type_checker.get_type(constraint_exp).is_bool_type()
+        if constraint_exp == self._env.expression_manager.TRUE():
+            return
+        free_vars = self._env.free_vars_oracle.get_free_variables(constraint_exp)
+        if len(free_vars) != 0:
+            raise UPUnboundedVariablesError(f"The constraint {str(constraint_exp)} has unbounded variables:\n{str(free_vars)}")
+        if constraint_exp not in self._constraints:
+            self._constraints.append(constraint_exp)
 
     @property
     def subtasks(self) -> List['Subtask']:
@@ -205,8 +229,7 @@ class Method:
         if isinstance(rhs, Timepoint):
             rhs = Timing(timepoint=rhs, delay=0)
         assert isinstance(rhs, Timing)
-        # TODO: decide where to store such constraints (currently added to preconditions)
-        self._preconditions.append(self._env.expression_manager.LT(lhs, rhs))
+        self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
 
 
 

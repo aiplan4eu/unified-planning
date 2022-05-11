@@ -460,8 +460,18 @@ class TestProblem(TestCase):
         self.assertEqual(1, len(problem.actions))
         self.assertEqual(["go"], [task.name for task in problem.tasks])
         self.assertEqual(["go-direct", "go-indirect"], [method.name for method in problem.methods])
-        self.assertEqual(1, len(problem.method("go-direct").subtasks))
-        self.assertEqual(2, len(problem.method("go-indirect").subtasks))
+
+        go_direct = problem.method("go-direct")
+        self.assertEqual(1, len(go_direct.subtasks))
+        self.assertEqual(2, len(go_direct.preconditions))
+        self.assertEqual(0, len(go_direct.constraints))
+
+        go_indirect = problem.method("go-indirect")
+        self.assertEqual(2, len(go_indirect.subtasks))
+        self.assertEqual(2, len(go_indirect.preconditions))
+
+        self.assertEqual(1, len(go_indirect.constraints))
+
         self.assertEqual(2, len(problem.task_network.subtasks))
 
 
