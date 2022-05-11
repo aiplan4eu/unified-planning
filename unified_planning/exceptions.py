@@ -42,3 +42,9 @@ class UPValueError(UPException):
 
 class UPUsageError(UPException):
     pass
+
+class UPNoSuitableSolverAvailableException(UPException):
+    pass
+
+class UPNoRequestedSolverAvailableException(UPException):
+    pass
