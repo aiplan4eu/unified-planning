@@ -61,6 +61,16 @@ class HierarchicalProblem(up.model.problem.Problem):
         return res
 
     @property
+    def kind(self) -> 'up.model.problem_kind.ProblemKind':
+        '''Returns the problem kind of this planning problem.
+
+        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
+        minimum time as possible.'''
+        self._kind = super().kind
+        self._kind.set_hierarchies('HIERARCHICAL')  # type: ignore
+        return self._kind
+
+    @property
     def tasks(self) -> List[Task]:
         return list(self._abstract_tasks.values())
 

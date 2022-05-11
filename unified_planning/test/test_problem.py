@@ -456,6 +456,7 @@ class TestProblem(TestCase):
     def test_htn_problem_creation(self):
         problems = examples.hierarchical.get_example_problems()
         problem = problems['htn-go']
+        assert problem.kind.has_hierarchical()
         self.assertEqual(2, len(problem.fluents))
         self.assertEqual(1, len(problem.actions))
         self.assertEqual(["go"], [task.name for task in problem.tasks])
@@ -469,7 +470,6 @@ class TestProblem(TestCase):
         go_indirect = problem.method("go-indirect")
         self.assertEqual(2, len(go_indirect.subtasks))
         self.assertEqual(2, len(go_indirect.preconditions))
-
         self.assertEqual(1, len(go_indirect.constraints))
 
         self.assertEqual(2, len(problem.task_network.subtasks))
