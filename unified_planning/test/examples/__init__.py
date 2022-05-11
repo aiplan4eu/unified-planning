@@ -16,6 +16,7 @@
 import unified_planning.test.examples.minimals as minimals
 import unified_planning.test.examples.realistic as realistic
 import unified_planning.test.examples.testing_variants as testing_variants
+import unified_planning.test.examples.hierarchical as hierarchical
 
 
 def get_example_problems():

@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
 from typing import OrderedDict
 
@@ -452,6 +452,17 @@ class TestProblem(TestCase):
                 else:
                     self.assertEqual(problem.initial_value(distance(locations[i], locations[j])), Int(-1))
                     self.assertEqual(problem.initial_value(cost(locations[i], locations[j])), Int(0))
+
+    def test_htn_problem_creation(self):
+        problems = examples.hierarchical.get_example_problems()
+        problem = problems['htn-go']
+        self.assertEqual(2, len(problem.fluents))
+        self.assertEqual(1, len(problem.actions))
+        self.assertEqual(["go"], [task.name for task in problem.tasks])
+        self.assertEqual(["go-direct", "go-indirect"], [method.name for method in problem.methods])
+        self.assertEqual(1, len(problem.method("go-direct").subtasks))
+        self.assertEqual(2, len(problem.method("go-indirect").subtasks))
+        self.assertEqual(2, len(problem.task_network.subtasks))
 
 
 if __name__ == "__main__":
