@@ -15,6 +15,7 @@
 
 
 from fractions import Fraction
+import sys
 import warnings
 import unified_planning as up
 import unified_planning.solvers as solvers
@@ -132,6 +133,13 @@ class Parallel(solvers.solver.Solver):
 
     def validate(self, problem: 'up.model.AbstractProblem', plan: Plan) -> 'up.solvers.results.ValidationResult':
         return cast(ValidationResult, self._run_parallel('validate', problem, plan)[0])
+
+    def engine_credits(self, stream: Optional[IO[str]] = sys.stdout):
+        if stream is not None: #TODO write credits
+            stream.write("You are using the Parallel solver, which uses different solvers, here are their credits:")
+            for (SolverClass, options) in self.solvers:
+                with SolverClass(**options) as solver:
+                    solver.engine_credits(stream)
 
     def destroy(self):
         pass

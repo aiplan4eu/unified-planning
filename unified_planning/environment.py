@@ -19,7 +19,8 @@ singleton objects that are used throughout the system,
 such as the ExpressionManager, TypeChecker, TypeManager.
 """
 
-from typing import Optional
+import sys
+from typing import IO, Optional
 import unified_planning
 
 
@@ -56,6 +57,9 @@ class Environment:
     @property
     def factory(self) -> 'unified_planning.solvers.Factory':
         return self._factory
+
+    def credits(self, stream: IO[str] = sys.stdout, full_credits: bool = False):
+        self.factory.credits(stream, full_credits)
 
 
 GLOBAL_ENVIRONMENT: Optional[Environment] = None

@@ -15,9 +15,11 @@
 """This module defines the solver interface."""
 
 
+import sys
 import unified_planning as up
 from unified_planning.plan import Plan
 from unified_planning.model import ProblemKind, AbstractProblem
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import IO, Optional, Tuple, Callable, Union
 
@@ -26,6 +28,22 @@ from typing import IO, Optional, Tuple, Callable, Union
 class OptimalityGuarantee(Enum):
     SATISFICING = auto()
     SOLVED_OPTIMALLY = auto()
+
+@dataclass
+class Credits:
+    author: str
+    contact: str
+    website: str
+    long_description: str
+
+    def write_credits(self, stream: IO[str], full_credits: bool = False):
+        stream.write(f'author: {self.author}\n')
+        stream.write(f'contact: {self.contact}\n')
+        stream.write(f'website: {self.website}\n')
+        if full_credits:
+            stream.write(f'long_description: {self.long_description}\n')
+
+credits = Credits('FBK-team', 'aiplan4eu@fbk.eu', 'https://github.com/aiplan4eu/unified-planning', 'Solver base class')
 
 
 class Solver:
@@ -95,6 +113,16 @@ class Solver:
         Also, the "up.solvers.grounder.lift_plan" function can be called, if retrieving the needed map
         fits the solver implementation better than retrieving a Callable.'''
         raise NotImplementedError
+
+    @staticmethod
+    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
+        '''
+        This method takes an IO[str] and writes the credits of the planner onto the stream.
+        '''
+        if stream is not None:
+            stream.write(f'CREDITS\n')
+            credits.write_credits(stream, full_credits)
+            stream.write('END OF CREDITS\n\n')
 
     def destroy(self):
         raise NotImplementedError

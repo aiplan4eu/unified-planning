@@ -14,7 +14,7 @@
 #
 
 
-from unified_planning.solvers.solver import Solver, OptimalityGuarantee
+from unified_planning.solvers.solver import Solver, OptimalityGuarantee, Credits
 from unified_planning.solvers.factory import Factory
 from unified_planning.solvers.grounder import Grounder
 from unified_planning.solvers.parallel import Parallel
@@ -27,6 +27,6 @@ __all__ = [ 'Factory',
             'Parallel',
             'PDDLSolver',
             'SequentialPlanValidator',
-            'Solver', 'OptimalityGuarantee',
+            'Solver', 'OptimalityGuarantee', 'Credits',
             'Result', 'LogMessage', 'PlanGenerationResult', 'LogLevel', 'PlanGenerationResultStatus', 'ValidationResult', 'ValidationResultStatus', 'GroundingResult'
         ]

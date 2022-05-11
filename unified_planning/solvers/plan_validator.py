@@ -14,7 +14,8 @@
 #
 
 
-from typing import Dict, Union, List, Set, Optional
+import sys
+from typing import IO, Dict, Union, List, Set, Optional
 from itertools import product
 
 import unified_planning as up
@@ -163,6 +164,11 @@ class QuantifierSimplifier(walkers.Simplifier):
         else:
             raise UPProblemDefinitionError(f"Value of Parameter {str(expression)} not found in {str(self._assignments)}")
 
+credits = solvers.solver.Credits('FBK-team',
+                                 'aiplan4eu@fbk.eu',
+                                 'https://github.com/aiplan4eu/unified-planning/solvers/plan_validator',
+                                 'UP sequential validator, does sequential plan validation.'
+                                )
 
 class SequentialPlanValidator(solvers.solver.Solver):
     """Performs plan validation."""
@@ -260,6 +266,13 @@ class SequentialPlanValidator(solvers.solver.Solver):
     @staticmethod
     def is_plan_validator():
         return True
+
+    @staticmethod
+    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
+        if stream is not None:
+            stream.write(f'CREDITS\n')
+            credits.write_credits(stream, full_credits)
+            stream.write('END OF CREDITS\n\n')
 
     def destroy(self):
         pass

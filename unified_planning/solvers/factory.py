@@ -14,9 +14,10 @@
 #
 
 import importlib
+import sys
 import unified_planning as up
 from unified_planning.model import ProblemKind
-from typing import Dict, Tuple, Optional, List, Union, Type
+from typing import IO, Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
@@ -88,7 +89,8 @@ class Factory:
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
-                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> 'up.solvers.solver.Solver':
+                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None,
+                    credits_stream: Optional[IO[str]] = sys.stdout) -> Optional['up.solvers.solver.Solver']:
         if names is not None:
             assert name is None
             if params is None:
@@ -97,20 +99,29 @@ class Factory:
             solvers = []
             for name, param in zip(names, params):
                 SolverClass = self._get_solver_class(solver_kind, name)
+                if SolverClass is None:
+                    raise
+                SolverClass.credits(credits_stream)
                 solvers.append((SolverClass, param))
-            return up.solvers.parallel.Parallel(solvers)
+            p_solver = up.solvers.parallel.Parallel(solvers)
+            return p_solver
         else:
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
             SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
+            if SolverClass is None:
+                raise
+            SolverClass.credits(credits_stream)
             return SolverClass(**params)
+        return None
 
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind(),
-                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> 'up.solvers.solver.Solver':
+                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None,
+                       credits_stream: Optional[IO[str]] = sys.stdout) -> Optional['up.solvers.solver.Solver']:
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -122,12 +133,13 @@ class Factory:
         - using 'problem_kind' and 'optimality_guarantee'.
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
-        return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
+        return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee, credits_stream)
 
     def PlanValidator(self, *, name: Optional[str] = None,
-                      names: Optional[List[str]] = None,
-                      params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                      problem_kind: ProblemKind = ProblemKind()) -> 'up.solvers.solver.Solver':
+                       names: Optional[List[str]] = None,
+                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                       problem_kind: ProblemKind = ProblemKind(),
+                       credits_stream: Optional[IO[str]] = sys.stdout) -> Optional['up.solvers.solver.Solver']:
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
@@ -140,10 +152,11 @@ class Factory:
         - using 'problem_kind' parameter.
           e.g. PlanValidator(problem_kind=problem.kind)
         """
-        return self._get_solver('plan_validator', name, names, params, problem_kind)
+        return self._get_solver('plan_validator', name, names, params, problem_kind, credits_stream=credits_stream)
 
     def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                 problem_kind: ProblemKind = ProblemKind()) -> 'up.solvers.solver.Solver':
+                       problem_kind: ProblemKind = ProblemKind(),
+                       credits_stream: Optional[IO[str]] = sys.stdout) -> Optional['up.solvers.solver.Solver']:
         """
         Returns a Grounder. There are three ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
@@ -152,4 +165,8 @@ class Factory:
         - using 'problem_kind' parameter.
           e.g. Grounder(problem_kind=problem.kind)
         """
-        return self._get_solver('grounder', name, None, params, problem_kind)
+        return self._get_solver('grounder', name, None, params, problem_kind, credits_stream=credits_stream)
+
+    def credits(self, stream: IO[str] = sys.stdout, full_credits: bool = False):
+        for Solver in self.solvers.values():
+            Solver.credits(stream, full_credits)

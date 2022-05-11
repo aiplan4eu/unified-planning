@@ -15,7 +15,8 @@
 
 
 from functools import partial
-from typing import Dict, List, Tuple
+import sys
+from typing import IO, Dict, List, Optional,Tuple, Callable
 
 import unified_planning.environment
 import unified_planning.solvers as solvers
@@ -24,6 +25,11 @@ from unified_planning.plan import Plan, SequentialPlan, TimeTriggeredPlan, Actio
 from unified_planning.solvers.results import GroundingResult
 from unified_planning.model import AbstractProblem, Problem, ProblemKind
 
+credits = solvers.solver.Credits('FBK-team',
+                                 'aiplan4eu@fbk.eu',
+                                 'https://github.com/aiplan4eu/unified-planning/solvers/grounder',
+                                 'UP naive grounder, does basic simplification and removes impossible actions and actions with different assignment to the same variable'
+                                )
 
 class Grounder(solvers.solver.Solver):
     """Performs grounding."""
@@ -77,6 +83,13 @@ class Grounder(solvers.solver.Solver):
     @staticmethod
     def is_grounder():
         return True
+
+    @staticmethod
+    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
+        if stream is not None:
+            stream.write(f'CREDITS\n')
+            credits.write_credits(stream, full_credits)
+            stream.write('END OF CREDITS\n\n')
 
     def destroy(self):
         pass
