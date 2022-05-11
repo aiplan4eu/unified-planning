@@ -120,7 +120,7 @@ class Solver:
         This method takes an IO[str] and writes the credits of the planner onto the stream.
         '''
         if stream is not None:
-            stream.write(f'CREDITS\n')
+            stream.write('CREDITS\n')
             credits.write_credits(stream, full_credits)
             stream.write('END OF CREDITS\n\n')
 

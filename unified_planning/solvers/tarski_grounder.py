@@ -105,7 +105,7 @@ class TarskiGrounder(Solver):
     @staticmethod
     def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
         if stream is not None:
-            stream.write(f'CREDITS\n')
+            stream.write('CREDITS\n')
             credits.write_credits(stream, full_credits)
             stream.write('END OF CREDITS\n\n')
 
