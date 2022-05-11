@@ -71,6 +71,12 @@ class HierarchicalProblem(up.model.problem.Problem):
     def tasks(self) -> List[Task]:
         return list(self._abstract_tasks.values())
 
+    def get_task(self, task_name: str) -> Task:
+        return self._abstract_tasks[task_name]
+
+    def has_task(self, task_name: str):
+        return task_name in self._abstract_tasks
+
     def add_task(self, task: Union[Task, str], **kwargs: 'up.model.types.Type') -> Task:
         if isinstance(task, str):
             task = Task(task, _parameters=OrderedDict(**kwargs))  # type: ignore
@@ -84,9 +90,13 @@ class HierarchicalProblem(up.model.problem.Problem):
     def methods(self) -> List[Method]:
         return list(self._methods.values())
 
+    def method(self, method_name) -> Method:
+        return self._methods[method_name]
+
     def add_method(self, method: Method):
+        assert method.achieved_task is not None, f"No achieved task was specified for this method."
         assert method.name not in self._methods, f"A method with name '{method.name}' already exists."
-        assert method.task.name in self._abstract_tasks, f"Method is associated to an unregistered task '{method.task.name}'"
+        assert method.achieved_task.task.name in self._abstract_tasks, f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
         self._methods[method.name] = method
 
     @property

@@ -38,7 +38,8 @@ def get_example_problems():
     htn.add_action(move)
     go = htn.add_task("go", target=Location)
 
-    go_direct = Method("go-direct", go, source=Location, target=Location)
+    go_direct = Method("go-direct", source=Location, target=Location)
+    go_direct.set_task(go)
     source = go_direct.parameter("source")
     target = go_direct.parameter("target")
     go_direct.add_precondition(Equals(loc, source))
@@ -46,7 +47,8 @@ def get_example_problems():
     go_direct.add_subtask(move, source, target)
     htn.add_method(go_direct)
 
-    go_indirect = Method("go-indirect", go, source=Location, inter=Location, target=Location)
+    go_indirect = Method("go-indirect", source=Location, inter=Location, target=Location)
+    go_indirect.set_task(go, go_indirect.parameter("target"))
     source = go_indirect.parameter("source")
     inter = go_indirect.parameter("inter")
     target = go_indirect.parameter("target")

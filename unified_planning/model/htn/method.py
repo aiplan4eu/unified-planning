@@ -23,20 +23,43 @@ from typing import List, Union, Optional
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
-from unified_planning.model import Timing
+from unified_planning.model import Timing, Parameter
 from unified_planning.model.action import Action
 from unified_planning.model.htn.task import Task, Subtask
 from unified_planning.model.timing import Timepoint
 
 
+class ParameterizedTask:
+    def __init__(self, task: Task, *params: up.model.parameter.Parameter):
+        self._task = task
+        self._params: List[up.model.parameter.Parameter] = list(params)
+        assert len(self._task.parameters) == len(self._params)
+
+    def __repr__(self):
+        return str(self._task.name) + '(' + ', '.join(map(str, self.parameters)) + ')'
+
+    def __eq__(self, other):
+        return isinstance(other, ParameterizedTask) and self._task == other._task and self._params == other._params
+
+    def __hash__(self):
+        return hash(self._task) + sum(map(hash, self._params))
+
+    @property
+    def task(self) -> Task:
+        return self._task
+
+    @property
+    def parameters(self) -> List[up.model.parameter.Parameter]:
+        return self._params
+
+
 class Method:
     """This is the method interface."""
-    def __init__(self, _name: str, _task: Task, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
+    def __init__(self, _name: str, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
                  _env: Environment = None, **kwargs: 'up.model.types.Type'):
         self._env = get_env(_env)
-        self._task = _task
+        self._task: Optional[ParameterizedTask] = None
         self._name = _name
-        # Parameters of the method (must include the ones of the task)
         self._parameters: 'OrderedDict[str, up.model.parameter.Parameter]' = OrderedDict()
         self._preconditions: List[up.model.fnode.FNode] = []
         self._subtasks: List[Subtask] = []
@@ -47,8 +70,6 @@ class Method:
         else:
             for n, t in kwargs.items():
                 self._parameters[n] = up.model.parameter.Parameter(n, t)
-        for task_param in self._task.parameters:
-            assert task_param.name in self._parameters, f"Missing task parameter '{task_param.name}' in method {self._name}"
 
     def __repr__(self) -> str:
         s = []
@@ -89,9 +110,9 @@ class Method:
     def __hash__(self) -> int:
         res = hash(self._name)
         res += hash(self._task)
-        res += sum(hash(ap) for ap in self.parameters)
-        res += sum(hash(p) for p in self.preconditions)
-        res += sum(hash(s) for s in self.subtasks)
+        res += sum(map(hash, self.parameters))
+        res += sum(map(hash, self.preconditions))
+        res += sum(map(hash, self.subtasks))
         return res
 
     @property
@@ -100,9 +121,23 @@ class Method:
         return self._name
 
     @property
-    def task(self) -> Task:
+    def achieved_task(self) -> ParameterizedTask:
         """Returns the task that this method achieves."""
+        assert self._task is not None
         return self._task
+
+    def set_task(self, task: Union[Task, ParameterizedTask], *arguments: Parameter):
+        assert self._task is None, f"Method {self.name} was already assigned a task"
+        if isinstance(task, ParameterizedTask):
+            assert all(p.name in self._parameters for p in task.parameters)
+            self._task = task
+        elif isinstance(task, Task) and len(arguments) == 0:
+            for task_param in task.parameters:
+                assert task_param.name in self._parameters, f"Missing task parameter '{task_param.name}' in method {self._name}. Please pass all parameters explicitly."
+            self._task = ParameterizedTask(task, *task.parameters)
+        else:
+            assert all(p.name in self._parameters for p in arguments)
+            self._task = ParameterizedTask(task, *arguments)
 
     @property
     def parameters(self) -> List['up.model.parameter.Parameter']:
@@ -138,8 +173,10 @@ class Method:
         """Returns the list of the method's subtasks."""
         return self._subtasks
 
-    def add_subtask(self, task: Union[Action, Task], *args, ident: Optional[str] = None) -> Subtask:
-        subtask = Subtask(task, *args, ident=ident)
+    def add_subtask(self, subtask: Union[Subtask, Action, Task], *args, ident: Optional[str] = None) -> Subtask:
+        if not isinstance(subtask, Subtask):
+            subtask = Subtask(subtask, *args, ident=ident)
+        assert isinstance(subtask, Subtask)
         assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
         self._subtasks.append(subtask)
         return subtask
