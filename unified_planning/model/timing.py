@@ -28,7 +28,18 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    def __init__(self, kind: TimepointKind, container: Optional['model.htn.Subtask'] = None):
+    def __init__(self, kind: TimepointKind, container=None):
+        """Creates a new timepoint.
+
+        Parameters
+        ----------
+        kind: TimepointKind
+          Kind of the timepoint.
+        container: Optional[Subtask, ActionInstance]
+          Container in which the timepoint is defined.
+          If not set, then a start/end timepoint refers to the enclosing action or method.
+          The container must have an `identifier` property that is a string uniquely identifying it.
+        """
         self._kind = kind
         self._container = container
 
