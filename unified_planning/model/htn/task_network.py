@@ -82,8 +82,12 @@ class TaskNetwork:
         """Returns the list of the subtasks."""
         return self._subtasks
 
-    def add_subtask(self, task: Union[Action, Task], *args, ident: Optional[str] = None) -> Subtask:
-        subtask = Subtask(task, *args, ident=ident)
+    def add_subtask(self, task: Union[Subtask, Action, Task], *args, ident: Optional[str] = None) -> Subtask:
+        if isinstance(task, Subtask):
+            assert len(args) == 0 and ident is None
+            subtask = task
+        else:
+            subtask = Subtask(task, *args, ident=ident)
         assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
         self._subtasks.append(subtask)
         return subtask

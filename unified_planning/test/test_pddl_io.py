@@ -276,10 +276,7 @@ class TestPddlIO(TestCase):
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, 'htn-transport', 'domain.hddl')
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, 'htn-transport', 'problem.hddl')
-        # problem = reader.parse_problem(domain_filename, problem_filename)
-        problem = reader.parse_problem(domain_filename)
-
-        print(problem)
+        problem = reader.parse_problem(domain_filename, problem_filename)
 
         assert isinstance(problem, up.model.htn.HierarchicalProblem)
         self.assertEqual(5, len(problem.fluents))
@@ -290,6 +287,7 @@ class TestPddlIO(TestCase):
                          [method.name for method in problem.methods])
         self.assertEqual(1, len(problem.method("m-drive-to").subtasks))
         self.assertEqual(2, len(problem.method("m-drive-to-via").subtasks))
+        self.assertEqual(2, len(problem.task_network.subtasks))
 
     def test_examples_io(self):
         for example in self.problems.values():
