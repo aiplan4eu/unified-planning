@@ -17,14 +17,9 @@ from fractions import Fraction
 from typing import List, Union, Optional, Dict
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
-from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
-from unified_planning.model import Timing
-from unified_planning.model.action import Action
 from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task, Subtask
 from unified_planning.model.htn.task_network import TaskNetwork
-from unified_planning.model.timing import Timepoint
 
 
 class HierarchicalProblem(up.model.problem.Problem):
@@ -54,16 +49,14 @@ class HierarchicalProblem(up.model.problem.Problem):
             return False
         if not isinstance(oth, HierarchicalProblem):
             return False
-        return self._initial_task_network == oth._initial_task_network and \
-               self._methods == oth._methods and \
-               self._abstract_tasks == oth._abstract_tasks
+        return (self._initial_task_network == oth._initial_task_network and
+                self._methods == oth._methods and
+                self._abstract_tasks == oth._abstract_tasks)
 
     def __hash__(self):
         res = super().__hash__()
-        for t in self._abstract_tasks.values():
-            res += hash(t)
-        for m in self._methods.values():
-            res += hash(m)
+        res += sum(map(hash, self._abstract_tasks.values()))
+        res += sum(map(hash, self._methods.values()))
         res += hash(self._initial_task_network)
         return res
 

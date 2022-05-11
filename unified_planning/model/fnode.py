@@ -171,7 +171,7 @@ class FNode(object):
         return self._content.payload
 
     def timing(self) -> 'unified_planning.model.timing.Timing':
-        """Return the object of the ObjectExp."""
+        """Return the object of the TimingExp."""
         assert self.is_timing_exp()
         return self._content.payload
 

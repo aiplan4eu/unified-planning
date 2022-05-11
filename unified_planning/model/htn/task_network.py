@@ -15,18 +15,16 @@
 from collections import OrderedDict
 from typing import List, Union, Optional
 
-import unified_planning as up
 from unified_planning.environment import get_env, Environment
-from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
 from unified_planning.model import Timing, Parameter, FNode, Type, Expression, OperatorKind
 from unified_planning.model.action import Action
-from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task, Subtask
 from unified_planning.model.timing import Timepoint
 from unified_planning.walkers import OperatorsExtractor
 
 
 class TaskNetwork:
+    """Represents an initial task network."""
     def __init__(self, _env: Environment = None):
         self._env = get_env(_env)
         self._variables: OrderedDict[str, Parameter] = OrderedDict()
@@ -56,16 +54,14 @@ class TaskNetwork:
     def __eq__(self, oth):
         if not isinstance(oth, TaskNetwork):
             return False
-        return set(self.variables) == set(oth.variables) and \
-               set(self.subtasks) == set(oth.subtasks) and \
-               set(self.constraints) == set(oth.constraints)
+        return (set(self.variables) == set(oth.variables) and
+                set(self.subtasks) == set(oth.subtasks) and
+                set(self.constraints) == set(oth.constraints))
 
     def __hash__(self):
-        res = 0
-        res += sum(hash(v) for v in self.variables)
-        res += sum(hash(s) for s in self.subtasks)
-        res += sum(hash(c) for c in self.constraints)
-        return res
+        return (sum(map(hash, self.variables))
+                + sum(map(hash, self.subtasks))
+                + sum(map(hash, self.constraints)))
 
     @property
     def variables(self) -> List[Parameter]:

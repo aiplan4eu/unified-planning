@@ -66,7 +66,7 @@ def get_example_problems():
     htn.task_network.add_constraint(Or(Equals(final_loc, l2),
                                        Equals(final_loc, l3)))
 
-    problems['htn'] = htn
+    problems['htn-go'] = htn
 
     return problems
 

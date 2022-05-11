@@ -205,10 +205,9 @@ class ExpressionManager(object):
         """Returns an expression for the given object."""
         return self.create_node(node_type=OperatorKind.OBJECT_EXP, args=tuple(), payload=obj)
 
-    def TimingExp(self, obj: 'unified_planning.model.timing.Timing') ->'unified_planning.model.fnode.FNode':
-        """Returns an expression for the given object."""
+    def TimingExp(self, obj: 'unified_planning.model.timing.Timing') -> 'unified_planning.model.fnode.FNode':
+        """Returns an expression for the given timing."""
         return self.create_node(node_type=OperatorKind.TIMING_EXP, args=tuple(), payload=obj)
-
 
     def TRUE(self) ->'unified_planning.model.fnode.FNode':
         """Return the boolean constant True."""

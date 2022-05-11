@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-
+from unified_planning import model
 from unified_planning.model.fnode import FNode
 from enum import Enum, auto
 from fractions import Fraction
-from typing import Union
+from typing import Union, Optional
 
 
 class TimepointKind(Enum):
@@ -28,7 +28,7 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    def __init__(self, kind: TimepointKind, container=None):
+    def __init__(self, kind: TimepointKind, container: Optional['model.htn.Subtask'] = None):
         self._kind = kind
         self._container = container
 
@@ -57,7 +57,7 @@ class Timepoint:
 
     @property
     def container(self):
-        """Returns a subtask or None"""
+        """Returns the container in which this timepoint is defined or None if it refers to the enclosing action/method."""
         return self._container
 
 

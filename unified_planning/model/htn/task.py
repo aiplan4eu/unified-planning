@@ -20,15 +20,12 @@ A Task has a name and a signature that defines the types of its parameters.
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from typing import List, OrderedDict, Optional, Union
-
-from unified_planning.exceptions import UPValueError
-from unified_planning.model import Timing
 from unified_planning.model.action import Action
 from unified_planning.model.timing import Timepoint, TimepointKind
 
 
 class Task:
-    """Represents a task."""
+    """Represents an abstract task."""
     def __init__(self, name: str,
                  _parameters: Optional[Union[OrderedDict[str, 'up.model.types.Type'], List['up.model.parameter.Parameter']]] = None,
                  _env: Environment = None,
@@ -63,30 +60,24 @@ class Task:
             return False
 
     def __hash__(self) -> int:
-        res = hash(self._name)
-        for p in self._parameters:
-            res += hash(p)
-        return res
+        return hash(self._name) + sum(map(hash, self._parameters))
 
     @property
     def name(self) -> str:
-        '''Returns the task's name.'''
+        """Returns the task's name."""
         return self._name
 
     @property
     def parameters(self) -> List['up.model.parameter.Parameter']:
-        '''Returns the task's parameters.
-        The signature is the List of Parameters.
-        '''
+        """Returns the task's parameters as a list."""
         return self._parameters
 
     def __call__(self, *args: 'up.model.expression.Expression', ident: Optional[str] = None) -> 'Subtask':
-        '''Returns a subtask with the given parameters.'''
+        """Returns a subtask with the given parameters."""
         return Subtask(self, *self._env.expression_manager.auto_promote(args))
 
 
 # global counter to enable the creation of unique identifiers.
-# TODO: there might be a cleaner way to do this?
 _task_id_counter = 0
 
 
@@ -94,8 +85,10 @@ class Subtask:
     def __init__(self, _task: Union[Action, Task], *args: 'up.model.FNode', ident: Optional[str] = None, _env: Environment = None):
         self._env = get_env(_env)
         self._task = _task
-        self._ident = ident
-        if self._ident is None:
+        self._ident: str
+        if ident is not None:
+            self._ident = ident
+        else:
             # we have to create an unambiguous identifier as there might otherwise identical tasks
             global _task_id_counter
             _task_id_counter += 1
@@ -108,13 +101,16 @@ class Subtask:
         return f"{self.identifier}: {self._task.name}({params})"
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
+        """Unique identifier of the subtask in its task network."""
         return self._ident
 
     @property
-    def start(self):
+    def start(self) -> Timepoint:
+        """Timepoint representing the task's end time."""
         return Timepoint(TimepointKind.START, container=self)
 
     @property
-    def end(self):
+    def end(self) -> Timepoint:
+        """Timepoint representing the task's end time."""
         return Timepoint(TimepointKind.END, container=self)

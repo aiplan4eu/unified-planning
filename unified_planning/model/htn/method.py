@@ -30,6 +30,7 @@ from unified_planning.model.timing import Timepoint
 
 
 class ParameterizedTask:
+    """A task instantiated with some parameters."""
     def __init__(self, task: Task, *params: up.model.parameter.Parameter):
         self._task = task
         self._params: List[up.model.parameter.Parameter] = list(params)
@@ -127,6 +128,7 @@ class Method:
         return self._task
 
     def set_task(self, task: Union[Task, ParameterizedTask], *arguments: Parameter):
+        """Defines the task that is method achieves."""
         assert self._task is None, f"Method {self.name} was already assigned a task"
         if isinstance(task, ParameterizedTask):
             assert all(p.name in self._parameters for p in task.parameters)
@@ -174,6 +176,7 @@ class Method:
         return self._subtasks
 
     def add_subtask(self, subtask: Union[Subtask, Action, Task], *args, ident: Optional[str] = None) -> Subtask:
+        """Add a subtask to this method, in no particular order."""
         if not isinstance(subtask, Subtask):
             subtask = Subtask(subtask, *args, ident=ident)
         assert isinstance(subtask, Subtask)
@@ -182,6 +185,7 @@ class Method:
         return subtask
 
     def set_ordered(self, *subtasks: Subtask):
+        """Imposes a sequentioal order between the given subtasks."""
         if len(subtasks) < 2:
             return
         prev = subtasks[0]
