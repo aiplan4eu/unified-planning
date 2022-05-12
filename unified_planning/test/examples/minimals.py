@@ -282,4 +282,25 @@ def get_example_problems():
     basic_with_costs = Example(problem=problem, plan=plan)
     problems['basic_with_costs'] = basic_with_costs
 
+    # counter
+    counter_1 = Fluent('counter_1', IntType(0, 10))
+    counter_2 = Fluent('counter_2', IntType(0, 10))
+    fake_counter = Fluent('fake_counter', IntType(0, 10))
+    increase = InstantaneousAction('increase')
+    increase.add_increase_effect(counter_1, 1)
+    increase.add_effect(counter_2, Plus(counter_2, 1))
+    increase.add_effect(fake_counter, Div(Times(fake_counter, 2), 2))
+    problem = Problem('counter')
+    problem.add_fluent(counter_1)
+    problem.add_fluent(counter_2)
+    problem.add_fluent(fake_counter)
+    problem.add_action(increase)
+    problem.set_initial_value(counter_1, 0)
+    problem.set_initial_value(counter_2, 0)
+    problem.set_initial_value(fake_counter, 1)
+    problem.add_goal(Iff(LT(fake_counter, counter_1), LT(counter_2, 3)))
+    plan = up.plan.SequentialPlan([up.plan.ActionInstance(increase), up.plan.ActionInstance(increase)])
+    counter = Example(problem=problem, plan=plan)
+    problems['counter'] = counter
+
     return problems
