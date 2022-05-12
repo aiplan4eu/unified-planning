@@ -454,6 +454,7 @@ class Problem:
         elif fluent_exp.fluent() in self._fluents_defaults:
             return self._fluents_defaults[fluent_exp.fluent()]
         else:
+            print(fluent)
             raise UPProblemDefinitionError('Initial value not set!')
 
     def _get_ith_fluent_exp(self, fluent: 'up.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'up.model.fnode.FNode':
@@ -664,7 +665,7 @@ class Problem:
         if e.is_conditional():
             self._update_problem_kind_condition(e.condition)
             self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        elif e.is_increase():
+        if e.is_increase():
             self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
         elif e.is_decrease():
             self._kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
