@@ -137,9 +137,7 @@ class Parallel(solvers.solver.Solver):
     @staticmethod
     def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
         if stream is not None:
-            stream.write('CREDITS\n')
             stream.write('Parallel solver credits depends on the solver which compose it.\n')
-            stream.write('END OF CREDITS\n\n')
 
     def destroy(self):
         pass

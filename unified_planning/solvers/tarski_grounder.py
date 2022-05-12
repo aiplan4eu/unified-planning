@@ -23,6 +23,7 @@ import tarski # type: ignore
 import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
+from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model import Action, FNode
 from unified_planning.solvers.grounder import lift_action_instance
 from unified_planning.solvers.solver import Solver, Credits
@@ -35,10 +36,12 @@ gringo = shutil.which('gringo')
 if gringo is None:
     raise ImportError('Tarski grounder needs gringo installed')
 
-credits = Credits('Artificial Intelligence and Machine Learning Group - Universitat Pompeu Fabra ',
+credits = Credits('Tarski grounder',
+                  'Artificial Intelligence and Machine Learning Group - Universitat Pompeu Fabra ',
                   'info-ai@upf.edu',
                   'https://github.com/aig-upf/tarski',
-                  'Tarski grounder, more information available on the given website'
+                  'Tarski grounder, more information available on the given website.',
+                  'Tarski grounder, more information available on the given website.'
                   )
 
 class TarskiGrounder(Solver):
@@ -56,8 +59,8 @@ class TarskiGrounder(Solver):
         return True
 
     @staticmethod
-    def supports(problem_kind: 'up.model.ProblemKind') -> bool:
-        supported_kind = up.model.ProblemKind()
+    def supported_kind() -> ProblemKind:
+        supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
         supported_kind.set_typing('FLAT_TYPING') # type: ignore
         supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
@@ -67,7 +70,11 @@ class TarskiGrounder(Solver):
         supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
         supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        return problem_kind <= supported_kind
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind: 'unified_planning.model.ProblemKind') -> bool:
+        return problem_kind <= TarskiGrounder.supported_kind()
 
     def ground(self, problem: 'up.model.AbstractProblem') -> GroundingResult:
         assert isinstance(problem, up.model.Problem)
@@ -105,9 +112,7 @@ class TarskiGrounder(Solver):
     @staticmethod
     def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
         if stream is not None:
-            stream.write('CREDITS\n')
             credits.write_credits(stream, full_credits)
-            stream.write('END OF CREDITS\n\n')
 
     def destroy(self):
         pass

@@ -170,3 +170,4 @@ class Factory:
     def credits(self, stream: IO[str] = sys.stdout, full_credits: bool = False):
         for Solver in self.solvers.values():
             Solver.credits(stream, full_credits)
+            stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n\n')

@@ -164,10 +164,12 @@ class QuantifierSimplifier(walkers.Simplifier):
         else:
             raise UPProblemDefinitionError(f"Value of Parameter {str(expression)} not found in {str(self._assignments)}")
 
-credits = solvers.solver.Credits('FBK-team',
+credits = solvers.solver.Credits('UP sequential plan validator',
+                                 'FBK-team',
                                  'aiplan4eu@fbk.eu',
                                  'https://github.com/aiplan4eu/unified-planning/solvers/plan_validator',
-                                 'UP sequential validator, does sequential plan validation.'
+                                 'UP sequential validator, does sequential plan validation.',
+                                 'UP sequential validator, does sequential plan validation by creating a state from the problem initial state.\nAfter that the validator tries to apply the action instances of the given plan.\nIf the every action instance is applicable in the reached state and after the sequential applications of all the actions, the goals is reached, the plan is considered valid. Otherwise the plan is invalid and the unsatisfied condition is reported to the user as an ERROR level LogMessage.'
                                 )
 
 class SequentialPlanValidator(solvers.solver.Solver):
@@ -244,24 +246,28 @@ class SequentialPlanValidator(solvers.solver.Solver):
         return 'sequential_plan_validator'
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        return problem_kind <= supported_kind
+        supported_kind.set_typing('FLAT_TYPING') # type:ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type:ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type:ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type:ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type:ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type:ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type:ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type:ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type:ignore
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind):
+        return problem_kind <= SequentialPlanValidator.supported_kind()
 
     @staticmethod
     def is_plan_validator():
@@ -270,9 +276,7 @@ class SequentialPlanValidator(solvers.solver.Solver):
     @staticmethod
     def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
         if stream is not None:
-            stream.write('CREDITS\n')
             credits.write_credits(stream, full_credits)
-            stream.write('END OF CREDITS\n\n')
 
     def destroy(self):
         pass

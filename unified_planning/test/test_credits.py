@@ -26,11 +26,8 @@ class TestCredits(TestCase):
     @skipIfSolverNotAvailable('tamer')
     def test_robot_locations_visited(self):
         credits = StringIO()
-        test_credits = '''CREDITS
-author: Fondazione Bruno Kessler
-contact: insert_mail
-website: https://github.com/aiplan4eu/tamer-upf
-END OF CREDITS
+        test_credits = '''You are using Tamer solver & validator, developed by Fondazione Bruno Kessler.
+Tamer solver and validator, more information can be found at the following link: https://www.ai4europe.eu/research/ai-catalog/tamer-unified-planning-interface
 
 '''
         with OneshotPlanner(name='tamer', credits_stream=credits):

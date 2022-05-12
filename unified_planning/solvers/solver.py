@@ -16,6 +16,7 @@
 
 
 import sys
+from unicodedata import name
 import unified_planning as up
 from unified_planning.plan import Plan
 from unified_planning.model import ProblemKind, AbstractProblem
@@ -31,19 +32,25 @@ class OptimalityGuarantee(Enum):
 
 @dataclass
 class Credits:
+    name: str
     author: str
     contact: str
     website: str
+    short_description: str
     long_description: str
 
     def write_credits(self, stream: IO[str], full_credits: bool = False):
-        stream.write(f'author: {self.author}\n')
-        stream.write(f'contact: {self.contact}\n')
-        stream.write(f'website: {self.website}\n')
-        if full_credits:
-            stream.write(f'long_description: {self.long_description}\n')
+        stream.write(f'You are using {self.name}, developed by {self.author}.\n')
+        if not full_credits:
+            stream.write(self.short_description)
+            stream.write('\n\n')
+        else:
+            stream.write(f'The author can be reached here: {self.contact}\n')
+            stream.write(f'This is the engine website: {self.website}\n')
+            stream.write(self.long_description)
+            stream.write('\n\n')
 
-credits = Credits('FBK-team', 'aiplan4eu@fbk.eu', 'https://github.com/aiplan4eu/unified-planning', 'Solver base class')
+credits = Credits('Base solver class', 'FBK-team', 'aiplan4eu@fbk.eu', 'https://github.com/aiplan4eu/unified-planning', 'Solver base class', 'Solver base class')
 
 
 class Solver:
@@ -72,6 +79,10 @@ class Solver:
     @staticmethod
     def is_grounder() -> bool:
         return False
+
+    @staticmethod
+    def supported_kind() -> ProblemKind:
+        return ProblemKind()
 
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
@@ -120,9 +131,7 @@ class Solver:
         This method takes an IO[str] and writes the credits of the planner onto the stream.
         '''
         if stream is not None:
-            stream.write('CREDITS\n')
             credits.write_credits(stream, full_credits)
-            stream.write('END OF CREDITS\n\n')
 
     def destroy(self):
         raise NotImplementedError

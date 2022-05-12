@@ -48,7 +48,7 @@ class ENHSP(PDDLSolver):
         return True
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
         supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
@@ -66,7 +66,11 @@ class ENHSP(PDDLSolver):
         supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
         supported_kind.set_quality_metrics('ACTIONS_COST') # type: ignore
         supported_kind.set_quality_metrics('FINAL_VALUE') # type: ignore
-        return problem_kind <= supported_kind
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind: 'ProblemKind') -> bool:
+        return problem_kind <= ENHSP.supported_kind()
 
 
 env = get_env()
