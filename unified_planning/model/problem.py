@@ -228,15 +228,36 @@ class Problem:
 
     def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str], 
                    typename: 'up.model.types.Type' = None, *,
-                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object',
-                   bool, int, float, Fraction] = None
+                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object', bool, int, float, Fraction] = None,
                    **kwargs: 'up.model.types.Type') -> 'up.model.fluent.Fluent':
-        '''Adds the given fluent.'''
+        """Adds the given fluent to the problem.
+
+        If the first parameter is not a Fluent, the parameters will be passed to the Fluent constructor to create it.
+
+        :param fluent_or_name: Fluent instance or name of the fluent to be constructed
+        :param typename: If only the name of the fluent is given, this is the fluent's type (passed to the Fluent constructor).
+        :param default_initial_value: If provided, defines the default value taken in initial state by
+                                      a state variable of this fluent that has no explicit value.
+        :param kwargs: If only the name of the fluent is given, these are the fluent's parameters (passed to the Fluent constructor).
+        :return: The fluent passed or constructed.
+
+        Example
+        --------
+        >>> from unified_planning.shortcuts import *
+        >>> problem = Problem()
+        >>> location = UserType("Location")
+        >>> at_loc = Fluent("at_loc", BoolType(), l=location)  # creates a new fluent
+        >>> problem.add_fluent(at_loc)  # adds it to the problem
+        bool at_loc[l=Location]
+        >>> problem.add_fluent("connected", BoolType(), l1=location, l2=location)  # creates a new fluent and add it to the problem.
+        bool connected[l1=Location, l2=Location]
+        >>>
+        """
         if isinstance(fluent_or_name, up.model.fluent.Fluent):
             assert len(kwargs) == 0 and typename is None
             fluent = fluent_or_name
         else:
-            fluent = up.model.fluent.Fluent(fluent_or_name, typename, env=self.env, **kwargs)
+            fluent = up.model.fluent.Fluent(fluent_or_name, typename, None, env=self.env, **kwargs)
         if self.has_name(fluent.name):
             raise UPProblemDefinitionError('Name ' + fluent.name + ' already defined!')
         self._fluents.append(fluent)
@@ -395,7 +416,23 @@ class Problem:
 
     def add_object(self, obj_or_name: Union['up.model.object.Object', str],
                    typename: Optional['up.model.types.Type'] = None) -> 'up.model.object.Object':
-        '''Adds the given object.'''
+        """Add the given object to the problem, constructing it from the parameters if needed.
+
+        :param obj_or_name: Either an Object instance or a string containing the name of the object.
+        :param typename: If the first argument contains only the name of the object, this parameter should contain
+                         its type, to allow creating the object.
+        :return: The Object that was passed or constructed.
+
+        Examples
+        --------
+        >>> from unified_planning.shortcuts import *
+        >>> problem = Problem()
+        >>> cup = UserType("Cup")
+        >>> o1 = Object("o1", cup)  # creates a new object o1
+        >>> problem.add_object(o1)  # adds it to the problem
+        o1
+        >>> o2 = problem.add_object("o2", cup)  # alternative syntax to create a new object and add it to the problem.
+        """
         if isinstance(obj_or_name, up.model.object.Object):
             assert typename is None
             obj = obj_or_name
@@ -412,11 +449,7 @@ class Problem:
     def add_objects(self, objs: List['up.model.object.Object']):
         '''Adds the given objects.'''
         for obj in objs:
-            if self.has_name(obj.name):
-                raise UPProblemDefinitionError('Name ' + obj.name + ' already defined!')
-            self._objects.append(obj)
-            if obj.type.is_user_type() and obj.type not in self._user_types:
-                self._add_user_type(obj.type)
+            self.add_object(obj)
 
     def object(self, name: str) -> 'up.model.object.Object':
         '''Returns the object with the given name.'''
