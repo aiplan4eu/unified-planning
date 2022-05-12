@@ -76,6 +76,8 @@ class TestTarskiGrounder(TestCase):
     def test_hierarchical_blocks_world(self):
         problem, plan = self.problems['hierarchical_blocks_world']
         with Grounder(name='tarski_grounder') as grounder:
+            self.assertTrue(grounder.is_grounder())
+            self.assertTrue(grounder.supports(problem.kind))
             ground_result = grounder.ground(problem)
             grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             for grounded_action in grounded_problem.actions:
