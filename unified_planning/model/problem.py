@@ -226,15 +226,17 @@ class Problem:
                 return True
         return False
 
-    def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str], *args,
-                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object', bool, int, float, Fraction] = None,
-                   typename: 'up.model.types.Type' = None) -> 'up.model.fluent.Fluent':
+    def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str], 
+                   typename: 'up.model.types.Type' = None, *,
+                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object',
+                   bool, int, float, Fraction] = None
+                   **kwargs: 'up.model.types.Type') -> 'up.model.fluent.Fluent':
         '''Adds the given fluent.'''
         if isinstance(fluent_or_name, up.model.fluent.Fluent):
-            assert len(args) == 0
+            assert len(kwargs) == 0 and typename is None
             fluent = fluent_or_name
         else:
-            fluent = up.model.fluent.Fluent(fluent_or_name, typename, *args)
+            fluent = up.model.fluent.Fluent(fluent_or_name, typename, env=self.env, **kwargs)
         if self.has_name(fluent.name):
             raise UPProblemDefinitionError('Name ' + fluent.name + ' already defined!')
         self._fluents.append(fluent)
