@@ -524,13 +524,21 @@ class ProtobufReader(Converter):
         else:
             raise UPException(f"Unknown Planner Status: {result.status}")
 
-        # TODO: Extend the protobuf convertors to handle metrics and log_messages in results
+        log_messages = None
+        metrics = None
+
+        if bool(result.metrics):
+            metrics = dict(result.metrics)
+
+        if len(result.log_messages) > 0:
+            log_messages = [self.convert(log) for log in result.log_messages]
+
         return unified_planning.solvers.PlanGenerationResult(
             status=status,
             plan=self.convert(result.plan, problem),
             engine_name=result.engine.name,
-            # metrics=result.metrics,
-            # log_messages=[self.convert(log) for log in result.log_messages],
+            metrics=metrics,
+            log_messages=log_messages,
         )
 
     @handles(proto.LogMessage)

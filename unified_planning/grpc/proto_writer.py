@@ -475,13 +475,16 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.solvers.PlanGenerationResult)
     def _convert_plan_generation_result(self, result: unified_planning.solvers.PlanGenerationResult) -> proto.PlanGenerationResult:
-        # TODO: Extend the protobuf convertors to handle metrics and log_messages in results
+        log_messages = None
+        if result.log_messages is not None:
+            log_messages = [self.convert(log) for log in result.log_messages]
+
         return proto.PlanGenerationResult(
             status=self.convert(result.status),
             plan=self.convert(result.plan),
             engine=proto.Engine(name=result.engine_name),
-            # metrics=result.metrics,
-            # log_messages=[self.convert(log) for log in result.log_messages],
+            metrics=result.metrics,
+            log_messages=log_messages,
         )
 
     @handles(unified_planning.solvers.PlanGenerationResultStatus)

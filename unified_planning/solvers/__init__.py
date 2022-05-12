@@ -28,5 +28,5 @@ __all__ = [ 'Factory',
             'PDDLSolver',
             'SequentialPlanValidator',
             'Solver', 'OptimalityGuarantee',
-            'Result', 'LogMessage', 'PlanGenerationResult', 'LogLevel', 'PlanGenerationResultStatus', 'ValidationResult', 'ValidationResultStatus', 'GroudingResult'
+            'Result', 'LogMessage', 'PlanGenerationResult', 'LogLevel', 'PlanGenerationResultStatus', 'ValidationResult', 'ValidationResultStatus', 'GroundingResult'
         ]
