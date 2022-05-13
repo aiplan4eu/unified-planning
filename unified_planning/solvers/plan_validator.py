@@ -238,23 +238,23 @@ class SequentialPlanValidator(solvers.solver.Solver):
         return 'sequential_plan_validator'
 
     @staticmethod
-    def supports(problem_kind: 'up.model.ProblemKind') -> bool:
+    def supports(problem_kind: 'ProblemKind') -> bool:
         supported_kind = ProblemKind()
-        supported_kind.set_problem_class('ACTION_BASED')
-        supported_kind.set_typing('FLAT_TYPING')
-        supported_kind.set_typing('HIERARCHICAL_TYPING')
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS')
-        supported_kind.set_numbers('DISCRETE_NUMBERS')
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS')
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS')
-        supported_kind.set_conditions_kind('EQUALITY')
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS')
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS')
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS')
-        supported_kind.set_effects_kind('INCREASE_EFFECTS')
-        supported_kind.set_effects_kind('DECREASE_EFFECTS')
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS')
-        supported_kind.set_fluents_type('OBJECT_FLUENTS')
+        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
+        supported_kind.set_typing('FLAT_TYPING') # type: ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
         return problem_kind <= supported_kind
 
     @staticmethod
