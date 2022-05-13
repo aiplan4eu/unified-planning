@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unified_planning
+import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import classical_kind, basic_numeric_kind
 from unified_planning.test import TestCase, main, skipIfNoPlanValidatorForProblemKind
@@ -32,11 +32,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertTrue(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = unified_planning.plan.SequentialPlan([])
+            plan = up.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertFalse(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_numeric_kind))
     def test_robot(self):
@@ -46,11 +46,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertTrue(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = unified_planning.plan.SequentialPlan([])
+            plan = up.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertFalse(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader(self):
@@ -60,11 +60,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertTrue(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = unified_planning.plan.SequentialPlan([])
+            plan = up.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertFalse(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader_adv(self):
@@ -74,11 +74,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertTrue(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = unified_planning.plan.SequentialPlan([])
+            plan = up.plan.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertFalse(res)
+            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
 
 if __name__ == "__main__":

@@ -210,24 +210,16 @@ class Grounder(Transformer):
         the actions of the original problem into the actions of the transformed problem.'''
         return self._old_to_new[action]
 
+    def _replace_action_instance(self, action_instance: ActionInstance) -> ActionInstance:
+        params = tuple(self._map_parameters[action_instance.action])
+        return ActionInstance(self.get_original_action(action_instance.action), params)
+
     def rewrite_back_plan(self, plan: Plan) -> Plan:
         '''Takes the sequential plan of the problem (created with
         the method "self.get_rewritten_problem()" and translates the plan back
         to be a plan of the original problem, considering the absence of parameters
         in the actions of the plan.'''
-        if isinstance(plan, SequentialPlan):
-            new_actions: List[ActionInstance] = plan.actions
-            old_actions: List[ActionInstance] = []
-            for ai in new_actions:
-                old_actions.append(ActionInstance(self.get_original_action(ai.action), tuple(self._map_parameters[ai.action])))
-            return SequentialPlan(old_actions)
-        elif isinstance(plan, TimeTriggeredPlan):
-            s_new_actions_d = plan.actions
-            s_old_actions_d = []
-            for s, ai, d in s_new_actions_d:
-                s_old_actions_d.append((s, ActionInstance(self.get_original_action(ai.action), tuple(self._map_parameters[ai.action])), d))
-            return TimeTriggeredPlan(s_old_actions_d)
-        raise NotImplementedError
+        return plan.replace_action_instances(self._replace_action_instance)
 
     def get_fresh_name(self, original_name: str, parameters_names: Iterable[str] = []) -> str:
         '''To use this method, the new problem returned by the transformer must be stored in the field

@@ -21,7 +21,7 @@ import unified_planning.solvers as solvers
 from unified_planning.plan import Plan, ActionInstance
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
-from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus
+from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
 from typing import IO, Callable, Dict, List, Optional, Tuple, cast
 from multiprocessing import Process, Queue
 
@@ -48,8 +48,8 @@ class Parallel(solvers.solver.Solver):
     def supports(problem_kind: 'ProblemKind') -> bool:
         raise UPException('The Parallel supported features depends on its actual solvers')
 
-    def _run_parallel(self, fname, *args):
-        signaling_queue = Queue()
+    def _run_parallel(self, fname, *args) -> List[Result]:
+        signaling_queue: Queue = Queue()
         processes = []
         for idx, (solver_class, opts) in enumerate(self.solvers):
             options = opts
@@ -60,10 +60,8 @@ class Parallel(solvers.solver.Solver):
             processes.append(_p)
             _p.start()
         processes_alive = len(processes)
-        results: List[up.solvers.PlanGenerationResult] = []
-        planners_final_status: List[str] = []
+        results: List[Result] = []
         definitive_result_found: bool = False
-        optimality_required: bool = len(args[0].quality_metrics) > 0 # Require optimality if the problem has at least one quality metric.
         while True:
             if processes_alive == 0: # Every planner gave a result
                 break
@@ -72,33 +70,18 @@ class Parallel(solvers.solver.Solver):
             if isinstance(res, BaseException):
                 raise res
             else:
-                assert isinstance(res, up.solvers.PlanGenerationResult)
+                assert isinstance(res, Result)
                 # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
-                if res.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY or res.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN or (res.status == PlanGenerationResultStatus.SOLVED_SATISFICING and not optimality_required):
+                if res.is_definitive_result(*args):
                     definitive_result_found = True
                     break
                 else:
-                    planners_final_status.append(f'{res.planner_name}: {res.status_as_str()}')
-                    if res.plan is not None:
-                        results.append(res)
+                    results.append(res)
         for p in processes:
             p.terminate()
         if definitive_result_found: # A planner found a definitive result
-            return res
-        else:
-            result_order: List[int] = [  PlanGenerationResultStatus.SOLVED_SATISFICING,  # List containing the results in the order we prefer them
-                                         PlanGenerationResultStatus.TIMEOUT,
-                                         PlanGenerationResultStatus.MEMOUT,
-                                         PlanGenerationResultStatus.INTERNAL_ERROR]
-            logs = up.solvers.LogMessage(LogLevel.INFO, ', '.join(planners_final_status))
-            for ro in result_order:
-                for r in results:
-                    if r.status == ro:
-                        return r # NOTE Here we may want to append the logs variable to log_messages
-            # if no results are given by the planner, we create a default one
-            return up.solvers.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
-                                                    None, self.name, log_messages=[logs])
-
+            return [res]
+        return results
 
     def solve(self, problem: 'up.model.Problem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
@@ -108,9 +91,43 @@ class Parallel(solvers.solver.Solver):
             warnings.warn('Parallel solvers do not support the callback system.', UserWarning)
         if output_stream is not None:
             warnings.warn('Parallel solvers do not support the output stream system.', UserWarning)
-        final_report = self._run_parallel('solve', problem, None, timeout, None)
-        new_plan = self.convert_plan(final_report.plan, problem)
-        return up.solvers.results.PlanGenerationResult(final_report.status, new_plan, final_report.planner_name, final_report.metrics, final_report.log_messages)
+        final_reports = self._run_parallel('solve', problem, None, timeout, None)
+
+        result_order: List[PlanGenerationResultStatus] = [
+                    PlanGenerationResultStatus.SOLVED_OPTIMALLY,  # List containing the results in the order we prefer them
+                    PlanGenerationResultStatus.UNSOLVABLE_PROVEN,
+                    PlanGenerationResultStatus.SOLVED_SATISFICING,
+                    PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                    PlanGenerationResultStatus.TIMEOUT,
+                    PlanGenerationResultStatus.MEMOUT,
+                    PlanGenerationResultStatus.INTERNAL_ERROR,
+                    PlanGenerationResultStatus.UNSUPPORTED_PROBLEM]
+        final_result: Optional[PlanGenerationResult] = None
+        result_found: bool = False
+        for ro in result_order:
+            if result_found:
+                break
+            for r in final_reports:
+                pgr = cast(PlanGenerationResult, r)
+                if pgr.status == ro:
+                    result_found = True
+                    final_result = pgr
+                    break
+        logs = [up.solvers.LogMessage(LogLevel.INFO, str(fr)) for fr in final_reports]
+        # if no results are given by the planner, we create a default one
+        if final_result is None:
+            return up.solvers.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                                                 None, self.name, log_messages=logs)
+        new_plan = self.convert_plan(final_result.plan, problem) if final_result.plan is not None else None
+        if final_result.log_messages is not None:
+            logs = final_result.log_messages + logs
+        return up.solvers.results.PlanGenerationResult(
+            final_result.status,
+            new_plan,
+            final_result.engine_name,
+            final_result.metrics,
+            logs
+        )
 
     def convert_plan(self, plan: 'up.plan.Plan', problem: 'up.model.Problem')-> 'up.plan.Plan':
         objects = {}
@@ -149,8 +166,8 @@ class Parallel(solvers.solver.Solver):
         else:
             raise NotImplementedError
 
-    def validate(self, problem: 'up.model.Problem', plan: Plan) -> bool:
-        return self._run_parallel('validate', problem, plan)
+    def validate(self, problem: 'up.model.Problem', plan: Plan) -> 'up.solvers.results.ValidationResult':
+        return cast(ValidationResult, self._run_parallel('validate', problem, plan)[0])
 
     def destroy(self):
         pass

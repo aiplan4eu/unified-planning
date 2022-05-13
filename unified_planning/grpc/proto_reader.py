@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # type: ignore[attr-defined]
+from functools import partial
 from typing import Tuple, Union, Optional
 import fractions
 from typing import OrderedDict
@@ -232,7 +233,6 @@ class ProtobufReader(Converter):
         problem = Problem(name=msg.problem_name, env=env)
 
         for t in msg.types:
-            print(t.type_name, t.parent_type)
             problem._add_user_type(self.convert(t, problem))
         for obj in msg.objects:
             problem.add_object(self.convert(obj, problem))
@@ -524,13 +524,21 @@ class ProtobufReader(Converter):
         else:
             raise UPException(f"Unknown Planner Status: {result.status}")
 
-        # TODO: Extend the protobuf convertors to handle metrics and logs in results
+        log_messages = None
+        metrics = None
+
+        if bool(result.metrics):
+            metrics = dict(result.metrics)
+
+        if len(result.log_messages) > 0:
+            log_messages = [self.convert(log) for log in result.log_messages]
+
         return unified_planning.solvers.PlanGenerationResult(
             status=status,
             plan=self.convert(result.plan, problem),
-            planner_name=result.planner.name,
-            # metrics=result.metrics,
-            # log_messages=[self.convert(log) for log in result.logs],
+            engine_name=result.engine.name,
+            metrics=metrics,
+            log_messages=log_messages,
         )
 
     @handles(proto.LogMessage)
@@ -557,3 +565,31 @@ class ProtobufReader(Converter):
             )
         else:
             raise UPException(f"Unexpected Log Level: {log.level}")
+
+    @handles(proto.GroundingResult)
+    def _convert_grounding_result(self, result: proto.GroundingResult, lifted_problem: unified_planning.model.Problem) -> unified_planning.solvers.GroundingResult:
+        problem=self.convert(result.problem, lifted_problem.env)
+        map: Dict[unified_planning.model.Action, Tuple[unified_planning.model.Action, List[unified_planning.model.FNode]]] = {}
+        for grounded_action in problem.actions:
+            original_action_instance = self.convert(result.map_to_lift_plan[grounded_action.name], lifted_problem)
+            map[grounded_action] = (original_action_instance.action, original_action_instance.actual_parameters)
+        return unified_planning.solvers.GroundingResult(
+            problem=problem,
+            lift_action_instance=partial(unified_planning.solvers.grounder.lift_action_instance, map=map),
+            engine_name=result.engine.name,
+            log_messages=[self.convert(log) for log in result.log_messages]
+        )
+
+    @handles(proto.ValidationResult)
+    def _convert_validation_result(self, result: proto.ValidationResult) -> unified_planning.solvers.ValidationResult:
+        if result.status == proto.ValidationResult.ValidationResultStatus.Value("VALID"):
+            r_status = unified_planning.solvers.ValidationResultStatus.VALID
+        elif result.status == proto.ValidationResult.ValidationResultStatus.Value("INVALID"):
+            r_status = unified_planning.solvers.ValidationResultStatus.INVALID
+        else:
+            raise UPException(f"Unexpected ValidationResult status: {result.status}")
+        return unified_planning.solvers.ValidationResult(
+            status=r_status,
+            engine_name=result.engine.name,
+            log_messages=[self.convert(log) for log in result.log_messages]
+        )

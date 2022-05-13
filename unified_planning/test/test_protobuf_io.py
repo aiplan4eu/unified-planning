@@ -22,6 +22,7 @@ from unified_planning.solvers import LogMessage
 from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus
 from unified_planning.test import TestCase, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
+from unified_planning.plan import ActionInstance
 
 
 class TestProtobufIO(TestCase):
@@ -225,6 +226,37 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(final_report, final_report_up)
 
+    def test_grounding_result(self):
+        problem, _ = self.problems["hierarchical_blocks_world"]
+        with Grounder(name="up_grounder") as grounder:
+            ground_result = grounder.ground(problem)
+
+            ground_result_pb = self.pb_writer.convert(ground_result)
+            ground_result_up = self.pb_reader.convert(ground_result_pb, problem)
+
+            self.assertEqual(ground_result.problem, ground_result_up.problem)
+            for grounded_action in ground_result.problem.actions:
+                # Test both callable "lift_action_instance" act the same on every action of the grounded_problem
+                grounded_action_instance = ActionInstance(grounded_action)
+                original_action_instance_up = ground_result.lift_action_instance(grounded_action_instance)
+                original_action_instance_pb = ground_result_up.lift_action_instance(grounded_action_instance)
+                self.assertEqual(original_action_instance_pb, original_action_instance_up)
+
+    @skipIfSolverNotAvailable("tamer")
+    def test_validation_result(self):
+        problem = self.problems["robot"].problem
+
+        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+            self.assertNotEqual(planner, None)
+            final_report = planner.solve(problem)
+            with PlanValidator(name="tamer") as validator:
+                validation_result = validator.validate(problem, final_report.plan)
+
+                validation_result_pb = self.pb_writer.convert(validation_result)
+                validation_result_up = self.pb_reader.convert(validation_result_pb)
+
+                self.assertEqual(validation_result, validation_result_up)
+
 
 class TestProtobufProblems(TestCase):
     def setUp(self):
@@ -266,7 +298,7 @@ class TestProtobufProblems(TestCase):
         for name in problems:
             problem = self.problems[name].problem
 
-            with OneshotPlanner(name='tamer') as planner:
+            with OneshotPlanner(name="tamer") as planner:
                 self.assertNotEqual(planner, None)
                 final_report = planner.solve(problem)
 
@@ -275,4 +307,4 @@ class TestProtobufProblems(TestCase):
 
                 self.assertEqual(final_report.status, final_report_up.status)
                 self.assertEqual(final_report.plan, final_report_up.plan)
-                self.assertEqual(final_report.planner_name, final_report_up.planner_name)
+                self.assertEqual(final_report.engine_name, final_report_up.engine_name)

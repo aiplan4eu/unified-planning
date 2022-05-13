@@ -34,13 +34,14 @@ class TestTarskiGrounder(TestCase):
     def test_robot_loader(self):
         problem, plan = self.problems['robot_loader']
         with Grounder(name='tarski_grounder') as grounder:
-            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            ground_result = grounder.ground(problem)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_back_plan_function(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -54,13 +55,14 @@ class TestTarskiGrounder(TestCase):
     def test_robot_locations_connected_without_battery(self):
         problem, plan = self.problems['robot_locations_connected_without_battery']
         with Grounder(name='tarski_grounder') as grounder:
-            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            ground_result = grounder.ground(problem)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_back_plan_function(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -74,13 +76,16 @@ class TestTarskiGrounder(TestCase):
     def test_hierarchical_blocks_world(self):
         problem, plan = self.problems['hierarchical_blocks_world']
         with Grounder(name='tarski_grounder') as grounder:
-            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            self.assertTrue(grounder.is_grounder())
+            self.assertTrue(grounder.supports(problem.kind))
+            ground_result = grounder.ground(problem)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_back_plan_function(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -116,13 +121,14 @@ class TestTarskiGrounder(TestCase):
         problem.add_goal(at_l2)
 
         with Grounder(name='tarski_grounder') as grounder:
-            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            ground_result = grounder.ground(problem)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_back_plan_function(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
