@@ -368,7 +368,7 @@ class PDDLWriter:
         if len(self.problem.user_types) > 0:
             out.write(' (:objects ')
             for t in self.problem.user_types:
-                objects: List['unified_planning.model.Object'] = list(self.problem.objects(t))
+                objects = [o for o in self.problem.all_objects if o.type == t]
                 if len(objects) > 0:
                     out.write(f'\n   {" ".join([o.name for o in objects])} - {self._type_name_or_object_freshname(t)}')
             out.write('\n )\n')

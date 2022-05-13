@@ -295,7 +295,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     # Set initial values
     initial_values = {}
     for fluent in fluents.values():
-        l = [problem.objects_hierarchy(p.type) for p in fluent.signature]
+        l = [problem.objects(p.type) for p in fluent.signature]
         if fluent.type.is_bool_type():
             default_value = em.FALSE()
         elif fluent.type.is_real_type():

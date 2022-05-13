@@ -15,40 +15,36 @@
 '''This module defines the problem class.'''
 
 import unified_planning as up
+from unified_planning.model.abstract_problem import AbstractProblem
+from unified_planning.model.actions_set import ActionsSet
+from unified_planning.model.fluents_set import FluentsSet
+from unified_planning.model.objects_set import ObjectsSet
+from unified_planning.model.user_types_set import UserTypesSet
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
+from unified_planning.plan import ActionInstance
 from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
-from typing import Iterator, List, Dict, Set, Union, Optional
+from typing import Iterator, List, Dict, Set, Union, Optional, cast
 
 
-class Problem:
+class Problem(AbstractProblem, UserTypesSet, FluentsSet, ActionsSet, ObjectsSet):
     '''Represents a planning problem.'''
     def __init__(self, name: str = None, env: 'up.environment.Environment' = None, *,
-                 initial_defaults: Dict['up.model.types.Type', Union['up.model.fnode.FNode', 'up.model.object.Object', bool,
-                                                              int, float, Fraction]] = {}):
-        self._env = up.environment.get_env(env)
+                 initial_defaults: Dict['up.model.types.Type', 'ConstantExpression'] = {}):
+        AbstractProblem.__init__(self, name, env)
+        UserTypesSet.__init__(self, self.has_name)
+        FluentsSet.__init__(self, self.env, self._add_user_type, self.has_name, initial_defaults)
+        ActionsSet.__init__(self, self.env, self._add_user_type, self.has_name)
+        ObjectsSet.__init__(self, self.env, self._add_user_type, self.has_name)
         self._operators_extractor = OperatorsExtractor()
-        self._name = name
-        self._fluents: List['up.model.fluent.Fluent'] = []
-        self._actions: List['up.model.action.Action'] = []
-        self._user_types: List['up.model.types.Type'] = []
-        # The field _user_types_hierarchy stores the information about the types and the list of their sons.
-        self._user_types_hierarchy: Dict[Optional['up.model.types.Type'], List['up.model.types.Type']] = {}
-        self._objects: List['up.model.object.Object'] = []
         self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
         self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._goals: List['up.model.fnode.FNode'] = list()
         self._metrics: List['up.model.metrics.PlanQualityMetric'] = []
-        # The field initial default optionally associates a type to a default value. When a new fluent is
-        # created with no explicit default, it will be associated with the initial-default of his type, if any.
-        self._initial_defaults: Dict['up.model.types.Type', 'up.model.fnode.FNode'] = {}
-        for k, v in initial_defaults.items():
-            v_exp, = self._env.expression_manager.auto_promote(v)
-            self._initial_defaults[k] = v_exp
-        self._fluents_defaults: Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode'] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -188,102 +184,46 @@ class Problem:
         new_p._fluents_defaults = self._fluents_defaults.copy()
         return new_p
 
-    @property
-    def env(self) -> 'up.environment.Environment':
-        '''Returns the problem environment.'''
-        return self._env
-
-    @property
-    def name(self) -> Optional[str]:
-        '''Returns the problem name.'''
-        return self._name
-
-    @name.setter
-    def name(self, new_name: str):
-        '''Sets the problem name.'''
-        self._name = new_name
-
     def has_name(self, name: str) -> bool:
         '''Returns true if the name is in the problem.'''
         return self.has_action(name) or self.has_fluent(name) or self.has_object(name) or self.has_type(name)
 
-    @property
-    def fluents(self) -> List['up.model.fluent.Fluent']:
-        '''Returns the fluents.'''
-        return self._fluents
-
-    def fluent(self, name: str) -> 'up.model.fluent.Fluent':
-        '''Returns the fluent with the given name.'''
-        for f in self._fluents:
-            if f.name == name:
-                return f
-        raise UPValueError(f'Fluent of name: {name} is not defined!')
-
-    def has_fluent(self, name: str) -> bool:
-        '''Returns true if the fluent with the given name is in the problem.'''
-        for f in self._fluents:
-            if f.name == name:
-                return True
-        return False
-
-    def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str], 
-                   typename: 'up.model.types.Type' = None, *,
-                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object', bool, int, float, Fraction] = None,
-                   **kwargs: 'up.model.types.Type') -> 'up.model.fluent.Fluent':
-        """Adds the given fluent to the problem.
-
-        If the first parameter is not a Fluent, the parameters will be passed to the Fluent constructor to create it.
-
-        :param fluent_or_name: Fluent instance or name of the fluent to be constructed
-        :param typename: If only the name of the fluent is given, this is the fluent's type (passed to the Fluent constructor).
-        :param default_initial_value: If provided, defines the default value taken in initial state by
-                                      a state variable of this fluent that has no explicit value.
-        :param kwargs: If only the name of the fluent is given, these are the fluent's parameters (passed to the Fluent constructor).
-        :return: The fluent passed or constructed.
-
-        Example
-        --------
-        >>> from unified_planning.shortcuts import *
-        >>> problem = Problem()
-        >>> location = UserType("Location")
-        >>> at_loc = Fluent("at_loc", BoolType(), l=location)  # creates a new fluent
-        >>> problem.add_fluent(at_loc)  # adds it to the problem
-        bool at_loc[l=Location]
-        >>> problem.add_fluent("connected", BoolType(), l1=location, l2=location)  # creates a new fluent and add it to the problem.
-        bool connected[l1=Location, l2=Location]
-        >>>
-        """
-        if isinstance(fluent_or_name, up.model.fluent.Fluent):
-            assert len(kwargs) == 0 and typename is None
-            fluent = fluent_or_name
+    def normalize_plan(self, plan: 'up.plan.Plan')-> 'up.plan.Plan':
+        '''Normalizes the given plan updating the action and object instances.'''
+        objects = {}
+        for obj in self.all_objects:
+            objects[obj.name] = obj
+        em = self.env.expression_manager
+        actions: List[ActionInstance] = []
+        if isinstance(plan, up.plan.SequentialPlan):
+            actions = plan.actions
+        elif isinstance(plan, up.plan.TimeTriggeredPlan):
+            actions = [a for _, a, _ in plan.actions]
         else:
-            fluent = up.model.fluent.Fluent(fluent_or_name, typename, None, env=self.env, **kwargs)
-        if self.has_name(fluent.name):
-            raise UPProblemDefinitionError('Name ' + fluent.name + ' already defined!')
-        self._fluents.append(fluent)
-        if not default_initial_value is None:
-            v_exp, = self._env.expression_manager.auto_promote(default_initial_value)
-            self._fluents_defaults[fluent] = v_exp
-        elif fluent.type in self._initial_defaults:
-            self._fluents_defaults[fluent] = self._initial_defaults[fluent.type]
-        if fluent.type.is_user_type() and fluent.type not in self._user_types:
-            self._add_user_type(fluent.type)
-        for param in fluent.signature:
-            if param.type.is_user_type() and param.type not in self._user_types:
-                self._add_user_type(param.type)
-        return fluent
-
-    def _add_user_type(self, type: Optional['up.model.types.Type']):
-        '''This method adds a Type, together with all it's ancestors, to the user_types_hierarchy'''
-        assert (type is None) or type.is_user_type()
-        if type not in self._user_types_hierarchy:
-            if type is not None:
-                if any(ut.name == type.name for ut in self._user_types): # type: ignore
-                    raise UPProblemDefinitionError(f'The type {type} is already used in the problem')
-                self._add_user_type(type.father) # type: ignore
-                self._user_types_hierarchy[type.father].append(type) # type: ignore
-                self._user_types.append(type)
-            self._user_types_hierarchy[type] = []
+            raise NotImplementedError
+        new_actions: List[ActionInstance] = []
+        for a in actions:
+            new_a = self.action(a.action.name)
+            params = []
+            for p in a.actual_parameters:
+                if p.is_object_exp():
+                    obj = objects[p.object().name]
+                    params.append(em.ObjectExp(obj))
+                elif p.is_bool_constant():
+                    params.append(em.Bool(p.is_true()))
+                elif p.is_int_constant():
+                    params.append(em.Int(cast(int, p.constant_value())))
+                elif p.is_real_constant():
+                    params.append(em.Real(cast(Fraction, p.constant_value())))
+                else:
+                    raise
+            new_actions.append(ActionInstance(new_a, tuple(params)))
+        if isinstance(plan, up.plan.SequentialPlan):
+            return up.plan.SequentialPlan(new_actions)
+        elif isinstance(plan, up.plan.TimeTriggeredPlan):
+            return up.plan.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions, new_actions)])
+        else:
+            raise NotImplementedError
 
     def get_static_fluents(self) -> Set['up.model.fluent.Fluent']:
         '''Returns the set of the static fluents.
@@ -309,179 +249,6 @@ class Problem:
                 if e.fluent.fluent() in static_fluents:
                     static_fluents.remove(e.fluent.fluent())
         return static_fluents
-
-    @property
-    def actions(self) -> List['up.model.action.Action']:
-        '''Returns the list of the actions in the problem.'''
-        return self._actions
-
-    def clear_actions(self):
-        '''Removes all the problem actions.'''
-        self._actions = []
-
-    @property
-    def instantaneous_actions(self) -> Iterator['up.model.action.InstantaneousAction']:
-        '''Returs all the instantaneous actions of the problem.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
-        for a in self._actions:
-            if isinstance(a, up.model.action.InstantaneousAction):
-                yield a
-
-    @property
-    def durative_actions(self) -> Iterator['up.model.action.DurativeAction']:
-        '''Returs all the durative actions of the problem.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
-        for a in self._actions:
-            if isinstance(a, up.model.action.DurativeAction):
-                yield a
-
-    @property
-    def conditional_actions(self) -> List['up.model.action.Action']:
-        '''Returns the conditional actions.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
-        return [a for a in self._actions if a.is_conditional()]
-
-    @property
-    def unconditional_actions(self) -> List['up.model.action.Action']:
-        '''Returns the conditional actions.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
-        return [a for a in self._actions if not a.is_conditional()]
-
-    def action(self, name: str) -> 'up.model.action.Action':
-        '''Returns the action with the given name.'''
-        for a in self._actions:
-            if a.name == name:
-                return a
-        raise UPValueError(f'Action of name: {name} is not defined!')
-
-    def has_action(self, name: str) -> bool:
-        '''Returns True if the problem has the action with the given name .'''
-        for a in self._actions:
-            if a.name == name:
-                return True
-        return False
-
-    def add_action(self, action: 'up.model.action.Action'):
-        '''Adds the given action.'''
-        if self.has_name(action.name):
-            raise UPProblemDefinitionError('Name ' + action.name + ' already defined!')
-        self._actions.append(action)
-
-    @property
-    def user_types(self) -> List['up.model.types.Type']:
-        '''Returns the user types.'''
-        return self._user_types
-
-    def user_type(self, name: str) -> 'up.model.types.Type':
-        '''Returns the user type with the given name.'''
-        for ut in self._user_types:
-            assert ut.is_user_type()
-            if ut.name == name: # type: ignore
-                return ut
-        raise UPValueError(f'UserType {name} is not defined!')
-
-    def has_type(self, name: str) -> bool:
-        '''Returns True iff the type 'name' is defined.'''
-        for ut in self._user_types:
-            assert ut.is_user_type()
-            if ut.name == name: # type: ignore
-                return True
-        return False
-
-    def user_type_heirs(self, type: 'up.model.types.Type') -> Iterator['up.model.types.Type']:
-        '''Returns all the user_types in the problem that are heirs of the given type.'''
-        if not type.is_user_type():
-            raise UPUsageError('The user_type_hierarchy method must be called on a user type.')
-        stack: List['up.model.types.Type'] = [type]
-        while stack:
-            current_item = stack.pop()
-            stack.extend(self._user_types_hierarchy[current_item])
-            yield current_item
-
-    @property
-    def user_types_hierarchy(self) -> Dict[Optional['up.model.types.Type'], List['up.model.types.Type']]:
-        '''Returns a Dict where every key represents an Optional Type and the value associated to the key is the
-            List of the direct sons of the Optional Type.
-        The Dict is NOT ORDERED.'''
-        #NOTE this returns a copy, but could also return the original map
-        return dict(self._user_types_hierarchy)
-
-    def add_object(self, obj_or_name: Union['up.model.object.Object', str],
-                   typename: Optional['up.model.types.Type'] = None) -> 'up.model.object.Object':
-        """Add the given object to the problem, constructing it from the parameters if needed.
-
-        :param obj_or_name: Either an Object instance or a string containing the name of the object.
-        :param typename: If the first argument contains only the name of the object, this parameter should contain
-                         its type, to allow creating the object.
-        :return: The Object that was passed or constructed.
-
-        Examples
-        --------
-        >>> from unified_planning.shortcuts import *
-        >>> problem = Problem()
-        >>> cup = UserType("Cup")
-        >>> o1 = Object("o1", cup)  # creates a new object o1
-        >>> problem.add_object(o1)  # adds it to the problem
-        o1
-        >>> o2 = problem.add_object("o2", cup)  # alternative syntax to create a new object and add it to the problem.
-        """
-        if isinstance(obj_or_name, up.model.object.Object):
-            assert typename is None
-            obj = obj_or_name
-        else:
-            assert typename is not None, "Missing type of the object"
-            obj = up.model.object.Object(obj_or_name, typename)
-        if self.has_name(obj.name):
-            raise UPProblemDefinitionError('Name ' + obj.name + ' already defined!')
-        self._objects.append(obj)
-        if obj.type.is_user_type() and obj.type not in self._user_types:
-            self._add_user_type(obj.type)
-        return obj
-
-    def add_objects(self, objs: List['up.model.object.Object']):
-        '''Adds the given objects.'''
-        for obj in objs:
-            self.add_object(obj)
-
-    def object(self, name: str) -> 'up.model.object.Object':
-        '''Returns the object with the given name.'''
-        for o in self._objects:
-            if o.name == name:
-                return o
-        raise UPValueError(f'Object of name: {name} is not defined!')
-
-    def has_object(self, name: str) -> bool:
-        '''Returns true if the object with the given name is in the problem.'''
-        for o in self._objects:
-            if o.name == name:
-                return True
-        return False
-
-    def objects(self, typename: 'up.model.types.Type') -> Iterator['up.model.object.Object']:
-        '''Returns the objects of the given user types.'''
-        for obj in self._objects:
-            if obj.type == typename:
-                yield obj
-
-    def objects_hierarchy(self, typename: 'up.model.types.Type') -> Iterator['up.model.object.Object']:
-        '''Returns the objects of the given user types and of his heirs.'''
-        type_heirs: List['up.model.types.Type'] = list(self.user_type_heirs(typename))
-        for obj in self._objects:
-            if obj.type in type_heirs:
-                yield obj
-
-    @property
-    def all_objects(self) -> List['up.model.object.Object']:
-        '''Returns all the objects.'''
-        return [o for o in self._objects]
 
     def set_initial_value(self, fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
                           value: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.object.Object', bool,
@@ -541,16 +308,6 @@ class Problem:
                     f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
                     res[f_exp] = self.initial_value(f_exp)
         return res
-
-    @property
-    def initial_defaults(self) -> Dict['up.model.types.Type', 'up.model.fnode.FNode']:
-        '''Returns the problem's initial defaults.'''
-        return self._initial_defaults
-
-    @property
-    def fluents_defaults(self) -> Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode']:
-        '''Returns the problem's fluents defaults.'''
-        return self._fluents_defaults
 
     @property
     def explicit_initial_values(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
@@ -673,6 +430,7 @@ class Problem:
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         minimum time as possible.'''
         self._kind = up.model.problem_kind.ProblemKind()
+        self._kind.set_problem_class('ACTION_BASED') # type: ignore
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
         for action in self._actions:
@@ -704,11 +462,6 @@ class Problem:
             else:
                 assert False, 'Unknown quality metric'
         return self._kind
-
-    def has_quantifiers(self) -> bool:
-        '''Returns True only if the problem has quantifiers'''
-        kind = self.kind
-        return kind.has_existential_conditions() or kind.has_universal_conditions() # type: ignore
 
     def _update_problem_kind_effect(self, e: 'up.model.effect.Effect'):
         if e.is_conditional():

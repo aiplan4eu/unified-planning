@@ -21,8 +21,8 @@ import unified_planning.environment
 import unified_planning.solvers as solvers
 import unified_planning.transformers
 from unified_planning.plan import Plan, SequentialPlan, TimeTriggeredPlan, ActionInstance
-from unified_planning.model import ProblemKind
 from unified_planning.solvers.results import GroundingResult
+from unified_planning.model import AbstractProblem, Problem, ProblemKind
 
 
 class Grounder(solvers.solver.Solver):
@@ -30,9 +30,10 @@ class Grounder(solvers.solver.Solver):
     def __init__(self, **options):
         pass
 
-    def ground(self, problem: 'unified_planning.model.Problem') -> GroundingResult:
+    def ground(self, problem: 'unified_planning.model.AbstractProblem') -> GroundingResult:
         '''This method takes an "unified_planning.model.Problem" and returns the generated
         "up.solvers.results.GroundingResult".'''
+        assert isinstance(problem, Problem)
         grounder = unified_planning.transformers.Grounder(problem)
         grounded_problem = grounder.get_rewritten_problem()
         trace_back_map = grounder.get_rewrite_back_map()
@@ -47,8 +48,9 @@ class Grounder(solvers.solver.Solver):
         return 'grounder'
 
     @staticmethod
-    def supports(problem_kind):
+    def supports(problem_kind: 'up.model.ProblemKind') -> bool:
         supported_kind = ProblemKind()
+        supported_kind.set_problem_class('ACTION_BASED')
         supported_kind.set_typing('FLAT_TYPING')
         supported_kind.set_typing('HIERARCHICAL_TYPING')
         supported_kind.set_numbers('CONTINUOUS_NUMBERS')

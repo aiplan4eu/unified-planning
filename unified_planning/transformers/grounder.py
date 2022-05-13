@@ -20,14 +20,14 @@ from unified_planning.exceptions import UPUsageError
 from unified_planning.plan import Plan
 from unified_planning.model import Problem, Action, Type, Expression, Effect, Parameter, DurativeAction, InstantaneousAction, FNode, SimulatedEffect
 from unified_planning.model.types import domain_size,  domain_item
-from unified_planning.transformers.transformer import Transformer
+from unified_planning.transformers.ab_transformer import ABTransformer
 from unified_planning.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from unified_planning.walkers import Substituter
 from itertools import product
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 
-class Grounder(Transformer):
+class Grounder(ABTransformer):
     '''Grounder class:
     this class requires a problem and offers the capability
     to transform it into a grounded problem, therefore the
@@ -44,7 +44,7 @@ class Grounder(Transformer):
         it is given, it represents a map between an action of the original problem and a list of tuple
         of it's parameters. The resulting problem will have an action for every tuple in the map,
         obtained by applying the action to the specific parameters of the tuple.'''
-        Transformer.__init__(self, problem, name)
+        ABTransformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.

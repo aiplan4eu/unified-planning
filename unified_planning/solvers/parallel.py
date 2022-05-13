@@ -18,7 +18,7 @@ from fractions import Fraction
 import warnings
 import unified_planning as up
 import unified_planning.solvers as solvers
-from unified_planning.plan import Plan, ActionInstance
+from unified_planning.plan import Plan
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
 from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
@@ -83,7 +83,7 @@ class Parallel(solvers.solver.Solver):
             return [res]
         return results
 
-    def solve(self, problem: 'up.model.Problem',
+    def solve(self, problem: 'up.model.AbstractProblem',
                     callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
                     timeout: Optional[float] = None,
                     output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
@@ -91,6 +91,7 @@ class Parallel(solvers.solver.Solver):
             warnings.warn('Parallel solvers do not support the callback system.', UserWarning)
         if output_stream is not None:
             warnings.warn('Parallel solvers do not support the output stream system.', UserWarning)
+
         final_reports = self._run_parallel('solve', problem, None, timeout, None)
 
         result_order: List[PlanGenerationResultStatus] = [
@@ -117,8 +118,8 @@ class Parallel(solvers.solver.Solver):
         # if no results are given by the planner, we create a default one
         if final_result is None:
             return up.solvers.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
-                                                 None, self.name, log_messages=logs)
-        new_plan = self.convert_plan(final_result.plan, problem) if final_result.plan is not None else None
+                                                   None, self.name, log_messages=logs)
+        new_plan = problem.normalize_plan(final_result.plan) if final_result.plan is not None else None
         if final_result.log_messages is not None:
             logs = final_result.log_messages + logs
         return up.solvers.results.PlanGenerationResult(
@@ -129,44 +130,7 @@ class Parallel(solvers.solver.Solver):
             logs
         )
 
-    def convert_plan(self, plan: 'up.plan.Plan', problem: 'up.model.Problem')-> 'up.plan.Plan':
-        objects = {}
-        for ut in problem.user_types:
-            for obj in problem.objects(ut):
-                objects[obj.name] = obj
-        em = problem.env.expression_manager
-        actions: List[ActionInstance] = []
-        if isinstance(plan, up.plan.SequentialPlan):
-            actions = plan.actions
-        elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            actions = [a for _, a, _ in plan.actions]
-        else:
-            raise NotImplementedError
-        new_actions: List[ActionInstance] = []
-        for a in actions:
-            new_a = problem.action(a.action.name)
-            params = []
-            for p in a.actual_parameters:
-                if p.is_object_exp():
-                    obj = objects[p.object().name]
-                    params.append(em.ObjectExp(obj))
-                elif p.is_bool_constant():
-                    params.append(em.Bool(p.is_true()))
-                elif p.is_int_constant():
-                    params.append(em.Int(cast(int, p.constant_value())))
-                elif p.is_real_constant():
-                    params.append(em.Real(cast(Fraction, p.constant_value())))
-                else:
-                    raise
-            new_actions.append(ActionInstance(new_a, tuple(params)))
-        if isinstance(plan, up.plan.SequentialPlan):
-            return up.plan.SequentialPlan(new_actions)
-        elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            return up.plan.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions, new_actions)])
-        else:
-            raise NotImplementedError
-
-    def validate(self, problem: 'up.model.Problem', plan: Plan) -> 'up.solvers.results.ValidationResult':
+    def validate(self, problem: 'up.model.AbstractProblem', plan: Plan) -> 'up.solvers.results.ValidationResult':
         return cast(ValidationResult, self._run_parallel('validate', problem, plan)[0])
 
     def destroy(self):

@@ -215,9 +215,8 @@ class ANMLWriter:
                 raise NotImplementedError
 
         for t in self.problem.user_types: # Define objects
-            objects: List['unified_planning.model.Object'] = list(self.problem.objects(t))
-            obj_names = [_get_anml_name(o, names_mapping) for o in self.problem.objects(t)]
-            if len(objects) > 0:
+            obj_names = [_get_anml_name(o, names_mapping) for o in self.problem.objects(t) if o.type == t]
+            if len(obj_names) > 0:
                 out.write(f'instance {_get_anml_name(t, names_mapping)} {", ".join(obj_names)};\n')
 
         for fe, v in self.problem.initial_values.items():

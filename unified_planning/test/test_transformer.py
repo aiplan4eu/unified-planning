@@ -29,10 +29,7 @@ class TestQuantifiersRemover(TestCase):
         a = problem.action('a')
         t = Transformer(problem, 't')
         t._new_problem = problem
-        self.assertEqual(t.get_fresh_name(a.name), 't_a_0')
-        with self.assertRaises(NotImplementedError):
-            t.get_original_action(a)
-        with self.assertRaises(NotImplementedError):
-            t.get_transformed_actions(a)
         with self.assertRaises(NotImplementedError):
             t.get_rewritten_problem()
+        with self.assertRaises(NotImplementedError):
+            t.rewrite_back_plan(None)

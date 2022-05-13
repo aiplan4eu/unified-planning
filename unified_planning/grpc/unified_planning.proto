@@ -334,6 +334,7 @@ message Metric {
     Expression default_action_cost = 4;
 }
 
+// features: ACTION_BASED
 message Problem {
     string domain_name = 1;
     string problem_name = 2;
@@ -364,39 +365,41 @@ message Problem {
 // Features of the problem.
 // Features are essential in that not supporting a feature `X` should allow disregarding any field tagged with `features: [X]`.
 enum Feature {
+    // PROBLEM_CLASS
+    ACTION_BASED = 0;
     // TIME
-    CONTINUOUS_TIME = 0;
-    DISCRETE_TIME = 1;
-    INTERMEDIATE_CONDITIONS_AND_EFFECTS = 2;
-    TIMED_EFFECT = 3;
-    TIMED_GOALS = 4;
-    DURATION_INEQUALITIES = 5;
+    CONTINUOUS_TIME = 1;
+    DISCRETE_TIME = 2;
+    INTERMEDIATE_CONDITIONS_AND_EFFECTS = 3;
+    TIMED_EFFECT = 4;
+    TIMED_GOALS = 5;
+    DURATION_INEQUALITIES = 6;
     // NUMBERS
-    CONTINUOUS_NUMBERS = 6;
-    DISCRETE_NUMBERS = 7;
+    CONTINUOUS_NUMBERS = 7;
+    DISCRETE_NUMBERS = 8;
     // CONDITIONS_KIND
-    NEGATIVE_CONDITIONS = 8;
-    DISJUNCTIVE_CONDITIONS = 9;
-    EQUALITY = 10;
-    EXISTENTIAL_CONDITIONS = 11;
-    UNIVERSAL_CONDITIONS = 12;
+    NEGATIVE_CONDITIONS = 9;
+    DISJUNCTIVE_CONDITIONS = 10;
+    EQUALITY = 11;
+    EXISTENTIAL_CONDITIONS = 12;
+    UNIVERSAL_CONDITIONS = 13;
     // EFFECTS_KIND
-    CONDITIONAL_EFFECTS = 13;
-    INCREASE_EFFECTS = 14;
-    DECREASE_EFFECTS = 15;
+    CONDITIONAL_EFFECTS = 14;
+    INCREASE_EFFECTS = 15;
+    DECREASE_EFFECTS = 16;
     // TYPING
-    FLAT_TYPING = 16;
-    HIERARCHICAL_TYPING = 17;
+    FLAT_TYPING = 17;
+    HIERARCHICAL_TYPING = 18;
     // FLUENTS_TYPE
-    NUMERIC_FLUENTS = 18;
-    OBJECT_FLUENTS = 19;
+    NUMERIC_FLUENTS = 19;
+    OBJECT_FLUENTS = 20;
     // QUALITY_METRICS
-    ACTIONS_COST = 20;
-    FINAL_VALUE = 21;
-    MAKESPAN = 22;
-    PLAN_LENGTH = 23;
+    ACTIONS_COST = 21;
+    FINAL_VALUE = 22;
+    MAKESPAN = 23;
+    PLAN_LENGTH = 24;
     // SIMULATED_ENTITIES
-    SIMULATED_EFFECTS = 24;
+    SIMULATED_EFFECTS = 25;
 }
 
 // =================== Plan ================

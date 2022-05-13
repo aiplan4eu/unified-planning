@@ -50,9 +50,11 @@ class ENHSP(PDDLSolver):
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
         supported_kind = ProblemKind()
+        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
         supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
         supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
         supported_kind.set_typing('FLAT_TYPING') # type: ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
         supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
         supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
         supported_kind.set_conditions_kind('EQUALITY') # type: ignore
