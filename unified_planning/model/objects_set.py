@@ -16,7 +16,7 @@
 import unified_planning as up
 from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, cast
+from typing import Iterator, List, Union, Optional, cast
 
 
 class ObjectsSet:

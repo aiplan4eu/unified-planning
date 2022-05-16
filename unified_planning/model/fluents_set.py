@@ -60,7 +60,7 @@ class FluentsSet:
 
     def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str],
                    typename: 'up.model.types.Type' = None, *,
-                   default_initial_value: Union['up.model.fnode.FNode', 'up.model.object.Object', bool, int, float, Fraction] = None,
+                   default_initial_value: 'ConstantExpression' = None,
                    **kwargs: 'up.model.types.Type') -> 'up.model.fluent.Fluent':
         """Adds the given fluent to the problem.
 

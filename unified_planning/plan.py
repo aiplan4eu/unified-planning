@@ -23,7 +23,7 @@ from fractions import Fraction
 
 class ActionInstance:
     '''Represents an action instance with the actual parameters.'''
-    def __init__(self, action: 'unified_planning.model.Action', params: Tuple['unified_planning.model.FNode', ...] = tuple()):
+    def __init__(self, action: 'up.model.Action', params: Tuple['up.model.FNode', ...] = tuple()):
         assert len(action.parameters) == len(params)
         self._action = action
         self._params = tuple(params)
@@ -48,12 +48,12 @@ class ActionInstance:
             return False
 
     @property
-    def action(self) -> 'unified_planning.model.Action':
+    def action(self) -> 'up.model.Action':
         '''Returns the action.'''
         return self._action
 
     @property
-    def actual_parameters(self) -> Tuple['unified_planning.model.FNode', ...]:
+    def actual_parameters(self) -> Tuple['up.model.FNode', ...]:
         '''Returns the actual parameters.'''
         return self._params
 
