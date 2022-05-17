@@ -16,7 +16,6 @@
 
 
 import unified_planning as up
-import unified_planning.model
 from typing import Callable, Optional, Tuple, List
 from fractions import Fraction
 
