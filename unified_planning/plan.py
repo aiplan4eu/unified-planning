@@ -15,8 +15,10 @@
 '''This module defines the different plan classes.'''
 
 
+import networkx as nx
 import unified_planning as up
-from typing import Callable, Optional, Tuple, List
+import unified_planning.model
+from typing import Callable, Dict, Optional, Set, Tuple, List
 from fractions import Fraction
 
 
@@ -87,6 +89,9 @@ class SequentialPlan(Plan):
     def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
         return SequentialPlan([replace_function(ai) for ai in self._actions])
 
+    def convert_to_partial_order_plan(self) -> 'PartialOrderPlan':
+        pass
+
 
 class TimeTriggeredPlan(Plan):
     '''Represents a time triggered plan.'''
@@ -115,3 +120,34 @@ class TimeTriggeredPlan(Plan):
 
     def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
         return TimeTriggeredPlan([(s, replace_function(ai), d) for s, ai, d in self._actions])
+
+
+class PartialOrderPlan(Plan):
+    '''Represents a partial order plan. Actrions are represent as an adjagency list graph.'''
+    def __init__(self, actions: Dict[ActionInstance, List[ActionInstance]]):
+        self._graph = nx.convert.from_dict_of_lists(actions)
+
+    def __repr__(self) -> str:
+        return str(self._graph )
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, PartialOrderPlan):
+            return self._graph  == self._graph
+        else:
+            return False
+
+    @property
+    def actions(self) -> Dict[ActionInstance, List[ActionInstance]]:
+        '''Returns the graph of action instances as an adjagency list.'''
+        return nx.convert.to_dict_of_lists(self._graph)
+
+    def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
+        old_adj_list = nx.convert.to_dict_of_lists(self._graph)
+        new_adj_list: Dict[ActionInstance, List[ActionInstance]] = {}
+        # Populate the new adjacency list with the replaced action instances
+        for node, successor_list in old_adj_list:
+            new_adj_list[replace_function(node)] = [replace_function(successor) for successor in successor_list]
+        return PartialOrderPlan(new_adj_list)
+
+    def convert_to_sequential_plan(self) -> SequentialPlan:
+        return SequentialPlan(list(nx.topological_sort(self._graph)))
