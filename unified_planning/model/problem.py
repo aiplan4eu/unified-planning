@@ -31,7 +31,7 @@ from typing import Iterator, List, Dict, Set, Union, Optional, cast
 
 
 class Problem(AbstractProblem, UserTypesSet, FluentsSet, ActionsSet, ObjectsSet):
-    '''Represents a planning problem.'''
+    '''Represents a, action based planning problem.'''
     def __init__(self, name: str = None, env: 'up.environment.Environment' = None, *,
                  initial_defaults: Dict['up.model.types.Type', 'ConstantExpression'] = {}):
         AbstractProblem.__init__(self, name, env)

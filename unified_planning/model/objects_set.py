@@ -20,6 +20,14 @@ from typing import Iterator, List, Union, Optional, cast
 
 
 class ObjectsSet:
+    '''
+    This class is a mixin that contains a set of objects with some related methods.
+
+    NOTE: when this mixin is used in combination with other mixins that share some
+    of the attributes (e.g. env, add_user_type_method, has_name_method), it is required
+    to pass the very same arguments to the mixins constructors.
+    '''
+
     def __init__(self, env, add_user_type_method, has_name_method):
         self._env = env
         self._add_user_type_method = add_user_type_method

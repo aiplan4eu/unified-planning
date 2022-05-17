@@ -20,6 +20,14 @@ from typing import List, Dict, Union
 
 
 class FluentsSet:
+    '''
+    This class is a mixin that contains a set of fluents with some related methods.
+
+    NOTE: when this mixin is used in combination with other mixins that share some
+    of the attributes (e.g. env, add_user_type_method, has_name_method), it is required
+    to pass the very same arguments to the mixins constructors.
+    '''
+
     def __init__(self, env, add_user_type_method, has_name_method,
                  initial_defaults: Dict['up.model.types.Type', 'ConstantExpression'] = {}):
         self._env = env

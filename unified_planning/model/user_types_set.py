@@ -20,6 +20,14 @@ from typing import List, Dict, Optional, cast
 
 
 class UserTypesSet:
+    '''
+    This class is a mixin that contains a set of user types with some related methods.
+
+    NOTE: when this mixin is used in combination with other mixins that share some
+    of the attributes (e.g. has_name_method), it is required to pass the very same
+    arguments to the mixins constructors.
+    '''
+
     def __init__(self, has_name_method):
         self._has_name_method = has_name_method
         self._user_types: List['up.model.types.Type'] = []
