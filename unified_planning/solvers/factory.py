@@ -99,7 +99,8 @@ class Factory:
             solvers = []
             for name, param in zip(names, params):
                 SolverClass = self._get_solver_class(solver_kind, name)
-                SolverClass.credits.write_credits(credits_stream)
+                if credits_stream is not None and SolverClass.credits is not None:
+                    SolverClass.credits.write_credits(credits_stream)
                 solvers.append((SolverClass, param))
             p_solver = up.solvers.parallel.Parallel(solvers)
             return p_solver
@@ -108,7 +109,7 @@ class Factory:
                 params = {}
             assert isinstance(params, Dict)
             SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
-            if credits_stream is not None:
+            if credits_stream is not None and SolverClass.credits is not None:
                 SolverClass.credits.write_credits(credits_stream)
             return SolverClass(**params)
 
