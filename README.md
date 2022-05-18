@@ -37,12 +37,7 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
 
 ## Notebooks
 
-More complex live demos are available as notebooks:
-
-* [Basic usage](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Unified_Planning_Basics.ipynb)
-* [Temporal Planning](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Unified_Planning_Temporal.ipynb)
-* [Simulated Effects](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Simulated_effects.ipynb)
-* [Planning Engine Integration](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Planning_engine_demo.ipynb)
+More complex live demos are available as notebooks [here](notebooks/README.md).
 
 
 ## Acknowledgments
