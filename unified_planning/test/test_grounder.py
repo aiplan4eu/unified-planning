@@ -84,7 +84,8 @@ class TestGrounder(TestCase):
 
         with Grounder(name='up_grounder') as embedded_grounder:
             self.assertTrue(embedded_grounder.supports(problem.kind))
-            grounded_problem, rewrite_plan_funct = embedded_grounder.ground(problem)
+            ground_result = embedded_grounder.ground(problem)
+            grounded_problem, rewrite_plan_funct = ground_result.problem, ground_result.lift_action_instance
             self.assertEqual(len(grounded_problem.actions), 28)
             for a in grounded_problem.actions:
                 self.assertEqual(len(a.parameters), 0)
@@ -92,7 +93,7 @@ class TestGrounder(TestCase):
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_plan_funct(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_plan_funct)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -108,7 +109,8 @@ class TestGrounder(TestCase):
 
         with Grounder(problem_kind=kind) as embedded_grounder:
             self.assertTrue(embedded_grounder.supports(kind))
-            grounded_problem, rewrite_plan_funct = embedded_grounder.ground(problem)
+            ground_result = embedded_grounder.ground(problem)
+            grounded_problem, rewrite_plan_funct = ground_result.problem, ground_result.lift_action_instance
             self.assertEqual(len(grounded_problem.actions), 28)
             for a in grounded_problem.actions:
                 self.assertEqual(len(a.parameters), 0)
@@ -116,7 +118,7 @@ class TestGrounder(TestCase):
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_plan_funct(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_plan_funct)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -184,12 +186,13 @@ class TestGrounder(TestCase):
         grounded_problem_test = gro.get_rewritten_problem()
         with Grounder(name='up_grounder') as grounder:
             self.assertTrue(grounder.supports(problem.kind))
-            grounded_problem_try, rewrite_back_plan_function = grounder.ground(problem)
+            ground_result = grounder.ground(problem)
+            grounded_problem_try, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             self.assertEqual(grounded_problem_test, grounded_problem_try)
             with OneshotPlanner(problem_kind=grounded_problem_try.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem_try).plan
-                plan = rewrite_back_plan_function(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
                 for _, ai, _ in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -234,7 +237,7 @@ class TestGrounder(TestCase):
         problem = Problem('ad_hoc')
         gro = TransformersGrounder(problem)
         gro.get_rewritten_problem()
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(AttributeError):
             gro.rewrite_back_plan(problem)
 
     @skipIfSolverNotAvailable('pyperplan')
@@ -244,13 +247,14 @@ class TestGrounder(TestCase):
         for action in problem.actions:
             self.assertTrue(len(action.parameters) > 0)
         with Grounder(name='pyperplan') as grounder:
-            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            ground_result = grounder.ground(problem)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_back_plan_function(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -281,13 +285,14 @@ class TestGrounder(TestCase):
         problem.add_goal(at_l2)
 
         with Grounder(name='pyperplan') as grounder:
-            grounded_problem, rewrite_back_plan_function = grounder.ground(problem)
+            ground_result = grounder.ground(problem)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = rewrite_back_plan_function(grounded_plan)
+                plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))

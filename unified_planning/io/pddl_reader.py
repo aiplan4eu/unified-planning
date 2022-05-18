@@ -170,7 +170,7 @@ class PDDLReader:
         self._pp_problem = grammar.problem
         self._pp_parameters = grammar.parameters
         self._fve = up.walkers.FreeVarsExtractor()
-        self._totalcost: Optional[up.model.FNode] = None
+        self._totalcost: typing.Optional[up.model.FNode] = None
 
     def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
                    types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
@@ -449,7 +449,7 @@ class PDDLReader:
             # types_list is a List of 1 or 2 elements, where the first one
             # is a List of types, and the second one can be their father,
             # if they have one.
-            father: Optional['up.model.Type'] = None
+            father: typing.Optional['up.model.Type'] = None
             if len(types_list) == 2: # the types have a father
                 if types_list[1] != 'object': #the father is not object
                     father = types_map[types_list[1]]

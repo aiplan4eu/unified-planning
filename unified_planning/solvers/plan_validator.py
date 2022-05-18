@@ -17,11 +17,13 @@
 from typing import Dict, Union, List, Set, Optional
 from itertools import product
 
+import unified_planning as up
 import unified_planning.environment
 import unified_planning.solvers as solvers
 import unified_planning.walkers as walkers
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import FNode, Expression, Problem, ProblemKind, Object
+from unified_planning.solvers.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
 from unified_planning.plan import SequentialPlan
 
 class QuantifierSimplifier(walkers.Simplifier):
@@ -167,15 +169,13 @@ class SequentialPlanValidator(solvers.solver.Solver):
         self._env: 'unified_planning.environment.Environment' = unified_planning.environment.get_env(options.get('env', None))
         self.manager = self._env.expression_manager
         self._substituter = walkers.Substituter(self._env)
-        self._last_error: Union[str, None] = None
 
-    def validate(self, problem: 'Problem', plan: 'unified_planning.plan.Plan') -> bool:
+    def validate(self, problem: 'Problem', plan: 'unified_planning.plan.Plan') -> 'up.solvers.results.ValidationResult':
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""
         assert isinstance(plan, SequentialPlan)
         self._qsimplifier = QuantifierSimplifier(self._env, problem)
-        self._last_error = None
         assignments: Dict[Expression, Expression] = problem.initial_values.copy() # type: ignore
         count = 0 #used for better error indexing
         for ai in plan.actions:
@@ -188,8 +188,10 @@ class SequentialPlanValidator(solvers.solver.Solver):
             for p in action.preconditions:
                 ps = self._subs_simplify(p, assignments)
                 if not (ps.is_bool_constant() and ps.bool_constant_value()):
-                    self._last_error = f'Precondition {p} of {str(count)}-th action instance {str(ai)} is not satisfied.'
-                    return False
+                    error = f'Precondition {p} of {str(count)}-th action instance {str(ai)} is not satisfied.'
+                    logs = [LogMessage(LogLevel.ERROR, error)]
+                    return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+
             for e in action.effects:
                 cond = True
                 if e.is_conditional():
@@ -212,15 +214,10 @@ class SequentialPlanValidator(solvers.solver.Solver):
         for g in problem.goals:
             gs = self._subs_simplify(g, assignments)
             if not (gs.is_bool_constant() and gs.bool_constant_value()):
-                    self._last_error = f'Goal {str(g)} is not reached by the plan.'
-                    return False
-        return True
-
-    def get_last_error_info(self) -> str:
-        """When the function 'is_valid_plan()' is called, if the result is false
-        this function returns a string containing information on why the plan is not valid."""
-        assert not self._last_error is None
-        return self._last_error
+                    error = f'Goal {str(g)} is not reached by the plan.'
+                    logs = [LogMessage(LogLevel.ERROR, error)]
+                    return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+        return ValidationResult(ValidationResultStatus.VALID, self.name, [])
 
     def _get_ground_fluent(self, fluent:FNode, assignments: Dict[Expression, Expression]) -> FNode:
         assert fluent.is_fluent_exp()

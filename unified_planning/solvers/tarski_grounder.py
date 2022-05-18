@@ -17,15 +17,15 @@
 
 from functools import partial
 import shutil
-from typing import Callable, Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List
 import tarski # type: ignore
 import unified_planning
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
-from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind
 from unified_planning.model import Action, FNode
-from unified_planning.solvers.grounder import lift_plan
+from unified_planning.solvers.grounder import lift_action_instance
 from unified_planning.solvers.solver import Solver
+from unified_planning.solvers.results import GroundingResult
 from unified_planning.transformers import Grounder
 from tarski.grounding import LPGroundingStrategy # type: ignore
 
@@ -62,7 +62,7 @@ class TarskiGrounder(Solver):
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
         return problem_kind <= supported_kind
 
-    def ground(self, problem: 'unified_planning.model.Problem') -> Tuple['unified_planning.model.Problem', Callable[[unified_planning.plan.Plan], unified_planning.plan.Plan]]:
+    def ground(self, problem: 'unified_planning.model.Problem') -> GroundingResult:
         tarski_problem = unified_planning.interop.convert_problem_to_tarski(problem)
         actions = None
         try:
@@ -92,7 +92,7 @@ class TarskiGrounder(Solver):
         unified_planning_grounder = Grounder(problem, grounding_actions_map=grounded_actions_map)
         grounded_problem = unified_planning_grounder.get_rewritten_problem()
         trace_back_map = unified_planning_grounder.get_rewrite_back_map()
-        return (grounded_problem, partial(lift_plan, map=trace_back_map))
+        return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map), self.name, [])
 
     def destroy(self):
         pass

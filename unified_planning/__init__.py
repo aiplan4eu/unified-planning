@@ -18,7 +18,7 @@ import re
 from unified_planning.environment import Environment
 
 
-VERSION = (0, 2, 2)
+VERSION = (0, 3, 0)
 __version__ = ".".join(str(x) for x in VERSION)
 
 # Try to provide human-readable version of latest commit for dev versions
@@ -28,7 +28,7 @@ __version__ = ".".join(str(x) for x in VERSION)
 #      * -wip: Working tree is dirty (non committed stuff)
 # See: https://git-scm.com/docs/git-describe
 try:
-    git_version = subprocess.check_output(["git", "describe",
+    git_version = subprocess.check_output(["git", "describe", "--tags",
                                             "--dirty=-wip"],
                                             stderr=subprocess.STDOUT)
     output = git_version.strip().decode('ascii')
@@ -37,7 +37,7 @@ try:
     match = re.match(r'^v(\d+)\.(\d)+\.(\d)$', tag)
     if match is not None:
         MAJOR, MINOR, REL = tuple(int(x) for x in match.groups())
-    
+
     try:
         COMMITS = int(data[1])
     except ValueError:
@@ -52,6 +52,6 @@ try:
             __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.post1'
     else:
         VERSION = (MAJOR, MINOR, REL, COMMITS, 'dev', 1) #type: ignore
-        __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1'      
+        __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1'
 except Exception as ex:
     pass

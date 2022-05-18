@@ -475,13 +475,16 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.solvers.PlanGenerationResult)
     def _convert_plan_generation_result(self, result: unified_planning.solvers.PlanGenerationResult) -> proto.PlanGenerationResult:
-        # TODO: Extend the protobuf convertors to handle metrics and logs in results
+        log_messages = None
+        if result.log_messages is not None:
+            log_messages = [self.convert(log) for log in result.log_messages]
+
         return proto.PlanGenerationResult(
             status=self.convert(result.status),
             plan=self.convert(result.plan),
-            planner=proto.Engine(name=result.planner_name),
-            # metrics=result.metrics,
-            # logs=[self.convert(log) for log in result.log_messages],
+            engine=proto.Engine(name=result.engine_name),
+            metrics=result.metrics,
+            log_messages=log_messages,
         )
 
     @handles(unified_planning.solvers.PlanGenerationResultStatus)
@@ -557,3 +560,33 @@ class ProtobufWriter(Converter):
             level=level,
             message=str(log.message),
         )
+
+    @handles(unified_planning.solvers.GroundingResult)
+    def _convert_grounding_result(self, result: unified_planning.solvers.GroundingResult) -> proto.GroundingResult:
+        map: Dict[str, proto.ActionInstance]= {}
+        if result.lift_action_instance is not None:
+            for grounded_action in result.problem.actions:
+                map[grounded_action.name] = self.convert(result.lift_action_instance(unified_planning.plan.ActionInstance(grounded_action)))
+        return proto.GroundingResult(
+            problem=self.convert(result.problem),
+            map_to_lift_plan=map,
+            log_messages=[self.convert(log) for log in result.log_messages],
+            engine=proto.Engine(name=result.engine_name)
+        )
+
+    @handles(unified_planning.solvers.ValidationResult)
+    def _convert_validation_result(self, result: unified_planning.solvers.ValidationResult) -> proto.ValidationResult:
+        return proto.ValidationResult(
+            status=self.convert(result.status),
+            log_messages=[self.convert(log) for log in result.log_messages],
+            engine=proto.Engine(name=result.engine_name)
+        )
+
+    @handles(unified_planning.solvers.ValidationResultStatus)
+    def _convert_validation_result_status(self, status: unified_planning.solvers.ValidationResultStatus) -> proto.ValidationResult.ValidationResultStatus:
+        if status == unified_planning.solvers.ValidationResultStatus.VALID:
+            return proto.ValidationResult.ValidationResultStatus.Value("VALID")
+        elif status == unified_planning.solvers.ValidationResultStatus.INVALID:
+            return proto.ValidationResult.ValidationResultStatus.Value("INVALID")
+        else:
+            raise UPException(f"Unknown result status: {status}")
