@@ -55,6 +55,17 @@ class Factory:
             except ImportError:
                 pass
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Don't pickle _credits_stream
+        del state['_credits_stream']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Add _credits_stream back since it doesn't exist in the pickle
+        self._credits_stream = None
+
     def add_solver(self, name: str, module_name: str, class_name: str):
         module = importlib.import_module(module_name)
         SolverImpl = getattr(module, class_name)

@@ -77,24 +77,24 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfSolverNotAvailable('tamer')
-    def test_timed_connected_locations_parallel(self):
-        problem = self.problems['timed_connected_locations'].problem
-        move = problem.action('move')
-        with OneshotPlanner(names=['tamer', 'tamer'],
-                            params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}]) as planner:
-            self.assertNotEqual(planner, None)
-            with self.assertRaises(up.exceptions.UPUsageError) as e:
-                final_report = planner.solve(problem)
-            self.assertIn('Tamer cannot solve this kind of problem!', str(e.exception))
-            quantifiers_remover = up.transformers.QuantifiersRemover(problem)
-            suitable_problem = quantifiers_remover.get_rewritten_problem()
-            final_report = planner.solve(suitable_problem)
-            plan = quantifiers_remover.rewrite_back_plan(final_report.plan)
-            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
-            self.assertEqual(len(plan.actions), 2)
-            self.assertEqual((plan.actions[0])[1].action, move)
-            self.assertEqual((plan.actions[1])[1].action, move)
+    # @skipIfSolverNotAvailable('tamer')
+    # def test_timed_connected_locations_parallel(self):
+    #     problem = self.problems['timed_connected_locations'].problem
+    #     move = problem.action('move')
+    #     with OneshotPlanner(names=['tamer', 'tamer'],
+    #                         params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}]) as planner:
+    #         self.assertNotEqual(planner, None)
+    #         with self.assertRaises(up.exceptions.UPUsageError) as e:
+    #             final_report = planner.solve(problem)
+    #         self.assertIn('Tamer cannot solve this kind of problem!', str(e.exception))
+    #         quantifiers_remover = up.transformers.QuantifiersRemover(problem)
+    #         suitable_problem = quantifiers_remover.get_rewritten_problem()
+    #         final_report = planner.solve(suitable_problem)
+    #         plan = quantifiers_remover.rewrite_back_plan(final_report.plan)
+    #         self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
+    #         self.assertEqual(len(plan.actions), 2)
+    #         self.assertEqual((plan.actions[0])[1].action, move)
+    #         self.assertEqual((plan.actions[1])[1].action, move)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(PlanGenerationResultStatus.SOLVED_OPTIMALLY)
