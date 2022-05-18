@@ -39,12 +39,12 @@ class Credits:
     long_description: str
 
     def write_credits(self, stream: IO[str], full_credits: bool = False):
-        stream.write(f'You are using {self.name}, developed by {self.author}.\n')
+        stream.write(f'{self.name}\nDevelopers: {self.author}\n')
         if not full_credits:
             stream.write(self.short_description)
             stream.write('\n\n')
         else:
-            stream.write(f'Contacts of the authors: {self.contact}\n')
+            stream.write(f'Contacts: {self.contact}\n')
             stream.write(f'Website: {self.website}\n')
             stream.write(f'License: {self.license}\n')
             stream.write(self.long_description)

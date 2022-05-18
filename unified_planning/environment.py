@@ -58,9 +58,6 @@ class Environment:
     def factory(self) -> 'unified_planning.solvers.Factory':
         return self._factory
 
-    def credits(self, stream: IO[str] = sys.stdout, full_credits: bool = False):
-        self.factory.credits(stream, full_credits)
-
 
 GLOBAL_ENVIRONMENT: Optional[Environment] = None
 

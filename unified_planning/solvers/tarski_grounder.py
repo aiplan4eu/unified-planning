@@ -36,7 +36,7 @@ if gringo is None:
     raise ImportError('Tarski grounder needs gringo installed')
 
 credits = Credits('Tarski grounder',
-                  'Artificial Intelligence and Machine Learning Group - Universitat Pompeu Fabra ',
+                  'Artificial Intelligence and Machine Learning Group - Universitat Pompeu Fabra',
                   'info-ai@upf.edu',
                   'https://github.com/aig-upf/tarski',
                   'Apache 2.0',

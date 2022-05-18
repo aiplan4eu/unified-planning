@@ -46,8 +46,9 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
 
 
 class Factory:
-    def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
+    def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS, credits_stream: Optional[IO[str]] = sys.stdout):
         self.solvers: Dict[str, Type['up.solvers.solver.Solver']] = {}
+        self._credits_stream = credits_stream
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
@@ -89,8 +90,8 @@ class Factory:
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
-                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None,
-                    credits_stream: Optional[IO[str]] = sys.stdout) -> 'up.solvers.solver.Solver':
+                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
+                    ) -> 'up.solvers.solver.Solver':
         if names is not None:
             assert name is None
             if params is None:
@@ -99,8 +100,9 @@ class Factory:
             solvers = []
             for name, param in zip(names, params):
                 SolverClass = self._get_solver_class(solver_kind, name)
-                if credits_stream is not None and SolverClass.credits is not None:
-                    SolverClass.credits.write_credits(credits_stream)
+                if self._credits_stream is not None and SolverClass.credits is not None:
+                    self._credits_stream.write('You are using ')
+                    SolverClass.credits.write_credits(self._credits_stream)
                 solvers.append((SolverClass, param))
             p_solver = up.solvers.parallel.Parallel(solvers)
             return p_solver
@@ -109,16 +111,27 @@ class Factory:
                 params = {}
             assert isinstance(params, Dict)
             SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
-            if credits_stream is not None and SolverClass.credits is not None:
-                SolverClass.credits.write_credits(credits_stream)
+            if self._credits_stream is not None and SolverClass.credits is not None:
+                self._credits_stream.write('You are using ')
+                SolverClass.credits.write_credits(self._credits_stream)
             return SolverClass(**params)
+
+    @property
+    def credits_stream(self) -> Optional[IO[str]]:
+        '''Returns the stream where the solvers credits are printed.'''
+        return self._credits_stream
+
+    @credits_stream.setter
+    def credits_stream(self, new_credits_stream: Optional[IO[str]]):
+        '''Sets the stream where the solvers credits are printed.'''
+        self._credits_stream = new_credits_stream
 
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind(),
-                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None,
-                       credits_stream: Optional[IO[str]] = sys.stdout) -> 'up.solvers.solver.Solver':
+                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
+                       ) -> 'up.solvers.solver.Solver':
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -130,13 +143,13 @@ class Factory:
         - using 'problem_kind' and 'optimality_guarantee'.
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
-        return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee, credits_stream)
+        return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 
     def PlanValidator(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind(),
-                       credits_stream: Optional[IO[str]] = sys.stdout) -> 'up.solvers.solver.Solver':
+                       problem_kind: ProblemKind = ProblemKind()
+                       ) -> 'up.solvers.solver.Solver':
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
@@ -149,11 +162,11 @@ class Factory:
         - using 'problem_kind' parameter.
           e.g. PlanValidator(problem_kind=problem.kind)
         """
-        return self._get_solver('plan_validator', name, names, params, problem_kind, credits_stream=credits_stream)
+        return self._get_solver('plan_validator', name, names, params, problem_kind)
 
     def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind(),
-                       credits_stream: Optional[IO[str]] = sys.stdout) -> 'up.solvers.solver.Solver':
+                       problem_kind: ProblemKind = ProblemKind()
+                       ) -> 'up.solvers.solver.Solver':
         """
         Returns a Grounder. There are three ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
@@ -162,9 +175,12 @@ class Factory:
         - using 'problem_kind' parameter.
           e.g. Grounder(problem_kind=problem.kind)
         """
-        return self._get_solver('grounder', name, None, params, problem_kind, credits_stream=credits_stream)
+        return self._get_solver('grounder', name, None, params, problem_kind)
 
-    def credits(self, stream: IO[str] = sys.stdout, full_credits: bool = False):
+    def print_solvers_info(self, stream: IO[str] = sys.stdout, full_credits: bool = False):
+        stream.write('These are the solvers currently available:\n')
         for Solver in self.solvers.values():
+            stream.write('---------------------------------------\n')
             Solver.credits.write_credits(stream, full_credits)
-            stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n\n')
+            stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n')
+            stream.write('---------------------------------------\n\n')

@@ -118,8 +118,8 @@ def OneshotPlanner(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
-                   optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None,
-                   credits_stream: Optional[IO[str]] = sys.stdout) -> Solver:
+                   optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
+                   ) -> Solver:
     """
     Returns a oneshot planner. There are three ways to call this method:
     - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -133,14 +133,13 @@ def OneshotPlanner(*, name: Optional[str] = None,
     """
     return get_env().factory.OneshotPlanner(name=name, names=names, params=params,
                                             problem_kind=problem_kind,
-                                            optimality_guarantee=optimality_guarantee,
-                                            credits_stream=credits_stream)
+                                            optimality_guarantee=optimality_guarantee)
 
 def PlanValidator(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                   problem_kind: ProblemKind = ProblemKind(),
-                   credits_stream: Optional[IO[str]] = sys.stdout) -> Solver:
+                   problem_kind: ProblemKind = ProblemKind()
+                   ) -> Solver:
     """
     Returns a plan validator. There are three ways to call this method:
     - using 'name' (the name of a specific plan validator) and 'params'
@@ -154,11 +153,11 @@ def PlanValidator(*, name: Optional[str] = None,
       e.g. PlanValidator(problem_kind=problem.kind)
     """
     return get_env().factory.PlanValidator(name=name, names=names, params=params,
-                                           problem_kind=problem_kind, credits_stream=credits_stream)
+                                           problem_kind=problem_kind)
 
 def Grounder(*, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
-                   credits_stream: Optional[IO[str]] = sys.stdout) -> Solver:
+                   ) -> Solver:
     """
     Returns a Grounder. There are three ways to call this method:
     - using 'name' (the name of a specific grounder) and 'params'
@@ -168,4 +167,10 @@ def Grounder(*, name: Optional[str] = None, params: Union[Dict[str, str], List[D
         e.g. Grounder(problem_kind=problem.kind)
     """
     return get_env().factory.Grounder(name=name, params=params,
-                                           problem_kind=problem_kind, credits_stream=credits_stream)
+                                           problem_kind=problem_kind)
+
+def print_solvers_info(stream: IO[str] = sys.stdout, full_credits: bool = False):
+    get_env().factory.print_solvers_info(stream, full_credits)
+
+def set_credits_stream(stream: Optional[IO[str]]):
+    get_env().factory.credits_stream = stream
