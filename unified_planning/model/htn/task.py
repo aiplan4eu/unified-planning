@@ -22,17 +22,20 @@ from unified_planning.environment import get_env, Environment
 from typing import List, OrderedDict, Optional, Union
 from unified_planning.model.action import Action
 from unified_planning.model.timing import Timepoint, TimepointKind
+from unified_planning.model.types import Type
+from unified_planning.model.expression import Expression
+from unified_planning.model.parameter import Parameter
 
 
 class Task:
     """Represents an abstract task."""
     def __init__(self, name: str,
-                 _parameters: Optional[Union[OrderedDict[str, 'up.model.types.Type'], List['up.model.parameter.Parameter']]] = None,
+                 _parameters: Optional[Union[OrderedDict[str, Type], List[Parameter]]] = None,
                  _env: Environment = None,
-                 **kwargs: 'up.model.types.Type'):
+                 **kwargs: Type):
         self._env = get_env(_env)
         self._name = name
-        self._parameters: List['up.model.parameter.Parameter'] = []
+        self._parameters: List[Parameter] = []
         if _parameters is not None:
             assert len(kwargs) == 0
             if isinstance(_parameters, OrderedDict):
@@ -68,11 +71,11 @@ class Task:
         return self._name
 
     @property
-    def parameters(self) -> List['up.model.parameter.Parameter']:
+    def parameters(self) -> List[Parameter]:
         """Returns the task's parameters as a list."""
         return self._parameters
 
-    def __call__(self, *args: 'up.model.expression.Expression', ident: Optional[str] = None) -> 'Subtask':
+    def __call__(self, *args: Expression, ident: Optional[str] = None) -> 'Subtask':
         """Returns a subtask with the given parameters."""
         return Subtask(self, *self._env.expression_manager.auto_promote(args))
 
@@ -82,7 +85,7 @@ _task_id_counter = 0
 
 
 class Subtask:
-    def __init__(self, _task: Union[Action, Task], *args: 'up.model.FNode', ident: Optional[str] = None, _env: Environment = None):
+    def __init__(self, _task: Union[Action, Task], *args: Expression, ident: Optional[str] = None, _env: Environment = None):
         self._env = get_env(_env)
         self._task = _task
         self._ident: str

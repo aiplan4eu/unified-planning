@@ -16,7 +16,12 @@ from collections import OrderedDict
 from typing import List, Union, Optional
 
 from unified_planning.environment import get_env, Environment
-from unified_planning.model import Timing, Parameter, FNode, Type, Expression, OperatorKind
+from unified_planning.model.timing import Timing
+from unified_planning.model.parameter import Parameter
+from unified_planning.model.fnode import FNode
+from unified_planning.model.types import Type
+from unified_planning.model.expression import Expression
+from unified_planning.model.operators import OperatorKind
 from unified_planning.model.action import Action
 from unified_planning.model.htn.task import Task, Subtask
 from unified_planning.model.timing import Timepoint

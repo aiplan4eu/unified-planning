@@ -14,11 +14,11 @@
 #
 from collections import OrderedDict
 from fractions import Fraction
-from typing import List, Union, Optional, Dict
+from typing import List, Union, Dict
 
 import unified_planning as up
 from unified_planning.model.htn.method import Method
-from unified_planning.model.htn.task import Task, Subtask
+from unified_planning.model.htn.task import Task
 from unified_planning.model.htn.task_network import TaskNetwork
 
 

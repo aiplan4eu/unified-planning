@@ -23,17 +23,18 @@ from typing import List, Union, Optional
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
-from unified_planning.model import Timing, Parameter
+from unified_planning.model.parameter import Parameter
 from unified_planning.model.action import Action
 from unified_planning.model.htn.task import Task, Subtask
-from unified_planning.model.timing import Timepoint
+from unified_planning.model.timing import Timing, Timepoint
+from unified_planning.model.expression import Expression
 
 
 class ParameterizedTask:
     """A task instantiated with some parameters."""
-    def __init__(self, task: Task, *params: up.model.parameter.Parameter):
+    def __init__(self, task: Task, *params: Parameter):
         self._task = task
-        self._params: List[up.model.parameter.Parameter] = list(params)
+        self._params: List[Parameter] = list(params)
         assert len(self._task.parameters) == len(self._params)
 
     def __repr__(self):
@@ -61,17 +62,17 @@ class Method:
         self._env = get_env(_env)
         self._task: Optional[ParameterizedTask] = None
         self._name = _name
-        self._parameters: 'OrderedDict[str, up.model.parameter.Parameter]' = OrderedDict()
+        self._parameters: 'OrderedDict[str, Parameter]' = OrderedDict()
         self._preconditions: List[up.model.fnode.FNode] = []
         self._constraints: List[up.model.fnode.FNode] = []
         self._subtasks: List[Subtask] = []
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
-                self._parameters[n] = up.model.parameter.Parameter(n, t)
+                self._parameters[n] = Parameter(n, t)
         else:
             for n, t in kwargs.items():
-                self._parameters[n] = up.model.parameter.Parameter(n, t)
+                self._parameters[n] = Parameter(n, t)
 
     def __repr__(self) -> str:
         s = []
@@ -149,11 +150,11 @@ class Method:
             self._task = ParameterizedTask(task, *arguments)
 
     @property
-    def parameters(self) -> List['up.model.parameter.Parameter']:
+    def parameters(self) -> List[Parameter]:
         """Returns the list of the method's parameters."""
         return list(self._parameters.values())
 
-    def parameter(self, name: str) -> 'up.model.parameter.Parameter':
+    def parameter(self, name: str) -> Parameter:
         """Returns the parameter of the action with the given name."""
         for param in self.parameters:
             if param.name == name:
@@ -165,7 +166,7 @@ class Method:
         """Returns the list of the method's preconditions."""
         return self._preconditions
 
-    def add_precondition(self, precondition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
+    def add_precondition(self, precondition: Expression):
         """Adds the given method precondition."""
         precondition_exp, = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
@@ -182,7 +183,7 @@ class Method:
         """Returns the list of the method's constraints."""
         return self._constraints
 
-    def add_constraint(self, constraint: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
+    def add_constraint(self, constraint: Expression):
         """Adds the given constraint to the method."""
         constraint_exp, = self._env.expression_manager.auto_promote(constraint)
         assert self._env.type_checker.get_type(constraint_exp).is_bool_type()
@@ -199,17 +200,20 @@ class Method:
         """Returns the list of the method's subtasks."""
         return self._subtasks
 
-    def add_subtask(self, subtask: Union[Subtask, Action, Task], *args, ident: Optional[str] = None) -> Subtask:
-        """Add a subtask to this method, in no particular order."""
+    def add_subtask(self, subtask: Union[Subtask, Action, Task], *args: Expression, ident: Optional[str] = None) -> Subtask:
+        """Adds a subtask to this method, with no particular ordering relative to the existing ones."""
         if not isinstance(subtask, Subtask):
-            subtask = Subtask(subtask, *args, ident=ident)
+            parameters = self._env.expression_manager.auto_promote(*args)
+            subtask = Subtask(subtask, *parameters, ident=ident)
+        else:
+            assert len(args) == 0
         assert isinstance(subtask, Subtask)
         assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
         self._subtasks.append(subtask)
         return subtask
 
     def set_ordered(self, *subtasks: Subtask):
-        """Imposes a sequentioal order between the given subtasks."""
+        """Imposes a sequential order between the given subtasks."""
         if len(subtasks) < 2:
             return
         prev = subtasks[0]
