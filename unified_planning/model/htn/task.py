@@ -103,6 +103,15 @@ class Subtask:
         params = ", ".join([str(a) for a in self._args])
         return f"{self.identifier}: {self._task.name}({params})"
 
+    def __eq__(self, other):
+        if not isinstance(other, Subtask):
+            return False
+        return (self._env == other._env and self._ident == other._ident and
+                self._task == other._task and self._args == other._args)
+
+    def __hash__(self):
+        return hash(self._ident) + hash(self._task) + sum(map(hash, self._args))
+
     @property
     def identifier(self) -> str:
         """Unique identifier of the subtask in its task network."""

@@ -31,11 +31,15 @@ class Timepoint:
     def __init__(self, kind: TimepointKind, container=None):
         """Creates a new timepoint.
 
+        It is typically used to refer to:
+         - the start/end of the containing action or method, or
+         - to the start/end of a subtasks in a method
+
         Parameters
         ----------
         kind: TimepointKind
           Kind of the timepoint.
-        container: Optional[Subtask, ActionInstance]
+        container: Optional[Subtask]
           Container in which the timepoint is defined.
           If not set, then a start/end timepoint refers to the enclosing action or method.
           The container must have an `identifier` property that is a string uniquely identifying it.
