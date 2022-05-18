@@ -165,9 +165,10 @@ class QuantifierSimplifier(walkers.Simplifier):
             raise UPProblemDefinitionError(f"Value of Parameter {str(expression)} not found in {str(self._assignments)}")
 
 credits = solvers.solver.Credits('UP sequential plan validator',
-                                 'FBK-team',
+                                 'AIPlan4EU-team',
                                  'aiplan4eu@fbk.eu',
                                  'https://github.com/aiplan4eu/unified-planning/solvers/plan_validator',
+                                 'Apache 2.0',
                                  'UP sequential validator, does sequential plan validation.',
                                  'UP sequential validator, does sequential plan validation by creating a state from the problem initial state.\nAfter that the validator tries to apply the action instances of the given plan.\nIf the every action instance is applicable in the reached state and after the sequential applications of all the actions, the goals is reached, the plan is considered valid. Otherwise the plan is invalid and the unsatisfied condition is reported to the user as an ERROR level LogMessage.'
                                 )
@@ -273,10 +274,9 @@ class SequentialPlanValidator(solvers.solver.Solver):
     def is_plan_validator():
         return True
 
-    @staticmethod
-    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
-        if stream is not None:
-            credits.write_credits(stream, full_credits)
+    @solvers.solver.staticproperty
+    def credits() -> Optional[solvers.solver.Credits]: # type: ignore
+        return credits
 
     def destroy(self):
         pass

@@ -14,18 +14,26 @@
 
 import os
 import unified_planning as up
+import unified_planning.solvers
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.environment import get_env
 from typing import List, Optional, Union
-from unified_planning.solvers import PDDLSolver
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
+credits = up.solvers.Credits('ENHSP',
+                             'Enrico Scala',
+                             'enricos83@gmail.com',
+                             'https://sites.google.com/view/enhsp/home',
+                             'GNU General Public license, version 3 or later',
+                             'Expressive Numeric Heuristic Search Planner',
+                             'ENHSP is a forward heuristic search planner, but it is expressive in that it can handle:\n - Classical Planning\n - Numeric Planning with linear and non-linear (!!) expressions\n - Planning with discretised autonomous processes and events\n - Global constraints, which are the analogous of always constraints of PDDL.'
+                            )
 
-class ENHSP(PDDLSolver):
+class ENHSP(up.solvers.PDDLSolver):
     def __init__(self):
-        PDDLSolver.__init__(self, False)
+        up.solvers.PDDLSolver.__init__(self, False)
 
     @property
     def name(self) -> str:
@@ -71,6 +79,10 @@ class ENHSP(PDDLSolver):
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
         return problem_kind <= ENHSP.supported_kind()
+
+    @up.solvers.solver.staticproperty
+    def credits() -> Optional[up.solvers.Credits]: # type: ignore
+        return credits
 
 
 env = get_env()

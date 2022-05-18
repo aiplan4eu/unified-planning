@@ -26,11 +26,12 @@ from unified_planning.solvers.results import GroundingResult
 from unified_planning.model import AbstractProblem, Problem, ProblemKind
 
 credits = solvers.solver.Credits('UP naive grounder',
-                                 'FBK-team',
+                                 'AIPlan4EU-team',
                                  'aiplan4eu@fbk.eu',
                                  'https://github.com/aiplan4eu/unified-planning/solvers/grounder',
+                                 'Apache 2.0',
                                  'This grounder, does basic simplification and removes impossible actions and actions with different assignment to the same variable.',
-                                 'This grounder, does basic simplification and removes impossible actions and actions with different assignment to the same variable.'
+                                 'This grounder, does basic simplification and removes impossible actions and actions with different assignment to the same variable. It implements the naive grounding algorithm for classical, numeric and temporal planning'
                                 )
 
 class Grounder(solvers.solver.Solver):
@@ -90,10 +91,9 @@ class Grounder(solvers.solver.Solver):
     def is_grounder():
         return True
 
-    @staticmethod
-    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
-        if stream is not None:
-            credits.write_credits(stream, full_credits)
+    @solvers.solver.staticproperty
+    def credits() -> Optional[solvers.solver.Credits]: # type: ignore
+        return credits
 
     def destroy(self):
         pass

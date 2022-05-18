@@ -26,7 +26,7 @@ class TestCredits(TestCase):
     @skipIfSolverNotAvailable('tamer')
     def test_robot_locations_visited(self):
         credits = StringIO()
-        test_credits = '''You are using Tamer solver & validator, developed by Fondazione Bruno Kessler.
+        test_credits = '''You are using Tamer, developed by Fondazione Bruno Kessler.
 Tamer solver and validator, more information can be found at the following link: https://www.ai4europe.eu/research/ai-catalog/tamer-unified-planning-interface
 
 '''

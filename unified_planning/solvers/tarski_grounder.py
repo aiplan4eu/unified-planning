@@ -15,10 +15,9 @@
 """This module implements the grounder that uses tarski."""
 
 
-from functools import partial
 import shutil
-import sys
-from typing import IO, Callable, Optional, Tuple, Dict, List
+from functools import partial
+from typing import Callable, Optional, Tuple, Dict, List
 import tarski # type: ignore
 import unified_planning as up
 import unified_planning.interop
@@ -26,7 +25,7 @@ from unified_planning.interop.from_tarski import convert_tarski_formula
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model import Action, FNode
 from unified_planning.solvers.grounder import lift_action_instance
-from unified_planning.solvers.solver import Solver, Credits
+from unified_planning.solvers.solver import Solver, Credits, staticproperty
 from unified_planning.solvers.results import GroundingResult
 from unified_planning.transformers import Grounder
 from tarski.grounding import LPGroundingStrategy # type: ignore
@@ -40,6 +39,7 @@ credits = Credits('Tarski grounder',
                   'Artificial Intelligence and Machine Learning Group - Universitat Pompeu Fabra ',
                   'info-ai@upf.edu',
                   'https://github.com/aig-upf/tarski',
+                  'Apache 2.0',
                   'Tarski grounder, more information available on the given website.',
                   'Tarski grounder, more information available on the given website.'
                   )
@@ -109,10 +109,9 @@ class TarskiGrounder(Solver):
         trace_back_map = unified_planning_grounder.get_rewrite_back_map()
         return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map), self.name, [])
 
-    @staticmethod
-    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
-        if stream is not None:
-            credits.write_credits(stream, full_credits)
+    @staticproperty
+    def credits() -> Optional[Credits]: # type: ignore
+        return credits
 
     def destroy(self):
         pass

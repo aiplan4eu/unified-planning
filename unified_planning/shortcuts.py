@@ -119,7 +119,7 @@ def OneshotPlanner(*, name: Optional[str] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None,
-                   credits_stream: Optional[IO[str]] = sys.stdout) -> Optional[Solver]:
+                   credits_stream: Optional[IO[str]] = sys.stdout) -> Solver:
     """
     Returns a oneshot planner. There are three ways to call this method:
     - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -140,7 +140,7 @@ def PlanValidator(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
-                   credits_stream: Optional[IO[str]] = sys.stdout) -> Optional[Solver]:
+                   credits_stream: Optional[IO[str]] = sys.stdout) -> Solver:
     """
     Returns a plan validator. There are three ways to call this method:
     - using 'name' (the name of a specific plan validator) and 'params'
@@ -158,7 +158,7 @@ def PlanValidator(*, name: Optional[str] = None,
 
 def Grounder(*, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
-                   credits_stream: Optional[IO[str]] = sys.stdout) -> Optional[Solver]:
+                   credits_stream: Optional[IO[str]] = sys.stdout) -> Solver:
     """
     Returns a Grounder. There are three ways to call this method:
     - using 'name' (the name of a specific grounder) and 'params'

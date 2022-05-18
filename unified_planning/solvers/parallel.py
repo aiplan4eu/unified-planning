@@ -134,11 +134,6 @@ class Parallel(solvers.solver.Solver):
     def validate(self, problem: 'up.model.AbstractProblem', plan: Plan) -> 'up.solvers.results.ValidationResult':
         return cast(ValidationResult, self._run_parallel('validate', problem, plan)[0])
 
-    @staticmethod
-    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
-        if stream is not None:
-            stream.write('Parallel solver credits depends on the solver which compose it.\n')
-
     def destroy(self):
         pass
 

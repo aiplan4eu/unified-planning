@@ -15,8 +15,6 @@
 """This module defines the solver interface."""
 
 
-import sys
-from unicodedata import name
 import unified_planning as up
 from unified_planning.plan import Plan
 from unified_planning.model import ProblemKind, AbstractProblem
@@ -36,6 +34,7 @@ class Credits:
     author: str
     contact: str
     website: str
+    license: str
     short_description: str
     long_description: str
 
@@ -45,12 +44,16 @@ class Credits:
             stream.write(self.short_description)
             stream.write('\n\n')
         else:
-            stream.write(f'The author can be reached here: {self.contact}\n')
-            stream.write(f'This is the engine website: {self.website}\n')
+            stream.write(f'Contacts of the authors: {self.contact}\n')
+            stream.write(f'Website: {self.website}\n')
+            stream.write(f'License: {self.license}\n')
             stream.write(self.long_description)
             stream.write('\n\n')
 
-credits = Credits('Base solver class', 'FBK-team', 'aiplan4eu@fbk.eu', 'https://github.com/aiplan4eu/unified-planning', 'Solver base class', 'Solver base class')
+
+class staticproperty(staticmethod):
+    def __get__(self, *args):
+        return self.__func__()
 
 
 class Solver:
@@ -125,13 +128,13 @@ class Solver:
         fits the solver implementation better than retrieving a Callable.'''
         raise NotImplementedError
 
-    @staticmethod
-    def credits(stream: Optional[IO[str]] = sys.stdout, full_credits: bool = False):
+    @staticproperty
+    def credits() -> Optional[Credits]: # type: ignore
         '''
-        This method takes an IO[str] and writes the credits of the planner onto the stream.
+        This method returns the credits for this solver, that will be printed when the solver is used.
+        If this function returns None, it means no credits to print.
         '''
-        if stream is not None:
-            credits.write_credits(stream, full_credits)
+        return None
 
     def destroy(self):
         raise NotImplementedError
