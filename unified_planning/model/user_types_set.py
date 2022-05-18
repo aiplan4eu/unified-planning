@@ -19,7 +19,7 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import List, Dict, Optional, cast
 
 
-class UserTypesSet:
+class UserTypesSetMixin:
     '''
     This class is a mixin that contains a set of user types with some related methods.
 

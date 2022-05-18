@@ -19,7 +19,7 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import List, Dict, Union
 
 
-class FluentsSet:
+class FluentsSetMixin:
     '''
     This class is a mixin that contains a set of fluents with some related methods.
 

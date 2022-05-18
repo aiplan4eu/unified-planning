@@ -16,7 +16,7 @@
 
 
 import unified_planning as up
-from unified_planning.transformers.ab_transformer import ABTransformer
+from unified_planning.transformers.ab_transformer import ActionBasedTransformer
 from unified_planning.model import Fluent, Problem, InstantaneousAction, DurativeAction, FNode, Action, Effect, Timing
 from unified_planning.walkers.identitydag import IdentityDagWalker
 from unified_planning.exceptions import UPExpressionDefinitionError, UPProblemDefinitionError
@@ -49,7 +49,7 @@ class NegativeFluentRemover(IdentityDagWalker):
         return self._fluent_mapping
 
 
-class NegativeConditionsRemover(ABTransformer):
+class NegativeConditionsRemover(ActionBasedTransformer):
     '''Negative conditions remover class:
     this class requires a problem and offers the capability
     to transform a problem with negative conditions into one
@@ -58,7 +58,7 @@ class NegativeConditionsRemover(ABTransformer):
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation.'''
     def __init__(self, problem: Problem, name: str = 'ncrm'):
-        ABTransformer.__init__(self, problem, name)
+        ActionBasedTransformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self, self._env)
         #Represents the map from the new action to the old action

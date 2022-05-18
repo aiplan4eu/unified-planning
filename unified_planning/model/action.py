@@ -160,7 +160,7 @@ class InstantaneousAction(Action):
         """Returns the list of the action conditional effects.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible."""
+        seldom as possible."""
         return [e for e in self._effects if e.is_conditional()]
 
     def is_conditional(self) -> bool:
@@ -172,7 +172,7 @@ class InstantaneousAction(Action):
         """Returns the list of the action unconditional effects.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible."""
+        seldom as possible."""
         return [e for e in self._effects if not e.is_conditional()]
 
     def add_precondition(self, precondition: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.parameter.Parameter', bool]):
@@ -364,7 +364,7 @@ class DurativeAction(Action):
         '''Return the action conditional effects.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             cond_effect_list = [e for e in effect_list if e.is_conditional()]
@@ -377,7 +377,7 @@ class DurativeAction(Action):
         '''Return the action unconditional effects.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             uncond_effect_list = [e for e in effect_list if not e.is_conditional()]

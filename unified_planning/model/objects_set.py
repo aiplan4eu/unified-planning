@@ -19,7 +19,7 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import Iterator, List, Union, Optional, cast
 
 
-class ObjectsSet:
+class ObjectsSetMixin:
     '''
     This class is a mixin that contains a set of objects with some related methods.
 
@@ -91,7 +91,7 @@ class ObjectsSet:
         return False
 
     def objects(self, typename: 'up.model.types.Type') -> Iterator['up.model.object.Object']:
-        '''Returns the objects of the given user types.'''
+        '''Returns the objects of the given user type and of its heirs.'''
         for obj in self._objects:
             if cast(_UserType, obj.type).is_subtype(typename):
                 yield obj

@@ -89,7 +89,7 @@ class Fluent:
         '''Returns the fluent arity.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         return len(self._signature)
 
     def __call__(self, *args: 'up.model.expression.Expression') -> 'up.model.fnode.FNode':

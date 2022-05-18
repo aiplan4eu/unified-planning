@@ -18,7 +18,7 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import Iterator, List
 
 
-class ActionsSet:
+class ActionsSetMixin:
     '''
     This class is a mixin that contains a set of actions with some related methods.
 
@@ -52,7 +52,7 @@ class ActionsSet:
         '''Returs all the instantaneous actions of the problem.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 yield a
@@ -62,7 +62,7 @@ class ActionsSet:
         '''Returs all the durative actions of the problem.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         for a in self._actions:
             if isinstance(a, up.model.action.DurativeAction):
                 yield a
@@ -72,7 +72,7 @@ class ActionsSet:
         '''Returns the conditional actions.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         return [a for a in self._actions if a.is_conditional()]
 
     @property
@@ -80,7 +80,7 @@ class ActionsSet:
         '''Returns the conditional actions.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         return [a for a in self._actions if not a.is_conditional()]
 
     def action(self, name: str) -> 'up.model.action.Action':

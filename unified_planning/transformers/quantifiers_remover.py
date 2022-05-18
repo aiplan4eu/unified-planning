@@ -16,18 +16,18 @@
 
 
 from unified_planning.walkers import ExpressionQuantifiersRemover
-from unified_planning.transformers.ab_transformer import ABTransformer
+from unified_planning.transformers.ab_transformer import ActionBasedTransformer
 from unified_planning.model import Problem, InstantaneousAction, DurativeAction, Action
 from typing import List, Dict
 
 
-class QuantifiersRemover(ABTransformer):
+class QuantifiersRemover(ActionBasedTransformer):
     '''Quantifiers remover class:
     this class requires a problem and offers the capability
     to transform a problem with quantifiers into a problem without.
     '''
     def __init__(self, problem: Problem, name: str = 'qurm'):
-        ABTransformer.__init__(self, problem, name)
+        ActionBasedTransformer.__init__(self, problem, name)
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifiersRemover(self._env)
         #Represents the map from the new action to the old action

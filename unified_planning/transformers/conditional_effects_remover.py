@@ -17,12 +17,12 @@
 
 import unified_planning
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.transformers.ab_transformer import ABTransformer
+from unified_planning.transformers.ab_transformer import ActionBasedTransformer
 from typing import Iterable, List, Dict, Tuple, Union, Optional
 from itertools import chain, combinations
 
 
-class ConditionalEffectsRemover(ABTransformer):
+class ConditionalEffectsRemover(ActionBasedTransformer):
     '''Conditional effect remover class:
     this class requires a problem and offers the capability
     to transform a conditional problem into an unconditional one.
@@ -33,7 +33,7 @@ class ConditionalEffectsRemover(ABTransformer):
     Also the conditional timed_effects are removed maintaining the same
     semanthics. When this is not possible, an exception is raised.'''
     def __init__(self, problem: 'unified_planning.model.Problem', name: str = 'cerm'):
-        ABTransformer.__init__(self, problem, name)
+        ActionBasedTransformer.__init__(self, problem, name)
         #Represents the map from the new action to the old action
         self._new_to_old: Dict['unified_planning.model.Action', 'unified_planning.model.Action'] = {}
         #represents a mapping from the action of the original problem to action of the new one.

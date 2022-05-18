@@ -16,10 +16,10 @@
 
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
-from unified_planning.model.actions_set import ActionsSet
-from unified_planning.model.fluents_set import FluentsSet
-from unified_planning.model.objects_set import ObjectsSet
-from unified_planning.model.user_types_set import UserTypesSet
+from unified_planning.model.actions_set import ActionsSetMixin
+from unified_planning.model.fluents_set import FluentsSetMixin
+from unified_planning.model.objects_set import ObjectsSetMixin
+from unified_planning.model.user_types_set import UserTypesSetMixin
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
@@ -30,15 +30,15 @@ from fractions import Fraction
 from typing import Iterator, List, Dict, Set, Union, Optional, cast
 
 
-class Problem(AbstractProblem, UserTypesSet, FluentsSet, ActionsSet, ObjectsSet):
+class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMixin, ObjectsSetMixin):
     '''Represents a, action based planning problem.'''
     def __init__(self, name: str = None, env: 'up.environment.Environment' = None, *,
                  initial_defaults: Dict['up.model.types.Type', 'ConstantExpression'] = {}):
         AbstractProblem.__init__(self, name, env)
-        UserTypesSet.__init__(self, self.has_name)
-        FluentsSet.__init__(self, self.env, self._add_user_type, self.has_name, initial_defaults)
-        ActionsSet.__init__(self, self.env, self._add_user_type, self.has_name)
-        ObjectsSet.__init__(self, self.env, self._add_user_type, self.has_name)
+        UserTypesSetMixin.__init__(self, self.has_name)
+        FluentsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name, initial_defaults)
+        ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
+        ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         self._operators_extractor = OperatorsExtractor()
         self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
@@ -291,7 +291,7 @@ class Problem(AbstractProblem, UserTypesSet, FluentsSet, ActionsSet, ObjectsSet)
         '''Gets the initial value of the fluents.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         res = self._initial_value
         for f in self._fluents:
             if f.arity == 0:
@@ -428,7 +428,7 @@ class Problem(AbstractProblem, UserTypesSet, FluentsSet, ActionsSet, ObjectsSet)
         '''Returns the problem kind of this planning problem.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        minimum time as possible.'''
+        seldom as possible.'''
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class('ACTION_BASED') # type: ignore
         for fluent in self._fluents:

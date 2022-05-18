@@ -19,7 +19,7 @@ import unified_planning.model
 import unified_planning.walkers as walkers
 from unified_planning.walkers.identitydag import IdentityDagWalker
 from unified_planning.model import Object, FNode, OperatorKind
-from unified_planning.model.objects_set import ObjectsSet
+from unified_planning.model.objects_set import ObjectsSetMixin
 from unified_planning.model.expression import Expression
 from typing import List, Dict
 from itertools import product
@@ -31,7 +31,7 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         IdentityDagWalker.__init__(self, self._env, True)
         self._substituter = walkers.Substituter(self._env)
 
-    def remove_quantifiers(self, expression: FNode, objects_set: 'ObjectsSet'):
+    def remove_quantifiers(self, expression: FNode, objects_set: 'ObjectsSetMixin'):
         self._objects_set = objects_set
         return self.walk(expression)
 

@@ -23,7 +23,7 @@ from unified_planning.transformers.transformer import Transformer
 from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
 
 
-class ABTransformer(Transformer):
+class ActionBasedTransformer(Transformer):
     '''Represents a generic Transformer with all the needed methods shared among them.'''
     def __init__(self, problem: Problem, name: str):
         super().__init__(problem, name)

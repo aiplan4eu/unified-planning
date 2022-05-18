@@ -213,7 +213,7 @@ class TypeManager:
             father = father.father # type: ignore
 
 
-def domain_size(objects_set: 'unified_planning.model.objects_set.ObjectsSet',
+def domain_size(objects_set: 'unified_planning.model.objects_set.ObjectsSetMixin',
                 typename: 'unified_planning.model.types.Type') -> int:
     '''Returns the domain size of the given type.'''
     if typename.is_bool_type():
@@ -229,7 +229,7 @@ def domain_size(objects_set: 'unified_planning.model.objects_set.ObjectsSet',
     else:
         raise UPProblemDefinitionError('Parameter not groundable!')
 
-def domain_item(objects_set: 'unified_planning.model.objects_set.ObjectsSet',
+def domain_item(objects_set: 'unified_planning.model.objects_set.ObjectsSetMixin',
                 typename: 'unified_planning.model.types.Type', idx: int) -> 'unified_planning.model.fnode.FNode':
     '''Returns the ith domain item of the given type.'''
     if typename.is_bool_type():
