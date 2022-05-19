@@ -18,7 +18,7 @@
 import unified_planning as up
 import unified_planning.walkers
 from unified_planning.model import FNode, Timing, TimeInterval, Action, InstantaneousAction, DurativeAction, Problem
-from unified_planning.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance, Plan
+from unified_planning.plans import ActionInstance, Plan
 from unified_planning.transformers.transformer import Transformer
 from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
 

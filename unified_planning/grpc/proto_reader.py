@@ -23,7 +23,7 @@ import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning import Environment
 from unified_planning import model
 from unified_planning.model import metrics
-import unified_planning.plan
+import unified_planning.plans
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model import (
     DurativeAction,
@@ -440,24 +440,24 @@ class ProtobufReader(Converter):
             raise UPException("Unknown timepoint kind: {}".format(msg.kind))
 
     @handles(proto.Plan)
-    def _convert_plan(self, msg: proto.Plan, problem: Problem) -> unified_planning.plan.Plan:
+    def _convert_plan(self, msg: proto.Plan, problem: Problem) -> unified_planning.plans.Plan:
         actions = [self.convert(a, problem) for a in msg.actions]
         if all(isinstance(a, tuple) for a in actions):
             # If all actions are tuples, we can assume that they are
             # (absolute start time, action, duration)
-            return unified_planning.plan.TimeTriggeredPlan(actions)
+            return unified_planning.plans.TimeTriggeredPlan(actions)
         else:
             # Otherwise, we assume they are instantenous actions
-            return unified_planning.plan.SequentialPlan(actions=actions)
+            return unified_planning.plans.SequentialPlan(actions=actions)
 
     @handles(proto.ActionInstance)
-    def _convert_action_instance(self, msg: proto.ActionInstance, problem: Problem) -> Union[Tuple[model.timing.Timing, unified_planning.plan.ActionInstance, model.timing.Duration],
-                                                                                             unified_planning.plan.ActionInstance]:
+    def _convert_action_instance(self, msg: proto.ActionInstance, problem: Problem) -> Union[Tuple[model.timing.Timing, unified_planning.plans.ActionInstance, model.timing.Duration],
+                                                                                             unified_planning.plans.ActionInstance]:
         # action instance paramaters are atoms but in UP they are FNodes
         # converting to up.model.FNode
         parameters = tuple([self.convert(param, problem) for param in msg.parameters])
 
-        action_instance = unified_planning.plan.ActionInstance(
+        action_instance = unified_planning.plans.ActionInstance(
             problem.action(msg.action_name),
             parameters,
         )

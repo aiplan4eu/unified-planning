@@ -22,7 +22,7 @@ from unified_planning.solvers import LogMessage
 from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus
 from unified_planning.test import TestCase, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
-from unified_planning.plan import ActionInstance
+from unified_planning.plans import ActionInstance
 
 
 class TestProtobufIO(TestCase):
@@ -157,7 +157,7 @@ class TestProtobufIO(TestCase):
         action_instance_pb = self.pb_writer.convert(action_instance)
         action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
 
-        self.assertEqual(action_instance, action_instance_up)
+        self.assertEqual(str(action_instance), str(action_instance_up))
 
     def test_plan(self):
         problem = self.problems["robot"].problem
@@ -166,7 +166,7 @@ class TestProtobufIO(TestCase):
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
-        self.assertEqual(plan, plan_up)
+        self.assertEqual(str(plan), str(plan_up))
 
     def test_time_triggered_plan(self):
         problem = self.problems["temporal_conditional"].problem
@@ -175,7 +175,7 @@ class TestProtobufIO(TestCase):
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
 
-        self.assertEqual(plan, plan_up)
+        self.assertEqual(str(plan), str(plan_up))
 
     def test_metric(self):
         problem = Problem("test")
@@ -224,7 +224,7 @@ class TestProtobufIO(TestCase):
             final_report_pb = self.pb_writer.convert(final_report)
             final_report_up = self.pb_reader.convert(final_report_pb, problem)
 
-            self.assertEqual(final_report, final_report_up)
+            self.assertEqual(str(final_report), str(final_report_up))
 
     def test_grounding_result(self):
         problem, _ = self.problems["hierarchical_blocks_world"]
@@ -240,7 +240,7 @@ class TestProtobufIO(TestCase):
                 grounded_action_instance = ActionInstance(grounded_action)
                 original_action_instance_up = ground_result.lift_action_instance(grounded_action_instance)
                 original_action_instance_pb = ground_result_up.lift_action_instance(grounded_action_instance)
-                self.assertEqual(original_action_instance_pb, original_action_instance_up)
+                self.assertEqual(str(original_action_instance_pb), str(original_action_instance_up))
 
     @skipIfSolverNotAvailable("tamer")
     def test_validation_result(self):
@@ -280,7 +280,7 @@ class TestProtobufProblems(TestCase):
             plan_pb = self.pb_writer.convert(plan)
             plan_up = self.pb_reader.convert(plan_pb, problem)
 
-            self.assertEqual(plan, plan_up)
+            self.assertEqual(str(plan), str(plan_up))
 
     @skipIfSolverNotAvailable("tamer")
     def test_some_plan_generations(self):
@@ -306,5 +306,5 @@ class TestProtobufProblems(TestCase):
                 final_report_up = self.pb_reader.convert(final_report_pb, problem)
 
                 self.assertEqual(final_report.status, final_report_up.status)
-                self.assertEqual(final_report.plan, final_report_up.plan)
+                self.assertEqual(str(final_report.plan), str(final_report_up.plan))
                 self.assertEqual(final_report.engine_name, final_report_up.engine_name)

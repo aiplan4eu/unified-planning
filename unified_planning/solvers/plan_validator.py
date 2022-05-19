@@ -24,7 +24,7 @@ import unified_planning.walkers as walkers
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import FNode, Expression, AbstractProblem, Problem, ProblemKind, Object
 from unified_planning.solvers.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
-from unified_planning.plan import SequentialPlan
+from unified_planning.plans import SequentialPlan
 
 
 class QuantifierSimplifier(walkers.Simplifier):
@@ -171,7 +171,7 @@ class SequentialPlanValidator(solvers.solver.Solver):
         self.manager = self._env.expression_manager
         self._substituter = walkers.Substituter(self._env)
 
-    def validate(self, problem: 'AbstractProblem', plan: 'unified_planning.plan.Plan') -> 'up.solvers.results.ValidationResult':
+    def validate(self, problem: 'AbstractProblem', plan: 'unified_planning.plans.Plan') -> 'up.solvers.results.ValidationResult':
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""

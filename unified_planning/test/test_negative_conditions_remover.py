@@ -15,7 +15,7 @@
 
 from fractions import Fraction
 import os
-from unified_planning.plan import ActionInstance
+from unified_planning.plans import ActionInstance
 import unified_planning
 from unified_planning.environment import get_env
 from unified_planning.shortcuts import *
@@ -99,12 +99,12 @@ class TestNegativeConditionsRemover(TestCase):
         mend_f2 = ActionInstance(mend_fuse, (ObjectExp(f2), ))
         mend_f3 = ActionInstance(mend_fuse, (ObjectExp(f3), ))
         npa = [a for s, a, d in new_plan.actions]
-        self.assertIn(light_m1, npa)
-        self.assertIn(light_m2, npa)
-        self.assertIn(light_m3, npa)
-        self.assertIn(mend_f1, npa)
-        self.assertIn(mend_f2, npa)
-        self.assertIn(mend_f3, npa)
+        self.assertIn(str(light_m1), str(npa))
+        self.assertIn(str(light_m2), str(npa))
+        self.assertIn(str(light_m3), str(npa))
+        self.assertIn(str(mend_f1), str(npa))
+        self.assertIn(str(mend_f2), str(npa))
+        self.assertIn(str(mend_f3), str(npa))
 
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)

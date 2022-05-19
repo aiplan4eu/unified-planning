@@ -15,7 +15,7 @@
 '''This module defines the different remover classes.'''
 
 from unified_planning.model import AbstractProblem
-from unified_planning.plan import Plan
+from unified_planning.plans import Plan
 from unified_planning.solvers import Credits
 from typing import Optional
 
