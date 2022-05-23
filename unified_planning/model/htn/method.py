@@ -152,7 +152,7 @@ class Method:
         >>> task_achieved = ParameterizedTask(go, m1.parameter("target"))
         >>> m1.set_task(task_achieved)
         >>> m2 = Method("m-go2", source=Location, target=Location)
-        >>> m2.set_task(go, m1.parameter("target"))
+        >>> m2.set_task(go, m2.parameter("target"))
         >>> m3 = Method("m-go3", source=Location, target=Location)
         >>> m3.set_task(go) # Infer the parameters of the `go` task from the parameters of m3 with the same name
         """

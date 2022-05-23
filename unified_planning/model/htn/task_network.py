@@ -73,7 +73,7 @@ class TaskNetwork:
         return list(self._variables.values())
 
     def add_variable(self, name: str, typename: Type) -> Parameter:
-        assert name not in self._variables
+        assert name not in self._variables, f"A variable with name {name} already exists."
         param = Parameter(name, typename)
         self._variables[name] = param
         return param

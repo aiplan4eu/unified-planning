@@ -567,8 +567,9 @@ class PDDLReader:
 
             method = htn.Method(name, method_params)
             achieved_task = m['task'][0]  # a list of the form ["go", "?robot", "?target"]
-            assert all([pname[0] == '?' for pname in achieved_task[1:]]),\
-                f"All arguments of the task should be parameters: {achieved_task}"
+            for pname in achieved_task[1:]:
+                if pname[0] != '?':
+                    raise SyntaxError(f"All arguments of the task should be parameters: {achieved_task}")
             achieved_task_params = [method.parameter(pname[1:]) for pname in achieved_task[1:]]
             method.set_task(problem.get_task(achieved_task[0]), *achieved_task_params)
             for ord_subs in m.get('ordered-subtasks', []):
