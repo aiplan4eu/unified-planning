@@ -36,6 +36,7 @@ class ParameterizedTask:
         self._task = task
         self._params: List[Parameter] = list(params)
         assert len(self._task.parameters) == len(self._params)
+        # TODO #153: check that the type of each parameter is compatible with the task' signature
 
     def __repr__(self):
         return str(self._task.name) + '(' + ', '.join(map(str, self.parameters)) + ')'
@@ -132,21 +133,40 @@ class Method:
     @property
     def achieved_task(self) -> ParameterizedTask:
         """Returns the task that this method achieves."""
-        assert self._task is not None
+        assert self._task is not None, "The achieved task was previously set (see the set_task method)."
         return self._task
 
     def set_task(self, task: Union[Task, ParameterizedTask], *arguments: Parameter):
-        """Defines the task that is method achieves."""
+        """Defines the task that is method achieves.
+
+        It expects a Task and its arguments, either bundle in a `ParameterizedTask` instance of
+        passed separetly.
+        It is assumed that each parameter of the achieved task is a parameter of the method.
+
+        # Examples
+        >>> from unified_planning.shortcuts import *
+        >>> from unified_planning.model.htn import *
+        >>> Location = UserType("Location")
+        >>> go = Task("go", target=Location)
+        >>> m1 = Method("m-go1", target=Location)
+        >>> task_achieved = ParameterizedTask(go, m1.parameter("target"))
+        >>> m1.set_task(task_achieved)
+        >>> m2 = Method("m-go2", source=Location, target=Location)
+        >>> m2.set_task(go, m1.parameter("target"))
+        >>> m3 = Method("m-go3", source=Location, target=Location)
+        >>> m3.set_task(go) # Infer the parameters of the `go` task from the parameters of m3 with the same name
+        """
         assert self._task is None, f"Method {self.name} was already assigned a task"
         if isinstance(task, ParameterizedTask):
-            assert all(p.name in self._parameters for p in task.parameters)
+            assert len(arguments) == 0, "Unexpected arguments passed along a ParameterizedTask"
+            assert all(p in self.parameters for p in task.parameters), "A parameter of the task does not appear as a parameter of the method."
             self._task = task
         elif isinstance(task, Task) and len(arguments) == 0:
             for task_param in task.parameters:
                 assert task_param.name in self._parameters, f"Missing task parameter '{task_param.name}' in method {self._name}. Please pass all parameters explicitly."
             self._task = ParameterizedTask(task, *task.parameters)
         else:
-            assert all(p.name in self._parameters for p in arguments)
+            assert all(p in self.parameters for p in arguments), "An argument passed to the task does not appear as a parameter of the method."
             self._task = ParameterizedTask(task, *arguments)
 
     @property
