@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from unified_planning import model
 from unified_planning.model.fnode import FNode
 from enum import Enum, auto
@@ -27,7 +28,7 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    def __init__(self, kind: TimepointKind, container: Optional['model.htn.task.Subtask'] = None):
+    def __init__(self, kind: TimepointKind, container=None):
         """Creates a new timepoint.
 
         It is typically used to refer to:
