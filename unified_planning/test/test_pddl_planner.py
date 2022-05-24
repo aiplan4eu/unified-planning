@@ -259,7 +259,7 @@ class TestPDDLPlanner(TestCase):
             final_report = planner.solve(problem, timeout=VERYSMALL_TIMEOUT, output_stream=output_stream)
             plan = final_report.plan
             planner_output = output_stream.getvalue()
-            self.assertTrue(plan is None or plan == right_plan)
+            self.assertTrue(plan is None or str(plan) == str(right_plan))
 
             for lm in final_report.log_messages:
                 if lm.level == up.solvers.LogLevel.INFO:
