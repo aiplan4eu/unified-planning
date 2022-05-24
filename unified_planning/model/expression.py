@@ -25,7 +25,7 @@ from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
 from typing import Iterable, List, Union, Dict, Tuple
 
-Expression = Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.parameter.Parameter', 'unified_planning.model.variable.Variable', bool, int, float, Fraction]
+Expression = Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.parameter.Parameter', 'unified_planning.model.variable.Variable', 'unified_planning.model.timing.Timing', bool, int, float, Fraction]
 BoolExpression = Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', 'unified_planning.model.parameter.Parameter', bool]
 
 class ExpressionManager(object):
@@ -71,6 +71,8 @@ class ExpressionManager(object):
                 res.append(self.VariableExp(e))
             elif isinstance(e, unified_planning.model.object.Object):
                 res.append(self.ObjectExp(e))
+            elif isinstance(e, unified_planning.model.timing.Timing):
+                res.append(self.TimingExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
             elif isinstance(e, int):
@@ -84,7 +86,7 @@ class ExpressionManager(object):
         return res
 
     def create_node(self, node_type: OperatorKind, args: Iterable['unified_planning.model.fnode.FNode'],
-                    payload: Union['unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.parameter.Parameter', 'unified_planning.model.variable.Variable', bool, int, Fraction, Tuple['unified_planning.model.variable.Variable', ...]] = None) ->'unified_planning.model.fnode.FNode':
+                    payload: Union['unified_planning.model.fluent.Fluent', 'unified_planning.model.object.Object', 'unified_planning.model.parameter.Parameter', 'unified_planning.model.variable.Variable', 'unified_planning.model.timing.Timing', bool, int, Fraction, Tuple['unified_planning.model.variable.Variable', ...]] = None) ->'unified_planning.model.fnode.FNode':
         content = unified_planning.model.fnode.FNodeContent(node_type, args, payload)
         if content in self.expressions:
             return self.expressions[content]
@@ -202,6 +204,10 @@ class ExpressionManager(object):
     def ObjectExp(self, obj: 'unified_planning.model.object.Object') ->'unified_planning.model.fnode.FNode':
         """Returns an expression for the given object."""
         return self.create_node(node_type=OperatorKind.OBJECT_EXP, args=tuple(), payload=obj)
+
+    def TimingExp(self, obj: 'unified_planning.model.timing.Timing') -> 'unified_planning.model.fnode.FNode':
+        """Returns an expression for the given timing."""
+        return self.create_node(node_type=OperatorKind.TIMING_EXP, args=tuple(), payload=obj)
 
     def TRUE(self) ->'unified_planning.model.fnode.FNode':
         """Return the boolean constant True."""

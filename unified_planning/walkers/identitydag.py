@@ -95,3 +95,6 @@ class IdentityDagWalker(walkers.DagWalker):
 
     def walk_object_exp(self, expression: FNode, args: List[FNode],**kwargs) -> FNode:
         return self.manager.ObjectExp(expression.object())
+
+    def walk_timing_exp(self, expression: FNode, args: List[FNode],**kwargs) -> FNode:
+        return self.manager.TimingExp(expression.timing())

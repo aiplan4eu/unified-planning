@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-
+from unified_planning import model
 from unified_planning.model.fnode import FNode
 from enum import Enum, auto
 from fractions import Fraction
-from typing import Union
+from typing import Union, Optional
 
 
 class TimepointKind(Enum):
@@ -28,27 +28,52 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    def __init__(self, kind: TimepointKind):
+    def __init__(self, kind: TimepointKind, container=None):
+        """Creates a new timepoint.
+
+        It is typically used to refer to:
+         - the start/end of the containing action or method, or
+         - to the start/end of a subtasks in a method
+
+        Parameters
+        ----------
+        kind: TimepointKind
+          Kind of the timepoint.
+        container: Optional[Subtask]
+          Container in which the timepoint is defined.
+          If not set, then a start/end timepoint refers to the enclosing action or method.
+          The container must have an `identifier` property that is a string uniquely identifying it.
+        """
         self._kind = kind
+        self._container = container
 
     def __repr__(self):
         if self._kind == TimepointKind.GLOBAL_START or self._kind == TimepointKind.START:
-            return 'start'
+            qualifier = 'start'
         else:
-            return 'end'
+            qualifier = 'end'
+        if self._container is None:
+            return qualifier
+        else:
+            return f'{qualifier}({self._container.identifier})'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Timepoint):
-            return self._kind == oth._kind
+            return self._kind == oth._kind and self._container == oth._container
         else:
             return False
 
     def __hash__(self) -> int:
-        return hash(self._kind)
+        return hash(self._kind) + hash(self._container)
 
     @property
     def kind(self) -> TimepointKind:
         return self._kind
+
+    @property
+    def container(self):
+        """Returns the container in which this timepoint is defined or None if it refers to the enclosing action/method."""
+        return self._container
 
 
 class Timing:

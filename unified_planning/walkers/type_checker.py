@@ -17,7 +17,7 @@
 import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.walkers as walkers
-from unified_planning.model.types import BOOL
+from unified_planning.model.types import BOOL, TIME
 from unified_planning.model import FNode, OperatorKind
 from unified_planning.exceptions import UPTypeError
 from typing import List, Optional
@@ -93,6 +93,11 @@ class TypeChecker(walkers.DagWalker):
         assert expression is not None
         assert len(args) == 0
         return expression.object().type
+
+    def walk_timing_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+        assert expression is not None
+        assert len(args) == 0
+        return TIME
 
     @walkers.handles(OperatorKind.BOOL_CONSTANT)
     def walk_identity_bool(self, expression: FNode,
@@ -233,7 +238,7 @@ class TypeChecker(walkers.DagWalker):
     @walkers.handles(OperatorKind.LE, OperatorKind.LT)
     def walk_math_relation(self, expression, args):
         for x in args:
-            if x is None or not (x.is_int_type() or x.is_real_type()):
+            if x is None or not (x.is_int_type() or x.is_real_type() or x.is_time_type()):
                 return None
         return BOOL
 

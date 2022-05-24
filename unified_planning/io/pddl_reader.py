@@ -15,6 +15,7 @@
 
 import unified_planning as up
 import unified_planning.model
+import unified_planning.model.htn as htn
 import pyparsing # type: ignore
 import typing
 from mimetypes import types_map
@@ -38,7 +39,7 @@ class PDDLGrammar:
         variable = Suppress('?') + name
 
         require_def = Suppress('(') + ':requirements' + \
-            OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs')) \
+            OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy')) \
             + Suppress(')')
 
         types_def = Suppress('(') + ':types' + \
@@ -79,26 +80,47 @@ class PDDLGrammar:
                                + ':effect' + nestedExpr().setResultsName('eff') \
                                + Suppress(')'))
 
+        task_def = Group(Suppress('(') + ':task' + name.setResultsName('name')
+                         + ':parameters' + Suppress('(') + parameters + Suppress(')')
+                         + Suppress(')'))
+
+        method_def = Group(Suppress('(') + ':method' + name.setResultsName('name') \
+                           + ':parameters' + Suppress('(') + parameters + Suppress(')') \
+                           + ':task' + nestedExpr().setResultsName('task') \
+                           + Optional(':ordered-subtasks' + nestedExpr().setResultsName('ordered-subtasks')) \
+                           + Optional(':subtasks' + nestedExpr().setResultsName('subtasks')) \
+                           + Suppress(')'))
+
         domain = Suppress('(') + 'define' \
             + Suppress('(') + 'domain' + name.setResultsName('name') + Suppress(')') \
-            + Optional(require_def) + Optional(types_def) + Optional(constants_def) \
+            + Optional(require_def).setResultsName("features") + Optional(types_def) + Optional(constants_def) \
             + Optional(predicates_def) + Optional(functions_def) \
-            + Group(ZeroOrMore(action_def | dur_action_def)).setResultsName('actions') + Suppress(')')
+            + Group(ZeroOrMore(task_def)).setResultsName('tasks') \
+            + Group(ZeroOrMore(method_def)).setResultsName('methods') \
+            + Group(ZeroOrMore(action_def | dur_action_def)).setResultsName('actions') \
+            + Suppress(')')
 
-        objects = OneOrMore(Group(Group(OneOrMore(name)) \
+        objects = OneOrMore(Group(Group(OneOrMore(name))
                                   + Optional(Suppress('-') + name))).setResultsName('objects')
+
+        htn_def = Group(Suppress('(') + ':htn'
+                        + Optional(':tasks' + nestedExpr().setResultsName('tasks'))
+                        + Optional(':ordering' + nestedExpr().setResultsName('ordering'))
+                        + Optional(':constraints' + nestedExpr().setResultsName('constraints'))
+                        + Suppress(')'))
 
         metric = (Keyword('minimize') | Keyword('maximize')).setResultsName('optimization') \
             + (name | nestedExpr()).setResultsName('metric')
 
-        problem = Suppress('(') + 'define' \
-            + Suppress('(') + 'problem' + name.setResultsName('name') + Suppress(')') \
-            + Suppress('(') + ':domain' + name + Suppress(')') + Optional(require_def) \
-            + Optional(Suppress('(') + ':objects' + objects + Suppress(')')) \
-            + Suppress('(') + ':init' + ZeroOrMore(nestedExpr()).setResultsName('init') + Suppress(')') \
-            + Suppress('(') + ':goal' + nestedExpr().setResultsName('goal') + Suppress(')') \
-            + Optional(Suppress('(') + ':metric' + metric + Suppress(')')) \
-            + Suppress(')')
+        problem = (Suppress('(') + 'define'
+                   + Suppress('(') + 'problem' + name.setResultsName('name') + Suppress(')')
+                   + Suppress('(') + ':domain' + name + Suppress(')') + Optional(require_def)
+                   + Optional(Suppress('(') + ':objects' + objects + Suppress(')'))
+                   + Optional(htn_def.setResultsName('htn'))
+                   + Suppress('(') + ':init' + ZeroOrMore(nestedExpr()).setResultsName('init') + Suppress(')')
+                   + Optional(Suppress('(') + ':goal' + nestedExpr().setResultsName('goal') + Suppress(')'))
+                   + Optional(Suppress('(') + ':metric' + metric + Suppress(')'))
+                   + Suppress(')'))
 
         domain.ignore(';' + restOfLine)
         problem.ignore(';' + restOfLine)
@@ -150,7 +172,7 @@ class PDDLReader:
         self._fve = up.walkers.FreeVarsExtractor()
         self._totalcost: typing.Optional[up.model.FNode] = None
 
-    def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[up.model.Action],
+    def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
                    types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
                    exp: Union[ParseResults, str]) -> up.model.FNode:
         stack = [(var, exp, False)]
@@ -231,6 +253,8 @@ class PDDLReader:
         to_add = [(exp, cond)]
         while to_add:
             exp, cond = to_add.pop(0)
+            if len(exp) == 0:
+                continue  # ignore the case where the effect list is empty, e.g., `:effect ()`
             op = exp[0]
             if op == 'and':
                 exp = exp[1:]
@@ -317,6 +341,35 @@ class PDDLReader:
             else:
                 raise SyntaxError(f'Not able to handle: {eff}')
 
+    def _parse_subtask(self, e, method: typing.Optional[htn.Method], problem: htn.HierarchicalProblem, types_map: Dict[str, up.model.Type]) -> typing.Optional[htn.Subtask]:
+        """Returns the Subtask corresponding to the given expression e or
+           None if the expression cannot be interpreted as a subtask."""
+        if len(e) == 0:
+            return None
+        task_name = e[0]
+        task: Union[htn.Task, up.model.Action]
+        if problem.has_task(task_name):
+            task = problem.get_task(task_name)
+        elif problem.has_action(task_name):
+            task = problem.action(task_name)
+        else:
+            return None
+        assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
+        parameters = [self._parse_exp(problem, method, types_map, {}, param) for param in e[1:]]
+        return htn.Subtask(task, *parameters)
+
+    def _parse_subtasks(self, e, method: typing.Optional[htn.Method], problem: htn.HierarchicalProblem, types_map: Dict[str, up.model.Type],) -> List[htn.Subtask]:
+        """Returns the list of subtasks of the expression"""
+        single_task = self._parse_subtask(e, method, problem, types_map)
+        if single_task is not None:
+            return [single_task]
+        elif len(e) == 0:
+            return []
+        elif e[0] == 'and':
+            return [subtask for e2 in e[1:] for subtask in self._parse_subtasks(e2, method, problem, types_map)]
+        else:
+            raise SyntaxError(f"Could not parse the subtasks list: {e}")
+
     def _check_if_object_type_is_needed(self, domain_res) -> bool:
         for p in domain_res.get('predicates', []):
             for g in p[1]:
@@ -382,8 +435,13 @@ class PDDLReader:
                       problem_filename: typing.Optional[str] = None) -> 'up.model.Problem':
         domain_res = self._pp_domain.parseFile(domain_filename)
 
-        problem = up.model.Problem(domain_res['name'], self._env,
-                                   initial_defaults={self._tm.BoolType(): self._em.FALSE()})
+        problem: up.model.Problem
+        if ":hierarchy" in set(domain_res.get('features', [])):
+            problem = htn.HierarchicalProblem(domain_res['name'], self._env,
+                                              initial_defaults={self._tm.BoolType(): self._em.FALSE()})
+        else:
+            problem = up.model.Problem(domain_res['name'], self._env,
+                                       initial_defaults={self._tm.BoolType(): self._em.FALSE()})
 
         types_map: Dict[str, 'up.model.Type'] = {}
         object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
@@ -439,6 +497,17 @@ class PDDLReader:
             for o in g[0]:
                 problem.add_object(up.model.Object(o, t))
 
+        for task in domain_res.get('tasks', []):
+            assert isinstance(problem, htn.HierarchicalProblem)
+            name = task['name']
+            task_params = OrderedDict()
+            for g in task.get('params', []):
+                t = types_map[g[1] if len(g) > 1 else 'object']
+                for p in g[0]:
+                    task_params[p] = t
+            task = htn.Task(name, task_params)
+            problem.add_task(task)
+
         for a in domain_res.get('actions', []):
             n = a['name']
             a_params = OrderedDict()
@@ -487,6 +556,33 @@ class PDDLReader:
                 problem.add_action(act)
                 has_actions_cost = has_actions_cost and self._instantaneous_action_has_cost(act)
 
+        for m in domain_res.get('methods', []):
+            assert isinstance(problem, htn.HierarchicalProblem)
+            name = m['name']
+            method_params = OrderedDict()
+            for g in m.get('params', []):
+                t = types_map[g[1] if len(g) > 1 else 'object']
+                for p in g[0]:
+                    method_params[p] = t
+
+            method = htn.Method(name, method_params)
+            achieved_task = m['task'][0]  # a list of the form ["go", "?robot", "?target"]
+            for pname in achieved_task[1:]:
+                if pname[0] != '?':
+                    raise SyntaxError(f"All arguments of the task should be parameters: {achieved_task}")
+            achieved_task_params = [method.parameter(pname[1:]) for pname in achieved_task[1:]]
+            method.set_task(problem.get_task(achieved_task[0]), *achieved_task_params)
+            for ord_subs in m.get('ordered-subtasks', []):
+                ord_subs = self._parse_subtasks(ord_subs, method, problem, types_map)
+                for s in ord_subs:
+                    method.add_subtask(s)
+                method.set_ordered(*ord_subs)
+            for subs in m.get('subtasks', []):
+                subs = self._parse_subtasks(subs, method, problem, types_map)
+                for s in subs:
+                    method.add_subtask(s)
+            problem.add_method(method)
+
         if problem_filename is not None:
             problem_res = self._pp_problem.parseFile(problem_filename)
 
@@ -496,6 +592,17 @@ class PDDLReader:
                 t = types_map[g[1] if len(g) > 1 else 'object']
                 for o in g[0]:
                     problem.add_object(up.model.Object(o, t))
+
+            tasknet = problem_res.get('htn', None)
+            if tasknet is not None:
+                assert isinstance(problem, htn.HierarchicalProblem)
+                tasks = self._parse_subtasks(tasknet['tasks'][0], None, problem, types_map)
+                for task in tasks:
+                    problem.task_network.add_subtask(task)
+                if len(tasknet['ordering'][0]) != 0:
+                    raise SyntaxError("Ordering not supported in the initial task network")
+                if len(tasknet['constraints'][0]) != 0:
+                    raise SyntaxError("Constraints not supported in the initial task network")
 
             for i in problem_res.get('init', []):
                 if i[0] == '=':
@@ -515,7 +622,10 @@ class PDDLReader:
                 else:
                     problem.set_initial_value(self._parse_exp(problem, None, types_map, {}, i), self._em.TRUE())
 
-            problem.add_goal(self._parse_exp(problem, None, types_map, {}, problem_res['goal'][0]))
+            if 'goal' in problem_res:
+                problem.add_goal(self._parse_exp(problem, None, types_map, {}, problem_res['goal'][0]))
+            elif not isinstance(problem, htn.HierarchicalProblem):
+                raise SyntaxError("Missing goal section in problem file.")
 
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(problem)
 

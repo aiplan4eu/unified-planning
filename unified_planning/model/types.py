@@ -39,6 +39,10 @@ class Type:
         """Returns true iff is integer type."""
         return False
 
+    def is_time_type(self) -> bool:
+        """Returns true iff is integer type."""
+        return False
+
 
 class _BoolType(Type):
     """Represents the boolean type."""
@@ -47,6 +51,17 @@ class _BoolType(Type):
         return 'bool'
 
     def is_bool_type(self) -> bool:
+        """Returns true iff is boolean type."""
+        return True
+
+
+class _TimeType(Type):
+    """Represent the type for an absolute Time"""
+
+    def __repr__(self) -> str:
+        return 'time'
+
+    def is_time_type(self) -> bool:
         """Returns true iff is boolean type."""
         return True
 
@@ -135,6 +150,8 @@ class _RealType(Type):
 
 
 BOOL = _BoolType()
+TIME = _TimeType()
+
 
 class TypeManager:
     def __init__(self):
