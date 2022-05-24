@@ -18,13 +18,13 @@ import networkx as nx # type: ignore
 import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.plans.sequential_plan import SequentialPlan
-from typing import Callable, Dict, List
+from typing import Callable, Dict, Iterator, List
 
 
 class PartialOrderPlan(plans.plan.Plan):
     '''Represents a partial order plan. Actrions are represent as an adjagency list graph.'''
     def __init__(self, actions: Dict['plans.plan.ActionInstance', List['plans.plan.ActionInstance']]):
-        self._graph = nx.convert.from_dict_of_lists(actions)
+        self._graph = nx.convert.from_dict_of_lists(actions, create_using=nx.DiGraph)
 
     def __repr__(self) -> str:
         return str(self._graph )
@@ -48,5 +48,9 @@ class PartialOrderPlan(plans.plan.Plan):
             new_adj_list[replace_function(node)] = [replace_function(successor) for successor in successor_list]
         return PartialOrderPlan(new_adj_list)
 
-    def convert_to_sequential_plan(self) -> SequentialPlan:
+    def to_sequential_plan(self) -> SequentialPlan:
         return SequentialPlan(list(nx.topological_sort(self._graph)))
+
+    def all_sequential_plans(self) -> Iterator[SequentialPlan]:
+        for sorted_plan in nx.all_topological_sorts(self._graph):
+            yield SequentialPlan(list(sorted_plan))

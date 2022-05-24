@@ -44,7 +44,7 @@ class SequentialPlan(plans.plan.Plan):
     def replace_action_instances(self, replace_function: Callable[['plans.plan.ActionInstance'], 'plans.plan.ActionInstance']) -> 'up.plans.plan.Plan':
         return SequentialPlan([replace_function(ai) for ai in self._actions])
 
-    def convert_to_partial_order_plan(self, _env: Optional['up.Environment'] = None) -> 'up.plans.partial_order_plan.PartialOrderPlan':
+    def to_partial_order_plan(self, _env: Optional['up.Environment'] = None) -> 'up.plans.partial_order_plan.PartialOrderPlan':
         env = up.environment.get_env(_env)
         subs = Substituter(env)
         simp = Simplifier(env)
@@ -65,18 +65,12 @@ class SequentialPlan(plans.plan.Plan):
             required_fluents: Set[FNode] = set()
             # add free vars of preconditions
             for prec in grounded_action.preconditions:
-                required_fluents.union(fve.get(prec))
-            # ---------------- CODE WITHOUT ADDING THE FLUENTS THE CURRENT ACTION INSTANCE WRITES TO THE REQUIRED
-            # add free vars in the condition of conditional effects
-            for eff in grounded_action.conditional_effects:
-                required_fluents.union(fve.get(eff.condition))
-            # ---------------- CODE ADDING THE FLUENTS THE CURRENT ACTION INSTANCE WRITES TO THE REQUIRED
+                required_fluents = required_fluents.union(fve.get(prec))
             # add in the required_fluents all the free fluents this action instance deals with
             for eff in grounded_action.effects:
-                required_fluents.union(fve.get(eff.condition))
-                required_fluents.union(fve.get(eff.fluent))
-                required_fluents.union(fve.get(eff.value))
-            # ----------------- END OF "DUPLICATE" CODE
+                required_fluents = required_fluents.union(fve.get(eff.condition))
+                required_fluents = required_fluents.union(fve.get(eff.fluent))
+                required_fluents = required_fluents.union(fve.get(eff.value))
 
             # for every required fluent, add this action instance to the list of action instances that requires this fluent
             # and order the current action instance after the last modifier of the fluent
@@ -88,6 +82,7 @@ class SequentialPlan(plans.plan.Plan):
                     action_instance_list.append(action_instance)
                 required_fluent_last_modifier = last_modifier.get(required_fluent, None)
                 if required_fluent_last_modifier is not None:
+                    assert required_fluent_last_modifier != action_instance # sanity
                     graph.add_edge(required_fluent_last_modifier, action_instance)
 
             # for every effect, set current action instance as the last modifier and the current action instance is ordered
@@ -98,7 +93,9 @@ class SequentialPlan(plans.plan.Plan):
                 dependent_action_instance_list = all_required.get(eff.fluent, None)
                 if dependent_action_instance_list is not None:
                     for dependent_action_instance in dependent_action_instance_list:
-                        graph.add_edge(dependent_action_instance, action_instance)
+                        if dependent_action_instance != action_instance:
+                            graph.add_edge(dependent_action_instance, action_instance)
 
         # remove redundant edges and return the up.plans.partial_order_plan.PartialOrderPlan structure.
+        assert nx.is_directed_acyclic_graph(graph)
         return up.plans.partial_order_plan.PartialOrderPlan(nx.convert.to_dict_of_lists(nx.transitive_reduction(graph)))
