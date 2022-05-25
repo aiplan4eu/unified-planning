@@ -107,7 +107,7 @@ class TestPlanner(TestCase):
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY)
-            self.assertEqual(str(plan), str(opt_plan))
+            self.assertEqual(plan, opt_plan)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
     def test_robot(self):

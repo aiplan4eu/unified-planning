@@ -35,8 +35,11 @@ class TimeTriggeredPlan(plans.plan.Plan):
         return str(self._actions)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, TimeTriggeredPlan):
-            return self.actions == oth.actions
+        if isinstance(oth, TimeTriggeredPlan) and len(self._actions) == len(oth._actions):
+            for (s, ai, d), (oth_s, oth_ai, oth_d) in zip(self._actions, oth._actions):
+                if s != oth_s or ai.action != oth_ai.action or ai.actual_parameters != oth_ai.actual_parameters or d != oth_d:
+                    return False
+            return True
         else:
             return False
 

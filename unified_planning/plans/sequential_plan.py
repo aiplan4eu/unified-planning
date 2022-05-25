@@ -31,8 +31,11 @@ class SequentialPlan(plans.plan.Plan):
         return str(self._actions)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, SequentialPlan):
-            return self.actions == oth.actions
+        if isinstance(oth, SequentialPlan) and len(self._actions) == len(oth._actions):
+            for ai, oth_ai in zip(self._actions, oth._actions):
+                if ai.action != oth_ai.action or ai.actual_parameters != oth_ai.actual_parameters:
+                    return False
+            return True
         else:
             return False
 

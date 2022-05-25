@@ -31,7 +31,21 @@ class PartialOrderPlan(plans.plan.Plan):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, PartialOrderPlan):
-            return self._graph  == self._graph
+            adj_dict = self.actions
+            oth_adj_dict = oth.actions
+            # check number of nodes
+            if len(adj_dict.keys()) != len(oth_adj_dict.keys()):
+                return False
+            # iterate through both dicts
+            for (ai, ai_edges), (oth_ai, oth_ai_edges) in zip(adj_dict.items(), oth_adj_dict.items()):
+                # check that the nodes are (semantically) the same and that the edges starting from the current node are the same in number
+                if ai.action != oth_ai.action or ai.actual_parameters != oth_ai.actual_parameters or len(ai_edges) != len(oth_ai_edges):
+                    return False
+                # iterate from edges starting from this node and check that they are (semantically) the same
+                for ai_successor, oth_ai_successor in zip(ai_edges, oth_ai_edges):
+                    if ai_successor.action != oth_ai_successor.action or ai_successor.actual_parameters != oth_ai_successor.actual_parameters:
+                        return False
+            return True
         else:
             return False
 
