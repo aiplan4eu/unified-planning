@@ -15,7 +15,7 @@
 '''This module defines the different plan classes.'''
 
 
-import networkx as nx
+import networkx as nx # type: ignore
 import unified_planning as up
 import unified_planning.model
 from typing import Callable, Dict, Optional, Set, Tuple, List

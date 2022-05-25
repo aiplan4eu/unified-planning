@@ -49,7 +49,7 @@ class AbstractProblem:
         '''Returns True iff the given name is already used inside this problem.'''
         raise NotImplementedError
 
-    def normalize_plan(self, plan: 'up.plan.Plan')-> 'up.plan.Plan':
+    def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
         '''Normalizes the given plan, that is potentially the result of another
         problem, updating the object references present in it with the ones of
         this problem which are syntactically equal.'''
