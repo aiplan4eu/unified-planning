@@ -16,6 +16,8 @@
 
 from unified_planning.model import AbstractProblem
 from unified_planning.plan import Plan
+from unified_planning.solvers import Credits
+from typing import Optional
 
 
 class Transformer:
@@ -24,6 +26,13 @@ class Transformer:
         self._name = name
         self._problem = problem
         self._env = problem.env
+        credits = self.get_credits()
+        if credits is not None and self._env.credits_stream is not None:
+            credits.write_credits(self._env.credits_stream, full_credits=True)
+
+    def get_credits(self) -> Optional[Credits]:
+        '''This method returns the credits of this transformer, that are printed in the __init__ function.'''
+        return None
 
     def get_rewritten_problem(self) -> AbstractProblem:
         '''This function should rewrite the problem according to the Transformer specifics.'''

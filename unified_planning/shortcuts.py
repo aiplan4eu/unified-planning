@@ -173,4 +173,4 @@ def print_solvers_info(stream: IO[str] = sys.stdout, full_credits: bool = False)
     get_env().factory.print_solvers_info(stream, full_credits)
 
 def set_credits_stream(stream: Optional[IO[str]]):
-    get_env().factory.credits_stream = stream
+    get_env().credits_stream = stream

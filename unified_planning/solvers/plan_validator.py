@@ -274,8 +274,8 @@ class SequentialPlanValidator(solvers.solver.Solver):
     def is_plan_validator():
         return True
 
-    @solvers.solver.staticproperty
-    def credits() -> Optional[solvers.solver.Credits]: # type: ignore
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[solvers.solver.Credits]:
         return credits
 
     def destroy(self):

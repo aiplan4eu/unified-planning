@@ -31,11 +31,22 @@ class Environment:
         import unified_planning.solvers
         import unified_planning.walkers
         self._type_manager = unified_planning.model.TypeManager()
-        self._factory = unified_planning.solvers.Factory()
+        self._factory = unified_planning.solvers.Factory(self)
         self._tc = unified_planning.walkers.TypeChecker(self)
         self._expression_manager = unified_planning.model.ExpressionManager(self)
         self._free_vars_oracle = unified_planning.model.FreeVarsOracle()
+        self._credits_stream: Optional[IO[str]] = sys.stdout
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Don't pickle _credits_stream
+        del state['_credits_stream']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Add _credits_stream back since it doesn't exist in the pickle
+        self._credits_stream = None
 
     @property
     def free_vars_oracle(self) -> 'unified_planning.model.FreeVarsOracle':
@@ -57,6 +68,16 @@ class Environment:
     @property
     def factory(self) -> 'unified_planning.solvers.Factory':
         return self._factory
+
+    @property
+    def credits_stream(self) -> 'Optional[IO[str]]':
+        '''Returns the stream where the solvers credits are printed.'''
+        return self._credits_stream
+
+    @credits_stream.setter
+    def credits_stream(self, new_credits_stream: Optional[IO[str]]):
+        '''Sets the stream where the solvers credits are printed.'''
+        self._credits_stream = new_credits_stream
 
 
 GLOBAL_ENVIRONMENT: Optional[Environment] = None

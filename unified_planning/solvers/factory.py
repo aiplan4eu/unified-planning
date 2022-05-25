@@ -16,6 +16,7 @@
 import importlib
 import sys
 import unified_planning as up
+from unified_planning.environment import Environment, get_env
 from unified_planning.model import ProblemKind
 from typing import IO, Dict, Tuple, Optional, List, Union, Type
 
@@ -46,25 +47,14 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
 
 
 class Factory:
-    def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS, credits_stream: Optional[IO[str]] = sys.stdout):
+    def __init__(self, env: 'Environment', solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
+        self._env = env
         self.solvers: Dict[str, Type['up.solvers.solver.Solver']] = {}
-        self._credits_stream = credits_stream
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
             except ImportError:
                 pass
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        # Don't pickle _credits_stream
-        del state['_credits_stream']
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        # Add _credits_stream back since it doesn't exist in the pickle
-        self._credits_stream = None
 
     def add_solver(self, name: str, module_name: str, class_name: str):
         module = importlib.import_module(module_name)
@@ -111,9 +101,10 @@ class Factory:
             solvers = []
             for name, param in zip(names, params):
                 SolverClass = self._get_solver_class(solver_kind, name)
-                if self._credits_stream is not None and SolverClass.credits is not None:
-                    self._credits_stream.write('You are using ')
-                    SolverClass.credits.write_credits(self._credits_stream)
+                credits = SolverClass.get_credits(**param)
+                if self.env.credits_stream is not None and credits is not None:
+                    self.env.credits_stream.write('You are using ')
+                    credits.write_credits(self.env.credits_stream)
                 solvers.append((SolverClass, param))
             p_solver = up.solvers.parallel.Parallel(solvers)
             return p_solver
@@ -122,20 +113,16 @@ class Factory:
                 params = {}
             assert isinstance(params, Dict)
             SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
-            if self._credits_stream is not None and SolverClass.credits is not None:
-                self._credits_stream.write('You are using ')
-                SolverClass.credits.write_credits(self._credits_stream)
+            credits = SolverClass.get_credits(**params)
+            if self.env.credits_stream is not None and credits is not None:
+                self.env.credits_stream.write('You are using ')
+                credits.write_credits(self.env.credits_stream)
             return SolverClass(**params)
 
     @property
-    def credits_stream(self) -> Optional[IO[str]]:
-        '''Returns the stream where the solvers credits are printed.'''
-        return self._credits_stream
-
-    @credits_stream.setter
-    def credits_stream(self, new_credits_stream: Optional[IO[str]]):
-        '''Sets the stream where the solvers credits are printed.'''
-        self._credits_stream = new_credits_stream
+    def env(self) -> 'Environment':
+        '''Returns the environment in which this factory is created'''
+        return self._env
 
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
@@ -188,10 +175,12 @@ class Factory:
         """
         return self._get_solver('grounder', name, None, params, problem_kind)
 
-    def print_solvers_info(self, stream: IO[str] = sys.stdout, full_credits: bool = False):
+    def print_solvers_info(self, stream: IO[str] = sys.stdout, full_credits: bool = True):
         stream.write('These are the solvers currently available:\n')
         for Solver in self.solvers.values():
-            stream.write('---------------------------------------\n')
-            Solver.credits.write_credits(stream, full_credits)
-            stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n')
-            stream.write('---------------------------------------\n\n')
+            credits = Solver.get_credits()
+            if credits is not None:
+                stream.write('---------------------------------------\n')
+                credits.write_credits(stream, full_credits)
+                stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n')
+                stream.write('---------------------------------------\n\n')

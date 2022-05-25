@@ -80,8 +80,8 @@ class ENHSP(up.solvers.PDDLSolver):
     def supports(problem_kind: 'ProblemKind') -> bool:
         return problem_kind <= ENHSP.supported_kind()
 
-    @up.solvers.solver.staticproperty
-    def credits() -> Optional[up.solvers.Credits]: # type: ignore
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[up.solvers.Credits]:
         return credits
 
 

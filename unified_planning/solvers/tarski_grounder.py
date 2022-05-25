@@ -17,7 +17,7 @@
 
 import shutil
 from functools import partial
-from typing import Callable, Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List
 import tarski # type: ignore
 import unified_planning as up
 import unified_planning.interop
@@ -25,7 +25,7 @@ from unified_planning.interop.from_tarski import convert_tarski_formula
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model import Action, FNode
 from unified_planning.solvers.grounder import lift_action_instance
-from unified_planning.solvers.solver import Solver, Credits, staticproperty
+from unified_planning.solvers.solver import Solver, Credits
 from unified_planning.solvers.results import GroundingResult
 from unified_planning.transformers import Grounder
 from tarski.grounding import LPGroundingStrategy # type: ignore
@@ -109,8 +109,8 @@ class TarskiGrounder(Solver):
         trace_back_map = unified_planning_grounder.get_rewrite_back_map()
         return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map), self.name, [])
 
-    @staticproperty
-    def credits() -> Optional[Credits]: # type: ignore
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[Credits]:
         return credits
 
     def destroy(self):

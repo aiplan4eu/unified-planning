@@ -51,11 +51,6 @@ class Credits:
             stream.write('\n\n')
 
 
-class staticproperty(staticmethod):
-    def __get__(self, *args):
-        return self.__func__()
-
-
 class Solver:
     """Represents the solver interface."""
 
@@ -128,8 +123,8 @@ class Solver:
         fits the solver implementation better than retrieving a Callable.'''
         raise NotImplementedError
 
-    @staticproperty
-    def credits() -> Optional[Credits]: # type: ignore
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[Credits]:
         '''
         This method returns the credits for this solver, that will be printed when the solver is used.
         If this function returns None, it means no credits to print.
