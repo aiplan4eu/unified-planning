@@ -16,6 +16,7 @@
 
 import unified_planning
 from itertools import product
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import FNode, Problem, InstantaneousAction, DurativeAction, TimeInterval, Timing, Action
 from unified_planning.walkers import Dnf
 from unified_planning.transformers.ab_transformer import ActionBasedTransformer
@@ -33,6 +34,8 @@ class DisjunctiveConditionsRemover(ActionBasedTransformer):
     '''
     def __init__(self, problem: Problem, name: str = 'djrm'):
         ActionBasedTransformer.__init__(self, problem, name)
+        if problem.kind.has_hierarchical(): # type: ignore
+            raise UPProblemDefinitionError('The disjunctive conditions remover does not support hierarchical problems!')
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.

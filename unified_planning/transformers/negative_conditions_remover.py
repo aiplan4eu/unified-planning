@@ -59,6 +59,8 @@ class NegativeConditionsRemover(ActionBasedTransformer):
     with different fluent representing  his negation.'''
     def __init__(self, problem: Problem, name: str = 'ncrm'):
         ActionBasedTransformer.__init__(self, problem, name)
+        if problem.kind.has_hierarchical(): # type: ignore
+            raise UPProblemDefinitionError('The negative conditions remover does not support hierarchical problems!')
         #NOTE no simplification are made. But it's possible to add them in key points
         self._fluent_remover = NegativeFluentRemover(self, self._env)
         #Represents the map from the new action to the old action

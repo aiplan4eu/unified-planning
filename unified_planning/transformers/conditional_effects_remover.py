@@ -34,6 +34,8 @@ class ConditionalEffectsRemover(ActionBasedTransformer):
     semanthics. When this is not possible, an exception is raised.'''
     def __init__(self, problem: 'unified_planning.model.Problem', name: str = 'cerm'):
         ActionBasedTransformer.__init__(self, problem, name)
+        if problem.kind.has_hierarchical(): # type: ignore
+            raise UPProblemDefinitionError('The conditional effect remover does not support hierarchical problems!')
         #Represents the map from the new action to the old action
         self._new_to_old: Dict['unified_planning.model.Action', 'unified_planning.model.Action'] = {}
         #represents a mapping from the action of the original problem to action of the new one.

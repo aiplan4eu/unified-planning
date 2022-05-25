@@ -16,7 +16,7 @@
 
 
 import unified_planning
-from unified_planning.exceptions import UPUsageError
+from unified_planning.exceptions import UPUsageError, UPProblemDefinitionError
 from unified_planning.plan import Plan
 from unified_planning.model import Problem, Action, Type, Expression, Effect, Parameter, DurativeAction, InstantaneousAction, FNode, SimulatedEffect
 from unified_planning.model.types import domain_size,  domain_item
@@ -45,6 +45,8 @@ class Grounder(ActionBasedTransformer):
         of it's parameters. The resulting problem will have an action for every tuple in the map,
         obtained by applying the action to the specific parameters of the tuple.'''
         ActionBasedTransformer.__init__(self, problem, name)
+        if problem.kind.has_hierarchical(): # type: ignore
+            raise UPProblemDefinitionError('The grounder does not support hierarchical problems!')
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.
