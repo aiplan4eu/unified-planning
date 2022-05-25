@@ -16,13 +16,14 @@
 
 import unified_planning
 from itertools import product
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import FNode, Problem, InstantaneousAction, DurativeAction, TimeInterval, Timing, Action
 from unified_planning.walkers import Dnf
-from unified_planning.transformers.transformer import Transformer
+from unified_planning.transformers.ab_transformer import ActionBasedTransformer
 from typing import List, Tuple, Dict
 
 
-class DisjunctiveConditionsRemover(Transformer):
+class DisjunctiveConditionsRemover(ActionBasedTransformer):
     '''DisjunctiveConditions remover class:
     this class requires a problem and offers the capability
     to transform a problem with preconditions not in the DNF form
@@ -32,7 +33,9 @@ class DisjunctiveConditionsRemover(Transformer):
     an AND of leaf nodes.
     '''
     def __init__(self, problem: Problem, name: str = 'djrm'):
-        Transformer.__init__(self, problem, name)
+        ActionBasedTransformer.__init__(self, problem, name)
+        if problem.kind.has_hierarchical(): # type: ignore
+            raise UPProblemDefinitionError('The disjunctive conditions remover does not support hierarchical problems!')
         #Represents the map from the new action to the old action
         self._new_to_old: Dict[Action, Action] = {}
         #represents a mapping from the action of the original problem to action of the new one.

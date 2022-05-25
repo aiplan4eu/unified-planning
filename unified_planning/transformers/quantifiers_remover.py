@@ -15,19 +15,22 @@
 """This module defines the quantifiers remover class."""
 
 
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.walkers import ExpressionQuantifiersRemover
-from unified_planning.transformers.transformer import Transformer
+from unified_planning.transformers.ab_transformer import ActionBasedTransformer
 from unified_planning.model import Problem, InstantaneousAction, DurativeAction, Action
 from typing import List, Dict
 
 
-class QuantifiersRemover(Transformer):
+class QuantifiersRemover(ActionBasedTransformer):
     '''Quantifiers remover class:
     this class requires a problem and offers the capability
     to transform a problem with quantifiers into a problem without.
     '''
     def __init__(self, problem: Problem, name: str = 'qurm'):
-        Transformer.__init__(self, problem, name)
+        ActionBasedTransformer.__init__(self, problem, name)
+        if problem.kind.has_hierarchical(): # type: ignore
+            raise UPProblemDefinitionError('The quantifiers remover does not support hierarchical problems!')
         #NOTE no simplification are made. But it's possible to add them in key points
         self._expression_quantifier_remover = ExpressionQuantifiersRemover(self._env)
         #Represents the map from the new action to the old action

@@ -19,6 +19,7 @@ import unified_planning.model
 import unified_planning.walkers as walkers
 from unified_planning.walkers.identitydag import IdentityDagWalker
 from unified_planning.model import Object, FNode, OperatorKind
+from unified_planning.model.objects_set import ObjectsSetMixin
 from unified_planning.model.expression import Expression
 from typing import List, Dict
 from itertools import product
@@ -30,14 +31,14 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         IdentityDagWalker.__init__(self, self._env, True)
         self._substituter = walkers.Substituter(self._env)
 
-    def remove_quantifiers(self, expression: FNode, problem: 'unified_planning.model.Problem'):
-        self._problem = problem
+    def remove_quantifiers(self, expression: FNode, objects_set: 'ObjectsSetMixin'):
+        self._objects_set = objects_set
         return self.walk(expression)
 
     def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
         vars = expression.variables()
         type_list = [v.type for v in vars]
-        possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
+        possible_objects: List[List[Object]] = [list(self._objects_set.objects(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:

@@ -17,7 +17,7 @@
 
 import unified_planning as up
 from unified_planning.plan import Plan
-from unified_planning.model import ProblemKind, Problem
+from unified_planning.model import ProblemKind, AbstractProblem
 from enum import Enum, auto
 from typing import IO, Optional, Tuple, Callable, Union
 
@@ -59,14 +59,14 @@ class Solver:
     def supports(problem_kind: 'ProblemKind') -> bool:
         return len(problem_kind.features) == 0
 
-    def solve(self, problem: 'up.model.Problem',
-                    callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
-                    timeout: Optional[float] = None,
-                    output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
-        '''This method takes a up.model.Problem and returns a up.solvers.results.PlanGenerationResult,
+    def solve(self, problem: 'up.model.AbstractProblem',
+              callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
+              timeout: Optional[float] = None,
+              output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+        '''This method takes a up.model.AbstractProblem and returns a up.solvers.results.PlanGenerationResult,
         which contains information about the solution to the problem given by the planner.
 
-        :param problem: is the up.model.Problem to solve.
+        :param problem: is the up.model.AbstractProblem to solve.
         :param callback: is a function used by the planner to give reports to the user during the problem resolution, defaults to None.
         :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to None.
         :param output_stream: is a stream of strings where the planner writes his
@@ -78,10 +78,10 @@ class Solver:
         output_stream are not None and the planner ignores them.'''
         raise NotImplementedError
 
-    def validate(self, problem: 'up.model.Problem', plan: 'up.plan.Plan') -> 'up.solvers.results.ValidationResult':
+    def validate(self, problem: 'up.model.AbstractProblem', plan: 'up.plan.Plan') -> 'up.solvers.results.ValidationResult':
         raise NotImplementedError
 
-    def ground(self, problem: 'up.model.Problem') -> 'up.solvers.results.GroundingResult':
+    def ground(self, problem: 'up.model.AbstractProblem') -> 'up.solvers.results.GroundingResult':
         '''
         Implement only if "self.is_grounder()" returns True.
         This function returns an instance of the up.solvers.results.GroundingResult class.

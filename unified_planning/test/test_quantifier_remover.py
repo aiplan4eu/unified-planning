@@ -117,8 +117,8 @@ class TestQuantifiersRemover(TestCase):
         problem = self.problems['timed_connected_locations'].problem
         qr = QuantifiersRemover(problem)
         uq_problem = qr.get_rewritten_problem()
-        self.assertTrue(problem.has_quantifiers())
-        self.assertFalse(uq_problem.has_quantifiers())
+        self.assertTrue(problem.kind.has_existential_conditions())
+        self.assertFalse(uq_problem.kind.has_existential_conditions())
         self.assertEqual(len(problem.actions), len(uq_problem.actions))
 
         with OneshotPlanner(problem_kind=uq_problem.kind) as planner:
@@ -160,8 +160,10 @@ class TestQuantifiersRemover(TestCase):
         problem.add_goal(x)
         qr = QuantifiersRemover(problem)
         unq_problem = qr.get_rewritten_problem()
-        self.assertTrue(problem.has_quantifiers())
-        self.assertFalse(unq_problem.has_quantifiers())
+        self.assertTrue(problem.kind.has_existential_conditions())
+        self.assertTrue(problem.kind.has_universal_conditions())
+        self.assertFalse(unq_problem.kind.has_existential_conditions())
+        self.assertFalse(unq_problem.kind.has_universal_conditions())
         unq_as = qr.get_transformed_actions(a)
         self.assertEqual(len(unq_as), 1)
         unq_a = unq_as[0]

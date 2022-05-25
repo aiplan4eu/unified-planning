@@ -22,6 +22,7 @@ from unified_planning.model.fluent import Fluent
 from unified_planning.model.object import Object
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
+from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.problem import Problem
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.state import State
@@ -40,7 +41,7 @@ __all__ = [ 'Action', 'InstantaneousAction', 'DurativeAction',
             'Object',
             'OperatorKind',
             'Parameter',
-            'Problem', 'ProblemKind',
+            'AbstractProblem', 'Problem', 'ProblemKind',
             'State',
             'TimepointKind', 'Timing', 'StartTiming', 'EndTiming', 'GlobalStartTiming', 'GlobalEndTiming',
             'DurationInterval', 'ClosedDurationInterval', 'FixedDuration', 'OpenDurationInterval', 'LeftOpenDurationInterval', 'RightOpenDurationInterval',

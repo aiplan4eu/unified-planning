@@ -89,7 +89,7 @@ class TestProtobufIO(TestCase):
 
     def test_fluent_expressions(self):
         problem = self.problems["hierarchical_blocks_world"].problem
-
+        print(problem)
         problem_pb = self.pb_writer.convert(problem)
         problem_up = self.pb_reader.convert(problem_pb)
 

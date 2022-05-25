@@ -22,9 +22,10 @@ import unified_planning.environment
 import unified_planning.solvers as solvers
 import unified_planning.walkers as walkers
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.model import FNode, Expression, Problem, ProblemKind, Object
+from unified_planning.model import FNode, Expression, AbstractProblem, Problem, ProblemKind, Object
 from unified_planning.solvers.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
 from unified_planning.plan import SequentialPlan
+
 
 class QuantifierSimplifier(walkers.Simplifier):
     """Same to the unified_planning.Simplifier, but does not expand quantifiers and solves them locally."""
@@ -94,7 +95,7 @@ class QuantifierSimplifier(walkers.Simplifier):
             return self.manager.FALSE()
         vars = expression.variables()
         type_list = [v.type for v in vars]
-        possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
+        possible_objects: List[List[Object]] = [list(self._problem.objects(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:
@@ -117,7 +118,7 @@ class QuantifierSimplifier(walkers.Simplifier):
             return self.manager.FALSE()
         vars = expression.variables()
         type_list = [v.type for v in vars]
-        possible_objects: List[List[Object]] = [list(self._problem.objects_hierarchy(t)) for t in type_list]
+        possible_objects: List[List[Object]] = [list(self._problem.objects(t)) for t in type_list]
         #product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:
@@ -170,11 +171,12 @@ class SequentialPlanValidator(solvers.solver.Solver):
         self.manager = self._env.expression_manager
         self._substituter = walkers.Substituter(self._env)
 
-    def validate(self, problem: 'Problem', plan: 'unified_planning.plan.Plan') -> 'up.solvers.results.ValidationResult':
+    def validate(self, problem: 'AbstractProblem', plan: 'unified_planning.plan.Plan') -> 'up.solvers.results.ValidationResult':
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""
         assert isinstance(plan, SequentialPlan)
+        assert isinstance(problem, Problem)
         self._qsimplifier = QuantifierSimplifier(self._env, problem)
         assignments: Dict[Expression, Expression] = problem.initial_values.copy() # type: ignore
         count = 0 #used for better error indexing
@@ -236,22 +238,23 @@ class SequentialPlanValidator(solvers.solver.Solver):
         return 'sequential_plan_validator'
 
     @staticmethod
-    def supports(problem_kind):
+    def supports(problem_kind: 'ProblemKind') -> bool:
         supported_kind = ProblemKind()
-        supported_kind.set_typing('FLAT_TYPING')
-        supported_kind.set_typing('HIERARCHICAL_TYPING')
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS')
-        supported_kind.set_numbers('DISCRETE_NUMBERS')
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS')
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS')
-        supported_kind.set_conditions_kind('EQUALITY')
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS')
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS')
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS')
-        supported_kind.set_effects_kind('INCREASE_EFFECTS')
-        supported_kind.set_effects_kind('DECREASE_EFFECTS')
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS')
-        supported_kind.set_fluents_type('OBJECT_FLUENTS')
+        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
+        supported_kind.set_typing('FLAT_TYPING') # type: ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
         return problem_kind <= supported_kind
 
     @staticmethod

@@ -19,7 +19,7 @@ from functools import partial
 import shutil
 from typing import Optional, Tuple, Dict, List
 import tarski # type: ignore
-import unified_planning
+import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
 from unified_planning.model import Action, FNode
@@ -50,8 +50,9 @@ class TarskiGrounder(Solver):
         return True
 
     @staticmethod
-    def supports(problem_kind: 'unified_planning.model.ProblemKind') -> bool:
-        supported_kind = unified_planning.model.ProblemKind()
+    def supports(problem_kind: 'up.model.ProblemKind') -> bool:
+        supported_kind = up.model.ProblemKind()
+        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
         supported_kind.set_typing('FLAT_TYPING') # type: ignore
         supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
         supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
@@ -62,18 +63,19 @@ class TarskiGrounder(Solver):
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
         return problem_kind <= supported_kind
 
-    def ground(self, problem: 'unified_planning.model.Problem') -> GroundingResult:
-        tarski_problem = unified_planning.interop.convert_problem_to_tarski(problem)
+    def ground(self, problem: 'up.model.AbstractProblem') -> GroundingResult:
+        assert isinstance(problem, up.model.Problem)
+        tarski_problem = up.interop.convert_problem_to_tarski(problem)
         actions = None
         try:
             lpgs = LPGroundingStrategy(tarski_problem)
             actions = lpgs.ground_actions()
         except tarski.grounding.errors.ReachabilityLPUnsolvable:
-            raise unified_planning.exceptions.UPUsageError('tarski grounder can not find a solvable grounding.')
+            raise up.exceptions.UPUsageError('tarski grounder can not find a solvable grounding.')
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name: fluent for fluent in problem.fluents}
         objects = {object.name: object for object in problem.all_objects}
-        types: Dict[str, Optional['unified_planning.model.Type']] = {}
+        types: Dict[str, Optional['up.model.Type']] = {}
         if not problem.has_type('object'):
             types['object'] = None # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
         for action_name, list_of_tuple_of_parameters in actions.items():

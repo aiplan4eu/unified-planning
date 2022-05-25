@@ -19,6 +19,7 @@ from typing import Dict, List, Set
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
+    'PROBLEM_CLASS' : ['ACTION_BASED', 'HIERARCHICAL'],
     'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME', 'INTERMEDIATE_CONDITIONS_AND_EFFECTS', 'TIMED_EFFECT', 'TIMED_GOALS', 'DURATION_INEQUALITIES'],
     'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
     'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
@@ -26,8 +27,7 @@ FEATURES = {
     'TYPING' : ['FLAT_TYPING', 'HIERARCHICAL_TYPING'],
     'FLUENTS_TYPE' : ['NUMERIC_FLUENTS', 'OBJECT_FLUENTS'],
     'QUALITY_METRICS' : ['ACTIONS_COST', 'FINAL_VALUE', 'MAKESPAN', 'PLAN_LENGTH'],
-    'SIMULATED_ENTITIES' : ['SIMULATED_EFFECTS'],
-    'HIERARCHIES' : ['HIERARCHICAL']
+    'SIMULATED_ENTITIES' : ['SIMULATED_EFFECTS']
 }
 
 
@@ -97,18 +97,21 @@ class ProblemKind(metaclass=ProblemKindMeta):
 
 
 basic_classical_kind = ProblemKind()
+basic_classical_kind.set_problem_class('ACTION_BASED') # type: ignore
 basic_classical_kind.set_typing('FLAT_TYPING') # type: ignore
 
 hierarchical_kind = ProblemKind()
 hierarchical_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
 
 classical_kind = ProblemKind()
+classical_kind.set_problem_class('ACTION_BASED') # type: ignore
 classical_kind.set_typing('FLAT_TYPING') # type: ignore
 classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
 classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
 classical_kind.set_conditions_kind('EQUALITY') # type: ignore
 
 full_classical_kind = ProblemKind()
+full_classical_kind.set_problem_class('ACTION_BASED') # type: ignore
 full_classical_kind.set_typing('FLAT_TYPING') # type: ignore
 full_classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
 full_classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
@@ -121,12 +124,14 @@ object_fluent_kind = ProblemKind()
 object_fluent_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
 
 basic_numeric_kind = ProblemKind()
+basic_numeric_kind.set_problem_class('ACTION_BASED') # type: ignore
 basic_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
 basic_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
 basic_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
 basic_numeric_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
 
 full_numeric_kind = ProblemKind()
+full_numeric_kind.set_problem_class('ACTION_BASED') # type: ignore
 full_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
 full_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
 full_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
@@ -135,10 +140,12 @@ full_numeric_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
 full_numeric_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
 
 basic_temporal_kind = ProblemKind()
+basic_temporal_kind.set_problem_class('ACTION_BASED') # type: ignore
 basic_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
 basic_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
 
 full_temporal_kind = ProblemKind()
+full_temporal_kind.set_problem_class('ACTION_BASED') # type: ignore
 full_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
 full_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
 full_temporal_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore

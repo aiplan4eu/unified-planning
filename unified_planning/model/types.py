@@ -16,7 +16,7 @@
 
 import unified_planning
 from fractions import Fraction
-from typing import Iterator, Optional, Dict, Tuple, List
+from typing import Iterator, Optional, Dict, Tuple, List, cast
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
@@ -91,6 +91,16 @@ class _UserType(Type):
     def is_user_type(self) -> bool:
         """Returns true iff is a user type."""
         return True
+
+    def is_subtype(self, t: Type) -> bool:
+        """Returns true iff is a subtype of the given type."""
+        assert t.is_user_type()
+        p: Optional[Type] = self
+        while p is not None:
+            if p == t:
+                return True
+            p = cast(_UserType, p).father
+        return False
 
 
 class _IntType(Type):
@@ -203,12 +213,13 @@ class TypeManager:
             father = father.father # type: ignore
 
 
-def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'unified_planning.model.types.Type') -> int:
+def domain_size(objects_set: 'unified_planning.model.objects_set.ObjectsSetMixin',
+                typename: 'unified_planning.model.types.Type') -> int:
     '''Returns the domain size of the given type.'''
     if typename.is_bool_type():
         return 2
     elif typename.is_user_type():
-        return len(list(problem.objects_hierarchy(typename)))
+        return len(list(objects_set.objects(typename)))
     elif typename.is_int_type():
         lb = typename.lower_bound # type: ignore
         ub = typename.upper_bound # type: ignore
@@ -218,17 +229,18 @@ def domain_size(problem: 'unified_planning.model.problem.Problem', typename: 'un
     else:
         raise UPProblemDefinitionError('Parameter not groundable!')
 
-def domain_item(problem: 'unified_planning.model.problem.Problem', typename: 'unified_planning.model.types.Type', idx: int) -> 'unified_planning.model.fnode.FNode':
+def domain_item(objects_set: 'unified_planning.model.objects_set.ObjectsSetMixin',
+                typename: 'unified_planning.model.types.Type', idx: int) -> 'unified_planning.model.fnode.FNode':
     '''Returns the ith domain item of the given type.'''
     if typename.is_bool_type():
-        return problem._env.expression_manager.Bool(idx == 0)
+        return objects_set.env.expression_manager.Bool(idx == 0)
     elif typename.is_user_type():
-        return problem._env.expression_manager.ObjectExp(list(problem.objects_hierarchy(typename))[idx])
+        return objects_set.env.expression_manager.ObjectExp(list(objects_set.objects(typename))[idx])
     elif typename.is_int_type():
         lb = typename.lower_bound # type: ignore
         ub = typename.upper_bound # type: ignore
         if lb is None or ub is None:
             raise UPProblemDefinitionError('Parameter not groundable!')
-        return problem._env.expression_manager.Int(lb + idx)
+        return objects_set.env.expression_manager.Int(lb + idx)
     else:
         raise UPProblemDefinitionError('Parameter not groundable!')

@@ -48,7 +48,11 @@ class skipIfNoOneshotPlannerForProblemKind(object):
 
     def __call__(self, test_fun):
         msg = "no oneshot planner available for the given problem kind"
-        cond = get_env().factory._get_solver_class('oneshot_planner', problem_kind=self.kind) is None
+        cond = False
+        try:
+            get_env().factory._get_solver_class('oneshot_planner', problem_kind=self.kind)
+        except:
+            cond = True
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
@@ -64,8 +68,12 @@ class skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(object):
 
     def __call__(self, test_fun):
         msg = "no oneshot planner available for the given optimality guarantee"
-        cond = get_env().factory._get_solver_class('oneshot_planner',
-                                                   optimality_guarantee=self.optimality_guarantee) is None
+        cond = False
+        try:
+            get_env().factory._get_solver_class('oneshot_planner',
+                                                optimality_guarantee=self.optimality_guarantee)
+        except:
+            cond = True
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
@@ -81,7 +89,11 @@ class skipIfNoPlanValidatorForProblemKind(object):
 
     def __call__(self, test_fun):
         msg = "no plan validator available for the given problem kind"
-        cond = get_env().factory._get_solver_class('plan_validator', problem_kind=self.kind) is None
+        cond = False
+        try:
+            get_env().factory._get_solver_class('plan_validator', problem_kind=self.kind)
+        except:
+            cond = True
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
