@@ -22,6 +22,7 @@ from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
 from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
 from typing import IO, Callable, Dict, List, Optional, Tuple, cast
+from fractions import Fraction
 from multiprocessing import Process, Queue
 
 
@@ -144,3 +145,24 @@ def _run(idx: int, SolverClass: type, options: Dict[str, str], signaling_queue: 
             signaling_queue.put((idx, ex))
             return
         signaling_queue.put((idx, local_res))
+
+def _replace_action_instance(action_instance: ActionInstance,
+                            problem: up.model.Problem,
+                            objects: Dict[str, up.model.Object]):
+
+    em = problem.env.expression_manager
+    new_a = problem.action(action_instance.action.name)
+    params = []
+    for p in action_instance.actual_parameters:
+        if p.is_object_exp():
+            obj = objects[p.object().name]
+            params.append(em.ObjectExp(obj))
+        elif p.is_bool_constant():
+            params.append(em.Bool(p.is_true()))
+        elif p.is_int_constant():
+            params.append(em.Int(cast(int, p.constant_value())))
+        elif p.is_real_constant():
+            params.append(em.Real(cast(Fraction, p.constant_value())))
+        else:
+            raise
+    return ActionInstance(new_a, tuple(params))
