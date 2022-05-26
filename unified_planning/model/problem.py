@@ -220,16 +220,16 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
     #     return ActionInstance(new_a, tuple(params))
 
     # OLD NORMALIZE_PLAN IMPLEMENTATION, TESTINTG PURPOSE, TODO: REMOVE THIS
-    def normalize_plan(self, plan: 'up.plan.Plan')-> 'up.plan.Plan':
+    def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
         '''Normalizes the given plan updating the action and object instances.'''
         objects = {}
         for obj in self.all_objects:
             objects[obj.name] = obj
         em = self.env.expression_manager
         actions: List[ActionInstance] = []
-        if isinstance(plan, up.plan.SequentialPlan):
+        if isinstance(plan, up.plans.SequentialPlan):
             actions = plan.actions
-        elif isinstance(plan, up.plan.TimeTriggeredPlan):
+        elif isinstance(plan, up.plans.TimeTriggeredPlan):
             actions = [a for _, a, _ in plan.actions]
         else:
             raise NotImplementedError
@@ -250,10 +250,10 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                 else:
                     raise
             new_actions.append(ActionInstance(new_a, tuple(params)))
-        if isinstance(plan, up.plan.SequentialPlan):
-            return up.plan.SequentialPlan(new_actions)
-        elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            return up.plan.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions, new_actions)])
+        if isinstance(plan, up.plans.SequentialPlan):
+            return up.plans.SequentialPlan(new_actions)
+        elif isinstance(plan, up.plans.TimeTriggeredPlan):
+            return up.plans.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions, new_actions)])
         else:
             raise NotImplementedError
 
