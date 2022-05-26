@@ -15,6 +15,8 @@
 
 import importlib
 import sys
+import io
+import inspect
 import unified_planning as up
 from unified_planning.environment import Environment, get_env
 from unified_planning.model import ProblemKind
@@ -50,6 +52,7 @@ class Factory:
     def __init__(self, env: 'Environment', solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
         self._env = env
         self.solvers: Dict[str, Type['up.solvers.solver.Solver']] = {}
+        self._credit_disclaimer_printed = False
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
@@ -87,6 +90,43 @@ class Factory:
         msg = f'No available solver supports all the problem features:\n{format_table(header, planners_features)}'
         raise up.exceptions.UPNoSuitableSolverAvailableException(msg)
 
+    def _print_credits(self, all_credits: List[Optional['up.solvers.Credits']]):
+        '''
+        This function prints the credits of the engine(s) used by an operation mode
+        '''
+        credits: List['up.solvers.Credits'] = [c for c in all_credits if c is not None]
+        if len(credits) == 0:
+            return
+
+        operation_mode_name = inspect.stack()[2].function
+        line = inspect.stack()[3].lineno
+        fname = inspect.stack()[3].filename
+
+        class PaleWriter():
+            def __init__(self, stream: IO[str]):
+                self._stream = stream
+
+            def write(self, txt:str):
+                self._stream.write('\033[96m')
+                self._stream.write(txt)
+                self._stream.write('\033[0m')
+
+        if self.env.credits_stream is not None:
+            w = PaleWriter(self.env.credits_stream)
+
+            if not self._credit_disclaimer_printed:
+                self._credit_disclaimer_printed = True
+                w.write(f'\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_env().credits_stream = None`\n')
+            w.write('  *** Credits ***\n')
+            w.write(f'  * In operation mode `{operation_mode_name}` at line {line} of `{fname}`, ')
+            if len(credits) > 1:
+                w.write('you are using a parallel planning engine with the following components:\n')
+            else:
+                w.write('you are using the following planning engine:\n')
+            for c in credits:
+                c.write_credits(w) #type: ignore
+            w.write('\n')
+
     def _get_solver(self, solver_kind: str, name: Optional[str] = None,
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
@@ -99,13 +139,12 @@ class Factory:
                 params = [{} for i in range(len(names))]
             assert isinstance(params, List) and len(names) == len(params)
             solvers = []
+            all_credits = []
             for name, param in zip(names, params):
                 SolverClass = self._get_solver_class(solver_kind, name)
-                credits = SolverClass.get_credits(**param)
-                if self.env.credits_stream is not None and credits is not None:
-                    self.env.credits_stream.write('You are using ')
-                    credits.write_credits(self.env.credits_stream)
+                all_credits.append(SolverClass.get_credits(**param))
                 solvers.append((SolverClass, param))
+            self._print_credits(all_credits)
             p_solver = up.solvers.parallel.Parallel(solvers)
             return p_solver
         else:
@@ -114,9 +153,7 @@ class Factory:
             assert isinstance(params, Dict)
             SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
             credits = SolverClass.get_credits(**params)
-            if self.env.credits_stream is not None and credits is not None:
-                self.env.credits_stream.write('You are using ')
-                credits.write_credits(self.env.credits_stream)
+            self._print_credits([credits])
             return SolverClass(**params)
 
     @property
@@ -182,5 +219,4 @@ class Factory:
             if credits is not None:
                 stream.write('---------------------------------------\n')
                 credits.write_credits(stream, full_credits)
-                stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n')
-                stream.write('---------------------------------------\n\n')
+                stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n\n')
