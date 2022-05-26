@@ -22,14 +22,6 @@ from typing import List, Optional, Union
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
-credits = up.solvers.Credits('ENHSP',
-                             'Enrico Scala',
-                             'enricos83@gmail.com',
-                             'https://sites.google.com/view/enhsp/home',
-                             'GNU General Public license, version 3 or later',
-                             'Expressive Numeric Heuristic Search Planner',
-                             'ENHSP is a forward heuristic search planner, but it is expressive in that it can handle:\n - Classical Planning\n - Numeric Planning with linear and non-linear (!!) expressions\n - Planning with discretised autonomous processes and events\n - Global constraints, which are the analogous of always constraints of PDDL.'
-                            )
 
 class ENHSP(up.solvers.PDDLSolver):
     def __init__(self):
@@ -82,7 +74,7 @@ class ENHSP(up.solvers.PDDLSolver):
 
     @staticmethod
     def get_credits(**kwargs) -> Optional[up.solvers.Credits]:
-        return credits
+        return None
 
 
 env = get_env()
