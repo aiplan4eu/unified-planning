@@ -17,13 +17,22 @@
 import networkx as nx # type: ignore
 import unified_planning as up
 import unified_planning.plans as plans
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
 from unified_planning.plans.sequential_plan import SequentialPlan
-from typing import Callable, Dict, Iterator, List
+from typing import Callable, Dict, Iterator, List, Optional
 
 
 class PartialOrderPlan(plans.plan.Plan):
-    '''Represents a partial order plan. Actrions are represent as an adjagency list graph.'''
-    def __init__(self, actions: Dict['plans.plan.ActionInstance', List['plans.plan.ActionInstance']]):
+    '''Represents a partial order plan. Actions are represent as an adjacency list graph.'''
+    def __init__(self, actions: Dict['plans.plan.ActionInstance', List['plans.plan.ActionInstance']], env: Optional['Environment'] = None):
+        plans.plan.Plan.__init__(self, env)
+        for ai_k, ai_v_list in actions.items(): # check that given env and the env in the actions is the same
+            if ai_k.action.env != self._env:
+                raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
+            for ai in ai_v_list:
+                if ai.action.env != self._env:
+                    raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
         self._graph = nx.convert.from_dict_of_lists(actions, create_using=nx.DiGraph)
 
     def __repr__(self) -> str:
@@ -31,8 +40,8 @@ class PartialOrderPlan(plans.plan.Plan):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, PartialOrderPlan):
-            adj_dict = self.actions
-            oth_adj_dict = oth.actions
+            adj_dict = self.get_adjacency_list
+            oth_adj_dict = oth.get_adjacency_list
             # check number of nodes
             if len(adj_dict.keys()) != len(oth_adj_dict.keys()):
                 return False
@@ -50,7 +59,7 @@ class PartialOrderPlan(plans.plan.Plan):
             return False
 
     @property
-    def actions(self) -> Dict['plans.plan.ActionInstance', List['plans.plan.ActionInstance']]:
+    def get_adjacency_list(self) -> Dict['plans.plan.ActionInstance', List['plans.plan.ActionInstance']]:
         '''Returns the graph of action instances as an adjagency list.'''
         return nx.convert.to_dict_of_lists(self._graph)
 
@@ -63,8 +72,10 @@ class PartialOrderPlan(plans.plan.Plan):
         return PartialOrderPlan(new_adj_list)
 
     def to_sequential_plan(self) -> SequentialPlan:
+        '''Returns one between all possible SequentialPlans that respects the ordering constaints given by this PartialOrderPlan.'''
         return SequentialPlan(list(nx.topological_sort(self._graph)))
 
     def all_sequential_plans(self) -> Iterator[SequentialPlan]:
+        '''Returns all possible SequentialPlans that respects the ordering constaints given by this PartialOrderPlan.'''
         for sorted_plan in nx.all_topological_sorts(self._graph):
             yield SequentialPlan(list(sorted_plan))

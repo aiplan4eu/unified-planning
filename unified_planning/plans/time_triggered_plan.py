@@ -16,19 +16,25 @@
 
 import unified_planning as up
 import unified_planning.plans as plans
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
 from typing import Callable, Optional, Tuple, List
 from fractions import Fraction
 
 
 class TimeTriggeredPlan(plans.plan.Plan):
     '''Represents a time triggered plan.'''
-    def __init__(self, actions: List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]]):
+    def __init__(self, actions: List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]], env: Optional['Environment'] = None):
         '''The first Fraction represents the absolute time in which the action
         Action starts, while the last Fraction represents the duration
         of the action to fullfill the problem goals.
         The Action can be an InstantaneousAction, this is represented with a duration set
         to None.
         '''
+        plans.plan.Plan.__init__(self, env)
+        for _, ai, _ in actions: # check that given env and the env in the actions is the same
+            if ai.action.env != self._env:
+                raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
         self._actions = actions
 
     def __repr__(self) -> str:

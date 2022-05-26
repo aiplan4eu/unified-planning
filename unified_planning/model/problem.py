@@ -15,7 +15,6 @@
 '''This module defines the problem class.'''
 
 from functools import partial
-from typing_extensions import Self
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.actions_set import ActionsSetMixin

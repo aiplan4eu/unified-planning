@@ -17,6 +17,8 @@
 import networkx as nx # type: ignore
 import unified_planning as up
 import unified_planning.plans as plans
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model import FNode, InstantaneousAction
 from unified_planning.walkers import Substituter, Simplifier, FreeVarsExtractor
 from typing import Callable, Dict, Optional, Set, List, cast
@@ -24,7 +26,11 @@ from typing import Callable, Dict, Optional, Set, List, cast
 
 class SequentialPlan(plans.plan.Plan):
     '''Represents a sequential plan.'''
-    def __init__(self, actions: List['plans.plan.ActionInstance']):
+    def __init__(self, actions: List['plans.plan.ActionInstance'], env: Optional['Environment'] = None):
+        plans.plan.Plan.__init__(self, env)
+        for ai in actions: # check that given env and the env in the actions is the same
+            if ai.action.env != self._env:
+                raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
         self._actions = actions
 
     def __repr__(self) -> str:
@@ -47,10 +53,17 @@ class SequentialPlan(plans.plan.Plan):
     def replace_action_instances(self, replace_function: Callable[['plans.plan.ActionInstance'], 'plans.plan.ActionInstance']) -> 'up.plans.plan.Plan':
         return SequentialPlan([replace_function(ai) for ai in self._actions])
 
-    def to_partial_order_plan(self, _env: Optional['up.Environment'] = None) -> 'up.plans.partial_order_plan.PartialOrderPlan':
-        env = up.environment.get_env(_env)
-        subs = Substituter(env)
-        simp = Simplifier(env)
+    def to_partial_order_plan(self) -> 'up.plans.partial_order_plan.PartialOrderPlan':
+        '''Returns the PartialOrderPlan version of this SequentialPlan.
+
+        This is done by keeping the ordering constraints, given by the SequentialPlan, between 2 ActionInstances
+        that satisfy one of these conditions:
+        + at least one of the 2 ActionInstances writes on a grounded fluent (writes means that one of his effects
+                assign a value to said fluent)
+            - AND the other ActionInstance reads or writes on the same grounded fluent (reads means that one of his preconditions
+                or one of his condition in a conditional effect depends on said fluent).'''
+        subs = Substituter(self._env)
+        simp = Simplifier(self._env)
         fve = FreeVarsExtractor()
         # last_modifier is the mapping from a grounded fluent to the last action instance that assigned a value to
         # that fluent
@@ -99,6 +112,6 @@ class SequentialPlan(plans.plan.Plan):
                         if dependent_action_instance != action_instance:
                             graph.add_edge(dependent_action_instance, action_instance)
 
-        # remove redundant edges and return the up.plans.partial_order_plan.PartialOrderPlan structure.
         assert nx.is_directed_acyclic_graph(graph)
+        # remove redundant edges and return the up.plans.partial_order_plan.PartialOrderPlan structure.
         return up.plans.partial_order_plan.PartialOrderPlan(nx.convert.to_dict_of_lists(nx.transitive_reduction(graph)))

@@ -16,17 +16,20 @@
 
 import unified_planning as up
 import unified_planning.model
+from unified_planning.environment import Environment, get_env
 from unified_planning.model import FNode, Action, InstantaneousAction, Expression, Effect
 from unified_planning.walkers import Substituter, Simplifier
-from typing import Callable, Dict, Optional, Set, Tuple, List
-from fractions import Fraction
+from typing import Callable, Dict, Optional, Tuple
 
 
 '''This module defines the different plan classes.'''
 
 
 class ActionInstance:
-    '''Represents an action instance with the actual parameters.'''
+    '''Represents an action instance with the actual parameters.
+
+    NOTE: two action instances of the same action with the same parameters are
+    considered different as it is possible to have the same action twice in a plan.'''
     def __init__(self, action: 'unified_planning.model.Action', params: Tuple['unified_planning.model.FNode', ...] = tuple()):
         assert len(action.parameters) == len(params)
         self._action = action
@@ -62,7 +65,7 @@ def ground_action_instance(action_instance: ActionInstance, substituter: 'Substi
         if len(old_action.parameters) == 0:
             return old_action.clone()
         new_action = InstantaneousAction(_name=old_action.name, _env=old_action._env)
-        assignments: Dict[Expression, Expression] = {param : value for param, value in zip(old_action.parameters, action_instance.actual_parameters)}
+        assignments: Dict[Expression, Expression] = dict(zip(old_action.parameters, action_instance.actual_parameters))
         for prec in old_action.preconditions:
             new_action.add_precondition(simplifier.simplify(substituter.substitute(prec, assignments)))
         for eff in old_action.effects:
@@ -84,6 +87,14 @@ def ground_action_instance(action_instance: ActionInstance, substituter: 'Substi
 
 class Plan:
     '''Represents a generic plan.'''
+    def __init__(self, env: Optional['Environment'] = None) -> None:
+        self._env = get_env(env)
+
+    @property
+    def env(self) -> 'Environment':
+        '''Return this plan environment.'''
+        return self._env
+
     def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
         '''This function takes a function from ActionInstance to ActionInstance and returns a new Plan
         that have the ActionInstance modified by the "replace_function" function.'''
