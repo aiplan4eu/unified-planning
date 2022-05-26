@@ -15,24 +15,14 @@
 
 
 from functools import partial
-import sys
-from typing import IO, Dict, List, Optional,Tuple, Callable
-
+from typing import Dict, List, Optional,Tuple
 import unified_planning.environment
 import unified_planning.solvers as solvers
 import unified_planning.transformers
-from unified_planning.plan import Plan, SequentialPlan, TimeTriggeredPlan, ActionInstance
+from unified_planning.plan import ActionInstance
 from unified_planning.solvers.results import GroundingResult
-from unified_planning.model import AbstractProblem, Problem, ProblemKind
+from unified_planning.model import Problem, ProblemKind
 
-credits = solvers.solver.Credits('UP naive grounder',
-                                 'AIPlan4EU-team',
-                                 'aiplan4eu@fbk.eu',
-                                 'https://github.com/aiplan4eu/unified-planning/solvers/grounder',
-                                 'Apache 2.0',
-                                 'This grounder, does basic simplification and removes impossible actions and actions with different assignment to the same variable.',
-                                 'This grounder, does basic simplification and removes impossible actions and actions with different assignment to the same variable. It implements the naive grounding algorithm for classical, numeric and temporal planning'
-                                )
 
 class Grounder(solvers.solver.Solver):
     """Performs grounding."""
@@ -93,7 +83,7 @@ class Grounder(solvers.solver.Solver):
 
     @staticmethod
     def get_credits(**kwargs) -> Optional[solvers.solver.Credits]:
-        return credits
+        return None
 
     def destroy(self):
         pass

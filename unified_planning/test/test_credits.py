@@ -27,8 +27,7 @@ class TestCredits(TestCase):
     @skipIfSolverNotAvailable('tamer')
     def test_robot_locations_visited(self):
         credits = StringIO()
-        test_credits = ['NOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_env().credits_stream = None`',
-                        ' *** Credits ***',
+        test_credits = [' *** Credits ***',
                         '  * In operation mode `OneshotPlanner` at line ',
                         '  * Engine name: ',
                         '  * Developers:  ',

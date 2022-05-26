@@ -16,11 +16,10 @@
 
 
 import unified_planning as up
-from unified_planning.plan import Plan
-from unified_planning.model import ProblemKind, AbstractProblem
+from unified_planning.model import ProblemKind
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import IO, Optional, Tuple, Callable, Union
+from typing import IO, Optional, Callable, Union
 
 
 
@@ -129,6 +128,9 @@ class Solver:
         '''
         This method returns the credits for this solver, that will be printed when the solver is used.
         If this function returns None, it means no credits to print.
+
+        The **kwargs parameters are the same used in this solver to communicate
+         the specific options for this Solver instance.
         '''
         return None
 

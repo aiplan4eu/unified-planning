@@ -98,14 +98,15 @@ class Factory:
         if len(credits) == 0:
             return
 
-        fname = inspect.stack()[3].filename
+        stack = inspect.stack()
+        fname = stack[3].filename
         if 'unified_planning/shortcuts.py' in fname:
-            fname = inspect.stack()[4].filename
-            operation_mode_name = inspect.stack()[3].function
-            line = inspect.stack()[4].lineno
+            fname = stack[4].filename
+            operation_mode_name = stack[3].function
+            line = stack[4].lineno
         else:
-            operation_mode_name = inspect.stack()[2].function
-            line = inspect.stack()[3].lineno
+            operation_mode_name = stack[2].function
+            line = stack[3].lineno
 
         class PaleWriter():
             def __init__(self, stream: IO[str]):
@@ -116,8 +117,8 @@ class Factory:
                 self._stream.write(txt)
                 self._stream.write('\033[0m')
 
-        if self.env.credits_stream is not None:
-            w = PaleWriter(self.env.credits_stream)
+        if self.environment.credits_stream is not None:
+            w = PaleWriter(self.environment.credits_stream)
 
             if not self._credit_disclaimer_printed:
                 self._credit_disclaimer_printed = True
@@ -162,7 +163,7 @@ class Factory:
             return SolverClass(**params)
 
     @property
-    def env(self) -> 'Environment':
+    def environment(self) -> 'Environment':
         '''Returns the environment in which this factory is created'''
         return self._env
 

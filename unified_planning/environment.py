@@ -19,6 +19,7 @@ singleton objects that are used throughout the system,
 such as the ExpressionManager, TypeChecker, TypeManager.
 """
 
+
 import sys
 from typing import IO, Optional
 import unified_planning
@@ -37,6 +38,11 @@ class Environment:
         self._free_vars_oracle = unified_planning.model.FreeVarsOracle()
         self._credits_stream: Optional[IO[str]] = sys.stdout
 
+    # The getstate and setstate method are needed in the Parallel solver. The
+    #  Parallel solver creates a deep copy of the Environment instance in
+    #  another process by pickling the enviroment fields.
+    # Since the IO[str] class is not picklable, we need to remove it from the
+    #  state and then add it as None in the new process
     def __getstate__(self):
         state = self.__dict__.copy()
         # Don't pickle _credits_stream
