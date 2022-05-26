@@ -190,72 +190,34 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         '''Returns true if the name is in the problem.'''
         return self.has_action(name) or self.has_fluent(name) or self.has_object(name) or self.has_type(name)
 
-    # def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
-    #     '''Normalizes the given plan updating the action and object instances.'''
-    #     objects = {}
-    #     for obj in self.all_objects:
-    #         objects[obj.name] = obj
-    #     replace_action_instance = partial(self._replace_action_instance, objects=objects)
-    #     return plan.replace_action_instances(replace_action_instance)
-
-    # def _replace_action_instance(self,
-    #                             action_instance: ActionInstance,
-    #                             objects: Dict[str, 'up.model.object.Object']
-    #                             ) -> ActionInstance:
-    #     em = self.env.expression_manager
-    #     new_a = self.action(action_instance.action.name)
-    #     params = []
-    #     for p in action_instance.actual_parameters:
-    #         if p.is_object_exp():
-    #             obj = objects[p.object().name]
-    #             params.append(em.ObjectExp(obj))
-    #         elif p.is_bool_constant():
-    #             params.append(em.Bool(p.is_true()))
-    #         elif p.is_int_constant():
-    #             params.append(em.Int(cast(int, p.constant_value())))
-    #         elif p.is_real_constant():
-    #             params.append(em.Real(cast(Fraction, p.constant_value())))
-    #         else:
-    #             raise
-    #     return ActionInstance(new_a, tuple(params))
-
-    # OLD NORMALIZE_PLAN IMPLEMENTATION, TESTINTG PURPOSE, TODO: REMOVE THIS
     def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
         '''Normalizes the given plan updating the action and object instances.'''
         objects = {}
         for obj in self.all_objects:
             objects[obj.name] = obj
+        replace_action_instance = partial(self._replace_action_instance, objects=objects)
+        return plan.replace_action_instances(replace_action_instance)
+
+    def _replace_action_instance(self,
+                                action_instance: ActionInstance,
+                                objects: Dict[str, 'up.model.object.Object']
+                                ) -> ActionInstance:
         em = self.env.expression_manager
-        actions: List[ActionInstance] = []
-        if isinstance(plan, up.plans.SequentialPlan):
-            actions = plan.actions
-        elif isinstance(plan, up.plans.TimeTriggeredPlan):
-            actions = [a for _, a, _ in plan.actions]
-        else:
-            raise NotImplementedError
-        new_actions: List[ActionInstance] = []
-        for a in actions:
-            new_a = self.action(a.action.name)
-            params = []
-            for p in a.actual_parameters:
-                if p.is_object_exp():
-                    obj = objects[p.object().name]
-                    params.append(em.ObjectExp(obj))
-                elif p.is_bool_constant():
-                    params.append(em.Bool(p.is_true()))
-                elif p.is_int_constant():
-                    params.append(em.Int(cast(int, p.constant_value())))
-                elif p.is_real_constant():
-                    params.append(em.Real(cast(Fraction, p.constant_value())))
-                else:
-                    raise
-            new_actions.append(ActionInstance(new_a, tuple(params)))
-        if isinstance(plan, up.plans.SequentialPlan):
-            return up.plans.SequentialPlan(new_actions)
-        elif isinstance(plan, up.plans.TimeTriggeredPlan):
-            return up.plans.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions, new_actions)])
-        else:
-            raise NotImplementedError
+        new_a = self.action(action_instance.action.name)
+        params = []
+        for p in action_instance.actual_parameters:
+            if p.is_object_exp():
+                obj = objects[p.object().name]
+                params.append(em.ObjectExp(obj))
+            elif p.is_bool_constant():
+                params.append(em.Bool(p.is_true()))
+            elif p.is_int_constant():
+                params.append(em.Int(cast(int, p.constant_value())))
+            elif p.is_real_constant():
+                params.append(em.Real(cast(Fraction, p.constant_value())))
+            else:
+                raise
+        return ActionInstance(new_a, tuple(params))
 
     def get_static_fluents(self) -> Set['up.model.fluent.Fluent']:
         '''Returns the set of the static fluents.
