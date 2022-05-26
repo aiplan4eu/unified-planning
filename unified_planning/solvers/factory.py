@@ -98,9 +98,14 @@ class Factory:
         if len(credits) == 0:
             return
 
-        operation_mode_name = inspect.stack()[2].function
-        line = inspect.stack()[3].lineno
         fname = inspect.stack()[3].filename
+        if 'unified_planning/shortcuts.py' in fname:
+            fname = inspect.stack()[4].filename
+            operation_mode_name = inspect.stack()[3].function
+            line = inspect.stack()[4].lineno
+        else:
+            operation_mode_name = inspect.stack()[2].function
+            line = inspect.stack()[3].lineno
 
         class PaleWriter():
             def __init__(self, stream: IO[str]):

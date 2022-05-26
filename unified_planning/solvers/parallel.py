@@ -14,8 +14,6 @@
 #
 
 
-from fractions import Fraction
-import sys
 import warnings
 import unified_planning as up
 import unified_planning.solvers as solvers

@@ -14,8 +14,7 @@
 #
 
 
-import sys
-from typing import IO, Dict, Union, List, Set, Optional
+from typing import Dict, List, Optional
 from itertools import product
 
 import unified_planning as up
