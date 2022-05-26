@@ -15,16 +15,17 @@
 """This module implements the grounder that uses tarski."""
 
 
-from functools import partial
 import shutil
+from functools import partial
 from typing import Optional, Tuple, Dict, List
 import tarski # type: ignore
 import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
+from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model import Action, FNode
 from unified_planning.solvers.grounder import lift_action_instance
-from unified_planning.solvers.solver import Solver
+from unified_planning.solvers.solver import Solver, Credits
 from unified_planning.solvers.results import GroundingResult
 from unified_planning.transformers import Grounder
 from tarski.grounding import LPGroundingStrategy # type: ignore
@@ -34,6 +35,14 @@ gringo = shutil.which('gringo')
 if gringo is None:
     raise ImportError('Tarski grounder needs gringo installed')
 
+credits = Credits('Tarski grounder',
+                  'Artificial Intelligence and Machine Learning Group - Universitat Pompeu Fabra',
+                  'info-ai@upf.edu',
+                  'https://github.com/aig-upf/tarski',
+                  'Apache 2.0',
+                  'Tarski grounder, more information available on the given website.',
+                  'Tarski grounder, more information available on the given website.'
+                  )
 
 class TarskiGrounder(Solver):
     """Implements the gounder that uses tarski."""
@@ -50,8 +59,8 @@ class TarskiGrounder(Solver):
         return True
 
     @staticmethod
-    def supports(problem_kind: 'up.model.ProblemKind') -> bool:
-        supported_kind = up.model.ProblemKind()
+    def supported_kind() -> ProblemKind:
+        supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
         supported_kind.set_typing('FLAT_TYPING') # type: ignore
         supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
@@ -61,7 +70,11 @@ class TarskiGrounder(Solver):
         supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
         supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        return problem_kind <= supported_kind
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind: 'unified_planning.model.ProblemKind') -> bool:
+        return problem_kind <= TarskiGrounder.supported_kind()
 
     def ground(self, problem: 'up.model.AbstractProblem') -> GroundingResult:
         assert isinstance(problem, up.model.Problem)
@@ -95,6 +108,10 @@ class TarskiGrounder(Solver):
         grounded_problem = unified_planning_grounder.get_rewritten_problem()
         trace_back_map = unified_planning_grounder.get_rewrite_back_map()
         return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map), self.name, [])
+
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[Credits]:
+        return credits
 
     def destroy(self):
         pass

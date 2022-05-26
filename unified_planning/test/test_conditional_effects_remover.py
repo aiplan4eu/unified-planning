@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import sys
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import UPProblemDefinitionError

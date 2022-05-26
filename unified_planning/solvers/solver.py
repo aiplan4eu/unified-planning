@@ -16,16 +16,39 @@
 
 
 import unified_planning as up
-from unified_planning.plan import Plan
-from unified_planning.model import ProblemKind, AbstractProblem
+from unified_planning.model import ProblemKind
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import IO, Optional, Tuple, Callable, Union
+from typing import IO, Optional, Callable, Union
 
 
 
 class OptimalityGuarantee(Enum):
     SATISFICING = auto()
     SOLVED_OPTIMALLY = auto()
+
+@dataclass
+class Credits:
+    name: str
+    author: str
+    contact: str
+    website: str
+    license: str
+    short_description: str
+    long_description: str
+
+    def write_credits(self, stream: IO[str], full_credits: bool = False):
+        stream.write(f'  * Engine name: {self.name}\n  * Developers:  {self.author}\n')
+        if not full_credits:
+            stream.write('  * Description: ')
+            stream.write(self.short_description.replace('\n', '\n  *              '))
+            stream.write('\n')
+        else:
+            stream.write(f'  * Contacts:    {self.contact}\n')
+            stream.write(f'  * Website:     {self.website}\n')
+            stream.write(f'  * License:     {self.license}\n  * Description: ')
+            stream.write(self.long_description.replace('\n', '\n  *              '))
+            stream.write('\n')
 
 
 class Solver:
@@ -54,6 +77,10 @@ class Solver:
     @staticmethod
     def is_grounder() -> bool:
         return False
+
+    @staticmethod
+    def supported_kind() -> ProblemKind:
+        return ProblemKind()
 
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
@@ -95,6 +122,17 @@ class Solver:
         Also, the "up.solvers.grounder.lift_plan" function can be called, if retrieving the needed map
         fits the solver implementation better than retrieving a Callable.'''
         raise NotImplementedError
+
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[Credits]:
+        '''
+        This method returns the credits for this solver, that will be printed when the solver is used.
+        If this function returns None, it means no credits to print.
+
+        The **kwargs parameters are the same used in this solver to communicate
+         the specific options for this Solver instance.
+        '''
+        return None
 
     def destroy(self):
         raise NotImplementedError

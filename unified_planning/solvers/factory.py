@@ -14,9 +14,13 @@
 #
 
 import importlib
+import sys
+import io
+import inspect
 import unified_planning as up
+from unified_planning.environment import Environment, get_env
 from unified_planning.model import ProblemKind
-from typing import Dict, Tuple, Optional, List, Union, Type
+from typing import IO, Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
@@ -45,8 +49,10 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
 
 
 class Factory:
-    def __init__(self, solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
+    def __init__(self, env: 'Environment', solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
+        self._env = env
         self.solvers: Dict[str, Type['up.solvers.solver.Solver']] = {}
+        self._credit_disclaimer_printed = False
         for name, (module_name, class_name) in solvers.items():
             try:
                 self.add_solver(name, module_name, class_name)
@@ -84,33 +90,89 @@ class Factory:
         msg = f'No available solver supports all the problem features:\n{format_table(header, planners_features)}'
         raise up.exceptions.UPNoSuitableSolverAvailableException(msg)
 
+    def _print_credits(self, all_credits: List[Optional['up.solvers.Credits']]):
+        '''
+        This function prints the credits of the engine(s) used by an operation mode
+        '''
+        credits: List['up.solvers.Credits'] = [c for c in all_credits if c is not None]
+        if len(credits) == 0:
+            return
+
+        stack = inspect.stack()
+        fname = stack[3].filename
+        if 'unified_planning/shortcuts.py' in fname:
+            fname = stack[4].filename
+            operation_mode_name = stack[3].function
+            line = stack[4].lineno
+        else:
+            operation_mode_name = stack[2].function
+            line = stack[3].lineno
+
+        class PaleWriter():
+            def __init__(self, stream: IO[str]):
+                self._stream = stream
+
+            def write(self, txt:str):
+                self._stream.write('\033[96m')
+                self._stream.write(txt)
+                self._stream.write('\033[0m')
+
+        if self.environment.credits_stream is not None:
+            w = PaleWriter(self.environment.credits_stream)
+
+            if not self._credit_disclaimer_printed:
+                self._credit_disclaimer_printed = True
+                w.write(f'\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_env().credits_stream = None`\n')
+            w.write('  *** Credits ***\n')
+            w.write(f'  * In operation mode `{operation_mode_name}` at line {line} of `{fname}`, ')
+            if len(credits) > 1:
+                w.write('you are using a parallel planning engine with the following components:\n')
+            else:
+                w.write('you are using the following planning engine:\n')
+            for c in credits:
+                c.write_credits(w) #type: ignore
+            w.write('\n')
+
     def _get_solver(self, solver_kind: str, name: Optional[str] = None,
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
-                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> 'up.solvers.solver.Solver':
+                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
+                    ) -> 'up.solvers.solver.Solver':
         if names is not None:
             assert name is None
             if params is None:
                 params = [{} for i in range(len(names))]
             assert isinstance(params, List) and len(names) == len(params)
             solvers = []
+            all_credits = []
             for name, param in zip(names, params):
                 SolverClass = self._get_solver_class(solver_kind, name)
+                all_credits.append(SolverClass.get_credits(**param))
                 solvers.append((SolverClass, param))
-            return up.solvers.parallel.Parallel(solvers)
+            self._print_credits(all_credits)
+            p_solver = up.solvers.parallel.Parallel(solvers)
+            return p_solver
         else:
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
             SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
+            credits = SolverClass.get_credits(**params)
+            self._print_credits([credits])
             return SolverClass(**params)
+
+    @property
+    def environment(self) -> 'Environment':
+        '''Returns the environment in which this factory is created'''
+        return self._env
 
     def OneshotPlanner(self, *, name: Optional[str] = None,
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind(),
-                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> 'up.solvers.solver.Solver':
+                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
+                       ) -> 'up.solvers.solver.Solver':
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
@@ -125,9 +187,10 @@ class Factory:
         return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 
     def PlanValidator(self, *, name: Optional[str] = None,
-                      names: Optional[List[str]] = None,
-                      params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                      problem_kind: ProblemKind = ProblemKind()) -> 'up.solvers.solver.Solver':
+                       names: Optional[List[str]] = None,
+                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                       problem_kind: ProblemKind = ProblemKind()
+                       ) -> 'up.solvers.solver.Solver':
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
@@ -143,7 +206,8 @@ class Factory:
         return self._get_solver('plan_validator', name, names, params, problem_kind)
 
     def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                 problem_kind: ProblemKind = ProblemKind()) -> 'up.solvers.solver.Solver':
+                       problem_kind: ProblemKind = ProblemKind()
+                       ) -> 'up.solvers.solver.Solver':
         """
         Returns a Grounder. There are three ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
@@ -153,3 +217,12 @@ class Factory:
           e.g. Grounder(problem_kind=problem.kind)
         """
         return self._get_solver('grounder', name, None, params, problem_kind)
+
+    def print_solvers_info(self, stream: IO[str] = sys.stdout, full_credits: bool = True):
+        stream.write('These are the solvers currently available:\n')
+        for Solver in self.solvers.values():
+            credits = Solver.get_credits()
+            if credits is not None:
+                stream.write('---------------------------------------\n')
+                credits.write_credits(stream, full_credits)
+                stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n\n')

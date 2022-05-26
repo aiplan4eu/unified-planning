@@ -15,14 +15,13 @@
 
 
 from functools import partial
-from typing import Dict, List, Tuple
-
+from typing import Dict, List, Optional,Tuple
 import unified_planning.environment
 import unified_planning.solvers as solvers
 import unified_planning.transformers
-from unified_planning.plan import Plan, SequentialPlan, TimeTriggeredPlan, ActionInstance
+from unified_planning.plan import ActionInstance
 from unified_planning.solvers.results import GroundingResult
-from unified_planning.model import AbstractProblem, Problem, ProblemKind
+from unified_planning.model import Problem, ProblemKind
 
 
 class Grounder(solvers.solver.Solver):
@@ -48,35 +47,43 @@ class Grounder(solvers.solver.Solver):
         return 'grounder'
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-        supported_kind.set_time('CONTINUOUS_TIME') # type: ignore
-        supported_kind.set_time('DISCRETE_TIME') # type: ignore
-        supported_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-        supported_kind.set_time('TIMED_EFFECT') # type: ignore
-        supported_kind.set_time('TIMED_GOALS') # type: ignore
-        supported_kind.set_time('DURATION_INEQUALITIES') # type: ignore
-        supported_kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
-        return problem_kind <= supported_kind
+        supported_kind.set_typing('FLAT_TYPING') # type:ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type:ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type:ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type:ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type:ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type:ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type:ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type:ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type:ignore
+        supported_kind.set_time('CONTINUOUS_TIME') # type:ignore
+        supported_kind.set_time('DISCRETE_TIME') # type:ignore
+        supported_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type:ignore
+        supported_kind.set_time('TIMED_EFFECT') # type:ignore
+        supported_kind.set_time('TIMED_GOALS') # type:ignore
+        supported_kind.set_time('DURATION_INEQUALITIES') # type:ignore
+        supported_kind.set_simulated_entities('SIMULATED_EFFECTS') # type:ignore
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind):
+        return problem_kind <= Grounder.supported_kind()
 
     @staticmethod
     def is_grounder():
         return True
+
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[solvers.solver.Credits]:
+        return None
 
     def destroy(self):
         pass

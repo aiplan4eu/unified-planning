@@ -14,7 +14,7 @@
 #
 
 
-from typing import Dict, Union, List, Set, Optional
+from typing import Dict, List, Optional
 from itertools import product
 
 import unified_planning as up
@@ -238,28 +238,36 @@ class SequentialPlanValidator(solvers.solver.Solver):
         return 'sequential_plan_validator'
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        return problem_kind <= supported_kind
+        supported_kind.set_typing('FLAT_TYPING') # type:ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type:ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type:ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type:ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type:ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type:ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type:ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type:ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type:ignore
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind):
+        return problem_kind <= SequentialPlanValidator.supported_kind()
 
     @staticmethod
     def is_plan_validator():
         return True
+
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[solvers.solver.Credits]:
+        return None
 
     def destroy(self):
         pass

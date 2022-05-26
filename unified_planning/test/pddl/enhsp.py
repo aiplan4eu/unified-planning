@@ -14,18 +14,18 @@
 
 import os
 import unified_planning as up
+import unified_planning.solvers
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.environment import get_env
 from typing import List, Optional, Union
-from unified_planning.solvers import PDDLSolver
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-class ENHSP(PDDLSolver):
+class ENHSP(up.solvers.PDDLSolver):
     def __init__(self):
-        PDDLSolver.__init__(self, False)
+        up.solvers.PDDLSolver.__init__(self, False)
 
     @property
     def name(self) -> str:
@@ -48,7 +48,7 @@ class ENHSP(PDDLSolver):
         return True
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
         supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
@@ -66,7 +66,15 @@ class ENHSP(PDDLSolver):
         supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
         supported_kind.set_quality_metrics('ACTIONS_COST') # type: ignore
         supported_kind.set_quality_metrics('FINAL_VALUE') # type: ignore
-        return problem_kind <= supported_kind
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind: 'ProblemKind') -> bool:
+        return problem_kind <= ENHSP.supported_kind()
+
+    @staticmethod
+    def get_credits(**kwargs) -> Optional[up.solvers.Credits]:
+        return None
 
 
 env = get_env()

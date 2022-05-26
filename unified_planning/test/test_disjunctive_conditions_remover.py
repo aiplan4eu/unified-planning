@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import classical_kind, full_numeric_kind, full_classical_kind
 from unified_planning.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 from unified_planning.transformers import DisjunctiveConditionsRemover
-from unified_planning.exceptions import UPProblemDefinitionError
 
 
 class TestDisjunctiveConditionsRemover(TestCase):
