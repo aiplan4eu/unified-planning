@@ -98,17 +98,10 @@ class TestNegativeConditionsRemover(TestCase):
         mend_f1 = ActionInstance(mend_fuse, (ObjectExp(f1), ))
         mend_f2 = ActionInstance(mend_fuse, (ObjectExp(f2), ))
         mend_f3 = ActionInstance(mend_fuse, (ObjectExp(f3), ))
-        npa = [a for s, a, d in new_plan.actions]
         expected_ai = [light_m1, light_m2, light_m3, mend_f1, mend_f2, mend_f3]
-        # basically a for loop equivalent to (npa == expected_ai)
-        self.assertEqual(len(npa), len(expected_ai))
-        for ai in npa:
-            test = False
-            for e_ai in expected_ai:
-                if e_ai.action == ai.action and e_ai.actual_parameters == ai.actual_parameters:
-                    test = True
-                    break
-            self.assertTrue(test)
+        self.assertEqual(len(new_plan.actions), len(expected_ai))
+        for ai in expected_ai:
+            self.assertIn(ai, new_plan)
 
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)

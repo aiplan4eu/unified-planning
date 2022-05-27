@@ -48,6 +48,7 @@ class ActionInstance:
             s.append(')')
         return self._action.name + ''.join(s)
 
+
     @property
     def action(self) -> 'Action':
         '''Returns the action.'''
@@ -58,42 +59,22 @@ class ActionInstance:
         '''Returns the actual parameters.'''
         return self._params
 
-def ground_action_instance(action_instance: ActionInstance, substituter: 'Substituter', simplifier: 'Simplifier') -> 'Action':
-    old_action = action_instance.action
-    if isinstance(old_action, InstantaneousAction):
-        assert len(old_action.parameters) == len(action_instance.actual_parameters)
-        if len(old_action.parameters) == 0:
-            return old_action.clone()
-        new_action = InstantaneousAction(_name=old_action.name, _env=old_action._env)
-        assignments: Dict[Expression, Expression] = dict(zip(old_action.parameters, action_instance.actual_parameters))
-        for prec in old_action.preconditions:
-            new_action.add_precondition(simplifier.simplify(substituter.substitute(prec, assignments)))
-        for eff in old_action.effects:
-            new_action._add_effect_instance(
-                Effect(
-                    simplifier.simplify(substituter.substitute(eff.fluent, assignments)),
-                    simplifier.simplify(substituter.substitute(eff.value, assignments)),
-                    simplifier.simplify(substituter.substitute(eff.condition, assignments)),
-                    eff.kind
-                )
-            )
-        if old_action.simulated_effect is not None:
-            raise NotImplementedError
-            # TODO: deal with simulated effects!
-        return new_action
-    else:
-        raise NotImplementedError
+    def is_semantically_equivalent(self, oth: 'ActionInstance') -> bool:
+        '''This method returns True Iff the 2 Action Instances have the same semantic.
+
+        NOTE: This is different from __eq__; there the 2 Action Instances need to be exactly the same object.'''
+        return self.action == oth.action and self._params == oth._params
 
 
 class Plan:
     '''Represents a generic plan.'''
-    def __init__(self, env: Optional['Environment'] = None) -> None:
-        self._env = get_env(env)
+    def __init__(self, environment: Optional['Environment'] = None) -> None:
+        self._environment = get_env(environment)
 
     @property
-    def env(self) -> 'Environment':
+    def environment(self) -> 'Environment':
         '''Return this plan environment.'''
-        return self._env
+        return self._environment
 
     def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
         '''This function takes a function from ActionInstance to ActionInstance and returns a new Plan

@@ -20,7 +20,7 @@ from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 
 
-class TestTemporalPlanner(TestCase):
+class TestPartialOrderPlan(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()

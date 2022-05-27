@@ -19,17 +19,17 @@ import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode, InstantaneousAction
+from unified_planning.model import FNode, InstantaneousAction, Expression
 from unified_planning.walkers import Substituter, Simplifier, FreeVarsExtractor
 from typing import Callable, Dict, Optional, Set, List, cast
 
 
 class SequentialPlan(plans.plan.Plan):
     '''Represents a sequential plan.'''
-    def __init__(self, actions: List['plans.plan.ActionInstance'], env: Optional['Environment'] = None):
-        plans.plan.Plan.__init__(self, env)
+    def __init__(self, actions: List['plans.plan.ActionInstance'], environment: Optional['Environment'] = None):
+        plans.plan.Plan.__init__(self, environment)
         for ai in actions: # check that given env and the env in the actions is the same
-            if ai.action.env != self._env:
+            if ai.action.env != self._environment:
                 raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
         self._actions = actions
 
@@ -42,6 +42,18 @@ class SequentialPlan(plans.plan.Plan):
                 if ai.action != oth_ai.action or ai.actual_parameters != oth_ai.actual_parameters:
                     return False
             return True
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        count: int = 0
+        for i, ai in enumerate(self._actions):
+            count += i + hash(ai.action) + hash(ai.parameters)
+        return count
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, plans.plan.ActionInstance):
+            return any(item.is_semantically_equivalent(a) for a in self._actions)
         else:
             return False
 
@@ -62,8 +74,8 @@ class SequentialPlan(plans.plan.Plan):
                 assign a value to said fluent)
             - AND the other ActionInstance reads or writes on the same grounded fluent (reads means that one of his preconditions
                 or one of his condition in a conditional effect depends on said fluent).'''
-        subs = Substituter(self._env)
-        simp = Simplifier(self._env)
+        subs = Substituter(self._environment)
+        simp = Simplifier(self._environment)
         fve = FreeVarsExtractor()
         # last_modifier is the mapping from a grounded fluent to the last action instance that assigned a value to
         # that fluent
@@ -74,44 +86,50 @@ class SequentialPlan(plans.plan.Plan):
         # graph stores the information gathered through the process
         graph = nx.DiGraph()
         for action_instance in self.actions:
-            grounded_action = cast(InstantaneousAction, up.plans.plan.ground_action_instance(action_instance, subs, simp))
             graph.add_node(action_instance)
 
-            # required_fluents contains all the fluents that this action_instance "reads"
+            # required_fluents contains all the grounded fluents that this action_instance "reads"
             required_fluents: Set[FNode] = set()
+            # same of required_fluents, but the fluents are lifted
+            lifted_required_fluents: Set[FNode] = set()
             # add free vars of preconditions
-            for prec in grounded_action.preconditions:
-                required_fluents = required_fluents.union(fve.get(prec))
+            for prec in action_instance.action.preconditions:
+                lifted_required_fluents |= fve.get(prec)
             # add in the required_fluents all the free fluents this action instance deals with
-            for eff in grounded_action.effects:
-                required_fluents = required_fluents.union(fve.get(eff.condition))
-                required_fluents = required_fluents.union(fve.get(eff.fluent))
-                required_fluents = required_fluents.union(fve.get(eff.value))
+            for eff in action_instance.action.effects:
+                lifted_required_fluents |= fve.get(eff.condition)
+                lifted_required_fluents |= fve.get(eff.fluent)
+                lifted_required_fluents |= fve.get(eff.value)
+
+            assignments: Dict[Expression, Expression] = dict(zip(action_instance.action.parameters, action_instance.actual_parameters))
+            for lifted_fluent in lifted_required_fluents:
+                assert lifted_fluent.is_fluent_exp()
+                for arg in lifted_fluent.args: # check that we don't have "nested" fluents
+                    if len(fve.get(arg)) != 0:
+                        raise UPUsageError(f'The partial deordering of a Sequential Plan does not allow the use of fluents inside the parameter of fluents!\nThe fluent: {lifted_fluent} does violates this contraint.')
+                required_fluents.add(simp.simplify(subs.substitute(lifted_fluent, assignments)))
 
             # for every required fluent, add this action instance to the list of action instances that requires this fluent
             # and order the current action instance after the last modifier of the fluent
             for required_fluent in required_fluents:
-                action_instance_list = all_required.get(required_fluent, None)
-                if action_instance_list is None:
-                    all_required[required_fluent] = [action_instance]
-                else:
-                    action_instance_list.append(action_instance)
+                action_instance_list = all_required.setdefault(required_fluent, [])
+                action_instance_list.append(action_instance)
                 required_fluent_last_modifier = last_modifier.get(required_fluent, None)
                 if required_fluent_last_modifier is not None:
-                    assert required_fluent_last_modifier != action_instance # sanity
+                    assert required_fluent_last_modifier != action_instance # sanity check
                     graph.add_edge(required_fluent_last_modifier, action_instance)
 
             # for every effect, set current action instance as the last modifier and the current action instance is ordered
             # after every action instance that requires a fluent the current action instance modifies
-            for eff in grounded_action.effects:
+            for eff in action_instance.action.effects:
                 assert eff.fluent.is_fluent_exp()
-                last_modifier[eff.fluent] = action_instance
-                dependent_action_instance_list = all_required.get(eff.fluent, None)
-                if dependent_action_instance_list is not None:
-                    for dependent_action_instance in dependent_action_instance_list:
-                        if dependent_action_instance != action_instance:
-                            graph.add_edge(dependent_action_instance, action_instance)
+                grounded_fluent = simp.simplify(subs.substitute(eff.fluent, assignments))
+                last_modifier[grounded_fluent] = action_instance
+                dependent_action_instance_list = all_required.setdefault(grounded_fluent, [])
+                for dependent_action_instance in dependent_action_instance_list:
+                    if dependent_action_instance != action_instance:
+                        graph.add_edge(dependent_action_instance, action_instance)
 
         assert nx.is_directed_acyclic_graph(graph)
         # remove redundant edges and return the up.plans.partial_order_plan.PartialOrderPlan structure.
-        return up.plans.partial_order_plan.PartialOrderPlan(nx.convert.to_dict_of_lists(nx.transitive_reduction(graph)))
+        return up.plans.partial_order_plan.PartialOrderPlan({}, self._environment, nx.transitive_reduction(graph))

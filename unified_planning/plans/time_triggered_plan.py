@@ -24,16 +24,16 @@ from fractions import Fraction
 
 class TimeTriggeredPlan(plans.plan.Plan):
     '''Represents a time triggered plan.'''
-    def __init__(self, actions: List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]], env: Optional['Environment'] = None):
+    def __init__(self, actions: List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]], environment: Optional['Environment'] = None):
         '''The first Fraction represents the absolute time in which the action
         Action starts, while the last Fraction represents the duration
         of the action to fullfill the problem goals.
         The Action can be an InstantaneousAction, this is represented with a duration set
         to None.
         '''
-        plans.plan.Plan.__init__(self, env)
+        plans.plan.Plan.__init__(self, environment)
         for _, ai, _ in actions: # check that given env and the env in the actions is the same
-            if ai.action.env != self._env:
+            if ai.action.env != self._environment:
                 raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
         self._actions = actions
 
@@ -49,9 +49,24 @@ class TimeTriggeredPlan(plans.plan.Plan):
         else:
             return False
 
+    def __hash__(self) -> int:
+        count: int = 0
+        for i, (s, ai, d) in enumerate(self._actions):
+            count += i + hash(ai.action) + hash(ai.parameters) + hash(s) + hash(d)
+        return count
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, plans.plan.ActionInstance):
+            return any(item.is_semantically_equivalent(a) for _, a, _ in self._actions)
+        else:
+            return False
+
     @property
     def actions(self) -> List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]]:
-        '''Returns the sequence of action instances.'''
+        '''Returns the sequence of tuples (start, action_instance, duration) where:
+            start is when the action starts;
+            action_instance is the action applied;
+            duration is the (optional) duration of the action.'''
         return self._actions
 
     def replace_action_instances(self, replace_function: Callable[['plans.plan.ActionInstance'], 'plans.plan.ActionInstance']) -> 'plans.plan.Plan':

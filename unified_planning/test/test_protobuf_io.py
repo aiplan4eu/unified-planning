@@ -282,7 +282,7 @@ class TestProtobufProblems(TestCase):
             plan_pb = self.pb_writer.convert(plan)
             plan_up = self.pb_reader.convert(plan_pb, problem)
 
-            self.assertEqual(str(plan), str(plan_up))
+            self.assertEqual(plan, plan_up)
 
     @skipIfSolverNotAvailable("tamer")
     def test_some_plan_generations(self):
