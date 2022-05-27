@@ -52,7 +52,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
     def __hash__(self) -> int:
         count: int = 0
         for i, (s, ai, d) in enumerate(self._actions):
-            count += i + hash(ai.action) + hash(ai.parameters) + hash(s) + hash(d)
+            count += i + hash(ai.action) + hash(ai.actual_parameters) + hash(s) + hash(d)
         return count
 
     def __contains__(self, item: object) -> bool:

@@ -48,7 +48,7 @@ class SequentialPlan(plans.plan.Plan):
     def __hash__(self) -> int:
         count: int = 0
         for i, ai in enumerate(self._actions):
-            count += i + hash(ai.action) + hash(ai.parameters)
+            count += i + hash(ai.action) + hash(ai.actual_parameters)
         return count
 
     def __contains__(self, item: object) -> bool:
@@ -87,21 +87,23 @@ class SequentialPlan(plans.plan.Plan):
         graph = nx.DiGraph()
         for action_instance in self.actions:
             graph.add_node(action_instance)
+            assert isinstance(action_instance.action, InstantaneousAction)
+            inst_action = cast(InstantaneousAction, action_instance.action)
 
             # required_fluents contains all the grounded fluents that this action_instance "reads"
             required_fluents: Set[FNode] = set()
             # same of required_fluents, but the fluents are lifted
             lifted_required_fluents: Set[FNode] = set()
             # add free vars of preconditions
-            for prec in action_instance.action.preconditions:
+            for prec in inst_action.preconditions:
                 lifted_required_fluents |= fve.get(prec)
             # add in the required_fluents all the free fluents this action instance deals with
-            for eff in action_instance.action.effects:
+            for eff in inst_action.effects:
                 lifted_required_fluents |= fve.get(eff.condition)
                 lifted_required_fluents |= fve.get(eff.fluent)
                 lifted_required_fluents |= fve.get(eff.value)
 
-            assignments: Dict[Expression, Expression] = dict(zip(action_instance.action.parameters, action_instance.actual_parameters))
+            assignments: Dict[Expression, Expression] = dict(zip(inst_action.parameters, action_instance.actual_parameters))
             for lifted_fluent in lifted_required_fluents:
                 assert lifted_fluent.is_fluent_exp()
                 for arg in lifted_fluent.args: # check that we don't have "nested" fluents
@@ -121,7 +123,7 @@ class SequentialPlan(plans.plan.Plan):
 
             # for every effect, set current action instance as the last modifier and the current action instance is ordered
             # after every action instance that requires a fluent the current action instance modifies
-            for eff in action_instance.action.effects:
+            for eff in inst_action.effects:
                 assert eff.fluent.is_fluent_exp()
                 grounded_fluent = simp.simplify(subs.substitute(eff.fluent, assignments))
                 last_modifier[grounded_fluent] = action_instance
