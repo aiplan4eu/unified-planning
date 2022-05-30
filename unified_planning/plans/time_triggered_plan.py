@@ -70,4 +70,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
         return self._actions
 
     def replace_action_instances(self, replace_function: Callable[['plans.plan.ActionInstance'], 'plans.plan.ActionInstance']) -> 'plans.plan.Plan':
-        return TimeTriggeredPlan([(s, replace_function(ai), d) for s, ai, d in self._actions])
+        new_ai = [(s, replace_function(ai), d) for s, ai, d in self._actions]
+        new_env = self._environment
+        if len(new_ai) > 0:
+            _, ai, _ = new_ai[0]
+            new_env = ai.action.env
+        return TimeTriggeredPlan(new_ai, new_env)

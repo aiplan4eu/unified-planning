@@ -66,7 +66,7 @@ class PartialOrderPlan(plans.plan.Plan):
             return False
 
     def __hash__(self) -> int:
-        return nx.weisfeiler_lehman_graph_hash(self._graph)
+        return hash(nx.weisfeiler_lehman_graph_hash(self._graph))
 
     def __contains__(self, item: object) -> bool:
         if isinstance(item, ActionInstance):
@@ -84,7 +84,11 @@ class PartialOrderPlan(plans.plan.Plan):
         # Populate the new adjacency list with the replaced action instances
         for node in self._graph.nodes:
             new_adj_list[replace_function(node)] = [replace_function(successor) for successor in self._graph.neighbors(node)]
-        return PartialOrderPlan(new_adj_list)
+        new_env = self._environment
+        for ai in new_adj_list.keys():
+            new_env = ai.action.env
+            break
+        return PartialOrderPlan(new_adj_list, new_env)
 
     def to_sequential_plan(self) -> SequentialPlan:
         '''Returns one between all possible SequentialPlans that respects the ordering constaints given by this PartialOrderPlan.'''

@@ -63,7 +63,11 @@ class SequentialPlan(plans.plan.Plan):
         return self._actions
 
     def replace_action_instances(self, replace_function: Callable[['plans.plan.ActionInstance'], 'plans.plan.ActionInstance']) -> 'up.plans.plan.Plan':
-        return SequentialPlan([replace_function(ai) for ai in self._actions])
+        new_ai = [replace_function(ai) for ai in self._actions]
+        new_env = self._environment
+        if len(new_ai) > 0:
+            new_env = new_ai[0].action.env
+        return SequentialPlan(new_ai, new_env)
 
     def to_partial_order_plan(self) -> 'up.plans.partial_order_plan.PartialOrderPlan':
         '''Returns the PartialOrderPlan version of this SequentialPlan.

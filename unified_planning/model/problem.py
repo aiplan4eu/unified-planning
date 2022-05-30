@@ -215,7 +215,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             elif p.is_real_constant():
                 params.append(em.Real(cast(Fraction, p.constant_value())))
             else:
-                raise
+                raise NotImplementedError
         return ActionInstance(new_a, tuple(params))
 
     def get_static_fluents(self) -> Set['up.model.fluent.Fluent']:
