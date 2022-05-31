@@ -27,7 +27,13 @@ from typing import Callable, Dict, Optional, Set, List, cast
 class SequentialPlan(plans.plan.Plan):
     '''Represents a sequential plan.'''
     def __init__(self, actions: List['plans.plan.ActionInstance'], environment: Optional['Environment'] = None):
-        plans.plan.Plan.__init__(self, environment)
+        # if we have a specific env or we don't have any actions
+        if environment is not None or not actions:
+            plans.plan.Plan.__init__(self, environment)
+        # If we don't have a specific env and have at least 1 action, use the env of the first action
+        else:
+            assert len(actions) > 0
+            plans.plan.Plan.__init__(self, actions[0].action.env)
         for ai in actions: # check that given env and the env in the actions is the same
             if ai.action.env != self._environment:
                 raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
