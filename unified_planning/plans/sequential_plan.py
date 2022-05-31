@@ -14,7 +14,6 @@
 #
 
 
-import inspect
 import networkx as nx # type: ignore
 import unified_planning as up
 import unified_planning.plans as plans
@@ -31,10 +30,7 @@ class SequentialPlan(plans.plan.Plan):
         plans.plan.Plan.__init__(self, environment)
         for ai in actions: # check that given env and the env in the actions is the same
             if ai.action.env != self._environment:
-
-                # ---for testing,to remove---. Remove import, f string and stack
-                stack = inspect.stack()
-                raise UPUsageError(f'The environment given to the plan is not the same of the actions in the plan. {str(stack)}')
+                raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
         self._actions = actions
 
     def __repr__(self) -> str:
