@@ -99,7 +99,7 @@ class TestNegativeConditionsRemover(TestCase):
         mend_f2 = ActionInstance(mend_fuse, (ObjectExp(f2), ))
         mend_f3 = ActionInstance(mend_fuse, (ObjectExp(f3), ))
         expected_ai = [light_m1, light_m2, light_m3, mend_f1, mend_f2, mend_f3]
-        self.assertEqual(len(new_plan.actions), len(expected_ai))
+        self.assertEqual(len(new_plan.timed_actions), len(expected_ai))
         for ai in expected_ai:
             self.assertIn(ai, new_plan)
 

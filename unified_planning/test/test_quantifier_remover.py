@@ -125,7 +125,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = qr.rewrite_back_plan(uq_plan)
-            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.actions, uq_plan.actions):
+            for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.timed_actions, uq_plan.timed_actions):
                 self.assertEqual(s, s_1)
                 self.assertEqual(d, d_1)
                 self.assertIn(a.action, problem.actions)

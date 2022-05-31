@@ -62,7 +62,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
             return False
 
     @property
-    def actions(self) -> List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]]:
+    def timed_actions(self) -> List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]]:
         '''Returns the sequence of tuples (start, action_instance, duration) where:
             start is when the action starts;
             action_instance is the action applied;

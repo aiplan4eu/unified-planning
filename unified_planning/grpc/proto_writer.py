@@ -463,7 +463,7 @@ class ProtobufWriter(Converter):
     def _convert_time_triggered_plan(self, plan: unified_planning.plans.TimeTriggeredPlan) -> proto.Plan:
         action_instances = []
 
-        for a in plan.actions:
+        for a in plan.timed_actions:
             start_time = self.convert(a[0])
             end_time = self.convert(a[0] + a[2])
             instance = self._convert_action_instance(

@@ -170,7 +170,7 @@ class TestGrounder(TestCase):
             self.assertNotEqual(planner, None)
             grounded_plan = planner.solve(grounded_problem).plan
             plan = gro.rewrite_back_plan(grounded_plan)
-            for _, ai, _ in plan.actions:
+            for _, ai, _ in plan.timed_actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
             with PlanValidator(problem_kind=problem.kind) as pv:
@@ -193,7 +193,7 @@ class TestGrounder(TestCase):
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem_try).plan
                 plan = grounded_plan.replace_action_instances(rewrite_back_plan_function)
-                for _, ai, _ in plan.actions:
+                for _, ai, _ in plan.timed_actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
                 with PlanValidator(problem_kind=problem.kind) as pv:
