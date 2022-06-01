@@ -20,18 +20,22 @@ import inspect
 import unified_planning as up
 from unified_planning.environment import Environment, get_env
 from unified_planning.model import ProblemKind
+from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.engines.mixins.compiler import CompilationKind
 from typing import IO, Dict, Tuple, Optional, List, Union, Type
 
 
-DEFAULT_SOLVERS = {'enhsp' : ('up_enhsp', 'ENHSPsolver'),
-                   'fast_downward' : ('up_fast_downward', 'FastDownwardPDDLSolver'),
-                   'fast_downward_optimal' : ('up_fast_downward', 'FastDownwardOptimalPDDLSolver'),
-                   'lpg' : ('up_lpg', 'LPGsolver'),
-                   'tamer' : ('up_tamer.solver', 'SolverImpl'),
-                   'pyperplan' : ('up_pyperplan.solver', 'SolverImpl'),
-                   'sequential_plan_validator' : ('unified_planning.solvers.plan_validator', 'SequentialPlanValidator'),
-                   'up_grounder' : ('unified_planning.solvers.grounder', 'Grounder'),
-                   'tarski_grounder' : ('unified_planning.solvers.tarski_grounder', 'TarskiGrounder')}
+DEFAULT_ENGINES = {
+    'pyperplan' : ('up_pyperplan.solver', 'SolverImpl'),
+    'tamer' : ('up_tamer.solver', 'SolverImpl'),
+    'sequential_plan_validator' : ('unified_planning.engines.plan_validator', 'SequentialPlanValidator'),
+    'up_conditional_effects_remover' : ('unified_planning.engines.compilers.conditional_effects_remover', 'ConditionalEffectsRemover'),
+    'up_disjunctive_conditions_remover' : ('unified_planning.engines.compilers.disjunctive_conditions_remover', 'DisjunctiveConditionsRemover'),
+    'up_negative_conditions_remover' : ('unified_planning.engines.compilers.negative_conditions_remover', 'NegativeConditionsRemover'),
+    'up_quantifiers_remover' : ('unified_planning.engines.compilers.quantifiers_remover', 'QuantifiersRemover'),
+    'tarski_grounder' : ('unified_planning.engines.compilers.tarski_grounder', 'TarskiGrounder'),
+    'up_grounder' : ('unified_planning.engines.compilers.grounder', 'Grounder')
+}
 
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:
@@ -49,52 +53,54 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
 
 
 class Factory:
-    def __init__(self, env: 'Environment', solvers: Dict[str, Tuple[str, str]] = DEFAULT_SOLVERS):
+    def __init__(self, env: 'Environment', engines: Dict[str, Tuple[str, str]] = DEFAULT_ENGINES):
         self._env = env
-        self.solvers: Dict[str, Type['up.solvers.solver.Solver']] = {}
+        self.engines: Dict[str, Type['up.engines.engine.Engine']] = {}
         self._credit_disclaimer_printed = False
-        for name, (module_name, class_name) in solvers.items():
+        for name, (module_name, class_name) in engines.items():
             try:
-                self.add_solver(name, module_name, class_name)
+                self.add_engine(name, module_name, class_name)
             except ImportError:
                 pass
 
-    def add_solver(self, name: str, module_name: str, class_name: str):
+    def add_engine(self, name: str, module_name: str, class_name: str):
         module = importlib.import_module(module_name)
-        SolverImpl = getattr(module, class_name)
-        self.solvers[name] = SolverImpl
+        EngineImpl = getattr(module, class_name)
+        self.engines[name] = EngineImpl
 
-    def _get_solver_class(self, solver_kind: str, name: Optional[str] = None,
+    def _get_engine_class(self, engine_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind(),
-                          optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None) -> Type['up.solvers.solver.Solver']:
+                          optimality_guarantee: Optional[Union['OptimalityGuarantee', str]] = None,
+                          compilation_kind: Optional[Union['CompilationKind', str]] = None) -> Type['up.engines.engine.Engine']:
         if name is not None:
-            if name in self.solvers:
-                return self.solvers[name]
+            if name in self.engines:
+                return self.engines[name]
             else:
-                raise up.exceptions.UPNoRequestedSolverAvailableException
+                raise up.exceptions.UPNoRequestedEngineAvailableException
         problem_features = list(problem_kind.features)
         planners_features = []
-        for name, SolverClass in self.solvers.items():
-            if getattr(SolverClass, 'is_'+solver_kind)():
-                if SolverClass.supports(problem_kind) \
-                   and (optimality_guarantee is None or SolverClass.satisfies(optimality_guarantee)):
-                    return SolverClass
+        for name, EngineClass in self.engines.items():
+            if getattr(EngineClass, 'is_'+engine_kind)():
+                if (EngineClass.supports(problem_kind)
+                    and (optimality_guarantee is None or EngineClass.satisfies(optimality_guarantee)) # type: ignore
+                    and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind))): # type: ignore
+                    return EngineClass
                 else:
-                    x = [name] + [str(SolverClass.supports(ProblemKind({f}))) for f in problem_features]
+                    x = [name] + [str(EngineClass.supports(ProblemKind({f}))) for f in problem_features]
                     if optimality_guarantee is not None:
-                        x.append(str(SolverClass.satisfies(optimality_guarantee)))
+                        x.append(str(EngineClass.satisfies(optimality_guarantee))) # type: ignore
                     planners_features.append(x)
-        header = ['Planner'] + problem_features
+        header = ['Engine'] + problem_features
         if optimality_guarantee is not None:
             header.append('OPTIMALITY_GUARANTEE')
-        msg = f'No available solver supports all the problem features:\n{format_table(header, planners_features)}'
-        raise up.exceptions.UPNoSuitableSolverAvailableException(msg)
+        msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
+        raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
 
-    def _print_credits(self, all_credits: List[Optional['up.solvers.Credits']]):
+    def _print_credits(self, all_credits: List[Optional['up.engines.Credits']]):
         '''
         This function prints the credits of the engine(s) used by an operation mode
         '''
-        credits: List['up.solvers.Credits'] = [c for c in all_credits if c is not None]
+        credits: List['up.engines.Credits'] = [c for c in all_credits if c is not None]
         if len(credits) == 0:
             return
 
@@ -133,34 +139,35 @@ class Factory:
                 c.write_credits(w) #type: ignore
             w.write('\n')
 
-    def _get_solver(self, solver_kind: str, name: Optional[str] = None,
+    def _get_engine(self, engine_kind: str, name: Optional[str] = None,
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
-                    optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
-                    ) -> 'up.solvers.solver.Solver':
+                    optimality_guarantee: Optional[Union['OptimalityGuarantee', str]] = None,
+                    compilation_kind: Optional[Union['CompilationKind', str]] = None
+                    ) -> 'up.engines.engine.Engine':
         if names is not None:
             assert name is None
             if params is None:
                 params = [{} for i in range(len(names))]
             assert isinstance(params, List) and len(names) == len(params)
-            solvers = []
+            engines = []
             all_credits = []
             for name, param in zip(names, params):
-                SolverClass = self._get_solver_class(solver_kind, name)
-                all_credits.append(SolverClass.get_credits(**param))
-                solvers.append((SolverClass, param))
+                EngineClass = self._get_engine_class(engine_kind, name)
+                all_credits.append(EngineClass.get_credits(**param))
+                engines.append((EngineClass, param))
             self._print_credits(all_credits)
-            p_solver = up.solvers.parallel.Parallel(solvers)
-            return p_solver
+            p_engine = up.engines.parallel.Parallel(engines)
+            return p_engine
         else:
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
-            SolverClass = self._get_solver_class(solver_kind, name, problem_kind, optimality_guarantee)
-            credits = SolverClass.get_credits(**params)
+            EngineClass = self._get_engine_class(engine_kind, name, problem_kind, optimality_guarantee, compilation_kind)
+            credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
-            return SolverClass(**params)
+            return EngineClass(**params)
 
     @property
     def environment(self) -> 'Environment':
@@ -171,58 +178,58 @@ class Factory:
                        names: Optional[List[str]] = None,
                        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                        problem_kind: ProblemKind = ProblemKind(),
-                       optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
-                       ) -> 'up.solvers.solver.Solver':
+                       optimality_guarantee: Optional[Union['OptimalityGuarantee', str]] = None) -> 'up.engines.engine.Engine':
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
           e.g. OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})
         - using 'names' (list of specific planners name) and 'params' (list of
-          planners dependent options) to get a Parallel solver.
+          planners dependent options) to get a Parallel engine.
           e.g. OneshotPlanner(names=['tamer', 'tamer'],
                               params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
         - using 'problem_kind' and 'optimality_guarantee'.
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
-        return self._get_solver('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
+        return self._get_engine('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 
     def PlanValidator(self, *, name: Optional[str] = None,
-                       names: Optional[List[str]] = None,
-                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()
-                       ) -> 'up.solvers.solver.Solver':
+                      names: Optional[List[str]] = None,
+                      params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                      problem_kind: ProblemKind = ProblemKind()) -> 'up.engines.engine.Engine':
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
           (plan validator dependent options).
           e.g. PlanValidator(name='tamer', params={'opt': 'val'})
         - using 'names' (list of specific plan validators name) and 'params' (list of
-          plan validators dependent options) to get a Parallel solver.
+          plan validators dependent options) to get a Parallel engine.
           e.g. PlanValidator(names=['tamer', 'tamer'],
                              params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
         - using 'problem_kind' parameter.
           e.g. PlanValidator(problem_kind=problem.kind)
         """
-        return self._get_solver('plan_validator', name, names, params, problem_kind)
+        return self._get_engine('plan_validator', name, names, params, problem_kind)
 
-    def Grounder(self, *, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                       problem_kind: ProblemKind = ProblemKind()
-                       ) -> 'up.solvers.solver.Solver':
+    def Compiler(self, *, name: Optional[str] = None,
+                 params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+                 problem_kind: ProblemKind = ProblemKind(),
+                 compilation_kind: Optional[Union['CompilationKind', str]] = None) -> 'up.engines.engine.Engine':
         """
-        Returns a Grounder. There are three ways to call this method:
+        Returns a Compiler. There are three ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
           (grounder dependent options).
-          e.g. Grounder(name='tamer', params={'opt': 'val'})
-        - using 'problem_kind' parameter.
-          e.g. Grounder(problem_kind=problem.kind)
+          e.g. Compiler(name='tamer', params={'opt': 'val'})
+        - using 'problem_kind' and 'compilation_kind' parameters.
+          e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDER)
         """
-        return self._get_solver('grounder', name, None, params, problem_kind)
+        return self._get_engine('compiler', name, None, params, problem_kind,
+                                compilation_kind=compilation_kind)
 
-    def print_solvers_info(self, stream: IO[str] = sys.stdout, full_credits: bool = True):
-        stream.write('These are the solvers currently available:\n')
-        for Solver in self.solvers.values():
-            credits = Solver.get_credits()
+    def print_engines_info(self, stream: IO[str] = sys.stdout, full_credits: bool = True):
+        stream.write('These are the engines currently available:\n')
+        for Engine in self.engines.values():
+            credits = Engine.get_credits()
             if credits is not None:
                 stream.write('---------------------------------------\n')
                 credits.write_credits(stream, full_credits)
-                stream.write(f'This engine supports the following features:\n{str(Solver.supported_kind())}\n\n')
+                stream.write(f'This engine supports the following features:\n{str(Engine.supported_kind())}\n\n')

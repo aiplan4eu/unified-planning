@@ -17,14 +17,14 @@ import sys
 from io import StringIO
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, skipIfEngineNotAvailable
 
 
 class TestCredits(TestCase):
     def setUp(self):
         TestCase.setUp(self)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_robot_locations_visited(self):
         credits = StringIO()
         test_credits = [' *** Credits ***',
@@ -51,7 +51,7 @@ class TestCredits(TestCase):
                 '  * Website:     ',
                 '  * License:     '
         ]
-        get_env().factory.print_solvers_info(credits, True)
+        get_env().factory.print_engines_info(credits, True)
         credits_printed = credits.getvalue()
         # test that every keyword occur the same number of time in the printed result
         number_of_credits_printed = credits_printed.count(credits_keywords[0])

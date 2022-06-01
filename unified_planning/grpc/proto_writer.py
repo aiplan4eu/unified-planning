@@ -473,8 +473,8 @@ class ProtobufWriter(Converter):
 
         return proto.Plan(actions=action_instances)
 
-    @handles(unified_planning.solvers.PlanGenerationResult)
-    def _convert_plan_generation_result(self, result: unified_planning.solvers.PlanGenerationResult) -> proto.PlanGenerationResult:
+    @handles(unified_planning.engines.PlanGenerationResult)
+    def _convert_plan_generation_result(self, result: unified_planning.engines.PlanGenerationResult) -> proto.PlanGenerationResult:
         log_messages = None
         if result.log_messages is not None:
             log_messages = [self.convert(log) for log in result.log_messages]
@@ -487,11 +487,11 @@ class ProtobufWriter(Converter):
             log_messages=log_messages,
         )
 
-    @handles(unified_planning.solvers.PlanGenerationResultStatus)
-    def _convert_plan_generation_status(self, status: unified_planning.solvers.PlanGenerationResultStatus) -> proto.PlanGenerationResult.Status:
+    @handles(unified_planning.engines.PlanGenerationResultStatus)
+    def _convert_plan_generation_status(self, status: unified_planning.engines.PlanGenerationResultStatus) -> proto.PlanGenerationResult.Status:
         if (
             status
-            == unified_planning.solvers.PlanGenerationResultStatus.SOLVED_SATISFICING
+            == unified_planning.engines.PlanGenerationResultStatus.SOLVED_SATISFICING
         ):
             return proto.PlanGenerationResult.Status.Value(
                 "SOLVED_SATISFICING"
@@ -499,59 +499,59 @@ class ProtobufWriter(Converter):
 
         elif (
             status
-            == unified_planning.solvers.PlanGenerationResultStatus.SOLVED_OPTIMALLY
+            == unified_planning.engines.PlanGenerationResultStatus.SOLVED_OPTIMALLY
         ):
             return proto.PlanGenerationResult.Status.Value(
                 "SOLVED_OPTIMALLY"
             )
         elif (
             status
-            == unified_planning.solvers.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+            == unified_planning.engines.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         ):
             return proto.PlanGenerationResult.Status.Value(
                 "UNSOLVABLE_PROVEN"
             )
         elif (
             status
-            == unified_planning.solvers.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+            == unified_planning.engines.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
         ):
             return proto.PlanGenerationResult.Status.Value(
                 "UNSOLVABLE_INCOMPLETELY"
             )
-        elif status == unified_planning.solvers.PlanGenerationResultStatus.TIMEOUT:
+        elif status == unified_planning.engines.PlanGenerationResultStatus.TIMEOUT:
             return proto.PlanGenerationResult.Status.Value("TIMEOUT")
-        elif status == unified_planning.solvers.PlanGenerationResultStatus.MEMOUT:
+        elif status == unified_planning.engines.PlanGenerationResultStatus.MEMOUT:
             return proto.PlanGenerationResult.Status.Value("MEMOUT")
         elif (
-            status == unified_planning.solvers.PlanGenerationResultStatus.INTERNAL_ERROR
+            status == unified_planning.engines.PlanGenerationResultStatus.INTERNAL_ERROR
         ):
             return proto.PlanGenerationResult.Status.Value(
                 "INTERNAL_ERROR"
             )
         elif (
             status
-            == unified_planning.solvers.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
+            == unified_planning.engines.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
         ):
 
             return proto.PlanGenerationResult.Status.Value(
                 "UNSUPPORTED_PROBLEM"
             )
-        elif status == unified_planning.solvers.PlanGenerationResultStatus.INTERMEDIATE:
+        elif status == unified_planning.engines.PlanGenerationResultStatus.INTERMEDIATE:
             return proto.PlanGenerationResult.Status.Value(
                 "INTERMEDIATE"
             )
         else:
             raise ValueError("Unknown status: {}".format(status))
 
-    @handles(unified_planning.solvers.LogMessage)
-    def _convert_log_messages(self, log: unified_planning.solvers.LogMessage) -> proto.LogMessage:
-        if log.level == unified_planning.solvers.LogLevel.INFO:
+    @handles(unified_planning.engines.LogMessage)
+    def _convert_log_messages(self, log: unified_planning.engines.LogMessage) -> proto.LogMessage:
+        if log.level == unified_planning.engines.LogLevel.INFO:
             level = proto.LogMessage.LogLevel.Value("INFO")
-        elif log.level == unified_planning.solvers.LogLevel.WARNING:
+        elif log.level == unified_planning.engines.LogLevel.WARNING:
             level = proto.LogMessage.LogLevel.Value("WARNING")
-        elif log.level == unified_planning.solvers.LogLevel.ERROR:
+        elif log.level == unified_planning.engines.LogLevel.ERROR:
             level = proto.LogMessage.LogLevel.Value("ERROR")
-        elif log.level == unified_planning.solvers.LogLevel.DEBUG:
+        elif log.level == unified_planning.engines.LogLevel.DEBUG:
             level = proto.LogMessage.LogLevel.Value("DEBUG")
         else:
             raise UPException(f"Unknown log level: {log.level}")
@@ -561,32 +561,35 @@ class ProtobufWriter(Converter):
             message=str(log.message),
         )
 
-    @handles(unified_planning.solvers.GroundingResult)
-    def _convert_grounding_result(self, result: unified_planning.solvers.GroundingResult) -> proto.GroundingResult:
+    @handles(unified_planning.engines.CompilerResult)
+    def _convert_grounding_result(self, result: unified_planning.engines.CompilerResult) -> proto.GroundingResult:
         map: Dict[str, proto.ActionInstance]= {}
-        if result.lift_action_instance is not None:
+        log_messages = result.log_messages
+        if log_messages is None:
+            log_messages = []
+        if result.map_back_action_instance is not None:
             for grounded_action in result.problem.actions:
-                map[grounded_action.name] = self.convert(result.lift_action_instance(unified_planning.plans.ActionInstance(grounded_action)))
+                map[grounded_action.name] = self.convert(result.map_back_action_instance(unified_planning.plans.ActionInstance(grounded_action)))
         return proto.GroundingResult(
             problem=self.convert(result.problem),
             map_to_lift_plan=map,
-            log_messages=[self.convert(log) for log in result.log_messages],
+            log_messages=[self.convert(log) for log in log_messages],
             engine=proto.Engine(name=result.engine_name)
         )
 
-    @handles(unified_planning.solvers.ValidationResult)
-    def _convert_validation_result(self, result: unified_planning.solvers.ValidationResult) -> proto.ValidationResult:
+    @handles(unified_planning.engines.ValidationResult)
+    def _convert_validation_result(self, result: unified_planning.engines.ValidationResult) -> proto.ValidationResult:
         return proto.ValidationResult(
             status=self.convert(result.status),
             log_messages=[self.convert(log) for log in result.log_messages],
             engine=proto.Engine(name=result.engine_name)
         )
 
-    @handles(unified_planning.solvers.ValidationResultStatus)
-    def _convert_validation_result_status(self, status: unified_planning.solvers.ValidationResultStatus) -> proto.ValidationResult.ValidationResultStatus:
-        if status == unified_planning.solvers.ValidationResultStatus.VALID:
+    @handles(unified_planning.engines.ValidationResultStatus)
+    def _convert_validation_result_status(self, status: unified_planning.engines.ValidationResultStatus) -> proto.ValidationResult.ValidationResultStatus:
+        if status == unified_planning.engines.ValidationResultStatus.VALID:
             return proto.ValidationResult.ValidationResultStatus.Value("VALID")
-        elif status == unified_planning.solvers.ValidationResultStatus.INVALID:
+        elif status == unified_planning.engines.ValidationResultStatus.INVALID:
             return proto.ValidationResult.ValidationResultStatus.Value("INVALID")
         else:
             raise UPException(f"Unknown result status: {status}")

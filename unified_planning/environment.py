@@ -29,17 +29,17 @@ class Environment:
     """Represents the environment."""
     def __init__(self):
         import unified_planning.model
-        import unified_planning.solvers
+        import unified_planning.engines
         import unified_planning.walkers
         self._type_manager = unified_planning.model.TypeManager()
-        self._factory = unified_planning.solvers.Factory(self)
+        self._factory = unified_planning.engines.Factory(self)
         self._tc = unified_planning.walkers.TypeChecker(self)
         self._expression_manager = unified_planning.model.ExpressionManager(self)
         self._free_vars_oracle = unified_planning.model.FreeVarsOracle()
         self._credits_stream: Optional[IO[str]] = sys.stdout
 
-    # The getstate and setstate method are needed in the Parallel solver. The
-    #  Parallel solver creates a deep copy of the Environment instance in
+    # The getstate and setstate method are needed in the Parallel engine. The
+    #  Parallel engine creates a deep copy of the Environment instance in
     #  another process by pickling the enviroment fields.
     # Since the IO[str] class is not picklable, we need to remove it from the
     #  state and then add it as None in the new process
@@ -72,17 +72,17 @@ class Environment:
         return self._tc
 
     @property
-    def factory(self) -> 'unified_planning.solvers.Factory':
+    def factory(self) -> 'unified_planning.engines.Factory':
         return self._factory
 
     @property
     def credits_stream(self) -> 'Optional[IO[str]]':
-        '''Returns the stream where the solvers credits are printed.'''
+        '''Returns the stream where the engines credits are printed.'''
         return self._credits_stream
 
     @credits_stream.setter
     def credits_stream(self, new_credits_stream: Optional[IO[str]]):
-        '''Sets the stream where the solvers credits are printed.'''
+        '''Sets the stream where the engines credits are printed.'''
         self._credits_stream = new_credits_stream
 
 

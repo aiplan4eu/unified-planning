@@ -24,8 +24,9 @@ import os
 import re
 import time
 import unified_planning as up
-import unified_planning.solvers as solvers
-from unified_planning.solvers.results import LogLevel, PlanGenerationResult, PlanGenerationResultStatus
+import unified_planning.engines as engines
+import unified_planning.engines.mixins as mixins
+from unified_planning.engines.results import LogLevel, PlanGenerationResult, PlanGenerationResultStatus
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
 from asyncio.subprocess import PIPE
@@ -44,30 +45,27 @@ from typing import IO, Any, Callable, Optional, List, Tuple, cast
 #
 # By default, on non-Windows OSs we use the first method and on Windows we
 # always use the second. It is possible to use asyncio under unix by setting
-# the environment variable UP_USE_ASYNCIO_PDDL_SOLVER to true.
+# the environment variable UP_USE_ASYNCIO_PDDL_PLANNER to true.
 USE_ASYNCIO_ON_UNIX = False
-ENV_USE_ASYNCIO = os.environ.get("UP_USE_ASYNCIO_PDDL_SOLVER")
+ENV_USE_ASYNCIO = os.environ.get("UP_USE_ASYNCIO_PDDL_PLANNER")
 if ENV_USE_ASYNCIO is not None:
     USE_ASYNCIO_ON_UNIX = ENV_USE_ASYNCIO.lower() in ["true", "1"]
 
 
-class PDDLSolver(solvers.solver.Solver):
+class PDDLPlanner(mixins.OneshotPlannerMixin, engines.engine.Engine):
     """
-    This class is the interface of a generic PDDL solver
+    This class is the interface of a generic PDDL planner
     that can be invocated through a subprocess call.
     """
 
     def __init__(self, needs_requirements=True):
-        solvers.solver.Solver.__init__(self)
+        engines.engine.Engine.__init__(self)
+        mixins.OneshotPlannerMixin.__init__(self)
         self._needs_requirements = needs_requirements
-
-    @staticmethod
-    def is_oneshot_planner() -> bool:
-        return True
 
     def _get_cmd(self, domain_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
         '''Takes in input two filenames where the problem's domain and problem are written, a
-        filename where to write the plan and returns a list of command to run the solver on the
+        filename where to write the plan and returns a list of command to run the engine on the
         problem and write the plan on the file called plan_filename.'''
         raise NotImplementedError
 
@@ -90,13 +88,13 @@ class PDDLSolver(solvers.solver.Solver):
         return up.plans.SequentialPlan(actions)
 
     def solve(self, problem: 'up.model.AbstractProblem',
-                callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
+                callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
                 timeout: Optional[float] = None,
-                output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+                output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
         assert isinstance(problem, up.model.Problem)
         w = PDDLWriter(problem, self._needs_requirements)
         plan = None
-        logs: List['up.solvers.results.LogMessage'] = []
+        logs: List['up.engines.results.LogMessage'] = []
         with tempfile.TemporaryDirectory() as tempdir:
             domain_filename = os.path.join(tempdir, 'domain.pddl')
             problem_filename = os.path.join(tempdir, 'problem.pddl')
@@ -135,8 +133,8 @@ class PDDLSolver(solvers.solver.Solver):
                         exec_res = run_command_posix_select(cmd, output_stream=output_stream, timeout=timeout)
                 timeout_occurred, (proc_out, proc_err), retval = exec_res
 
-            logs.append(up.solvers.results.LogMessage(LogLevel.INFO, ''.join(proc_out)))
-            logs.append(up.solvers.results.LogMessage(LogLevel.ERROR, ''.join(proc_err)))
+            logs.append(up.engines.results.LogMessage(LogLevel.INFO, ''.join(proc_out)))
+            logs.append(up.engines.results.LogMessage(LogLevel.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(problem, plan_filename)
             if timeout_occurred and retval != 0:
@@ -144,13 +142,10 @@ class PDDLSolver(solvers.solver.Solver):
         status: PlanGenerationResultStatus = self._result_status(problem, plan)
         return PlanGenerationResult(status, plan, log_messages=logs, engine_name=self.name)
 
-    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plans.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
+    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plans.Plan']) -> 'up.engines.results.PlanGenerationResultStatus':
         '''Takes a problem and a plan and returns the status that represents this plan.
-        The possible status with their interpretation can be found in the up.solvers.results file.'''
+        The possible status with their interpretation can be found in the up.engines.results file.'''
         raise NotImplementedError
-
-    def destroy(self):
-        pass
 
 
 async def run_command_asyncio(cmd: List[str], output_stream: IO[str], timeout: Optional[float] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:

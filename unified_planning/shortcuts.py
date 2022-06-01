@@ -22,7 +22,7 @@ import unified_planning as up
 import unified_planning.model.types
 from unified_planning.environment import get_env
 from unified_planning.model import *
-from unified_planning.solvers import Solver
+from unified_planning.engines import Engine
 from typing import IO, Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
@@ -118,14 +118,14 @@ def OneshotPlanner(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind(),
-                   optimality_guarantee: Optional[Union['up.solvers.solver.OptimalityGuarantee', str]] = None
-                   ) -> Solver:
+                   optimality_guarantee: Optional[Union['up.engines.OptimalityGuarantee', str]] = None
+                   ) -> Engine:
     """
     Returns a oneshot planner. There are three ways to call this method:
     - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
       e.g. OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})
     - using 'names' (list of specific planners name) and 'params' (list of
-      planner dependent options) to get a Parallel solver.
+      planner dependent options) to get a Parallel engine.
       e.g. OneshotPlanner(names=['tamer', 'tamer'],
                           params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
     - using 'problem_kind' and 'optimality_guarantee'.
@@ -139,14 +139,14 @@ def PlanValidator(*, name: Optional[str] = None,
                    names: Optional[List[str]] = None,
                    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                    problem_kind: ProblemKind = ProblemKind()
-                   ) -> Solver:
+                   ) -> Engine:
     """
     Returns a plan validator. There are three ways to call this method:
     - using 'name' (the name of a specific plan validator) and 'params'
       (plan validator dependent options).
       e.g. PlanValidator(name='tamer', params={'opt': 'val'})
     - using 'names' (list of specific plan validators name) and 'params' (list of
-      plan validators dependent options) to get a Parallel solver.
+      plan validators dependent options) to get a Parallel engine.
       e.g. PlanValidator(names=['tamer', 'tamer'],
                          params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
     - using 'problem_kind' parameter.
@@ -155,22 +155,23 @@ def PlanValidator(*, name: Optional[str] = None,
     return get_env().factory.PlanValidator(name=name, names=names, params=params,
                                            problem_kind=problem_kind)
 
-def Grounder(*, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                   problem_kind: ProblemKind = ProblemKind(),
-                   ) -> Solver:
+def Compiler(*, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+             problem_kind: ProblemKind = ProblemKind(),
+             compilation_kind: Optional[Union['up.engines.CompilationKind', str]] = None) -> 'up.engines.engine.Engine':
     """
-    Returns a Grounder. There are three ways to call this method:
+    Returns a Compiler. There are three ways to call this method:
     - using 'name' (the name of a specific grounder) and 'params'
         (grounder dependent options).
-        e.g. Grounder(name='tamer', params={'opt': 'val'})
-    - using 'problem_kind' parameter.
-        e.g. Grounder(problem_kind=problem.kind)
+        e.g. Compiler(name='tamer', params={'opt': 'val'})
+    - using 'problem_kind' and 'compilation_kind' parameters.
+        e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDER)
     """
-    return get_env().factory.Grounder(name=name, params=params,
-                                           problem_kind=problem_kind)
+    return get_env().factory.Compiler(name=name, params=params,
+                                      problem_kind=problem_kind,
+                                      compilation_kind=compilation_kind)
 
-def print_solvers_info(stream: IO[str] = sys.stdout, full_credits: bool = False):
-    get_env().factory.print_solvers_info(stream, full_credits)
+def print_engines_info(stream: IO[str] = sys.stdout, full_credits: bool = False):
+    get_env().factory.print_engines_info(stream, full_credits)
 
 def set_credits_stream(stream: Optional[IO[str]]):
     get_env().credits_stream = stream

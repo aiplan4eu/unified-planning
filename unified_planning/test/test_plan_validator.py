@@ -17,7 +17,7 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
-from unified_planning.solvers import SequentialPlanValidator
+from unified_planning.engines import SequentialPlanValidator
 from unified_planning.environment import get_env
 
 class TestProblem(TestCase):
@@ -50,7 +50,7 @@ class TestProblem(TestCase):
                problem.kind.has_final_value():
                 continue
             env = unified_planning.environment.Environment()
-            env.factory.solvers.pop('tamer', None)
+            env.factory.engines.pop('tamer', None)
             with env.factory.PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertEqual(pv.name, 'sequential_plan_validator')
                 self.assertTrue(pv.validate(problem, plan))

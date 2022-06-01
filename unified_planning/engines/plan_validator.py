@@ -19,11 +19,12 @@ from itertools import product
 
 import unified_planning as up
 import unified_planning.environment
-import unified_planning.solvers as solvers
+import unified_planning.engines as engines
+import unified_planning.engines.mixins as mixins
 import unified_planning.walkers as walkers
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import FNode, Expression, AbstractProblem, Problem, ProblemKind, Object
-from unified_planning.solvers.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
+from unified_planning.engines.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
 from unified_planning.plans import SequentialPlan
 
 
@@ -164,14 +165,42 @@ class QuantifierSimplifier(walkers.Simplifier):
             raise UPProblemDefinitionError(f"Value of Parameter {str(expression)} not found in {str(self._assignments)}")
 
 
-class SequentialPlanValidator(solvers.solver.Solver):
+class SequentialPlanValidator(mixins.PlanValidatorMixin, engines.engine.Engine):
     """Performs plan validation."""
     def __init__(self, **options):
         self._env: 'unified_planning.environment.Environment' = unified_planning.environment.get_env(options.get('env', None))
         self.manager = self._env.expression_manager
         self._substituter = walkers.Substituter(self._env)
 
-    def validate(self, problem: 'AbstractProblem', plan: 'unified_planning.plans.Plan') -> 'up.solvers.results.ValidationResult':
+    @property
+    def name(self):
+        return 'sequential_plan_validator'
+
+    @staticmethod
+    def supported_kind() -> ProblemKind:
+        supported_kind = ProblemKind()
+        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
+        supported_kind.set_typing('FLAT_TYPING') # type:ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type:ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type:ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type:ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type:ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type:ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type:ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type:ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type:ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type:ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type:ignore
+        return supported_kind
+
+    @staticmethod
+    def supports(problem_kind):
+        return problem_kind <= SequentialPlanValidator.supported_kind()
+
+    def validate(self, problem: 'AbstractProblem', plan: 'unified_planning.plans.Plan') -> 'up.engines.results.ValidationResult':
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""
@@ -232,42 +261,3 @@ class SequentialPlanValidator(solvers.solver.Solver):
         r = self._qsimplifier.qsimplify(expression, assignments, {})
         assert r.is_constant()
         return r
-
-    @property
-    def name(self):
-        return 'sequential_plan_validator'
-
-    @staticmethod
-    def supported_kind() -> ProblemKind:
-        supported_kind = ProblemKind()
-        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type:ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type:ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type:ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type:ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type:ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type:ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type:ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type:ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type:ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type:ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type:ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type:ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type:ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type:ignore
-        return supported_kind
-
-    @staticmethod
-    def supports(problem_kind):
-        return problem_kind <= SequentialPlanValidator.supported_kind()
-
-    @staticmethod
-    def is_plan_validator():
-        return True
-
-    @staticmethod
-    def get_credits(**kwargs) -> Optional[solvers.solver.Credits]:
-        return None
-
-    def destroy(self):
-        pass

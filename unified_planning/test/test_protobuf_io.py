@@ -18,9 +18,9 @@ from unified_planning.grpc.proto_reader import ProtobufReader # type: ignore[att
 from unified_planning.grpc.proto_writer import ProtobufWriter # type: ignore[attr-defined]
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
-from unified_planning.solvers import LogMessage
-from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus
-from unified_planning.test import TestCase, skipIfSolverNotAvailable
+from unified_planning.engines import LogMessage, CompilationKind
+from unified_planning.engines.results import LogLevel, PlanGenerationResultStatus
+from unified_planning.test import TestCase, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.plans import ActionInstance
 
@@ -214,7 +214,7 @@ class TestProtobufIO(TestCase):
         log = LogMessage(LogLevel.ERROR, "test message")
         assert_log(log)
 
-    @skipIfSolverNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamer")
     def test_plan_generation(self):
         problem = self.problems["robot"].problem
 
@@ -229,22 +229,22 @@ class TestProtobufIO(TestCase):
 
     def test_grounding_result(self):
         problem, _ = self.problems["hierarchical_blocks_world"]
-        with Grounder(name="up_grounder") as grounder:
-            ground_result = grounder.ground(problem)
+        with Compiler(name="up_grounder") as grounder:
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDER)
 
             ground_result_pb = self.pb_writer.convert(ground_result)
             ground_result_up = self.pb_reader.convert(ground_result_pb, problem)
 
             self.assertEqual(ground_result.problem, ground_result_up.problem)
             for grounded_action in ground_result.problem.actions:
-                # Test both callable "lift_action_instance" act the same on every action of the grounded_problem
+                # Test both callable "map_back_action_instance" act the same on every action of the grounded_problem
                 grounded_action_instance = ActionInstance(grounded_action)
-                original_action_instance_up = ground_result.lift_action_instance(grounded_action_instance)
-                original_action_instance_pb = ground_result_up.lift_action_instance(grounded_action_instance)
+                original_action_instance_up = ground_result.map_back_action_instance(grounded_action_instance)
+                original_action_instance_pb = ground_result_up.map_back_action_instance(grounded_action_instance)
                 self.assertEqual(original_action_instance_pb.action, original_action_instance_up.action)
                 self.assertEqual(original_action_instance_pb.actual_parameters, original_action_instance_up.actual_parameters)
 
-    @skipIfSolverNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamer")
     def test_validation_result(self):
         problem = self.problems["robot"].problem
 
@@ -284,7 +284,7 @@ class TestProtobufProblems(TestCase):
 
             self.assertEqual(plan, plan_up)
 
-    @skipIfSolverNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamer")
     def test_some_plan_generations(self):
         problems = [
             "basic",

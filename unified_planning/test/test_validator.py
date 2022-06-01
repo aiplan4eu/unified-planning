@@ -32,11 +32,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.VALID)
 
             plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_numeric_kind))
     def test_robot(self):
@@ -46,11 +46,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.VALID)
 
             plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader(self):
@@ -60,11 +60,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.VALID)
 
             plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader_adv(self):
@@ -74,11 +74,11 @@ class TestPlanValidator(TestCase):
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.VALID)
 
             plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
-            self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
 
 
 if __name__ == "__main__":

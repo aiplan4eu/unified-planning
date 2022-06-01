@@ -16,11 +16,11 @@
 import unified_planning as up
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, skipIfNoOneshotPlannerForProblemKind, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind, hierarchical_kind
 from unified_planning.plans import SequentialPlan, ActionInstance
-from unified_planning.solvers import SequentialPlanValidator
+from unified_planning.engines import SequentialPlanValidator
 
 
 class TestTarskiConverter(TestCase):
@@ -28,7 +28,7 @@ class TestTarskiConverter(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('tarski_grounder')
+    @skipIfEngineNotAvailable('tarski_grounder')
     def test_some_problems(self):
         problems_to_test= ['basic', 'basic_conditional', 'complex_conditional', 'basic_without_negative_preconditions',
                            'basic_nested_conjunctions', 'basic_exists', 'basic_forall', 'robot_loader', 'robot_loader_mod',
@@ -43,7 +43,7 @@ class TestTarskiConverter(TestCase):
             pv = SequentialPlanValidator()
             self.assertTrue(pv.validate(new_problem, new_plan))
 
-    @skipIfSolverNotAvailable('tarski_grounder')
+    @skipIfEngineNotAvailable('tarski_grounder')
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_object_as_root(self):
         problem, plan = self.problems['hierarchical_blocks_world_object_as_root']
@@ -53,7 +53,7 @@ class TestTarskiConverter(TestCase):
             new_plan = planner.solve(new_problem).plan
             self.assertEqual(str(plan), str(new_plan))
 
-    @skipIfSolverNotAvailable('tarski_grounder')
+    @skipIfEngineNotAvailable('tarski_grounder')
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_with_object(self):
         problem, plan = self.problems['hierarchical_blocks_world_with_object']

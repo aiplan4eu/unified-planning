@@ -17,12 +17,12 @@ import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import classical_kind, basic_numeric_kind, quality_metrics_kind
-from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.test.examples import get_example_problems
-from unified_planning.solvers import PlanGenerationResultStatus
-from unified_planning.solvers.results import POSITIVE_OUTCOMES
+from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
+from unified_planning.engines.results import POSITIVE_OUTCOMES
 
 
 class TestPlanner(TestCase):
@@ -30,7 +30,7 @@ class TestPlanner(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_basic(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
@@ -44,7 +44,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_basic_with_timeout(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
@@ -62,7 +62,7 @@ class TestPlanner(TestCase):
                 self.assertEqual(len(w), 1)
                 self.assertEqual('Tamer does not support timeout.', str(w[-1].message))
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_basic_parallel(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
@@ -77,7 +77,7 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_timed_connected_locations_parallel(self):
         problem = self.problems['timed_connected_locations'].problem
         move = problem.action('move')
@@ -87,14 +87,15 @@ class TestPlanner(TestCase):
             with self.assertRaises(up.exceptions.UPUsageError) as e:
                 final_report = planner.solve(problem)
             self.assertIn('Tamer cannot solve this kind of problem!', str(e.exception))
-            quantifiers_remover = up.transformers.QuantifiersRemover(problem)
-            suitable_problem = quantifiers_remover.get_rewritten_problem()
-            final_report = planner.solve(suitable_problem)
-            plan = quantifiers_remover.rewrite_back_plan(final_report.plan)
-            self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
-            self.assertEqual(len(plan.timed_actions), 2)
-            self.assertEqual((plan.timed_actions[0])[1].action, move)
-            self.assertEqual((plan.timed_actions[1])[1].action, move)
+            with Compiler(name='up_quantifiers_remover') as quantifiers_remover:
+                res = quantifiers_remover.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+                suitable_problem = res.problem
+                final_report = planner.solve(suitable_problem)
+                plan = final_report.plan.replace_action_instances(res.map_back_action_instance)
+                self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
+                self.assertEqual(len(plan.timed_actions), 2)
+                self.assertEqual((plan.timed_actions[0])[1].action, move)
+                self.assertEqual((plan.timed_actions[1])[1].action, move)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(PlanGenerationResultStatus.SOLVED_OPTIMALLY)

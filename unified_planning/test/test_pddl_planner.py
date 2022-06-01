@@ -17,8 +17,8 @@
 from io import StringIO
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.solvers import PlanGenerationResultStatus
-from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
+from unified_planning.engines import PlanGenerationResultStatus
+from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 
 VERYSMALL_TIMEOUT=0.0001
@@ -28,12 +28,12 @@ class TestPDDLPlanner(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_basic(self):
         problem = self.problems['basic'].problem
         a = problem.action('a')
 
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem)
@@ -43,13 +43,13 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         a_x = problem.action('a_x')
         a_y = problem.action('a_y')
 
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem)
@@ -61,12 +61,12 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
             self.assertEqual(len(plan.actions[1].actual_parameters), 0)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot(self):
         problem = self.problems['robot'].problem
         move = problem.action('move')
 
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem)
@@ -77,12 +77,12 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, move)
             self.assertEqual(len(plan.actions[0].actual_parameters), 2)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot_decrease(self):
         problem = self.problems['robot_decrease'].problem
         move = problem.action('move')
 
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem)
@@ -93,14 +93,14 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, move)
             self.assertEqual(len(plan.actions[0].actual_parameters), 2)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot_loader(self):
         problem = self.problems['robot_loader'].problem
         move = problem.action('move')
         load = problem.action('load')
         unload = problem.action('unload')
 
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem)
@@ -116,14 +116,14 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions[2].actual_parameters), 2)
             self.assertEqual(len(plan.actions[3].actual_parameters), 1)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot_loader_adv(self):
         problem = self.problems['robot_loader_adv'].problem
         move = problem.action('move')
         load = problem.action('load')
         unload = problem.action('unload')
 
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
             output = StringIO()
             final_report = planner.solve(problem, output_stream=output)
@@ -162,23 +162,23 @@ class TestPDDLPlanner(TestCase):
             self.assertIn('\nFixed constraint violations during search (zero-crossing):0\nNumber of Dead-Ends detected:0\n', planner_output)
             self.assertIn('\nNumber of Duplicates detected:8\n', planner_output)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot_loader_adv_with_timeout(self):
         problem, right_plan = self.problems['robot_loader_adv'].problem, self.problems['robot_loader_adv'].plan
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem, timeout = VERYSMALL_TIMEOUT)
-            self.assertIn(final_report.status, [PlanGenerationResultStatus.TIMEOUT, PlanGenerationResultStatus.SOLVED_OPTIMALLY]) # It could happen that the PDDL solver manages to solve the problem
+            self.assertIn(final_report.status, [PlanGenerationResultStatus.TIMEOUT, PlanGenerationResultStatus.SOLVED_OPTIMALLY]) # It could happen that the PDDL planner manages to solve the problem
             self.assertTrue(final_report.plan is None or final_report.plan == right_plan)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot_loader_adv_with_long_timeout(self):
         problem = self.problems['robot_loader_adv'].problem
         move = problem.action('move')
         load = problem.action('load')
         unload = problem.action('unload')
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem, timeout=100)
@@ -196,14 +196,14 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions[3].actual_parameters), 3)
             self.assertEqual(len(plan.actions[4].actual_parameters), 3)
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot_loader_adv_with_long_timeout_and_output_stream(self):
         problem = self.problems['robot_loader_adv'].problem
         move = problem.action('move')
         load = problem.action('load')
         unload = problem.action('unload')
         output_stream = StringIO()
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem, timeout=100, output_stream=output_stream)
@@ -243,17 +243,17 @@ class TestPDDLPlanner(TestCase):
             self.assertIn('\nNumber of Duplicates detected:8\n', planner_output)
 
             for lm in final_report.log_messages:
-                if lm.level == up.solvers.LogLevel.INFO:
+                if lm.level == up.engines.LogLevel.INFO:
                     self.assertEqual(planner_output, lm.message)
                 else:
-                    self.assertEqual(lm.level, up.solvers.LogLevel.ERROR)
+                    self.assertEqual(lm.level, up.engines.LogLevel.ERROR)
                     self.assertEqual(lm.message, '')
 
-    @skipIfSolverNotAvailable('opt-pddl-solver')
+    @skipIfEngineNotAvailable('opt-pddl-planner')
     def test_robot_loader_adv_with_short_timeout_and_output_stream(self):
         problem, right_plan = self.problems['robot_loader_adv'].problem, self.problems['robot_loader_adv'].plan
         output_stream = StringIO()
-        with OneshotPlanner(name='opt-pddl-solver') as planner:
+        with OneshotPlanner(name='opt-pddl-planner') as planner:
             self.assertNotEqual(planner, None)
 
             final_report = planner.solve(problem, timeout=VERYSMALL_TIMEOUT, output_stream=output_stream)
@@ -262,8 +262,8 @@ class TestPDDLPlanner(TestCase):
             self.assertTrue(plan is None or plan == right_plan)
 
             for lm in final_report.log_messages:
-                if lm.level == up.solvers.LogLevel.INFO:
+                if lm.level == up.engines.LogLevel.INFO:
                     self.assertEqual(planner_output, lm.message)
                 else:
-                    self.assertEqual(lm.level, up.solvers.LogLevel.ERROR)
+                    self.assertEqual(lm.level, up.engines.LogLevel.ERROR)
                     self.assertEqual(lm.message, '')
