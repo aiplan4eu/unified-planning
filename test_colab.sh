@@ -34,9 +34,9 @@ for colab_file in ./notebooks/*.ipynb ; do
         rm ./notebooks/*.py
         echo " FAILED for the following reason:"
         echo "${output}"
-        exit 1
+    else
+        echo " DONE!"
     fi
-    echo " DONE!"
 done
 rm ./notebooks/*.py
 exit 0
