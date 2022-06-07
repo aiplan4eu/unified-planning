@@ -52,7 +52,7 @@ if ENV_USE_ASYNCIO is not None:
     USE_ASYNCIO_ON_UNIX = ENV_USE_ASYNCIO.lower() in ["true", "1"]
 
 
-class PDDLPlanner(mixins.OneshotPlannerMixin, engines.engine.Engine):
+class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     """
     This class is the interface of a generic PDDL planner
     that can be invocated through a subprocess call.

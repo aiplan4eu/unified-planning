@@ -19,24 +19,21 @@ from unified_planning.engines.credits import Credits
 from typing import Optional
 
 
-class Engine:
+class EngineMeta(type):
+    def __new__(cls, name, bases, dct):
+        obj = type.__new__(cls, name, bases, dct)
+        for om in ['oneshot_planner', 'plan_validator', 'compiler']:
+            if not hasattr(obj, 'is_'+om) and name != 'Engine':
+                setattr(obj, 'is_'+om, lambda : False)
+        return obj
+
+
+class Engine(metaclass=EngineMeta):
     """Represents the engine interface."""
 
     @property
     def name(self) -> str:
         raise NotImplementedError
-
-    @staticmethod
-    def is_oneshot_planner() -> bool:
-        return False
-
-    @staticmethod
-    def is_plan_validator() -> bool:
-        return False
-
-    @staticmethod
-    def is_compiler() -> bool:
-        return False
 
     @staticmethod
     def supported_kind() -> ProblemKind:

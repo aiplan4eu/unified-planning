@@ -43,7 +43,7 @@ credits = Credits('Tarski grounder',
                   'Tarski grounder, more information available on the given website.'
                   )
 
-class TarskiGrounder(CompilerMixin, Engine):
+class TarskiGrounder(Engine, CompilerMixin):
     """Implements the gounder that uses tarski."""
     def __init__(self, **kwargs):
         if len(kwargs) > 0:

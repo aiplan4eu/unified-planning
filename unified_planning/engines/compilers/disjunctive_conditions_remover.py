@@ -27,7 +27,7 @@ from itertools import product
 from functools import partial
 
 
-class DisjunctiveConditionsRemover(CompilerMixin, engines.engine.Engine):
+class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
     '''DisjunctiveConditions remover class: this class offers the capability
     to transform a problem with preconditions not in the DNF form
     into one with all the preconditions in DNF form (an OR of AND);

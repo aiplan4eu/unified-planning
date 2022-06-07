@@ -26,8 +26,8 @@ from typing import IO, Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_ENGINES = {
-    'pyperplan' : ('up_pyperplan.solver', 'SolverImpl'),
-    'tamer' : ('up_tamer.solver', 'SolverImpl'),
+    'pyperplan' : ('up_pyperplan.engine', 'EngineImpl'),
+    'tamer' : ('up_tamer.engine', 'EngineImpl'),
     'sequential_plan_validator' : ('unified_planning.engines.plan_validator', 'SequentialPlanValidator'),
     'up_conditional_effects_remover' : ('unified_planning.engines.compilers.conditional_effects_remover', 'ConditionalEffectsRemover'),
     'up_disjunctive_conditions_remover' : ('unified_planning.engines.compilers.disjunctive_conditions_remover', 'DisjunctiveConditionsRemover'),
@@ -85,15 +85,20 @@ class Factory:
                     and (optimality_guarantee is None or EngineClass.satisfies(optimality_guarantee)) # type: ignore
                     and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind))): # type: ignore
                     return EngineClass
-                else:
+                elif compilation_kind is None or EngineClass.supports_compilation(compilation_kind):
                     x = [name] + [str(EngineClass.supports(ProblemKind({f}))) for f in problem_features]
                     if optimality_guarantee is not None:
                         x.append(str(EngineClass.satisfies(optimality_guarantee))) # type: ignore
                     planners_features.append(x)
-        header = ['Engine'] + problem_features
-        if optimality_guarantee is not None:
-            header.append('OPTIMALITY_GUARANTEE')
-        msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
+        if len(planners_features) > 0:
+            header = ['Engine'] + problem_features
+            if optimality_guarantee is not None:
+                header.append('OPTIMALITY_GUARANTEE')
+                msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
+        elif compilation_kind is not None:
+            msg = f'No available engine supports {compilation_kind}'
+        else:
+            msg = f'No available {engine_kind} engine'
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
 
     def _print_credits(self, all_credits: List[Optional['up.engines.Credits']]):

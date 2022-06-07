@@ -29,7 +29,7 @@ from itertools import product
 from functools import partial
 
 
-class Grounder(CompilerMixin, engines.engine.Engine):
+class Grounder(engines.engine.Engine, CompilerMixin):
     """Performs action grounding."""
     def __init__(self, grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None):
         self._grounding_actions_map = grounding_actions_map

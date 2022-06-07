@@ -26,9 +26,9 @@ from fractions import Fraction
 from multiprocessing import Process, Queue
 
 
-class Parallel(engines.mixins.OneshotPlannerMixin,
-               engines.mixins.PlanValidatorMixin,
-               engines.engine.Engine):
+class Parallel(engines.engine.Engine,
+               engines.mixins.OneshotPlannerMixin,
+               engines.mixins.PlanValidatorMixin):
     """Create a parallel instance of multiple Engines."""
 
     def __init__(self, engines: List[Tuple[type, Dict[str, str]]]):

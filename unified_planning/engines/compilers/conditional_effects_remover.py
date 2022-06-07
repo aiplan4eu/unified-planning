@@ -28,7 +28,7 @@ from itertools import chain, combinations
 from functools import partial
 
 
-class ConditionalEffectsRemover(CompilerMixin, engines.engine.Engine):
+class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
     '''Conditional effect remover class: this class offers the capability
     to transform a conditional problem into an unconditional one.
 

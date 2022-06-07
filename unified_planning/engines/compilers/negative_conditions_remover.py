@@ -54,7 +54,7 @@ class NegativeFluentRemover(IdentityDagWalker):
         return self._fluent_mapping
 
 
-class NegativeConditionsRemover(CompilerMixin, engines.engine.Engine):
+class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
     '''Negative conditions remover class: this class offers the capability
     to transform a problem with negative conditions into one
     without negative conditions.

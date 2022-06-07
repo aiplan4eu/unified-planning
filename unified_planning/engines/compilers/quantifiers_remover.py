@@ -28,7 +28,7 @@ from typing import List, Dict
 from functools import partial
 
 
-class QuantifiersRemover(CompilerMixin, engines.engine.Engine):
+class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
     '''Quantifiers remover class: this class offers the capability
     to transform a problem with quantifiers into a problem without.
     Every quantifier is compiled away by it's respective logic formula

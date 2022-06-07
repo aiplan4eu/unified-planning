@@ -165,7 +165,7 @@ class QuantifierSimplifier(walkers.Simplifier):
             raise UPProblemDefinitionError(f"Value of Parameter {str(expression)} not found in {str(self._assignments)}")
 
 
-class SequentialPlanValidator(mixins.PlanValidatorMixin, engines.engine.Engine):
+class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
     """Performs plan validation."""
     def __init__(self, **options):
         self._env: 'unified_planning.environment.Environment' = unified_planning.environment.get_env(options.get('env', None))
