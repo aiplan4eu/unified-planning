@@ -20,6 +20,7 @@ import unified_planning.model
 import unified_planning.plans
 import unified_planning.walkers as walkers
 from unified_planning import model
+from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model.operators import (
@@ -29,6 +30,7 @@ from unified_planning.model.operators import (
     OperatorKind,
 )
 from unified_planning.model.timing import TimepointKind
+from itertools import product
 from typing import List
 
 
@@ -562,17 +564,34 @@ class ProtobufWriter(Converter):
         )
 
     @handles(unified_planning.engines.CompilerResult)
-    def _convert_grounding_result(self, result: unified_planning.engines.CompilerResult) -> proto.GroundingResult:
+    def _convert_compiler_result(self, result: unified_planning.engines.CompilerResult) -> proto.CompilerResult:
         map: Dict[str, proto.ActionInstance]= {}
         log_messages = result.log_messages
         if log_messages is None:
             log_messages = []
         if result.map_back_action_instance is not None:
-            for grounded_action in result.problem.actions:
-                map[grounded_action.name] = self.convert(result.map_back_action_instance(unified_planning.plans.ActionInstance(grounded_action)))
-        return proto.GroundingResult(
+            for compiled_action in result.problem.actions:
+                type_list = [param.type for param in compiled_action.parameters]
+                if len(type_list) == 0:
+                    ai = unified_planning.plans.ActionInstance(compiled_action)
+                    map[str(ai)] = self.convert(result.map_back_action_instance(ai))
+                    continue
+                ground_size = 1
+                domain_sizes = []
+                for t in type_list:
+                    ds = domain_size(result.problem, t)
+                    domain_sizes.append(ds)
+                    ground_size *= ds
+                items_list: List[List[FNode]] = []
+                for size, type in zip(domain_sizes, type_list):
+                    items_list.append([domain_item(result.problem, type, j) for j in range(size)])
+                grounded_params_list = product(*items_list)
+                for grounded_params in grounded_params_list:
+                    ai = unified_planning.plans.ActionInstance(compiled_action, tuple(grounded_params))
+                    map[str(ai)] = self.convert(result.map_back_action_instance(ai))
+        return proto.CompilerResult(
             problem=self.convert(result.problem),
-            map_to_lift_plan=map,
+            map_back_plan=map,
             log_messages=[self.convert(log) for log in log_messages],
             engine=proto.Engine(name=result.engine_name)
         )

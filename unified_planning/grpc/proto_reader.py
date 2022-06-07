@@ -566,12 +566,12 @@ class ProtobufReader(Converter):
         else:
             raise UPException(f"Unexpected Log Level: {log.level}")
 
-    @handles(proto.GroundingResult)
-    def _convert_compiler_result(self, result: proto.GroundingResult, lifted_problem: unified_planning.model.Problem) -> unified_planning.engines.CompilerResult:
+    @handles(proto.CompilerResult)
+    def _convert_compiler_result(self, result: proto.CompilerResult, lifted_problem: unified_planning.model.Problem) -> unified_planning.engines.CompilerResult:
         problem=self.convert(result.problem, lifted_problem.env)
         map: Dict[unified_planning.model.Action, Tuple[unified_planning.model.Action, List[unified_planning.model.FNode]]] = {}
         for grounded_action in problem.actions:
-            original_action_instance = self.convert(result.map_to_lift_plan[grounded_action.name], lifted_problem)
+            original_action_instance = self.convert(result.map_back_plan[grounded_action.name], lifted_problem)
             map[grounded_action] = (original_action_instance.action, original_action_instance.actual_parameters)
         return unified_planning.engines.CompilerResult(
             problem=problem,

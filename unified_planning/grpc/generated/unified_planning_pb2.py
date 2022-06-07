@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x16unified_planning.proto\"i\n\nExpression\x12\x13\n\x04\x61tom\x18\x01 \x01(\x0b\x32\x05.Atom\x12\x19\n\x04list\x18\x02 \x03(\x0b\x32\x0b.Expression\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x1d\n\x04kind\x18\x04 \x01(\x0e\x32\x0f.ExpressionKind\"\\\n\x04\x41tom\x12\x10\n\x06symbol\x18\x01 \x01(\tH\x00\x12\r\n\x03int\x18\x02 \x01(\x03H\x00\x12\x15\n\x04real\x18\x03 \x01(\x0b\x32\x05.RealH\x00\x12\x11\n\x07\x62oolean\x18\x04 \x01(\x08H\x00\x42\t\n\x07\x63ontent\".\n\x04Real\x12\x11\n\tnumerator\x18\x01 \x01(\x03\x12\x13\n\x0b\x64\x65nominator\x18\x02 \x01(\x03\"9\n\x0fTypeDeclaration\x12\x11\n\ttype_name\x18\x01 \x01(\t\x12\x13\n\x0bparent_type\x18\x02 \x01(\t\"\'\n\tParameter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"n\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nvalue_type\x18\x02 \x01(\t\x12\x1e\n\nparameters\x18\x03 \x03(\x0b\x32\n.Parameter\x12\"\n\rdefault_value\x18\x04 \x01(\x0b\x32\x0b.Expression\"/\n\x11ObjectDeclaration\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"\xcd\x01\n\x10\x45\x66\x66\x65\x63tExpression\x12*\n\x04kind\x18\x01 \x01(\x0e\x32\x1c.EffectExpression.EffectKind\x12\x1b\n\x06\x66luent\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x03 \x01(\x0b\x32\x0b.Expression\x12\x1e\n\tcondition\x18\x04 \x01(\x0b\x32\x0b.Expression\"4\n\nEffectKind\x12\n\n\x06\x41SSIGN\x10\x00\x12\x0c\n\x08INCREASE\x10\x01\x12\x0c\n\x08\x44\x45\x43REASE\x10\x02\"M\n\x06\x45\x66\x66\x65\x63t\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12 \n\x0foccurrence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"C\n\tCondition\x12\x19\n\x04\x63ond\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1b\n\x04span\x18\x02 \x01(\x0b\x32\r.TimeInterval\"\x8d\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1e\n\nparameters\x18\x02 \x03(\x0b\x32\n.Parameter\x12\x1b\n\x08\x64uration\x18\x03 \x01(\x0b\x32\t.Duration\x12\x1e\n\nconditions\x18\x04 \x03(\x0b\x32\n.Condition\x12\x18\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x07.Effect\"z\n\tTimepoint\x12&\n\x04kind\x18\x01 \x01(\x0e\x32\x18.Timepoint.TimepointKind\"E\n\rTimepointKind\x12\x10\n\x0cGLOBAL_START\x10\x00\x12\x0e\n\nGLOBAL_END\x10\x01\x12\t\n\x05START\x10\x02\x12\x07\n\x03\x45ND\x10\x03\"=\n\x06Timing\x12\x1d\n\ttimepoint\x18\x01 \x01(\x0b\x32\n.Timepoint\x12\x14\n\x05\x64\x65lay\x18\x02 \x01(\x0b\x32\x05.Real\"o\n\x08Interval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x1a\n\x05lower\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x1a\n\x05upper\x18\x04 \x01(\x0b\x32\x0b.Expression\"k\n\x0cTimeInterval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x16\n\x05lower\x18\x02 \x01(\x0b\x32\x07.Timing\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x16\n\x05upper\x18\x04 \x01(\x0b\x32\x07.Timing\"5\n\x08\x44uration\x12)\n\x16\x63ontrollable_in_bounds\x18\x01 \x01(\x0b\x32\t.Interval\"@\n\x04Goal\x12\x19\n\x04goal\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1d\n\x06timing\x18\x02 \x01(\x0b\x32\r.TimeInterval\"R\n\x0bTimedEffect\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12 \n\x0foccurrence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"E\n\nAssignment\x12\x1b\n\x06\x66luent\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression\"\x9c\x03\n\x06Metric\x12 \n\x04kind\x18\x01 \x01(\x0e\x32\x12.Metric.MetricKind\x12\x1f\n\nexpression\x18\x02 \x01(\x0b\x32\x0b.Expression\x12.\n\x0c\x61\x63tion_costs\x18\x03 \x03(\x0b\x32\x18.Metric.ActionCostsEntry\x12(\n\x13\x64\x65\x66\x61ult_action_cost\x18\x04 \x01(\x0b\x32\x0b.Expression\x1a?\n\x10\x41\x63tionCostsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression:\x02\x38\x01\"\xb3\x01\n\nMetricKind\x12\x19\n\x15MINIMIZE_ACTION_COSTS\x10\x00\x12#\n\x1fMINIMIZE_SEQUENTIAL_PLAN_LENGTH\x10\x01\x12\x15\n\x11MINIMIZE_MAKESPAN\x10\x02\x12&\n\"MINIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x03\x12&\n\"MAXIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x04\"\xc3\x02\n\x07Problem\x12\x13\n\x0b\x64omain_name\x18\x01 \x01(\t\x12\x14\n\x0cproblem_name\x18\x02 \x01(\t\x12\x1f\n\x05types\x18\x03 \x03(\x0b\x32\x10.TypeDeclaration\x12\x18\n\x07\x66luents\x18\x04 \x03(\x0b\x32\x07.Fluent\x12#\n\x07objects\x18\x05 \x03(\x0b\x32\x12.ObjectDeclaration\x12\x18\n\x07\x61\x63tions\x18\x06 \x03(\x0b\x32\x07.Action\x12\"\n\rinitial_state\x18\x07 \x03(\x0b\x32\x0b.Assignment\x12#\n\rtimed_effects\x18\x08 \x03(\x0b\x32\x0c.TimedEffect\x12\x14\n\x05goals\x18\t \x03(\x0b\x32\x05.Goal\x12\x1a\n\x08\x66\x65\x61tures\x18\n \x03(\x0e\x32\x08.Feature\x12\x18\n\x07metrics\x18\x0b \x03(\x0b\x32\x07.Metric\"\x80\x01\n\x0e\x41\x63tionInstance\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x61\x63tion_name\x18\x02 \x01(\t\x12\x19\n\nparameters\x18\x03 \x03(\x0b\x32\x05.Atom\x12\x19\n\nstart_time\x18\x04 \x01(\x0b\x32\x05.Real\x12\x17\n\x08\x65nd_time\x18\x05 \x01(\x0b\x32\x05.Real\"(\n\x04Plan\x12 \n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x0f.ActionInstance\"\x86\x02\n\x0bPlanRequest\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12*\n\x0fresolution_mode\x18\x02 \x01(\x0e\x32\x11.PlanRequest.Mode\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x39\n\x0fplanner_options\x18\x04 \x03(\x0b\x32 .PlanRequest.PlannerOptionsEntry\x1a\x35\n\x13PlannerOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"-\n\x04Mode\x12\x0f\n\x0bSATISFIABLE\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\"C\n\x11ValidationRequest\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12\x13\n\x04plan\x18\x02 \x01(\x0b\x32\x05.Plan\"{\n\nLogMessage\x12#\n\x05level\x18\x01 \x01(\x0e\x32\x14.LogMessage.LogLevel\x12\x0f\n\x07message\x18\x02 \x01(\t\"7\n\x08LogLevel\x12\t\n\x05\x44\x45\x42UG\x10\x00\x12\x08\n\x04INFO\x10\x01\x12\x0b\n\x07WARNING\x10\x02\x12\t\n\x05\x45RROR\x10\x03\"\xbf\x03\n\x14PlanGenerationResult\x12,\n\x06status\x18\x01 \x01(\x0e\x32\x1c.PlanGenerationResult.Status\x12\x13\n\x04plan\x18\x02 \x01(\x0b\x32\x05.Plan\x12\x33\n\x07metrics\x18\x03 \x03(\x0b\x32\".PlanGenerationResult.MetricsEntry\x12!\n\x0clog_messages\x18\x04 \x03(\x0b\x32\x0b.LogMessage\x12\x17\n\x06\x65ngine\x18\x05 \x01(\x0b\x32\x07.Engine\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xc2\x01\n\x06Status\x12\x16\n\x12SOLVED_SATISFICING\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\x12\x15\n\x11UNSOLVABLE_PROVEN\x10\x02\x12\x1b\n\x17UNSOLVABLE_INCOMPLETELY\x10\x03\x12\x0b\n\x07TIMEOUT\x10\r\x12\n\n\x06MEMOUT\x10\x0e\x12\x12\n\x0eINTERNAL_ERROR\x10\x0f\x12\x17\n\x13UNSUPPORTED_PROBLEM\x10\x10\x12\x10\n\x0cINTERMEDIATE\x10\x11\"\x16\n\x06\x45ngine\x12\x0c\n\x04name\x18\x01 \x01(\t\"\xba\x01\n\x10ValidationResult\x12\x38\n\x06status\x18\x01 \x01(\x0e\x32(.ValidationResult.ValidationResultStatus\x12!\n\x0clog_messages\x18\x02 \x03(\x0b\x32\x0b.LogMessage\x12\x17\n\x06\x65ngine\x18\x03 \x01(\x0b\x32\x07.Engine\"0\n\x16ValidationResultStatus\x12\t\n\x05VALID\x10\x00\x12\x0b\n\x07INVALID\x10\x01\"\xee\x01\n\x0fGroundingResult\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12=\n\x10map_to_lift_plan\x18\x02 \x03(\x0b\x32#.GroundingResult.MapToLiftPlanEntry\x12!\n\x0clog_messages\x18\x03 \x03(\x0b\x32\x0b.LogMessage\x12\x17\n\x06\x65ngine\x18\x04 \x01(\x0b\x32\x07.Engine\x1a\x45\n\x12MapToLiftPlanEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1e\n\x05value\x18\x02 \x01(\x0b\x32\x0f.ActionInstance:\x02\x38\x01*\x9e\x01\n\x0e\x45xpressionKind\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08\x43ONSTANT\x10\x01\x12\r\n\tPARAMETER\x10\x02\x12\x0c\n\x08VARIABLE\x10\x07\x12\x11\n\rFLUENT_SYMBOL\x10\x03\x12\x13\n\x0f\x46UNCTION_SYMBOL\x10\x04\x12\x12\n\x0eSTATE_VARIABLE\x10\x05\x12\x18\n\x14\x46UNCTION_APPLICATION\x10\x06*\xc2\x04\n\x07\x46\x65\x61ture\x12\x10\n\x0c\x41\x43TION_BASED\x10\x00\x12\x13\n\x0f\x43ONTINUOUS_TIME\x10\x01\x12\x11\n\rDISCRETE_TIME\x10\x02\x12\'\n#INTERMEDIATE_CONDITIONS_AND_EFFECTS\x10\x03\x12\x10\n\x0cTIMED_EFFECT\x10\x04\x12\x0f\n\x0bTIMED_GOALS\x10\x05\x12\x19\n\x15\x44URATION_INEQUALITIES\x10\x06\x12\x16\n\x12\x43ONTINUOUS_NUMBERS\x10\x07\x12\x14\n\x10\x44ISCRETE_NUMBERS\x10\x08\x12\x17\n\x13NEGATIVE_CONDITIONS\x10\t\x12\x1a\n\x16\x44ISJUNCTIVE_CONDITIONS\x10\n\x12\x0c\n\x08\x45QUALITY\x10\x0b\x12\x1a\n\x16\x45XISTENTIAL_CONDITIONS\x10\x0c\x12\x18\n\x14UNIVERSAL_CONDITIONS\x10\r\x12\x17\n\x13\x43ONDITIONAL_EFFECTS\x10\x0e\x12\x14\n\x10INCREASE_EFFECTS\x10\x0f\x12\x14\n\x10\x44\x45\x43REASE_EFFECTS\x10\x10\x12\x0f\n\x0b\x46LAT_TYPING\x10\x11\x12\x17\n\x13HIERARCHICAL_TYPING\x10\x12\x12\x13\n\x0fNUMERIC_FLUENTS\x10\x13\x12\x12\n\x0eOBJECT_FLUENTS\x10\x14\x12\x10\n\x0c\x41\x43TIONS_COST\x10\x15\x12\x0f\n\x0b\x46INAL_VALUE\x10\x16\x12\x0c\n\x08MAKESPAN\x10\x17\x12\x0f\n\x0bPLAN_LENGTH\x10\x18\x12\x15\n\x11SIMULATED_EFFECTS\x10\x19\x32\xa8\x01\n\x0fUnifiedPlanning\x12\x34\n\x0bplanOneShot\x12\x0c.PlanRequest\x1a\x15.PlanGenerationResult0\x01\x12\x36\n\rplanValdation\x12\x12.ValidationRequest\x1a\x11.ValidationResult\x12\'\n\tgrounding\x12\x08.Problem\x1a\x10.GroundingResultb\x06proto3')
+  serialized_pb=_b('\n\x16unified_planning.proto\"i\n\nExpression\x12\x13\n\x04\x61tom\x18\x01 \x01(\x0b\x32\x05.Atom\x12\x19\n\x04list\x18\x02 \x03(\x0b\x32\x0b.Expression\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x1d\n\x04kind\x18\x04 \x01(\x0e\x32\x0f.ExpressionKind\"\\\n\x04\x41tom\x12\x10\n\x06symbol\x18\x01 \x01(\tH\x00\x12\r\n\x03int\x18\x02 \x01(\x03H\x00\x12\x15\n\x04real\x18\x03 \x01(\x0b\x32\x05.RealH\x00\x12\x11\n\x07\x62oolean\x18\x04 \x01(\x08H\x00\x42\t\n\x07\x63ontent\".\n\x04Real\x12\x11\n\tnumerator\x18\x01 \x01(\x03\x12\x13\n\x0b\x64\x65nominator\x18\x02 \x01(\x03\"9\n\x0fTypeDeclaration\x12\x11\n\ttype_name\x18\x01 \x01(\t\x12\x13\n\x0bparent_type\x18\x02 \x01(\t\"\'\n\tParameter\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"n\n\x06\x46luent\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nvalue_type\x18\x02 \x01(\t\x12\x1e\n\nparameters\x18\x03 \x03(\x0b\x32\n.Parameter\x12\"\n\rdefault_value\x18\x04 \x01(\x0b\x32\x0b.Expression\"/\n\x11ObjectDeclaration\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"\xcd\x01\n\x10\x45\x66\x66\x65\x63tExpression\x12*\n\x04kind\x18\x01 \x01(\x0e\x32\x1c.EffectExpression.EffectKind\x12\x1b\n\x06\x66luent\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x03 \x01(\x0b\x32\x0b.Expression\x12\x1e\n\tcondition\x18\x04 \x01(\x0b\x32\x0b.Expression\"4\n\nEffectKind\x12\n\n\x06\x41SSIGN\x10\x00\x12\x0c\n\x08INCREASE\x10\x01\x12\x0c\n\x08\x44\x45\x43REASE\x10\x02\"M\n\x06\x45\x66\x66\x65\x63t\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12 \n\x0foccurrence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"C\n\tCondition\x12\x19\n\x04\x63ond\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1b\n\x04span\x18\x02 \x01(\x0b\x32\r.TimeInterval\"\x8d\x01\n\x06\x41\x63tion\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1e\n\nparameters\x18\x02 \x03(\x0b\x32\n.Parameter\x12\x1b\n\x08\x64uration\x18\x03 \x01(\x0b\x32\t.Duration\x12\x1e\n\nconditions\x18\x04 \x03(\x0b\x32\n.Condition\x12\x18\n\x07\x65\x66\x66\x65\x63ts\x18\x05 \x03(\x0b\x32\x07.Effect\"z\n\tTimepoint\x12&\n\x04kind\x18\x01 \x01(\x0e\x32\x18.Timepoint.TimepointKind\"E\n\rTimepointKind\x12\x10\n\x0cGLOBAL_START\x10\x00\x12\x0e\n\nGLOBAL_END\x10\x01\x12\t\n\x05START\x10\x02\x12\x07\n\x03\x45ND\x10\x03\"=\n\x06Timing\x12\x1d\n\ttimepoint\x18\x01 \x01(\x0b\x32\n.Timepoint\x12\x14\n\x05\x64\x65lay\x18\x02 \x01(\x0b\x32\x05.Real\"o\n\x08Interval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x1a\n\x05lower\x18\x02 \x01(\x0b\x32\x0b.Expression\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x1a\n\x05upper\x18\x04 \x01(\x0b\x32\x0b.Expression\"k\n\x0cTimeInterval\x12\x14\n\x0cis_left_open\x18\x01 \x01(\x08\x12\x16\n\x05lower\x18\x02 \x01(\x0b\x32\x07.Timing\x12\x15\n\ris_right_open\x18\x03 \x01(\x08\x12\x16\n\x05upper\x18\x04 \x01(\x0b\x32\x07.Timing\"5\n\x08\x44uration\x12)\n\x16\x63ontrollable_in_bounds\x18\x01 \x01(\x0b\x32\t.Interval\"@\n\x04Goal\x12\x19\n\x04goal\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1d\n\x06timing\x18\x02 \x01(\x0b\x32\r.TimeInterval\"R\n\x0bTimedEffect\x12!\n\x06\x65\x66\x66\x65\x63t\x18\x01 \x01(\x0b\x32\x11.EffectExpression\x12 \n\x0foccurrence_time\x18\x02 \x01(\x0b\x32\x07.Timing\"E\n\nAssignment\x12\x1b\n\x06\x66luent\x18\x01 \x01(\x0b\x32\x0b.Expression\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression\"\x9c\x03\n\x06Metric\x12 \n\x04kind\x18\x01 \x01(\x0e\x32\x12.Metric.MetricKind\x12\x1f\n\nexpression\x18\x02 \x01(\x0b\x32\x0b.Expression\x12.\n\x0c\x61\x63tion_costs\x18\x03 \x03(\x0b\x32\x18.Metric.ActionCostsEntry\x12(\n\x13\x64\x65\x66\x61ult_action_cost\x18\x04 \x01(\x0b\x32\x0b.Expression\x1a?\n\x10\x41\x63tionCostsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1a\n\x05value\x18\x02 \x01(\x0b\x32\x0b.Expression:\x02\x38\x01\"\xb3\x01\n\nMetricKind\x12\x19\n\x15MINIMIZE_ACTION_COSTS\x10\x00\x12#\n\x1fMINIMIZE_SEQUENTIAL_PLAN_LENGTH\x10\x01\x12\x15\n\x11MINIMIZE_MAKESPAN\x10\x02\x12&\n\"MINIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x03\x12&\n\"MAXIMIZE_EXPRESSION_ON_FINAL_STATE\x10\x04\"\xc3\x02\n\x07Problem\x12\x13\n\x0b\x64omain_name\x18\x01 \x01(\t\x12\x14\n\x0cproblem_name\x18\x02 \x01(\t\x12\x1f\n\x05types\x18\x03 \x03(\x0b\x32\x10.TypeDeclaration\x12\x18\n\x07\x66luents\x18\x04 \x03(\x0b\x32\x07.Fluent\x12#\n\x07objects\x18\x05 \x03(\x0b\x32\x12.ObjectDeclaration\x12\x18\n\x07\x61\x63tions\x18\x06 \x03(\x0b\x32\x07.Action\x12\"\n\rinitial_state\x18\x07 \x03(\x0b\x32\x0b.Assignment\x12#\n\rtimed_effects\x18\x08 \x03(\x0b\x32\x0c.TimedEffect\x12\x14\n\x05goals\x18\t \x03(\x0b\x32\x05.Goal\x12\x1a\n\x08\x66\x65\x61tures\x18\n \x03(\x0e\x32\x08.Feature\x12\x18\n\x07metrics\x18\x0b \x03(\x0b\x32\x07.Metric\"\x80\x01\n\x0e\x41\x63tionInstance\x12\n\n\x02id\x18\x01 \x01(\t\x12\x13\n\x0b\x61\x63tion_name\x18\x02 \x01(\t\x12\x19\n\nparameters\x18\x03 \x03(\x0b\x32\x05.Atom\x12\x19\n\nstart_time\x18\x04 \x01(\x0b\x32\x05.Real\x12\x17\n\x08\x65nd_time\x18\x05 \x01(\x0b\x32\x05.Real\"(\n\x04Plan\x12 \n\x07\x61\x63tions\x18\x01 \x03(\x0b\x32\x0f.ActionInstance\"\x83\x02\n\x0bPlanRequest\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12*\n\x0fresolution_mode\x18\x02 \x01(\x0e\x32\x11.PlanRequest.Mode\x12\x0f\n\x07timeout\x18\x03 \x01(\x01\x12\x37\n\x0e\x65ngine_options\x18\x04 \x03(\x0b\x32\x1f.PlanRequest.EngineOptionsEntry\x1a\x34\n\x12\x45ngineOptionsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"-\n\x04Mode\x12\x0f\n\x0bSATISFIABLE\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\"C\n\x11ValidationRequest\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12\x13\n\x04plan\x18\x02 \x01(\x0b\x32\x05.Plan\"{\n\nLogMessage\x12#\n\x05level\x18\x01 \x01(\x0e\x32\x14.LogMessage.LogLevel\x12\x0f\n\x07message\x18\x02 \x01(\t\"7\n\x08LogLevel\x12\t\n\x05\x44\x45\x42UG\x10\x00\x12\x08\n\x04INFO\x10\x01\x12\x0b\n\x07WARNING\x10\x02\x12\t\n\x05\x45RROR\x10\x03\"\xbf\x03\n\x14PlanGenerationResult\x12,\n\x06status\x18\x01 \x01(\x0e\x32\x1c.PlanGenerationResult.Status\x12\x13\n\x04plan\x18\x02 \x01(\x0b\x32\x05.Plan\x12\x33\n\x07metrics\x18\x03 \x03(\x0b\x32\".PlanGenerationResult.MetricsEntry\x12!\n\x0clog_messages\x18\x04 \x03(\x0b\x32\x0b.LogMessage\x12\x17\n\x06\x65ngine\x18\x05 \x01(\x0b\x32\x07.Engine\x1a.\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xc2\x01\n\x06Status\x12\x16\n\x12SOLVED_SATISFICING\x10\x00\x12\x14\n\x10SOLVED_OPTIMALLY\x10\x01\x12\x15\n\x11UNSOLVABLE_PROVEN\x10\x02\x12\x1b\n\x17UNSOLVABLE_INCOMPLETELY\x10\x03\x12\x0b\n\x07TIMEOUT\x10\r\x12\n\n\x06MEMOUT\x10\x0e\x12\x12\n\x0eINTERNAL_ERROR\x10\x0f\x12\x17\n\x13UNSUPPORTED_PROBLEM\x10\x10\x12\x10\n\x0cINTERMEDIATE\x10\x11\"\x16\n\x06\x45ngine\x12\x0c\n\x04name\x18\x01 \x01(\t\"\xba\x01\n\x10ValidationResult\x12\x38\n\x06status\x18\x01 \x01(\x0e\x32(.ValidationResult.ValidationResultStatus\x12!\n\x0clog_messages\x18\x02 \x03(\x0b\x32\x0b.LogMessage\x12\x17\n\x06\x65ngine\x18\x03 \x01(\x0b\x32\x07.Engine\"0\n\x16ValidationResultStatus\x12\t\n\x05VALID\x10\x00\x12\x0b\n\x07INVALID\x10\x01\"\xe5\x01\n\x0e\x43ompilerResult\x12\x19\n\x07problem\x18\x01 \x01(\x0b\x32\x08.Problem\x12\x37\n\rmap_back_plan\x18\x02 \x03(\x0b\x32 .CompilerResult.MapBackPlanEntry\x12!\n\x0clog_messages\x18\x03 \x03(\x0b\x32\x0b.LogMessage\x12\x17\n\x06\x65ngine\x18\x04 \x01(\x0b\x32\x07.Engine\x1a\x43\n\x10MapBackPlanEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1e\n\x05value\x18\x02 \x01(\x0b\x32\x0f.ActionInstance:\x02\x38\x01*\x9e\x01\n\x0e\x45xpressionKind\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08\x43ONSTANT\x10\x01\x12\r\n\tPARAMETER\x10\x02\x12\x0c\n\x08VARIABLE\x10\x07\x12\x11\n\rFLUENT_SYMBOL\x10\x03\x12\x13\n\x0f\x46UNCTION_SYMBOL\x10\x04\x12\x12\n\x0eSTATE_VARIABLE\x10\x05\x12\x18\n\x14\x46UNCTION_APPLICATION\x10\x06*\xc2\x04\n\x07\x46\x65\x61ture\x12\x10\n\x0c\x41\x43TION_BASED\x10\x00\x12\x13\n\x0f\x43ONTINUOUS_TIME\x10\x01\x12\x11\n\rDISCRETE_TIME\x10\x02\x12\'\n#INTERMEDIATE_CONDITIONS_AND_EFFECTS\x10\x03\x12\x10\n\x0cTIMED_EFFECT\x10\x04\x12\x0f\n\x0bTIMED_GOALS\x10\x05\x12\x19\n\x15\x44URATION_INEQUALITIES\x10\x06\x12\x16\n\x12\x43ONTINUOUS_NUMBERS\x10\x07\x12\x14\n\x10\x44ISCRETE_NUMBERS\x10\x08\x12\x17\n\x13NEGATIVE_CONDITIONS\x10\t\x12\x1a\n\x16\x44ISJUNCTIVE_CONDITIONS\x10\n\x12\x0c\n\x08\x45QUALITY\x10\x0b\x12\x1a\n\x16\x45XISTENTIAL_CONDITIONS\x10\x0c\x12\x18\n\x14UNIVERSAL_CONDITIONS\x10\r\x12\x17\n\x13\x43ONDITIONAL_EFFECTS\x10\x0e\x12\x14\n\x10INCREASE_EFFECTS\x10\x0f\x12\x14\n\x10\x44\x45\x43REASE_EFFECTS\x10\x10\x12\x0f\n\x0b\x46LAT_TYPING\x10\x11\x12\x17\n\x13HIERARCHICAL_TYPING\x10\x12\x12\x13\n\x0fNUMERIC_FLUENTS\x10\x13\x12\x12\n\x0eOBJECT_FLUENTS\x10\x14\x12\x10\n\x0c\x41\x43TIONS_COST\x10\x15\x12\x0f\n\x0b\x46INAL_VALUE\x10\x16\x12\x0c\n\x08MAKESPAN\x10\x17\x12\x0f\n\x0bPLAN_LENGTH\x10\x18\x12\x15\n\x11SIMULATED_EFFECTS\x10\x19\x32\xa4\x01\n\x0fUnifiedPlanning\x12\x34\n\x0bplanOneShot\x12\x0c.PlanRequest\x1a\x15.PlanGenerationResult0\x01\x12\x35\n\x0cvalidatePlan\x12\x12.ValidationRequest\x1a\x11.ValidationResult\x12$\n\x07\x63ompile\x12\x08.Problem\x1a\x0f.CompilerResultb\x06proto3')
 )
 
 _EXPRESSIONKIND = _descriptor.EnumDescriptor(
@@ -64,8 +64,8 @@ _EXPRESSIONKIND = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3999,
-  serialized_end=4157,
+  serialized_start=3987,
+  serialized_end=4145,
 )
 _sym_db.RegisterEnumDescriptor(_EXPRESSIONKIND)
 
@@ -183,8 +183,8 @@ _FEATURE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=4160,
-  serialized_end=4738,
+  serialized_start=4148,
+  serialized_end=4726,
 )
 _sym_db.RegisterEnumDescriptor(_FEATURE)
 
@@ -332,8 +332,8 @@ _PLANREQUEST_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2853,
-  serialized_end=2898,
+  serialized_start=2850,
+  serialized_end=2895,
 )
 _sym_db.RegisterEnumDescriptor(_PLANREQUEST_MODE)
 
@@ -362,8 +362,8 @@ _LOGMESSAGE_LOGLEVEL = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3037,
-  serialized_end=3092,
+  serialized_start=3034,
+  serialized_end=3089,
 )
 _sym_db.RegisterEnumDescriptor(_LOGMESSAGE_LOGLEVEL)
 
@@ -412,8 +412,8 @@ _PLANGENERATIONRESULT_STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3348,
-  serialized_end=3542,
+  serialized_start=3345,
+  serialized_end=3539,
 )
 _sym_db.RegisterEnumDescriptor(_PLANGENERATIONRESULT_STATUS)
 
@@ -434,8 +434,8 @@ _VALIDATIONRESULT_VALIDATIONRESULTSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3707,
-  serialized_end=3755,
+  serialized_start=3704,
+  serialized_end=3752,
 )
 _sym_db.RegisterEnumDescriptor(_VALIDATIONRESULT_VALIDATIONRESULTSTATUS)
 
@@ -1539,22 +1539,22 @@ _PLAN = _descriptor.Descriptor(
 )
 
 
-_PLANREQUEST_PLANNEROPTIONSENTRY = _descriptor.Descriptor(
-  name='PlannerOptionsEntry',
-  full_name='PlanRequest.PlannerOptionsEntry',
+_PLANREQUEST_ENGINEOPTIONSENTRY = _descriptor.Descriptor(
+  name='EngineOptionsEntry',
+  full_name='PlanRequest.EngineOptionsEntry',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='key', full_name='PlanRequest.PlannerOptionsEntry.key', index=0,
+      name='key', full_name='PlanRequest.EngineOptionsEntry.key', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='value', full_name='PlanRequest.PlannerOptionsEntry.value', index=1,
+      name='value', full_name='PlanRequest.EngineOptionsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -1572,8 +1572,8 @@ _PLANREQUEST_PLANNEROPTIONSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2798,
-  serialized_end=2851,
+  serialized_start=2796,
+  serialized_end=2848,
 )
 
 _PLANREQUEST = _descriptor.Descriptor(
@@ -1605,7 +1605,7 @@ _PLANREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='planner_options', full_name='PlanRequest.planner_options', index=3,
+      name='engine_options', full_name='PlanRequest.engine_options', index=3,
       number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -1614,7 +1614,7 @@ _PLANREQUEST = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[_PLANREQUEST_PLANNEROPTIONSENTRY, ],
+  nested_types=[_PLANREQUEST_ENGINEOPTIONSENTRY, ],
   enum_types=[
     _PLANREQUEST_MODE,
   ],
@@ -1625,7 +1625,7 @@ _PLANREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=2636,
-  serialized_end=2898,
+  serialized_end=2895,
 )
 
 
@@ -1662,8 +1662,8 @@ _VALIDATIONREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2900,
-  serialized_end=2967,
+  serialized_start=2897,
+  serialized_end=2964,
 )
 
 
@@ -1701,8 +1701,8 @@ _LOGMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2969,
-  serialized_end=3092,
+  serialized_start=2966,
+  serialized_end=3089,
 )
 
 
@@ -1739,8 +1739,8 @@ _PLANGENERATIONRESULT_METRICSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3299,
-  serialized_end=3345,
+  serialized_start=3296,
+  serialized_end=3342,
 )
 
 _PLANGENERATIONRESULT = _descriptor.Descriptor(
@@ -1798,8 +1798,8 @@ _PLANGENERATIONRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3095,
-  serialized_end=3542,
+  serialized_start=3092,
+  serialized_end=3539,
 )
 
 
@@ -1829,8 +1829,8 @@ _ENGINE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3544,
-  serialized_end=3566,
+  serialized_start=3541,
+  serialized_end=3563,
 )
 
 
@@ -1875,27 +1875,27 @@ _VALIDATIONRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3569,
-  serialized_end=3755,
+  serialized_start=3566,
+  serialized_end=3752,
 )
 
 
-_GROUNDINGRESULT_MAPTOLIFTPLANENTRY = _descriptor.Descriptor(
-  name='MapToLiftPlanEntry',
-  full_name='GroundingResult.MapToLiftPlanEntry',
+_COMPILERRESULT_MAPBACKPLANENTRY = _descriptor.Descriptor(
+  name='MapBackPlanEntry',
+  full_name='CompilerResult.MapBackPlanEntry',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='key', full_name='GroundingResult.MapToLiftPlanEntry.key', index=0,
+      name='key', full_name='CompilerResult.MapBackPlanEntry.key', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='value', full_name='GroundingResult.MapToLiftPlanEntry.value', index=1,
+      name='value', full_name='CompilerResult.MapBackPlanEntry.value', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -1913,40 +1913,40 @@ _GROUNDINGRESULT_MAPTOLIFTPLANENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3927,
-  serialized_end=3996,
+  serialized_start=3917,
+  serialized_end=3984,
 )
 
-_GROUNDINGRESULT = _descriptor.Descriptor(
-  name='GroundingResult',
-  full_name='GroundingResult',
+_COMPILERRESULT = _descriptor.Descriptor(
+  name='CompilerResult',
+  full_name='CompilerResult',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='problem', full_name='GroundingResult.problem', index=0,
+      name='problem', full_name='CompilerResult.problem', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='map_to_lift_plan', full_name='GroundingResult.map_to_lift_plan', index=1,
+      name='map_back_plan', full_name='CompilerResult.map_back_plan', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='log_messages', full_name='GroundingResult.log_messages', index=2,
+      name='log_messages', full_name='CompilerResult.log_messages', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='engine', full_name='GroundingResult.engine', index=3,
+      name='engine', full_name='CompilerResult.engine', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -1955,7 +1955,7 @@ _GROUNDINGRESULT = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[_GROUNDINGRESULT_MAPTOLIFTPLANENTRY, ],
+  nested_types=[_COMPILERRESULT_MAPBACKPLANENTRY, ],
   enum_types=[
   ],
   serialized_options=None,
@@ -1964,8 +1964,8 @@ _GROUNDINGRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3758,
-  serialized_end=3996,
+  serialized_start=3755,
+  serialized_end=3984,
 )
 
 _EXPRESSION.fields_by_name['atom'].message_type = _ATOM
@@ -2034,10 +2034,10 @@ _ACTIONINSTANCE.fields_by_name['parameters'].message_type = _ATOM
 _ACTIONINSTANCE.fields_by_name['start_time'].message_type = _REAL
 _ACTIONINSTANCE.fields_by_name['end_time'].message_type = _REAL
 _PLAN.fields_by_name['actions'].message_type = _ACTIONINSTANCE
-_PLANREQUEST_PLANNEROPTIONSENTRY.containing_type = _PLANREQUEST
+_PLANREQUEST_ENGINEOPTIONSENTRY.containing_type = _PLANREQUEST
 _PLANREQUEST.fields_by_name['problem'].message_type = _PROBLEM
 _PLANREQUEST.fields_by_name['resolution_mode'].enum_type = _PLANREQUEST_MODE
-_PLANREQUEST.fields_by_name['planner_options'].message_type = _PLANREQUEST_PLANNEROPTIONSENTRY
+_PLANREQUEST.fields_by_name['engine_options'].message_type = _PLANREQUEST_ENGINEOPTIONSENTRY
 _PLANREQUEST_MODE.containing_type = _PLANREQUEST
 _VALIDATIONREQUEST.fields_by_name['problem'].message_type = _PROBLEM
 _VALIDATIONREQUEST.fields_by_name['plan'].message_type = _PLAN
@@ -2054,12 +2054,12 @@ _VALIDATIONRESULT.fields_by_name['status'].enum_type = _VALIDATIONRESULT_VALIDAT
 _VALIDATIONRESULT.fields_by_name['log_messages'].message_type = _LOGMESSAGE
 _VALIDATIONRESULT.fields_by_name['engine'].message_type = _ENGINE
 _VALIDATIONRESULT_VALIDATIONRESULTSTATUS.containing_type = _VALIDATIONRESULT
-_GROUNDINGRESULT_MAPTOLIFTPLANENTRY.fields_by_name['value'].message_type = _ACTIONINSTANCE
-_GROUNDINGRESULT_MAPTOLIFTPLANENTRY.containing_type = _GROUNDINGRESULT
-_GROUNDINGRESULT.fields_by_name['problem'].message_type = _PROBLEM
-_GROUNDINGRESULT.fields_by_name['map_to_lift_plan'].message_type = _GROUNDINGRESULT_MAPTOLIFTPLANENTRY
-_GROUNDINGRESULT.fields_by_name['log_messages'].message_type = _LOGMESSAGE
-_GROUNDINGRESULT.fields_by_name['engine'].message_type = _ENGINE
+_COMPILERRESULT_MAPBACKPLANENTRY.fields_by_name['value'].message_type = _ACTIONINSTANCE
+_COMPILERRESULT_MAPBACKPLANENTRY.containing_type = _COMPILERRESULT
+_COMPILERRESULT.fields_by_name['problem'].message_type = _PROBLEM
+_COMPILERRESULT.fields_by_name['map_back_plan'].message_type = _COMPILERRESULT_MAPBACKPLANENTRY
+_COMPILERRESULT.fields_by_name['log_messages'].message_type = _LOGMESSAGE
+_COMPILERRESULT.fields_by_name['engine'].message_type = _ENGINE
 DESCRIPTOR.message_types_by_name['Expression'] = _EXPRESSION
 DESCRIPTOR.message_types_by_name['Atom'] = _ATOM
 DESCRIPTOR.message_types_by_name['Real'] = _REAL
@@ -2089,7 +2089,7 @@ DESCRIPTOR.message_types_by_name['LogMessage'] = _LOGMESSAGE
 DESCRIPTOR.message_types_by_name['PlanGenerationResult'] = _PLANGENERATIONRESULT
 DESCRIPTOR.message_types_by_name['Engine'] = _ENGINE
 DESCRIPTOR.message_types_by_name['ValidationResult'] = _VALIDATIONRESULT
-DESCRIPTOR.message_types_by_name['GroundingResult'] = _GROUNDINGRESULT
+DESCRIPTOR.message_types_by_name['CompilerResult'] = _COMPILERRESULT
 DESCRIPTOR.enum_types_by_name['ExpressionKind'] = _EXPRESSIONKIND
 DESCRIPTOR.enum_types_by_name['Feature'] = _FEATURE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -2265,10 +2265,10 @@ _sym_db.RegisterMessage(Plan)
 
 PlanRequest = _reflection.GeneratedProtocolMessageType('PlanRequest', (_message.Message,), dict(
 
-  PlannerOptionsEntry = _reflection.GeneratedProtocolMessageType('PlannerOptionsEntry', (_message.Message,), dict(
-    DESCRIPTOR = _PLANREQUEST_PLANNEROPTIONSENTRY,
+  EngineOptionsEntry = _reflection.GeneratedProtocolMessageType('EngineOptionsEntry', (_message.Message,), dict(
+    DESCRIPTOR = _PLANREQUEST_ENGINEOPTIONSENTRY,
     __module__ = 'unified_planning_pb2'
-    # @@protoc_insertion_point(class_scope:PlanRequest.PlannerOptionsEntry)
+    # @@protoc_insertion_point(class_scope:PlanRequest.EngineOptionsEntry)
     ))
   ,
   DESCRIPTOR = _PLANREQUEST,
@@ -2276,7 +2276,7 @@ PlanRequest = _reflection.GeneratedProtocolMessageType('PlanRequest', (_message.
   # @@protoc_insertion_point(class_scope:PlanRequest)
   ))
 _sym_db.RegisterMessage(PlanRequest)
-_sym_db.RegisterMessage(PlanRequest.PlannerOptionsEntry)
+_sym_db.RegisterMessage(PlanRequest.EngineOptionsEntry)
 
 ValidationRequest = _reflection.GeneratedProtocolMessageType('ValidationRequest', (_message.Message,), dict(
   DESCRIPTOR = _VALIDATIONREQUEST,
@@ -2321,26 +2321,26 @@ ValidationResult = _reflection.GeneratedProtocolMessageType('ValidationResult', 
   ))
 _sym_db.RegisterMessage(ValidationResult)
 
-GroundingResult = _reflection.GeneratedProtocolMessageType('GroundingResult', (_message.Message,), dict(
+CompilerResult = _reflection.GeneratedProtocolMessageType('CompilerResult', (_message.Message,), dict(
 
-  MapToLiftPlanEntry = _reflection.GeneratedProtocolMessageType('MapToLiftPlanEntry', (_message.Message,), dict(
-    DESCRIPTOR = _GROUNDINGRESULT_MAPTOLIFTPLANENTRY,
+  MapBackPlanEntry = _reflection.GeneratedProtocolMessageType('MapBackPlanEntry', (_message.Message,), dict(
+    DESCRIPTOR = _COMPILERRESULT_MAPBACKPLANENTRY,
     __module__ = 'unified_planning_pb2'
-    # @@protoc_insertion_point(class_scope:GroundingResult.MapToLiftPlanEntry)
+    # @@protoc_insertion_point(class_scope:CompilerResult.MapBackPlanEntry)
     ))
   ,
-  DESCRIPTOR = _GROUNDINGRESULT,
+  DESCRIPTOR = _COMPILERRESULT,
   __module__ = 'unified_planning_pb2'
-  # @@protoc_insertion_point(class_scope:GroundingResult)
+  # @@protoc_insertion_point(class_scope:CompilerResult)
   ))
-_sym_db.RegisterMessage(GroundingResult)
-_sym_db.RegisterMessage(GroundingResult.MapToLiftPlanEntry)
+_sym_db.RegisterMessage(CompilerResult)
+_sym_db.RegisterMessage(CompilerResult.MapBackPlanEntry)
 
 
 _METRIC_ACTIONCOSTSENTRY._options = None
-_PLANREQUEST_PLANNEROPTIONSENTRY._options = None
+_PLANREQUEST_ENGINEOPTIONSENTRY._options = None
 _PLANGENERATIONRESULT_METRICSENTRY._options = None
-_GROUNDINGRESULT_MAPTOLIFTPLANENTRY._options = None
+_COMPILERRESULT_MAPBACKPLANENTRY._options = None
 
 _UNIFIEDPLANNING = _descriptor.ServiceDescriptor(
   name='UnifiedPlanning',
@@ -2348,8 +2348,8 @@ _UNIFIEDPLANNING = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=4741,
-  serialized_end=4909,
+  serialized_start=4729,
+  serialized_end=4893,
   methods=[
   _descriptor.MethodDescriptor(
     name='planOneShot',
@@ -2361,8 +2361,8 @@ _UNIFIEDPLANNING = _descriptor.ServiceDescriptor(
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='planValdation',
-    full_name='UnifiedPlanning.planValdation',
+    name='validatePlan',
+    full_name='UnifiedPlanning.validatePlan',
     index=1,
     containing_service=None,
     input_type=_VALIDATIONREQUEST,
@@ -2370,12 +2370,12 @@ _UNIFIEDPLANNING = _descriptor.ServiceDescriptor(
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='grounding',
-    full_name='UnifiedPlanning.grounding',
+    name='compile',
+    full_name='UnifiedPlanning.compile',
     index=2,
     containing_service=None,
     input_type=_PROBLEM,
-    output_type=_GROUNDINGRESULT,
+    output_type=_COMPILERRESULT,
     serialized_options=None,
   ),
 ])

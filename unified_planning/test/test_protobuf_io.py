@@ -227,7 +227,7 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(final_report, final_report_up)
 
-    def test_grounding_result(self):
+    def test_compiler_result(self):
         problem, _ = self.problems["hierarchical_blocks_world"]
         with Compiler(name="up_grounder") as grounder:
             ground_result = grounder.compile(problem, CompilationKind.GROUNDER)
