@@ -85,7 +85,7 @@ class Factory:
                     and (optimality_guarantee is None or EngineClass.satisfies(optimality_guarantee)) # type: ignore
                     and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind))): # type: ignore
                     return EngineClass
-                elif compilation_kind is None or EngineClass.supports_compilation(compilation_kind):
+                elif compilation_kind is None or EngineClass.supports_compilation(compilation_kind): # type: ignore
                     x = [name] + [str(EngineClass.supports(ProblemKind({f}))) for f in problem_features]
                     if optimality_guarantee is not None:
                         x.append(str(EngineClass.satisfies(optimality_guarantee))) # type: ignore
