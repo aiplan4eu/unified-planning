@@ -44,7 +44,7 @@ class ENHSP(up.engines.PDDLPlanner):
             return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
 
     @staticmethod
-    def satisfies(optimality_guarantee: Union[up.engines.OptimalityGuarantee, str]) -> bool:
+    def satisfies(optimality_guarantee: up.engines.OptimalityGuarantee) -> bool:
         return True
 
     @staticmethod

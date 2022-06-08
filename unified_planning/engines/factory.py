@@ -70,8 +70,8 @@ class Factory:
 
     def _get_engine_class(self, engine_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind(),
-                          optimality_guarantee: Optional[Union['OptimalityGuarantee', str]] = None,
-                          compilation_kind: Optional[Union['CompilationKind', str]] = None) -> Type['up.engines.engine.Engine']:
+                          optimality_guarantee: Optional['OptimalityGuarantee'] = None,
+                          compilation_kind: Optional['CompilationKind'] = None) -> Type['up.engines.engine.Engine']:
         if name is not None:
             if name in self.engines:
                 return self.engines[name]
@@ -148,8 +148,8 @@ class Factory:
                     names: Optional[List[str]] = None,
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
-                    optimality_guarantee: Optional[Union['OptimalityGuarantee', str]] = None,
-                    compilation_kind: Optional[Union['CompilationKind', str]] = None
+                    optimality_guarantee: Optional['OptimalityGuarantee'] = None,
+                    compilation_kind: Optional['CompilationKind'] = None
                     ) -> 'up.engines.engine.Engine':
         if names is not None:
             assert name is None
@@ -195,6 +195,8 @@ class Factory:
         - using 'problem_kind' and 'optimality_guarantee'.
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
+        if isinstance(optimality_guarantee, str):
+            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
         return self._get_engine('oneshot_planner', name, names, params, problem_kind, optimality_guarantee)
 
     def PlanValidator(self, *, name: Optional[str] = None,
@@ -227,6 +229,8 @@ class Factory:
         - using 'problem_kind' and 'compilation_kind' parameters.
           e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDER)
         """
+        if isinstance(compilation_kind, str):
+            compilation_kind = CompilationKind[compilation_kind]
         return self._get_engine('compiler', name, None, params, problem_kind,
                                 compilation_kind=compilation_kind)
 

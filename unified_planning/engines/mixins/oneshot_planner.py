@@ -30,7 +30,7 @@ class OneshotPlannerMixin:
         return True
 
     @staticmethod
-    def satisfies(optimality_guarantee: Union[OptimalityGuarantee, str]) -> bool:
+    def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
         return False
 
     def solve(self, problem: 'up.model.AbstractProblem',
