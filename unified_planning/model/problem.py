@@ -14,7 +14,7 @@
 #
 '''This module defines the problem class.'''
 
-from functools import partial
+
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.actions_set import ActionsSetMixin
@@ -194,8 +194,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         objects = {}
         for obj in self.all_objects:
             objects[obj.name] = obj
-        replace_action_instance = partial(self._replace_action_instance)
-        return plan.replace_action_instances(replace_action_instance)
+        return plan.replace_action_instances(self._replace_action_instance)
 
     def _replace_action_instance(self,
                                 action_instance: ActionInstance
