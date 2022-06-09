@@ -20,7 +20,7 @@ setup(name='unified_planning',
       packages=find_packages(),
       include_package_data=True,
       python_requires='>=3.7',  # supported Python ranges
-      install_requires=['pyparsing'],
+      install_requires=['pyparsing', 'networkx'],
       extras_require={
           'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
           'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],

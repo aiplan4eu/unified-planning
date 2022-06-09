@@ -194,19 +194,18 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         objects = {}
         for obj in self.all_objects:
             objects[obj.name] = obj
-        replace_action_instance = partial(self._replace_action_instance, objects=objects)
+        replace_action_instance = partial(self._replace_action_instance)
         return plan.replace_action_instances(replace_action_instance)
 
     def _replace_action_instance(self,
-                                action_instance: ActionInstance,
-                                objects: Dict[str, 'up.model.object.Object']
+                                action_instance: ActionInstance
                                 ) -> ActionInstance:
         em = self.env.expression_manager
         new_a = self.action(action_instance.action.name)
         params = []
         for p in action_instance.actual_parameters:
             if p.is_object_exp():
-                obj = objects[p.object().name]
+                obj = self.object(p.object().name)
                 params.append(em.ObjectExp(obj))
             elif p.is_bool_constant():
                 params.append(em.Bool(p.is_true()))

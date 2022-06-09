@@ -20,7 +20,7 @@ import unified_planning.plans as plans
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import FNode, InstantaneousAction, Expression
-from unified_planning.walkers import Substituter, Simplifier, FreeVarsExtractor
+from unified_planning.walkers import Substituter, Simplifier, FreeVarsExtractor, ExpressionQuantifiersRemover
 from typing import Callable, Dict, Optional, Set, List, cast
 
 
@@ -45,7 +45,7 @@ class SequentialPlan(plans.plan.Plan):
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SequentialPlan) and len(self._actions) == len(oth._actions):
             for ai, oth_ai in zip(self._actions, oth._actions):
-                if ai.action != oth_ai.action or ai.actual_parameters != oth_ai.actual_parameters:
+                if not ai.is_semantically_equivalent(oth_ai):
                     return False
             return True
         else:
@@ -75,7 +75,7 @@ class SequentialPlan(plans.plan.Plan):
             new_env = new_ai[0].action.env
         return SequentialPlan(new_ai, new_env)
 
-    def to_partial_order_plan(self) -> 'up.plans.partial_order_plan.PartialOrderPlan':
+    def to_partial_order_plan(self, problem: 'up.model.objects_set.ObjectsSetMixin') -> 'up.plans.partial_order_plan.PartialOrderPlan':
         '''Returns the PartialOrderPlan version of this SequentialPlan.
 
         This is done by keeping the ordering constraints, given by the SequentialPlan, between 2 ActionInstances
@@ -86,6 +86,7 @@ class SequentialPlan(plans.plan.Plan):
                 or one of his condition in a conditional effect depends on said fluent).'''
         subs = Substituter(self._environment)
         simp = Simplifier(self._environment)
+        eqr = ExpressionQuantifiersRemover(self._environment)
         fve = FreeVarsExtractor()
         # last_modifier is the mapping from a grounded fluent to the last action instance that assigned a value to
         # that fluent
@@ -106,18 +107,18 @@ class SequentialPlan(plans.plan.Plan):
             lifted_required_fluents: Set[FNode] = set()
             # add free vars of preconditions
             for prec in inst_action.preconditions:
-                lifted_required_fluents |= fve.get(prec)
+                lifted_required_fluents |= fve.get(eqr.remove_quantifiers(prec, problem))
             # add in the required_fluents all the free fluents this action instance deals with
             for eff in inst_action.effects:
-                lifted_required_fluents |= fve.get(eff.condition)
-                lifted_required_fluents |= fve.get(eff.fluent)
-                lifted_required_fluents |= fve.get(eff.value)
+                lifted_required_fluents |= fve.get(eqr.remove_quantifiers(eff.condition, problem))
+                lifted_required_fluents |= fve.get(eqr.remove_quantifiers(eff.fluent, problem))
+                lifted_required_fluents |= fve.get(eqr.remove_quantifiers(eff.value, problem))
 
             assignments: Dict[Expression, Expression] = dict(zip(inst_action.parameters, action_instance.actual_parameters))
             for lifted_fluent in lifted_required_fluents:
                 assert lifted_fluent.is_fluent_exp()
                 for arg in lifted_fluent.args: # check that we don't have "nested" fluents
-                    if len(fve.get(arg)) != 0:
+                    if len(fve.get(eqr.remove_quantifiers(arg, problem))) != 0:
                         raise UPUsageError(f'The partial deordering of a Sequential Plan does not allow the use of fluents inside the parameter of fluents!\nThe fluent: {lifted_fluent} does violates this contraint.')
                 required_fluents.add(simp.simplify(subs.substitute(lifted_fluent, assignments)))
 

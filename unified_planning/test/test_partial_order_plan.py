@@ -32,7 +32,7 @@ class TestPartialOrderPlan(TestCase):
             for problem, plan in self.problems.values():
                 if validator.supports(problem.kind):
                     assert isinstance(plan, up.plans.SequentialPlan)
-                    pop_plan = plan.to_partial_order_plan()
+                    pop_plan = plan.to_partial_order_plan(problem)
                     for sorted_plan in pop_plan.all_sequential_plans():
                         validation_result = validator.validate(problem, sorted_plan)
                         self.assertEqual(up.solvers.ValidationResultStatus.VALID, validation_result.status)
