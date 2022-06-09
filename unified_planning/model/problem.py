@@ -191,9 +191,6 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
 
     def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
         '''Normalizes the given plan updating the action and object instances.'''
-        objects = {}
-        for obj in self.all_objects:
-            objects[obj.name] = obj
         return plan.replace_action_instances(self._replace_action_instance)
 
     def _replace_action_instance(self,
