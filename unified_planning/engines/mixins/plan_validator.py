@@ -22,5 +22,5 @@ class PlanValidatorMixin:
     def is_plan_validator() -> bool:
         return True
 
-    def validate(self, problem: 'up.model.AbstractProblem', plan: 'up.plan.Plan') -> 'up.engines.results.ValidationResult':
+    def validate(self, problem: 'up.model.AbstractProblem', plan: 'up.plans.Plan') -> 'up.engines.results.ValidationResult':
         raise NotImplementedError
