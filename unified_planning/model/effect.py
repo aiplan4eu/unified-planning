@@ -118,7 +118,7 @@ class SimulatedEffect:
     """
 
     def __init__(self, fluents: List['up.model.fnode.FNode'],
-                 function: Callable[['up.model.problem.AbstractProblem', 'up.model.state.State',
+                 function: Callable[['up.model.problem.AbstractProblem', 'up.model.state.ROState',
                                      Dict['up.model.parameter.Parameter', 'up.model.fnode.FNode']],
                                     List['up.model.fnode.FNode']]):
         for f in fluents:
@@ -150,7 +150,7 @@ class SimulatedEffect:
         return self._fluents
 
     @property
-    def function(self) -> Callable[['up.model.problem.AbstractProblem', 'up.model.state.State',
+    def function(self) -> Callable[['up.model.problem.AbstractProblem', 'up.model.state.ROState',
                                     Dict['up.model.parameter.Parameter', 'up.model.fnode.FNode']],
                                    List['up.model.fnode.FNode']]:
         return self._function

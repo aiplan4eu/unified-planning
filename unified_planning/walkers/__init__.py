@@ -18,7 +18,9 @@ from unified_planning.walkers.generic import handles
 from unified_planning.walkers.dnf import Dnf, Nnf
 from unified_planning.walkers.expression_quantifiers_remover import ExpressionQuantifiersRemover
 from unified_planning.walkers.operators_extractor import OperatorsExtractor
+from unified_planning.walkers.quantifier_simplifier import QuantifierSimplifier
 from unified_planning.walkers.simplifier import Simplifier
+from unified_planning.walkers.state_evaluator import StateEvaluator
 from unified_planning.walkers.substituter import Substituter
 from unified_planning.walkers.type_checker import TypeChecker
 from unified_planning.walkers.free_vars import FreeVarsExtractor
