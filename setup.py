@@ -20,17 +20,17 @@ setup(name='unified_planning',
       packages=find_packages(),
       include_package_data=True,
       python_requires='>=3.7',  # supported Python ranges
-      install_requires=['pyparsing'],
+      install_requires=['pyparsing', 'networkx'],
       extras_require={
           'dev':['tarski[arithmetic]','pytest','pytest-cov','mypy'],
           'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],
           'tarski': ['tarski[arithmetic]'],
-          'pyperplan': ['up-pyperplan==0.1.0.14.dev1'],
-          'tamer': ['up-tamer==0.1.0.15.dev1'],
+          'pyperplan': ['up-pyperplan==0.1.0.17.dev1'],
+          'tamer': ['up-tamer==0.1.0.19.dev1'],
           'solvers': [
               'tarski[arithmetic]',
-              'up-pyperplan==0.1.0.14.dev1',
-              'up-tamer==0.1.0.15.dev1'
+              'up-pyperplan==0.1.0.17.dev1',
+              'up-tamer==0.1.0.19.dev1'
           ]
       },
       license='APACHE',

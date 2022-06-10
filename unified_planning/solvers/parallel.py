@@ -17,11 +17,12 @@
 import warnings
 import unified_planning as up
 import unified_planning.solvers as solvers
-from unified_planning.plan import Plan
+from unified_planning.plans import Plan
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
 from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
 from typing import IO, Callable, Dict, List, Optional, Tuple, cast
+from fractions import Fraction
 from multiprocessing import Process, Queue
 
 

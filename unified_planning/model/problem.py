@@ -14,6 +14,7 @@
 #
 '''This module defines the problem class.'''
 
+
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.actions_set import ActionsSetMixin
@@ -24,7 +25,7 @@ from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
-from unified_planning.plan import ActionInstance
+from unified_planning.plans import ActionInstance
 from unified_planning.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import Iterator, List, Dict, Set, Union, Optional, cast
@@ -188,42 +189,29 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         '''Returns true if the name is in the problem.'''
         return self.has_action(name) or self.has_fluent(name) or self.has_object(name) or self.has_type(name)
 
-    def normalize_plan(self, plan: 'up.plan.Plan')-> 'up.plan.Plan':
+    def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
         '''Normalizes the given plan updating the action and object instances.'''
-        objects = {}
-        for obj in self.all_objects:
-            objects[obj.name] = obj
+        return plan.replace_action_instances(self._replace_action_instance)
+
+    def _replace_action_instance(self,
+                                action_instance: ActionInstance
+                                ) -> ActionInstance:
         em = self.env.expression_manager
-        actions: List[ActionInstance] = []
-        if isinstance(plan, up.plan.SequentialPlan):
-            actions = plan.actions
-        elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            actions = [a for _, a, _ in plan.actions]
-        else:
-            raise NotImplementedError
-        new_actions: List[ActionInstance] = []
-        for a in actions:
-            new_a = self.action(a.action.name)
-            params = []
-            for p in a.actual_parameters:
-                if p.is_object_exp():
-                    obj = objects[p.object().name]
-                    params.append(em.ObjectExp(obj))
-                elif p.is_bool_constant():
-                    params.append(em.Bool(p.is_true()))
-                elif p.is_int_constant():
-                    params.append(em.Int(cast(int, p.constant_value())))
-                elif p.is_real_constant():
-                    params.append(em.Real(cast(Fraction, p.constant_value())))
-                else:
-                    raise
-            new_actions.append(ActionInstance(new_a, tuple(params)))
-        if isinstance(plan, up.plan.SequentialPlan):
-            return up.plan.SequentialPlan(new_actions)
-        elif isinstance(plan, up.plan.TimeTriggeredPlan):
-            return up.plan.TimeTriggeredPlan([(t, a, d) for (t, _, d), a in zip(plan.actions, new_actions)])
-        else:
-            raise NotImplementedError
+        new_a = self.action(action_instance.action.name)
+        params = []
+        for p in action_instance.actual_parameters:
+            if p.is_object_exp():
+                obj = self.object(p.object().name)
+                params.append(em.ObjectExp(obj))
+            elif p.is_bool_constant():
+                params.append(em.Bool(p.is_true()))
+            elif p.is_int_constant():
+                params.append(em.Int(cast(int, p.constant_value())))
+            elif p.is_real_constant():
+                params.append(em.Real(cast(Fraction, p.constant_value())))
+            else:
+                raise NotImplementedError
+        return ActionInstance(new_a, tuple(params))
 
     def get_static_fluents(self) -> Set['up.model.fluent.Fluent']:
         '''Returns the set of the static fluents.

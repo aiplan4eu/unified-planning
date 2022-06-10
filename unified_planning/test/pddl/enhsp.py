@@ -37,7 +37,7 @@ class ENHSP(up.solvers.PDDLSolver):
                 '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename,
                 '-planner', 'opt-hrmax']
 
-    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plan.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
+    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plans.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
         if plan is None:
             return up.solvers.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         else:

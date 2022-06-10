@@ -19,7 +19,7 @@ from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind, hierarchical_kind
-from unified_planning.plan import SequentialPlan, ActionInstance
+from unified_planning.plans import SequentialPlan, ActionInstance
 from unified_planning.solvers import SequentialPlanValidator
 
 

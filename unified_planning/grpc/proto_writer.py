@@ -17,7 +17,7 @@ import fractions
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 import unified_planning.model
-import unified_planning.plan
+import unified_planning.plans
 import unified_planning.walkers as walkers
 from unified_planning import model
 from unified_planning.exceptions import UPException
@@ -435,8 +435,8 @@ class ProtobufWriter(Converter):
             type=str(variable.type),
         )
 
-    @handles(unified_planning.plan.ActionInstance)
-    def _convert_action_instance(self, a: unified_planning.plan.ActionInstance, start_time=None, end_time=None) -> proto.ActionInstance:
+    @handles(unified_planning.plans.ActionInstance)
+    def _convert_action_instance(self, a: unified_planning.plans.ActionInstance, start_time=None, end_time=None) -> proto.ActionInstance:
         parameters = []
         for param in a.actual_parameters:
             # The parameters are atoms
@@ -453,17 +453,17 @@ class ProtobufWriter(Converter):
     def _convert_str_atom(self, s: str) -> proto.Atom:
         return proto.Atom(symbol=s)
 
-    @handles(unified_planning.plan.SequentialPlan)
-    def _convert_sequential_plan(self, plan: unified_planning.plan.SequentialPlan) -> proto.Plan:
+    @handles(unified_planning.plans.SequentialPlan)
+    def _convert_sequential_plan(self, plan: unified_planning.plans.SequentialPlan) -> proto.Plan:
         return proto.Plan(
             actions=[self.convert(a) for a in plan.actions]
         )
 
-    @handles(unified_planning.plan.TimeTriggeredPlan)
-    def _convert_time_triggered_plan(self, plan: unified_planning.plan.TimeTriggeredPlan) -> proto.Plan:
+    @handles(unified_planning.plans.TimeTriggeredPlan)
+    def _convert_time_triggered_plan(self, plan: unified_planning.plans.TimeTriggeredPlan) -> proto.Plan:
         action_instances = []
 
-        for a in plan.actions:
+        for a in plan.timed_actions:
             start_time = self.convert(a[0])
             end_time = self.convert(a[0] + a[2])
             instance = self._convert_action_instance(
@@ -566,7 +566,7 @@ class ProtobufWriter(Converter):
         map: Dict[str, proto.ActionInstance]= {}
         if result.lift_action_instance is not None:
             for grounded_action in result.problem.actions:
-                map[grounded_action.name] = self.convert(result.lift_action_instance(unified_planning.plan.ActionInstance(grounded_action)))
+                map[grounded_action.name] = self.convert(result.lift_action_instance(unified_planning.plans.ActionInstance(grounded_action)))
         return proto.GroundingResult(
             problem=self.convert(result.problem),
             map_to_lift_plan=map,

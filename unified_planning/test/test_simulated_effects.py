@@ -111,4 +111,4 @@ class TestSimulatedEffects(TestCase):
             self.assertNotEqual(planner, None)
             res = planner.solve(problem)
             plan = res.plan
-            self.assertEqual(len(plan.actions), 1)
+            self.assertEqual(len(plan.timed_actions), 1)

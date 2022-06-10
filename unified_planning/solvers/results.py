@@ -18,7 +18,7 @@
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import Problem
-from unified_planning.plan import ActionInstance
+from unified_planning.plans import ActionInstance
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, Dict, Optional, List
@@ -72,7 +72,7 @@ class Result:
 class PlanGenerationResult(Result):
     '''Class that represents the result of a plan generation call.'''
     status: PlanGenerationResultStatus
-    plan: Optional['up.plan.Plan']
+    plan: Optional['up.plans.Plan']
     engine_name: str
     metrics: Optional[Dict[str, str]] = field(default=None)
     log_messages: Optional[List[LogMessage]] = field(default=None)

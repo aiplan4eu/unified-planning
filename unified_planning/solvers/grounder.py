@@ -19,7 +19,7 @@ from typing import Dict, List, Optional,Tuple
 import unified_planning.environment
 import unified_planning.solvers as solvers
 import unified_planning.transformers
-from unified_planning.plan import ActionInstance
+from unified_planning.plans import ActionInstance
 from unified_planning.solvers.results import GroundingResult
 from unified_planning.model import Problem, ProblemKind
 

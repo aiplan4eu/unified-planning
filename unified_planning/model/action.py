@@ -51,6 +51,11 @@ class Action:
         raise NotImplementedError
 
     @property
+    def env(self) -> Environment:
+        '''Returns this action environment.'''
+        return self._env
+
+    @property
     def name(self) -> str:
         """Returns the action name."""
         return self._name

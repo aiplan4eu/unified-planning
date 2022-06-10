@@ -92,9 +92,9 @@ class TestPlanner(TestCase):
             final_report = planner.solve(suitable_problem)
             plan = quantifiers_remover.rewrite_back_plan(final_report.plan)
             self.assertEqual(final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
-            self.assertEqual(len(plan.actions), 2)
-            self.assertEqual((plan.actions[0])[1].action, move)
-            self.assertEqual((plan.actions[1])[1].action, move)
+            self.assertEqual(len(plan.timed_actions), 2)
+            self.assertEqual((plan.timed_actions[0])[1].action, move)
+            self.assertEqual((plan.timed_actions[1])[1].action, move)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(PlanGenerationResultStatus.SOLVED_OPTIMALLY)

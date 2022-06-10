@@ -98,14 +98,14 @@ class Solver:
         :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to None.
         :param output_stream: is a stream of strings where the planner writes his
         output (and also errors) while the planner is solving the problem, defaults to None
-        :return: the up.solvers.results.PlanGenerationResult created by the planner; a data structure containing the up.plan.Plan found
+        :return: the up.solvers.results.PlanGenerationResult created by the planner; a data structure containing the up.plans.Plan found
         and some additional information about it.
 
         The only required parameter is "problem" but the planner should warn the user if callback, timeout or
         output_stream are not None and the planner ignores them.'''
         raise NotImplementedError
 
-    def validate(self, problem: 'up.model.AbstractProblem', plan: 'up.plan.Plan') -> 'up.solvers.results.ValidationResult':
+    def validate(self, problem: 'up.model.AbstractProblem', plan: 'up.plans.Plan') -> 'up.solvers.results.ValidationResult':
         raise NotImplementedError
 
     def ground(self, problem: 'up.model.AbstractProblem') -> 'up.solvers.results.GroundingResult':

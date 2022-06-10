@@ -17,11 +17,10 @@
 
 import unified_planning
 from unified_planning.exceptions import UPUsageError, UPProblemDefinitionError
-from unified_planning.plan import Plan
+from unified_planning.plans import Plan, ActionInstance
 from unified_planning.model import Problem, Action, Type, Expression, Effect, Parameter, DurativeAction, InstantaneousAction, FNode, SimulatedEffect
 from unified_planning.model.types import domain_size,  domain_item
 from unified_planning.transformers.ab_transformer import ActionBasedTransformer
-from unified_planning.plan import SequentialPlan, TimeTriggeredPlan, ActionInstance
 from unified_planning.walkers import Substituter
 from itertools import product
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Union

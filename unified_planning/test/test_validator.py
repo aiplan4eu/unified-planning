@@ -34,7 +34,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = up.plan.SequentialPlan([])
+            plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
@@ -48,7 +48,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = up.plan.SequentialPlan([])
+            plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
@@ -62,7 +62,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = up.plan.SequentialPlan([])
+            plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
@@ -76,7 +76,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.VALID)
 
-            plan = up.plan.SequentialPlan([])
+            plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.solvers.ValidationResultStatus.INVALID)
 
