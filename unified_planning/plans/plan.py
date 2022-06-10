@@ -17,9 +17,8 @@
 import unified_planning as up
 import unified_planning.model
 from unified_planning.environment import Environment, get_env
-from unified_planning.model import FNode, Action, InstantaneousAction, Expression, Effect
-from unified_planning.walkers import Substituter, Simplifier
-from typing import Callable, Dict, Optional, Tuple
+from unified_planning.model import FNode, Action
+from typing import Callable, Optional, Tuple
 
 
 '''This module defines the different plan classes.'''

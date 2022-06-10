@@ -204,7 +204,7 @@ def lift_action_instance(action_instance: ActionInstance, map: Dict['up.model.Ac
     '''"map" is a map from every action in the "grounded_problem" to the tuple
         (original_action, parameters).
 
-        Where the grounded actions is obtained by grounding
+        Where the grounded action is obtained by grounding
         the "original_action" with the specific "parameters".'''
     lifted_action, parameters = map[action_instance.action]
     return ActionInstance(lifted_action, tuple(parameters))
