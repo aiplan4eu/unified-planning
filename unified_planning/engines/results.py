@@ -106,7 +106,7 @@ class ValidationResult(Result):
 
 @dataclass
 class CompilerResult(Result):
-    '''Class that represents the result of a Solver.compile call.'''
+    '''Class that represents the result of a compile call.'''
     problem: Optional[Problem]
     map_back_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
     engine_name: str

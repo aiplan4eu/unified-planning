@@ -17,7 +17,7 @@ import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.compilers
-from unified_planning.plan import ActionInstance
+from unified_planning.plans import ActionInstance
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import Problem, ProblemKind, Action, Type, Expression, FNode

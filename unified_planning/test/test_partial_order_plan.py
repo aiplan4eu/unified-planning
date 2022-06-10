@@ -16,7 +16,7 @@
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind
-from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 
 
@@ -25,14 +25,14 @@ class TestPartialOrderPlan(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfSolverNotAvailable('sequential_plan_validator')
+    @skipIfEngineNotAvailable('sequential_plan_validator')
     def test_all(self):
         with PlanValidator(name='sequential_plan_validator') as validator:
             assert validator is not None
             for problem, plan in self.problems.values():
                 if validator.supports(problem.kind):
-                    assert isinstance(plan, up.plans.SequentialPlan)
+                    self.assertTrue(isinstance(plan, up.plans.SequentialPlan))
                     pop_plan = plan.to_partial_order_plan(problem)
                     for sorted_plan in pop_plan.all_sequential_plans():
                         validation_result = validator.validate(problem, sorted_plan)
-                        self.assertEqual(up.solvers.ValidationResultStatus.VALID, validation_result.status)
+                        self.assertEqual(up.engines.ValidationResultStatus.VALID, validation_result.status)
