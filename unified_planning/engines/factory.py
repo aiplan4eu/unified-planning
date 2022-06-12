@@ -190,7 +190,7 @@ class Factory:
                 return EngineClass(**params)
             else:
                 assert engine_kind == 'simulator'
-                return EngineClass(problem, **params)
+                return EngineClass(problem, **params) # type: ignore #TODO FIX TYPING HERE
 
     @property
     def environment(self) -> 'Environment':
@@ -256,7 +256,7 @@ class Factory:
         return self._get_engine('compiler', name, None, params, problem_kind,
                                 compilation_kind=compilation_kind)
 
-    def Simulator(self,
+    def ProblemSimulator(self,
                  problem: 'up.model.AbstractProblem', *, name: Optional[str] = None,
                  params: Union[Dict[str, str], List[Dict[str, str]]] = None) -> 'up.engines.engine.Engine':
         """

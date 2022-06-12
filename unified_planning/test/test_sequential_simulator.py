@@ -101,5 +101,5 @@ class TestSimulator(TestCase):
 
     def test_with_smulator_from_factory(self):
         problem = self.problems['hierarchical_blocks_world'].problem
-        with Simulator(problem) as simulator:
+        with ProblemSimulator(problem) as simulator:
             self.hierarchical_blocks_world(simulator, problem)
