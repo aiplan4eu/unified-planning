@@ -14,15 +14,16 @@
 #
 
 
-from typing import Dict, cast
+from typing import cast
 
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
 import unified_planning.walkers as walkers
-from unified_planning.model import FNode, Expression, AbstractProblem, Problem, ProblemKind
+from unified_planning.model import AbstractProblem, Problem, ProblemKind
 from unified_planning.engines.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
+from unified_planning.engines.sequential_simulator import SequentialSimulator, InstantaneousEvent
 from unified_planning.plans import SequentialPlan, PlanKind
 
 
@@ -72,7 +73,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         problem goal. Otherwise False is returned."""
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
-        simulator = up.engines.simulator.Simulator(problem)
+        simulator = SequentialSimulator(problem)
         current_state = up.model.UPRWState(problem.initial_values)
         count = 0 #used for better error indexing
         for ai in plan.actions:
@@ -88,7 +89,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
                 current_state = cast(up.model.UPRWState, simulator.apply_unsafe(event, current_state))
         for g in problem.goals:
-            wrapper_event = engines.simulator.InstantaneousEvent([g], [])
+            wrapper_event = InstantaneousEvent([g], [])
             if not simulator.is_applicable(wrapper_event, current_state):
                 error = f'Goal {str(g)} is not reached by the plan.'
                 logs = [LogMessage(LogLevel.ERROR, error)]
