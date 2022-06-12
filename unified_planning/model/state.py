@@ -37,7 +37,7 @@ class RWState(ROState):
 
 class UPRWState(RWState):
     # TODO: DOCUMENT
-    max_ancestors: int = 10
+    max_ancestors: int = 3
     '''This class is the unified_planning implementation of the RWState interface.'''
     def __init__(self, values: Dict['up.model.FNode', 'up.model.FNode'], father: Optional['UPRWState'] = None):
         self._father = father
@@ -97,7 +97,7 @@ class UPRWState(RWState):
                 ancestors.append(current_element)
                 current_element = current_element._father
             complete_values = {}
-            ancestors.reverse()
-            for ancestor in ancestors:
+            for ancestor in reversed(ancestors):
                 complete_values.update(ancestor._values)
+            complete_values.update(new_values)
             return UPRWState(complete_values)

@@ -17,21 +17,11 @@
 from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union, cast
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
+from unified_planning.engines.engine import Engine
+from unified_planning.engines.mixins.simulator import Event, Simulator
 from unified_planning.exceptions import UPUsageError
 from unified_planning.plans import ActionInstance
 from unified_planning.walkers import StateEvaluator
-
-
-class Event:
-    '''This is an abstract class representing an event.'''
-
-    @property
-    def conditions(self) -> List['up.model.FNode']:
-        raise NotImplementedError
-
-    @property
-    def effects(self) -> List['up.model.Effect']:
-        raise NotImplementedError
 
 
 class InstantaneousEvent(Event):
@@ -50,8 +40,10 @@ class InstantaneousEvent(Event):
         return self._effects
 
 
-class Simulator:
-    #TODO: DOCUMENTATION
+class SequentialSimulator(Engine, Simulator):
+    '''
+    Sequential Simulator implementation.
+    '''
 
     def __init__(self, problem: 'up.model.Problem'):
         self._problem = problem
@@ -144,15 +136,28 @@ class Simulator:
 
     def get_events(self,
                    action: 'up.model.Action',
-                   parameters: Union[Tuple['up.model.FNode', ...], List['up.model.FNode']]) -> List['Event']:
+                   parameters: Union[Tuple['up.model.Expression', ...], List['up.model.Expression']]) -> List['Event']:
         '''
         Returns a list containing all the events derived from the given action, grounded with the given parameters.
         :param action: the action containing the information to create the event.
         :param parameters: the parameters needed to ground the action
-        :return: an Iterator of applicable Events.
+        :return: the List of Events derived from this action with these parameters.
         '''
         if action not in self._problem.actions:
             raise UPUsageError('The action given as parameter does not belong to the problem given to the Simulator.')
         if len(action.parameters) != len(parameters):
             raise UPUsageError('The parameters given action do not have the same length of the given parameters.')
-        return self._events.get((action,tuple(parameters)), [])
+        params_exp = tuple(self._problem.env.expression_manager.auto_promote(parameters))
+        return self._events.get((action, tuple(params_exp)), [])
+
+    @property
+    def name(self) -> str:
+        return 'sequential_simulator'
+
+    @staticmethod
+    def supported_kind() -> 'up.model.ProblemKind':
+        return Grounder.supported_kind()
+
+    @staticmethod
+    def supports(problem_kind: 'up.model.ProblemKind') -> bool:
+        return Grounder.supports(problem_kind)

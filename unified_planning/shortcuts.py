@@ -170,6 +170,13 @@ def Compiler(*, name: Optional[str] = None, params: Union[Dict[str, str], List[D
                                       problem_kind=problem_kind,
                                       compilation_kind=compilation_kind)
 
+def Simulator(*, problem: 'up.model.AbstractProblem', name: Optional[str] = None,
+              params: Union[Dict[str, str], List[Dict[str, str]]] = None) -> 'up.engines.engine.Engine':
+    """
+    TODO DOCUMENTATION
+    """
+    return get_env().factory.Simulator(problem=problem, name=name, params=params)
+
 def print_engines_info(stream: IO[str] = sys.stdout, full_credits: bool = False):
     get_env().factory.print_engines_info(stream, full_credits)
 
