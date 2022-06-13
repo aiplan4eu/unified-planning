@@ -60,6 +60,7 @@ class SequentialSimulator(Engine, Simulator):
                 event_list.append(InstantaneousEvent(grounded_action.preconditions, grounded_action.effects))
             else:
                 raise NotImplementedError
+        self._se = StateEvaluator(self._problem)
 
     def is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
         '''
@@ -69,11 +70,10 @@ class SequentialSimulator(Engine, Simulator):
         :param event: the event whose conditions are checked.
         :return: Whether or not the event is applicable in the given state.
         '''
-        se = StateEvaluator(self._problem)
         # Evaluate every condition and if the condition is False or the condition is not simplified as a
         # boolean constant in the given state, return False. Return True otherwise
         for c in event.conditions:
-            evaluated_cond = se.evaluate(c, state)
+            evaluated_cond = self._se.evaluate(c, state)
             if not evaluated_cond.is_bool_constant() or not evaluated_cond.bool_constant_value():
                 return False
         return True
@@ -102,20 +102,23 @@ class SequentialSimulator(Engine, Simulator):
         :param event: the event that has the information about the effects to apply.
         :return: A new RWState with some updated values.
         '''
-        se = StateEvaluator(self._problem)
         updated_values: Dict['up.model.FNode', 'up.model.FNode'] = {}
         em = self._problem.env.expression_manager
         for e in event.effects:
             cond = self._problem._env.expression_manager.TRUE()
             if e.is_conditional():
-                cond = se.evaluate(e.condition, state)
+                cond = self._se.evaluate(e.condition, state)
             if cond.is_bool_constant() and cond.bool_constant_value():
                 if e.is_assignment():
-                    updated_values[e.fluent] = se.evaluate(e.value, state)
+                    updated_values[e.fluent] = self._se.evaluate(e.value, state)
                 elif e.is_increase():
-                    updated_values[e.fluent] = se.evaluate(em.Plus(e.fluent, e.value), state)
+                    f_eval = self._se.evaluate(e.fluent, state)
+                    v_eval = self._se.evaluate(e.value, state)
+                    updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() + v_eval.constant_value())[0]
                 elif e.is_decrease():
-                    updated_values[e.fluent] = se.evaluate(em.Minus(e.fluent, e.value), state)
+                    f_eval = self._se.evaluate(e.fluent, state)
+                    v_eval = self._se.evaluate(e.value, state)
+                    updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() - v_eval.constant_value())[0]
                 else:
                     raise NotImplementedError
         return state.set_values(updated_values)
@@ -128,9 +131,8 @@ class SequentialSimulator(Engine, Simulator):
         :param state: the state where the formulas are evaluated.
         :return: an Iterator of applicable Events.
         '''
-        for action in self._grounded_problem.actions:
-            ai = self._map(ActionInstance(action))
-            for event in self.get_events(ai.action, ai.actual_parameters):
+        for events in self._events.values():
+            for event in events:
                 if self.is_applicable(event, state):
                     yield event
 
@@ -156,8 +158,24 @@ class SequentialSimulator(Engine, Simulator):
 
     @staticmethod
     def supported_kind() -> 'up.model.ProblemKind':
-        return Grounder.supported_kind()
+        supported_kind = up.model.ProblemKind()
+        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
+        supported_kind.set_typing('FLAT_TYPING') # type: ignore
+        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
+        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+        return supported_kind
 
     @staticmethod
-    def supports(problem_kind: 'up.model.ProblemKind') -> bool:
-        return Grounder.supports(problem_kind)
+    def supports(problem_kind):
+        return problem_kind <= SequentialSimulator.supported_kind()

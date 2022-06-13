@@ -165,7 +165,7 @@ class Factory:
                     problem: Optional['up.model.AbstractProblem'] = None) -> 'up.engines.engine.Engine':
         if names is not None:
             assert name is None
-            assert problem is None
+            assert problem is None, 'Parallel simulation is not supported'
             if params is None:
                 params = [{} for i in range(len(names))]
             assert isinstance(params, List) and len(names) == len(params)
@@ -190,7 +190,7 @@ class Factory:
                 return EngineClass(**params)
             else:
                 assert engine_kind == 'simulator'
-                return EngineClass(problem, **params) # type: ignore #TODO FIX TYPING HERE
+                return EngineClass(problem, **params) # type: ignore
 
     @property
     def environment(self) -> 'Environment':

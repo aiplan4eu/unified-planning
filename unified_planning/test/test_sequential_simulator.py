@@ -28,7 +28,7 @@ class TestSimulator(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def hierarchical_blocks_world(self, simulator: Simulator, problem: 'up.model.Problem'):
+    def simulate_on_hierarchical_blocks_world(self, simulator: Simulator, problem: 'up.model.Problem'):
         #This test takes a simulator and the problem and makes some testing.
         self.assertEqual(problem.name, 'hierarchical_blocks_world')
         em = problem.env.expression_manager
@@ -97,9 +97,9 @@ class TestSimulator(TestCase):
     def test_with_sequential_simualtor_instance(self):
         problem = self.problems['hierarchical_blocks_world'].problem
         simulator = SequentialSimulator(problem)
-        self.hierarchical_blocks_world(simulator, problem)
+        self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
     def test_with_smulator_from_factory(self):
         problem = self.problems['hierarchical_blocks_world'].problem
         with ProblemSimulator(problem) as simulator:
-            self.hierarchical_blocks_world(simulator, problem)
+            self.simulate_on_hierarchical_blocks_world(simulator, problem)

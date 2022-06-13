@@ -21,7 +21,7 @@ import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
 import unified_planning.walkers as walkers
-from unified_planning.model import AbstractProblem, Problem, ProblemKind
+from unified_planning.model import AbstractProblem, Problem, ProblemKind, RWState, UPRWState
 from unified_planning.engines.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
 from unified_planning.engines.sequential_simulator import SequentialSimulator, InstantaneousEvent
 from unified_planning.plans import SequentialPlan, PlanKind
@@ -74,7 +74,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         simulator = SequentialSimulator(problem)
-        current_state = up.model.UPRWState(problem.initial_values)
+        current_state: 'RWState' = UPRWState(problem.initial_values)
         count = 0 #used for better error indexing
         for ai in plan.actions:
             action = ai.action
@@ -87,7 +87,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     error = f'Preconditions {event.conditions} of {str(count)}-th action instance {str(ai)} are not satisfied.'
                     logs = [LogMessage(LogLevel.ERROR, error)]
                     return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
-                current_state = cast(up.model.UPRWState, simulator.apply_unsafe(event, current_state))
+                current_state = simulator.apply_unsafe(event, current_state)
         for g in problem.goals:
             wrapper_event = InstantaneousEvent([g], [])
             if not simulator.is_applicable(wrapper_event, current_state):
