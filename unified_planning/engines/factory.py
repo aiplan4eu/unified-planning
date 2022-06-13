@@ -244,7 +244,7 @@ class Factory:
                  problem_kind: ProblemKind = ProblemKind(),
                  compilation_kind: Optional[Union['CompilationKind', str]] = None) -> 'up.engines.engine.Engine':
         """
-        Returns a Compiler. There are three ways to call this method:
+        Returns a Compiler. There are two ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
           (grounder dependent options).
           e.g. Compiler(name='tamer', params={'opt': 'val'})
@@ -260,7 +260,12 @@ class Factory:
                  problem: 'up.model.AbstractProblem', *, name: Optional[str] = None,
                  params: Union[Dict[str, str], List[Dict[str, str]]] = None) -> 'up.engines.engine.Engine':
         """
-        TODO DOCUMENTATION
+        Returns a ProblemSimulator. There are two ways to call this method:
+        - using 'problem_kind' through the problem field.
+          e.g. ProblemSimulator(problem)
+        - using 'name' (the name of a specific simulator) and eventually some 'params'
+          (simulator dependent options).
+          e.g. ProblemSimulator(problem, name='sequential_simulator')
         """
         return self._get_engine('simulator', name, None, params, problem.kind,
                                 problem = problem)

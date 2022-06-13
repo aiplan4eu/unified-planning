@@ -15,14 +15,19 @@
 
 from typing import Dict, List, Optional
 import unified_planning as up
-from unified_planning.exceptions import UPUsageError
+from unified_planning.exceptions import UPUsageError, UPValueError
 
 
 class ROState:
     '''This is an abstract class representing a classical Read Only state'''
 
     def get_value(self, value: 'up.model.FNode') -> 'up.model.FNode':
-        '''Returns the value assignment for the given fluent expression'''
+        '''
+        This method retrieves the value in the state.
+        NOTE that the searched value must be set in the state.
+        :params value: The value searched for in the state.
+        :return: The set value.
+        '''
         raise NotImplementedError
 
 
@@ -30,16 +35,30 @@ class RWState(ROState):
     '''This is an abstract class representing a classical Read/Write state'''
 
     def set_values(self, new_values: Dict['up.model.FNode', 'up.model.FNode']) -> 'RWState':
-        '''Returns a new RWState, where every value assignment not in new_values.keys() remains the same
-        and every other value assignment is updated following the new_values map.'''
+        '''
+        Returns a different UPRWState in which every value in new_values.keys() is evaluated as his mapping
+        in new the new_values dict and every other value is evaluated as in self.
+        :param new_values: The dictionary that contains the values that need to be updated in the new State.
+        :return: The new State created.
+        '''
         raise NotImplementedError
 
 
 class UPRWState(RWState):
-    # TODO: DOCUMENT
+    '''
+    unified_planning implementation of the RWState interface.
+    This class has a field "max_ancestors" set to 3.
+
+    The higher this numer is, the less memory the data structure will use.
+    The lower this number is, the less time the data structure will need to retrieve a value.
+
+    To set your own number just extend this class and re-define the max_ancestors value. It must be > 0
+    '''
     max_ancestors: int = 3
     '''This class is the unified_planning implementation of the RWState interface.'''
     def __init__(self, values: Dict['up.model.FNode', 'up.model.FNode'], father: Optional['UPRWState'] = None):
+        if type(self).max_ancestors < 1:
+            raise UPValueError(f'The max_ancestor field of a class extending UPRWState must be > 0: in the class {type(self)} it is set to {type(self).max_ancestors}')
         self._father = father
         self._values = values
         if father is None:
@@ -68,8 +87,9 @@ class UPRWState(RWState):
     def get_value(self, value: 'up.model.FNode') -> 'up.model.FNode':
         '''
         This method retrieves the value in the state.
+        NOTE that the searched value must be set in the state.
         :params value: The value searched for in the state.
-        :return: The set value, if the value is set, None otherwise.
+        :return: The set value.
         '''
         right_instance: Optional[UPRWState] = self
         while right_instance is not None:
