@@ -47,18 +47,18 @@ class RWState(ROState):
 class UPRWState(RWState):
     '''
     unified_planning implementation of the RWState interface.
-    This class has a field "max_ancestors" set to 3.
+    This class has a field "MAX_ANCESTORS" set to 20.
 
     The higher this numer is, the less memory the data structure will use.
     The lower this number is, the less time the data structure will need to retrieve a value.
 
-    To set your own number just extend this class and re-define the max_ancestors value. It must be > 0
+    To set your own number just extend this class and re-define the MAX_ANCESTORS value. It must be > 0
     '''
-    max_ancestors: int = 3
+    MAX_ANCESTORS: int = 20
     '''This class is the unified_planning implementation of the RWState interface.'''
     def __init__(self, values: Dict['up.model.FNode', 'up.model.FNode'], father: Optional['UPRWState'] = None):
-        if type(self).max_ancestors < 1:
-            raise UPValueError(f'The max_ancestor field of a class extending UPRWState must be > 0: in the class {type(self)} it is set to {type(self).max_ancestors}')
+        if type(self).MAX_ANCESTORS < 1:
+            raise UPValueError(f'The max_ancestor field of a class extending UPRWState must be > 0: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}')
         self._father = father
         self._values = values
         if father is None:
@@ -107,17 +107,15 @@ class UPRWState(RWState):
         :return: The new State created.
         '''
         # If the number of ancestors is less that the given threshold it just creates a new state with self set as the father.
-        if self._ancestors < type(self).max_ancestors:
+        if self._ancestors < type(self).MAX_ANCESTORS:
             return UPRWState(new_values, self)
         # Otherwise we retrieve every ancestor, and from the oldest to the newest we update the "complete_values" dict
         else:
-            ancestors: List[UPRWState] = []
+            #ancestors: List[UPRWState] = []
             current_element: Optional[UPRWState] = self
+            complete_values = new_values.copy()
             while current_element is not None:
-                ancestors.append(current_element)
+                for k, v in current_element._values.items():
+                    complete_values.setdefault(k, v)
                 current_element = current_element._father
-            complete_values = {}
-            for ancestor in reversed(ancestors):
-                complete_values.update(ancestor._values)
-            complete_values.update(new_values)
             return UPRWState(complete_values)
