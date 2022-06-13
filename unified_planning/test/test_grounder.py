@@ -3,9 +3,10 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.problem_kind import basic_classical_kind, classical_kind, full_numeric_kind, basic_temporal_kind, hierarchical_kind
-from unified_planning.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
-from unified_planning.transformers import Grounder as TransformersGrounder
+from unified_planning.engines import CompilationKind
+from unified_planning.engines.compilers import Grounder
 
 
 class TestGrounder(TestCase):
@@ -16,13 +17,13 @@ class TestGrounder(TestCase):
     def test_basic(self):
         problem = self.problems['basic'].problem
 
-        gro = TransformersGrounder(problem)
-        with self.assertRaises(UPUsageError) as e:
-            gro.get_rewrite_back_map()
-        self.assertIn('The get_rewrite_back_map method must be called after the function get_rewritten_problem!', str(e.exception))
+        gro = Grounder()
 
-        grounded_problem = gro.get_rewritten_problem()
-        grounded_problem_2 = gro.get_rewritten_problem()
+        res = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = res.problem
+        res_2 = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem_2 = res_2.problem
+
         self.assertEqual(grounded_problem, grounded_problem_2)
         grounded_problem.name = problem.name
         self.assertEqual(grounded_problem, problem)
@@ -32,8 +33,9 @@ class TestGrounder(TestCase):
     def test_robot(self):
         problem = self.problems['robot'].problem
 
-        gro = TransformersGrounder(problem)
-        grounded_problem = gro.get_rewritten_problem()
+        gro = Grounder()
+        res = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = res.problem
         self.assertEqual(len(grounded_problem.actions), 2)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -41,7 +43,7 @@ class TestGrounder(TestCase):
         with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             grounded_plan = planner.solve(grounded_problem).plan
-            plan = gro.rewrite_back_plan(grounded_plan)
+            plan = grounded_plan.replace_action_instances(res.map_back_action_instance)
             for ai in plan.actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
@@ -53,23 +55,17 @@ class TestGrounder(TestCase):
     def test_robot_locations_connected(self):
         problem = self.problems['robot_locations_connected'].problem
 
-        gro = TransformersGrounder(problem)
-        grounded_problem = gro.get_rewritten_problem()
+        gro = Grounder()
+        res = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = res.problem
         self.assertEqual(len(grounded_problem.actions), 28)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
-        for i, a in enumerate(problem.actions):
-            if i == 0:
-                self.assertEqual(len(gro.get_transformed_actions(a)), 8)
-            elif i == 1:
-                self.assertEqual(len(gro.get_transformed_actions(a)), 20)
-            else:
-                self.assertTrue(False)
 
         with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             grounded_plan = planner.solve(grounded_problem).plan
-            plan = gro.rewrite_back_plan(grounded_plan)
+            plan = grounded_plan.replace_action_instances(res.map_back_action_instance)
             for ai in plan.actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
@@ -82,10 +78,10 @@ class TestGrounder(TestCase):
     def test_robot_locations_connected_from_factory(self):
         problem = self.problems['robot_locations_connected'].problem
 
-        with Grounder(name='up_grounder') as embedded_grounder:
-            self.assertTrue(embedded_grounder.supports(problem.kind))
-            ground_result = embedded_grounder.ground(problem)
-            grounded_problem, rewrite_plan_funct = ground_result.problem, ground_result.lift_action_instance
+        with Compiler(name='up_grounder') as grounder:
+            self.assertTrue(grounder.supports(problem.kind))
+            res = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem = res.problem
             self.assertEqual(len(grounded_problem.actions), 28)
             for a in grounded_problem.actions:
                 self.assertEqual(len(a.parameters), 0)
@@ -93,7 +89,7 @@ class TestGrounder(TestCase):
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
                 self.assertNotEqual(planner, None)
                 grounded_plan = planner.solve(grounded_problem).plan
-                plan = grounded_plan.replace_action_instances(rewrite_plan_funct)
+                plan = grounded_plan.replace_action_instances(res.map_back_action_instance)
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
@@ -107,10 +103,11 @@ class TestGrounder(TestCase):
         problem = self.problems['robot_locations_connected'].problem
         kind = problem.kind
 
-        with Grounder(problem_kind=kind) as embedded_grounder:
+        with Compiler(problem_kind=kind,
+                      compilation_kind=CompilationKind.GROUNDING) as embedded_grounder:
             self.assertTrue(embedded_grounder.supports(kind))
-            ground_result = embedded_grounder.ground(problem)
-            grounded_problem, rewrite_plan_funct = ground_result.problem, ground_result.lift_action_instance
+            ground_result = embedded_grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem, rewrite_plan_funct = ground_result.problem, ground_result.map_back_action_instance
             self.assertEqual(len(grounded_problem.actions), 28)
             for a in grounded_problem.actions:
                 self.assertEqual(len(a.parameters), 0)
@@ -131,21 +128,17 @@ class TestGrounder(TestCase):
     def test_hierarchical_blocks_world(self):
         problem = self.problems['hierarchical_blocks_world'].problem
 
-        gro = TransformersGrounder(problem)
-        grounded_problem = gro.get_rewritten_problem()
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
         self.assertEqual(len(grounded_problem.actions), 108)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
-        for i, a in enumerate(problem.actions):
-            if i == 0:
-                self.assertEqual(len(gro.get_transformed_actions(a)), 108)
-            else:
-                self.assertTrue(False)
 
         with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             grounded_plan = planner.solve(grounded_problem).plan
-            plan = gro.rewrite_back_plan(grounded_plan)
+            plan = grounded_plan.replace_action_instances(ground_result.map_back_action_instance)
             for ai in plan.actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
@@ -158,18 +151,17 @@ class TestGrounder(TestCase):
     def test_matchcellar(self):
         problem = self.problems['matchcellar'].problem
 
-        gro = TransformersGrounder(problem)
-        grounded_problem = gro.get_rewritten_problem()
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
         self.assertEqual(len(grounded_problem.actions), 6)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
-        for a in problem.actions:
-            self.assertEqual(len(gro.get_transformed_actions(a)), 3)
 
         with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             grounded_plan = planner.solve(grounded_problem).plan
-            plan = gro.rewrite_back_plan(grounded_plan)
+            plan = grounded_plan.replace_action_instances(ground_result.map_back_action_instance)
             for _, ai, _ in plan.timed_actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
@@ -182,12 +174,13 @@ class TestGrounder(TestCase):
     def test_matchcellar_grounder_from_factory(self):
         problem = self.problems['matchcellar'].problem
 
-        gro = TransformersGrounder(problem)
-        grounded_problem_test = gro.get_rewritten_problem()
-        with Grounder(name='up_grounder') as grounder:
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem_test = ground_result.problem
+        with Compiler(name='up_grounder') as grounder:
             self.assertTrue(grounder.supports(problem.kind))
-            ground_result = grounder.ground(problem)
-            grounded_problem_try, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem_try, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             self.assertEqual(grounded_problem_test, grounded_problem_try)
             with OneshotPlanner(problem_kind=grounded_problem_try.kind) as planner:
                 self.assertNotEqual(planner, None)
@@ -202,13 +195,12 @@ class TestGrounder(TestCase):
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem
 
-        gro = TransformersGrounder(problem)
-        grounded_problem = gro.get_rewritten_problem()
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
         self.assertEqual(len(grounded_problem.actions), 20)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
-        for a in problem.actions:
-            self.assertEqual(len(gro.get_transformed_actions(a)), 20)
 
     def test_ad_hoc_1(self):
         problem = Problem('ad_hoc')
@@ -225,30 +217,21 @@ class TestGrounder(TestCase):
         problem.add_object(l1)
         problem.add_action(visit)
         problem.add_action(visit_l1)
-        gro = TransformersGrounder(problem)
-        grounded_problem = gro.get_rewritten_problem()
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
         self.assertEqual(len(grounded_problem.actions), 2)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
-        for a in problem.actions:
-            self.assertEqual(len(gro.get_transformed_actions(a)), 1)
 
-    def test_ad_hoc_2(self):
-        problem = Problem('ad_hoc')
-        gro = TransformersGrounder(problem)
-        gro.get_rewritten_problem()
-        with self.assertRaises(AttributeError):
-            gro.rewrite_back_plan(problem)
-
-    @skipIfSolverNotAvailable('pyperplan')
+    @skipIfEngineNotAvailable('pyperplan')
     def test_pyperplan_grounder(self):
-
         problem = self.problems['robot_no_negative_preconditions'].problem
         for action in problem.actions:
             self.assertTrue(len(action.parameters) > 0)
-        with Grounder(name='pyperplan') as grounder:
-            ground_result = grounder.ground(problem)
-            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
+        with Compiler(name='pyperplan') as grounder:
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
@@ -261,7 +244,7 @@ class TestGrounder(TestCase):
                 with PlanValidator(problem_kind=problem.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
-    @skipIfSolverNotAvailable('pyperplan')
+    @skipIfEngineNotAvailable('pyperplan')
     def test_pyperplan_grounder_mockup_problem(self):
         problem = Problem('mockup')
         Location = UserType('Location')
@@ -284,9 +267,9 @@ class TestGrounder(TestCase):
         problem.add_goal(at(l2))
         problem.add_goal(at_l2)
 
-        with Grounder(name='pyperplan') as grounder:
-            ground_result = grounder.ground(problem)
-            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
+        with Compiler(name='pyperplan') as grounder:
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:

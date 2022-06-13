@@ -16,21 +16,23 @@
 
 import warnings
 import unified_planning as up
-import unified_planning.solvers as solvers
+import unified_planning.engines as engines
 from unified_planning.plans import Plan
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPException
-from unified_planning.solvers.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
+from unified_planning.engines.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
 from typing import IO, Callable, Dict, List, Optional, Tuple, cast
 from fractions import Fraction
 from multiprocessing import Process, Queue
 
 
-class Parallel(solvers.solver.Solver):
-    """Create a parallel instance of multiple Solvers."""
+class Parallel(engines.engine.Engine,
+               engines.mixins.OneshotPlannerMixin,
+               engines.mixins.PlanValidatorMixin):
+    """Create a parallel instance of multiple Engines."""
 
-    def __init__(self, solvers: List[Tuple[type, Dict[str, str]]]):
-        self.solvers = solvers
+    def __init__(self, engines: List[Tuple[type, Dict[str, str]]]):
+        self.engines = engines
 
     @property
     def name(self) -> str:
@@ -38,24 +40,24 @@ class Parallel(solvers.solver.Solver):
 
     @staticmethod
     def is_oneshot_planner() -> bool:
-        raise UPException('The Parallel solver type depends on its actual solvers')
+        raise UPException('The Parallel engine type depends on its actual engines')
 
     @staticmethod
     def is_plan_validator() -> bool:
-        raise UPException('The Parallel solver type depends on its actual solvers')
+        raise UPException('The Parallel engine type depends on its actual engines')
 
     @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
-        raise UPException('The Parallel supported features depends on its actual solvers')
+        raise UPException('The Parallel supported features depends on its actual engines')
 
     def _run_parallel(self, fname, *args) -> List[Result]:
         signaling_queue: Queue = Queue()
         processes = []
-        for idx, (solver_class, opts) in enumerate(self.solvers):
+        for idx, (engine_class, opts) in enumerate(self.engines):
             options = opts
             _p = Process(name=str(idx),
                          target=_run,
-                         args=(idx, solver_class, options,
+                         args=(idx, engine_class, options,
                                signaling_queue, fname, *args))
             processes.append(_p)
             _p.start()
@@ -84,13 +86,13 @@ class Parallel(solvers.solver.Solver):
         return results
 
     def solve(self, problem: 'up.model.AbstractProblem',
-                    callback: Optional[Callable[['up.solvers.results.PlanGenerationResult'], None]] = None,
+                    callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
                     timeout: Optional[float] = None,
-                    output_stream: Optional[IO[str]] = None) -> 'up.solvers.results.PlanGenerationResult':
+                    output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
         if callback is not None:
-            warnings.warn('Parallel solvers do not support the callback system.', UserWarning)
+            warnings.warn('Parallel engines do not support the callback system.', UserWarning)
         if output_stream is not None:
-            warnings.warn('Parallel solvers do not support the output stream system.', UserWarning)
+            warnings.warn('Parallel engines do not support the output stream system.', UserWarning)
 
         final_reports = self._run_parallel('solve', problem, None, timeout, None)
 
@@ -114,15 +116,15 @@ class Parallel(solvers.solver.Solver):
                     result_found = True
                     final_result = pgr
                     break
-        logs = [up.solvers.LogMessage(LogLevel.INFO, str(fr)) for fr in final_reports]
+        logs = [up.engines.LogMessage(LogLevel.INFO, str(fr)) for fr in final_reports]
         # if no results are given by the planner, we create a default one
         if final_result is None:
-            return up.solvers.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+            return up.engines.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
                                                    None, self.name, log_messages=logs)
         new_plan = problem.normalize_plan(final_result.plan) if final_result.plan is not None else None
         if final_result.log_messages is not None:
             logs = final_result.log_messages + logs
-        return up.solvers.results.PlanGenerationResult(
+        return up.engines.results.PlanGenerationResult(
             final_result.status,
             new_plan,
             final_result.engine_name,
@@ -130,15 +132,15 @@ class Parallel(solvers.solver.Solver):
             logs
         )
 
-    def validate(self, problem: 'up.model.AbstractProblem', plan: Plan) -> 'up.solvers.results.ValidationResult':
+    def validate(self, problem: 'up.model.AbstractProblem', plan: Plan) -> 'up.engines.results.ValidationResult':
         return cast(ValidationResult, self._run_parallel('validate', problem, plan)[0])
 
     def destroy(self):
         pass
 
 
-def _run(idx: int, SolverClass: type, options: Dict[str, str], signaling_queue: Queue, fname: str, *args):
-    with SolverClass(**options) as s:
+def _run(idx: int, EngineClass: type, options: Dict[str, str], signaling_queue: Queue, fname: str, *args):
+    with EngineClass(**options) as s:
         try:
             local_res = getattr(s, fname)(*args)
         except Exception as ex:

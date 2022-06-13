@@ -14,7 +14,7 @@
 
 import os
 import unified_planning as up
-import unified_planning.solvers
+import unified_planning.engines
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.environment import get_env
 from typing import List, Optional, Union
@@ -23,9 +23,9 @@ from typing import List, Optional, Union
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-class ENHSP(up.solvers.PDDLSolver):
+class ENHSP(up.engines.PDDLPlanner):
     def __init__(self):
-        up.solvers.PDDLSolver.__init__(self, False)
+        up.engines.PDDLPlanner.__init__(self, False)
 
     @property
     def name(self) -> str:
@@ -37,14 +37,14 @@ class ENHSP(up.solvers.PDDLSolver):
                 '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename,
                 '-planner', 'opt-hrmax']
 
-    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plans.Plan']) -> 'up.solvers.results.PlanGenerationResultStatus':
+    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plans.Plan']) -> 'up.engines.results.PlanGenerationResultStatus':
         if plan is None:
-            return up.solvers.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+            return up.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         else:
-            return up.solvers.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
+            return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
 
     @staticmethod
-    def satisfies(optimality_guarantee: Union[up.solvers.solver.OptimalityGuarantee, str]) -> bool:
+    def satisfies(optimality_guarantee: up.engines.OptimalityGuarantee) -> bool:
         return True
 
     @staticmethod
@@ -73,10 +73,10 @@ class ENHSP(up.solvers.PDDLSolver):
         return problem_kind <= ENHSP.supported_kind()
 
     @staticmethod
-    def get_credits(**kwargs) -> Optional[up.solvers.Credits]:
+    def get_credits(**kwargs) -> Optional[up.engines.Credits]:
         return None
 
 
 env = get_env()
 if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-    env.factory.add_solver('opt-pddl-solver', 'unified_planning.test.pddl.enhsp', 'ENHSP')
+    env.factory.add_engine('opt-pddl-planner', 'unified_planning.test.pddl.enhsp', 'ENHSP')

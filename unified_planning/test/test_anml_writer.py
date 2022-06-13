@@ -14,7 +14,7 @@
 
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import ANMLWriter
 import tempfile
@@ -253,7 +253,7 @@ instance when_ predicate_;
 '''
         self.assertEqual(anml_problem, expected_result)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_with_pytamer(self):
         import pytamer # type: ignore
         with tempfile.TemporaryDirectory() as tempdir:

@@ -476,50 +476,50 @@ class ProtobufReader(Converter):
             return action_instance
 
     @handles(proto.PlanGenerationResult)
-    def _convert_plan_generation_result(self, result: proto.PlanGenerationResult, problem: Problem) -> unified_planning.solvers.PlanGenerationResult:
+    def _convert_plan_generation_result(self, result: proto.PlanGenerationResult, problem: Problem) -> unified_planning.engines.PlanGenerationResult:
         if result.status == proto.PlanGenerationResult.Status.Value(
             "SOLVED_SATISFICING"
         ):
             status = (
-                unified_planning.solvers.results.PlanGenerationResultStatus.SOLVED_SATISFICING
+                unified_planning.engines.results.PlanGenerationResultStatus.SOLVED_SATISFICING
             )
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "SOLVED_OPTIMALLY"
         ):
             status = (
-                unified_planning.solvers.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
+                unified_planning.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
             )
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "UNSOLVABLE_PROVEN"
         ):
             status = (
-                unified_planning.solvers.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+                unified_planning.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
             )
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "UNSOLVABLE_INCOMPLETELY"
         ):
             status = (
-                unified_planning.solvers.results.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+                unified_planning.engines.results.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
             )
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "TIMEOUT"
         ):
-            status = unified_planning.solvers.results.PlanGenerationResultStatus.TIMEOUT
+            status = unified_planning.engines.results.PlanGenerationResultStatus.TIMEOUT
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "MEMOUT"
         ):
-            status = unified_planning.solvers.results.PlanGenerationResultStatus.MEMOUT
+            status = unified_planning.engines.results.PlanGenerationResultStatus.MEMOUT
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "INTERNAL_ERROR"
         ):
             status = (
-                unified_planning.solvers.results.PlanGenerationResultStatus.INTERNAL_ERROR
+                unified_planning.engines.results.PlanGenerationResultStatus.INTERNAL_ERROR
             )
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "UNSUPPORTED_PROBLEM"
         ):
             status = (
-                unified_planning.solvers.results.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
+                unified_planning.engines.results.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
             )
         else:
             raise UPException(f"Unknown Planner Status: {result.status}")
@@ -533,7 +533,7 @@ class ProtobufReader(Converter):
         if len(result.log_messages) > 0:
             log_messages = [self.convert(log) for log in result.log_messages]
 
-        return unified_planning.solvers.PlanGenerationResult(
+        return unified_planning.engines.PlanGenerationResult(
             status=status,
             plan=self.convert(result.plan, problem),
             engine_name=result.engine.name,
@@ -542,53 +542,53 @@ class ProtobufReader(Converter):
         )
 
     @handles(proto.LogMessage)
-    def _convert_log_message(self, log: proto.LogMessage) -> unified_planning.solvers.LogMessage:
+    def _convert_log_message(self, log: proto.LogMessage) -> unified_planning.engines.LogMessage:
         if log.level == proto.LogMessage.LogLevel.Value("INFO"):
-            return unified_planning.solvers.LogMessage(
-                level=unified_planning.solvers.LogLevel.INFO,
+            return unified_planning.engines.LogMessage(
+                level=unified_planning.engines.LogLevel.INFO,
                 message=log.message,
             )
         elif log.level == proto.LogMessage.LogLevel.Value("WARNING"):
-            return unified_planning.solvers.LogMessage(
-                level=unified_planning.solvers.LogLevel.WARNING,
+            return unified_planning.engines.LogMessage(
+                level=unified_planning.engines.LogLevel.WARNING,
                 message=log.message,
             )
         elif log.level == proto.LogMessage.LogLevel.Value("ERROR"):
-            return unified_planning.solvers.LogMessage(
-                level=unified_planning.solvers.LogLevel.ERROR,
+            return unified_planning.engines.LogMessage(
+                level=unified_planning.engines.LogLevel.ERROR,
                 message=log.message,
             )
         elif log.level == proto.LogMessage.LogLevel.Value("DEBUG"):
-            return unified_planning.solvers.LogMessage(
-                level=unified_planning.solvers.LogLevel.DEBUG,
+            return unified_planning.engines.LogMessage(
+                level=unified_planning.engines.LogLevel.DEBUG,
                 message=log.message,
             )
         else:
             raise UPException(f"Unexpected Log Level: {log.level}")
 
-    @handles(proto.GroundingResult)
-    def _convert_grounding_result(self, result: proto.GroundingResult, lifted_problem: unified_planning.model.Problem) -> unified_planning.solvers.GroundingResult:
+    @handles(proto.CompilerResult)
+    def _convert_compiler_result(self, result: proto.CompilerResult, lifted_problem: unified_planning.model.Problem) -> unified_planning.engines.CompilerResult:
         problem=self.convert(result.problem, lifted_problem.env)
         map: Dict[unified_planning.model.Action, Tuple[unified_planning.model.Action, List[unified_planning.model.FNode]]] = {}
         for grounded_action in problem.actions:
-            original_action_instance = self.convert(result.map_to_lift_plan[grounded_action.name], lifted_problem)
+            original_action_instance = self.convert(result.map_back_plan[grounded_action.name], lifted_problem)
             map[grounded_action] = (original_action_instance.action, original_action_instance.actual_parameters)
-        return unified_planning.solvers.GroundingResult(
+        return unified_planning.engines.CompilerResult(
             problem=problem,
-            lift_action_instance=partial(unified_planning.solvers.grounder.lift_action_instance, map=map),
+            map_back_action_instance=partial(unified_planning.engines.compilers.utils.lift_action_instance, map=map),
             engine_name=result.engine.name,
             log_messages=[self.convert(log) for log in result.log_messages]
         )
 
     @handles(proto.ValidationResult)
-    def _convert_validation_result(self, result: proto.ValidationResult) -> unified_planning.solvers.ValidationResult:
+    def _convert_validation_result(self, result: proto.ValidationResult) -> unified_planning.engines.ValidationResult:
         if result.status == proto.ValidationResult.ValidationResultStatus.Value("VALID"):
-            r_status = unified_planning.solvers.ValidationResultStatus.VALID
+            r_status = unified_planning.engines.ValidationResultStatus.VALID
         elif result.status == proto.ValidationResult.ValidationResultStatus.Value("INVALID"):
-            r_status = unified_planning.solvers.ValidationResultStatus.INVALID
+            r_status = unified_planning.engines.ValidationResultStatus.INVALID
         else:
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
-        return unified_planning.solvers.ValidationResult(
+        return unified_planning.engines.ValidationResult(
             status=r_status,
             engine_name=result.engine.name,
             log_messages=[self.convert(log) for log in result.log_messages]

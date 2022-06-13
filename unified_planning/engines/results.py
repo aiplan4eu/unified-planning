@@ -105,19 +105,19 @@ class ValidationResult(Result):
 
 
 @dataclass
-class GroundingResult(Result):
-    '''Class that represents the result of a Solver.ground call.'''
+class CompilerResult(Result):
+    '''Class that represents the result of a compile call.'''
     problem: Optional[Problem]
-    lift_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
+    map_back_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
     engine_name: str
     log_messages: Optional[List[LogMessage]] = field(default=None)
 
     def _post_init(self):
-        # Check that grounded problem and lift_action_instance are consistent with eachother
-        if self.problem is None and self.lift_action_instance is not None:
-            raise UPUsageError(f'The Grounded Problem is None but the lift_action_instance Callable is not None.')
-        if self.problem is not None and self.lift_action_instance is None:
-            raise UPUsageError(f'The Grounded Problem is {str(self.problem)} but the lift_action_instance Callable is None.')
+        # Check that compiled problem and map_back_action_instance are consistent with each other
+        if self.problem is None and self.map_back_action_instance is not None:
+            raise UPUsageError(f'The compiled Problem is None but the map_back_action_instance Callable is not None.')
+        if self.problem is not None and self.map_back_action_instance is None:
+            raise UPUsageError(f'The compiled Problem is {str(self.problem)} but the map_back_action_instance Callable is None.')
 
     def is_definitive_result(self, *args) -> bool:
         return self.problem is not None

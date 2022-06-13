@@ -19,9 +19,10 @@ from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import GlobalStartTiming
 from unified_planning.model.problem_kind import classical_kind, full_classical_kind, basic_temporal_kind
 from unified_planning.test import TestCase, main
-from unified_planning.test import skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind, skipIfSolverNotAvailable
+from unified_planning.test import skipIfNoPlanValidatorForProblemKind, skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
-from unified_planning.transformers import ConditionalEffectsRemover
+from unified_planning.engines.compilers import ConditionalEffectsRemover
+from unified_planning.engines import CompilationKind
 
 
 class TestConditionalEffectsRemover(TestCase):
@@ -33,28 +34,10 @@ class TestConditionalEffectsRemover(TestCase):
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
-        cer = ConditionalEffectsRemover(problem)
-        unconditional_problem = cer.get_rewritten_problem()
-        u_actions = unconditional_problem.actions
-        a_x = problem.action("a_x")
-        a_x_new_list = cer.get_transformed_actions(a_x)
-        self.assertEqual(len(a_x_new_list), 1)
-        new_action = unconditional_problem.action(a_x_new_list[0].name)
-        y = FluentExp(problem.fluent("y"))
-        a_x_e = a_x.effects
-        new_action_e = new_action.effects
-
-        self.assertEqual(len(u_actions), 2)
-        self.assertEqual(problem.action("a_y"), unconditional_problem.action("a_y"))
-        self.assertTrue(a_x.is_conditional())
-        self.assertFalse(unconditional_problem.has_action("a_x"))
-        self.assertFalse(new_action.is_conditional())
-        self.assertIn(y, new_action.preconditions)
-        self.assertNotIn(y, a_x.preconditions)
-        for e, ue in zip(a_x_e, new_action_e):
-            self.assertEqual(e.fluent, ue.fluent)
-            self.assertEqual(e.value, ue.value)
-            self.assertFalse(ue.is_conditional())
+        with Compiler(problem_kind=problem.kind,
+                      compilation_kind=CompilationKind.CONDITIONAL_EFFECTS_REMOVING) as cer:
+            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
+        unconditional_problem = res.problem
 
         self.assertTrue(problem.kind.has_conditional_effects())
         self.assertFalse(unconditional_problem.kind.has_conditional_effects())
@@ -64,7 +47,7 @@ class TestConditionalEffectsRemover(TestCase):
         with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
-            new_plan = cer.rewrite_back_plan(uncond_plan)
+            new_plan = uncond_plan.replace_action_instances(res.map_back_action_instance)
             with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
@@ -72,15 +55,17 @@ class TestConditionalEffectsRemover(TestCase):
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
-        cer = ConditionalEffectsRemover(problem)
-        unconditional_problem = cer.get_rewritten_problem()
-        unconditional_problem_2 = cer.get_rewritten_problem()
+        with Compiler(name='up_conditional_effects_remover') as cer:
+            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
+        unconditional_problem = res.problem
+        res_2 = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
+        unconditional_problem_2 = res_2.problem
         self.assertEqual(unconditional_problem, unconditional_problem_2)
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
-            new_plan = cer.rewrite_back_plan(uncond_plan)
+            new_plan = uncond_plan.replace_action_instances(res.map_back_action_instance)
             with PlanValidator(problem_kind=problem.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
@@ -88,13 +73,14 @@ class TestConditionalEffectsRemover(TestCase):
     def test_temporal_conditional(self):
         problem = self.problems['temporal_conditional'].problem
 
-        cer = ConditionalEffectsRemover(problem)
-        unconditional_problem = cer.get_rewritten_problem()
+        with Compiler(name='up_conditional_effects_remover') as cer:
+            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
+        unconditional_problem = res.problem
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
-            new_plan = cer.rewrite_back_plan(uncond_plan)
+            new_plan = uncond_plan.replace_action_instances(res.map_back_action_instance)
             for (s, a, d), (s_1, a_1, d_1) in zip(new_plan.timed_actions, uncond_plan.timed_actions):
                 self.assertEqual(s, s_1)
                 self.assertEqual(d, d_1)
@@ -109,8 +95,9 @@ class TestConditionalEffectsRemover(TestCase):
         problem.add_fluent(y, default_initial_value=True)
         problem.add_timed_effect(ct, y, Not(x), x)
         problem.add_goal(Not(y))
-        cer = ConditionalEffectsRemover(problem)
-        uncond_problem = cer.get_rewritten_problem()
+        cer = ConditionalEffectsRemover()
+        res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
+        uncond_problem = res.problem
         eff = uncond_problem.timed_effects[ct][0]
         self.assertFalse(eff.is_conditional())
         self.assertEqual(FluentExp(y), eff.fluent)
@@ -125,7 +112,7 @@ class TestConditionalEffectsRemover(TestCase):
         problem.add_fluent(y, default_initial_value=True)
         problem.add_timed_effect(ct, y, False)
         problem.add_timed_effect(ct, x, 5, y)
-        cer = ConditionalEffectsRemover(problem)
+        cer = ConditionalEffectsRemover()
         with self.assertRaises(UPProblemDefinitionError) as e:
-            cer.get_rewritten_problem()
+            cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         self.assertIn('The condition of effect: if y then x := 5\ncould not be removed without changing the problem.', str(e.exception))

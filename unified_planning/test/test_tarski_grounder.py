@@ -14,11 +14,11 @@
 
 
 import unified_planning
-import unified_planning.solvers
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfNoOneshotPlannerForProblemKind, skipIfNoPlanValidatorForProblemKind, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, skipIfNoOneshotPlannerForProblemKind, skipIfNoPlanValidatorForProblemKind, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
+from unified_planning.engines import CompilationKind
 from unified_planning.model.problem_kind import basic_classical_kind, full_classical_kind, hierarchical_kind
 
 
@@ -30,12 +30,12 @@ class TestTarskiGrounder(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
-    @skipIfSolverNotAvailable('tarski_grounder')
+    @skipIfEngineNotAvailable('tarski_grounder')
     def test_robot_loader(self):
         problem, plan = self.problems['robot_loader']
-        with Grounder(name='tarski_grounder') as grounder:
-            ground_result = grounder.ground(problem)
-            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
+        with Compiler(name='tarski_grounder') as grounder:
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
@@ -51,12 +51,12 @@ class TestTarskiGrounder(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
-    @skipIfSolverNotAvailable('tarski_grounder')
+    @skipIfEngineNotAvailable('tarski_grounder')
     def test_robot_locations_connected_without_battery(self):
         problem, plan = self.problems['robot_locations_connected_without_battery']
-        with Grounder(name='tarski_grounder') as grounder:
-            ground_result = grounder.ground(problem)
-            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
+        with Compiler(name='tarski_grounder') as grounder:
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
@@ -72,14 +72,15 @@ class TestTarskiGrounder(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(hierarchical_kind))
     @skipIfNoPlanValidatorForProblemKind(basic_classical_kind.union(hierarchical_kind))
-    @skipIfSolverNotAvailable('tarski_grounder')
+    @skipIfEngineNotAvailable('tarski_grounder')
     def test_hierarchical_blocks_world(self):
         problem, plan = self.problems['hierarchical_blocks_world']
-        with Grounder(name='tarski_grounder') as grounder:
-            self.assertTrue(grounder.is_grounder())
+        with Compiler(name='tarski_grounder') as grounder:
+            self.assertTrue(grounder.is_compiler())
             self.assertTrue(grounder.supports(problem.kind))
-            ground_result = grounder.ground(problem)
-            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
+            self.assertTrue(grounder.supports_compilation(CompilationKind.GROUNDING))
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:
@@ -94,7 +95,7 @@ class TestTarskiGrounder(TestCase):
 
 
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
-    @skipIfSolverNotAvailable('tarski_grounder')
+    @skipIfEngineNotAvailable('tarski_grounder')
     def test_tarski_grounder_mockup_problem(self):
         problem = Problem('mockup')
         Location = UserType('Location')
@@ -120,9 +121,9 @@ class TestTarskiGrounder(TestCase):
         problem.add_goal(at(l2))
         problem.add_goal(at_l2)
 
-        with Grounder(name='tarski_grounder') as grounder:
-            ground_result = grounder.ground(problem)
-            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.lift_action_instance
+        with Compiler(name='tarski_grounder') as grounder:
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
+            grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
             with OneshotPlanner(problem_kind=grounded_problem.kind) as planner:

@@ -14,14 +14,14 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfSolverNotAvailable
+from unified_planning.test import TestCase, skipIfEngineNotAvailable
 
 
 class TestSimulatedEffects(TestCase):
     def setUp(self):
         TestCase.setUp(self)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_basic(self):
         x = Fluent('x')
         a = InstantaneousAction('a')
@@ -46,7 +46,7 @@ class TestSimulatedEffects(TestCase):
             plan = res.plan
             self.assertEqual(len(plan.actions), 1)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_with_parameters(self):
         Location = UserType('Location')
         Robot = UserType('Robot')
@@ -86,7 +86,7 @@ class TestSimulatedEffects(TestCase):
             plan = res.plan
             self.assertEqual(len(plan.actions), 1)
 
-    @skipIfSolverNotAvailable('tamer')
+    @skipIfEngineNotAvailable('tamer')
     def test_temporal_basic(self):
         x = Fluent('x')
         y = Fluent('y')

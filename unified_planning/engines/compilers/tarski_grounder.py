@@ -22,12 +22,11 @@ import tarski # type: ignore
 import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
-from unified_planning.model.problem_kind import ProblemKind
-from unified_planning.model import Action, FNode
-from unified_planning.solvers.grounder import lift_action_instance
-from unified_planning.solvers.solver import Solver, Credits
-from unified_planning.solvers.results import GroundingResult
-from unified_planning.transformers import Grounder
+from unified_planning.model import Action, FNode, Problem, ProblemKind
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.engine import Engine, Credits
+from unified_planning.engines.results import CompilerResult
+from unified_planning.engines.compilers.grounder import Grounder
 from tarski.grounding import LPGroundingStrategy # type: ignore
 
 
@@ -44,7 +43,7 @@ credits = Credits('Tarski grounder',
                   'Tarski grounder, more information available on the given website.'
                   )
 
-class TarskiGrounder(Solver):
+class TarskiGrounder(Engine, CompilerMixin):
     """Implements the gounder that uses tarski."""
     def __init__(self, **kwargs):
         if len(kwargs) > 0:
@@ -53,10 +52,6 @@ class TarskiGrounder(Solver):
     @property
     def name(self) -> str:
         return 'tarski_grounder'
-
-    @staticmethod
-    def is_grounder() -> bool:
-        return True
 
     @staticmethod
     def supported_kind() -> ProblemKind:
@@ -76,8 +71,18 @@ class TarskiGrounder(Solver):
     def supports(problem_kind: 'unified_planning.model.ProblemKind') -> bool:
         return problem_kind <= TarskiGrounder.supported_kind()
 
-    def ground(self, problem: 'up.model.AbstractProblem') -> GroundingResult:
-        assert isinstance(problem, up.model.Problem)
+    @staticmethod
+    def supports_compilation(compilation_kind: CompilationKind) -> bool:
+        return compilation_kind == CompilationKind.GROUNDING
+
+    def compile(self, problem: 'up.model.AbstractProblem',
+                compilation_kind: 'CompilationKind') -> CompilerResult:
+        if not self.supports(problem.kind):
+            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of problem!')
+        assert isinstance(problem, Problem)
+        if not self.supports_compilation(compilation_kind):
+            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of compilation!')
+
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         actions = None
         try:
@@ -104,10 +109,9 @@ class TarskiGrounder(Solver):
                         temp_list_of_converted_parameters.append(convert_tarski_formula(problem.env, fluents, \
                             objects, parameters, types, p))
                 grounded_actions_map[action].append(tuple(temp_list_of_converted_parameters))
-        unified_planning_grounder = Grounder(problem, grounding_actions_map=grounded_actions_map)
-        grounded_problem = unified_planning_grounder.get_rewritten_problem()
-        trace_back_map = unified_planning_grounder.get_rewrite_back_map()
-        return GroundingResult(grounded_problem, partial(lift_action_instance, map=trace_back_map), self.name, [])
+        up_grounder = Grounder(grounding_actions_map=grounded_actions_map)
+        up_res = up_grounder.compile(problem, compilation_kind)
+        return CompilerResult(up_res.problem, up_res.map_back_action_instance, self.name)
 
     @staticmethod
     def get_credits(**kwargs) -> Optional[Credits]:
