@@ -35,8 +35,8 @@ class TestConditionalEffectsRemover(TestCase):
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         with Compiler(problem_kind=problem.kind,
-                      compilation_kind=CompilationKind.CONDITIONAL_EFFECTS_REMOVER) as cer:
-            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVER)
+                      compilation_kind=CompilationKind.CONDITIONAL_EFFECTS_REMOVING) as cer:
+            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         unconditional_problem = res.problem
 
         self.assertTrue(problem.kind.has_conditional_effects())
@@ -56,9 +56,9 @@ class TestConditionalEffectsRemover(TestCase):
     def test_complex_conditional(self):
         problem = self.problems['complex_conditional'].problem
         with Compiler(name='up_conditional_effects_remover') as cer:
-            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVER)
+            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         unconditional_problem = res.problem
-        res_2 = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVER)
+        res_2 = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         unconditional_problem_2 = res_2.problem
         self.assertEqual(unconditional_problem, unconditional_problem_2)
 
@@ -74,7 +74,7 @@ class TestConditionalEffectsRemover(TestCase):
         problem = self.problems['temporal_conditional'].problem
 
         with Compiler(name='up_conditional_effects_remover') as cer:
-            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVER)
+            res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         unconditional_problem = res.problem
 
         with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
@@ -96,7 +96,7 @@ class TestConditionalEffectsRemover(TestCase):
         problem.add_timed_effect(ct, y, Not(x), x)
         problem.add_goal(Not(y))
         cer = ConditionalEffectsRemover()
-        res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVER)
+        res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         uncond_problem = res.problem
         eff = uncond_problem.timed_effects[ct][0]
         self.assertFalse(eff.is_conditional())
@@ -114,5 +114,5 @@ class TestConditionalEffectsRemover(TestCase):
         problem.add_timed_effect(ct, x, 5, y)
         cer = ConditionalEffectsRemover()
         with self.assertRaises(UPProblemDefinitionError) as e:
-            cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVER)
+            cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         self.assertIn('The condition of effect: if y then x := 5\ncould not be removed without changing the problem.', str(e.exception))

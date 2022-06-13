@@ -73,7 +73,7 @@ class TarskiGrounder(Engine, CompilerMixin):
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.GROUNDER
+        return compilation_kind == CompilationKind.GROUNDING
 
     def compile(self, problem: 'up.model.AbstractProblem',
                 compilation_kind: 'CompilationKind') -> CompilerResult:

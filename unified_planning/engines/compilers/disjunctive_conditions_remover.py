@@ -73,7 +73,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER
+        return compilation_kind == CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
 
     def compile(self, problem: 'up.model.AbstractProblem',
                 compilation_kind: 'up.engines.CompilationKind') -> CompilerResult:

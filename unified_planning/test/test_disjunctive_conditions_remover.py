@@ -33,11 +33,11 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem = self.problems['robot_locations_visited'].problem
 
         with Compiler(problem_kind=problem.kind,
-                      compilation_kind=CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER) as dnfr:
-            res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER)
+                      compilation_kind=CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING) as dnfr:
+            res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
             dnf_problem = res.problem
 
-            res_2 = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER)
+            res_2 = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
             dnf_problem_2 = res_2.problem
 
             self.assertEqual(dnf_problem, dnf_problem_2)
@@ -82,7 +82,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.set_initial_value(d, False)
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover()
-        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER)
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
 
         self.assertEqual(len(dnf_problem.actions), 4)
@@ -110,7 +110,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.set_initial_value(a, True)
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover()
-        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER)
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
 
         self.assertEqual(len(dnf_problem.actions), 1)
@@ -144,7 +144,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.set_initial_value(d, False)
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover()
-        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER)
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
         self.assertEqual(len(dnf_problem.actions), 81)
 
@@ -168,6 +168,6 @@ class TestDisjunctiveConditionsRemover(TestCase):
         problem.set_initial_value(b, False)
         problem.add_goal(a)
         dnfr = DisjunctiveConditionsRemover()
-        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVER)
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
         self.assertEqual(len(dnf_problem.actions), 1)

@@ -34,7 +34,7 @@ class TestTarskiGrounder(TestCase):
     def test_robot_loader(self):
         problem, plan = self.problems['robot_loader']
         with Compiler(name='tarski_grounder') as grounder:
-            ground_result = grounder.compile(problem, CompilationKind.GROUNDER)
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
@@ -55,7 +55,7 @@ class TestTarskiGrounder(TestCase):
     def test_robot_locations_connected_without_battery(self):
         problem, plan = self.problems['robot_locations_connected_without_battery']
         with Compiler(name='tarski_grounder') as grounder:
-            ground_result = grounder.compile(problem, CompilationKind.GROUNDER)
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
@@ -78,8 +78,8 @@ class TestTarskiGrounder(TestCase):
         with Compiler(name='tarski_grounder') as grounder:
             self.assertTrue(grounder.is_compiler())
             self.assertTrue(grounder.supports(problem.kind))
-            self.assertTrue(grounder.supports_compilation(CompilationKind.GROUNDER))
-            ground_result = grounder.compile(problem, CompilationKind.GROUNDER)
+            self.assertTrue(grounder.supports_compilation(CompilationKind.GROUNDING))
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)
@@ -122,7 +122,7 @@ class TestTarskiGrounder(TestCase):
         problem.add_goal(at_l2)
 
         with Compiler(name='tarski_grounder') as grounder:
-            ground_result = grounder.compile(problem, CompilationKind.GROUNDER)
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem, rewrite_back_plan_function = ground_result.problem, ground_result.map_back_action_instance
             for grounded_action in grounded_problem.actions:
                 self.assertEqual(len(grounded_action.parameters), 0)

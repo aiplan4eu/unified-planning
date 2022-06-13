@@ -38,8 +38,8 @@ class TestNegativeConditionsRemover(TestCase):
     def test_basic(self):
         problem = self.problems['basic'].problem
         with Compiler(problem_kind=problem.kind,
-                      compilation_kind=CompilationKind.NEGATIVE_CONDITIONS_REMOVER) as npr:
-            res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+                      compilation_kind=CompilationKind.NEGATIVE_CONDITIONS_REMOVING) as npr:
+            res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
         self.assertEqual(len(problem.fluents) + 1, len(positive_problem.fluents))
         self.assertTrue(problem.kind.has_negative_conditions())
@@ -56,9 +56,9 @@ class TestNegativeConditionsRemover(TestCase):
     def test_robot_loader_mod(self):
         problem = self.problems['robot_loader_mod'].problem
         npr = NegativeConditionsRemover()
-        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
-        res_2 = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+        res_2 = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem_2 = res_2.problem
         self.assertEqual(positive_problem, positive_problem_2)
         self.assertEqual(len(problem.fluents) + 4, len(positive_problem.fluents))
@@ -76,7 +76,7 @@ class TestNegativeConditionsRemover(TestCase):
     def test_matchcellar(self):
         problem = self.problems['matchcellar'].problem
         npr = NegativeConditionsRemover()
-        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
         self.assertTrue(problem.kind.has_negative_conditions())
         self.assertFalse(positive_problem.kind.has_negative_conditions())
@@ -114,7 +114,7 @@ class TestNegativeConditionsRemover(TestCase):
     def test_basic_conditional(self):
         problem = self.problems['basic_conditional'].problem
         npr = NegativeConditionsRemover()
-        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
         self.assertEqual(len(problem.fluents) + 2, len(positive_problem.fluents))
         self.assertTrue(problem.kind.has_negative_conditions())
@@ -129,7 +129,7 @@ class TestNegativeConditionsRemover(TestCase):
     def test_temporal_conditional(self):
         problem = self.problems['temporal_conditional'].problem
         npr = NegativeConditionsRemover()
-        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
         self.assertEqual(len(problem.fluents) + 3, len(positive_problem.fluents))
         self.assertTrue(problem.kind.has_negative_conditions())
@@ -154,7 +154,7 @@ class TestNegativeConditionsRemover(TestCase):
         problem.add_timed_goal(ClosedTimeInterval(GlobalStartTiming(3), GlobalStartTiming(4)), x)
         npr = NegativeConditionsRemover()
         with self.assertRaises(UPExpressionDefinitionError) as e:
-            res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+            res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         self.assertIn(f"Expression: {Not(Iff(x, y))} is not in NNF.", str(e.exception))
 
     def test_ad_hoc_2(self):
@@ -169,7 +169,7 @@ class TestNegativeConditionsRemover(TestCase):
         problem.set_initial_value(y, False)
         problem.add_goal(x)
         npr = NegativeConditionsRemover()
-        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVER)
+        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
         print(positive_problem)
         self.assertEqual(len(problem.fluents) + 1, len(positive_problem.fluents))

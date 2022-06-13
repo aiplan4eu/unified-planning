@@ -35,9 +35,9 @@ class TestQuantifiersRemover(TestCase):
     def test_basic_exists(self):
         problem = self.problems['basic_exists'].problem
         with Compiler(problem_kind=problem.kind,
-                      compilation_kind=CompilationKind.QUANTIFIERS_REMOVER) as qr:
-            res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
-            res_2 = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+                      compilation_kind=CompilationKind.QUANTIFIERS_REMOVING) as qr:
+            res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
+            res_2 = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
         uq_problem_2 = res_2.problem
         self.assertEqual(uq_problem, uq_problem_2)
@@ -57,7 +57,7 @@ class TestQuantifiersRemover(TestCase):
     def test_basic_forall(self):
         problem = self.problems['basic_forall'].problem
         qr = QuantifiersRemover()
-        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
         self.assertTrue(problem.kind.has_universal_conditions())
         self.assertFalse(uq_problem.kind.has_universal_conditions())
@@ -75,7 +75,7 @@ class TestQuantifiersRemover(TestCase):
     def test_robot_locations_connected(self):
         problem = self.problems['robot_locations_connected'].problem
         qr = QuantifiersRemover()
-        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
@@ -93,7 +93,7 @@ class TestQuantifiersRemover(TestCase):
     def test_robot_locations_visited(self):
         problem = self.problems['robot_locations_visited'].problem
         qr = QuantifiersRemover()
-        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
@@ -112,7 +112,7 @@ class TestQuantifiersRemover(TestCase):
     def test_hierarchical_blocks_world_exists(self):
         problem = self.problems['hierarchical_blocks_world_exists'].problem
         qr = QuantifiersRemover()
-        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
@@ -124,7 +124,7 @@ class TestQuantifiersRemover(TestCase):
     def test_timed_connected_locations(self):
         problem = self.problems['timed_connected_locations'].problem
         qr = QuantifiersRemover()
-        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
@@ -168,7 +168,7 @@ class TestQuantifiersRemover(TestCase):
         problem.set_initial_value(y(o3), True)
         problem.add_goal(x)
         qr = QuantifiersRemover()
-        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         unq_problem = res.problem
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertTrue(problem.kind.has_universal_conditions())

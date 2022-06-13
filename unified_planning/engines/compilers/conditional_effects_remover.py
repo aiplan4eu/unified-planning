@@ -75,7 +75,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.CONDITIONAL_EFFECTS_REMOVER
+        return compilation_kind == CompilationKind.CONDITIONAL_EFFECTS_REMOVING
 
     def _powerset(self, iterable: Iterable) -> Iterable:
         "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"

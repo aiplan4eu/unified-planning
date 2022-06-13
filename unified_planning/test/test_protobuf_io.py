@@ -230,7 +230,7 @@ class TestProtobufIO(TestCase):
     def test_compiler_result(self):
         problem, _ = self.problems["hierarchical_blocks_world"]
         with Compiler(name="up_grounder") as grounder:
-            ground_result = grounder.compile(problem, CompilationKind.GROUNDER)
+            ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
 
             ground_result_pb = self.pb_writer.convert(ground_result)
             ground_result_up = self.pb_reader.convert(ground_result_pb, problem)

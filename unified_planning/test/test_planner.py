@@ -88,7 +88,7 @@ class TestPlanner(TestCase):
                 final_report = planner.solve(problem)
             self.assertIn('Tamer cannot solve this kind of problem!', str(e.exception))
             with Compiler(name='up_quantifiers_remover') as quantifiers_remover:
-                res = quantifiers_remover.compile(problem, CompilationKind.QUANTIFIERS_REMOVER)
+                res = quantifiers_remover.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
                 suitable_problem = res.problem
                 final_report = planner.solve(suitable_problem)
                 plan = final_report.plan.replace_action_instances(res.map_back_action_instance)

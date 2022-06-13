@@ -18,11 +18,11 @@ from enum import Enum, auto
 
 
 class CompilationKind(Enum):
-    GROUNDER = auto()
-    CONDITIONAL_EFFECTS_REMOVER = auto()
-    DISJUNCTIVE_CONDITIONS_REMOVER = auto()
-    NEGATIVE_CONDITIONS_REMOVER = auto()
-    QUANTIFIERS_REMOVER = auto()
+    GROUNDING = auto()
+    CONDITIONAL_EFFECTS_REMOVING = auto()
+    DISJUNCTIVE_CONDITIONS_REMOVING = auto()
+    NEGATIVE_CONDITIONS_REMOVING = auto()
+    QUANTIFIERS_REMOVING = auto()
 
 
 class CompilerMixin:
