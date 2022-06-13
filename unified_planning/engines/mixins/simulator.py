@@ -39,6 +39,15 @@ class Simulator:
     Important NOTE: The AbstractProblem instance is given at the constructor.
     '''
 
+    def __init__(self, problem: 'up.model.AbstractProblem', **params) -> None:
+        '''
+        Takes an instance of a problem and eventually some parameters, that represent
+        some specific settings of the Simulator.
+        :param problem: the problem that defines the domain in which the simulation exists.
+        :param **params: a dict[str, str] containing the Simulator settings.
+        '''
+        raise NotImplementedError
+
     def is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
         '''
         Returns True if the given event conditions are evaluated as True in the given state;
