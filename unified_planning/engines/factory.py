@@ -15,10 +15,9 @@
 
 import importlib
 import sys
-import io
 import inspect
 import unified_planning as up
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment
 from unified_planning.model import ProblemKind
 from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
@@ -190,7 +189,9 @@ class Factory:
                 return EngineClass(**params)
             else:
                 assert engine_kind == 'simulator'
-                return EngineClass(problem, **params) # type: ignore
+                assert issubclass(EngineClass, up.engines.engine.Engine)
+                assert issubclass(EngineClass, up.engines.mixins.simulator.Simulator)
+                return EngineClass(problem, **params)
 
     @property
     def environment(self) -> 'Environment':
