@@ -3,8 +3,8 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "a6fa0b3bad62022fe17758190f1eb27bdfa7b997"
-  up_pyperplan_commit: "576543e889af75e50d70a9c3a42b3dd977da29fc"
+  up_tamer_commit: "3cbb808d412f34aa28b7e5fd1d442bbf7f183056"
+  up_pyperplan_commit: "fef9c6df8a5d2b1167c476de3402537af5f84ae0"
 
 jobs:
   mypy-check:
