@@ -111,7 +111,6 @@ class UPRWState(RWState):
             return UPRWState(new_values, self)
         # Otherwise we retrieve every ancestor, and from the oldest to the newest we update the "complete_values" dict
         else:
-            #ancestors: List[UPRWState] = []
             current_element: Optional[UPRWState] = self
             complete_values = new_values.copy()
             while current_element is not None:

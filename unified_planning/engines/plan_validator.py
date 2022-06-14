@@ -14,8 +14,6 @@
 #
 
 
-from typing import cast
-
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
