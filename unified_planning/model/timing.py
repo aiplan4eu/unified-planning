@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
-from unified_planning import model
+
 from unified_planning.model.fnode import FNode
 from enum import Enum, auto
 from fractions import Fraction
-from typing import Union, Optional
+from typing import Union
 
 
 class TimepointKind(Enum):
