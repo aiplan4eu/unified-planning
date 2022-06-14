@@ -27,9 +27,13 @@ from unified_planning.walkers import StateEvaluator
 class InstantaneousEvent(Event):
     '''Implements the Event class for an Instantaneous Action.'''
 
-    def __init__(self, conditions: List['up.model.FNode'], effects: List['up.model.Effect']):
+    def __init__(self,
+                 conditions: List['up.model.FNode'],
+                 effects: List['up.model.Effect'],
+                 simulated_effect: Optional['up.model.SimulatedEffect'] = None):
         self._conditions = conditions
         self._effects = effects
+        self._simulated_effect = simulated_effect
 
     @property
     def conditions(self) -> List['up.model.FNode']:
@@ -39,6 +43,10 @@ class InstantaneousEvent(Event):
     def effects(self) -> List['up.model.Effect']:
         return self._effects
 
+    @property
+    def simulated_effect(self) -> Optional['up.model.SimulatedEffect']:
+        return self._simulated_effect
+
 
 class SequentialSimulator(Engine, Simulator):
     '''
@@ -47,8 +55,11 @@ class SequentialSimulator(Engine, Simulator):
 
     def __init__(self, problem: 'up.model.Problem'):
         self._problem = problem
-        self._grounder = Grounder()
-        self._grounding_result = self._grounder.compile(self._problem, up.engines.CompilationKind.GROUNDING)
+        pk = problem.kind
+        assert SequentialSimulator.supports(pk)
+        assert Grounder.supports(pk)
+        grounder = Grounder()
+        self._grounding_result = grounder.compile(self._problem, up.engines.CompilationKind.GROUNDING)
 
         self._grounded_problem: 'up.model.Problem' = cast(up.model.Problem, self._grounding_result.problem)
         self._map = cast(Callable[[ActionInstance], ActionInstance], self._grounding_result.map_back_action_instance)
@@ -57,7 +68,11 @@ class SequentialSimulator(Engine, Simulator):
             if isinstance(grounded_action, up.model.InstantaneousAction):
                 lifted_ai = self._map(ActionInstance(grounded_action))
                 event_list = self._events.setdefault((lifted_ai.action, lifted_ai.actual_parameters), [])
-                event_list.append(InstantaneousEvent(grounded_action.preconditions, grounded_action.effects))
+                event_list.append(
+                    InstantaneousEvent(
+                        grounded_action.preconditions,
+                        grounded_action.effects,
+                        grounded_action.simulated_effect))
             else:
                 raise NotImplementedError
         self._se = StateEvaluator(self._problem)
@@ -121,6 +136,9 @@ class SequentialSimulator(Engine, Simulator):
                     updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() - v_eval.constant_value())[0]
                 else:
                     raise NotImplementedError
+        if event.simulated_effect is not None:
+            for f, v in zip(event.simulated_effect.fluents, event.simulated_effect.function(self._problem, state, {})):
+                updated_values[f] = v
         return state.set_values(updated_values)
 
     def get_applicable_events(self, state: 'up.model.ROState') -> Iterator['Event']:
@@ -174,6 +192,7 @@ class SequentialSimulator(Engine, Simulator):
         supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
         supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
         supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+        supported_kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
         return supported_kind
 
     @staticmethod
