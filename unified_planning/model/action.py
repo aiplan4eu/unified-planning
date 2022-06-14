@@ -21,7 +21,7 @@ and a list of effects.
 
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
-from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError
+from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError, UPConflictingEffectsException
 from fractions import Fraction
 from typing import Dict, List, Union, Optional
 from collections import OrderedDict
@@ -226,8 +226,14 @@ class InstantaneousAction(Action):
         self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, effect: 'up.model.effect.Effect'):
-        if effect not in self._effects:
-            self._effects.append(effect)
+        for e in self._effects:
+            if e == effect: # effect already in the action, exit without adding
+                return
+            if e.fluent == effect.fluent:
+                raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the effect {e}, already in the action, modifies the same fluent.')
+        if self._simulated_effect is not None and effect.fluent in self._simulated_effect.fluents:
+            raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the same fluent is already modified in the simulated effect of the action.')
+        self._effects.append(effect)
 
     @property
     def simulated_effect(self) -> Optional['up.model.effect.SimulatedEffect']:
@@ -236,6 +242,10 @@ class InstantaneousAction(Action):
 
     def set_simulated_effect(self, simulated_effect: 'up.model.effect.SimulatedEffect'):
         '''Sets the given simulated effect.'''
+        for f in simulated_effect.fluents:
+            for e in self._effects:
+                if e.fluent == f:
+                    raise UPConflictingEffectsException(f'Simulated effect: {simulated_effect} modifies the fluent {e.fluent}, but the effect {e}, already in the action, modifies the same fluent.')
         self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List['up.model.fnode.FNode']):
@@ -485,9 +495,17 @@ class DurativeAction(Action):
                                          condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
+        if timing in self._simulated_effects:
+            for f in self._simulated_effects[timing].fluents:
+                if f == effect.fluent:
+                    raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the same fluent is already modified in the timing by the simulated effect of the action.')
         if timing in self._effects:
-            if effect not in self._effects[timing]:
-                self._effects[timing].append(effect)
+            for e in self._effects[timing]:
+                if e == effect:
+                    return
+                if e.fluent == effect.fluent:
+                    raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the effect {e}, already in the action, modifies the same fluent.')
+            self._effects[timing].append(effect)
         else:
             self._effects[timing] = [effect]
 

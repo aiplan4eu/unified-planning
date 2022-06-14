@@ -48,3 +48,6 @@ class UPNoSuitableEngineAvailableException(UPException):
 
 class UPNoRequestedEngineAvailableException(UPException):
     pass
+
+class UPConflictingEffectsException(UPException):
+    pass
