@@ -62,12 +62,12 @@ class SequentialSimulator(Engine, Simulator):
         grounder = Grounder()
         self._grounding_result = grounder.compile(self._problem, up.engines.CompilationKind.GROUNDING)
 
-        self._grounded_problem: 'up.model.Problem' = cast(up.model.Problem, self._grounding_result.problem)
-        self._map = cast(Callable[[ActionInstance], ActionInstance], self._grounding_result.map_back_action_instance)
+        grounded_problem: 'up.model.Problem' = cast(up.model.Problem, self._grounding_result.problem)
+        map = cast(Callable[[ActionInstance], ActionInstance], self._grounding_result.map_back_action_instance)
         self._events: Dict[Tuple['up.model.Action', Tuple['up.model.FNode', ...]], List[Event]] = {}
-        for grounded_action in self._grounded_problem.actions:
+        for grounded_action in grounded_problem.actions:
             if isinstance(grounded_action, up.model.InstantaneousAction):
-                lifted_ai = self._map(ActionInstance(grounded_action))
+                lifted_ai = map(ActionInstance(grounded_action))
                 event_list = self._events.setdefault((lifted_ai.action, lifted_ai.actual_parameters), [])
                 event_list.append(
                     InstantaneousEvent(
