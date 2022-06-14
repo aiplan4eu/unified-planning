@@ -16,7 +16,6 @@
 
 from typing import Iterator, List, Optional, Tuple, Union
 import unified_planning as up
-from unified_planning.engines.engine import Engine
 
 
 class Event:
@@ -28,6 +27,10 @@ class Event:
 
     @property
     def effects(self) -> List['up.model.Effect']:
+        raise NotImplementedError
+
+    @property
+    def simulated_effect(self) -> Optional['up.model.SimulatedEffect']:
         raise NotImplementedError
 
 
