@@ -48,7 +48,7 @@ class SequentialSimulator(Engine, Simulator):
     def __init__(self, problem: 'up.model.Problem'):
         self._problem = problem
         self._grounder = Grounder()
-        self._grounding_result = self._grounder.compile(self._problem, up.engines.CompilationKind.GROUNDER)
+        self._grounding_result = self._grounder.compile(self._problem, up.engines.CompilationKind.GROUNDING)
 
         self._grounded_problem: 'up.model.Problem' = cast(up.model.Problem, self._grounding_result.problem)
         self._map = cast(Callable[[ActionInstance], ActionInstance], self._grounding_result.map_back_action_instance)
