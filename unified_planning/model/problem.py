@@ -225,11 +225,17 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                 for e in a.effects:
                     if e.fluent.fluent() in static_fluents:
                         static_fluents.remove(e.fluent.fluent())
+                if a.simulated_effect is not None:
+                    for f in a.simulated_effect.fluents:
+                        static_fluents.remove(f.fluent())
             elif isinstance(a, up.model.action.DurativeAction):
                 for el in a.effects.values():
                     for e in el:
                         if e.fluent.fluent() in static_fluents:
                             static_fluents.remove(e.fluent.fluent())
+                for _, se in a.simulated_effects.items():
+                    for f in se.fluents:
+                        static_fluents.remove(f.fluent())
             else:
                 raise NotImplementedError
         for el in self._timed_effects.values():
