@@ -527,6 +527,7 @@ def _check_conflicting_or_existing_effects(effect: Optional['up.model.effect.Eff
                 raise UPConflictingEffectsException(f'Effect: {effect} is in conflict with the simualted effect already in the action.')
         return True
     else: # trying to add a simulated effect
+        assert simulated_effect is not None
         for f in simulated_effect.fluents:
             for e in effects:
                 if e.fluent == f:

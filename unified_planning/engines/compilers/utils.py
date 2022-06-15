@@ -127,7 +127,7 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
                 # so the action is just considered invalid
                 try:
                     new_action._add_effect_instance(new_effect)
-                except UPConflictingEffectsException as e:
+                except UPConflictingEffectsException:
                     return None
         se = old_action.simulated_effect
         if se is not None:
@@ -140,7 +140,7 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
             # so the action is just considered invalid
             try:
                 new_action.set_simulated_effect(SimulatedEffect(new_fluents, fun))
-            except UPConflictingEffectsException as e:
+            except UPConflictingEffectsException:
                 return None
         is_feasible, new_preconditions = check_and_simplify_preconditions(problem, new_action, simplifier, simplify_constants=True)
         if not is_feasible:
@@ -161,7 +161,7 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
                     # so the action is just considered invalid
                     try:
                         new_durative_action._add_effect_instance(t, new_effect)
-                    except UPConflictingEffectsException as e:
+                    except UPConflictingEffectsException:
                         return None
         for t, se in old_action.simulated_effects.items():
             new_fluents = []
@@ -173,7 +173,7 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
             # so the action is just considered invalid
             try:
                 new_durative_action.set_simulated_effect(t, SimulatedEffect(new_fluents, fun))
-            except UPConflictingEffectsException as e:
+            except UPConflictingEffectsException:
                 return None
         is_feasible, new_conditions = check_and_simplify_conditions(problem, new_durative_action, simplifier, simplify_constants=True)
         if not is_feasible:

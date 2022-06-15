@@ -134,7 +134,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             # so the action is not added to the problem
                             try:
                                 new_action._add_effect_instance(ne)
-                            except UPConflictingEffectsException as e:
+                            except UPConflictingEffectsException:
                                 continue
                         else:
                             #negative precondition
@@ -165,7 +165,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             # so the action is not added to the problem
                             try:
                                 new_action._add_effect_instance(t, ne)
-                            except UPConflictingEffectsException as e:
+                            except UPConflictingEffectsException:
                                 continue
                         else:
                             #negative precondition
