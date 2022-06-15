@@ -226,14 +226,8 @@ class InstantaneousAction(Action):
         self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, effect: 'up.model.effect.Effect'):
-        for e in self._effects:
-            if e == effect: # effect already in the action, exit without adding
-                return
-            if e.fluent == effect.fluent:
-                raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the effect {e}, already in the action, modifies the same fluent.')
-        if self._simulated_effect is not None and effect.fluent in self._simulated_effect.fluents:
-            raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the same fluent is already modified in the simulated effect of the action.')
-        self._effects.append(effect)
+        if _check_conflicting_or_existing_effects(effect, self._simulated_effect, self._effects):
+            self._effects.append(effect)
 
     @property
     def simulated_effect(self) -> Optional['up.model.effect.SimulatedEffect']:
@@ -242,10 +236,7 @@ class InstantaneousAction(Action):
 
     def set_simulated_effect(self, simulated_effect: 'up.model.effect.SimulatedEffect'):
         '''Sets the given simulated effect.'''
-        for f in simulated_effect.fluents:
-            for e in self._effects:
-                if e.fluent == f:
-                    raise UPConflictingEffectsException(f'Simulated effect: {simulated_effect} modifies the fluent {e.fluent}, but the effect {e}, already in the action, modifies the same fluent.')
+        _check_conflicting_or_existing_effects(None, simulated_effect, self._effects)
         self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List['up.model.fnode.FNode']):
@@ -495,19 +486,9 @@ class DurativeAction(Action):
                                          condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
-        if timing in self._simulated_effects:
-            for f in self._simulated_effects[timing].fluents:
-                if f == effect.fluent:
-                    raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the same fluent is already modified in the timing by the simulated effect of the action.')
-        if timing in self._effects:
-            for e in self._effects[timing]:
-                if e == effect:
-                    return
-                if e.fluent == effect.fluent:
-                    raise UPConflictingEffectsException(f'Effect: {effect} modifies the fluent {effect.fluent}, but the effect {e}, already in the action, modifies the same fluent.')
-            self._effects[timing].append(effect)
-        else:
-            self._effects[timing] = [effect]
+        concurrent_effects = self._effects.setdefault(timing, [])
+        if _check_conflicting_or_existing_effects(effect, self._simulated_effects.get(timing, None), concurrent_effects):
+            concurrent_effects.append(effect)
 
     @property
     def simulated_effects(self) -> Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffect']:
@@ -517,4 +498,37 @@ class DurativeAction(Action):
     def set_simulated_effect(self, timing: 'up.model.timing.Timing',
                              simulated_effect: 'up.model.effect.SimulatedEffect'):
         '''Sets the given simulated effect at the specified timing'''
+        _check_conflicting_or_existing_effects(None, simulated_effect, self._effects.get(timing, []))
         self._simulated_effects[timing] = simulated_effect
+
+
+def _check_conflicting_or_existing_effects(effect: Optional['up.model.effect.Effect'],
+                               simulated_effect: Optional['up.model.effect.SimulatedEffect'],
+                               effects: List['up.model.effect.Effect']) -> bool:
+    '''
+    This method checks if the effect or simulated effect that we are trying to add in the action is
+    in conflict with the effects or simulated effects already in the action.
+    :param effect: The effect we want to the action or None if we want to add a simulated effect.
+    :param simulated_effect: The simulated effect we are trying to add to the action if the param effect is None;
+                            the simulated effect already in the action otherwise.
+    :param effects: The list of effects that might conflict with the effect/simulated effect we are trying to add.
+    :return: False if the effect is already in the action, True otherwise.
+    :raise: UPConflictingEffectsException if the effect/simulated effect we are trying to add conflicts with the
+            effects/simulated effect already in the action.
+    '''
+    if effect is not None: # trying to add an effect
+        for e in effects:
+            if e == effect: # effect already in the action
+                return False
+            # if the fluent is the same and one of the effect is not conditional or the 2 effects have the same condition, the 2 effects are in conflict
+            if e.fluent == effect.fluent and (not e.is_conditional() or not effect.is_conditional() or e.condition == effect.condition):
+                raise UPConflictingEffectsException(f'Effect: {effect} and effect: {e}, already in the action, are in conflict.')
+            if simulated_effect is not None and effect.fluent in simulated_effect.fluents:
+                raise UPConflictingEffectsException(f'Effect: {effect} is in conflict with the simualted effect already in the action.')
+        return True
+    else: # trying to add a simulated effect
+        for f in simulated_effect.fluents:
+            for e in effects:
+                if e.fluent == f:
+                    raise UPConflictingEffectsException(f'Simulated effect: {simulated_effect} is in conflict with the effect {e}, already in the action.')
+        return True
