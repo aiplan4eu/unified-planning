@@ -16,15 +16,16 @@
 
 
 import unified_planning as up
-import unified_planning.walkers
-from unified_planning.model import FNode, Timing, TimeInterval, Action, InstantaneousAction, DurativeAction, Problem, Effect, Expression, SimulatedEffect, Parameter
-from unified_planning.plans import SequentialPlan, TimeTriggeredPlan, ActionInstance, Plan
-from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Union
+from unified_planning.exceptions import UPConflictingEffectsException
+from unified_planning.model import FNode, TimeInterval, Action, InstantaneousAction, DurativeAction, Problem, Effect, Expression, SimulatedEffect, Parameter
+from unified_planning.plans import ActionInstance
+from typing import Dict, Iterable, List, Optional, Tuple
 
 
 def check_and_simplify_conditions(problem: Problem, action: DurativeAction, simplifier,
                                   simplify_constants: bool = False) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
-    '''Simplifies conditions and if it is False (a contraddiction)
+    '''
+    Simplifies conditions and if it is False (a contraddiction)
     returns False, otherwise returns True.
     If the simplification is True (a tautology) removes all conditions at the given timing.
     If the simplification is still an AND rewrites back every "arg" of the AND
@@ -32,7 +33,8 @@ def check_and_simplify_conditions(problem: Problem, action: DurativeAction, simp
     If the simplification is not an AND sets the simplification as the only
     condition at the given timing.
     Then, the new conditions are returned as a List[Tuple[Timing, FNode]] and the user can
-    decide how to use the new conditions.'''
+    decide how to use the new conditions.
+    '''
     #new action conditions
     nac: List[Tuple[TimeInterval, FNode]] = []
     # t = timing, lc = list condition
@@ -58,7 +60,8 @@ def check_and_simplify_conditions(problem: Problem, action: DurativeAction, simp
 
 def check_and_simplify_preconditions(problem: Problem, action: InstantaneousAction, simplifier,
                                      simplify_constants: bool = False) -> Tuple[bool, List[FNode]]:
-    '''Simplifies preconditions and if it is False (a contraddiction)
+    '''
+    Simplifies preconditions and if it is False (a contraddiction)
     returns False, otherwise returns True.
     If the simplification is True (a tautology) removes all preconditions.
     If the simplification is still an AND rewrites back every "arg" of the AND
@@ -66,7 +69,8 @@ def check_and_simplify_preconditions(problem: Problem, action: InstantaneousActi
     If the simplification is not an AND sets the simplification as the only
     precondition.
     Then, the new preconditions are returned as a List[FNode] and the user can
-    decide how to use the new preconditions.'''
+    decide how to use the new preconditions.
+    '''
     #action preconditions
     ap = action.preconditions
     if len(ap) == 0:
@@ -119,7 +123,12 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
         for e in old_action.effects:
             new_effect = create_effect_with_given_subs(problem, e, simplifier, substituter, subs)
             if new_effect is not None:
-                new_action._add_effect_instance(new_effect)
+                # We try to add the new effect, but a compiler might generate conflicting effects,
+                # so the action is just considered invalid
+                try:
+                    new_action._add_effect_instance(new_effect)
+                except UPConflictingEffectsException as e:
+                    return None
         se = old_action.simulated_effect
         if se is not None:
             new_fluents = []
@@ -127,7 +136,12 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
                 new_fluents.append(substituter.substitute(f, subs))
             def fun(_problem, _state, _):
                 return se.function(_problem, _state, subs)
-            new_action.set_simulated_effect(SimulatedEffect(new_fluents, fun))
+            # We try to add the new simulated effect, but a compiler might generate conflicting effects,
+            # so the action is just considered invalid
+            try:
+                new_action.set_simulated_effect(SimulatedEffect(new_fluents, fun))
+            except UPConflictingEffectsException as e:
+                return None
         is_feasible, new_preconditions = check_and_simplify_preconditions(problem, new_action, simplifier, simplify_constants=True)
         if not is_feasible:
             return None
@@ -143,14 +157,24 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
             for e in el:
                 new_effect = create_effect_with_given_subs(problem, e, simplifier, substituter, subs)
                 if new_effect is not None:
-                    new_durative_action._add_effect_instance(t, new_effect)
+                    # We try to add the new simulated effect, but a compiler might generate conflicting effects,
+                    # so the action is just considered invalid
+                    try:
+                        new_durative_action._add_effect_instance(t, new_effect)
+                    except UPConflictingEffectsException as e:
+                        return None
         for t, se in old_action.simulated_effects.items():
             new_fluents = []
             for f in se.fluents:
                 new_fluents.append(substituter.substitute(f, subs))
             def fun(_problem, _state, _):
                 return se.function(_problem, _state, subs)
-            new_durative_action.set_simulated_effect(t, SimulatedEffect(new_fluents, fun))
+            # We try to add the new simulated effect, but a compiler might generate conflicting effects,
+            # so the action is just considered invalid
+            try:
+                new_durative_action.set_simulated_effect(t, SimulatedEffect(new_fluents, fun))
+            except UPConflictingEffectsException as e:
+                return None
         is_feasible, new_conditions = check_and_simplify_conditions(problem, new_durative_action, simplifier, simplify_constants=True)
         if not is_feasible:
             return None
