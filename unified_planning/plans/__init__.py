@@ -13,12 +13,13 @@
 # limitations under the License.
 #
 
-from unified_planning.plans.plan import Plan, ActionInstance
+from unified_planning.plans.plan import Plan, ActionInstance, PlanKind
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
 
-__all__ = [ 'Plan','ActionInstance',
+__all__ = [ 'Plan', 'PlanKind',
+            'ActionInstance',
             'SequentialPlan',
             'TimeTriggeredPlan',
             'PartialOrderPlan'

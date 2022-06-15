@@ -82,13 +82,9 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         s = list(iterable)
         return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
-    def compile(self, problem: 'up.model.AbstractProblem',
-                compilation_kind: 'up.engines.CompilationKind') -> CompilerResult:
-        if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of problem!')
+    def _compile(self, problem: 'up.model.AbstractProblem',
+                 compilation_kind: 'up.engines.CompilationKind') -> CompilerResult:
         assert isinstance(problem, Problem)
-        if not self.supports_compilation(compilation_kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of compilation!')
 
         env = problem.env
         simplifier = Simplifier(env)

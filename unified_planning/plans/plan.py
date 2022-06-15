@@ -20,6 +20,7 @@ from unified_planning.environment import Environment, get_env
 from unified_planning.model import FNode, Action, InstantaneousAction, Expression, Effect
 from unified_planning.walkers import Substituter, Simplifier
 from typing import Callable, Dict, Optional, Tuple
+from enum import Enum, auto
 
 
 '''This module defines the different plan classes.'''
@@ -66,15 +67,27 @@ class ActionInstance:
         return self.action == oth.action and self._params == oth._params
 
 
+class PlanKind(Enum):
+    SEQUENTIAL_PLAN = auto()
+    TIME_TRIGGERED_PLAN = auto()
+    PARTIAL_ORDER_PLAN = auto()
+
+
 class Plan:
     '''Represents a generic plan.'''
-    def __init__(self, environment: Optional['Environment'] = None) -> None:
+    def __init__(self, kind: PlanKind, environment: Optional['Environment'] = None) -> None:
+        self._kind = kind
         self._environment = get_env(environment)
 
     @property
     def environment(self) -> 'Environment':
         '''Return this plan environment.'''
         return self._environment
+
+    @property
+    def kind(self) -> PlanKind:
+        '''Returns the plan kind'''
+        return self._kind
 
     def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
         '''This function takes a function from ActionInstance to ActionInstance and returns a new Plan

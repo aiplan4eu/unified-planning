@@ -19,9 +19,9 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.plans import Plan
 from unified_planning.model import ProblemKind
-from unified_planning.exceptions import UPException
+from unified_planning.exceptions import UPUsageError
 from unified_planning.engines.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
-from typing import IO, Callable, Dict, List, Optional, Tuple, cast
+from typing import IO, Callable, Dict, List, Optional, Tuple, Type, cast
 from fractions import Fraction
 from multiprocessing import Process, Queue
 
@@ -31,7 +31,7 @@ class Parallel(engines.engine.Engine,
                engines.mixins.PlanValidatorMixin):
     """Create a parallel instance of multiple Engines."""
 
-    def __init__(self, engines: List[Tuple[type, Dict[str, str]]]):
+    def __init__(self, engines: List[Tuple[Type[engines.engine.Engine], Dict[str, str]]]):
         self.engines = engines
 
     @property
@@ -39,16 +39,9 @@ class Parallel(engines.engine.Engine,
         return 'Parallel'
 
     @staticmethod
-    def is_oneshot_planner() -> bool:
-        raise UPException('The Parallel engine type depends on its actual engines')
-
-    @staticmethod
-    def is_plan_validator() -> bool:
-        raise UPException('The Parallel engine type depends on its actual engines')
-
-    @staticmethod
     def supports(problem_kind: 'ProblemKind') -> bool:
-        raise UPException('The Parallel supported features depends on its actual engines')
+        # The supported features depends on its actual engines
+        return True
 
     def _run_parallel(self, fname, *args) -> List[Result]:
         signaling_queue: Queue = Queue()
@@ -85,10 +78,14 @@ class Parallel(engines.engine.Engine,
             return [res]
         return results
 
-    def solve(self, problem: 'up.model.AbstractProblem',
-                    callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
-                    timeout: Optional[float] = None,
-                    output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
+    def _solve(self, problem: 'up.model.AbstractProblem',
+               callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
+               timeout: Optional[float] = None,
+               output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
+        for engine, _ in self.engines:
+            assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
+            if not engine.supports(problem.kind):
+                raise UPUsageError('Parallel engines cannot solve this kind of problem!')
         if callback is not None:
             warnings.warn('Parallel engines do not support the callback system.', UserWarning)
         if output_stream is not None:
@@ -132,11 +129,13 @@ class Parallel(engines.engine.Engine,
             logs
         )
 
-    def validate(self, problem: 'up.model.AbstractProblem', plan: Plan) -> 'up.engines.results.ValidationResult':
+    def _validate(self, problem: 'up.model.AbstractProblem',
+                  plan: Plan) -> 'up.engines.results.ValidationResult':
+        for engine, _ in self.engines:
+            assert issubclass(engine, engines.mixins.PlanValidatorMixin)
+            if not engine.supports(problem.kind):
+                raise UPUsageError('Parallel engines cannot validate this kind of problem!')
         return cast(ValidationResult, self._run_parallel('validate', problem, plan)[0])
-
-    def destroy(self):
-        pass
 
 
 def _run(idx: int, EngineClass: type, options: Dict[str, str], signaling_queue: Queue, fname: str, *args):

@@ -28,7 +28,7 @@ class TestProblem(TestCase):
     def test_all(self):
         pv = SequentialPlanValidator(env=get_env())
         for p in self.problems.values():
-            if p.problem.kind.has_continuous_time():
+            if not pv.supports(p.problem.kind):
                 continue
             problem, plan = p.problem, p.plan
             self.assertTrue(pv.validate(problem, plan))
@@ -37,7 +37,7 @@ class TestProblem(TestCase):
         with PlanValidator(name='sequential_plan_validator') as pv:
             self.assertEqual(pv.name, 'sequential_plan_validator')
             for p in self.problems.values():
-                if p.problem.kind.has_continuous_time():
+                if not pv.supports(p.problem.kind):
                     continue
                 problem, plan = p.problem, p.plan
                 self.assertTrue(pv.validate(problem, plan))

@@ -50,4 +50,13 @@ class OneshotPlannerMixin:
 
         The only required parameter is "problem" but the planner should warn the user if callback, timeout or
         output_stream are not None and the planner ignores them.'''
+        assert isinstance(self, up.engines.engine.Engine)
+        if not self.supports(problem.kind):
+            raise up.exceptions.UPUsageError(f'{self.name} cannot solve this kind of problem!')
+        return self._solve(problem, callback, timeout, output_stream)
+
+    def _solve(self, problem: 'up.model.AbstractProblem',
+               callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
+               timeout: Optional[float] = None,
+               output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
         raise NotImplementedError

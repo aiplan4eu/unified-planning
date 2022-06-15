@@ -25,7 +25,7 @@ import unified_planning.walkers as walkers
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import FNode, Expression, AbstractProblem, Problem, ProblemKind, Object
 from unified_planning.engines.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
-from unified_planning.plans import SequentialPlan
+from unified_planning.plans import SequentialPlan, PlanKind
 
 
 class QuantifierSimplifier(walkers.Simplifier):
@@ -177,6 +177,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         return 'sequential_plan_validator'
 
     @staticmethod
+    def supports_plan(plan_kind: 'up.plans.PlanKind') -> bool:
+        return plan_kind == PlanKind.SEQUENTIAL_PLAN
+
+    @staticmethod
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class('ACTION_BASED') # type: ignore
@@ -200,7 +204,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
     def supports(problem_kind):
         return problem_kind <= SequentialPlanValidator.supported_kind()
 
-    def validate(self, problem: 'AbstractProblem', plan: 'unified_planning.plans.Plan') -> 'up.engines.results.ValidationResult':
+    def _validate(self, problem: 'AbstractProblem',
+                  plan: 'unified_planning.plans.Plan') -> 'up.engines.results.ValidationResult':
         """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
         problem goal. Otherwise False is returned."""

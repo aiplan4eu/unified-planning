@@ -75,13 +75,9 @@ class TarskiGrounder(Engine, CompilerMixin):
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.GROUNDING
 
-    def compile(self, problem: 'up.model.AbstractProblem',
-                compilation_kind: 'CompilationKind') -> CompilerResult:
-        if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of problem!')
+    def _compile(self, problem: 'up.model.AbstractProblem',
+                 compilation_kind: 'CompilationKind') -> CompilerResult:
         assert isinstance(problem, Problem)
-        if not self.supports_compilation(compilation_kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of compilation!')
 
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         actions = None
