@@ -45,7 +45,7 @@ class TestTarskiGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
 
@@ -66,7 +66,7 @@ class TestTarskiGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
 
@@ -90,7 +90,7 @@ class TestTarskiGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
 
@@ -133,5 +133,5 @@ class TestTarskiGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))

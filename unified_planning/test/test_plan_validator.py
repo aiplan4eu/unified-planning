@@ -51,6 +51,6 @@ class TestProblem(TestCase):
                 continue
             env = unified_planning.environment.Environment()
             env.factory.engines.pop('tamer', None)
-            with env.factory.PlanValidator(problem_kind=problem.kind) as pv:
+            with env.factory.PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertEqual(pv.name, 'sequential_plan_validator')
                 self.assertTrue(pv.validate(problem, plan))

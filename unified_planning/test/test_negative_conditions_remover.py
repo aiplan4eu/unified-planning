@@ -48,7 +48,7 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem).plan
             new_plan = positive_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as PV:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
@@ -68,7 +68,7 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem).plan
             new_plan = positive_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as PV:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(basic_temporal_kind))
@@ -86,7 +86,7 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem).plan
             new_plan = positive_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as PV:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
         self.assertEqual(len(problem.fluents) + 1, len(positive_problem.fluents))
         light_match = problem.action('light_match')
@@ -123,7 +123,7 @@ class TestNegativeConditionsRemover(TestCase):
             self.assertNotEqual(planner, None)
             positive_plan = planner.solve(positive_problem).plan
             new_plan = positive_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as PV:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as PV:
                 self.assertTrue(PV.validate(problem, new_plan))
 
     def test_temporal_conditional(self):
