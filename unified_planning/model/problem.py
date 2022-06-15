@@ -44,6 +44,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
         self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
+        self._trajectory_constraints: List['up.model.trajectory_constraint.TrajectoryConstraint'] = list()
         self._goals: List['up.model.fnode.FNode'] = list()
         self._metrics: List['up.model.metrics.PlanQualityMetric'] = []
 
@@ -94,6 +95,11 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         for g in self.goals:
             s.append(f'  {str(g)}\n')
         s.append(']\n\n')
+        if self.trajectory_constraints:
+            s.append('trajectory constraints = [\n')
+            for g in self.trajectory_constraints:
+                s.append(f'  {str(g)}\n')
+            s.append(']\n\n')
         if len(self.quality_metrics) > 0:
             s.append('quality metrics = [\n')
             for qm in self.quality_metrics:
@@ -393,10 +399,24 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
+    def add_trajectory_constraint(self, constraint: List['up.model.trajectory_constraint.TrajectoryConstraint']):
+        '''Adds a trajectory constraint.'''
+        constraint_exp = self._env.expression_manager.auto_promote(constraint)
+        for con in constraint_exp:
+            par = con.parameters
+            for p in par:   
+                assert p.is_fluent_exp() or p.is_not()
+            self._trajectory_constraints.append(con)
+
     @property
     def goals(self) -> List['up.model.fnode.FNode']:
         '''Returns the goals.'''
         return self._goals
+
+    @property
+    def trajectory_constraints(self) -> List['up.model.trajectory_constraint.TrajectoryConstraint']:
+        '''Returns the trajectory constraints.'''
+        return self._trajectory_constraints
 
     def clear_goals(self):
         '''Removes the goals.'''
@@ -432,6 +452,8 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         if len(self._timed_goals) > 0:
             self._kind.set_time('TIMED_GOALS') # type: ignore
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+        if len(self._trajectory_constraints) > 0:
+            self._kind.set_constraints_kind('TRAJECTORY_CONSTRAINTS')
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal)

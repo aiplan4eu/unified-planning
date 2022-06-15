@@ -180,6 +180,8 @@ class PDDLWriter:
                 out.write(' :conditional-effects')
             if problem_kind.has_existential_conditions(): # type: ignore
                 out.write(' :existential-preconditions')
+            if problem_kind.has_trajectory_constraints(): # type: ignore
+                out.write(' :constraints')
             if problem_kind.has_universal_conditions(): # type: ignore
                 out.write(' :universal-preconditions')
             if (problem_kind.has_continuous_time() or # type: ignore
@@ -356,7 +358,20 @@ class PDDLWriter:
                 out.write(')\n')
             else:
                 raise NotImplementedError
-        out.write(')\n')
+        if len(self.problem.trajectory_constraints) > 0:
+            out.write(' (:constraints')
+            tc_string = ''
+            for tc in self.problem.trajectory_constraints:
+                par_string = ''
+                for par in tc.parameters:
+                    par_string += f' {converter.convert(par)}'
+                tc_string += f'({tc.type} {par_string})\n'
+            if len(self.problem.trajectory_constraints) > 1:
+                out.write(f'(and\n{tc_string})')
+            else:
+                out.write(tc_string)
+            out.write(')\n')
+        out.write(')\n') 
 
     def _write_problem(self, out: IO[str]):
         if self.problem.name is None:

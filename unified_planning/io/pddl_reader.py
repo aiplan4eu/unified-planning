@@ -39,7 +39,7 @@ class PDDLGrammar:
         variable = Suppress('?') + name
 
         require_def = Suppress('(') + ':requirements' + \
-            OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy')) \
+            OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :constraints :preferences')) \
             + Suppress(')')
 
         types_def = Suppress('(') + ':types' + \
@@ -119,6 +119,7 @@ class PDDLGrammar:
                    + Optional(htn_def.setResultsName('htn'))
                    + Suppress('(') + ':init' + ZeroOrMore(nestedExpr()).setResultsName('init') + Suppress(')')
                    + Optional(Suppress('(') + ':goal' + nestedExpr().setResultsName('goal') + Suppress(')'))
+                   + Optional(Suppress('(') + ':constraints' + nestedExpr().setResultsName('constraints') + Suppress(')'))
                    + Optional(Suppress('(') + ':metric' + metric + Suppress(')'))
                    + Suppress(')'))
 
@@ -171,6 +172,22 @@ class PDDLReader:
         self._pp_parameters = grammar.parameters
         self._fve = up.walkers.FreeVarsExtractor()
         self._totalcost: typing.Optional[up.model.FNode] = None
+
+    def _parse_constraint(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
+                   types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
+                   exp: Union[ParseResults, str]) -> List[up.model.trajectory_constraint.TrajectoryConstraint]:
+        solved: List[up.model.trajectory_constraint.TrajectoryConstraint] = []
+        if exp[0] in self._operators:
+            conds = exp[1:]
+            while len(conds) > 0:
+                #TODO control for more than one expressions
+                expr = conds.pop()
+                fluents = []
+                for f in expr[1:]:
+                    fluents.append(self._parse_exp(problem, act, types_map, {} if vars is None else vars, f))
+                cons = up.model.trajectory_constraint.TrajectoryConstraint(expr[0], fluents, self._env)
+                solved.append(cons)
+        return solved
 
     def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
                    types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
@@ -626,6 +643,9 @@ class PDDLReader:
                 problem.add_goal(self._parse_exp(problem, None, types_map, {}, problem_res['goal'][0]))
             elif not isinstance(problem, htn.HierarchicalProblem):
                 raise SyntaxError("Missing goal section in problem file.")
+
+            if 'constraints' in problem_res:
+                problem.add_trajectory_constraint(self._parse_constraint(problem, None, types_map, {}, problem_res['constraints'][0]))
 
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(problem)
 

@@ -27,6 +27,21 @@ from typing import IO, Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
 
+def Always(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
+    return TrajectoryConstraint('always',[*args])
+
+def Sometime(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
+    return TrajectoryConstraint('sometime',[*args])
+
+def Sometime_Before(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
+    return TrajectoryConstraint('sometime-before',[*args])  
+
+def Sometime_After(*args: List['unified_planning.model.Fluent']) -> unified_planning.model.TrajectoryConstraint:
+    return TrajectoryConstraint('sometime-after',[*args])
+
+def At_Most_Once(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
+    return TrajectoryConstraint('at-most-once',[*args])
+
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     return get_env().expression_manager.And(*args)
 
