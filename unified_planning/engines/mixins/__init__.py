@@ -16,4 +16,4 @@
 from unified_planning.engines.mixins.compiler import CompilerMixin, CompilationKind
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin, OptimalityGuarantee
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
-from unified_planning.engines.mixins.simulator import Event, Simulator
+from unified_planning.engines.mixins.simulator import Event, SimulatorMixin

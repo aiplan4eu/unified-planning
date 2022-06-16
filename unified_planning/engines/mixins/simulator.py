@@ -34,22 +34,22 @@ class Event:
         raise NotImplementedError
 
 
-class Simulator:
+class SimulatorMixin:
     '''
-    Simulator abstract class.
+    SimulatorMixin abstract class.
     This class defines the interface that a simulator must implement.
 
     Important NOTE: The AbstractProblem instance is given at the constructor.
     '''
 
-    def __init__(self, problem: 'up.model.AbstractProblem', **params) -> None:
+    def __init__(self, problem: 'up.model.AbstractProblem') -> None:
         '''
         Takes an instance of a problem and eventually some parameters, that represent
-        some specific settings of the Simulator.
+        some specific settings of the SimulatorMixin.
         :param problem: the problem that defines the domain in which the simulation exists.
-        :param **params: a dict[str, str] containing the Simulator settings.
+        :param **params: a dict[str, str] containing the SimulatorMixin settings.
         '''
-        raise NotImplementedError
+        self._problem = problem
 
     def is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
         '''

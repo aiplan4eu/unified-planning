@@ -18,7 +18,7 @@ from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union, cast
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
-from unified_planning.engines.mixins.simulator import Event, Simulator
+from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError
 from unified_planning.plans import ActionInstance
 from unified_planning.walkers import StateEvaluator
@@ -48,13 +48,14 @@ class InstantaneousEvent(Event):
         return self._simulated_effect
 
 
-class SequentialSimulator(Engine, Simulator):
+class SequentialSimulator(Engine, SimulatorMixin):
     '''
-    Sequential Simulator implementation.
+    Sequential SimulatorMixin implementation.
     '''
 
     def __init__(self, problem: 'up.model.Problem'):
-        self._problem = problem
+        SimulatorMixin.__init__(self, problem)
+        self._problem = cast(up.model.Problem, self._problem)
         pk = problem.kind
         if not SequentialSimulator.supports(pk):
             raise UPUsageError(f'The problem named: {problem.name} is not supported by the SequentialSimulator.')
@@ -125,6 +126,10 @@ class SequentialSimulator(Engine, Simulator):
             if e.is_conditional():
                 cond = self._se.evaluate(e.condition, state)
             if cond.is_bool_constant() and cond.bool_constant_value():
+                if updated_values.get(e.fluent, None) is not None:
+                    #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
+                    # When the 2 merge, resolve it.
+                    raise UPUsageError(f'The fluent {e.fluent} is modified twice in the same event.')
                 if e.is_assignment():
                     updated_values[e.fluent] = self._se.evaluate(e.value, state)
                 elif e.is_increase():
@@ -139,6 +144,10 @@ class SequentialSimulator(Engine, Simulator):
                     raise NotImplementedError
         if event.simulated_effect is not None:
             for f, v in zip(event.simulated_effect.fluents, event.simulated_effect.function(self._problem, state, {})):
+                if updated_values.get(f, None) is not None:
+                    #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
+                    # When the 2 merge, resolve it.
+                    raise UPUsageError(f'The fluent {f} is modified twice in the same event.')
                 updated_values[f] = v
         return state.set_values(updated_values)
 
@@ -164,8 +173,8 @@ class SequentialSimulator(Engine, Simulator):
         :param parameters: the parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         '''
-        if action not in self._problem.actions:
-            raise UPUsageError('The action given as parameter does not belong to the problem given to the Simulator.')
+        if action not in cast(up.model.Problem, self._problem).actions:
+            raise UPUsageError('The action given as parameter does not belong to the problem given to the SimulatorMixin.')
         if len(action.parameters) != len(parameters):
             raise UPUsageError('The parameters given action do not have the same length of the given parameters.')
         params_exp = tuple(self._problem.env.expression_manager.auto_promote(parameters))
