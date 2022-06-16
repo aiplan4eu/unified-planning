@@ -26,10 +26,12 @@ from typing import IO, Dict, Tuple, Optional, List, Union, Type
 
 
 DEFAULT_ENGINES = {
+    'fast-downward' : ('up_fast_downward', 'FastDownwardPDDLPlanner'),
+    'fast-downward-opt' : ('up_fast_downward', 'FastDownwardOptimalPDDLPlanner'),
     'pyperplan' : ('up_pyperplan.engine', 'EngineImpl'),
-    'tamer' : ('up_tamer.engine', 'EngineImpl'),
     'enhsp' : ('up_enhsp.enhsp_planner', 'ENHSPSatEngine'),
-    'enhspOpt' : ('up_enhsp.enhsp_planner', 'ENHSPOptEngine'),
+    'enhsp-opt' : ('up_enhsp.enhsp_planner', 'ENHSPOptEngine'),
+    'tamer' : ('up_tamer.engine', 'EngineImpl'),
     'sequential_plan_validator' : ('unified_planning.engines.plan_validator', 'SequentialPlanValidator'),
     'up_conditional_effects_remover' : ('unified_planning.engines.compilers.conditional_effects_remover', 'ConditionalEffectsRemover'),
     'up_disjunctive_conditions_remover' : ('unified_planning.engines.compilers.disjunctive_conditions_remover', 'DisjunctiveConditionsRemover'),
