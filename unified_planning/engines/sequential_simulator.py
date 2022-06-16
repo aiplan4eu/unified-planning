@@ -55,11 +55,11 @@ class SequentialSimulator(Engine, SimulatorMixin):
 
     def __init__(self, problem: 'up.model.Problem'):
         SimulatorMixin.__init__(self, problem)
-        self._problem = cast(up.model.Problem, self._problem)
         pk = problem.kind
         if not SequentialSimulator.supports(pk):
             raise UPUsageError(f'The problem named: {problem.name} is not supported by the SequentialSimulator.')
         assert Grounder.supports(pk)
+        assert isinstance(self._problem, up.model.Problem)
         grounder = Grounder()
         self._grounding_result = grounder.compile(self._problem, up.engines.CompilationKind.GROUNDING)
 
