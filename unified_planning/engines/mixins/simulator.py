@@ -47,7 +47,6 @@ class SimulatorMixin:
         Takes an instance of a problem and eventually some parameters, that represent
         some specific settings of the SimulatorMixin.
         :param problem: the problem that defines the domain in which the simulation exists.
-        :param **params: a dict[str, str] containing the SimulatorMixin settings.
         '''
         self._problem = problem
 
