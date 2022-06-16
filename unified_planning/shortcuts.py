@@ -153,7 +153,7 @@ def PlanValidator(*, name: Optional[str] = None,
       e.g. PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)
     """
     return get_env().factory.PlanValidator(name=name, names=names, params=params,
-                                           problem_kind=problem_kind)
+                                           problem_kind=problem_kind, plan_kind=plan_kind)
 
 def Compiler(*, name: Optional[str] = None, params: Union[Dict[str, str], List[Dict[str, str]]] = None,
              problem_kind: ProblemKind = ProblemKind(),
