@@ -264,7 +264,6 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         elif fluent_exp.fluent() in self._fluents_defaults:
             return self._fluents_defaults[fluent_exp.fluent()]
         else:
-            print(fluent)
             raise UPProblemDefinitionError('Initial value not set!')
 
     def _get_ith_fluent_exp(self, fluent: 'up.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'up.model.fnode.FNode':
