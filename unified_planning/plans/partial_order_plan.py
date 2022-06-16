@@ -41,12 +41,12 @@ class PartialOrderPlan(plans.plan.Plan):
         '''
         # if we have a specific env or we don't have any actions
         if environment is not None or not adjacency_list:
-            plans.plan.Plan.__init__(self, environment)
+            plans.plan.Plan.__init__(self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, environment)
         # If we don't have a specific env, use the env of the first action
         else:
             assert len(adjacency_list) > 0
             for ai in adjacency_list.keys():
-                plans.plan.Plan.__init__(self, ai.action.env)
+                plans.plan.Plan.__init__(self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, ai.action.env)
                 break
         if _graph is not None:
             # sanity checks

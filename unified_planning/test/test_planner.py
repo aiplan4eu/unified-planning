@@ -86,7 +86,7 @@ class TestPlanner(TestCase):
             self.assertNotEqual(planner, None)
             with self.assertRaises(up.exceptions.UPUsageError) as e:
                 final_report = planner.solve(problem)
-            self.assertIn('Tamer cannot solve this kind of problem!', str(e.exception))
+            self.assertIn('cannot solve this kind of problem', str(e.exception))
             with Compiler(name='up_quantifiers_remover') as quantifiers_remover:
                 res = quantifiers_remover.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
                 suitable_problem = res.problem
@@ -154,7 +154,8 @@ class TestPlanner(TestCase):
         load = problem.action('load')
         unload = problem.action('unload')
 
-        with OneshotPlanner(problem_kind=problem.kind) as planner:
+        with OneshotPlanner(problem_kind=problem.kind,
+                            optimality_guarantee='SOLVED_OPTIMALLY') as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan

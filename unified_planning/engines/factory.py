@@ -20,6 +20,7 @@ import inspect
 import unified_planning as up
 from unified_planning.environment import Environment, get_env
 from unified_planning.model import ProblemKind
+from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
 from typing import IO, Dict, Tuple, Optional, List, Union, Type
@@ -75,7 +76,8 @@ class Factory:
     def _get_engine_class(self, engine_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind(),
                           optimality_guarantee: Optional['OptimalityGuarantee'] = None,
-                          compilation_kind: Optional['CompilationKind'] = None) -> Type['up.engines.engine.Engine']:
+                          compilation_kind: Optional['CompilationKind'] = None,
+                          plan_kind: Optional['PlanKind'] = None) -> Type['up.engines.engine.Engine']:
         if name is not None:
             if name in self.engines:
                 return self.engines[name]
@@ -87,9 +89,11 @@ class Factory:
             if getattr(EngineClass, 'is_'+engine_kind)():
                 if (EngineClass.supports(problem_kind)
                     and (optimality_guarantee is None or EngineClass.satisfies(optimality_guarantee)) # type: ignore
-                    and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind))): # type: ignore
+                    and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind)) # type: ignore
+                    and (plan_kind is None or EngineClass.supports_plan(plan_kind))): # type: ignore
                     return EngineClass
-                elif compilation_kind is None or EngineClass.supports_compilation(compilation_kind): # type: ignore
+                elif ((compilation_kind is None or EngineClass.supports_compilation(compilation_kind)) # type: ignore
+                      and (plan_kind is None or EngineClass.supports_plan(plan_kind))): # type: ignore
                     x = [name] + [str(EngineClass.supports(ProblemKind({f}))) for f in problem_features]
                     if optimality_guarantee is not None:
                         x.append(str(EngineClass.satisfies(optimality_guarantee))) # type: ignore
@@ -101,6 +105,8 @@ class Factory:
                 msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
         elif compilation_kind is not None:
             msg = f'No available engine supports {compilation_kind}'
+        elif plan_kind is not None:
+            msg = f'No available engine supports {plan_kind}'
         else:
             msg = f'No available {engine_kind} engine'
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
@@ -153,8 +159,8 @@ class Factory:
                     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
                     problem_kind: ProblemKind = ProblemKind(),
                     optimality_guarantee: Optional['OptimalityGuarantee'] = None,
-                    compilation_kind: Optional['CompilationKind'] = None
-                    ) -> 'up.engines.engine.Engine':
+                    compilation_kind: Optional['CompilationKind'] = None,
+                    plan_kind: Optional['PlanKind'] = None) -> 'up.engines.engine.Engine':
         if names is not None:
             assert name is None
             if params is None:
@@ -173,7 +179,7 @@ class Factory:
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
-            EngineClass = self._get_engine_class(engine_kind, name, problem_kind, optimality_guarantee, compilation_kind)
+            EngineClass = self._get_engine_class(engine_kind, name, problem_kind, optimality_guarantee, compilation_kind, plan_kind)
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
             return EngineClass(**params)
@@ -206,7 +212,8 @@ class Factory:
     def PlanValidator(self, *, name: Optional[str] = None,
                       names: Optional[List[str]] = None,
                       params: Union[Dict[str, str], List[Dict[str, str]]] = None,
-                      problem_kind: ProblemKind = ProblemKind()) -> 'up.engines.engine.Engine':
+                      problem_kind: ProblemKind = ProblemKind(),
+                      plan_kind: Optional[Union['PlanKind', str]] = None) -> 'up.engines.engine.Engine':
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
@@ -216,10 +223,13 @@ class Factory:
           plan validators dependent options) to get a Parallel engine.
           e.g. PlanValidator(names=['tamer', 'tamer'],
                              params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
-        - using 'problem_kind' parameter.
-          e.g. PlanValidator(problem_kind=problem.kind)
+        - using 'problem_kind' and 'plan_kind' parameters.
+          e.g. PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)
         """
-        return self._get_engine('plan_validator', name, names, params, problem_kind)
+        if isinstance(plan_kind, str):
+            plan_kind = PlanKind[plan_kind]
+        return self._get_engine('plan_validator', name, names, params, problem_kind,
+                                plan_kind=plan_kind)
 
     def Compiler(self, *, name: Optional[str] = None,
                  params: Union[Dict[str, str], List[Dict[str, str]]] = None,

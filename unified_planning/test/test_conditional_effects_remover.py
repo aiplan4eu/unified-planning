@@ -48,7 +48,7 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = uncond_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
@@ -66,7 +66,7 @@ class TestConditionalEffectsRemover(TestCase):
             self.assertNotEqual(planner, None)
             uncond_plan = planner.solve(unconditional_problem).plan
             new_plan = uncond_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_temporal_kind))

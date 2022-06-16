@@ -49,7 +49,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = uq_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
@@ -67,7 +67,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = uq_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
@@ -85,7 +85,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = uq_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
@@ -105,7 +105,7 @@ class TestQuantifiersRemover(TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = uq_plan.replace_action_instances(res.map_back_action_instance)
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=new_plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
 

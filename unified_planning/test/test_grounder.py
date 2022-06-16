@@ -47,7 +47,7 @@ class TestGrounder(TestCase):
             for ai in plan.actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
@@ -69,7 +69,7 @@ class TestGrounder(TestCase):
             for ai in plan.actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
 
@@ -93,7 +93,7 @@ class TestGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
 
@@ -119,7 +119,7 @@ class TestGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
 
@@ -142,7 +142,7 @@ class TestGrounder(TestCase):
             for ai in plan.actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
 
@@ -165,7 +165,7 @@ class TestGrounder(TestCase):
             for _, ai, _ in plan.timed_actions:
                 a = ai.action
                 self.assertEqual(a, problem.action(a.name))
-            with PlanValidator(problem_kind=problem.kind) as pv:
+            with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
 
@@ -189,7 +189,7 @@ class TestGrounder(TestCase):
                 for _, ai, _ in plan.timed_actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
     def test_timed_connected_locations(self):
@@ -241,7 +241,7 @@ class TestGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
     @skipIfEngineNotAvailable('pyperplan')
@@ -279,5 +279,5 @@ class TestGrounder(TestCase):
                 for ai in plan.actions:
                     a = ai.action
                     self.assertEqual(a, problem.action(a.name))
-                with PlanValidator(problem_kind=problem.kind) as pv:
+                with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                     self.assertTrue(pv.validate(problem, plan))
