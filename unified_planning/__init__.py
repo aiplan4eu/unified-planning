@@ -18,7 +18,7 @@ import re
 from unified_planning.environment import Environment
 
 
-VERSION = (0, 3, 0)
+VERSION = (0, 4, 0)
 __version__ = ".".join(str(x) for x in VERSION)
 
 # Try to provide human-readable version of latest commit for dev versions
