@@ -13,7 +13,9 @@
 # limitations under the License.
 from unified_planning.shortcuts import *
 from unified_planning.model.htn import *
+from collections import namedtuple
 
+Example = namedtuple('Example', ['problem', 'plan'])
 
 def get_example_problems():
     problems = {}
@@ -32,9 +34,14 @@ def get_example_problems():
     htn.add_fluent(loc)
 
     connected = Fluent("connected", l1=Location, l2=Location)
-    htn.add_fluent(connected)
+    htn.add_fluent(connected, default_initial_value=False)
 
-    move = InstantaneousAction("move", l1=Location, l2=Location)
+    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(Equals(loc, l_from))
+    move.add_precondition(connected(l_from, l_to))
+    move.add_effect(loc, l_to)
     htn.add_action(move)
     go = htn.add_task("go", target=Location)
 
@@ -65,8 +72,11 @@ def get_example_problems():
     htn.task_network.set_strictly_before(go1, go2)
     htn.task_network.add_constraint(Or(Equals(final_loc, l2),
                                        Equals(final_loc, l3)))
+    htn.set_initial_value(loc, l1)
+    plan = up.plans.SequentialPlan([up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))), up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
+    htn_go = Example(problem=htn, plan=plan)
 
-    problems['htn-go'] = htn
+    problems['htn-go'] = htn_go
 
     return problems
 
