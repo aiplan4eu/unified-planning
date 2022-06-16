@@ -68,6 +68,13 @@ class TaskNetwork:
                 + sum(map(hash, self.subtasks))
                 + sum(map(hash, self.constraints)))
 
+    def clone(self):
+        new = TaskNetwork(self._env)
+        new._variables: OrderedDict[str, Parameter] = self._variables.copy()
+        new._subtasks: List[Subtask] = self._subtasks[:]
+        new._constraints: List[FNode] = self._constraints[:]
+        return new
+
     @property
     def variables(self) -> List[Parameter]:
         return list(self._variables.values())
