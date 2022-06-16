@@ -92,7 +92,7 @@ class ExpressionManager(object):
         if content in self.expressions:
             return self.expressions[content]
         else:
-            n =up.model.fnode.FNode(content, self._next_free_id)
+            n = up.model.fnode.FNode(content, self._next_free_id)
             self._next_free_id += 1
             self.expressions[content] = n
             self.env.type_checker.get_type(n)
@@ -185,6 +185,38 @@ class ExpressionManager(object):
             if not isinstance(v, up.model.variable.Variable):
                 raise UPTypeError("Expecting 'up.Variable', got %s", type(v))
         return self.create_node(node_type=OperatorKind.FORALL, args=expressions, payload=vars)
+
+    def Always(self, *expression: BoolExpression) -> 'up.model.fnode.FNode':
+        if len(expression) !=1:
+            raise UPExpressionDefinitionError(f"Always of expression: {str(expression)} must be created with exactly one parameter.")
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.ALWAYS, args=expressions)
+
+    def Sometime(self, *expression: BoolExpression) -> 'up.model.fnode.FNode':
+        if len(expression) !=1:
+            raise UPExpressionDefinitionError(f"Sometime of expression: {str(expression)} must be created with exactly with one parameter.")
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.SOMETIME, args=expressions)
+
+    def At_Most_Once(self, *expression: BoolExpression) -> 'up.model.fnode.FNode':
+        if len(expression) !=1:
+            raise UPExpressionDefinitionError(f"Sometime of expression: {str(expression)} must be created with exactly with one parameter.")
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.AT_MOST_ONCE, args=expressions)
+
+    def Sometime_Before(self, *expression: BoolExpression) -> 'up.model.fnode.FNode':
+        if len(expression) !=2:
+            raise UPExpressionDefinitionError(f"Sometime-Before of expression: {str(expression)} must be created with exactly with 2 parameters.")
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.SOMETIME_BEFORE, args=expressions)
+
+    def Sometime_After(self, *expression: BoolExpression) -> 'up.model.fnode.FNode':
+        if len(expression) !=2:
+            raise UPExpressionDefinitionError(f"Sometime-After of expression: {str(expression)} must be created with exactly with 2 parameters.")
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.SOMETIME_AFTER, args=expressions)
+
+        
 
     def FluentExp(self, fluent: 'up.model.fluent.Fluent', params: Tuple[Expression, ...] = tuple()) ->'up.model.fnode.FNode':
         """ Creates an expression for the given fluent and parameters.

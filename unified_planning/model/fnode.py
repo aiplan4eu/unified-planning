@@ -81,6 +81,18 @@ class FNode(object):
         elif self.is_exists():
             s = ', '.join(str(v) for v in self.variables())
             return f"Exists ({s}) {str(self.arg(0))}"
+        elif self.is_always():
+            return f"Always({str(self.arg(0))})"
+        elif self.is_sometime():
+            return f"Sometime({str(self.arg(0))})"
+        elif self.is_sometime_before():
+            s = ', '.join(str(v) for v in self.args)
+            return f"Sometime-Before({str(s)})"
+        elif self.is_sometime_after():
+            s = ', '.join(str(v) for v in self.args)
+            return f"Sometime-After({str(s)})"
+        elif self.is_at_most_once:
+            return f"At-Most-Once({str(self.arg(0))})"
         elif self.is_forall():
             s = ', '.join(str(v) for v in self.variables())
             return f"Forall ({s}) {str(self.arg(0))}"
@@ -218,6 +230,26 @@ class FNode(object):
     def is_exists(self) -> bool:
         """Test whether the node is the Exists operator."""
         return self.node_type == OperatorKind.EXISTS
+
+    def is_always(self) -> bool:
+        """Test whether the node is the Always constraint."""
+        return self.node_type == OperatorKind.ALWAYS
+
+    def is_sometime(self) -> bool:
+        """Test whether the node is the Sometime constraint."""
+        return self.node_type == OperatorKind.SOMETIME
+
+    def is_at_most_once(self) -> bool:
+        """Test whether the node is the At-Most-Once constraint."""
+        return self.node_type == OperatorKind.AT_MOST_ONCE
+
+    def is_sometime_before(self) -> bool:
+        """Test whether the node is the Sometime-Before constraint."""
+        return self.node_type == OperatorKind.SOMETIME_BEFORE
+
+    def is_sometime_after(self) -> bool:
+        """Test whether the node is the Sometime-After constraint."""
+        return self.node_type == OperatorKind.SOMETIME_AFTER
 
     def is_forall(self) -> bool:
         """Test whether the node is the Forall operator."""

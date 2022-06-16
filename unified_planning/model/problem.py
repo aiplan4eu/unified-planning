@@ -44,7 +44,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
         self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
-        self._trajectory_constraints: List['up.model.trajectory_constraint.TrajectoryConstraint'] = list()
+        self._trajectory_constraints: List['up.model.fnode.FNode'] = list()
         self._goals: List['up.model.fnode.FNode'] = list()
         self._metrics: List['up.model.metrics.PlanQualityMetric'] = []
 
@@ -264,7 +264,6 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         elif fluent_exp.fluent() in self._fluents_defaults:
             return self._fluents_defaults[fluent_exp.fluent()]
         else:
-            print(fluent)
             raise UPProblemDefinitionError('Initial value not set!')
 
     def _get_ith_fluent_exp(self, fluent: 'up.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'up.model.fnode.FNode':
@@ -399,14 +398,10 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
-    def add_trajectory_constraint(self, constraint: List['up.model.trajectory_constraint.TrajectoryConstraint']):
+    def add_trajectory_constraint(self, constraint: List['up.model.fnode.FNode']):
         '''Adds a trajectory constraint.'''
-        constraint_exp = self._env.expression_manager.auto_promote(constraint)
-        for con in constraint_exp:
-            par = con.parameters
-            for p in par:   
-                assert p.is_fluent_exp() or p.is_not()
-            self._trajectory_constraints.append(con)
+        constraint_exp, = self._env.expression_manager.auto_promote(constraint)
+        self._trajectory_constraints.append(constraint_exp)
 
     @property
     def goals(self) -> List['up.model.fnode.FNode']:
@@ -414,7 +409,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         return self._goals
 
     @property
-    def trajectory_constraints(self) -> List['up.model.trajectory_constraint.TrajectoryConstraint']:
+    def trajectory_constraints(self) -> List['up.model.fnode.FNode']:
         '''Returns the trajectory constraints.'''
         return self._trajectory_constraints
 

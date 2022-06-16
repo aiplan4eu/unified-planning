@@ -26,22 +26,6 @@ from unified_planning.engines import Engine, CompilationKind
 from typing import IO, Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
-
-def Always(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
-    return TrajectoryConstraint('always',[*args])
-
-def Sometime(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
-    return TrajectoryConstraint('sometime',[*args])
-
-def Sometime_Before(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
-    return TrajectoryConstraint('sometime-before',[*args])  
-
-def Sometime_After(*args: List['unified_planning.model.Fluent']) -> unified_planning.model.TrajectoryConstraint:
-    return TrajectoryConstraint('sometime-after',[*args])
-
-def At_Most_Once(*args: 'unified_planning.model.Fluent') -> unified_planning.model.TrajectoryConstraint:
-    return TrajectoryConstraint('at-most-once',[*args])
-
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     return get_env().expression_manager.And(*args)
 
@@ -65,6 +49,21 @@ def Forall(expression: BoolExpression, *vars: 'unified_planning.model.Variable')
 
 def FluentExp(fluent: 'unified_planning.model.Fluent', params: Tuple[Expression, ...] = tuple()) -> FNode:
     return get_env().expression_manager.FluentExp(fluent, params)
+
+def Always(expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.Always(expression)
+
+def Sometime(expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.Sometime(expression)
+
+def Sometime_Before(*expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.Sometime_Before(*expression)
+
+def Sometime_After(*expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.Sometime_After(*expression)
+
+def At_Most_Once(expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.At_Most_Once(expression)
 
 def ParameterExp(param: 'unified_planning.model.Parameter') -> FNode:
     return get_env().expression_manager.ParameterExp(param)

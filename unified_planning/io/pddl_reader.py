@@ -166,28 +166,19 @@ class PDDLReader:
             '/' : self._em.Div,
             '*' : self._em.Times
         }
+        self._trajectory_constraints: Dict[str, Callable] = {
+            'always' : self._em.Always,
+            'sometime' : self._em.Sometime,
+            'sometime-before' : self._em.Sometime_Before,
+            'sometime-after' : self._em.Sometime_After,
+            'at-most-once' : self._em.At_Most_Once,
+        }
         grammar = PDDLGrammar()
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
         self._pp_parameters = grammar.parameters
         self._fve = up.walkers.FreeVarsExtractor()
         self._totalcost: typing.Optional[up.model.FNode] = None
-
-    def _parse_constraint(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
-                   types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
-                   exp: Union[ParseResults, str]) -> List[up.model.trajectory_constraint.TrajectoryConstraint]:
-        solved: List[up.model.trajectory_constraint.TrajectoryConstraint] = []
-        if exp[0] in self._operators:
-            conds = exp[1:]
-            while len(conds) > 0:
-                #TODO control for more than one expressions
-                expr = conds.pop()
-                fluents = []
-                for f in expr[1:]:
-                    fluents.append(self._parse_exp(problem, act, types_map, {} if vars is None else vars, f))
-                cons = up.model.trajectory_constraint.TrajectoryConstraint(expr[0], fluents, self._env)
-                solved.append(cons)
-        return solved
 
     def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
                    types_map: Dict[str, up.model.Type], var: Dict[str, up.model.Variable],
@@ -205,6 +196,9 @@ class PDDLReader:
                 elif exp[0] in ['exists', 'forall']: # quantifier operators
                     q_op: Callable = self._em.Exists if exp[0] == 'exists' else self._em.Forall
                     solved.append(q_op(solved.pop(), *var.values()))
+                elif exp[0] in self._trajectory_constraints: #trajectory_constraints reference
+                    t_op: Callable = self._trajectory_constraints[exp[0]]
+                    solved.append(t_op(*[solved.pop() for _ in exp[1:]]))
                 elif problem.has_fluent(exp[0]): # fluent reference
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
@@ -232,6 +226,10 @@ class PDDLReader:
                                 vars[o] = up.model.Variable(o, t)
                         stack.append((vars, exp, True))
                         stack.append((vars, exp[2], False))
+                    elif exp[0] in self._trajectory_constraints: #trajectory_constraints reference
+                        stack.append((var, exp, True))
+                        for e in exp[1:]:
+                            stack.append((var, e, False))
                     elif problem.has_fluent(exp[0]): # fluent reference
                         stack.append((var, exp, True))
                         for e in exp[1:]:
@@ -645,7 +643,8 @@ class PDDLReader:
                 raise SyntaxError("Missing goal section in problem file.")
 
             if 'constraints' in problem_res:
-                problem.add_trajectory_constraint(self._parse_constraint(problem, None, types_map, {}, problem_res['constraints'][0]))
+                problem.add_trajectory_constraint(self._parse_exp(problem, None, types_map, {}, problem_res['constraints'][0]))
+
 
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(problem)
 

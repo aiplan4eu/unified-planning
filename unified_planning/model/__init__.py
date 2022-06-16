@@ -17,7 +17,6 @@
 from unified_planning.model.action import Action, InstantaneousAction, DurativeAction
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import BoolExpression, Expression, ExpressionManager
-from unified_planning.model.trajectory_constraint import TrajectoryConstraint
 from unified_planning.model.fnode import FNode
 from unified_planning.model.fluent import Fluent
 from unified_planning.model.object import Object
@@ -44,7 +43,6 @@ __all__ = [ 'Action', 'InstantaneousAction', 'DurativeAction',
             'Parameter',
             'AbstractProblem', 'Problem', 'ProblemKind',
             'State',
-            'TrajectoryConstraint',
             'TimepointKind', 'Timing', 'StartTiming', 'EndTiming', 'GlobalStartTiming', 'GlobalEndTiming',
             'DurationInterval', 'ClosedDurationInterval', 'FixedDuration', 'OpenDurationInterval', 'LeftOpenDurationInterval', 'RightOpenDurationInterval',
             'TimeInterval', 'TimePointInterval', 'ClosedTimeInterval', 'OpenTimeInterval', 'LeftOpenTimeInterval', 'RightOpenTimeInterval',

@@ -63,7 +63,6 @@ class DagWalker(Walker):
                 f = self.functions[expression.node_type]
             except KeyError:
                 f = self.walk_error
-
             args = [self.memoization[self._get_key(s, **kwargs)] \
                     for s in self._get_children(expression)]
             self.memoization[key] = f(expression, args=args, **kwargs)
@@ -95,9 +94,7 @@ class DagWalker(Walker):
     def walk(self, expression: FNode, **kwargs):
         if expression in self.memoization:
             return self.memoization[expression]
-
         res = self.iter_walk(expression, **kwargs)
-
         if self.invalidate_memoization:
             self.memoization.clear()
         return res

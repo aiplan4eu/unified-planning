@@ -84,6 +84,36 @@ class TypeChecker(walkers.DagWalker):
         assert len(args) == 0
         return expression.parameter().type
 
+    def walk_always(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+        assert expression is not None
+        assert expression.is_always()
+        assert len(expression.args) == 1
+        return BOOL
+
+    def walk_sometime(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+        assert expression is not None
+        assert expression.is_sometime()
+        assert len(expression.args) == 1
+        return BOOL
+
+    def walk_at_most_once(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+        assert expression is not None
+        assert expression.is_at_most_once
+        assert len(expression.args) == 1
+        return BOOL
+
+    def walk_sometime_before(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+        assert expression is not None
+        assert expression.is_sometime_before()
+        assert len(expression.args) == 2
+        return BOOL
+
+    def walk_sometime_after(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+        assert expression is not None
+        assert expression.is_sometime_after()
+        assert len(expression.args) == 2
+        return BOOL
+
     def walk_variable_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
         assert expression is not None
         assert len(args) == 0
