@@ -20,7 +20,7 @@ from typing import List, Optional, Union, cast
 import unified_planning
 import unified_planning.model
 import unified_planning.walkers as walkers
-from unified_planning.model.types import _UserType as UT
+from unified_planning.model.types import _UserType as UT, _IntType as IT, _RealType as RT
 
 import tarski # type: ignore
 
@@ -224,25 +224,29 @@ def _type_name_added_to_language_if_needed(lang: 'tarski.FirstOrderLanguage', ty
         typename = cast(UT, type).name
     else:
         typename = str(type).replace(' ','')
-    if type.is_int_type() and (type.lower_bound is None or type.upper_bound is None):
+    if type.is_int_type() and (cast(IT, type).lower_bound is None or cast(IT, type).upper_bound is None):
+        type = cast(IT, type)
         if type.lower_bound is None and type.upper_bound is None:
             typename = 'Integer'
-        elif type.lower_bound == 0: # type: ignore
-            assert type.upper_bound is None # type: ignore #must be true, otherwise branch would be skipped
+        elif type.lower_bound == 0:
+            assert type.upper_bound is None # must be true, otherwise branch would be skipped
             typename = 'Natural'
         else:
             raise unified_planning.exceptions.UPProblemDefinitionError('Int type with just one bound is not accepted by tarski')
-    elif type.is_real_type() and (type.lower_bound is None or type.upper_bound is None): # type: ignore
-        if type.lower_bound is None and type.upper_bound is None: # type: ignore
+    elif type.is_real_type() and (cast(RT, type).lower_bound is None or cast(RT, type).upper_bound is None):
+        type = cast(RT, type)
+        if type.lower_bound is None and type.upper_bound is None:
             typename = 'Real'
         else:
             raise unified_planning.exceptions.UPProblemDefinitionError('Real type with just one bound is not accepted by tarski')
     if not lang.has_sort(typename):
         # the type is not in the language, therefore it must be added
         if type.is_int_type():
-            lang.interval(typename, lang.Integer, type.lower_bound, type.upper_bound) # type: ignore
+            type = cast(IT, type)
+            lang.interval(typename, lang.Integer, type.lower_bound, type.upper_bound)
         elif type.is_real_type():
-            lang.interval(typename, lang.Real, type.lower_bound, type.upper_bound) # type: ignore
+            type = cast(RT, type)
+            lang.interval(typename, lang.Real, type.lower_bound, type.upper_bound)
         else:
             raise NotImplementedError
     return typename

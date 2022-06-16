@@ -17,7 +17,7 @@
 import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.walkers as walkers
-from unified_planning.model.types import BOOL, TIME
+from unified_planning.model.types import BOOL, TIME, _IntType, _RealType
 from unified_planning.model import FNode, OperatorKind
 from unified_planning.exceptions import UPTypeError
 from typing import List, Optional
@@ -45,10 +45,12 @@ class TypeChecker(walkers.DagWalker):
                 (t_left.is_real_type() and t_right.is_real_type()) or
                 (t_left.is_real_type() and t_right.is_int_type())):
             return False
-        left_lower = -float('inf') if t_left.lower_bound is None else t_left.lower_bound # type: ignore
-        left_upper = float('inf') if t_left.upper_bound is None else t_left.upper_bound # type: ignore
-        right_lower = -float('inf') if t_right.lower_bound is None else t_right.lower_bound # type: ignore
-        right_upper = float('inf') if t_right.upper_bound is None else t_right.upper_bound # type: ignore
+        assert isinstance(t_left, _IntType) or isinstance(t_left, _RealType)
+        assert isinstance(t_right, _IntType) or isinstance(t_right, _RealType)
+        left_lower = -float('inf') if t_left.lower_bound is None else t_left.lower_bound
+        left_upper = float('inf') if t_left.upper_bound is None else t_left.upper_bound
+        right_lower = -float('inf') if t_right.lower_bound is None else t_right.lower_bound
+        right_upper = float('inf') if t_right.upper_bound is None else t_right.upper_bound
         if right_upper < left_lower or right_lower > left_upper:
             return False
         else:

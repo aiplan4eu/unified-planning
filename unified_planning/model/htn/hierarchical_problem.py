@@ -82,7 +82,7 @@ class HierarchicalProblem(up.model.problem.Problem):
 
     def add_task(self, task: Union[Task, str], **kwargs: 'up.model.types.Type') -> Task:
         if isinstance(task, str):
-            task = Task(task, _parameters=OrderedDict(**kwargs))  # type: ignore
+            task = Task(task, _parameters=OrderedDict(**kwargs))
         else:
             assert len(kwargs) == 0
         assert task.name not in self._abstract_tasks, f"A task with name '{task.name}' already exists."

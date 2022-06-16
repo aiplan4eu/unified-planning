@@ -24,8 +24,9 @@ import unified_planning as up
 import unified_planning.environment
 import unified_planning.walkers as walkers
 from unified_planning.model import DurativeAction
+from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
-from typing import IO, List, Optional
+from typing import IO, List, cast
 from io import StringIO
 from functools import reduce
 
@@ -148,7 +149,8 @@ class PDDLWriter:
         self.object_freshname = 'object'
 
     def _type_name_or_object_freshname(self, type: 'unified_planning.model.Type') -> str:
-        return type.name if type.name != "object" else self.object_freshname # type: ignore
+        type = cast(UT, type)
+        return type.name if type.name != "object" else self.object_freshname
 
     def _write_domain(self, out: IO[str]):
         problem_kind = self.problem.kind
@@ -208,7 +210,7 @@ class PDDLWriter:
                     out.write(f'    {" ".join([self._type_name_or_object_freshname(t) for t in direct_sons])} - {self._type_name_or_object_freshname(current_type)}\n')
             out.write(' )\n')
         else:
-            out.write(f' (:types {" ".join([t.name for t in self.problem.user_types])})\n' if len(self.problem.user_types) > 0 else '') # type: ignore
+            out.write(f' (:types {" ".join([cast(UT, t).name for t in self.problem.user_types])})\n' if len(self.problem.user_types) > 0 else '')
 
         predicates = []
         functions = []

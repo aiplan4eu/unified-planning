@@ -91,10 +91,10 @@ class Factory:
         for name, EngineClass in self.engines.items():
             # Make sure that optimality guarantees and compilation kind are mutually exclusive
             assert optimality_guarantee is None or compilation_kind is None
-            assert optimality_guarantee is None or isinstance(EngineClass, OneshotPlannerMixin)
-            assert compilation_kind is None or isinstance(EngineClass, CompilerMixin)
-            assert plan_kind is None or isinstance(EngineClass, PlanValidatorMixin)
             if getattr(EngineClass, 'is_'+engine_kind)():
+                assert optimality_guarantee is None or issubclass(EngineClass, OneshotPlannerMixin)
+                assert compilation_kind is None or issubclass(EngineClass, CompilerMixin)
+                assert plan_kind is None or issubclass(EngineClass, PlanValidatorMixin)
                 if (EngineClass.supports(problem_kind)
                     and (optimality_guarantee is None or EngineClass.satisfies(optimality_guarantee))
                     and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind))

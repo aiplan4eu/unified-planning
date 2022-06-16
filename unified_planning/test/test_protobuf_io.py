@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import pytest
+
 import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 from unified_planning.grpc.proto_reader import ProtobufReader # type: ignore[attr-defined]
 from unified_planning.grpc.proto_writer import ProtobufWriter # type: ignore[attr-defined]
