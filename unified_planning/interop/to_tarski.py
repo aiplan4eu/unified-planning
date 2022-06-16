@@ -15,11 +15,12 @@
 
 
 from fractions import Fraction
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 
 import unified_planning
 import unified_planning.model
 import unified_planning.walkers as walkers
+from unified_planning.model.types import _UserType as UT
 
 import tarski # type: ignore
 
@@ -53,12 +54,12 @@ class TarskiFormulaConverter(walkers.DagWalker):
 
     def walk_exists(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 1
-        variables = [self.lang.variable(v.name, self.lang.get_sort(v.type.name if v.type.name != 'object' else self.object_freshname)) for v in expression.variables()] # type: ignore
+        variables = [self.lang.variable(v.name, self.lang.get_sort(cast(UT, v.type).name if cast(UT, v.type).name != 'object' else self.object_freshname)) for v in expression.variables()]
         return tarski.syntax.exists(*variables, args[0])
 
     def walk_forall(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
         assert len(args) == 1
-        variables = [self.lang.variable(v.name, self.lang.get_sort(v.type.name if v.type.name != 'object' else self.object_freshname)) for v in expression.variables()] # type: ignore
+        variables = [self.lang.variable(v.name, self.lang.get_sort(cast(UT, v.type).name if cast(UT, v.type).name != 'object' else self.object_freshname)) for v in expression.variables()]
         return tarski.syntax.forall(*variables, args[0])
 
     def walk_equals(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
@@ -127,7 +128,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
         type = expression.parameter().type
         if type.is_user_type():
             return self.lang.variable(expression.parameter().name, \
-                self.lang.get_sort(type.name if type.name != 'object' else self.object_freshname)) # type: ignore
+                self.lang.get_sort(cast(UT, type).name if cast(UT, type).name != 'object' else self.object_freshname))
         else:
             return self.lang.variable(expression.parameter().name, \
                 self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)))
@@ -136,7 +137,7 @@ class TarskiFormulaConverter(walkers.DagWalker):
         type = expression.variable().type
         if type.is_user_type():
             return self.lang.variable(expression.variable().name, \
-                self.lang.get_sort(type.name if type.name != 'object' else self.object_freshname)) # type: ignore
+                self.lang.get_sort(cast(UT, type).name if cast(UT, type).name != 'object' else self.object_freshname))
         else:
             return self.lang.variable(expression.variable().name, \
                 self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)))
@@ -159,15 +160,16 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
     #creating tarski language
     lang = tarski.fstrips.language(f'{problem.name}_lang', features)
     for ut in problem.user_types: #adding user_types to the language
-        if ut.father is not None:  # type: ignore
-            lang.sort(ut.name if ut.name != 'object' else object_freshname, ut.father.name if ut.father.name != 'object' else object_freshname) # type: ignore
+        assert isinstance(ut, UT)
+        if ut.father is not None:
+            lang.sort(ut.name if ut.name != 'object' else object_freshname, cast(UT, ut.father).name if cast(UT, ut.father).name != 'object' else object_freshname)
         else:
-            lang.sort(ut.name if ut.name != 'object' else object_freshname) # type: ignore
+            lang.sort(ut.name if ut.name != 'object' else object_freshname)
     for fluent in problem.fluents: #adding fluents to the language
         signature = []
         for param in fluent.signature:
             if param.type.is_user_type():
-                signature.append(lang.get_sort(param.type.name if param.type.name != 'object' else object_freshname)) # type: ignore
+                signature.append(lang.get_sort(cast(UT, param.type).name if cast(UT, param.type).name != 'object' else object_freshname))
             else:
                 #typename will be the name that this type has in the tarski language
                 typename = _type_name_added_to_language_if_needed(lang, param.type)
@@ -178,7 +180,7 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
             typename = _type_name_added_to_language_if_needed(lang, fluent.type)
             lang.function(fluent.name, *signature, lang.get_sort(typename if typename != 'object' else object_freshname))
     for o in problem.all_objects: #adding objects to the language
-        lang.constant(o.name, lang.get_sort(o.type.name if o.type.name != 'object' else object_freshname)) # type: ignore
+        lang.constant(o.name, lang.get_sort(cast(UT, o.type).name if cast(UT, o.type).name != 'object' else object_freshname))
     #creating tarski problem
     em = problem.env.expression_manager
     tfc = TarskiFormulaConverter(language=lang, env=problem.env, object_freshname=object_freshname)
@@ -189,7 +191,7 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
         parameters = []
         for p in action.parameters:
             if p.type.is_user_type():
-                parameters.append(lang.variable(p.name, lang.get_sort(p.type.name if p.type.name != 'object' else object_freshname))) # type: ignore
+                parameters.append(lang.variable(p.name, lang.get_sort(cast(UT, p.type).name if cast(UT, p.type).name != 'object' else object_freshname)))
             else:
                 parameters.append(lang.variable(p.name, lang.get_sort(_type_name_added_to_language_if_needed(lang, p.type))))
         #add action to the problem
@@ -219,11 +221,11 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
 def _type_name_added_to_language_if_needed(lang: 'tarski.FirstOrderLanguage', type: 'unified_planning.model.Type') -> str:
     typename = ''
     if type.is_user_type():
-        typename = type.name # type: ignore
+        typename = cast(UT, type).name
     else:
         typename = str(type).replace(' ','')
-    if type.is_int_type() and (type.lower_bound is None or type.upper_bound is None): # type: ignore
-        if type.lower_bound is None and type.upper_bound is None: # type: ignore
+    if type.is_int_type() and (type.lower_bound is None or type.upper_bound is None):
+        if type.lower_bound is None and type.upper_bound is None:
             typename = 'Integer'
         elif type.lower_bound == 0: # type: ignore
             assert type.upper_bound is None # type: ignore #must be true, otherwise branch would be skipped

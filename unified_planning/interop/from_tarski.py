@@ -20,7 +20,7 @@ from fractions import Fraction
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.environment import Environment
 from collections import OrderedDict
-from typing import List, Optional, Union, Dict, cast
+from typing import Optional, Union, Dict, cast
 from tarski.syntax import Interval # type: ignore
 from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
 from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
