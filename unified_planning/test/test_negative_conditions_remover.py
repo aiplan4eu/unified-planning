@@ -171,7 +171,6 @@ class TestNegativeConditionsRemover(TestCase):
         npr = NegativeConditionsRemover()
         res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
-        print(positive_problem)
         self.assertEqual(len(problem.fluents) + 1, len(positive_problem.fluents))
         y__negated__ = Fluent('y_0')
         test_problem = Problem(positive_problem.name)
