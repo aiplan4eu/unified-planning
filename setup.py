@@ -27,10 +27,12 @@ setup(name='unified_planning',
           'tarski': ['tarski[arithmetic]'],
           'pyperplan': ['up-pyperplan==0.1.0.24.dev1'],
           'tamer': ['up-tamer==0.1.0.23.dev1'],
+          'enhsp': ['up-enhsp==0.0.2'],
           'solvers': [
               'tarski[arithmetic]',
               'up-pyperplan==0.1.0.24.dev1',
-              'up-tamer==0.1.0.23.dev1'
+              'up-tamer==0.1.0.23.dev1',
+              'up-enhsp==0.0.2'
           ]
       },
       license='APACHE',
