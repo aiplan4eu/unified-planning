@@ -170,17 +170,17 @@ def Compiler(*, name: Optional[str] = None, params: Union[Dict[str, str], List[D
                                       problem_kind=problem_kind,
                                       compilation_kind=compilation_kind)
 
-def ProblemSimulator(problem: 'up.model.AbstractProblem', *, name: Optional[str] = None,
+def Simulator(problem: 'up.model.AbstractProblem', *, name: Optional[str] = None,
               params: Union[Dict[str, str], List[Dict[str, str]]] = None) -> 'up.engines.engine.Engine':
     """
-    Returns a ProblemSimulator. There are two ways to call this method:
+    Returns a Simulator. There are two ways to call this method:
     - using 'problem_kind' through the problem field.
-        e.g. ProblemSimulator(problem)
+        e.g. Simulator(problem)
     - using 'name' (the name of a specific simulator) and eventually some 'params'
         (simulator dependent options).
-        e.g. ProblemSimulator(problem, name='sequential_simulator')
+        e.g. Simulator(problem, name='sequential_simulator')
     """
-    return get_env().factory.ProblemSimulator(problem=problem, name=name, params=params)
+    return get_env().factory.Simulator(problem=problem, name=name, params=params)
 
 def print_engines_info(stream: IO[str] = sys.stdout, full_credits: bool = False):
     get_env().factory.print_engines_info(stream, full_credits)

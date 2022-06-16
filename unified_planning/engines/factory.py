@@ -180,7 +180,7 @@ class Factory:
             else:
                 assert engine_kind == 'simulator'
                 assert issubclass(EngineClass, up.engines.engine.Engine)
-                assert issubclass(EngineClass, up.engines.mixins.simulator.Simulator)
+                assert issubclass(EngineClass, up.engines.mixins.simulator.SimulatorMixin)
                 return EngineClass(problem, **params)
 
     @property
@@ -243,16 +243,16 @@ class Factory:
         return self._get_engine('compiler', name, None, params, problem_kind,
                                 compilation_kind=compilation_kind)
 
-    def ProblemSimulator(self,
+    def Simulator(self,
                  problem: 'up.model.AbstractProblem', *, name: Optional[str] = None,
                  params: Union[Dict[str, str], List[Dict[str, str]]] = None) -> 'up.engines.engine.Engine':
         """
-        Returns a ProblemSimulator. There are two ways to call this method:
+        Returns a Simulator. There are two ways to call this method:
         - using 'problem_kind' through the problem field.
-          e.g. ProblemSimulator(problem)
+          e.g. Simulator(problem)
         - using 'name' (the name of a specific simulator) and eventually some 'params'
           (simulator dependent options).
-          e.g. ProblemSimulator(problem, name='sequential_simulator')
+          e.g. Simulator(problem, name='sequential_simulator')
         """
         return self._get_engine('simulator', name, None, params, problem.kind,
                                 problem = problem)

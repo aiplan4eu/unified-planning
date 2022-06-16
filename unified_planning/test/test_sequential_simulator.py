@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.engines import SequentialSimulator, Simulator
+from unified_planning.engines import SequentialSimulator, SimulatorMixin
 from unified_planning.model import UPRWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
@@ -28,7 +28,7 @@ class TestSimulator(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def simulate_on_hierarchical_blocks_world(self, simulator: Simulator, problem: 'up.model.Problem'):
+    def simulate_on_hierarchical_blocks_world(self, simulator: SimulatorMixin, problem: 'up.model.Problem'):
         #This test takes a simulator and the problem and makes some testing.
         self.assertEqual(problem.name, 'hierarchical_blocks_world')
         em = problem.env.expression_manager
@@ -101,5 +101,5 @@ class TestSimulator(TestCase):
 
     def test_with_smulator_from_factory(self):
         problem = self.problems['hierarchical_blocks_world'].problem
-        with ProblemSimulator(problem) as simulator:
+        with Simulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)
