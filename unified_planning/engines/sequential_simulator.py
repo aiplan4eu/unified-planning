@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
@@ -64,11 +64,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
         self._grounding_result = grounder.compile(self._problem, up.engines.CompilationKind.GROUNDING)
 
         grounded_problem: 'up.model.Problem' = cast(up.model.Problem, self._grounding_result.problem)
-        map = cast(Callable[[ActionInstance], ActionInstance], self._grounding_result.map_back_action_instance)
+        lift_map = self._grounding_result.map_back_action_instance
+        assert lift_map is not None
         self._events: Dict[Tuple['up.model.Action', Tuple['up.model.FNode', ...]], List[Event]] = {}
         for grounded_action in grounded_problem.actions:
             if isinstance(grounded_action, up.model.InstantaneousAction):
-                lifted_ai = map(ActionInstance(grounded_action))
+                lifted_ai = lift_map(ActionInstance(grounded_action))
                 event_list = self._events.setdefault((lifted_ai.action, lifted_ai.actual_parameters), [])
                 event_list.append(
                     InstantaneousEvent(
@@ -79,7 +80,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 raise NotImplementedError
         self._se = StateEvaluator(self._problem)
 
-    def is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
+    def _is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
         '''
         Returns True if the given event conditions are evaluated as True in the given state;
         returns False otherwise.
@@ -95,7 +96,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 return False
         return True
 
-    def apply(self, event: 'Event', state: 'up.model.RWState') -> Optional['up.model.RWState']:
+    def _apply(self, event: 'Event', state: 'up.model.RWState') -> Optional['up.model.RWState']:
         '''
         Returns None if the event is not applicable in the given state, otherwise returns a new RWState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
@@ -110,7 +111,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         else:
             return self.apply_unsafe(event, state)
 
-    def apply_unsafe(self, event: 'Event', state: 'up.model.RWState') -> 'up.model.RWState':
+    def _apply_unsafe(self, event: 'Event', state: 'up.model.RWState') -> 'up.model.RWState':
         '''
         Returns a new RWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
@@ -120,38 +121,42 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :return: A new RWState with some updated values.
         '''
         updated_values: Dict['up.model.FNode', 'up.model.FNode'] = {}
+        assigned_fluent: Set['up.model.FNode'] = set()
         em = self._problem.env.expression_manager
         for e in event.effects:
-            cond = self._problem._env.expression_manager.TRUE()
-            if e.is_conditional():
-                cond = self._se.evaluate(e.condition, state)
-            if cond.is_bool_constant() and cond.bool_constant_value():
-                if updated_values.get(e.fluent, None) is not None:
-                    #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
-                    # When the 2 merge, resolve it.
-                    raise UPUsageError(f'The fluent {e.fluent} is modified twice in the same event.')
+            if (not e.is_conditional()) or self._se.evaluate(e.condition, state).is_true():
                 if e.is_assignment():
+                    if e.fluent in updated_values:
+                        #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
+                        # When the 2 merge, resolve it.
+                        raise UPUsageError(f'The fluent {e.fluent} is modified by 2 assignments in the same event.')
                     updated_values[e.fluent] = self._se.evaluate(e.value, state)
-                elif e.is_increase():
-                    f_eval = self._se.evaluate(e.fluent, state)
-                    v_eval = self._se.evaluate(e.value, state)
-                    updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() + v_eval.constant_value())[0]
-                elif e.is_decrease():
-                    f_eval = self._se.evaluate(e.fluent, state)
-                    v_eval = self._se.evaluate(e.value, state)
-                    updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() - v_eval.constant_value())[0]
+                    assigned_fluent.add(e.fluent)
                 else:
-                    raise NotImplementedError
+                    if e.fluent in assigned_fluent:
+                        #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
+                        # When the 2 merge, resolve it.
+                        raise UPUsageError(f'The fluent {e.fluent} is modified by an assignment and an increase/decrease in the same event.')
+                    # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
+                    # otherwisee we take it's evaluation in the state as it's value.
+                    f_eval = updated_values.get(e.fluent, self._se.evaluate(e.fluent, state))
+                    v_eval = self._se.evaluate(e.value, state)
+                    if e.is_increase():
+                        updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() + v_eval.constant_value())[0]
+                    elif e.is_decrease():
+                        updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() - v_eval.constant_value())[0]
+                    else:
+                        raise NotImplementedError
         if event.simulated_effect is not None:
             for f, v in zip(event.simulated_effect.fluents, event.simulated_effect.function(self._problem, state, {})):
-                if updated_values.get(f, None) is not None:
+                if f in updated_values:
                     #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
                     # When the 2 merge, resolve it.
                     raise UPUsageError(f'The fluent {f} is modified twice in the same event.')
                 updated_values[f] = v
         return state.set_values(updated_values)
 
-    def get_applicable_events(self, state: 'up.model.ROState') -> Iterator['Event']:
+    def _get_applicable_events(self, state: 'up.model.ROState') -> Iterator['Event']:
         '''
         Returns a view over all the events that are applicable in the given State;
         an Event is considered applicable in a given State, when all the Event condition
@@ -164,7 +169,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 if self.is_applicable(event, state):
                     yield event
 
-    def get_events(self,
+    def _get_events(self,
                    action: 'up.model.Action',
                    parameters: Union[Tuple['up.model.Expression', ...], List['up.model.Expression']]) -> List['Event']:
         '''

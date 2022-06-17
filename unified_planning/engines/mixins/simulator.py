@@ -58,6 +58,9 @@ class SimulatorMixin:
         :param event: the event whose conditions are checked.
         :return: Whether or not the event is applicable in the given state.
         '''
+        return self._is_applicable(event, state)
+
+    def _is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
         raise NotImplementedError
 
     def apply(self, event: 'Event', state: 'up.model.RWState') -> Optional['up.model.RWState']:
@@ -70,6 +73,9 @@ class SimulatorMixin:
         :return: None if the event is not applicable in the given state, a new RWState with some updated values
          if the event is applicable.
         '''
+        return self._apply(event, state)
+
+    def _apply(self, event: 'Event', state: 'up.model.RWState') -> Optional['up.model.RWState']:
         raise NotImplementedError
 
     def apply_unsafe(self, event: 'Event', state: 'up.model.RWState') -> 'up.model.RWState':
@@ -81,6 +87,9 @@ class SimulatorMixin:
         :param event: the event that has the information about the effects to apply.
         :return: A new RWState with some updated values.
         '''
+        return self._apply_unsafe(event, state)
+
+    def _apply_unsafe(self, event: 'Event', state: 'up.model.RWState') -> 'up.model.RWState':
         raise NotImplementedError
 
     def get_applicable_events(self, state: 'up.model.ROState') -> Iterator['Event']:
@@ -91,6 +100,9 @@ class SimulatorMixin:
         :param state: the state where the formulas are evaluated.
         :return: an Iterator of applicable Events.
         '''
+        return self._get_applicable_events(state)
+
+    def _get_applicable_events(self, state: 'up.model.ROState') -> Iterator['Event']:
         raise NotImplementedError
 
     def get_events(self,
@@ -102,6 +114,11 @@ class SimulatorMixin:
         :param parameters: the parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         '''
+        return self._get_events(action, parameters)
+
+    def _get_events(self,
+                   action: 'up.model.Action',
+                   parameters: Union[Tuple['up.model.Expression', ...], List['up.model.Expression']]) -> List['Event']:
         raise NotImplementedError
 
     @staticmethod
