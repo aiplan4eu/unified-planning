@@ -19,7 +19,7 @@ import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
-from unified_planning.exceptions import UPUsageError
+from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
 from unified_planning.walkers import StateEvaluator
 
@@ -127,16 +127,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
             if (not e.is_conditional()) or self._se.evaluate(e.condition, state).is_true():
                 if e.is_assignment():
                     if e.fluent in updated_values:
-                        #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
-                        # When the 2 merge, resolve it.
-                        raise UPUsageError(f'The fluent {e.fluent} is modified by 2 assignments in the same event.')
+                        raise UPConflictingEffectsException(f'The fluent {e.fluent} is modified by 2 assignments in the same event.')
                     updated_values[e.fluent] = self._se.evaluate(e.value, state)
                     assigned_fluent.add(e.fluent)
                 else:
                     if e.fluent in assigned_fluent:
-                        #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
-                        # When the 2 merge, resolve it.
-                        raise UPUsageError(f'The fluent {e.fluent} is modified by an assignment and an increase/decrease in the same event.')
+                        raise UPConflictingEffectsException(f'The fluent {e.fluent} is modified by an assignment and an increase/decrease in the same event.')
                     # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
                     # otherwisee we take it's evaluation in the state as it's value.
                     f_eval = updated_values.get(e.fluent, self._se.evaluate(e.fluent, state))
