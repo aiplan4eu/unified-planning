@@ -177,6 +177,26 @@ class Simplifier(walkers.DagWalker):
         if len(vars) == 0:
             return args[0]
         return self.manager.Forall(args[0], *vars)
+    
+    def walk_always(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 1
+        return self.manager.Always(args[0])
+
+    def walk_at_most_once(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 1
+        return self.manager.At_Most_Once(args[0])
+
+    def walk_sometime(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 1
+        return self.manager.Sometime(args[0])
+
+    def walk_sometime_before(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 2
+        return self.manager.Sometime_Before(args[0], args[1])
+
+    def walk_sometime_after(self, expression: FNode, args: List[FNode]) -> FNode:
+        assert len(args) == 2
+        return self.manager.Sometime_After(args[0], args[1])
 
     def walk_equals(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2

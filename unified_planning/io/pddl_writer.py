@@ -53,6 +53,26 @@ class ConverterToPDDLString(walkers.DagWalker):
         vars_string_list = [f"?{v.name} - {str(v.type)}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
+    def walk_always(self, expression, args):
+        assert len(args) == 1
+        return f'(always {args[0]})'
+
+    def walk_at_most_once(self, expression, args):
+        assert len(args) == 1
+        return f'(at-most-once {args[0]})'
+    
+    def walk_sometime(self, expression, args):
+        assert len(args) == 1
+        return f'(sometime {args[0]})'
+
+    def walk_sometime_before(self, expression, args):
+        assert len(args) == 2
+        return f'(sometime-before {args[0]} {args[1]})'
+
+    def walk_sometime_after(self, expression, args):
+        assert len(args) == 2
+        return f'(sometime-after {args[0]} {args[1]})'
+
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
         return f'?{expression.variable().name}'
@@ -358,19 +378,6 @@ class PDDLWriter:
                 out.write(')\n')
             else:
                 raise NotImplementedError
-        if len(self.problem.trajectory_constraints) > 0:
-            out.write(' (:constraints')
-            tc_string = ''
-            for tc in self.problem.trajectory_constraints:
-                par_string = ''
-                for par in tc.parameters:
-                    par_string += f' {converter.convert(par)}'
-                tc_string += f'({tc.type} {par_string})\n'
-            if len(self.problem.trajectory_constraints) > 1:
-                out.write(f'(and\n{tc_string})')
-            else:
-                out.write(tc_string)
-            out.write(')\n')
         out.write(')\n') 
 
     def _write_problem(self, out: IO[str]):
@@ -399,7 +406,9 @@ class PDDLWriter:
         if self.problem.kind.has_actions_cost(): # type: ignore
             out.write(f' (= total-cost 0)')
         out.write(')\n')
-        out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n')
+        out.write(f' (:goal {" ".join([converter.convert(p) for p in self.problem.goals])})\n')
+        if len(self.problem.trajectory_constraints) > 0:
+            out.write(f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n')
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
