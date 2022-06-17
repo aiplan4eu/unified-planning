@@ -62,7 +62,7 @@ enum ExpressionKind {
     FUNCTION_APPLICATION = 6;
 
     // Atom symbol. Unique identifier of a task or action in the current scope.
-    CONTAINER_ID = 7;
+    CONTAINER_ID = 8;
 }
 
 
