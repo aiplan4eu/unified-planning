@@ -198,7 +198,7 @@ class PythonWriter:
         for type, exp in self.problem.initial_defaults.items():
             out.write(f'problem_initial_defaults[{_print_python_type(type, names_mapping)}] = {converter.convert(exp)}\n')
 
-        if self.problem.kind.has_hierarchical():
+        if self.problem.kind.has_hierarchical():  # type: ignore
             problem_class = "htn.HierarchicalProblem"
         else:
             problem_class = "Problem"
@@ -290,8 +290,8 @@ class PythonWriter:
                 raise NotImplementedError
             out.write(')\n')
 
-        if self.problem.kind.has_hierarchical():
-            assert isinstance(self.problem, up.model.htn.HierarchicalProblem)
+        if self.problem.kind.has_hierarchical():  # type: ignore
+            assert isinstance(self.problem, up.model.htn.hierarchical_problem.HierarchicalProblem)  # type: ignore
 
             for task in self.problem.tasks:
                 params = params_as_dict(task.parameters)
@@ -312,7 +312,7 @@ class PythonWriter:
                 for c in m.constraints:
                     out.write(f'{_get_mangled_name(f"method_{m.name}", names_mapping)}.add_constraint({converter.convert(c)})\n')
                 for st in m.subtasks:
-                    if isinstance(st.task, up.model.htn.Task):
+                    if isinstance(st.task, up.model.htn.task.Task):
                         head = _get_mangled_name(f'task_{st.task.name}', names_mapping)
                     else:
                         head = _get_mangled_name(f'act_{st.task.name}', names_mapping)
@@ -323,7 +323,7 @@ class PythonWriter:
             for v in self.problem.task_network.variables:
                 out.write(f'problem.task_network.add_variable("{v.name}", {_print_python_type(v.type, names_mapping)})\n')
             for st in self.problem.task_network.subtasks:
-                if isinstance(st.task, up.model.htn.Task):
+                if isinstance(st.task, up.model.htn.task.Task):
                     head = _get_mangled_name(f'task_{st.task.name}', names_mapping)
                 else:
                     head = _get_mangled_name(f'act_{st.task.name}', names_mapping)
