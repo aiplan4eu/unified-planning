@@ -68,17 +68,17 @@ class UPRWState(RWState):
 
     def __repr__(self) -> str:
         current_instance = self
-        retval = ''
+        retval = []
         while current_instance is not None:
-            retval = f'{retval}\n{str(current_instance._values)}'
+            retval.append(f'{str(current_instance._values)}')
             current_instance = current_instance._father # type: ignore
-        return retval
+        return '\n'.join(retval)
 
-    def _has_value(self, value: 'up.model.FNode') -> bool:
+    def _has_local_value(self, value: 'up.model.FNode') -> bool:
         '''
         Method for internal use only.
         This method returns True if the parameter value is in this specific instance;
-        NOTE that if self._has_value(x) returns False does not mean that self.get_value(x) will not retrieve any value.
+        NOTE that if self._has_local_value(x) returns False does not mean that self.get_value(x) will not retrieve any value.
         :param value: The value searched in this instance of the class.
         :return: True if this instance holds the value, False otherwise.
         '''
@@ -93,7 +93,7 @@ class UPRWState(RWState):
         '''
         right_instance: Optional[UPRWState] = self
         while right_instance is not None:
-            if right_instance._has_value(value):
+            if right_instance._has_local_value(value):
                 return right_instance._values[value]
             else:
                 right_instance = right_instance._father
