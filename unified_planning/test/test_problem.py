@@ -17,7 +17,6 @@ import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
-from typing import OrderedDict
 
 
 class TestProblem(TestCase):
@@ -458,8 +457,9 @@ class TestProblem(TestCase):
 
     def test_htn_problem_creation(self):
         problems = examples.hierarchical.get_example_problems()
-        problem = problems['htn-go']
-        assert problem.kind.has_hierarchical()
+        problem = problems['htn-go'].problem
+        self.assertTrue(isinstance(problem, up.model.htn.HierarchicalProblem))
+        self.assertTrue(problem.kind.has_hierarchical())
         self.assertEqual(2, len(problem.fluents))
         self.assertEqual(1, len(problem.actions))
         self.assertEqual(["go"], [task.name for task in problem.tasks])

@@ -28,7 +28,7 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    def __init__(self, kind: TimepointKind, container=None):
+    def __init__(self, kind: TimepointKind, container: Optional[str] = None):
         """Creates a new timepoint.
 
         It is typically used to refer to:
@@ -39,11 +39,12 @@ class Timepoint:
         ----------
         kind: TimepointKind
           Kind of the timepoint.
-        container: Optional[Subtask]
-          Container in which the timepoint is defined.
+        container: Optional[str]
+          Identifier of the container in which the timepoint is defined.
           If not set, then a start/end timepoint refers to the enclosing action or method.
           The container must have an `identifier` property that is a string uniquely identifying it.
         """
+        assert container is None or isinstance(container, str)
         self._kind = kind
         self._container = container
 
@@ -55,7 +56,7 @@ class Timepoint:
         if self._container is None:
             return qualifier
         else:
-            return f'{qualifier}({self._container.identifier})'
+            return f'{qualifier}({self._container})'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Timepoint):
@@ -100,6 +101,10 @@ class Timing:
     def delay(self) -> Union[int, Fraction]:
         return self._delay
 
+    @property
+    def timepoint(self) -> Timepoint:
+        return self._timepoint
+
     def is_global(self) -> bool:
         return self._timepoint.kind == TimepointKind.GLOBAL_START or \
             self._timepoint.kind == TimepointKind.GLOBAL_END
@@ -112,7 +117,7 @@ class Timing:
         return not self.is_from_start()
 
 
-def StartTiming(delay: Union[int, Fraction] = 0) -> Timing:
+def StartTiming(delay: Union[int, Fraction] = 0, container: Optional[str] = None) -> Timing:
     '''Represents the start timing of an action.
     Created with a delay > 0 represents "delay" time
     after the start of an action.
@@ -121,10 +126,10 @@ def StartTiming(delay: Union[int, Fraction] = 0) -> Timing:
     StartTiming() = 5
     StartTiming(3) = 5+3 = 8'''
 
-    return Timing(delay, Timepoint(TimepointKind.START))
+    return Timing(delay, Timepoint(TimepointKind.START, container=container))
 
 
-def EndTiming(delay: Union[int, Fraction] = 0) -> Timing:
+def EndTiming(delay: Union[int, Fraction] = 0, container: Optional[str] = None) -> Timing:
     '''Represents the end timing of an action.
     Created with a delay > 0 represents "delay" time
     before the end of an action.
@@ -133,7 +138,7 @@ def EndTiming(delay: Union[int, Fraction] = 0) -> Timing:
     EndTiming() = 10
     EndTiming(1.5) = 10-Fraction(3, 2) = Fraction(17, 2) = 8.5'''
 
-    return Timing(delay, Timepoint(TimepointKind.END))
+    return Timing(delay, Timepoint(TimepointKind.END, container=container))
 
 
 def GlobalStartTiming(delay: Union[int, Fraction] = 0):
