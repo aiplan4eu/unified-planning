@@ -32,6 +32,7 @@ DEFAULT_ENGINES = {
     'pyperplan' : ('up_pyperplan.engine', 'EngineImpl'),
     'enhsp' : ('up_enhsp.enhsp_planner', 'ENHSPSatEngine'),
     'enhsp-opt' : ('up_enhsp.enhsp_planner', 'ENHSPOptEngine'),
+    'lpg' : ('up_lpg.lpg_planner', 'LPGEngine'),
     'tamer' : ('up_tamer.engine', 'EngineImpl'),
     'sequential_plan_validator' : ('unified_planning.engines.plan_validator', 'SequentialPlanValidator'),
     'up_conditional_effects_remover' : ('unified_planning.engines.compilers.conditional_effects_remover', 'ConditionalEffectsRemover'),
