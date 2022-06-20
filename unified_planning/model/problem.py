@@ -398,7 +398,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
-    def add_trajectory_constraint(self, constraint: List['up.model.fnode.FNode']):
+    def add_trajectory_constraint(self, constraint: 'up.model.fnode.FNode'):
         '''Adds a trajectory constraint.'''
         constraint_exp, = self._env.expression_manager.auto_promote(constraint)
         self._trajectory_constraints.append(constraint_exp)
@@ -448,7 +448,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             self._kind.set_time('TIMED_GOALS') # type: ignore
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
         if len(self._trajectory_constraints) > 0:
-            self._kind.set_constraints_kind('TRAJECTORY_CONSTRAINTS')
+            self._kind.set_constraints_kind('TRAJECTORY_CONSTRAINTS') # type: ignore
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal)

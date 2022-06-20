@@ -127,28 +127,6 @@ class TestTrajectoryConstraint(TestCase):
         self.assertTrue(str(problem.trajectory_constraints) == 
                         '[Sometime-Before(robot_at(l1), robot_at(l2)), Sometime-Before((not robot_at(l1)), robot_at(l2))]')
 
-    def test_create_sometime_before_constraint(self):
-        problem, fluents, objects= self.define_problem()
-        robot_at = fluents[0]
-        sometime_before = Sometime_Before(robot_at(objects[0]), robot_at(objects[1]))
-        sometime_before_not = Sometime_Before(Not(robot_at(objects[0])), robot_at(objects[1]))
-        self.assertTrue(sometime_before.is_sometime_before() and sometime_before_not.is_sometime_before())
-        self.assertTrue(sometime_before.node_type == OperatorKind.SOMETIME_BEFORE and sometime_before_not.node_type == OperatorKind.SOMETIME_BEFORE)
-        self.assertTrue(len(sometime_before.args) == 2 and
-                        sometime_before.args[0].node_type == OperatorKind.FLUENT_EXP and
-                        sometime_before.args[1].node_type == OperatorKind.FLUENT_EXP
-                        )
-        self.assertTrue(len(sometime_before_not.args) == 2 and
-                        sometime_before_not.args[0].node_type == OperatorKind.NOT and
-                        len(sometime_before_not.args[0].args) == 1 and
-                        sometime_before_not.args[0].args[0].node_type == OperatorKind.FLUENT_EXP and
-                        sometime_before_not.args[1].node_type == OperatorKind.FLUENT_EXP
-                        )
-        problem.add_trajectory_constraint(sometime_before)
-        problem.add_trajectory_constraint(sometime_before_not)
-        self.assertTrue(str(problem.trajectory_constraints) == 
-                        '[Sometime-Before(robot_at(l1), robot_at(l2)), Sometime-Before((not robot_at(l1)), robot_at(l2))]')
-
     def test_create_sometime_after_constraint(self):
         problem, fluents, objects= self.define_problem()
         robot_at = fluents[0]

@@ -645,9 +645,7 @@ class PDDLReader:
             if 'constraints' in problem_res:
                 problem.add_trajectory_constraint(self._parse_exp(problem, None, types_map, {}, problem_res['constraints'][0]))
 
-
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(problem)
-
             optimization = problem_res.get('optimization', None)
             metric = problem_res.get('metric', None)
 
