@@ -14,8 +14,9 @@
 # limitations under the License.
 #
 
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, List, Optional, Tuple, Union, cast
 import unified_planning as up
+from unified_planning.exceptions import UPUsageError
 
 
 class Event:
@@ -114,6 +115,10 @@ class SimulatorMixin:
         :param parameters: the parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         '''
+        if action not in cast(up.model.Problem, self._problem).actions:
+            raise UPUsageError('The action given as parameter does not belong to the problem given to the SimulatorMixin.')
+        if len(action.parameters) != len(parameters):
+            raise UPUsageError('The parameters given action do not have the same length of the given parameters.')
         return self._get_events(action, parameters)
 
     def _get_events(self,

@@ -117,38 +117,38 @@ class SequentialSimulator(Engine, SimulatorMixin):
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
         :param state: the state where the event formulas are evaluated.
-        :param event: the event that has the information about the effects to apply.
+        :param event: the event that has the informaContainertion about the effects to apply.
         :return: A new RWState with some updated values.
         '''
         updated_values: Dict['up.model.FNode', 'up.model.FNode'] = {}
         assigned_fluent: Set['up.model.FNode'] = set()
         em = self._problem.env.expression_manager
         for e in event.effects:
+            evaluated_args = tuple(self._se.evaluate(a, state) for a in e.fluent.args)
+            fluent = self._problem.env.expression_manager.FluentExp(e.fluent.fluent(), evaluated_args)
             if (not e.is_conditional()) or self._se.evaluate(e.condition, state).is_true():
                 if e.is_assignment():
-                    if e.fluent in updated_values:
-                        raise UPConflictingEffectsException(f'The fluent {e.fluent} is modified by 2 assignments in the same event.')
-                    updated_values[e.fluent] = self._se.evaluate(e.value, state)
-                    assigned_fluent.add(e.fluent)
+                    if fluent in updated_values:
+                        raise UPConflictingEffectsException(f'The fluent {fluent} is modified by 2 assignments in the same event.')
+                    updated_values[fluent] = self._se.evaluate(e.value, state)
+                    assigned_fluent.add(fluent)
                 else:
-                    if e.fluent in assigned_fluent:
-                        raise UPConflictingEffectsException(f'The fluent {e.fluent} is modified by an assignment and an increase/decrease in the same event.')
+                    if fluent in assigned_fluent:
+                        raise UPConflictingEffectsException(f'The fluent {fluent} is modified by an assignment and an increase/decrease in the same event.')
                     # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
                     # otherwisee we take it's evaluation in the state as it's value.
-                    f_eval = updated_values.get(e.fluent, self._se.evaluate(e.fluent, state))
+                    f_eval = updated_values.get(fluent, self._se.evaluate(fluent, state))
                     v_eval = self._se.evaluate(e.value, state)
                     if e.is_increase():
-                        updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() + v_eval.constant_value())[0]
+                        updated_values[fluent] = em.auto_promote(f_eval.constant_value() + v_eval.constant_value())[0]
                     elif e.is_decrease():
-                        updated_values[e.fluent] = em.auto_promote(f_eval.constant_value() - v_eval.constant_value())[0]
+                        updated_values[fluent] = em.auto_promote(f_eval.constant_value() - v_eval.constant_value())[0]
                     else:
                         raise NotImplementedError
         if event.simulated_effect is not None:
             for f, v in zip(event.simulated_effect.fluents, event.simulated_effect.function(self._problem, state, {})):
                 if f in updated_values:
-                    #TODO the following exception must be UPConflictingEffectsException, defined in another PR.
-                    # When the 2 merge, resolve it.
-                    raise UPUsageError(f'The fluent {f} is modified twice in the same event.')
+                    raise UPConflictingEffectsException(f'The fluent {f} is modified twice in the same event.')
                 updated_values[f] = v
         return state.set_values(updated_values)
 
@@ -174,10 +174,6 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param parameters: the parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         '''
-        if action not in cast(up.model.Problem, self._problem).actions:
-            raise UPUsageError('The action given as parameter does not belong to the problem given to the SimulatorMixin.')
-        if len(action.parameters) != len(parameters):
-            raise UPUsageError('The parameters given action do not have the same length of the given parameters.')
         params_exp = tuple(self._problem.env.expression_manager.auto_promote(parameters))
         return self._events.get((action, tuple(params_exp)), [])
 
