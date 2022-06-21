@@ -58,7 +58,7 @@ class ParameterizedTask:
 
 class Method:
     """This is the method interface."""
-    def __init__(self, _name: str, _parameters: 'OrderedDict[str, up.model.types.Type]' = None,
+    def __init__(self, _name: str, _parameters: 'Union[OrderedDict[str, up.model.types.Type], List[Parameter]]' = None,
                  _env: Environment = None, **kwargs: 'up.model.types.Type'):
         self._env = get_env(_env)
         self._task: Optional[ParameterizedTask] = None
@@ -67,12 +67,17 @@ class Method:
         self._preconditions: List[up.model.fnode.FNode] = []
         self._constraints: List[up.model.fnode.FNode] = []
         self._subtasks: List[Subtask] = []
-        if _parameters is not None:
+        if _parameters is None:
+            for n, t in kwargs.items():
+                self._parameters[n] = Parameter(n, t, self._env)
+        elif isinstance(_parameters, List):
+            assert len(kwargs) == 0
+            for p in _parameters:
+                self._parameters[p.name] = p
+        else:
+            assert isinstance(_parameters, OrderedDict)
             assert len(kwargs) == 0
             for n, t in _parameters.items():
-                self._parameters[n] = Parameter(n, t, self._env)
-        else:
-            for n, t in kwargs.items():
                 self._parameters[n] = Parameter(n, t, self._env)
 
     def __repr__(self) -> str:

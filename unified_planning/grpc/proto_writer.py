@@ -128,6 +128,40 @@ class FNode2Protobuf(walkers.DagWalker):
             type=str(expression.object().type),
         )
 
+    def walk_timing_exp(self, expression: model.FNode,
+                        args: List[proto.Expression]) -> proto.Expression:
+        timing = expression.timing()
+        tp = timing.timepoint
+        if timing.timepoint.container is not None:
+            args = [proto.Expression(
+                atom=proto.Atom(symbol=timing.timepoint.container),
+                type="container",
+                kind=proto.ExpressionKind.Value("CONTAINER_ID")
+            )]
+        else:
+            args = []
+        if tp.kind == TimepointKind.GLOBAL_START:
+            fn = "GLOBAL_START"
+        elif tp.kind == TimepointKind.GLOBAL_END:
+            fn = "GLOBAL_END"
+        elif tp.kind == TimepointKind.START:
+            fn = "START"
+        elif tp.kind == TimepointKind.END:
+            fn = "END"
+        fn_exp = proto.Expression(
+            atom=proto.Atom(symbol=fn),
+            kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL")
+        )
+        tp_exp = proto.Expression(
+            list=[fn_exp] + args,
+            type="time",
+            kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION")
+        )
+        assert timing.delay == 0
+        return tp_exp
+
+
+
     def walk_fluent_exp(self, expression: model.FNode,
                         args: List[proto.Expression]) -> proto.Expression:
         sub_list = []
@@ -311,6 +345,7 @@ class ProtobufWriter(Converter):
             kind = proto.Timepoint.TimepointKind.Value("GLOBAL_START")
         elif tp.kind == TimepointKind.GLOBAL_END:
             kind = proto.Timepoint.TimepointKind.Value("GLOBAL_END")
+        # TODO: add handling of container
         return proto.Timepoint(kind=kind)
 
     @handles(model.Timing)
@@ -362,11 +397,46 @@ class ProtobufWriter(Converter):
             parameters=[self.convert(p) for p in task.parameters]
         )
 
+    @handles(model.htn.ParameterizedTask)
+    def _convert_parameterized_task(self, task: model.htn.ParameterizedTask) -> proto.Task:
+        parameters = []
+        for p in task.parameters:
+            parameters.append(proto.Expression(
+                atom=proto.Atom(symbol=p.name),
+                list=[],
+                kind=proto.ExpressionKind.Value("PARAMETER"),
+                type=str(p.type),
+            ))
+        return proto.Task(
+            id="",
+            task_name=task.task.name,
+            parameters=parameters
+        )
+
+    @handles(model.htn.Subtask)
+    def _convert_subtask(self, subtask: model.htn.Subtask) -> proto.Task:
+        return proto.Task(
+            id=subtask.identifier,
+            task_name=subtask.task.name,
+            parameters=[self.convert(p) for p in subtask.parameters]
+        )
+
+    @handles(model.htn.Method)
+    def _convert_method(self, method: model.htn.Method) -> proto.Method:
+        return proto.Method(
+            name=method.name,
+            parameters=[self.convert(p) for p in method.parameters],
+            achieved_task=self.convert(method.achieved_task),
+            subtasks=[self.convert(st) for st in method.subtasks],
+            constraints=[self.convert(c) for c in method.constraints],
+            conditions=[proto.Condition(cond=self.convert(c)) for c in method.preconditions]
+        )
+
     def build_hierarchy(self, problem: model.htn.HierarchicalProblem) -> proto.Hierarchy:
         return proto.Hierarchy(
             initial_task_network=None, # TODO
             abstract_tasks=[self.convert(t) for t in problem.tasks],
-            methods=[], # TODO
+            methods=[self.convert(m) for m in problem.methods],
         )
 
     @handles(model.Problem, model.htn.HierarchicalProblem)

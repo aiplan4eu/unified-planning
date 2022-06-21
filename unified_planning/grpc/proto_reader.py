@@ -152,7 +152,7 @@ class ProtobufReader(Converter):
                 raise UPException(f"Unable to form fluent expression {msg}")
         elif msg.kind == proto.ExpressionKind.Value(
             "FUNCTION_APPLICATION"
-        ):
+        ) and msg.type != "time":
             node_type = None
             args = []
             payload = None
@@ -180,6 +180,26 @@ class ProtobufReader(Converter):
                 args=tuple(args),
                 payload=payload,
             )
+        elif msg.kind == proto.ExpressionKind.Value(
+            "FUNCTION_APPLICATION"
+        ) and msg.type == "time":
+            fn = msg.list[0].atom.symbol
+            if fn == "START":
+                kd = model.TimepointKind.START
+            elif fn == "END":
+                kd = model.TimepointKind.END
+            elif fn == "GLOBAL_START":
+                kd = model.TimepointKind.GLOBAL_START
+            elif fn == "GLOBAL_END":
+                kd = model.TimepointKind.GLOBAL_END
+            else:
+                raise ValueError(f"Invalid temporal qualifier {fn}")
+            container = None
+            if len(msg.list) > 1:
+                container = msg.list[1].atom.symbol
+            tp = model.timing.Timepoint(kd, container)
+            return problem.env.expression_manager.TimingExp(model.Timing(0, tp))
+
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
@@ -281,6 +301,8 @@ class ProtobufReader(Converter):
         if msg.HasField("hierarchy"):
             for task in msg.hierarchy.abstract_tasks:
                 problem.add_task(self.convert(task, problem))
+            for method in msg.hierarchy.methods:
+                problem.add_method(self.convert(method, problem))
 
         return problem
 
@@ -291,6 +313,40 @@ class ProtobufReader(Converter):
             [self.convert(p, problem) for p in msg.parameters],
             problem.env
         )
+
+    @handles(proto.Task)
+    def _convert_task(self, msg: proto.Task, problem: model.htn.HierarchicalProblem) -> model.htn.Subtask:
+        if problem.has_task(msg.task_name):
+            task = problem.get_task(msg.task_name)
+        elif problem.has_action(msg.task_name):
+            task = problem.action(msg.task_name)
+        else:
+            raise ValueError(f"Unknown task name: {msg.task_name}")
+        parameters = [self.convert(p, problem) for p in msg.parameters]
+        return model.htn.Subtask(task, *parameters, ident=msg.id, _env=problem.env)
+
+    @handles(proto.Method)
+    def _convert_method(self, msg: proto.Method, problem: model.htn.HierarchicalProblem) -> model.htn.Method:
+        method = model.htn.Method(
+            msg.name,
+            [self.convert(p, problem) for p in msg.parameters],
+            problem.env,
+        )
+        achieved_task_params = []
+        for p in msg.achieved_task.parameters:
+            achieved_task_params.append(method.parameter(p.atom.symbol))
+        method.set_task(
+            problem.get_task(msg.achieved_task.task_name),
+            *achieved_task_params
+        )
+        for st in msg.subtasks:
+            method.add_subtask(self.convert(st, problem))
+        for c in msg.constraints:
+            method.add_constraint(self.convert(c, problem))
+        for c in msg.conditions:
+            assert not c.HasField("span"), "Timed conditions are currently unsupported."
+            method.add_precondition(self.convert(c.cond, problem))
+        return method
 
     @handles(proto.Metric)
     def _convert_metric(self, msg: proto.Metric, problem: Problem) -> Union[metrics.MinimizeActionCosts,
