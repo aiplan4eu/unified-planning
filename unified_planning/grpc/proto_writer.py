@@ -355,6 +355,20 @@ class ProtobufWriter(Converter):
             )
         )
 
+    @handles(model.htn.Task)
+    def _convert_abstract_task(self, task: model.htn.Task) -> proto.AbstractTaskDeclaration:
+        return proto.AbstractTaskDeclaration(
+            name=task.name,
+            parameters=[self.convert(p) for p in task.parameters]
+        )
+
+    def build_hierarchy(self, problem: model.htn.HierarchicalProblem) -> proto.Hierarchy:
+        return proto.Hierarchy(
+            initial_task_network=None, # TODO
+            abstract_tasks=[self.convert(t) for t in problem.tasks],
+            methods=[], # TODO
+        )
+
     @handles(model.Problem, model.htn.HierarchicalProblem)
     def _convert_problem(self, problem: model.Problem) -> proto.Problem:
         goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
@@ -365,6 +379,9 @@ class ProtobufWriter(Converter):
             ]
 
         problem_name = str(problem.name) if problem.name is not None else ""
+        hierarchy = None
+        if isinstance(problem, model.htn.HierarchicalProblem):
+            hierarchy = self.build_hierarchy(problem)
 
         return proto.Problem(
             domain_name=problem_name + "_domain",
@@ -383,6 +400,7 @@ class ProtobufWriter(Converter):
             goals=goals,
             features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
+            hierarchy=hierarchy,
         )
 
     @handles(model.metrics.MinimizeActionCosts)

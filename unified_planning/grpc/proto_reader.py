@@ -231,7 +231,12 @@ class ProtobufReader(Converter):
 
     @handles(proto.Problem)
     def _convert_problem(self, msg: proto.Problem, env: Optional[Environment] = None) -> Problem:
-        problem = Problem(name=msg.problem_name, env=env)
+        problem_name = str(msg.problem_name) if str(msg.problem_name) != "" else None
+        if msg.HasField("hierarchy"):
+            problem = model.htn.HierarchicalProblem(name=problem_name, env=env)
+        else:
+            problem = Problem(name=problem_name, env=env)
+
 
         for t in msg.types:
             problem._add_user_type(self.convert(t, problem))
@@ -273,7 +278,19 @@ class ProtobufReader(Converter):
         for metric in msg.metrics:
             problem.add_quality_metric(self.convert(metric, problem))
 
+        if msg.HasField("hierarchy"):
+            for task in msg.hierarchy.abstract_tasks:
+                problem.add_task(self.convert(task, problem))
+
         return problem
+
+    @handles(proto.AbstractTaskDeclaration)
+    def _convert_abstract_task(self, msg: proto.AbstractTaskDeclaration, problem: Problem):
+        return model.htn.Task(
+            msg.name,
+            [self.convert(p, problem) for p in msg.parameters],
+            problem.env
+        )
 
     @handles(proto.Metric)
     def _convert_metric(self, msg: proto.Metric, problem: Problem) -> Union[metrics.MinimizeActionCosts,
