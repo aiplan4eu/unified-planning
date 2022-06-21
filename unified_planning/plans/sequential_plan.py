@@ -75,7 +75,7 @@ class SequentialPlan(plans.plan.Plan):
             new_env = new_ai[0].action.env
         return SequentialPlan(new_ai, new_env)
 
-    def to_partial_order_plan(self, problem: 'up.model.objects_set.ObjectsSetMixin') -> 'up.plans.partial_order_plan.PartialOrderPlan':
+    def to_partial_order_plan(self, problem: 'up.model.mixins.ObjectsSetMixin') -> 'up.plans.partial_order_plan.PartialOrderPlan':
         '''Returns the PartialOrderPlan version of this SequentialPlan.
 
         This is done by keeping the ordering constraints, given by the SequentialPlan, between 2 ActionInstances

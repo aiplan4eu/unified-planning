@@ -66,6 +66,11 @@ class FluentsSetMixin:
                 return True
         return False
 
+    def add_fluents(self, fluents: List['up.model.fluent.Fluent']):
+        """Adds the given fluents."""
+        for fluent in fluents:
+            self.add_fluent(fluent)
+
     def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str],
                    typename: 'up.model.types.Type' = None, *,
                    default_initial_value: 'ConstantExpression' = None,

@@ -105,3 +105,8 @@ class ActionsSetMixin:
         for param in action.parameters:
             if param.type.is_user_type():
                 self._add_user_type_method(param.type)
+
+    def add_actions(self, actions: List['up.model.action.Action']):
+        '''Adds the given actions.'''
+        for action in actions:
+            self.add_action(action)
