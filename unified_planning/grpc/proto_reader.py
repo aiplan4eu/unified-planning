@@ -303,6 +303,7 @@ class ProtobufReader(Converter):
                 problem.add_task(self.convert(task, problem))
             for method in msg.hierarchy.methods:
                 problem.add_method(self.convert(method, problem))
+            problem._initial_task_network = self.convert(msg.hierarchy.initial_task_network, problem)
 
         return problem
 
@@ -347,6 +348,18 @@ class ProtobufReader(Converter):
             assert not c.HasField("span"), "Timed conditions are currently unsupported."
             method.add_precondition(self.convert(c.cond, problem))
         return method
+
+    @handles(proto.TaskNetwork)
+    def _convert_task_network(self, msg: proto.TaskNetwork, problem: model.htn.HierarchicalProblem) -> model.htn.TaskNetwork:
+        tn = model.htn.TaskNetwork(problem.env)
+        for v in msg.variables:
+            tn.add_variable(v.name, convert_type_str(v.type, problem))
+        for st in msg.subtasks:
+            tn.add_subtask(self.convert(st, problem))
+        for c in msg.constraints:
+            tn.add_constraint(self.convert(c, problem))
+
+        return tn
 
     @handles(proto.Metric)
     def _convert_metric(self, msg: proto.Metric, problem: Problem) -> Union[metrics.MinimizeActionCosts,

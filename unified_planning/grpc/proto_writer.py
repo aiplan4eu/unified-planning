@@ -432,9 +432,17 @@ class ProtobufWriter(Converter):
             conditions=[proto.Condition(cond=self.convert(c)) for c in method.preconditions]
         )
 
+    @handles(model.htn.TaskNetwork)
+    def _convert_task_network(self, tn: model.htn.TaskNetwork) -> proto.TaskNetwork:
+        return proto.TaskNetwork(
+            variables=[self.convert(v) for v in tn.variables],
+            subtasks=[self.convert(st) for st in tn.subtasks],
+            constraints=[self.convert(c) for c in tn.constraints]
+        )
+
     def build_hierarchy(self, problem: model.htn.HierarchicalProblem) -> proto.Hierarchy:
         return proto.Hierarchy(
-            initial_task_network=None, # TODO
+            initial_task_network=self.convert(problem.task_network),
             abstract_tasks=[self.convert(t) for t in problem.tasks],
             methods=[self.convert(m) for m in problem.methods],
         )
