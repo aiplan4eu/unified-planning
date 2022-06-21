@@ -45,6 +45,16 @@ DEFAULT_ENGINES = {
     'up_grounder' : ('unified_planning.engines.compilers.grounder', 'Grounder')
 }
 
+DEFAULT_ENGINES_PREFERENCE_LIST = [
+    'fast-downward', 'fast-downward-opt', 'pyperplan', 'enhsp', 'enhsp-opt', 'tamer',
+    'sequential_plan_validator',
+    'up_conditional_effects_remover',
+    'up_disjunctive_conditions_remover',
+    'up_negative_conditions_remover',
+    'up_quantifiers_remover',
+    'tarski_grounder', 'up_grounder'
+]
+
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:
     row_template = '|'
@@ -61,20 +71,47 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
 
 
 class Factory:
-    def __init__(self, env: 'Environment', engines: Dict[str, Tuple[str, str]] = DEFAULT_ENGINES):
+    def __init__(self, env: 'Environment'):
         self._env = env
-        self.engines: Dict[str, Type['up.engines.engine.Engine']] = {}
+        self._engines: Dict[str, Type['up.engines.engine.Engine']] = {}
         self._credit_disclaimer_printed = False
-        for name, (module_name, class_name) in engines.items():
+        for name, (module_name, class_name) in DEFAULT_ENGINES.items():
             try:
-                self.add_engine(name, module_name, class_name)
+                self._add_engine(name, module_name, class_name)
             except ImportError:
                 pass
+        self._preference_list = []
+        for name in DEFAULT_ENGINES_PREFERENCE_LIST:
+            if name in self._engines:
+                self._preference_list.append(name)
+
+    @property
+    def engines(self) -> List[str]:
+        return list(self._engines.keys())
+
+    @property
+    def preference_list(self) -> List[str]:
+        return self._preference_list
+
+    @preference_list.setter
+    def preference_list(self, preference_list: List[str]):
+        """Defines the order in which to pick the engines.
+        The list is not required to contain all the engines. It is
+        possible to define a subsets of the engines, or even just
+        one. The impact of this, is that the engine will never be
+        selected automatically. Note, however, that the engine can
+        still be selected by calling it by name.
+        """
+        self._preference_list = preference_list
 
     def add_engine(self, name: str, module_name: str, class_name: str):
+        self._add_engine(name, module_name, class_name)
+        self._preference_list.append(name)
+
+    def _add_engine(self, name: str, module_name: str, class_name: str):
         module = importlib.import_module(module_name)
         EngineImpl = getattr(module, class_name)
-        self.engines[name] = EngineImpl
+        self._engines[name] = EngineImpl
 
     def _get_engine_class(self, engine_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind(),
@@ -82,15 +119,16 @@ class Factory:
                           compilation_kind: Optional['CompilationKind'] = None,
                           plan_kind: Optional['PlanKind'] = None) -> Type['up.engines.engine.Engine']:
         if name is not None:
-            if name in self.engines:
-                return self.engines[name]
+            if name in self._engines:
+                return self._engines[name]
             else:
                 raise up.exceptions.UPNoRequestedEngineAvailableException
         problem_features = list(problem_kind.features)
         planners_features = []
-        for name, EngineClass in self.engines.items():
-            # Make sure that optimality guarantees and compilation kind are mutually exclusive
-            assert optimality_guarantee is None or compilation_kind is None
+        # Make sure that optimality guarantees and compilation kind are mutually exclusive
+        assert optimality_guarantee is None or compilation_kind is None
+        for name in self._preference_list:
+            EngineClass = self._engines[name]
             if getattr(EngineClass, 'is_'+engine_kind)():
                 assert optimality_guarantee is None or issubclass(EngineClass, OneshotPlannerMixin)
                 assert compilation_kind is None or issubclass(EngineClass, CompilerMixin)
@@ -281,7 +319,7 @@ class Factory:
 
     def print_engines_info(self, stream: IO[str] = sys.stdout, full_credits: bool = True):
         stream.write('These are the engines currently available:\n')
-        for Engine in self.engines.values():
+        for Engine in self._engines.values():
             credits = Engine.get_credits()
             if credits is not None:
                 stream.write('---------------------------------------\n')
