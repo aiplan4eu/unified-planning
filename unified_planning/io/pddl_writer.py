@@ -16,6 +16,7 @@
 
 from fractions import Fraction
 import sys
+import re
 
 from decimal import Decimal, localcontext
 from warnings import warn
@@ -23,12 +24,21 @@ from warnings import warn
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
-from unified_planning.model import DurativeAction
+from unified_planning.model import InstantaneousAction, DurativeAction, Fluent, Parameter, Problem, Object
 from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
-from typing import IO, List, cast
+from unified_planning.model.types import _UserType
+from typing import Callable, Dict, IO, List, Union, cast
 from io import StringIO
 from functools import reduce
+
+PDDL_KEYWORDS = {'domain', 'types', 'problem', 'objects', 'predicates', 'functions', 'precondition', 'effect',
+                 'when', 'increse', 'decrease', 'define', 'or', 'and', 'not', 'imply', 'exists', 'forall',
+                 'imply'}
+#TODO Fill this set
+
+# The following map is used to mangle the invalid names by their class.
+INITIAL_LETTER: Dict[type, str] = {InstantaneousAction: 'a', DurativeAction: 'a', Fluent: 'f', Parameter: 'p', Problem: 'p', Object: 'o'}
 
 
 class ConverterToPDDLString(walkers.DagWalker):
@@ -36,8 +46,9 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     DECIMAL_PRECISION = 10 # Number of decimal places to print real constants
 
-    def __init__(self, env: 'up.environment.Environment'):
+    def __init__(self, env: 'up.environment.Environment', get_mangled_name: Callable[[Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object']], str]):
         walkers.DagWalker.__init__(self)
+        self.get_mangled_name = get_mangled_name
         self.simplifier = env.simplifier
 
     def convert(self, expression):
@@ -46,17 +57,17 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{v.name} - {str(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"?{_get_pddl_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{v.name} - {str(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"?{_get_pddl_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
-        return f'?{expression.variable().name}'
+        return f'?{_get_pddl_name(expression.variable())}'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -80,17 +91,17 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        return f'({fluent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
+        return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'?{p.name}'
+        return f'?{_get_pddl_name(p)}'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
         o = expression.object()
-        return f'{o.name}'
+        return f'{self.get_mangled_name(o)}'
 
     def walk_bool_constant(self, expression, args):
         raise up.exceptions.UPUnreachableCodeError
@@ -146,11 +157,11 @@ class PDDLWriter:
     def __init__(self, problem: 'up.model.Problem', needs_requirements: bool = True):
         self.problem = problem
         self.needs_requirements = needs_requirements
-        self.object_freshname = 'object'
-
-    def _type_name_or_object_freshname(self, type: 'unified_planning.model.Type') -> str:
-        type = cast(UT, type)
-        return type.name if type.name != "object" else self.object_freshname
+        # otn represents the old to new renamings
+        self.otn_renamings: Dict[str, str] = {}
+        # nto represents the new to old renamings
+        self.nto_renamings: Dict[str, str] = {}
+        # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
 
     def _write_domain(self, out: IO[str]):
         problem_kind = self.problem.kind
@@ -162,7 +173,7 @@ class PDDLWriter:
         if self.problem.name is None:
             name = 'pddl'
         else:
-            name = f'{self.problem.name}'
+            name = _get_pddl_name(self.problem)
         out.write(f'(domain {name}-domain)\n')
 
         if self.needs_requirements:
@@ -194,23 +205,25 @@ class PDDLWriter:
                 out.write(' :action-costs')
             out.write(')\n')
 
-
         if problem_kind.has_hierarchical_typing():
-            while self.problem.has_type(self.object_freshname):
-                self.object_freshname = self.object_freshname + '_'
+            object_freshname = 'object'
+            while self.problem.has_type(object_freshname):
+                object_freshname = object_freshname + '_'
+            self.otn_renamings['object'] = object_freshname
+            self.nto_renamings[object_freshname] = 'object'
             user_types_hierarchy = self.problem.user_types_hierarchy
             out.write(f' (:types\n')
             stack: List['unified_planning.model.Type'] = user_types_hierarchy[None] if None in user_types_hierarchy else []
-            out.write(f'    {" ".join(self._type_name_or_object_freshname(t) for t in stack)} - object\n')
+            out.write(f'    {" ".join(self._get_mangled_name(t) for t in stack)} - object\n')
             while stack:
                 current_type = stack.pop()
                 direct_sons: List['unified_planning.model.Type'] = user_types_hierarchy[current_type]
                 if direct_sons:
                     stack.extend(direct_sons)
-                    out.write(f'    {" ".join([self._type_name_or_object_freshname(t) for t in direct_sons])} - {self._type_name_or_object_freshname(current_type)}\n')
+                    out.write(f'    {" ".join([self._get_mangled_name(t) for t in direct_sons])} - {self._get_mangled_name(current_type)}\n')
             out.write(' )\n')
         else:
-            out.write(f' (:types {" ".join([cast(UT, t).name for t in self.problem.user_types])})\n' if len(self.problem.user_types) > 0 else '')
+            out.write(f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])})\n' if len(self.problem.user_types) > 0 else '')
 
         predicates = []
         functions = []
@@ -220,21 +233,21 @@ class PDDLWriter:
                 i = 0
                 for param in f.signature:
                     if param.type.is_user_type():
-                        params.append(f' ?{param.name} - {self._type_name_or_object_freshname(param.type)}')
+                        params.append(f' ?{_get_pddl_name(param)} - {self._get_mangled_name(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
-                predicates.append(f'({f.name}{"".join(params)})')
+                predicates.append(f'({self._get_mangled_name(f)}{"".join(params)})')
             elif f.type.is_int_type() or f.type.is_real_type():
                 params = []
                 i = 0
                 for param in f.signature:
                     if param.type.is_user_type():
-                        params.append(f' ?{param.name} - {self._type_name_or_object_freshname(param.type)}')
+                        params.append(f' ?{_get_pddl_name(param)} - {self._get_mangled_name(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
-                functions.append(f'({f.name}{"".join(params)})')
+                functions.append(f'({self._get_mangled_name(f)}{"".join(params)})')
             else:
                 raise UPTypeError('PDDL supports only boolean and numerical fluents')
         if (self.problem.kind.has_actions_cost() or
@@ -243,7 +256,7 @@ class PDDLWriter:
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
 
-        converter = ConverterToPDDLString(self.problem.env)
+        converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
         costs = {}
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
@@ -258,11 +271,11 @@ class PDDLWriter:
             raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
-                out.write(f' (:action {a.name}')
+                out.write(f' (:action {self._get_mangled_name(a)}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters:
                     if ap.type.is_user_type():
-                        out.write(f' ?{ap.name} - {self._type_name_or_object_freshname(ap.type)}')
+                        out.write(f' ?{_get_pddl_name(ap)} - {self._get_mangled_name(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -291,11 +304,11 @@ class PDDLWriter:
                     out.write(')')
                 out.write(')\n')
             elif isinstance(a, DurativeAction):
-                out.write(f' (:durative-action {a.name}')
+                out.write(f' (:durative-action {self._get_mangled_name(a)}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters:
                     if ap.type.is_user_type():
-                        out.write(f' ?{ap.name} - {self._type_name_or_object_freshname(ap.type)}')
+                        out.write(f' ?{_get_pddl_name(ap)} - {self._get_mangled_name(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -364,17 +377,17 @@ class PDDLWriter:
         if self.problem.name is None:
             name = 'pddl'
         else:
-            name = f'{self.problem.name}'
+            name = _get_pddl_name(self.problem)
         out.write(f'(define (problem {name}-problem)\n')
         out.write(f' (:domain {name}-domain)\n')
         if len(self.problem.user_types) > 0:
-            out.write(' (:objects ')
+            out.write(' (:objects')
             for t in self.problem.user_types:
                 objects = [o for o in self.problem.all_objects if o.type == t]
                 if len(objects) > 0:
-                    out.write(f'\n   {" ".join([o.name for o in objects])} - {self._type_name_or_object_freshname(t)}')
+                    out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}')
             out.write('\n )\n')
-        converter = ConverterToPDDLString(self.problem.env)
+        converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
         out.write(' (:init')
         for f, v in self.problem.initial_values.items():
             if v.is_true():
@@ -436,3 +449,50 @@ class PDDLWriter:
         '''Dumps to file the PDDL problem.'''
         with open(filename, 'w') as f:
             self._write_problem(f)
+
+    def _get_mangled_name(self, item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object']) -> str:
+        '''This function returns a valid and unique PDDL name.'''
+        if isinstance(item, up.model.Type):
+            assert item.is_user_type()
+            original_name = cast(_UserType, item).name
+        else:
+            original_name = item.name
+        # If we already encountered this name, return it
+        if original_name in self.otn_renamings:
+            return self.otn_renamings[original_name]
+        tmp_name = _get_pddl_name(item)
+        # if the pddl valid name is the same of the original one, it can be returned
+        if tmp_name == original_name:
+            new_name = tmp_name
+        else:
+            count = 0
+            new_name = tmp_name
+            while self.problem.has_name(new_name) or new_name in self.nto_renamings:
+                new_name = f'{tmp_name}_{count}'
+                count += 1
+        assert new_name not in self.nto_renamings and new_name not in self.otn_renamings.values()
+        self.otn_renamings[original_name] = new_name
+        self.nto_renamings[new_name] = original_name
+        return new_name
+
+    def get_renamings(self) -> Dict[str, str]:
+        '''
+        This method returns the map in which every key is the name of the object/fluent/action/type chosen for the pddl printing
+        and the associated value is the original name in the unified_planning Problem.
+
+        :return: a map where every key is the name chosen for the pddl and every value is the original name.'''
+        return self.nto_renamings
+
+def _get_pddl_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable', 'up.model.Problem']) -> str:
+    '''This function returns a pddl name for the chosen item'''
+    name = item.name # type: ignore
+    assert name is not None
+    name = name.lower()
+    regex = re.compile(r'^[a-zA-Z]+.*')
+    if re.match(regex, name) is None: # If the name does not start with an alphabetic char, we make it start with one.
+        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
+
+    name = re.sub('[^0-9a-zA-Z_]', '_', name) #Substitute non-valid elements with "_"
+    while name in PDDL_KEYWORDS: # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
+        name = f'{name}_'
+    return name
