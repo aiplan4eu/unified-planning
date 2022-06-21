@@ -378,6 +378,14 @@ message TaskNetwork {
     repeated Expression constraints = 3;
 }
 
+// Represents the hierarchical part of a problem.
+// features: hierarchical
+message Hierarchy {
+    TaskNetwork initial_task_network = 12;
+    repeated AbstractTaskDeclaration abstract_tasks = 13;
+    repeated Method methods = 14;
+}
+
 
 
 // ============== Problem =========================
@@ -476,10 +484,9 @@ message Problem {
     repeated Metric metrics = 11;
 
 
-    // features: hierarchies
-    TaskNetwork initial_task_network = 12;
-    repeated AbstractTaskDeclaration abstract_tasks = 13;
-    repeated Method methods = 14;
+    // If the problem is hierarchical, defines the tasks and methods as well as the initial task network.
+    // features: hierarchical
+    Hierarchy hierarchy = 12;
 
 }
 
