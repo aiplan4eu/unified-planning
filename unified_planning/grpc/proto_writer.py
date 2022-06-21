@@ -355,7 +355,7 @@ class ProtobufWriter(Converter):
             )
         )
 
-    @handles(model.Problem)
+    @handles(model.Problem, model.htn.HierarchicalProblem)
     def _convert_problem(self, problem: model.Problem) -> proto.Problem:
         goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
         for (t, gs) in problem.timed_goals:
@@ -364,9 +364,11 @@ class ProtobufWriter(Converter):
                 for g in gs
             ]
 
+        problem_name = str(problem.name) if problem.name is not None else ""
+
         return proto.Problem(
-            domain_name=str(problem.name + "_domain"),
-            problem_name=problem.name,
+            domain_name=problem_name + "_domain",
+            problem_name=problem_name,
             types=[self.convert(t) for t in problem.user_types],
             fluents=[self.convert(f, problem) for f in problem.fluents],
             objects=[self.convert(o) for o in problem.all_objects],

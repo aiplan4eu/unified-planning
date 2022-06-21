@@ -488,6 +488,7 @@ message Problem {
 enum Feature {
     // PROBLEM_CLASS
     ACTION_BASED = 0;
+    HIERARCHICAL = 26;
     // TIME
     CONTINUOUS_TIME = 1;
     DISCRETE_TIME = 2;
