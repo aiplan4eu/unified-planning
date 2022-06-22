@@ -73,7 +73,8 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
     return '\n'.join(rows_str)
 
 
-def get_possible_config_locations():
+def get_possible_config_locations() -> List[str]:
+    """Returns all the possible location of the configuration file."""
     home = os.path.expanduser('~')
     files = []
     stack = inspect.stack()
@@ -86,8 +87,25 @@ def get_possible_config_locations():
     return files
 
 
-def configure_factory(factory):
-    """Reads a configuration file and configures the factory."""
+def configure_factory(factory: Factory):
+    """
+    Reads a configuration file and configures the factory.
+
+    The following is an example of configuration file:
+
+
+    [global]
+    engine_preference_list: fast-downward fast-downward-opt enhsp enhsp-opt tamer
+
+    [engine <engine-name>]
+    module_name: <module-name>
+    class_name: <class-name>
+
+
+    The configuration is read from the first up.ini file located in any of the
+    parent directories from which this code was called or, otherwise, from one
+    of the following files: ~/.uprc, ~/up.ini.
+    """
     config = configparser.ConfigParser()
     files = get_possible_config_locations()
     config.read(files)
