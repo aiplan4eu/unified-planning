@@ -31,6 +31,7 @@ class TestPythonWriter(TestCase):
             _locals = {}
             exec(pw.write_problem_code(), {}, _locals)
             self.assertEqual(original_problem, _locals['problem'])
+            self.assertEqual(hash(original_problem), hash(_locals['problem']))
 
     def test_ad_hoc_1(self):
         xd = Fluent('x-$')

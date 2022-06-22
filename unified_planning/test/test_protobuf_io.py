@@ -273,6 +273,7 @@ class TestProtobufProblems(TestCase):
             problem_up = self.pb_reader.convert(problem_pb)
 
             self.assertEqual(problem, problem_up)
+            self.assertEqual(hash(problem), hash(problem_up))
 
     def test_all_plans(self):
         for name, example in self.problems.items():
@@ -282,6 +283,7 @@ class TestProtobufProblems(TestCase):
             plan_up = self.pb_reader.convert(plan_pb, problem)
 
             self.assertEqual(plan, plan_up)
+            self.assertEqual(hash(plan), hash(plan_up))
 
     @skipIfEngineNotAvailable("tamer")
     def test_some_plan_generations(self):
