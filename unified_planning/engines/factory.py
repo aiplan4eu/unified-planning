@@ -87,7 +87,7 @@ def get_possible_config_locations() -> List[str]:
     return files
 
 
-def configure_factory(factory: Factory):
+def configure_factory(factory: 'Factory'):
     """
     Reads a configuration file and configures the factory.
 
@@ -214,7 +214,7 @@ class Factory:
             header = ['Engine'] + problem_features
             if optimality_guarantee is not None:
                 header.append('OPTIMALITY_GUARANTEE')
-                msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
+            msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
         elif compilation_kind is not None:
             msg = f'No available engine supports {compilation_kind}'
         elif plan_kind is not None:
