@@ -16,7 +16,9 @@
 
 import importlib
 import sys
+import os
 import inspect
+import configparser
 import unified_planning as up
 from unified_planning.environment import Environment
 from unified_planning.model import ProblemKind
@@ -48,6 +50,7 @@ DEFAULT_ENGINES = {
 DEFAULT_ENGINES_PREFERENCE_LIST = [
     'fast-downward', 'fast-downward-opt', 'pyperplan', 'enhsp', 'enhsp-opt', 'tamer',
     'sequential_plan_validator',
+    'sequential_simulator',
     'up_conditional_effects_remover',
     'up_disjunctive_conditions_remover',
     'up_negative_conditions_remover',
@@ -70,6 +73,50 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
     return '\n'.join(rows_str)
 
 
+def get_possible_config_locations():
+    home = os.path.expanduser('~')
+    files = []
+    stack = inspect.stack()
+    p = os.path.dirname(os.path.abspath(stack[-1].filename))
+    while os.path.join(p, 'up.ini') not in files:
+        files.append(os.path.join(p, 'up.ini'))
+        p = os.path.abspath(os.path.join(p, os.pardir))
+    files.append(os.path.join(home, '.uprc'))
+    files.append(os.path.join(home, 'up.ini'))
+    return files
+
+
+def configure_factory(factory):
+    """Reads a configuration file and configures the factory."""
+    config = configparser.ConfigParser()
+    files = get_possible_config_locations()
+    config.read(files)
+
+    new_engine_sections = [s for s in config.sections()
+                           if s.lower().startswith("engine ")]
+
+    for s in new_engine_sections:
+        name = s[len("engine "):]
+
+        module_name = config.get(s, "module_name")
+        assert module_name is not None, ("Missing 'module_name' value in definition"
+                                         "of '%s' engine" % name)
+
+        class_name = config.get(s, "class_name")
+        assert class_name is not None, ("Missing 'class_name' value in definition"
+                                        "of '%s' engine" % name)
+
+        factory.add_engine(name, module_name, class_name)
+
+
+    if "global" in config.sections():
+        pref_list = config.get("global", "engine_preference_list")
+
+        if pref_list is not None:
+            prefs = pref_list.split()
+            factory.preference_list = [e for e in prefs if e in factory.engines]
+
+
 class Factory:
     def __init__(self, env: 'Environment'):
         self._env = env
@@ -84,6 +131,7 @@ class Factory:
         for name in DEFAULT_ENGINES_PREFERENCE_LIST:
             if name in self._engines:
                 self._preference_list.append(name)
+        configure_factory(self)
 
     @property
     def engines(self) -> List[str]:
