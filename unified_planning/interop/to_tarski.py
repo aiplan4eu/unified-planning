@@ -22,7 +22,7 @@ import unified_planning.model
 import unified_planning.walkers as walkers
 from unified_planning.model.types import _UserType as UT, _IntType as IT, _RealType as RT
 
-import tarski # type: ignore
+import tarski
 
 class TarskiFormulaConverter(walkers.DagWalker):
     def __init__(self, language: 'tarski.fol.FirstOrderLanguage', env, object_freshname: str) -> None:

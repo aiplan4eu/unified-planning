@@ -16,9 +16,8 @@
 
 
 import shutil
-from functools import partial
 from typing import Optional, Tuple, Dict, List
-import tarski # type: ignore
+import tarski
 import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
@@ -27,7 +26,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.engine import Engine, Credits
 from unified_planning.engines.results import CompilerResult
 from unified_planning.engines.compilers.grounder import Grounder
-from tarski.grounding import LPGroundingStrategy # type: ignore
+from tarski.grounding import LPGroundingStrategy
 
 
 gringo = shutil.which('gringo')

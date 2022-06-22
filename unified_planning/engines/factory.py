@@ -96,12 +96,12 @@ class Factory:
                 assert compilation_kind is None or issubclass(EngineClass, CompilerMixin)
                 assert plan_kind is None or issubclass(EngineClass, PlanValidatorMixin)
                 if (EngineClass.supports(problem_kind)
-                    and (optimality_guarantee is None or EngineClass.satisfies(optimality_guarantee))
-                    and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind))
-                    and (plan_kind is None or EngineClass.supports_plan(plan_kind))):
+                    and (optimality_guarantee is None or cast(OneshotPlannerMixin, EngineClass).satisfies(optimality_guarantee))
+                    and (compilation_kind is None or cast(CompilerMixin, EngineClass).supports_compilation(compilation_kind))
+                    and (plan_kind is None or cast(PlanValidatorMixin, EngineClass).supports_plan(plan_kind))):
                     return EngineClass
-                elif ((compilation_kind is None or EngineClass.supports_compilation(compilation_kind))
-                      and (plan_kind is None or EngineClass.supports_plan(plan_kind))):
+                elif ((compilation_kind is None or cast(CompilerMixin, EngineClass).supports_compilation(compilation_kind))
+                      and (plan_kind is None or cast(PlanValidatorMixin, EngineClass).supports_plan(plan_kind))):
                     x = [name] + [str(EngineClass.supports(ProblemKind({f}))) for f in problem_features]
                     if optimality_guarantee is not None:
                         x.append(str(cast(Type[OneshotPlannerMixin], EngineClass).satisfies(optimality_guarantee)))

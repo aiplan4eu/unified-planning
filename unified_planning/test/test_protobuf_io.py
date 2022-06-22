@@ -19,7 +19,7 @@ from unified_planning.grpc.proto_writer import ProtobufWriter # type: ignore[att
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.engines import LogMessage, CompilationKind
-from unified_planning.engines.results import LogLevel, PlanGenerationResultStatus
+from unified_planning.engines.results import LogLevel
 from unified_planning.test import TestCase, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.plans import ActionInstance

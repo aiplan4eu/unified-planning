@@ -478,7 +478,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
     def _update_problem_kind_type(self, type: 'up.model.types.Type'):
         if type.is_user_type():
             self._kind.set_typing('FLAT_TYPING') # type: ignore
-            if type.father is not None: # type: ignore
+            if cast(up.model.types._UserType, type).father is not None:
                self._kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
         elif type.is_int_type():
             self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
