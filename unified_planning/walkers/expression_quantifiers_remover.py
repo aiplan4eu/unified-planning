@@ -19,7 +19,7 @@ import unified_planning.model
 import unified_planning.walkers as walkers
 from unified_planning.walkers.identitydag import IdentityDagWalker
 from unified_planning.model import Object, FNode, OperatorKind
-from unified_planning.model.objects_set import ObjectsSetMixin
+from unified_planning.model.mixins import ObjectsSetMixin
 from unified_planning.model.expression import Expression
 from typing import List, Dict
 from itertools import product

@@ -17,10 +17,7 @@
 
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
-from unified_planning.model.actions_set import ActionsSetMixin
-from unified_planning.model.fluents_set import FluentsSetMixin
-from unified_planning.model.objects_set import ObjectsSetMixin
-from unified_planning.model.user_types_set import UserTypesSetMixin
+from unified_planning.model.mixins import ActionsSetMixin, FluentsSetMixin, ObjectsSetMixin, UserTypesSetMixin
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
