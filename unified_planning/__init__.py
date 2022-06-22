@@ -14,9 +14,16 @@
 
 import subprocess
 import re
-from typing import Tuple, Union
+from typing import Any, Tuple, Union, TYPE_CHECKING
 
 from unified_planning.environment import Environment
+
+
+if TYPE_CHECKING:
+    # can't actually subclass Any at runtime
+    AnyBaseClass = Any
+else:
+    AnyBaseClass = object
 
 
 VERSION: Tuple[Union[int, str], ...] = (0, 4, 2)

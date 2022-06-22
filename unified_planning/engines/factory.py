@@ -137,7 +137,7 @@ class Factory:
             operation_mode_name = stack[2].function
             line = stack[3].lineno
 
-        class PaleWriter():
+        class PaleWriter(up.AnyBaseClass):
             def __init__(self, stream: IO[str]):
                 self._stream = stream
 
@@ -159,7 +159,7 @@ class Factory:
             else:
                 w.write('you are using the following planning engine:\n')
             for c in credits:
-                c.write_credits(w) # type: ignore
+                c.write_credits(w)
             w.write('\n')
 
     def _get_engine(self, engine_kind: str, name: Optional[str] = None,

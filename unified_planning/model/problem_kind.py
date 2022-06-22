@@ -14,7 +14,8 @@
 #
 
 from functools import partialmethod, total_ordering
-from typing import Any,Dict, List, Set, TYPE_CHECKING
+from typing import Dict, List, Set
+import unified_planning as up
 
 
 # TODO: This features map needs to be extended with all the problem characterizations.
@@ -49,14 +50,8 @@ class ProblemKindMeta(type):
         return obj
 
 
-if TYPE_CHECKING:
-    # can't actually subclass Any at runtime
-    AnyBaseClass = Any
-else:
-    AnyBaseClass = object
-
 @total_ordering
-class ProblemKind(AnyBaseClass, metaclass=ProblemKindMeta):
+class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
     def __init__(self, features: Set[str] = set()):
         self._features: Set[str] = set(features)
 
