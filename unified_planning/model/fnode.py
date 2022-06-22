@@ -334,3 +334,9 @@ class FNode(object):
 
     def __neg__(self):
         return get_env().expression_manager.Minus(0, self)
+
+    def Implies(self, right):
+        return get_env().expression_manager.Implies(self, right)
+
+    def Equals(self, right):
+        return get_env().expression_manager.Equals(self, right)
