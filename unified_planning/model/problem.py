@@ -420,20 +420,20 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible.'''
         self._kind = up.model.problem_kind.ProblemKind()
-        self._kind.set_problem_class('ACTION_BASED') # type: ignore
+        self._kind.set_problem_class('ACTION_BASED')
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
         for action in self._actions:
             self._update_problem_kind_action(action)
         if len(self._timed_effects) > 0:
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
-            self._kind.set_time('TIMED_EFFECT') # type: ignore
+            self._kind.set_time('CONTINUOUS_TIME')
+            self._kind.set_time('TIMED_EFFECT')
         for effect_list in self._timed_effects.values():
                 for effect in effect_list:
                     self._update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
-            self._kind.set_time('TIMED_GOALS') # type: ignore
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+            self._kind.set_time('TIMED_GOALS')
+            self._kind.set_time('CONTINUOUS_TIME')
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal)
@@ -442,13 +442,13 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         for metric in self._metrics:
             if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState) or \
                isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                self._kind.set_quality_metrics('FINAL_VALUE') # type: ignore
+                self._kind.set_quality_metrics('FINAL_VALUE')
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                self._kind.set_quality_metrics('ACTIONS_COST') # type: ignore
+                self._kind.set_quality_metrics('ACTIONS_COST')
             elif isinstance(metric, up.model.metrics.MinimizeMakespan):
-                self._kind.set_quality_metrics('MAKESPAN') # type: ignore
+                self._kind.set_quality_metrics('MAKESPAN')
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
-                self._kind.set_quality_metrics('PLAN_LENGTH') # type: ignore
+                self._kind.set_quality_metrics('PLAN_LENGTH')
             else:
                 assert False, 'Unknown quality metric'
         return self._kind
@@ -456,41 +456,41 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
     def _update_problem_kind_effect(self, e: 'up.model.effect.Effect'):
         if e.is_conditional():
             self._update_problem_kind_condition(e.condition)
-            self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+            self._kind.set_effects_kind('CONDITIONAL_EFFECTS')
         if e.is_increase():
-            self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+            self._kind.set_effects_kind('INCREASE_EFFECTS')
         elif e.is_decrease():
-            self._kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+            self._kind.set_effects_kind('DECREASE_EFFECTS')
 
     def _update_problem_kind_condition(self, exp: 'up.model.fnode.FNode'):
         ops = self._operators_extractor.get(exp)
         if OperatorKind.EQUALS in ops:
-            self._kind.set_conditions_kind('EQUALITY') # type: ignore
+            self._kind.set_conditions_kind('EQUALITY')
         if OperatorKind.NOT in ops:
-            self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind('NEGATIVE_CONDITIONS')
         if OperatorKind.OR in ops:
-            self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS')
         if OperatorKind.EXISTS in ops:
-            self._kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind('EXISTENTIAL_CONDITIONS')
         if OperatorKind.FORALL in ops:
-            self._kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind('UNIVERSAL_CONDITIONS')
 
     def _update_problem_kind_type(self, type: 'up.model.types.Type'):
         if type.is_user_type():
-            self._kind.set_typing('FLAT_TYPING') # type: ignore
+            self._kind.set_typing('FLAT_TYPING')
             if cast(up.model.types._UserType, type).father is not None:
-               self._kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
+               self._kind.set_typing('HIERARCHICAL_TYPING')
         elif type.is_int_type():
-            self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+            self._kind.set_numbers('DISCRETE_NUMBERS')
         elif type.is_real_type():
-            self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+            self._kind.set_numbers('CONTINUOUS_NUMBERS')
 
     def _update_problem_kind_fluent(self, fluent: 'up.model.fluent.Fluent'):
         self._update_problem_kind_type(fluent.type)
         if fluent.type.is_int_type() or fluent.type.is_real_type():
-            self._kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+            self._kind.set_fluents_type('NUMERIC_FLUENTS')
         elif fluent.type.is_user_type():
-            self._kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
+            self._kind.set_fluents_type('OBJECT_FLUENTS')
         for p in fluent.signature:
             self._update_problem_kind_type(p.type)
 
@@ -503,23 +503,23 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             for e in action.effects:
                 self._update_problem_kind_effect(e)
             if action.simulated_effect is not None:
-                self._kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
+                self._kind.set_simulated_entities('SIMULATED_EFFECTS')
         elif isinstance(action, up.model.action.DurativeAction):
             lower, upper = action.duration.lower, action.duration.upper
             if lower.constant_value() != upper.constant_value():
-                self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
+                self._kind.set_time('DURATION_INEQUALITIES')
             for i, lc in action.conditions.items():
                 if i.lower.delay != 0 or i.upper.delay != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS')
                 for c in lc:
                     self._update_problem_kind_condition(c)
             for t, le in action.effects.items():
                 if t.delay != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS')
                 for e in le:
                     self._update_problem_kind_effect(e)
             if len(action.simulated_effects) > 0:
-                self._kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+                self._kind.set_simulated_entities('SIMULATED_EFFECTS')
+            self._kind.set_time('CONTINUOUS_TIME')
         else:
             raise NotImplementedError

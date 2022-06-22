@@ -67,7 +67,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         minimum time as possible.'''
         self._kind = super().kind
-        self._kind.set_problem_class('HIERARCHICAL')  # type: ignore
+        self._kind.set_problem_class('HIERARCHICAL')
         return self._kind
 
     @property

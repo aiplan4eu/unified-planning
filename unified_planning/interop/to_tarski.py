@@ -150,9 +150,9 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
     tarski.fstrips.Problem representation.'''
     features: List[str] = []
     kind = problem.kind
-    if kind.has_equality(): # type: ignore
+    if kind.has_equality():
         features.append('equality')
-    if kind.has_continuous_numbers() or kind.has_discrete_numbers() or kind.has_numeric_fluents(): # type: ignore
+    if kind.has_continuous_numbers() or kind.has_discrete_numbers() or kind.has_numeric_fluents():
         features.append('arithmetic')
     object_freshname = 'object_'
     while problem.has_type(object_freshname):

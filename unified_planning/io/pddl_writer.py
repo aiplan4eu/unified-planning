@@ -154,9 +154,9 @@ class PDDLWriter:
 
     def _write_domain(self, out: IO[str]):
         problem_kind = self.problem.kind
-        if problem_kind.has_intermediate_conditions_and_effects(): # type: ignore
+        if problem_kind.has_intermediate_conditions_and_effects():
             raise UPProblemDefinitionError('PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
-        if problem_kind.has_timed_effect() or problem_kind.has_timed_goals(): # type: ignore
+        if problem_kind.has_timed_effect() or problem_kind.has_timed_goals():
             raise UPProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
         out.write('(define ')
         if self.problem.name is None:
@@ -167,35 +167,35 @@ class PDDLWriter:
 
         if self.needs_requirements:
             out.write(' (:requirements :strips')
-            if problem_kind.has_flat_typing(): # type: ignore
+            if problem_kind.has_flat_typing():
                 out.write(' :typing')
-            if problem_kind.has_negative_conditions(): # type: ignore
+            if problem_kind.has_negative_conditions():
                 out.write(' :negative-preconditions')
-            if problem_kind.has_disjunctive_conditions(): # type: ignore
+            if problem_kind.has_disjunctive_conditions():
                 out.write(' :disjunctive-preconditions')
-            if problem_kind.has_equality(): # type: ignore
+            if problem_kind.has_equality():
                 out.write(' :equality')
-            if (problem_kind.has_continuous_numbers() or # type: ignore
-                problem_kind.has_discrete_numbers()): # type: ignore
+            if (problem_kind.has_continuous_numbers() or
+                problem_kind.has_discrete_numbers()):
                 out.write(' :numeric-fluents')
-            if problem_kind.has_conditional_effects(): # type: ignore
+            if problem_kind.has_conditional_effects():
                 out.write(' :conditional-effects')
-            if problem_kind.has_existential_conditions(): # type: ignore
+            if problem_kind.has_existential_conditions():
                 out.write(' :existential-preconditions')
-            if problem_kind.has_universal_conditions(): # type: ignore
+            if problem_kind.has_universal_conditions():
                 out.write(' :universal-preconditions')
-            if (problem_kind.has_continuous_time() or # type: ignore
-                problem_kind.has_discrete_time()): # type: ignore
+            if (problem_kind.has_continuous_time() or
+                problem_kind.has_discrete_time()):
                 out.write(' :durative-actions')
-            if problem_kind.has_duration_inequalities(): # type: ignore
+            if problem_kind.has_duration_inequalities():
                 out.write(' :duration-inequalities')
-            if (self.problem.kind.has_actions_cost() or # type: ignore
-                self.problem.kind.has_plan_length()): # type: ignore
+            if (self.problem.kind.has_actions_cost() or
+                self.problem.kind.has_plan_length()):
                 out.write(' :action-costs')
             out.write(')\n')
 
 
-        if problem_kind.has_hierarchical_typing(): # type: ignore
+        if problem_kind.has_hierarchical_typing():
             while self.problem.has_type(self.object_freshname):
                 self.object_freshname = self.object_freshname + '_'
             user_types_hierarchy = self.problem.user_types_hierarchy
@@ -237,8 +237,8 @@ class PDDLWriter:
                 functions.append(f'({f.name}{"".join(params)})')
             else:
                 raise UPTypeError('PDDL supports only boolean and numerical fluents')
-        if (self.problem.kind.has_actions_cost() or # type: ignore
-            self.problem.kind.has_plan_length()): # type: ignore
+        if (self.problem.kind.has_actions_cost() or
+            self.problem.kind.has_plan_length()):
             functions.append('(total-cost)')
         out.write(f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else '')
         out.write(f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else '')
@@ -383,7 +383,7 @@ class PDDLWriter:
                 pass
             else:
                 out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
-        if self.problem.kind.has_actions_cost(): # type: ignore
+        if self.problem.kind.has_actions_cost():
             out.write(f' (= total-cost 0)')
         out.write(')\n')
         out.write(f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n')

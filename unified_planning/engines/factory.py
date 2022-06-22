@@ -159,7 +159,7 @@ class Factory:
             else:
                 w.write('you are using the following planning engine:\n')
             for c in credits:
-                c.write_credits(w) #type: ignore
+                c.write_credits(w) # type: ignore
             w.write('\n')
 
     def _get_engine(self, engine_kind: str, name: Optional[str] = None,
