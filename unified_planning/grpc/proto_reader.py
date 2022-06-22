@@ -503,28 +503,18 @@ class ProtobufReader(Converter):
 
     @handles(proto.Timepoint)
     def _convert_timepoint(self, msg: proto.Timepoint) -> model.timing.Timepoint:
-        if msg.kind == proto.Timepoint.TimepointKind.Value(
-            "GLOBAL_START"
-        ):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.GLOBAL_START
-            )
-        elif msg.kind == proto.Timepoint.TimepointKind.Value(
-            "GLOBAL_END"
-        ):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.GLOBAL_END
-            )
+        if msg.kind == proto.Timepoint.TimepointKind.Value("GLOBAL_START"):
+            kind = model.timing.TimepointKind.GLOBAL_START
+        elif msg.kind == proto.Timepoint.TimepointKind.Value("GLOBAL_END"):
+            kind = model.timing.TimepointKind.GLOBAL_END
         elif msg.kind == proto.Timepoint.TimepointKind.Value("START"):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.START,
-            )
+            kind = model.timing.TimepointKind.START
         elif msg.kind == proto.Timepoint.TimepointKind.Value("END"):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.END,
-            )
+            kind = model.timing.TimepointKind.END
         else:
             raise UPException("Unknown timepoint kind: {}".format(msg.kind))
+        container = msg.container_id if msg.container_id != "" else None
+        return model.timing.Timepoint(kind, container)
 
     @handles(proto.Plan)
     def _convert_plan(self, msg: proto.Plan, problem: Problem) -> unified_planning.plans.Plan:
@@ -540,7 +530,7 @@ class ProtobufReader(Converter):
     @handles(proto.ActionInstance)
     def _convert_action_instance(self, msg: proto.ActionInstance, problem: Problem) -> Union[Tuple[model.timing.Timing, unified_planning.plans.ActionInstance, model.timing.Duration],
                                                                                              unified_planning.plans.ActionInstance]:
-        # action instance paramaters are atoms but in UP they are FNodes
+        # action instance parameters are atoms but in UP they are FNodes
         # converting to up.model.FNode
         parameters = tuple([self.convert(param, problem) for param in msg.parameters])
 

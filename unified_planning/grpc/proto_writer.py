@@ -345,8 +345,7 @@ class ProtobufWriter(Converter):
             kind = proto.Timepoint.TimepointKind.Value("GLOBAL_START")
         elif tp.kind == TimepointKind.GLOBAL_END:
             kind = proto.Timepoint.TimepointKind.Value("GLOBAL_END")
-        # TODO: add handling of container
-        return proto.Timepoint(kind=kind)
+        return proto.Timepoint(kind=kind, container_id=tp.container)
 
     @handles(model.Timing)
     def _convert_timing(self, timing: model.Timing) -> proto.Timing:
