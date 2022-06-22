@@ -7,16 +7,15 @@ syntax = "proto3";
 // Type of expressions are represented as strings in protobuf format.
 // A type might be, e.g., "int", "bool" or "location", where the latter is a problem-specific type.
 
-// Built-in types:
-//  - "bool"
-//  - "integer"
-//  - "real"
-//  - "time"
+// Built-in types are namespaced with the `up:` prefix:
+//  - "up:bool"
+//  - "up:integer"
+//  - "up:real"
+//  - "up:time"
 //
 // Any other string (e.g. "location") refers to a symbolic type and must have been declared in the problem definition.
 
-// We can also consider restrictions to int/reals with specific syntax (e.g. "int[0,100]")
-// but we need to agree on the semantics and syntax.
+// We can also consider restrictions to int/reals with specific syntax (e.g. "up:integer[0,100]").
 
 
 // ================== Expressions ====================

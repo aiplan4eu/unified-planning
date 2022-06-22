@@ -38,57 +38,55 @@ from unified_planning.model.operators import OperatorKind
 
 
 def convert_type_str(s: str, problem: Problem) -> model.types.Type:
-    if s == "bool":
+    if s == "up:bool":
         return problem.env.type_manager.BoolType()
-    elif s == "integer":
+    elif s == "up:integer":
         return problem.env.type_manager.IntType()
-    elif "integer[" in s:
+    elif "up:integer[" in s:
         lb = int(s.split("[")[1].split(",")[0])
         ub = int(s.split(",")[1].split("]")[0])
         return problem.env.type_manager.IntType(lb, ub)
-    elif s == "real":
+    elif s == "up:real":
         return problem.env.type_manager.RealType()
-    elif "real[" in s:
+    elif "up:real[" in s:
         return problem.env.type_manager.RealType(
             lower_bound=fractions.Fraction(s.split("[")[1].split(",")[0]),
             upper_bound=fractions.Fraction(s.split(",")[1].split("]")[0]),
         )
     else:
-        if " - " in s:
-            return problem.user_type(s.split(" - ")[0])
-        else:
-            return problem.env.type_manager.UserType(s)
+        assert not s.startswith("up:"), f"Unhandled builtin type: {s}"
+        return problem.user_type(s)
 
 
 # The operators are based on SExpressions supported in PDDL.
 def op_to_node_type(op: str) -> OperatorKind:
-    if op == "+":
+    if op == "up:plus":
         return OperatorKind.PLUS
-    elif op == "-":
+    elif op == "up:minus":
         return OperatorKind.MINUS
-    elif op == "*":
+    elif op == "up:times":
         return OperatorKind.TIMES
-    elif op == "/":
+    elif op == "up:div":
         return OperatorKind.DIV
-    elif op == "=":
+    elif op == "up:equals":
         return OperatorKind.EQUALS
-    elif op == "<=":
+    elif op == "up:le":
         return OperatorKind.LE
-    elif op == "<":
+    elif op == "up:lt":
         return OperatorKind.LT
-    elif op == "and":
+    elif op == "up:and":
         return OperatorKind.AND
-    elif op == "or":
+    elif op == "up:or":
         return OperatorKind.OR
-    elif op == "not":
+    elif op == "up:not":
         return OperatorKind.NOT
-    elif op == "exists":
+    elif op == "up:exists":
         return OperatorKind.EXISTS
-    elif op == "forall":
+    elif op == "up:forall":
         return OperatorKind.FORALL
-    elif op == "implies":
+    elif op == "up:implies":
         return OperatorKind.IMPLIES
-    elif op == "iff":
+    elif op == "up:iff":
         return OperatorKind.IFF
 
     raise ValueError(f"Unknown operator `{op}`")
@@ -116,10 +114,7 @@ class ProtobufReader(Converter):
 
     @handles(proto.ObjectDeclaration)
     def _convert_object(self, msg: proto.ObjectDeclaration, problem: Problem) -> model.Object:
-        obj = model.Object(
-            msg.name, convert_type_str(msg.type, problem)
-        )
-        return obj
+        return model.Object(msg.name, convert_type_str(msg.type, problem))
 
     @handles(proto.Expression)
     def _convert_expression(self, msg: proto.Expression, problem: Problem) -> model.Expression:
@@ -152,7 +147,7 @@ class ProtobufReader(Converter):
                 raise UPException(f"Unable to form fluent expression {msg}")
         elif msg.kind == proto.ExpressionKind.Value(
             "FUNCTION_APPLICATION"
-        ) and msg.type != "time":
+        ) and msg.type != "up:time":
             node_type = None
             args = []
             payload = None
@@ -182,15 +177,15 @@ class ProtobufReader(Converter):
             )
         elif msg.kind == proto.ExpressionKind.Value(
             "FUNCTION_APPLICATION"
-        ) and msg.type == "time":
+        ) and msg.type == "up:time":
             fn = msg.list[0].atom.symbol
-            if fn == "START":
+            if fn == "up:start":
                 kd = model.TimepointKind.START
-            elif fn == "END":
+            elif fn == "up:end":
                 kd = model.TimepointKind.END
-            elif fn == "GLOBAL_START":
+            elif fn == "up:global_start":
                 kd = model.TimepointKind.GLOBAL_START
-            elif fn == "GLOBAL_END":
+            elif fn == "up:global_end":
                 kd = model.TimepointKind.GLOBAL_END
             else:
                 raise ValueError(f"Invalid temporal qualifier {fn}")
@@ -199,7 +194,6 @@ class ProtobufReader(Converter):
                 container = msg.list[1].atom.symbol
             tp = model.timing.Timepoint(kd, container)
             return problem.env.expression_manager.TimingExp(model.Timing(0, tp))
-
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
@@ -228,15 +222,15 @@ class ProtobufReader(Converter):
 
     @handles(proto.TypeDeclaration)
     def _convert_type_declaration(self, msg: proto.TypeDeclaration, problem: Problem) -> model.Type:
-        if msg.type_name == "bool":
+        if msg.type_name == "up:bool":
             return problem.env.type_manager.BoolType()
-        elif msg.type_name.startswith("integer["):
+        elif msg.type_name.startswith("up:integer["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
             return problem.env.type_manager.IntType(
                 lower_bound=int(tmp[0]) if tmp[0] != "-inf" else None,
                 upper_bound=int(tmp[1]) if tmp[1] != "inf" else None,
             )
-        elif msg.type_name.startswith("real["):
+        elif msg.type_name.startswith("up:real["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
             lower_bound = fractions.Fraction(tmp[0]) if tmp[0] != "-inf" else None
             upper_bound = fractions.Fraction(tmp[1]) if tmp[1] != "inf" else None
@@ -244,10 +238,8 @@ class ProtobufReader(Converter):
                 lower_bound=lower_bound, upper_bound=upper_bound
             )
         else:
-            parent = None
-            if msg.parent_type != "":
-                parent = problem.user_type(msg.parent_type)
-            return problem.env.type_manager.UserType(msg.type_name, parent)
+            father = problem.user_type(msg.parent_type) if msg.parent_type is not "" else None
+            return problem.env.type_manager.UserType(name=msg.type_name, father=father)
 
     @handles(proto.Problem)
     def _convert_problem(self, msg: proto.Problem, env: Optional[Environment] = None) -> Problem:
