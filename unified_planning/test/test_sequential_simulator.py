@@ -16,7 +16,7 @@
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.engines import SequentialSimulator, SimulatorMixin
-from unified_planning.model import UPRWState
+from unified_planning.model import UPCOWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from itertools import product
@@ -41,7 +41,7 @@ class TestSimulator(TestCase):
         block_1 = problem.object('block_1')
         block_2 = problem.object('block_2')
         block_3 = problem.object('block_3')
-        state = UPRWState(problem.initial_values)
+        state = UPCOWState(problem.initial_values)
         # The initial state is:
         # ts_1, block_3, block_1, block_2
         # ts_2
@@ -64,22 +64,22 @@ class TestSimulator(TestCase):
         # move(block_1, from block_2, to ts_1)
         events = simulator.get_events(move, (block_2, block_1, ts_2))
         self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPRWState, simulator.apply(events[0], state))
+        state = cast(UPCOWState, simulator.apply(events[0], state))
         self.assertIsNotNone(state) # If the state is None it means the action was not applicable
 
         events = simulator.get_events(move, (block_1, block_3, block_2))
         self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPRWState, simulator.apply(events[0], state))
+        state = cast(UPCOWState, simulator.apply(events[0], state))
         self.assertIsNotNone(state) # If the state is None it means the action was not applicable
 
         events = simulator.get_events(move, (block_3, ts_1, ts_3))
         self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPRWState, simulator.apply(events[0], state))
+        state = cast(UPCOWState, simulator.apply(events[0], state))
         self.assertIsNotNone(state) # If the state is None it means the action was not applicable
 
         events = simulator.get_events(move, (block_1, block_2, ts_1))
         self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPRWState, simulator.apply(events[0], state))
+        state = cast(UPCOWState, simulator.apply(events[0], state))
         self.assertIsNotNone(state) # If the state is None it means the action was not applicable
         # now we check that the state is what we desired
         Movable = problem.user_type('Movable')

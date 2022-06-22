@@ -56,8 +56,6 @@ class SequentialSimulator(Engine, SimulatorMixin):
     def __init__(self, problem: 'up.model.Problem'):
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
-        if not SequentialSimulator.supports(pk):
-            raise UPUsageError(f'The problem named: {problem.name} is not supported by the SequentialSimulator.')
         assert Grounder.supports(pk)
         assert isinstance(self._problem, up.model.Problem)
         grounder = Grounder()
@@ -96,14 +94,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 return False
         return True
 
-    def _apply(self, event: 'Event', state: 'up.model.RWState') -> Optional['up.model.RWState']:
+    def _apply(self, event: 'Event', state: 'up.model.COWState') -> Optional['up.model.COWState']:
         '''
-        Returns None if the event is not applicable in the given state, otherwise returns a new RWState,
+        Returns None if the event is not applicable in the given state, otherwise returns a new COWState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions to check and the effects to apply.
-        :return: None if the event is not applicable in the given state, a new RWState with some updated values
+        :return: None if the event is not applicable in the given state, a new COWState with some updated values
          if the event is applicable.
         '''
         if not self.is_applicable(event, state):
@@ -111,14 +109,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
         else:
             return self.apply_unsafe(event, state)
 
-    def _apply_unsafe(self, event: 'Event', state: 'up.model.RWState') -> 'up.model.RWState':
+    def _apply_unsafe(self, event: 'Event', state: 'up.model.COWState') -> 'up.model.COWState':
         '''
-        Returns a new RWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
+        Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
         :param state: the state where the event formulas are evaluated.
-        :param event: the event that has the informaContainertion about the effects to apply.
-        :return: A new RWState with some updated values.
+        :param event: the event that has the information about the effects to apply.
+        :return: A new COWState with some updated values.
         '''
         updated_values: Dict['up.model.FNode', 'up.model.FNode'] = {}
         assigned_fluent: Set['up.model.FNode'] = set()
@@ -150,7 +148,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 if f in updated_values:
                     raise UPConflictingEffectsException(f'The fluent {f} is modified twice in the same event.')
                 updated_values[f] = v
-        return state.set_values(updated_values)
+        return state.make_child(updated_values)
 
     def _get_applicable_events(self, state: 'up.model.ROState') -> Iterator['Event']:
         '''
@@ -174,6 +172,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param parameters: the parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         '''
+        if action not in cast(up.model.Problem, self._problem).actions:
+            raise UPUsageError('The action given as parameter does not belong to the problem given to the SequentialSimulator.')
         params_exp = tuple(self._problem.env.expression_manager.auto_promote(parameters))
         return self._events.get((action, tuple(params_exp)), [])
 

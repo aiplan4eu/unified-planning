@@ -19,7 +19,7 @@ import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
 import unified_planning.walkers as walkers
-from unified_planning.model import AbstractProblem, Problem, ProblemKind, RWState, UPRWState
+from unified_planning.model import AbstractProblem, Problem, ProblemKind, COWState, UPCOWState
 from unified_planning.engines.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
 from unified_planning.engines.sequential_simulator import SequentialSimulator, InstantaneousEvent
 from unified_planning.plans import SequentialPlan, PlanKind
@@ -72,7 +72,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         simulator = SequentialSimulator(problem)
-        current_state: 'RWState' = UPRWState(problem.initial_values)
+        current_state: 'COWState' = UPCOWState(problem.initial_values)
         count = 0 #used for better error indexing
         for ai in plan.actions:
             action = ai.action

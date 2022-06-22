@@ -31,22 +31,22 @@ class ROState:
         raise NotImplementedError
 
 
-class RWState(ROState):
-    '''This is an abstract class representing a classical Read/Write state'''
+class COWState(ROState):
+    '''This is an abstract class representing a classical Read/Copy-on-Write state'''
 
-    def set_values(self, new_values: Dict['up.model.FNode', 'up.model.FNode']) -> 'RWState':
+    def make_child(self, updated_values: Dict['up.model.FNode', 'up.model.FNode']) -> 'COWState':
         '''
-        Returns a different UPRWState in which every value in new_values.keys() is evaluated as his mapping
-        in new the new_values dict and every other value is evaluated as in self.
-        :param new_values: The dictionary that contains the values that need to be updated in the new State.
+        Returns a different COWState in which every value in updated_values.keys() is evaluated as his mapping
+        in new the updated_values dict and every other value is evaluated as in self.
+        :param updated_values: The dictionary that contains the values that need to be updated in the new State.
         :return: The new State created.
         '''
         raise NotImplementedError
 
 
-class UPRWState(RWState):
+class UPCOWState(COWState):
     '''
-    unified_planning implementation of the RWState interface.
+    unified_planning implementation of the COWState interface.
     This class has a field "MAX_ANCESTORS" set to 20.
 
     The higher this numer is, the less memory the data structure will use.
@@ -55,16 +55,19 @@ class UPRWState(RWState):
     To set your own number just extend this class and re-define the MAX_ANCESTORS value. It must be > 0
     '''
     MAX_ANCESTORS: int = 20
-    '''This class is the unified_planning implementation of the RWState interface.'''
-    def __init__(self, values: Dict['up.model.FNode', 'up.model.FNode'], father: Optional['UPRWState'] = None):
+    '''This class is the unified_planning implementation of the COWState interface.'''
+    def __init__(self, values: Dict['up.model.FNode', 'up.model.FNode'], _father: Optional['UPCOWState'] = None):
+        '''
+        Creates a new UPCOWState where the map values represents the get_value method. The parameter _father
+        is for internal use only.'''
         if type(self).MAX_ANCESTORS < 1:
-            raise UPValueError(f'The max_ancestor field of a class extending UPRWState must be > 0: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}')
-        self._father = father
+            raise UPValueError(f'The max_ancestor field of a class extending UPCOWState must be > 0: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}')
+        self._father = _father
         self._values = values
-        if father is None:
+        if _father is None:
             self._ancestors = 0
         else:
-            self._ancestors = father._ancestors + 1
+            self._ancestors = _father._ancestors + 1
 
     def __repr__(self) -> str:
         current_instance = self
@@ -91,7 +94,7 @@ class UPRWState(RWState):
         :params value: The value searched for in the state.
         :return: The set value.
         '''
-        right_instance: Optional[UPRWState] = self
+        right_instance: Optional[UPCOWState] = self
         while right_instance is not None:
             if right_instance._has_local_value(value):
                 return right_instance._values[value]
@@ -99,22 +102,22 @@ class UPRWState(RWState):
                 right_instance = right_instance._father
         raise UPUsageError(f'The state {self} does not have a value for the value {value}')
 
-    def set_values(self, new_values: Dict['up.model.FNode', 'up.model.FNode']) -> 'UPRWState':
+    def make_child(self, updated_values: Dict['up.model.FNode', 'up.model.FNode']) -> 'UPCOWState':
         '''
-        Returns a different UPRWState in which every value in new_values.keys() is evaluated as his mapping
-        in new the new_values dict and every other value is evaluated as in self.
-        :param new_values: The dictionary that contains the values that need to be updated in the new State.
+        Returns a different UPCOWState in which every value in updated_values.keys() is evaluated as his mapping
+        in new the updated_values dict and every other value is evaluated as in self.
+        :param updated_values: The dictionary that contains the values that need to be updated in the new State.
         :return: The new State created.
         '''
         # If the number of ancestors is less that the given threshold it just creates a new state with self set as the father.
         if self._ancestors < type(self).MAX_ANCESTORS:
-            return UPRWState(new_values, self)
+            return UPCOWState(updated_values, self)
         # Otherwise we retrieve every ancestor, and from the oldest to the newest we update the "complete_values" dict
         else:
-            current_element: Optional[UPRWState] = self
-            complete_values = new_values.copy()
+            current_element: Optional[UPCOWState] = self
+            complete_values = updated_values.copy()
             while current_element is not None:
                 for k, v in current_element._values.items():
                     complete_values.setdefault(k, v)
                 current_element = current_element._father
-            return UPRWState(complete_values)
+            return UPCOWState(complete_values)

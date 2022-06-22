@@ -50,6 +50,10 @@ class SimulatorMixin:
         :param problem: the problem that defines the domain in which the simulation exists.
         '''
         self._problem = problem
+        self_class = type(self)
+        assert issubclass(self_class, up.engines.engine.Engine), 'SimulatorMixin does not implement the up.engines.Engine class'
+        if not self_class.supports(problem.kind):
+            raise UPUsageError(f'The problem named: {problem.name} is not supported by the {self_class}.')
 
     def is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
         '''
@@ -64,33 +68,33 @@ class SimulatorMixin:
     def _is_applicable(self, event: 'Event', state: 'up.model.ROState') -> bool:
         raise NotImplementedError
 
-    def apply(self, event: 'Event', state: 'up.model.RWState') -> Optional['up.model.RWState']:
+    def apply(self, event: 'Event', state: 'up.model.COWState') -> Optional['up.model.COWState']:
         '''
-        Returns None if the event is not applicable in the given state, otherwise returns a new RWState,
+        Returns None if the event is not applicable in the given state, otherwise returns a new COWState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions to check and the effects to apply.
-        :return: None if the event is not applicable in the given state, a new RWState with some updated values
+        :return: None if the event is not applicable in the given state, a new COWState with some updated values
          if the event is applicable.
         '''
         return self._apply(event, state)
 
-    def _apply(self, event: 'Event', state: 'up.model.RWState') -> Optional['up.model.RWState']:
+    def _apply(self, event: 'Event', state: 'up.model.COWState') -> Optional['up.model.COWState']:
         raise NotImplementedError
 
-    def apply_unsafe(self, event: 'Event', state: 'up.model.RWState') -> 'up.model.RWState':
+    def apply_unsafe(self, event: 'Event', state: 'up.model.COWState') -> 'up.model.COWState':
         '''
-        Returns a new RWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
+        Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
         :param state: the state where the event formulas are evaluated.
         :param event: the event that has the information about the effects to apply.
-        :return: A new RWState with some updated values.
+        :return: A new COWState with some updated values.
         '''
         return self._apply_unsafe(event, state)
 
-    def _apply_unsafe(self, event: 'Event', state: 'up.model.RWState') -> 'up.model.RWState':
+    def _apply_unsafe(self, event: 'Event', state: 'up.model.COWState') -> 'up.model.COWState':
         raise NotImplementedError
 
     def get_applicable_events(self, state: 'up.model.ROState') -> Iterator['Event']:
@@ -115,8 +119,6 @@ class SimulatorMixin:
         :param parameters: the parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         '''
-        if action not in cast(up.model.Problem, self._problem).actions:
-            raise UPUsageError('The action given as parameter does not belong to the problem given to the SimulatorMixin.')
         if len(action.parameters) != len(parameters):
             raise UPUsageError('The parameters given action do not have the same length of the given parameters.')
         return self._get_events(action, parameters)
