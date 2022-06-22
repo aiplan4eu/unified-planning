@@ -297,4 +297,18 @@ def get_example_problems():
     counter = Example(problem=problem, plan=plan)
     problems['counter'] = counter
 
+    # counter to 50
+    counter = Fluent('counter', IntType(0, 100))
+    increase = InstantaneousAction('increase')
+    increase.add_increase_effect(counter, 1)
+    problem = Problem('counter_to_50')
+    problem.add_fluent(counter)
+    problem.add_action(increase)
+    problem.set_initial_value(counter, 0)
+    problem.add_goal(Equals(counter, 50))
+    # Make a plan of 50 action instances of "increase"
+    plan = up.plans.SequentialPlan([up.plans.ActionInstance(increase) for _ in range(50)])
+    counter_to_50 = Example(problem=problem, plan=plan)
+    problems['counter_to_50'] = counter_to_50
+
     return problems

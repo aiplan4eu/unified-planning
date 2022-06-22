@@ -26,13 +26,13 @@ setup(name='unified_planning',
           'grpc': ['grpcio', 'grpcio-tools', 'grpc-stubs'],
           'tarski': ['tarski[arithmetic]'],
           'pyperplan': ['up-pyperplan==0.2.0'],
-          'tamer': ['up-tamer==0.2.0'],
+          'tamer': ['up-tamer==0.2.0.4.dev1'],
           'enhsp': ['up-enhsp==0.0.5'],
           'fast-downward': ['up-fast-downward==0.0.2'],
           'engines': [
               'tarski[arithmetic]',
               'up-pyperplan==0.2.0',
-              'up-tamer==0.2.0',
+              'up-tamer==0.2.0.4.dev1',
               'up-enhsp==0.0.5',
               'up-fast-downward==0.0.2'
           ]

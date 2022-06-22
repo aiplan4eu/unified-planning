@@ -21,9 +21,9 @@ and a list of effects.
 
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
-from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError
+from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError, UPConflictingEffectsException
 from fractions import Fraction
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Set, Tuple, Union, Optional
 from collections import OrderedDict
 
 class Action:
@@ -87,6 +87,10 @@ class InstantaneousAction(Action):
         self._preconditions: List[up.model.fnode.FNode] = []
         self._effects: List[up.model.effect.Effect] = []
         self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
+        # fluent assigned is the set of the fluent that have an unconditional assignment
+        self._fluents_assigned: Set['up.model.FNode'] = set()
+        #fluent_inc_dec is the set of the fluents that have an unconditional increase or decrease
+        self._fluents_inc_dec: Set['up.model.FNode'] = set()
 
     def __repr__(self) -> str:
         s = []
@@ -139,6 +143,8 @@ class InstantaneousAction(Action):
         new_instantaneous_action = InstantaneousAction(self._name, new_params, self._env)
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
+        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
+        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
         new_instantaneous_action._simulated_effect = self._simulated_effect
         return new_instantaneous_action
 
@@ -159,6 +165,8 @@ class InstantaneousAction(Action):
     def clear_effects(self):
         """Removes all effects."""
         self._effects = []
+        self._fluents_assigned = set()
+        self._fluents_inc_dec = set()
 
     @property
     def conditional_effects(self) -> List['up.model.effect.Effect']:
@@ -226,8 +234,20 @@ class InstantaneousAction(Action):
         self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, effect: 'up.model.effect.Effect'):
-        if effect not in self._effects:
-            self._effects.append(effect)
+        if not effect.is_conditional():
+            if effect.is_assignment():
+                if effect.fluent in self._fluents_assigned or effect.fluent in self._fluents_inc_dec:
+                    raise UPConflictingEffectsException(f'The effect {effect} is in conflict with the effects already in the action.')
+                self._fluents_assigned.add(effect.fluent)
+            elif effect.is_increase() or effect.is_decrease():
+                if effect.fluent in self._fluents_assigned:
+                    raise UPConflictingEffectsException(f'The effect {effect} is in conflict with the effects already in the action.')
+                self._fluents_inc_dec.add(effect.fluent)
+            else:
+                raise NotImplementedError
+        if self._simulated_effect is not None and effect.fluent in self._simulated_effect.fluents:
+            raise UPConflictingEffectsException(f'The effect {effect} is in conflict with the simulated effects already in the action.')
+        self._effects.append(effect)
 
     @property
     def simulated_effect(self) -> Optional['up.model.effect.SimulatedEffect']:
@@ -236,6 +256,9 @@ class InstantaneousAction(Action):
 
     def set_simulated_effect(self, simulated_effect: 'up.model.effect.SimulatedEffect'):
         '''Sets the given simulated effect.'''
+        for f in simulated_effect.fluents:
+            if f in self._fluents_assigned or f in self._fluents_inc_dec:
+                raise UPConflictingEffectsException(f'The simulated effect {simulated_effect} is in conflict with the effects already in the action.')
         self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List['up.model.fnode.FNode']):
@@ -251,6 +274,8 @@ class DurativeAction(Action):
         self._conditions: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
         self._effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
         self._simulated_effects: Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffect'] = {}
+        self._fluents_assigned: Dict['up.model.timing.Timing', Set['up.model.FNode']] = {}
+        self._fluents_inc_dec: Dict['up.model.timing.Timing', Set['up.model.FNode']] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -339,6 +364,8 @@ class DurativeAction(Action):
         new_durative_action._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         new_durative_action._effects = {t : [e.clone() for e in el] for t, el in self._effects.items()}
         new_durative_action._simulated_effects = {t: se for t, se in self._simulated_effects.items()}
+        new_durative_action._fluents_assigned = {t: fs.copy() for t, fs in self._fluents_assigned.items()}
+        new_durative_action._fluents_inc_dec = {t: fs.copy() for t, fs in self._fluents_inc_dec.items()}
         return new_durative_action
 
     @property
@@ -363,6 +390,8 @@ class DurativeAction(Action):
     def clear_effects(self):
         '''Removes all effects.'''
         self._effects = {}
+        self._fluents_assigned = {}
+        self._fluents_inc_dec = {}
 
     @property
     def conditional_effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
@@ -485,11 +514,23 @@ class DurativeAction(Action):
                                          condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
-        if timing in self._effects:
-            if effect not in self._effects[timing]:
-                self._effects[timing].append(effect)
-        else:
-            self._effects[timing] = [effect]
+        fluents_assigned = self._fluents_assigned.setdefault(timing, set())
+        fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
+        simulated_effect = self._simulated_effects.get(timing, None)
+        if not effect.is_conditional():
+            if effect.is_assignment():
+                if effect.fluent in fluents_assigned or effect.fluent in fluents_inc_dec:
+                    raise UPConflictingEffectsException(f'The effect {effect} at timing {timing} is in conflict with the effects already in the action.')
+                fluents_assigned.add(effect.fluent)
+            elif effect.is_increase() or effect.is_decrease():
+                if effect.fluent in fluents_assigned:
+                    raise UPConflictingEffectsException(f'The effect {effect} at timing {timing} is in conflict with the effects already in the action.')
+                fluents_inc_dec.add(effect.fluent)
+            else:
+                raise NotImplementedError
+        if simulated_effect is not None and effect.fluent in simulated_effect.fluents:
+            raise UPConflictingEffectsException(f'The effect {effect} is in conflict with the simulated effects already in the action.')
+        self._effects.setdefault(timing, []).append(effect)
 
     @property
     def simulated_effects(self) -> Dict['up.model.timing.Timing', 'up.model.effect.SimulatedEffect']:
@@ -499,4 +540,7 @@ class DurativeAction(Action):
     def set_simulated_effect(self, timing: 'up.model.timing.Timing',
                              simulated_effect: 'up.model.effect.SimulatedEffect'):
         '''Sets the given simulated effect at the specified timing'''
+        for f in simulated_effect.fluents:
+            if f in self._fluents_assigned.get(timing, set()) or f in self._fluents_inc_dec.get(timing, set()):
+                raise UPConflictingEffectsException(f'The simulated effect {simulated_effect} is in conflict with the effects already in the action.')
         self._simulated_effects[timing] = simulated_effect

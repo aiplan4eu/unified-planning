@@ -15,10 +15,9 @@
 
 import importlib
 import sys
-import io
 import inspect
 import unified_planning as up
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment
 from unified_planning.model import ProblemKind
 from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
@@ -34,6 +33,7 @@ DEFAULT_ENGINES = {
     'enhsp-opt' : ('up_enhsp.enhsp_planner', 'ENHSPOptEngine'),
     'tamer' : ('up_tamer.engine', 'EngineImpl'),
     'sequential_plan_validator' : ('unified_planning.engines.plan_validator', 'SequentialPlanValidator'),
+    'sequential_simulator' : ('unified_planning.engines.sequential_simulator', 'SequentialSimulator'),
     'up_conditional_effects_remover' : ('unified_planning.engines.compilers.conditional_effects_remover', 'ConditionalEffectsRemover'),
     'up_disjunctive_conditions_remover' : ('unified_planning.engines.compilers.disjunctive_conditions_remover', 'DisjunctiveConditionsRemover'),
     'up_negative_conditions_remover' : ('unified_planning.engines.compilers.negative_conditions_remover', 'NegativeConditionsRemover'),
@@ -160,9 +160,11 @@ class Factory:
                     problem_kind: ProblemKind = ProblemKind(),
                     optimality_guarantee: Optional['OptimalityGuarantee'] = None,
                     compilation_kind: Optional['CompilationKind'] = None,
-                    plan_kind: Optional['PlanKind'] = None) -> 'up.engines.engine.Engine':
+                    plan_kind: Optional['PlanKind'] = None,
+                    problem: Optional['up.model.AbstractProblem'] = None) -> 'up.engines.engine.Engine':
         if names is not None:
             assert name is None
+            assert problem is None, 'Parallel simulation is not supported'
             if params is None:
                 params = [{} for i in range(len(names))]
             assert isinstance(params, List) and len(names) == len(params)
@@ -182,7 +184,14 @@ class Factory:
             EngineClass = self._get_engine_class(engine_kind, name, problem_kind, optimality_guarantee, compilation_kind, plan_kind)
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
-            return EngineClass(**params)
+            if problem is None:
+                assert engine_kind != 'simulator'
+                return EngineClass(**params)
+            else:
+                assert engine_kind == 'simulator'
+                assert issubclass(EngineClass, up.engines.engine.Engine)
+                assert issubclass(EngineClass, up.engines.mixins.simulator.SimulatorMixin)
+                return EngineClass(problem, **params)
 
     @property
     def environment(self) -> 'Environment':
@@ -236,7 +245,7 @@ class Factory:
                  problem_kind: ProblemKind = ProblemKind(),
                  compilation_kind: Optional[Union['CompilationKind', str]] = None) -> 'up.engines.engine.Engine':
         """
-        Returns a Compiler. There are three ways to call this method:
+        Returns a Compiler. There are two ways to call this method:
         - using 'name' (the name of a specific grounder) and 'params'
           (grounder dependent options).
           e.g. Compiler(name='tamer', params={'opt': 'val'})
@@ -247,6 +256,20 @@ class Factory:
             compilation_kind = CompilationKind[compilation_kind]
         return self._get_engine('compiler', name, None, params, problem_kind,
                                 compilation_kind=compilation_kind)
+
+    def Simulator(self,
+                 problem: 'up.model.AbstractProblem', *, name: Optional[str] = None,
+                 params: Union[Dict[str, str], List[Dict[str, str]]] = None) -> 'up.engines.engine.Engine':
+        """
+        Returns a Simulator. There are two ways to call this method:
+        - using 'problem_kind' through the problem field.
+          e.g. Simulator(problem)
+        - using 'name' (the name of a specific simulator) and eventually some 'params'
+          (simulator dependent options).
+          e.g. Simulator(problem, name='sequential_simulator')
+        """
+        return self._get_engine('simulator', name, None, params, problem.kind,
+                                problem = problem)
 
     def print_engines_info(self, stream: IO[str] = sys.stdout, full_credits: bool = True):
         stream.write('These are the engines currently available:\n')

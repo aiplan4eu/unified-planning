@@ -19,11 +19,11 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import UPProblemDefinitionError, UPConflictingEffectsException
 from unified_planning.model import Problem, ProblemKind
 from unified_planning.walkers import Simplifier
 from unified_planning.engines.compilers.utils import get_fresh_name, check_and_simplify_preconditions, check_and_simplify_conditions, replace_action
-from typing import Iterable, List, Dict, Tuple, Union, Optional
+from typing import Iterable, List, Dict, Tuple
 from itertools import chain, combinations
 from functools import partial
 
@@ -126,7 +126,12 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             # positive precondition
                             new_action.add_precondition(e.condition)
                             ne = up.model.Effect(e.fluent, e.value, env.expression_manager.TRUE(), e.kind)
-                            new_action._add_effect_instance(ne)
+                            # We try to add the new effect, but it might be in conflict with exising effects,
+                            # so the action is not added to the problem
+                            try:
+                                new_action._add_effect_instance(ne)
+                            except UPConflictingEffectsException:
+                                continue
                         else:
                             #negative precondition
                             new_action.add_precondition(env.expression_manager.Not(e.condition))
@@ -152,7 +157,12 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             # positive precondition
                             new_action.add_condition(t, e.condition)
                             ne = up.model.Effect(e.fluent, e.value, env.expression_manager.TRUE(), e.kind)
-                            new_action._add_effect_instance(t, ne)
+                            # We try to add the new effect, but it might be in conflict with exising effects,
+                            # so the action is not added to the problem
+                            try:
+                                new_action._add_effect_instance(t, ne)
+                            except UPConflictingEffectsException:
+                                continue
                         else:
                             #negative precondition
                             new_action.add_condition(t, env.expression_manager.Not(e.condition))
