@@ -294,11 +294,17 @@ class FNode(object):
     def __rmul__(self, left):
         return get_env().expression_manager.Times(left, self)
 
-    def __div__(self, right):
-        return get_env().expression_manager.Div(self, right)
-
     def __truediv__(self, right):
         return get_env().expression_manager.Div(self, right)
+
+    def __rtruediv__(self, left):
+        return get_env().expression_manager.Div(left, self)
+
+    def __floordiv__(self, right):
+        return get_env().expression_manager.Div(self, right)
+
+    def __rfloordiv__(self, left):
+        return get_env().expression_manager.Div(left, self)
 
     def __gt__(self, right):
         return get_env().expression_manager.GT(self, right)
@@ -312,31 +318,24 @@ class FNode(object):
     def __le__(self, right):
         return get_env().expression_manager.LE(self, right)
 
-    def __and__(self, other):
-        return get_env().expression_manager.And(self, *other)
-
-    def __rand__(self, other):
-        return get_env().expression_manager.And(*other, self)
-
-    def __or__(self, other):
-        return get_env().expression_manager.Or(self, *other)
-
-    def __ror__(self, other):
-        return get_env().expression_manager.Or(*other, self)
-
-    def __xor__(self, other):
-        em = get_env().expression_manager
-        return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
-
-    def __rxor__(self, other):
-        em = get_env().expression_manager
-        return em.And(em.Or(*other, self), em.Not(em.And(*other, self)))
-
     def __neg__(self):
         return get_env().expression_manager.Minus(0, self)
+
+    def Equals(self, right):
+        return get_env().expression_manager.Equals(self, right)
+
+    def And(self, *other):
+        return get_env().expression_manager.And(self, *other)
+
+    def Or(self, *other):
+        return get_env().expression_manager.Or(self, *other)
+
+    def Xor(self, *other):
+        em = get_env().expression_manager
+        return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
 
     def Implies(self, right):
         return get_env().expression_manager.Implies(self, right)
 
-    def Equals(self, right):
-        return get_env().expression_manager.Equals(self, right)
+    def Iff(self, right):
+        return get_env().expression_manager.Iff(self, right)
