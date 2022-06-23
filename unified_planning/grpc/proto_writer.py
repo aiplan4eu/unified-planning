@@ -14,12 +14,13 @@
 #
 # type: ignore[valid-type]
 import fractions
+from itertools import product
+from typing import List
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
-import unified_planning.model
-import unified_planning.plans
+from unified_planning import model, plans, engines
+import unified_planning.model.htn
 import unified_planning.model.walkers as walkers
-from unified_planning import model
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
@@ -30,8 +31,6 @@ from unified_planning.model.operators import (
     OperatorKind,
 )
 from unified_planning.model.timing import TimepointKind
-from itertools import product
-from typing import List
 
 
 def map_operator(op: int) -> str:
