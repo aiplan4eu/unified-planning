@@ -32,8 +32,12 @@ from typing import Callable, Dict, IO, Iterable, List, Optional, Union, cast
 from io import StringIO
 from functools import reduce
 
-PDDL_KEYWORDS = {'domain', 'types', 'problem', 'objects', 'predicates', 'functions', 'precondition', 'effect',
-                 'when', 'increse', 'decrease', 'define', 'or', 'and', 'not', 'imply', 'exists', 'forall',
+PDDL_KEYWORDS = {'define', 'domain', 'requirements', 'types', 'constants', 'atomic', 'predicates',
+                 'problem', 'atomic', 'constraints', 'either', 'number', 'action', 'parameters',
+                 'precondition', 'effect', 'and', 'forall', 'preference', 'or', 'not', 'imply',
+                 'exists', 'scale-up', 'scale-down', 'increase', 'decrease', 'durative-action', 'duration',
+                 'condition', 'at', 'over', 'start', #here 'objects',  'functions',
+                 'when', 'increse', 'decrease', 'define',
                  'imply'}
 #TODO Fill this set
 
