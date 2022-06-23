@@ -14,12 +14,11 @@
 #
 
 import unified_planning as up
-import unified_planning.model
 import unified_planning.model.htn as htn
-import pyparsing # type: ignore
+import pyparsing
 import typing
-from mimetypes import types_map
 from unified_planning.environment import Environment, get_env
+from unified_planning.model import FNode
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
@@ -29,7 +28,7 @@ if pyparsing.__version__ < '3.0.0':
     from pyparsing import oneOf as one_of
     from pyparsing import ParseResults
 else:
-    from pyparsing.results import ParseResults # type: ignore
+    from pyparsing.results import ParseResults
     from pyparsing import one_of
 
 

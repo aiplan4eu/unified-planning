@@ -15,18 +15,18 @@
 
 import unified_planning
 import itertools
-import tarski.fstrips # type: ignore
+import tarski.fstrips
 from fractions import Fraction
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.environment import Environment
 from collections import OrderedDict
-from typing import List, Optional, Union, Dict, cast
-from tarski.syntax import Interval # type: ignore
-from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom # type: ignore
-from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier # type: ignore
-from tarski.syntax.terms import Term, CompoundTerm, BuiltinPredicateSymbol # type: ignore
-from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol # type: ignore
-from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect # type: ignore
+from typing import Optional, Union, Dict, cast
+from tarski.syntax import Interval
+from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom
+from tarski.syntax.formulas import Tautology, Contradiction, QuantifiedFormula, Quantifier
+from tarski.syntax.terms import Term, CompoundTerm, BuiltinPredicateSymbol
+from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol
+from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect
 
 
 def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_planning.model.Fluent'],

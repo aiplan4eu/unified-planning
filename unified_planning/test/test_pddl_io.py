@@ -367,20 +367,21 @@ class TestPddlIO(TestCase):
 def _is_same_user_type_considering_object_renaming(original_type: unified_planning.model.Type,
                                                     tested_type: unified_planning.model.Type,
                                                     object_rename: str) -> bool:
-    if cast(_UserType, original_type).father is None: # case where original_type has no father
-        if cast(_UserType, tested_type).father is not None:
+    assert isinstance(original_type, _UserType) and isinstance(tested_type, _UserType)
+    if original_type.father is None: # case where original_type has no father
+        if tested_type.father is not None:
             return False # original_type has a father, tested_type does not.
-        if cast(_UserType, original_type).name != 'object': # fathers are both None, now we have to check the name
-            return cast(_UserType, original_type).name == cast(_UserType, tested_type).name # original_type name is not object, so it should not be renamed
+        if original_type.name != 'object': # fathers are both None, now we have to check the name
+            return original_type.name == tested_type.name # original_type name is not object, so it should not be renamed
         else:
-            return object_rename == cast(_UserType, tested_type).name # original_type name is object, so we expect it to be renamed
+            return object_rename == tested_type.name # original_type name is object, so we expect it to be renamed
     else: # case where original_type has a father
-        if cast(_UserType, tested_type).father is None:
+        if tested_type.father is None:
             return False # and tested_type has no father
-        if cast(_UserType, original_type).name != 'object': # original_type name is not object, so it should not be renamed, and both father's types are the same type
-            return cast(_UserType, original_type).name == cast(_UserType, tested_type).name and _is_same_user_type_considering_object_renaming(original_type.father, tested_type.father, object_rename) # type: ignore
+        if original_type.name != 'object': # original_type name is not object, so it should not be renamed, and both father's types are the same type
+            return original_type.name == tested_type.name and _is_same_user_type_considering_object_renaming(original_type.father, tested_type.father, object_rename)
         else: # original_type name is object, so we expect it to be renamed, and both father's types are the same type
-            return object_rename == tested_type.name and _is_same_user_type_considering_object_renaming(original_type.father, tested_type.father, object_rename) # type: ignore
+            return object_rename == tested_type.name and _is_same_user_type_considering_object_renaming(original_type.father, tested_type.father, object_rename)
 
 def _have_same_user_types_considering_object_renaming(original_problem: unified_planning.model.Problem, tested_problem: unified_planning.model.Problem, object_rename: str) -> bool:
     for original_type in original_problem.user_types:

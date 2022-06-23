@@ -14,7 +14,7 @@
 #
 
 
-import networkx as nx # type: ignore
+import networkx as nx
 import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.environment import Environment

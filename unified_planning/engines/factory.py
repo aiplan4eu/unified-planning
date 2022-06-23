@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+
 import importlib
 import sys
 import inspect
@@ -21,8 +22,10 @@ from unified_planning.environment import Environment
 from unified_planning.model import ProblemKind
 from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
-from unified_planning.engines.mixins.compiler import CompilationKind
-from typing import IO, Dict, Tuple, Optional, List, Union, Type
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
+from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
+from typing import IO, Dict, Tuple, Optional, List, Union, Type, cast
 
 
 DEFAULT_ENGINES = {
@@ -86,17 +89,22 @@ class Factory:
         problem_features = list(problem_kind.features)
         planners_features = []
         for name, EngineClass in self.engines.items():
+            # Make sure that optimality guarantees and compilation kind are mutually exclusive
+            assert optimality_guarantee is None or compilation_kind is None
             if getattr(EngineClass, 'is_'+engine_kind)():
+                assert optimality_guarantee is None or issubclass(EngineClass, OneshotPlannerMixin)
+                assert compilation_kind is None or issubclass(EngineClass, CompilerMixin)
+                assert plan_kind is None or issubclass(EngineClass, PlanValidatorMixin)
                 if (EngineClass.supports(problem_kind)
-                    and (optimality_guarantee is None or EngineClass.satisfies(optimality_guarantee)) # type: ignore
-                    and (compilation_kind is None or EngineClass.supports_compilation(compilation_kind)) # type: ignore
-                    and (plan_kind is None or EngineClass.supports_plan(plan_kind))): # type: ignore
+                    and (optimality_guarantee is None or cast(OneshotPlannerMixin, EngineClass).satisfies(optimality_guarantee))
+                    and (compilation_kind is None or cast(CompilerMixin, EngineClass).supports_compilation(compilation_kind))
+                    and (plan_kind is None or cast(PlanValidatorMixin, EngineClass).supports_plan(plan_kind))):
                     return EngineClass
-                elif ((compilation_kind is None or EngineClass.supports_compilation(compilation_kind)) # type: ignore
-                      and (plan_kind is None or EngineClass.supports_plan(plan_kind))): # type: ignore
+                elif ((compilation_kind is None or cast(CompilerMixin, EngineClass).supports_compilation(compilation_kind))
+                      and (plan_kind is None or cast(PlanValidatorMixin, EngineClass).supports_plan(plan_kind))):
                     x = [name] + [str(EngineClass.supports(ProblemKind({f}))) for f in problem_features]
                     if optimality_guarantee is not None:
-                        x.append(str(EngineClass.satisfies(optimality_guarantee))) # type: ignore
+                        x.append(str(cast(Type[OneshotPlannerMixin], EngineClass).satisfies(optimality_guarantee)))
                     planners_features.append(x)
         if len(planners_features) > 0:
             header = ['Engine'] + problem_features
@@ -129,7 +137,7 @@ class Factory:
             operation_mode_name = stack[2].function
             line = stack[3].lineno
 
-        class PaleWriter():
+        class PaleWriter(up.AnyBaseClass):
             def __init__(self, stream: IO[str]):
                 self._stream = stream
 
@@ -151,7 +159,7 @@ class Factory:
             else:
                 w.write('you are using the following planning engine:\n')
             for c in credits:
-                c.write_credits(w) #type: ignore
+                c.write_credits(w)
             w.write('\n')
 
     def _get_engine(self, engine_kind: str, name: Optional[str] = None,

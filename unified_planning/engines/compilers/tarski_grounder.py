@@ -16,9 +16,8 @@
 
 
 import shutil
-from functools import partial
 from typing import Optional, Tuple, Dict, List
-import tarski # type: ignore
+import tarski
 import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
@@ -27,7 +26,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.engine import Engine, Credits
 from unified_planning.engines.results import CompilerResult
 from unified_planning.engines.compilers.grounder import Grounder
-from tarski.grounding import LPGroundingStrategy # type: ignore
+from tarski.grounding import LPGroundingStrategy
 
 
 gringo = shutil.which('gringo')
@@ -56,15 +55,15 @@ class TarskiGrounder(Engine, CompilerMixin):
     @staticmethod
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
-        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+        supported_kind.set_problem_class('ACTION_BASED')
+        supported_kind.set_typing('FLAT_TYPING')
+        supported_kind.set_typing('HIERARCHICAL_TYPING')
+        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS')
+        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS')
+        supported_kind.set_conditions_kind('EQUALITY')
+        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS')
+        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS')
+        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS')
         return supported_kind
 
     @staticmethod

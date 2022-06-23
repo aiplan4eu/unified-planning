@@ -16,7 +16,7 @@
 
 import unified_planning
 from fractions import Fraction
-from typing import Iterator, Optional, Dict, Tuple, List, cast
+from typing import Iterator, Optional, Dict, Tuple, cast
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
@@ -76,7 +76,7 @@ class _UserType(Type):
         self._father = father
 
     def __repr__(self) -> str:
-        return self._name if self._father is None else f'{self._name} - {self._father.name}' # type: ignore
+        return self._name if self._father is None else f'{self._name} - {cast(_UserType, self._father).name}'
 
     @property
     def name(self) -> str:
@@ -196,7 +196,7 @@ class TypeManager:
             return self._user_types[(name, father)]
         else:
             if father is not None:
-                if any(ancestor.name == name for ancestor in self.user_type_ancestors(father)): # type: ignore
+                if any(cast(_UserType, ancestor).name == name for ancestor in self.user_type_ancestors(father)):
                     raise UPTypeError(f'The name: {name} is already used. A UserType and one of his ancestors can not share the name.')
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
@@ -207,10 +207,11 @@ class TypeManager:
         if not user_type.is_user_type():
             raise UPTypeError('The function user_type_ancestors can be called only on UserTypes.')
         yield user_type
-        father: Optional[Type] = user_type.father # type: ignore
+        user_type = cast(_UserType, user_type)
+        father: Optional[Type] = user_type.father
         while father is not None:
             yield father
-            father = father.father # type: ignore
+            father = cast(_UserType, father).father
 
 
 def domain_size(objects_set: 'unified_planning.model.mixins.ObjectsSetMixin',
@@ -221,8 +222,9 @@ def domain_size(objects_set: 'unified_planning.model.mixins.ObjectsSetMixin',
     elif typename.is_user_type():
         return len(list(objects_set.objects(typename)))
     elif typename.is_int_type():
-        lb = typename.lower_bound # type: ignore
-        ub = typename.upper_bound # type: ignore
+        typename = cast(_IntType, typename)
+        lb = typename.lower_bound
+        ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError('Parameter not groundable!')
         return ub - lb
@@ -237,8 +239,9 @@ def domain_item(objects_set: 'unified_planning.model.mixins.ObjectsSetMixin',
     elif typename.is_user_type():
         return objects_set.env.expression_manager.ObjectExp(list(objects_set.objects(typename))[idx])
     elif typename.is_int_type():
-        lb = typename.lower_bound # type: ignore
-        ub = typename.upper_bound # type: ignore
+        typename = cast(_IntType, typename)
+        lb = typename.lower_bound
+        ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError('Parameter not groundable!')
         return objects_set.env.expression_manager.Int(lb + idx)

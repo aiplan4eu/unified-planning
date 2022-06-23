@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import pytest
+
 import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
 from unified_planning.grpc.proto_reader import ProtobufReader # type: ignore[attr-defined]
 from unified_planning.grpc.proto_writer import ProtobufWriter # type: ignore[attr-defined]
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.engines import LogMessage, CompilationKind
-from unified_planning.engines.results import LogLevel, PlanGenerationResultStatus
+from unified_planning.engines.results import LogLevel
 from unified_planning.test import TestCase, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.plans import ActionInstance

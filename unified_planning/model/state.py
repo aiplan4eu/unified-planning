@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
 
@@ -70,11 +70,11 @@ class UPCOWState(COWState):
             self._ancestors = _father._ancestors + 1
 
     def __repr__(self) -> str:
-        current_instance = self
+        current_instance: Optional[UPCOWState] = self
         retval = []
         while current_instance is not None:
             retval.append(f'{str(current_instance._values)}')
-            current_instance = current_instance._father # type: ignore
+            current_instance = current_instance._father
         return '\n'.join(retval)
 
     def _has_local_value(self, value: 'up.model.FNode') -> bool:

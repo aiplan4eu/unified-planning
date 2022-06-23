@@ -255,7 +255,7 @@ instance when_ predicate_;
 
     @skipIfEngineNotAvailable('tamer')
     def test_with_pytamer(self):
-        import pytamer # type: ignore
+        import pytamer
         with tempfile.TemporaryDirectory() as tempdir:
             temp_file_name = os.path.join(tempdir, 'test_file.anml')
             with OneshotPlanner(name='tamer') as tamer:

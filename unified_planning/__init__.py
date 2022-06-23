@@ -14,11 +14,19 @@
 
 import subprocess
 import re
+from typing import Any, Tuple, Union, TYPE_CHECKING
 
 from unified_planning.environment import Environment
 
 
-VERSION = (0, 4, 2)
+if TYPE_CHECKING:
+    # can't actually subclass Any at runtime
+    AnyBaseClass = Any
+else:
+    AnyBaseClass = object
+
+
+VERSION: Tuple[Union[int, str], ...] = (0, 4, 2)
 __version__ = ".".join(str(x) for x in VERSION)
 
 # Try to provide human-readable version of latest commit for dev versions
@@ -45,13 +53,13 @@ try:
 
     if data[-1] == 'wip':
         if COMMITS == 0:
-            VERSION = (MAJOR, MINOR, REL, 'post', 1) #type: ignore
+            VERSION = (MAJOR, MINOR, REL, 'post', 1)
             __version__ = f'{MAJOR}.{MINOR}.{REL}.post1'
         else:
-            VERSION = (MAJOR, MINOR, REL, COMMITS, 'post', 1) #type: ignore
+            VERSION = (MAJOR, MINOR, REL, COMMITS, 'post', 1)
             __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.post1'
     else:
-        VERSION = (MAJOR, MINOR, REL, COMMITS, 'dev', 1) #type: ignore
+        VERSION = (MAJOR, MINOR, REL, COMMITS, 'dev', 1)
         __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1'
 except Exception as ex:
     pass
