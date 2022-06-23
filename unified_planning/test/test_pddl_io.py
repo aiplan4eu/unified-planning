@@ -84,7 +84,7 @@ class TestPddlIO(TestCase):
 
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :existential-preconditions)', pddl_domain)
-        self.assertIn('(:predicates (x) (y ?semaphore - semaphore))', pddl_domain)
+        self.assertIn('(:predicates (x) (y ?semaphore_0 - semaphore))', pddl_domain)
         self.assertIn('(:action a', pddl_domain)
         self.assertIn(':parameters ()', pddl_domain)
         self.assertIn(':precondition (and (exists (?s - semaphore)\n (y ?s)))', pddl_domain)
@@ -177,7 +177,7 @@ class TestPddlIO(TestCase):
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :negative-preconditions :equality)', pddl_domain)
         self.assertIn('(:types robot location container)', pddl_domain)
-        self.assertIn('(:predicates (robot_at ?robot - robot ?position - location) (cargo_at ?cargo - container ?position - location) (cargo_mounted ?cargo - container ?robot - robot))', pddl_domain)
+        self.assertIn('(:predicates (robot_at ?robot_0 - robot ?position - location) (cargo_at ?cargo - container ?position - location) (cargo_mounted ?cargo - container ?robot_0 - robot))', pddl_domain)
         self.assertIn('(:action move', pddl_domain)
         self.assertIn(':parameters ( ?l_from - location ?l_to - location ?r - robot)', pddl_domain)
         self.assertIn(':precondition (and (not (= ?l_from ?l_to)) (robot_at ?r ?l_from) (not (robot_at ?r ?l_to)))', pddl_domain)
@@ -209,7 +209,7 @@ class TestPddlIO(TestCase):
         self.assertIn('(define (domain matchcellar-domain)', pddl_domain)
         self.assertIn('(:requirements :strips :typing :negative-preconditions :durative-actions)', pddl_domain)
         self.assertIn('(:types match fuse)', pddl_domain)
-        self.assertIn('(:predicates (handfree) (light) (match_used ?match - match) (fuse_mended ?fuse - fuse))', pddl_domain)
+        self.assertIn('(:predicates (handfree) (light) (match_used ?match_0 - match) (fuse_mended ?fuse_0 - fuse))', pddl_domain)
         self.assertIn('(:durative-action light_match', pddl_domain)
         self.assertIn(':parameters ( ?m - match)', pddl_domain)
         self.assertIn(':duration (= ?duration 6)', pddl_domain)
@@ -315,7 +315,6 @@ class TestPddlIO(TestCase):
                     parsed_a = parsed_problem.action(a.name)
                     self.assertEqual(a.name, parsed_a.name)
                     for param, parsed_param in zip(a.parameters, parsed_a.parameters):
-                        self.assertEqual(param.name, parsed_param.name)
                         self.assertTrue(_is_same_user_type_considering_renamings(param.type, parsed_param.type, renamings))
                     if isinstance(a, unified_planning.model.InstantaneousAction):
                         self.assertEqual(len(a.effects), len(parsed_a.effects))

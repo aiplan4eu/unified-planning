@@ -53,21 +53,22 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def convert(self, expression):
         '''Converts the given expression to a PDDL string.'''
+        self.variables = {}
         return self.walk(self.simplifier.simplify(expression))
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"?{self.get_mangled_name(v, self.variables)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"?{self.get_mangled_name(v, self.variables)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
-        return f'?{self.get_mangled_name(expression.variable())}'
+        return f'?{self.get_mangled_name(expression.variable(), self.variables)}'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
