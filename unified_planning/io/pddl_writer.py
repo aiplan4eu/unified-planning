@@ -28,7 +28,7 @@ from unified_planning.model import InstantaneousAction, DurativeAction, Fluent, 
 from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
 from unified_planning.model.types import _UserType
-from typing import Callable, Dict, IO, List, Union, cast
+from typing import Callable, Dict, IO, Iterable, List, Optional, Union, cast
 from io import StringIO
 from functools import reduce
 
@@ -57,17 +57,17 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{_get_pddl_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"?{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{_get_pddl_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"?{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
-        return f'?{_get_pddl_name(expression.variable())}'
+        return f'?{self.get_mangled_name(expression.variable())}'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -96,7 +96,7 @@ class ConverterToPDDLString(walkers.DagWalker):
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'?{_get_pddl_name(p)}'
+        return f'?{self.get_mangled_name(p)}'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
@@ -162,6 +162,8 @@ class PDDLWriter:
         # nto represents the new to old renamings
         self.nto_renamings: Dict[str, str] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
+        # current_action_parameters represent the map between a parameters name and it's name in PDDL
+        self.current_parameters: Dict[str, str] = {}
 
     def _write_domain(self, out: IO[str]):
         problem_kind = self.problem.kind
@@ -228,12 +230,13 @@ class PDDLWriter:
         predicates = []
         functions = []
         for f in self.problem.fluents:
+            self.current_parameters = {}
             if f.type.is_bool_type():
                 params = []
                 i = 0
                 for param in f.signature:
                     if param.type.is_user_type():
-                        params.append(f' ?{_get_pddl_name(param)} - {self._get_mangled_name(param.type)}')
+                        params.append(f' ?{self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -243,7 +246,7 @@ class PDDLWriter:
                 i = 0
                 for param in f.signature:
                     if param.type.is_user_type():
-                        params.append(f' ?{_get_pddl_name(param)} - {self._get_mangled_name(param.type)}')
+                        params.append(f' ?{self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -270,12 +273,13 @@ class PDDLWriter:
         elif len(metrics) > 1:
             raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
         for a in self.problem.actions:
+            self.current_parameters = {}
             if isinstance(a, up.model.InstantaneousAction):
                 out.write(f' (:action {self._get_mangled_name(a)}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters:
                     if ap.type.is_user_type():
-                        out.write(f' ?{_get_pddl_name(ap)} - {self._get_mangled_name(ap.type)}')
+                        out.write(f' ?{self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -308,7 +312,7 @@ class PDDLWriter:
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters:
                     if ap.type.is_user_type():
-                        out.write(f' ?{_get_pddl_name(ap)} - {self._get_mangled_name(ap.type)}')
+                        out.write(f' ?{self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -450,9 +454,37 @@ class PDDLWriter:
         with open(filename, 'w') as f:
             self._write_problem(f)
 
-    def _get_mangled_name(self, item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object']) -> str:
+    def _get_mangled_name(self,
+                          item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object', 'up.model.Parameter', 'up.model.Variable'],
+                          variables: Optional[Dict['up.model.Variable', str]] = None) -> str:
         '''This function returns a valid and unique PDDL name.'''
-        if isinstance(item, up.model.Type):
+        if isinstance(item, up.model.Parameter):
+            assert variables is None
+            # name already seen
+            if item.name in self.current_parameters:
+                return self.current_parameters[item.name]
+            else:
+                # new parameter, check conflicts with the names in the problem, in the renamings or in the parameters.
+                new_name = self._unique_name_checking_iterables(_get_pddl_name(item),
+                                                                self.nto_renamings,
+                                                                self.current_parameters.values())
+                self.current_parameters[item.name] = new_name
+                return new_name
+        elif isinstance(item, up.model.Variable):
+            assert variables is not None
+            # variable already seen
+            if item in variables:
+                return variables[item]
+            else:
+                # new variable, check conflicts with the names in the problem, in the renamings, in the parameters
+                # or in the variables.
+                new_name = self._unique_name_checking_iterables(_get_pddl_name(item),
+                                                                self.nto_renamings,
+                                                                self.current_parameters.values(),
+                                                                variables.values())
+                variables[item] = new_name
+                return new_name
+        elif isinstance(item, up.model.Type):
             assert item.is_user_type()
             original_name = cast(_UserType, item).name
         else:
@@ -465,14 +497,20 @@ class PDDLWriter:
         if tmp_name == original_name:
             new_name = tmp_name
         else:
-            count = 0
-            new_name = tmp_name
-            while self.problem.has_name(new_name) or new_name in self.nto_renamings:
-                new_name = f'{tmp_name}_{count}'
-                count += 1
+            new_name = self._unique_name_checking_iterables(tmp_name, self.nto_renamings)
+        assert variables is None
         assert new_name not in self.nto_renamings and new_name not in self.otn_renamings.values()
         self.otn_renamings[original_name] = new_name
         self.nto_renamings[new_name] = original_name
+        return new_name
+
+    def _unique_name_checking_iterables(self, tmp_name: str, *iterables: Iterable[str]) -> str:
+        '''This method returns a name from tmp_name that isn't in the problem or that isn't in any given iterable.'''
+        count = 0
+        new_name = tmp_name
+        while self.problem.has_name(new_name) or any(new_name in i for i in iterables):
+            new_name = f'{tmp_name}_{count}'
+            count += 1
         return new_name
 
     def get_renamings(self) -> Dict[str, str]:
