@@ -207,15 +207,15 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install Protobuf compiler
-        run: sudo apt install -y protobuf-compiler && protoc --version
+        run: |
+          python3 -m pip install grpcio-tools
 
-      - name: Check Protobuf validity
-        run: cd unified_planning/grpc && protoc --python_out=generated unified_planning.proto
+      - name: Check Protobuf generation
+        run: bash scripts/generate_protobuf_bindings.sh
 
       - name: Check Protobuf bindings
         run: |
           echo "Checking that the committed protobuf bindings are exactly the one generated from the declaration"
-          echo "Based on protoc version: $(protoc --version)"
           git diff --exit-code
 
 
