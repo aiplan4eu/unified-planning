@@ -327,12 +327,32 @@ class FNode(object):
     def And(self, *other):
         return get_env().expression_manager.And(self, *other)
 
+    def __and__(self, *other):
+        return get_env().expression_manager.And(self, *other)
+
+    def __rand__(self, *other):
+        return get_env().expression_manager.And(*other, self)
+
     def Or(self, *other):
         return get_env().expression_manager.Or(self, *other)
+
+    def __or__(self, *other):
+        return get_env().expression_manager.Or(self, *other)
+
+    def __ror__(self, *other):
+        return get_env().expression_manager.Or(*other, self)
 
     def Xor(self, *other):
         em = get_env().expression_manager
         return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
+
+    def __xor__(self, *other):
+        em = get_env().expression_manager
+        return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
+
+    def __rxor__(self, other):
+        em = get_env().expression_manager
+        return em.And(em.Or(*other, self), em.Not(em.And(*other, self)))
 
     def Implies(self, right):
         return get_env().expression_manager.Implies(self, right)

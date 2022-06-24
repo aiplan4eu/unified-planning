@@ -17,14 +17,16 @@ This module defines an Object of a planning problem.
 An Object is represented by a name and by its type.
 """
 
+from unified_planning.environment import Environment, get_env
 import unified_planning.model.types
 
 
 class Object:
     """Represents an object."""
-    def __init__(self, name: str, typename: 'unified_planning.model.types.Type'):
+    def __init__(self, name: str, typename: 'unified_planning.model.types.Type', env: Environment = None):
         self._name = name
         self._typename = typename
+        self._env = get_env(env)
 
     def __repr__(self) -> str:
         return self.name
@@ -47,3 +49,15 @@ class Object:
     def type(self) -> 'unified_planning.model.types.Type':
         """Returns the object type."""
         return self._typename
+
+    @property
+    def env(self) -> 'Environment':
+        """Return the object environment"""
+        return self._env
+
+    #
+    # Infix operators
+    #
+
+    def Equals(self, right):
+        return self._env.expression_manager.Equals(self, right)

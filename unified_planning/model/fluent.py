@@ -95,3 +95,91 @@ class Fluent:
     def __call__(self, *args: 'up.model.expression.Expression') -> 'up.model.fnode.FNode':
         '''Returns a fluent expression with the given parameters.'''
         return self._env.expression_manager.FluentExp(self, args)
+
+    #
+    # Infix operators
+    #
+
+    def __add__(self, right):
+        return self._env.expression_manager.Plus(self, right)
+
+    def __radd__(self, left):
+        return self._env.expression_manager.Plus(left, self)
+
+    def __sub__(self, right):
+        return self._env.expression_manager.Minus(self, right)
+
+    def __rsub__(self, left):
+        return self._env.expression_manager.Minus(left, self)
+
+    def __mul__(self, right):
+        return self._env.expression_manager.Times(self, right)
+
+    def __rmul__(self, left):
+        return self._env.expression_manager.Times(left, self)
+
+    def __truediv__(self, right):
+        return self._env.expression_manager.Div(self, right)
+
+    def __rtruediv__(self, left):
+        return self._env.expression_manager.Div(left, self)
+
+    def __floordiv__(self, right):
+        return self._env.expression_manager.Div(self, right)
+
+    def __rfloordiv__(self, left):
+        return self._env.expression_manager.Div(left, self)
+
+    def __gt__(self, right):
+        return self._env.expression_manager.GT(self, right)
+
+    def __ge__(self, right):
+        return self._env.expression_manager.GE(self, right)
+
+    def __lt__(self, right):
+        return self._env.expression_manager.LT(self, right)
+
+    def __le__(self, right):
+        return self._env.expression_manager.LE(self, right)
+
+    def __neg__(self):
+        return self._env.expression_manager.Minus(0, self)
+
+    def Equals(self, right):
+        return self._env.expression_manager.Equals(self, right)
+
+    def And(self, *other):
+        return self._env.expression_manager.And(self, *other)
+
+    def __and__(self, *other):
+        return self._env.expression_manager.And(self, *other)
+
+    def __rand__(self, *other):
+        return self._env.expression_manager.And(*other, self)
+
+    def Or(self, *other):
+        return self._env.expression_manager.Or(self, *other)
+
+    def __or__(self, *other):
+        return self._env.expression_manager.Or(self, *other)
+
+    def __ror__(self, *other):
+        return self._env.expression_manager.Or(*other, self)
+
+    def Xor(self, *other):
+        em = self._env.expression_manager
+        return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
+
+    def __xor__(self, *other):
+        em = self._env.expression_manager
+        return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
+
+    def __rxor__(self, other):
+        em = self._env.expression_manager
+        return em.And(em.Or(*other, self), em.Not(em.And(*other, self)))
+
+    def Implies(self, right):
+        return self._env.expression_manager.Implies(self, right)
+
+    def Iff(self, right):
+        return self._env.expression_manager.Iff(self, right)
