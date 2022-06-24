@@ -26,9 +26,9 @@ import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.model import InstantaneousAction, DurativeAction, Fluent, Parameter, Problem, Object
 from unified_planning.model.types import _UserType as UT
-from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError
+from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError, UPException
 from unified_planning.model.types import _UserType
-from typing import Callable, Dict, IO, Iterable, List, Optional, Union, cast
+from typing import Callable, Dict, IO, List, Union, cast
 from io import StringIO
 from functools import reduce
 
@@ -36,10 +36,14 @@ PDDL_KEYWORDS = {'define', 'domain', 'requirements', 'types', 'constants', 'atom
                  'problem', 'atomic', 'constraints', 'either', 'number', 'action', 'parameters',
                  'precondition', 'effect', 'and', 'forall', 'preference', 'or', 'not', 'imply',
                  'exists', 'scale-up', 'scale-down', 'increase', 'decrease', 'durative-action', 'duration',
-                 'condition', 'at', 'over', 'start', #here 'objects',  'functions',
-                 'when', 'increse', 'decrease', 'define',
-                 'imply'}
-#TODO Fill this set
+                 'condition', 'at', 'over', 'start', 'end', 'all', 'derived',  'objects',  'init', 'goal',
+                 'when', 'decrease', 'always', 'sometime', 'within', 'at-most-once', 'sometime-after',
+                 'sometime-before', 'always-within', 'hold-during', 'hold-after', 'metric', 'minimize',
+                 'maximize', 'total-time', 'is-violated', 'strips', 'negative-preconditions', 'typing',
+                 'disjunctive-preconditions', 'equality', 'existential-preconditions',
+                 'universal-preconditions', 'quantified-preconditions', 'conditional-effects', 'fluents',
+                 'adl', 'durative-actions', 'derived-predicates', 'timed-initial-literals', 'preferences'
+                 }
 
 # The following map is used to mangle the invalid names by their class.
 INITIAL_LETTER: Dict[type, str] = {InstantaneousAction: 'a', DurativeAction: 'a', Fluent: 'f', Parameter: 'p', Problem: 'p', Object: 'o'}
@@ -57,22 +61,21 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def convert(self, expression):
         '''Converts the given expression to a PDDL string.'''
-        self.variables = {}
         return self.walk(self.simplifier.simplify(expression))
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{self.get_mangled_name(v, self.variables)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
-        vars_string_list = [f"?{self.get_mangled_name(v, self.variables)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
+        vars_string_list = [f"{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}" for v in expression.variables()]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
-        return f'?{self.get_mangled_name(expression.variable(), self.variables)}'
+        return f'{self.get_mangled_name(expression.variable())}'
 
     def walk_and(self, expression, args):
         assert len(args) > 1
@@ -101,7 +104,7 @@ class ConverterToPDDLString(walkers.DagWalker):
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'?{self.get_mangled_name(p)}'
+        return f'{self.get_mangled_name(p)}'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
@@ -161,20 +164,18 @@ class PDDLWriter:
 
     def __init__(self, problem: 'up.model.Problem', needs_requirements: bool = True):
         self.problem = problem
+        self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
         # otn represents the old to new renamings
-        self.otn_renamings: Dict[str, str] = {}
+        self.otn_renamings: Dict[Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable'], str] = {}
         # nto represents the new to old renamings
-        self.nto_renamings: Dict[str, str] = {}
+        self.nto_renamings: Dict[str, Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable']] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
-        # current_action_parameters represent the map between a parameters name and it's name in PDDL
-        self.current_parameters: Dict[str, str] = {}
 
     def _write_domain(self, out: IO[str]):
-        problem_kind = self.problem.kind
-        if problem_kind.has_intermediate_conditions_and_effects():
+        if self.problem_kind.has_intermediate_conditions_and_effects():
             raise UPProblemDefinitionError('PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
-        if problem_kind.has_timed_effect() or problem_kind.has_timed_goals():
+        if self.problem_kind.has_timed_effect() or self.problem_kind.has_timed_goals():
             raise UPProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
         out.write('(define ')
         if self.problem.name is None:
@@ -185,39 +186,34 @@ class PDDLWriter:
 
         if self.needs_requirements:
             out.write(' (:requirements :strips')
-            if problem_kind.has_flat_typing():
+            if self.problem_kind.has_flat_typing():
                 out.write(' :typing')
-            if problem_kind.has_negative_conditions():
+            if self.problem_kind.has_negative_conditions():
                 out.write(' :negative-preconditions')
-            if problem_kind.has_disjunctive_conditions():
+            if self.problem_kind.has_disjunctive_conditions():
                 out.write(' :disjunctive-preconditions')
-            if problem_kind.has_equality():
+            if self.problem_kind.has_equality():
                 out.write(' :equality')
-            if (problem_kind.has_continuous_numbers() or
-                problem_kind.has_discrete_numbers()):
+            if (self.problem_kind.has_continuous_numbers() or
+                self.problem_kind.has_discrete_numbers()):
                 out.write(' :numeric-fluents')
-            if problem_kind.has_conditional_effects():
+            if self.problem_kind.has_conditional_effects():
                 out.write(' :conditional-effects')
-            if problem_kind.has_existential_conditions():
+            if self.problem_kind.has_existential_conditions():
                 out.write(' :existential-preconditions')
-            if problem_kind.has_universal_conditions():
+            if self.problem_kind.has_universal_conditions():
                 out.write(' :universal-preconditions')
-            if (problem_kind.has_continuous_time() or
-                problem_kind.has_discrete_time()):
+            if (self.problem_kind.has_continuous_time() or
+                self.problem_kind.has_discrete_time()):
                 out.write(' :durative-actions')
-            if problem_kind.has_duration_inequalities():
+            if self.problem_kind.has_duration_inequalities():
                 out.write(' :duration-inequalities')
-            if (self.problem.kind.has_actions_cost() or
-                self.problem.kind.has_plan_length()):
+            if (self.problem_kind.has_actions_cost() or
+                self.problem_kind.has_plan_length()):
                 out.write(' :action-costs')
             out.write(')\n')
 
-        if problem_kind.has_hierarchical_typing():
-            object_freshname = 'object'
-            while self.problem.has_type(object_freshname):
-                object_freshname = object_freshname + '_'
-            self.otn_renamings['object'] = object_freshname
-            self.nto_renamings[object_freshname] = 'object'
+        if self.problem_kind.has_hierarchical_typing():
             user_types_hierarchy = self.problem.user_types_hierarchy
             out.write(f' (:types\n')
             stack: List['unified_planning.model.Type'] = user_types_hierarchy[None] if None in user_types_hierarchy else []
@@ -235,13 +231,12 @@ class PDDLWriter:
         predicates = []
         functions = []
         for f in self.problem.fluents:
-            self.current_parameters = {}
             if f.type.is_bool_type():
                 params = []
                 i = 0
                 for param in f.signature:
                     if param.type.is_user_type():
-                        params.append(f' ?{self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}')
+                        params.append(f' {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -251,7 +246,7 @@ class PDDLWriter:
                 i = 0
                 for param in f.signature:
                     if param.type.is_user_type():
-                        params.append(f' ?{self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}')
+                        params.append(f' {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}')
                         i += 1
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
@@ -278,13 +273,12 @@ class PDDLWriter:
         elif len(metrics) > 1:
             raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
         for a in self.problem.actions:
-            self.current_parameters = {}
             if isinstance(a, up.model.InstantaneousAction):
                 out.write(f' (:action {self._get_mangled_name(a)}')
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters:
                     if ap.type.is_user_type():
-                        out.write(f' ?{self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}')
+                        out.write(f' {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -317,7 +311,7 @@ class PDDLWriter:
                 out.write(f'\n  :parameters (')
                 for ap in a.parameters:
                     if ap.type.is_user_type():
-                        out.write(f' ?{self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}')
+                        out.write(f' {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}')
                     else:
                         raise UPTypeError('PDDL supports only user type parameters')
                 out.write(')')
@@ -460,71 +454,58 @@ class PDDLWriter:
             self._write_problem(f)
 
     def _get_mangled_name(self,
-                          item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object', 'up.model.Parameter', 'up.model.Variable'],
-                          variables: Optional[Dict['up.model.Variable', str]] = None) -> str:
+                          item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object', 'up.model.Parameter', 'up.model.Variable']) -> str:
         '''This function returns a valid and unique PDDL name.'''
-        if isinstance(item, up.model.Parameter):
-            assert variables is None
-            # name already seen
-            if item.name in self.current_parameters:
-                return self.current_parameters[item.name]
-            else:
-                # new parameter, check conflicts with the names in the problem, in the renamings or in the parameters.
-                new_name = self._unique_name_checking_iterables(_get_pddl_name(item),
-                                                                self.nto_renamings,
-                                                                self.current_parameters.values())
-                self.current_parameters[item.name] = new_name
-                return new_name
-        elif isinstance(item, up.model.Variable):
-            assert variables is not None
-            # variable already seen
-            if item in variables:
-                return variables[item]
-            else:
-                # new variable, check conflicts with the names in the problem, in the renamings, in the parameters
-                # or in the variables.
-                new_name = self._unique_name_checking_iterables(_get_pddl_name(item),
-                                                                self.nto_renamings,
-                                                                self.current_parameters.values(),
-                                                                variables.values())
-                variables[item] = new_name
-                return new_name
-        elif isinstance(item, up.model.Type):
+
+        # If we already encountered this item, return it
+        if item in self.otn_renamings:
+            return self.otn_renamings[item]
+
+        if isinstance(item, up.model.Type):
             assert item.is_user_type()
             original_name = cast(_UserType, item).name
+            tmp_name = _get_pddl_name(item)
+            # If the problem is hierarchical and the name is object, we want to change it
+            if self.problem_kind.has_hierarchical_typing() and tmp_name == 'object':
+                tmp_name = f'{tmp_name}_'
         else:
             original_name = item.name
-        # If we already encountered this name, return it
-        if original_name in self.otn_renamings:
-            return self.otn_renamings[original_name]
-        tmp_name = _get_pddl_name(item)
-        # if the pddl valid name is the same of the original one, it can be returned
-        if tmp_name == original_name:
+            tmp_name = _get_pddl_name(item)
+        # if the pddl valid name is the same of the original one and it does not create conflicts,
+        # it can be returned
+        if tmp_name == original_name and tmp_name not in self.nto_renamings:
             new_name = tmp_name
         else:
-            new_name = self._unique_name_checking_iterables(tmp_name, self.nto_renamings)
-        assert variables is None
+            count = 0
+            new_name = tmp_name
+            while self.problem.has_name(new_name) or new_name in self.nto_renamings:
+                new_name = f'{tmp_name}_{count}'
+                count += 1
         assert new_name not in self.nto_renamings and new_name not in self.otn_renamings.values()
-        self.otn_renamings[original_name] = new_name
-        self.nto_renamings[new_name] = original_name
+        self.otn_renamings[item] = new_name
+        self.nto_renamings[new_name] = item
         return new_name
 
-    def _unique_name_checking_iterables(self, tmp_name: str, *iterables: Iterable[str]) -> str:
-        '''This method returns a name from tmp_name that isn't in the problem or that isn't in any given iterable.'''
-        count = 0
-        new_name = tmp_name
-        while self.problem.has_name(new_name) or any(new_name in i for i in iterables):
-            new_name = f'{tmp_name}_{count}'
-            count += 1
-        return new_name
-
-    def get_renamings(self) -> Dict[str, str]:
+    def get_item_named(self, name: str) -> Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object', 'up.model.Parameter', 'up.model.Variable']:
         '''
-        This method returns the map in which every key is the name of the object/fluent/action/type chosen for the pddl printing
-        and the associated value is the original name in the unified_planning Problem.
+        This method takes a name used in the pddl domain or pddl problem generated by this PDDLWriter and returns the original
+        item in the unified_planning problem.
+        '''
+        try:
+            return self.nto_renamings[name]
+        except KeyError:
+            raise UPException(f'The name {name} does not correspond to any item.')
 
-        :return: a map where every key is the name chosen for the pddl and every value is the original name.'''
-        return self.nto_renamings
+    def get_pddl_name(self, item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object', 'up.model.Parameter', 'up.model.Variable']) -> str:
+        '''
+        This method takes an item in the unified_planning problem and returns the chosen name for the same item in the PDDL problem
+        or PDDL domain generated by this PDDLWriter.
+        '''
+        try:
+            return self.otn_renamings[item]
+        except KeyError:
+            raise UPException(f'The item {item} does not correspond to any item renamed.')
+
 
 def _get_pddl_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable', 'up.model.Problem']) -> str:
     '''This function returns a pddl name for the chosen item'''
@@ -538,4 +519,6 @@ def _get_pddl_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Flu
     name = re.sub('[^0-9a-zA-Z_]', '_', name) #Substitute non-valid elements with "_"
     while name in PDDL_KEYWORDS: # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
         name = f'{name}_'
+    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
+        name = f'?{name}'
     return name

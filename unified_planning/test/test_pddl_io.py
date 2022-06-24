@@ -84,7 +84,7 @@ class TestPddlIO(TestCase):
 
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :existential-preconditions)', pddl_domain)
-        self.assertIn('(:predicates (x) (y ?semaphore_0 - semaphore))', pddl_domain)
+        self.assertIn('(:predicates (x) (y ?semaphore - semaphore))', pddl_domain)
         self.assertIn('(:action a', pddl_domain)
         self.assertIn(':parameters ()', pddl_domain)
         self.assertIn(':precondition (and (exists (?s - semaphore)\n (y ?s)))', pddl_domain)
@@ -177,7 +177,7 @@ class TestPddlIO(TestCase):
         pddl_domain = w.get_domain()
         self.assertIn('(:requirements :strips :typing :negative-preconditions :equality)', pddl_domain)
         self.assertIn('(:types robot location container)', pddl_domain)
-        self.assertIn('(:predicates (robot_at ?robot_0 - robot ?position - location) (cargo_at ?cargo - container ?position - location) (cargo_mounted ?cargo - container ?robot_0 - robot))', pddl_domain)
+        self.assertIn('(:predicates (robot_at ?robot - robot ?position - location) (cargo_at ?cargo - container ?position - location) (cargo_mounted ?cargo - container ?robot - robot))', pddl_domain)
         self.assertIn('(:action move', pddl_domain)
         self.assertIn(':parameters ( ?l_from - location ?l_to - location ?r - robot)', pddl_domain)
         self.assertIn(':precondition (and (not (= ?l_from ?l_to)) (robot_at ?r ?l_from) (not (robot_at ?r ?l_to)))', pddl_domain)
@@ -209,7 +209,7 @@ class TestPddlIO(TestCase):
         self.assertIn('(define (domain matchcellar-domain)', pddl_domain)
         self.assertIn('(:requirements :strips :typing :negative-preconditions :durative-actions)', pddl_domain)
         self.assertIn('(:types match fuse)', pddl_domain)
-        self.assertIn('(:predicates (handfree) (light) (match_used ?match_0 - match) (fuse_mended ?fuse_0 - fuse))', pddl_domain)
+        self.assertIn('(:predicates (handfree) (light) (match_used ?match - match) (fuse_mended ?fuse - fuse))', pddl_domain)
         self.assertIn('(:durative-action light_match', pddl_domain)
         self.assertIn(':parameters ( ?m - match)', pddl_domain)
         self.assertIn(':duration (= ?duration 6)', pddl_domain)
@@ -305,17 +305,20 @@ class TestPddlIO(TestCase):
                 w.write_problem(problem_filename)
 
                 reader = PDDLReader()
+                if problem.name != 'hierarchical_blocks_world_with_object':
+                    continue
+                w.print_domain()
+                w.print_problem()
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
-                renamings = w.get_renamings()
                 self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
-                self.assertTrue(_have_same_user_types_considering_renamings(problem, parsed_problem, renamings))
+                self.assertTrue(_have_same_user_types_considering_renamings(problem, parsed_problem, w.get_item_named))
                 self.assertEqual(len(problem.actions), len(parsed_problem.actions))
                 for a in problem.actions:
-                    parsed_a = parsed_problem.action(a.name)
-                    self.assertEqual(a.name, parsed_a.name)
+                    parsed_a = parsed_problem.action(w.get_pddl_name(a))
+                    self.assertEqual(a, w.get_item_named(parsed_a.name))
                     for param, parsed_param in zip(a.parameters, parsed_a.parameters):
-                        self.assertTrue(_is_same_user_type_considering_renamings(param.type, parsed_param.type, renamings))
+                        self.assertEqual(param.type, w.get_item_named(parsed_param.type.name))
                     if isinstance(a, unified_planning.model.InstantaneousAction):
                         self.assertEqual(len(a.effects), len(parsed_a.effects))
                     elif isinstance(a, unified_planning.model.DurativeAction):
@@ -381,23 +384,8 @@ class TestPddlIO(TestCase):
         self.assertEqual(pddl_problem, expected_problem)
 
 
-def _is_same_user_type_considering_renamings(original_type: unified_planning.model.Type,
-                                            tested_type: unified_planning.model.Type,
-                                            renamings: Dict[str, str]) -> bool:
-    assert isinstance(original_type, _UserType) and isinstance(tested_type, _UserType)
-    if original_type.father is None: # case where original_type has no father
-        if tested_type.father is not None:
-            return False # original_type has a father, tested_type does not.
-        else:
-            return original_type.name == renamings[tested_type.name] # fathers are both none, return test on renamings
-    else: # case where original_type has a father
-        if tested_type.father is None:
-            return False # and tested_type has no father
-        else: # check with renamings and pass check to fathers
-            return original_type.name == renamings[tested_type.name] and _is_same_user_type_considering_renamings(original_type.father, tested_type.father, renamings) # type: ignore
-
-def _have_same_user_types_considering_renamings(original_problem: unified_planning.model.Problem, tested_problem: unified_planning.model.Problem, renamings: Dict[str, str]) -> bool:
+def _have_same_user_types_considering_renamings(original_problem: unified_planning.model.Problem, tested_problem: unified_planning.model.Problem, get_item_named) -> bool:
     for tested_type in tested_problem.user_types:
-        if not _is_same_user_type_considering_renamings(original_problem.user_type(renamings[cast(_UserType, tested_type).name]), tested_type, renamings):
+        if get_item_named(cast(_UserType, tested_type).name) not in original_problem.user_types:
             return False
     return True

@@ -30,7 +30,7 @@ from unified_planning.engines.results import LogLevel, PlanGenerationResult, Pla
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.exceptions import UPException
 from asyncio.subprocess import PIPE
-from typing import IO, Any, Callable, Dict, Optional, List, Tuple, cast
+from typing import IO, Any, Callable, Optional, List, Tuple, Union, cast
 
 # This module implements two different mechanisms to execute a PDDL planner in a
 # subprocess, processing the output in real-time and imposing a timeout.
@@ -69,7 +69,10 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         problem and write the plan on the file called plan_filename.'''
         raise NotImplementedError
 
-    def _plan_from_file(self, problem: 'up.model.Problem', plan_filename: str, renamings: Dict[str, str]) -> 'up.plans.Plan':
+    def _plan_from_file(self,
+                        problem: 'up.model.Problem',
+                        plan_filename: str,
+                        get_item_named: Callable[[str], Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object', 'up.model.Parameter', 'up.model.Variable']]) -> 'up.plans.Plan':
         '''Takes a problem, a filename and a map of renamings and returns the plan parsed from the file.'''
         actions = []
         with open(plan_filename) as plan:
@@ -79,13 +82,16 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 res = re.match(r'^\s*\(\s*([\w?-]+)((\s+[\w?-]+)*)\s*\)\s*$', line)
                 if res:
                     try:
-                        action = problem.action(renamings[res.group(1)])
+                        action = get_item_named(res.group(1))
+                        assert isinstance(action, up.model.Action), 'Wrong plan or renaming.'
                     except KeyError:
                         raise UPException('Could not find parsed action name in the given renamings.')
                     parameters = []
                     for p in res.group(2).split():
                         try:
-                            parameters.append(problem.env.expression_manager.ObjectExp(problem.object(renamings[p])))
+                            obj = get_item_named(p)
+                            assert isinstance(obj, up.model.Object), 'Wrong plan or renaming.'
+                            parameters.append(problem.env.expression_manager.ObjectExp(obj))
                         except KeyError:
                            raise UPException('Could not find parsed object name in the given renamings.')
                     actions.append(up.plans.ActionInstance(action, tuple(parameters)))
@@ -142,7 +148,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             logs.append(up.engines.results.LogMessage(LogLevel.INFO, ''.join(proc_out)))
             logs.append(up.engines.results.LogMessage(LogLevel.ERROR, ''.join(proc_err)))
             if os.path.isfile(plan_filename):
-                plan = self._plan_from_file(problem, plan_filename, w.get_renamings())
+                plan = self._plan_from_file(problem, plan_filename, w.get_item_named)
             if timeout_occurred and retval != 0:
                 return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, plan=plan, log_messages=logs, engine_name=self.name)
         status: PlanGenerationResultStatus = self._result_status(problem, plan)
