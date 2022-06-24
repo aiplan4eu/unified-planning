@@ -216,8 +216,6 @@ class ExpressionManager(object):
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.SOMETIME_AFTER, args=expressions)
 
-        
-
     def FluentExp(self, fluent: 'up.model.fluent.Fluent', params: Tuple[Expression, ...] = tuple()) ->'up.model.fnode.FNode':
         """ Creates an expression for the given fluent and parameters.
         Restriction: parameters type must be compatible with the fluent signature

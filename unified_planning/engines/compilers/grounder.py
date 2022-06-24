@@ -63,6 +63,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time('TIMED_GOALS') # type: ignore
         supported_kind.set_time('DURATION_INEQUALITIES') # type: ignore
         supported_kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
+        supported_kind.set_constraints_kind('TRAJECTORY_CONSTRAINTS') # type: ignore
         return supported_kind
 
     @staticmethod
@@ -130,7 +131,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
                 #when the action is None it means it is not feasible,
                 # it's conditions are in contraddiction within one another.
                 if new_action is not None:
-                    print(grounded_params)
+                    #print(grounded_params)
                     trace_back_map[new_action] = (old_action, env.expression_manager.auto_promote(subs.values()))
                     new_problem.add_action(new_action)
 

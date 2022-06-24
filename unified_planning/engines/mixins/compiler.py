@@ -16,13 +16,13 @@
 import unified_planning as up
 from enum import Enum, auto
 
-
 class CompilationKind(Enum):
     GROUNDING = auto()
     CONDITIONAL_EFFECTS_REMOVING = auto()
     DISJUNCTIVE_CONDITIONS_REMOVING = auto()
     NEGATIVE_CONDITIONS_REMOVING = auto()
     QUANTIFIERS_REMOVING = auto()
+    TRAJECTORY_CONSTRAINTS_REMOVING = auto()
 
 
 class CompilerMixin:

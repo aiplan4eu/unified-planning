@@ -92,6 +92,10 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 timeout: Optional[float] = None,
                 output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
         assert isinstance(problem, up.model.Problem)
+        if problem.kind.has_trajectory_constraints():
+            with problem.env.factory.Compiler(problem_kind=problem.kind, compilation_kind=up.engines.CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING) as grounder:
+                grounding_result = grounder.compile(problem, up.engines.CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING)
+                problem = grounding_result.problem
         w = PDDLWriter(problem, self._needs_requirements)
         plan = None
         logs: List['up.engines.results.LogMessage'] = []
@@ -102,7 +106,6 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             w.write_domain(domain_filename)
             w.write_problem(problem_filename)
             cmd = self._get_cmd(domain_filename, problem_filename, plan_filename)
-
             if output_stream is None:
                 # If we do not have an output stream to write to, we simply call
                 # a subprocess and retrieve the final output and error with communicate
@@ -146,7 +149,6 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         '''Takes a problem and a plan and returns the status that represents this plan.
         The possible status with their interpretation can be found in the up.engines.results file.'''
         raise NotImplementedError
-
 
 async def run_command_asyncio(cmd: List[str], output_stream: IO[str], timeout: Optional[float] = None) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     '''

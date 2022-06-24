@@ -35,7 +35,8 @@ DEFAULT_ENGINES = {
     'up_negative_conditions_remover' : ('unified_planning.engines.compilers.negative_conditions_remover', 'NegativeConditionsRemover'),
     'up_quantifiers_remover' : ('unified_planning.engines.compilers.quantifiers_remover', 'QuantifiersRemover'),
     'tarski_grounder' : ('unified_planning.engines.compilers.tarski_grounder', 'TarskiGrounder'),
-    'up_grounder' : ('unified_planning.engines.compilers.grounder', 'Grounder')
+    'up_grounder' : ('unified_planning.engines.compilers.grounder', 'Grounder'),
+    'up_trajectory_constraints_remover' : ('unified_planning.engines.compilers.trajectory_constraints_remover', 'TrajectoryConstraintsRemover')
 }
 
 

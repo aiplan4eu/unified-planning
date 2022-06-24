@@ -35,7 +35,6 @@ class TestPddlIO(TestCase):
 
     def test_basic_writer(self):
         problem = self.problems['basic'].problem
-
         w = PDDLWriter(problem)
 
         pddl_domain = w.get_domain()
@@ -49,7 +48,7 @@ class TestPddlIO(TestCase):
         pddl_problem = w.get_problem()
         self.assertIn('(:domain basic-domain)', pddl_problem)
         self.assertIn('(:init)', pddl_problem)
-        self.assertIn('(:goal (and (x)))', pddl_problem)
+        self.assertIn('(:goal (and (x))\n)', pddl_problem)
 
 
     def test_basic_conditional_writer(self):
