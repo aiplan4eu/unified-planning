@@ -28,6 +28,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from typing import IO, Dict, Tuple, Optional, List, Union, Type, cast
+from pathlib import PurePath
 
 
 DEFAULT_ENGINES = {
@@ -78,12 +79,12 @@ def get_possible_config_locations() -> List[str]:
     home = os.path.expanduser('~')
     files = []
     stack = inspect.stack()
-    p = os.path.dirname(os.path.abspath(stack[-1].filename))
-    while os.path.join(p, 'up.ini') not in files:
+    for p in PurePath(os.path.abspath(stack[-1].filename)).parents:
         files.append(os.path.join(p, 'up.ini'))
-        p = os.path.abspath(os.path.join(p, os.pardir))
-    files.append(os.path.join(home, '.uprc'))
+        files.append(os.path.join(p, '.up.ini'))
     files.append(os.path.join(home, 'up.ini'))
+    files.append(os.path.join(home, '.up.ini'))
+    files.append(os.path.join(home, '.uprc'))
     return files
 
 
@@ -102,12 +103,13 @@ def configure_factory(factory: 'Factory'):
     class_name: <class-name>
 
 
-    The configuration is read from the first up.ini file located in any of the
+    The configuration is read from the first `up.ini` or `.up.ini` file located in any of the
     parent directories from which this code was called or, otherwise, from one
-    of the following files: ~/.uprc, ~/up.ini.
+    of the following files: `~/up.ini`, `~/.up.ini`, `~/.uprc`.
     """
     config = configparser.ConfigParser()
     files = get_possible_config_locations()
+    print(files)
     config.read(files)
 
     new_engine_sections = [s for s in config.sections()
@@ -131,7 +133,7 @@ def configure_factory(factory: 'Factory'):
         pref_list = config.get("global", "engine_preference_list")
 
         if pref_list is not None:
-            prefs = pref_list.split()
+            prefs = [x.strip() for x in pref_list.split() if len(x.strip()) > 0]
             factory.preference_list = [e for e in prefs if e in factory.engines]
 
 
