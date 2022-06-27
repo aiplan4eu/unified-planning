@@ -16,7 +16,9 @@
 
 import importlib
 import sys
+import os
 import inspect
+import configparser
 import unified_planning as up
 from unified_planning.environment import Environment
 from unified_planning.model import ProblemKind
@@ -26,6 +28,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from typing import IO, Dict, Tuple, Optional, List, Union, Type, cast
+from pathlib import PurePath
 
 
 DEFAULT_ENGINES = {
@@ -45,6 +48,17 @@ DEFAULT_ENGINES = {
     'up_grounder' : ('unified_planning.engines.compilers.grounder', 'Grounder')
 }
 
+DEFAULT_ENGINES_PREFERENCE_LIST = [
+    'fast-downward', 'fast-downward-opt', 'pyperplan', 'enhsp', 'enhsp-opt', 'tamer',
+    'sequential_plan_validator',
+    'sequential_simulator',
+    'up_conditional_effects_remover',
+    'up_disjunctive_conditions_remover',
+    'up_negative_conditions_remover',
+    'up_quantifiers_remover',
+    'tarski_grounder', 'up_grounder'
+]
+
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:
     row_template = '|'
@@ -60,21 +74,112 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
     return '\n'.join(rows_str)
 
 
+def get_possible_config_locations() -> List[str]:
+    """Returns all the possible location of the configuration file."""
+    home = os.path.expanduser('~')
+    files = []
+    stack = inspect.stack()
+    for p in PurePath(os.path.abspath(stack[-1].filename)).parents:
+        files.append(os.path.join(p, 'up.ini'))
+        files.append(os.path.join(p, '.up.ini'))
+    files.append(os.path.join(home, 'up.ini'))
+    files.append(os.path.join(home, '.up.ini'))
+    files.append(os.path.join(home, '.uprc'))
+    return files
+
+
 class Factory:
-    def __init__(self, env: 'Environment', engines: Dict[str, Tuple[str, str]] = DEFAULT_ENGINES):
+    def __init__(self, env: 'Environment'):
         self._env = env
-        self.engines: Dict[str, Type['up.engines.engine.Engine']] = {}
+        self._engines: Dict[str, Type['up.engines.engine.Engine']] = {}
         self._credit_disclaimer_printed = False
-        for name, (module_name, class_name) in engines.items():
+        for name, (module_name, class_name) in DEFAULT_ENGINES.items():
             try:
-                self.add_engine(name, module_name, class_name)
+                self._add_engine(name, module_name, class_name)
             except ImportError:
                 pass
+        self._preference_list = []
+        for name in DEFAULT_ENGINES_PREFERENCE_LIST:
+            if name in self._engines:
+                self._preference_list.append(name)
+        self.configure_from_file()
+
+    @property
+    def engines(self) -> List[str]:
+        return list(self._engines.keys())
+
+    @property
+    def preference_list(self) -> List[str]:
+        return self._preference_list
+
+    @preference_list.setter
+    def preference_list(self, preference_list: List[str]):
+        """Defines the order in which to pick the engines.
+        The list is not required to contain all the engines. It is
+        possible to define a subsets of the engines, or even just
+        one. The impact of this, is that the engine will never be
+        selected automatically. Note, however, that the engine can
+        still be selected by calling it by name.
+        """
+        self._preference_list = preference_list
 
     def add_engine(self, name: str, module_name: str, class_name: str):
+        self._add_engine(name, module_name, class_name)
+        self._preference_list.append(name)
+
+    def configure_from_file(self, config_filename: Optional[str] = None):
+        """
+        Reads a configuration file and configures the factory.
+
+        The following is an example of configuration file:
+
+
+        [global]
+        engine_preference_list: fast-downward fast-downward-opt enhsp enhsp-opt tamer
+
+        [engine <engine-name>]
+        module_name: <module-name>
+        class_name: <class-name>
+
+
+        If not given, the configuration is read from the first `up.ini` or `.up.ini` file
+        located in any of the parent directories from which this code was called  or,
+        otherwise, from one of the following files: `~/up.ini`, `~/.up.ini`, `~/.uprc`.
+        """
+        config = configparser.ConfigParser()
+        if config_filename is None:
+            files = get_possible_config_locations()
+            config.read(files)
+        else:
+            config.read([config_filename])
+
+        new_engine_sections = [s for s in config.sections()
+                               if s.lower().startswith("engine ")]
+
+        for s in new_engine_sections:
+            name = s[len("engine "):]
+
+            module_name = config.get(s, "module_name")
+            assert module_name is not None, ("Missing 'module_name' value in definition"
+                                             "of '%s' engine" % name)
+
+            class_name = config.get(s, "class_name")
+            assert class_name is not None, ("Missing 'class_name' value in definition"
+                                            "of '%s' engine" % name)
+
+            self.add_engine(name, module_name, class_name)
+
+        if "global" in config.sections():
+            pref_list = config.get("global", "engine_preference_list")
+
+            if pref_list is not None:
+                prefs = [x.strip() for x in pref_list.split() if len(x.strip()) > 0]
+                self.preference_list = [e for e in prefs if e in self.engines]
+
+    def _add_engine(self, name: str, module_name: str, class_name: str):
         module = importlib.import_module(module_name)
         EngineImpl = getattr(module, class_name)
-        self.engines[name] = EngineImpl
+        self._engines[name] = EngineImpl
 
     def _get_engine_class(self, engine_kind: str, name: Optional[str] = None,
                           problem_kind: ProblemKind = ProblemKind(),
@@ -82,15 +187,16 @@ class Factory:
                           compilation_kind: Optional['CompilationKind'] = None,
                           plan_kind: Optional['PlanKind'] = None) -> Type['up.engines.engine.Engine']:
         if name is not None:
-            if name in self.engines:
-                return self.engines[name]
+            if name in self._engines:
+                return self._engines[name]
             else:
                 raise up.exceptions.UPNoRequestedEngineAvailableException
         problem_features = list(problem_kind.features)
         planners_features = []
-        for name, EngineClass in self.engines.items():
-            # Make sure that optimality guarantees and compilation kind are mutually exclusive
-            assert optimality_guarantee is None or compilation_kind is None
+        # Make sure that optimality guarantees and compilation kind are mutually exclusive
+        assert optimality_guarantee is None or compilation_kind is None
+        for name in self._preference_list:
+            EngineClass = self._engines[name]
             if getattr(EngineClass, 'is_'+engine_kind)():
                 assert optimality_guarantee is None or issubclass(EngineClass, OneshotPlannerMixin)
                 assert compilation_kind is None or issubclass(EngineClass, CompilerMixin)
@@ -110,7 +216,7 @@ class Factory:
             header = ['Engine'] + problem_features
             if optimality_guarantee is not None:
                 header.append('OPTIMALITY_GUARANTEE')
-                msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
+            msg = f'No available engine supports all the problem features:\n{format_table(header, planners_features)}'
         elif compilation_kind is not None:
             msg = f'No available engine supports {compilation_kind}'
         elif plan_kind is not None:
@@ -281,7 +387,7 @@ class Factory:
 
     def print_engines_info(self, stream: IO[str] = sys.stdout, full_credits: bool = True):
         stream.write('These are the engines currently available:\n')
-        for Engine in self.engines.values():
+        for Engine in self._engines.values():
             credits = Engine.get_credits()
             if credits is not None:
                 stream.write('---------------------------------------\n')
