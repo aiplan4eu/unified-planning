@@ -30,10 +30,10 @@ class Environment:
     def __init__(self):
         import unified_planning.model
         import unified_planning.engines
-        import unified_planning.walkers
+        import unified_planning.model.walkers
         self._type_manager = unified_planning.model.TypeManager()
         self._factory = unified_planning.engines.Factory(self)
-        self._tc = unified_planning.walkers.TypeChecker(self)
+        self._tc = unified_planning.model.walkers.TypeChecker(self)
         self._expression_manager = unified_planning.model.ExpressionManager(self)
         self._free_vars_oracle = unified_planning.model.FreeVarsOracle()
         self._credits_stream: Optional[IO[str]] = sys.stdout
@@ -67,7 +67,7 @@ class Environment:
         return self._type_manager
 
     @property
-    def type_checker(self) -> 'unified_planning.walkers.TypeChecker':
+    def type_checker(self) -> 'unified_planning.model.walkers.TypeChecker':
         """ Get the Type Checker """
         return self._tc
 

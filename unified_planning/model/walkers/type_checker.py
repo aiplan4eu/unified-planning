@@ -16,16 +16,17 @@
 
 import unified_planning.model.types
 import unified_planning.environment
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.model.types import BOOL, TIME, _IntType, _RealType
-from unified_planning.model import FNode, OperatorKind
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError
 from typing import List, Optional
 
 
-class TypeChecker(walkers.DagWalker):
+class TypeChecker(walkers.dag.DagWalker):
     def __init__(self, env: 'unified_planning.environment.Environment'):
-        walkers.DagWalker.__init__(self)
+        walkers.dag.DagWalker.__init__(self)
         self.env = env
 
     def get_type(self, expression: FNode) -> 'unified_planning.model.types.Type':

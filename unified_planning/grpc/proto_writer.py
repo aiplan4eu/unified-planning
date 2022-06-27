@@ -18,7 +18,7 @@ import fractions
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 import unified_planning.model
 import unified_planning.plans
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning import model
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPException

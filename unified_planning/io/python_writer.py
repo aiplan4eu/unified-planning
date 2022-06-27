@@ -20,7 +20,7 @@ import re
 import sys
 from unicodedata import name
 import unified_planning as up
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.model.types import _UserType, _IntType, _RealType
 from typing import Dict, IO, Optional, cast
 from io import StringIO

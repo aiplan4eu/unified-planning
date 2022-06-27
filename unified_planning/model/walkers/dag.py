@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unified_planning.walkers.generic import Walker
+from unified_planning.model.walkers.generic import Walker
 from unified_planning.model.fnode import FNode
 
 

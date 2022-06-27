@@ -13,16 +13,17 @@
 # limitations under the License.
 #
 
-import unified_planning.walkers as walkers
-from unified_planning.model import FNode, OperatorKind
+import unified_planning.model.walkers as walkers
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
 from typing import List, Set
 
 
-class FreeVarsExtractor(walkers.DagWalker):
+class FreeVarsExtractor(walkers.dag.DagWalker):
     """This expression walker returns all the free vars of a given expression."""
 
     def __init__(self):
-        walkers.DagWalker.__init__(self)
+        walkers.dag.DagWalker.__init__(self)
 
     def get(self, expression: FNode) -> Set[FNode]:
         """Returns all the free vars of the given expression."""

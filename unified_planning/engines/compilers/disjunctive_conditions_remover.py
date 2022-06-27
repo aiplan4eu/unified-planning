@@ -21,7 +21,7 @@ from unified_planning.engines.compilers.utils import get_fresh_name, replace_act
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import FNode, Problem, InstantaneousAction, DurativeAction, TimeInterval, Timing, Action, ProblemKind
-from unified_planning.walkers import Dnf
+from unified_planning.model.walkers import Dnf
 from typing import List, Tuple, Dict, cast
 from itertools import product
 from functools import partial

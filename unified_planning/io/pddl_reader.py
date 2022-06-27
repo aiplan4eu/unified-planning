@@ -15,6 +15,7 @@
 
 import unified_planning as up
 import unified_planning.model.htn as htn
+import unified_planning.model.walkers
 import pyparsing
 import typing
 from unified_planning.environment import Environment, get_env
@@ -168,7 +169,7 @@ class PDDLReader:
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
         self._pp_parameters = grammar.parameters
-        self._fve = up.walkers.FreeVarsExtractor()
+        self._fve = up.model.walkers.FreeVarsExtractor()
         self._totalcost: typing.Optional[up.model.FNode] = None
 
     def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],

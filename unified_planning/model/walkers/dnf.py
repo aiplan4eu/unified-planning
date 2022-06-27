@@ -15,9 +15,10 @@
 
 
 import unified_planning.environment
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.exceptions import UPUnreachableCodeError
-from unified_planning.model import FNode, OperatorKind
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
 from typing import List, Tuple
 from itertools import product
 
@@ -109,7 +110,7 @@ class Nnf:
 
 
 
-class Dnf(walkers.DagWalker):
+class Dnf(walkers.dag.DagWalker):
     """Class used to transform a logic expression into the equivalent
     Disjunctive Normal Form expression.
 
@@ -119,11 +120,11 @@ class Dnf(walkers.DagWalker):
     Not of an atomic expression.
     """
     def __init__(self, env: 'unified_planning.environment.Environment'):
-        walkers.DagWalker.__init__(self, True)
+        walkers.dag.DagWalker.__init__(self, True)
         self.env = env
         self.manager = env.expression_manager
         self._nnf = Nnf(self.env)
-        self._simplifier = walkers.Simplifier(self.env)
+        self._simplifier = walkers.simplifier.Simplifier(self.env)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
         """Function used to transform a logic expression into the equivalent

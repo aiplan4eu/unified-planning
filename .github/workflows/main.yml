@@ -3,7 +3,7 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "15c0dd3b0e20b0f4a4572e0a5af2d81350b9fec7"
+  up_tamer_commit: "77110e4101fdde5488cc0437c723993409339e16"
   up_pyperplan_commit: "4dc20452a3f937bf6d547def5d2a579eda034f57"
 
 jobs:
@@ -22,6 +22,9 @@ jobs:
 
       - name: MyPy check
         run: python3 -m mypy unified_planning
+
+      - name: Test all packages imports
+        run: bash test_imports.sh
 
 
   run-tests-ubuntu:

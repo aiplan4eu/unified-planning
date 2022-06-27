@@ -22,7 +22,7 @@ from typing import List, Set
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 import unified_planning
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 import unified_planning.model.operators as op
 
 

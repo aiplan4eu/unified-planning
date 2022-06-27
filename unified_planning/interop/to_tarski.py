@@ -19,7 +19,7 @@ from typing import List, Optional, Union, cast
 
 import unified_planning
 import unified_planning.model
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.model.types import _UserType as UT, _IntType as IT, _RealType as RT
 
 import tarski

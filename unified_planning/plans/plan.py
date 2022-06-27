@@ -15,9 +15,7 @@
 
 
 import unified_planning as up
-import unified_planning.model
 from unified_planning.environment import Environment, get_env
-from unified_planning.model import FNode, Action
 from typing import Callable, Optional, Tuple
 from enum import Enum, auto
 
@@ -30,7 +28,7 @@ class ActionInstance:
 
     NOTE: two action instances of the same action with the same parameters are
     considered different as it is possible to have the same action twice in a plan.'''
-    def __init__(self, action: 'unified_planning.model.Action', params: Tuple['unified_planning.model.FNode', ...] = tuple()):
+    def __init__(self, action: 'up.model.Action', params: Tuple['up.model.FNode', ...] = tuple()):
         assert len(action.parameters) == len(params)
         self._action = action
         self._params = tuple(params)
@@ -50,12 +48,12 @@ class ActionInstance:
 
 
     @property
-    def action(self) -> 'Action':
+    def action(self) -> 'up.model.Action':
         '''Returns the action.'''
         return self._action
 
     @property
-    def actual_parameters(self) -> Tuple['FNode', ...]:
+    def actual_parameters(self) -> Tuple['up.model.FNode', ...]:
         '''Returns the actual parameters.'''
         return self._params
 

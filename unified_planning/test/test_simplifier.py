@@ -16,7 +16,7 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
-from unified_planning.walkers import Simplifier, Substituter
+from unified_planning.model.walkers import Simplifier, Substituter
 from unified_planning.environment import get_env
 from fractions import Fraction
 
