@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 python3 -c "import unified_planning.engines"
 python3 -c "import unified_planning.engines.compilers"
 python3 -c "import unified_planning.engines.mixins"
