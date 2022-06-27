@@ -21,11 +21,9 @@ from unified_planning.model.mixins import ActionsSetMixin, FluentsSetMixin, Obje
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
-from unified_planning.plans import ActionInstance
-from unified_planning.model.walkers import OperatorsExtractor
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
-from typing import Iterator, List, Dict, Set, Union, Optional, cast
+from typing import List, Dict, Set, Union, cast
 
 
 class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMixin, ObjectsSetMixin):
@@ -37,7 +35,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         FluentsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name, initial_defaults)
         ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
-        self._operators_extractor = OperatorsExtractor()
+        self._operators_extractor = up.walkers.OperatorsExtractor()
         self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
         self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
         self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
@@ -191,8 +189,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         return plan.replace_action_instances(self._replace_action_instance)
 
     def _replace_action_instance(self,
-                                action_instance: ActionInstance
-                                ) -> ActionInstance:
+                                action_instance: 'up.plans.ActionInstance') -> 'up.plans.ActionInstance':
         em = self.env.expression_manager
         new_a = self.action(action_instance.action.name)
         params = []
@@ -208,7 +205,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                 params.append(em.Real(cast(Fraction, p.constant_value())))
             else:
                 raise NotImplementedError
-        return ActionInstance(new_a, tuple(params))
+        return up.plans.ActionInstance(new_a, tuple(params))
 
     def get_static_fluents(self) -> Set['up.model.fluent.Fluent']:
         '''Returns the set of the static fluents.

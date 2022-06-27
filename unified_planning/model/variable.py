@@ -108,6 +108,9 @@ class Variable:
     def __le__(self, right):
         return self._env.expression_manager.LE(self, right)
 
+    def __pos__(self):
+        return get_env().expression_manager.Plus(0, self)
+
     def __neg__(self):
         return self._env.expression_manager.Minus(0, self)
 
@@ -131,6 +134,12 @@ class Variable:
 
     def __ror__(self, *other):
         return self._env.expression_manager.Or(*other, self)
+
+    def Not(self):
+        return get_env().expression_manager.Not(self)
+
+    def __invert__(self):
+        return get_env().expression_manager.Not(self)
 
     def Xor(self, *other):
         em = self._env.expression_manager

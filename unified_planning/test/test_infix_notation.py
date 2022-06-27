@@ -128,6 +128,8 @@ class TestInfixNotation(TestCase):
             , 2 < i_2),
             (LE(i_1, i_2)
             , i_1 <= i_2),
+            (Plus(0, i_1)
+            , +i_1),
             (Minus(0, i_1)
             , -i_1),
             (Equals(i_1, 1)
@@ -150,6 +152,10 @@ class TestInfixNotation(TestCase):
             , b_1.Or(b_2, b_3)),
             (Or(b_1, b_2)
             , b_1 | b_2),
+            (Not(b_1)
+            , b_1.Not()),
+            (Not(b_1)
+            , ~b_1),
             (And(Or(b_1, b_2), Not(And(b_1, b_2)))
             , b_1.Xor(b_2)),
             (And(Or(b_1, b_2, b_3), Not(And(b_1, b_2, b_3)))

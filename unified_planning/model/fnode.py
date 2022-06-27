@@ -17,9 +17,9 @@
 import unified_planning
 import unified_planning.model.fluent
 import collections
-from unified_planning.environment import get_env
+from unified_planning.environment import Environment, get_env
 from unified_planning.model.operators import OperatorKind
-from typing import List, Union
+from typing import List, Optional, Union
 from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent",
@@ -318,6 +318,9 @@ class FNode(object):
     def __le__(self, right):
         return get_env().expression_manager.LE(self, right)
 
+    def __pos__(self):
+        return get_env().expression_manager.Plus(0, self)
+
     def __neg__(self):
         return get_env().expression_manager.Minus(0, self)
 
@@ -341,6 +344,12 @@ class FNode(object):
 
     def __ror__(self, *other):
         return get_env().expression_manager.Or(*other, self)
+
+    def Not(self):
+        return get_env().expression_manager.Not(self)
+
+    def __invert__(self):
+        return get_env().expression_manager.Not(self)
 
     def Xor(self, *other):
         em = get_env().expression_manager
