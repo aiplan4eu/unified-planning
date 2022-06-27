@@ -26,11 +26,12 @@ FNodeContent = collections.namedtuple("FNodeContent",
                                       ["node_type", "args", "payload"])
 
 class FNode(object):
-    __slots__ = ["_content", "_node_id"]
+    __slots__ = ["_content", "_node_id", "_env"]
 
-    def __init__(self, content: FNodeContent, node_id: int):
+    def __init__(self, content: FNodeContent, node_id: int, environment: Environment):
         self._content = content
         self._node_id = node_id
+        self._env = environment
         return
 
     # __eq__ is left as default while __hash__ uses the node id. This

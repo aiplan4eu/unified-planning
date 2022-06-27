@@ -92,7 +92,7 @@ class ExpressionManager(object):
         if content in self.expressions:
             return self.expressions[content]
         else:
-            n =up.model.fnode.FNode(content, self._next_free_id)
+            n = up.model.fnode.FNode(content, self._next_free_id, self.env)
             self._next_free_id += 1
             self.expressions[content] = n
             self.env.type_checker.get_type(n)
