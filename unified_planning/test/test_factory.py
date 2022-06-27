@@ -14,31 +14,22 @@
 
 import os
 import inspect
+import tempfile
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 
 
 class TestFactory(TestCase):
-    def setUp(self):
-        TestCase.setUp(self)
-        home = os.path.expanduser('~')
-        self.fname = os.path.join(home, '.up.ini')
-        if os.path.isfile(self.fname):
-            os.rename(self.fname, f'{self.fname}.temp')
-
-    def tearDown(self):
-        TestCase.tearDown(self)
-        if os.path.isfile(self.fname):
-            os.remove(self.fname)
-        if os.path.isfile(f'{self.fname}.temp'):
-            os.rename(f'{self.fname}.temp', self.fname)
 
     def test_config_file(self):
         self.assertTrue('pyperplan' in get_env().factory.preference_list)
-        with open(self.fname, 'w') as conf:
-            conf.write('[global]\n')
-            conf.write('engine_preference_list: tamer\n')
-        env = unified_planning.environment.Environment()
-        self.assertTrue('pyperplan' not in env.factory.preference_list)
-        self.assertEqual(env.factory.preference_list, ['tamer'])
+        with tempfile.TemporaryDirectory() as tempdir:
+            config_filename = os.path.join(tempdir, 'up.ini')
+            with open(config_filename, 'w') as config:
+                config.write('[global]\n')
+                config.write('engine_preference_list: tamer\n')
+            env = unified_planning.environment.Environment()
+            env.factory.configure_from_file(config_filename)
+            self.assertTrue('pyperplan' not in env.factory.preference_list)
+            self.assertEqual(env.factory.preference_list, ['tamer'])

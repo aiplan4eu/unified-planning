@@ -88,55 +88,6 @@ def get_possible_config_locations() -> List[str]:
     return files
 
 
-def configure_factory(factory: 'Factory'):
-    """
-    Reads a configuration file and configures the factory.
-
-    The following is an example of configuration file:
-
-
-    [global]
-    engine_preference_list: fast-downward fast-downward-opt enhsp enhsp-opt tamer
-
-    [engine <engine-name>]
-    module_name: <module-name>
-    class_name: <class-name>
-
-
-    The configuration is read from the first `up.ini` or `.up.ini` file located in any of the
-    parent directories from which this code was called or, otherwise, from one
-    of the following files: `~/up.ini`, `~/.up.ini`, `~/.uprc`.
-    """
-    config = configparser.ConfigParser()
-    files = get_possible_config_locations()
-    print(files)
-    config.read(files)
-
-    new_engine_sections = [s for s in config.sections()
-                           if s.lower().startswith("engine ")]
-
-    for s in new_engine_sections:
-        name = s[len("engine "):]
-
-        module_name = config.get(s, "module_name")
-        assert module_name is not None, ("Missing 'module_name' value in definition"
-                                         "of '%s' engine" % name)
-
-        class_name = config.get(s, "class_name")
-        assert class_name is not None, ("Missing 'class_name' value in definition"
-                                        "of '%s' engine" % name)
-
-        factory.add_engine(name, module_name, class_name)
-
-
-    if "global" in config.sections():
-        pref_list = config.get("global", "engine_preference_list")
-
-        if pref_list is not None:
-            prefs = [x.strip() for x in pref_list.split() if len(x.strip()) > 0]
-            factory.preference_list = [e for e in prefs if e in factory.engines]
-
-
 class Factory:
     def __init__(self, env: 'Environment'):
         self._env = env
@@ -151,7 +102,7 @@ class Factory:
         for name in DEFAULT_ENGINES_PREFERENCE_LIST:
             if name in self._engines:
                 self._preference_list.append(name)
-        configure_factory(self)
+        self.configure_from_file()
 
     @property
     def engines(self) -> List[str]:
@@ -175,6 +126,55 @@ class Factory:
     def add_engine(self, name: str, module_name: str, class_name: str):
         self._add_engine(name, module_name, class_name)
         self._preference_list.append(name)
+
+    def configure_from_file(self, config_filename: Optional[str] = None):
+        """
+        Reads a configuration file and configures the factory.
+
+        The following is an example of configuration file:
+
+
+        [global]
+        engine_preference_list: fast-downward fast-downward-opt enhsp enhsp-opt tamer
+
+        [engine <engine-name>]
+        module_name: <module-name>
+        class_name: <class-name>
+
+
+        If not given, the configuration is read from the first `up.ini` or `.up.ini` file
+        located in any of the parent directories from which this code was called  or,
+        otherwise, from one of the following files: `~/up.ini`, `~/.up.ini`, `~/.uprc`.
+        """
+        config = configparser.ConfigParser()
+        if config_filename is None:
+            files = get_possible_config_locations()
+            config.read(files)
+        else:
+            config.read([config_filename])
+
+        new_engine_sections = [s for s in config.sections()
+                               if s.lower().startswith("engine ")]
+
+        for s in new_engine_sections:
+            name = s[len("engine "):]
+
+            module_name = config.get(s, "module_name")
+            assert module_name is not None, ("Missing 'module_name' value in definition"
+                                             "of '%s' engine" % name)
+
+            class_name = config.get(s, "class_name")
+            assert class_name is not None, ("Missing 'class_name' value in definition"
+                                            "of '%s' engine" % name)
+
+            self.add_engine(name, module_name, class_name)
+
+        if "global" in config.sections():
+            pref_list = config.get("global", "engine_preference_list")
+
+            if pref_list is not None:
+                prefs = [x.strip() for x in pref_list.split() if len(x.strip()) > 0]
+                self.preference_list = [e for e in prefs if e in self.engines]
 
     def _add_engine(self, name: str, module_name: str, class_name: str):
         module = importlib.import_module(module_name)
