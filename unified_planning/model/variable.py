@@ -27,7 +27,6 @@ import unified_planning.model.walkers as walkers
 import unified_planning.model.operators as op
 
 
-
 class Variable:
     """Represents a varible."""
     def __init__(self, name: str, typename: 'unified_planning.model.types.Type', env: Environment = None):
@@ -58,7 +57,7 @@ class Variable:
         return self._typename
 
     @property
-    def env(self) -> 'Environment':
+    def environment(self) -> 'Environment':
         """Return the object environment"""
         return self._env
 

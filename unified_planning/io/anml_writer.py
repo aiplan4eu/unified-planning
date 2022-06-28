@@ -41,7 +41,7 @@ class ConverterToANMLString(walkers.DagWalker):
     def __init__(self, names_mapping: Dict[Union['up.model.Type', 'up.model.Action', 'up.model.Parameter', 'up.model.Fluent', 'up.model.Object'], str], env: 'up.environment.Environment'):
         walkers.DagWalker.__init__(self)
         self._names_mapping = names_mapping
-        self.simplifier = walkers.Simplifier(env)
+        self.simplifier = env.simplifier
 
     def convert(self, expression):
         '''Converts the given expression to a ANML string.'''

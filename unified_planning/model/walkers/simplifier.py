@@ -26,10 +26,17 @@ import unified_planning.model.operators as op
 class Simplifier(walkers.dag.DagWalker):
     """Performs basic simplifications of the input expression."""
 
-    def __init__(self, env: 'up.environment.Environment'):
+    def __init__(self,
+                env: 'unified_planning.environment.Environment',
+                problem: Optional['unified_planning.model.problem.Problem'] = None):
         walkers.dag.DagWalker.__init__(self)
         self.env = env
         self.manager = env.expression_manager
+        if problem is not None:
+            self.static_fluents = problem.get_static_fluents()
+        else:
+            self.static_fluents = set()
+        self.problem: Optional['unified_planning.model.problem.Problem'] = problem
 
     def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
         if isinstance(value, int):
@@ -38,15 +45,10 @@ class Simplifier(walkers.dag.DagWalker):
             fnode = self.manager.Real(Fraction(value))
         return fnode
 
-    def simplify(self, expression: FNode, problem: Optional['up.model.problem.Problem'] = None) -> FNode:
+    def simplify(self, expression: FNode) -> FNode:
         """Performs basic simplification of the given expression.
 
-        If a problem is given, it also uses the static fluents of the problem for a better simplification."""
-        if problem is not None:
-            self.static_fluents = problem.get_static_fluents()
-        else:
-            self.static_fluents = set()
-        self.problem: Optional['up.model.problem.Problem'] = problem
+        If a problem is given at the costructor, it also uses the static fluents of the problem for a better simplification."""
         return self.walk(expression)
 
 

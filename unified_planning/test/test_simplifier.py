@@ -553,6 +553,7 @@ class TestArithmeticOperators(TestCase):
         e3 = Or(e2, Implies(e1, x))
         r3 = s.simplify(e3)
         self.assertEqual(r3, t)
+        self.assertEqual(r3, e3.simplify())
 
 class TestWithSubstituter(TestCase):
     def setUp(self):

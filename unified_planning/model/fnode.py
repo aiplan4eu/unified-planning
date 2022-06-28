@@ -112,6 +112,10 @@ class FNode(object):
         return self._content.node_type
 
     @property
+    def environment(self) -> Environment:
+        return self._env
+
+    @property
     def args(self) -> List['FNode']:
         """Returns the subexpressions."""
         return self._content.args
@@ -176,6 +180,15 @@ class FNode(object):
         """Return the object of the TimingExp."""
         assert self.is_timing_exp()
         return self._content.payload
+
+    @property
+    def type(self) -> 'unified_planning.model.Type':
+        """Returns the type of this expression."""
+        return self._env.type_checker.get_type(self)
+
+    def simplify(self) -> 'FNode':
+        """Returns the simplified version of this expression."""
+        return self._env.simplifier.simplify(self)
 
     def is_bool_constant(self) -> bool:
         """Test whether the expression is a boolean constant."""

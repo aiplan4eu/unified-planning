@@ -146,7 +146,7 @@ class PDDLReader:
     """
     Parse a PDDL problem and generate a unified_planning problem.
     """
-    def __init__(self, env: Environment = None):
+    def __init__(self, env: typing.Optional[Environment] = None):
         self._env = get_env(env)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
@@ -169,7 +169,7 @@ class PDDLReader:
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
         self._pp_parameters = grammar.parameters
-        self._fve = up.model.walkers.FreeVarsExtractor()
+        self._fve = self._env.free_vars_extractor
         self._totalcost: typing.Optional[up.model.FNode] = None
 
     def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],

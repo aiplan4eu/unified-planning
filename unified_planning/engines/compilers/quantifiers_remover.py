@@ -19,11 +19,10 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import Problem, InstantaneousAction, DurativeAction, Action, ProblemKind
-from unified_planning.model.walkers import ExpressionQuantifiersRemover, Simplifier
+from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from typing import List, Dict
+from typing import Dict
 from functools import partial
 
 
@@ -85,7 +84,6 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
 
         env = problem.env
-        simplifier = Simplifier(env)
         expression_quantifier_remover = ExpressionQuantifiersRemover(env)
 
         new_to_old: Dict[Action, Action] = {}
