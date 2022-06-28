@@ -24,17 +24,17 @@ import unified_planning as up
 class Parameter:
     '''Represents an action parameter or a fluent parameter.
     A parameter has a name, and a type.'''
-    def __init__(self, name: str, typename: 'up.model.types.Type', env: Environment = None):
+    def __init__(self, name: str, typename: 'up.model.types.Type', env: Environment):
         self._name = name
         self._typename = typename
-        self._env = get_env(env)
+        self._env = env
 
     def __repr__(self) -> str:
         return f'{str(self.type)} {self.name}'
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Parameter):
-            return self._name == oth._name and self._typename == oth._typename
+            return self._name == oth._name and self._typename == oth._typename and self._env == oth._env
         else:
             return False
 

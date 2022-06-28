@@ -99,6 +99,7 @@ class ActionsSetMixin:
 
     def add_action(self, action: 'up.model.action.Action'):
         '''Adds the given action.'''
+        assert action.env == self._env, 'Action does not have the same environment of the problem'
         if self._has_name_method(action.name):
             raise UPProblemDefinitionError('Name ' + action.name + ' already defined!')
         self._actions.append(action)

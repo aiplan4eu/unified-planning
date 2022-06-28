@@ -18,7 +18,7 @@ A Variable has a name and a type.
 """
 
 
-from typing import List, Set
+from typing import List, Optional, Set
 from unified_planning.environment import Environment, get_env
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
@@ -29,7 +29,7 @@ import unified_planning.model.operators as op
 
 class Variable:
     """Represents a varible."""
-    def __init__(self, name: str, typename: 'unified_planning.model.types.Type', env: Environment = None):
+    def __init__(self, name: str, typename: 'unified_planning.model.types.Type', env: Optional[Environment] = None):
         self._name = name
         self._typename = typename
         self._env = get_env(env)
@@ -39,7 +39,7 @@ class Variable:
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Variable):
-            return self._name == oth._name and self._typename == oth._typename
+            return self._name == oth._name and self._typename == oth._typename and self._env == oth._env
         else:
             return False
 

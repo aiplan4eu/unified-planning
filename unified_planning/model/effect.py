@@ -36,6 +36,7 @@ class Effect:
         self._value = value
         self._condition = condition
         self._kind = kind
+        assert fluent.environment == value.environment and value.environment == condition.environment, 'Effect expressions have different environment.'
 
     def __repr__(self) -> str:
         s = []
@@ -95,6 +96,10 @@ class Effect:
     def kind(self) -> EffectKind:
         """Returns the kind of this Effect."""
         return self._kind
+
+    @property
+    def environment(self) -> 'up.environment.Environment':
+        return self._fluent.environment
 
     def is_assignment(self) -> bool:
         """Returns True if the kind of this Effect is an assignment."""

@@ -112,11 +112,13 @@ def convert_tarski_formula(env: Environment, fluents: Dict[str, 'unified_plannin
             return em.ParameterExp(action_parameters[formula.symbol])
         else:
             return em.VariableExp(unified_planning.model.Variable(formula.symbol, \
-                cast(unified_planning.model.Type, _convert_type_and_update_dict(formula.sort, types, env.type_manager, formula.sort.language))))
+                cast(unified_planning.model.Type, _convert_type_and_update_dict(formula.sort, types, env.type_manager, formula.sort.language)),
+                env))
     elif isinstance(formula, QuantifiedFormula):
         expression = convert_tarski_formula(env, fluents, objects, action_parameters, types, formula.formula)
         variables = [unified_planning.model.Variable(v.symbol,
-            cast(unified_planning.model.Type, _convert_type_and_update_dict(v.sort, types, env.type_manager, v.sort.language)))
+            cast(unified_planning.model.Type, _convert_type_and_update_dict(v.sort, types, env.type_manager, v.sort.language)),
+            env)
             for v in formula.variables]
         if formula.quantifier == Quantifier.Exists:
             return em.Exists(expression, *variables)
@@ -258,7 +260,7 @@ def convert_problem_from_tarski(env: Environment, tarski_problem: tarski.fstrips
     for c in lang.constants():
         type = types[str(c.sort.name)]
         assert type is not None
-        o = unified_planning.model.Object(str(c.name), type)
+        o = unified_planning.model.Object(str(c.name), type, env)
         objects[o.name] = o
         problem.add_object(o)
 

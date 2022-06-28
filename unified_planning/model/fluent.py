@@ -39,14 +39,14 @@ class Fluent:
             assert len(kwargs) == 0
             if isinstance(_signature, OrderedDict):
                 for param_name, param_type in _signature.items():
-                    self._signature.append(up.model.parameter.Parameter(param_name, param_type))
+                    self._signature.append(up.model.parameter.Parameter(param_name, param_type, self._env))
             elif isinstance(_signature, List):
                 self._signature = _signature[:]
             else:
                 raise NotImplementedError
         else:
             for param_name, param_type in kwargs.items():
-                self._signature.append(up.model.parameter.Parameter(param_name, param_type))
+                self._signature.append(up.model.parameter.Parameter(param_name, param_type, self._env))
 
     def __repr__(self) -> str:
         sign = ''

@@ -55,13 +55,14 @@ class TestInfixNotation(TestCase):
         self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
 
     def test_infix_with_parameters(self):
-        i_1 = Parameter('i_1', IntType())
-        r_1 = Parameter('r_1', RealType())
-        i_2 = Parameter('i_2', IntType())
-        r_2 = Parameter('r_2', RealType())
-        b_1 = Parameter('b_1', BoolType())
-        b_2 = Parameter('b_2', BoolType())
-        b_3 = Parameter('b_3', BoolType())
+        env = get_env()
+        i_1 = Parameter('i_1', IntType(), env)
+        r_1 = Parameter('r_1', RealType(), env)
+        i_2 = Parameter('i_2', IntType(), env)
+        r_2 = Parameter('r_2', RealType(), env)
+        b_1 = Parameter('b_1', BoolType(), env)
+        b_2 = Parameter('b_2', BoolType(), env)
+        b_3 = Parameter('b_3', BoolType(), env)
         self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
 
     def test_infix_on_objects(self):

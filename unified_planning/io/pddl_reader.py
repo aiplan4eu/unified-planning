@@ -212,7 +212,7 @@ class PDDLReader:
                         for g in vars_res['params']:
                             t = types_map[g[1] if len(g) > 1 else 'object']
                             for o in g[0]:
-                                vars[o] = up.model.Variable(o, t)
+                                vars[o] = up.model.Variable(o, t, self._env)
                         stack.append((vars, exp, True))
                         stack.append((vars, exp[2], False))
                     elif problem.has_fluent(exp[0]): # fluent reference
@@ -302,7 +302,7 @@ class PDDLReader:
                 for g in vars_res['params']:
                     t = types_map[g[1] if len(g) > 1 else 'object']
                     for o in g[0]:
-                        vars[o] = up.model.Variable(o, t)
+                        vars[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], vars))
             elif len(exp) == 3 and op == 'at' and exp[1] == 'start':
                 cond = self._parse_exp(problem, act, types_map, {} if vars is None else vars, exp[2])
@@ -495,7 +495,7 @@ class PDDLReader:
         for g in domain_res.get('constants', []):
             t = types_map[g[1] if len(g) > 1 else 'object']
             for o in g[0]:
-                problem.add_object(up.model.Object(o, t))
+                problem.add_object(up.model.Object(o, t, problem.env))
 
         for task in domain_res.get('tasks', []):
             assert isinstance(problem, htn.HierarchicalProblem)
@@ -591,7 +591,7 @@ class PDDLReader:
             for g in problem_res.get('objects', []):
                 t = types_map[g[1] if len(g) > 1 else 'object']
                 for o in g[0]:
-                    problem.add_object(up.model.Object(o, t))
+                    problem.add_object(up.model.Object(o, t, problem.env))
 
             tasknet = problem_res.get('htn', None)
             if tasknet is not None:
