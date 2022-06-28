@@ -21,7 +21,6 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPProblemDefinitionError, UPConflictingEffectsException
 from unified_planning.model import Problem, ProblemKind
-from unified_planning.model.walkers import Simplifier
 from unified_planning.engines.compilers.utils import get_fresh_name, check_and_simplify_preconditions, check_and_simplify_conditions, replace_action
 from typing import Iterable, List, Dict, Tuple
 from itertools import chain, combinations
@@ -87,7 +86,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
 
         env = problem.env
-        simplifier = Simplifier(env)
+        simplifier = env.simplifier
 
         new_to_old = {}
 

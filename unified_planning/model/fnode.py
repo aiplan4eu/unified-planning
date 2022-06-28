@@ -17,7 +17,7 @@
 import unified_planning
 import unified_planning.model.fluent
 import collections
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment
 from unified_planning.model.operators import OperatorKind
 from typing import List, Optional, Union
 from fractions import Fraction
@@ -26,11 +26,12 @@ FNodeContent = collections.namedtuple("FNodeContent",
                                       ["node_type", "args", "payload"])
 
 class FNode(object):
-    __slots__ = ["_content", "_node_id"]
+    __slots__ = ["_content", "_node_id", "_env"]
 
-    def __init__(self, content: FNodeContent, node_id: int):
+    def __init__(self, content: FNodeContent, node_id: int, environment: Environment):
         self._content = content
         self._node_id = node_id
+        self._env = environment
         return
 
     # __eq__ is left as default while __hash__ uses the node id. This
@@ -111,6 +112,10 @@ class FNode(object):
         return self._content.node_type
 
     @property
+    def environment(self) -> Environment:
+        return self._env
+
+    @property
     def args(self) -> List['FNode']:
         """Returns the subexpressions."""
         return self._content.args
@@ -175,6 +180,15 @@ class FNode(object):
         """Return the object of the TimingExp."""
         assert self.is_timing_exp()
         return self._content.payload
+
+    @property
+    def type(self) -> 'unified_planning.model.Type':
+        """Returns the type of this expression."""
+        return self._env.type_checker.get_type(self)
+
+    def simplify(self) -> 'FNode':
+        """Returns the simplified version of this expression."""
+        return self._env.simplifier.simplify(self)
 
     def is_bool_constant(self) -> bool:
         """Test whether the expression is a boolean constant."""
@@ -277,94 +291,94 @@ class FNode(object):
     #
 
     def __add__(self, right):
-        return get_env().expression_manager.Plus(self, right)
+        return self._env.expression_manager.Plus(self, right)
 
     def __radd__(self, left):
-        return get_env().expression_manager.Plus(left, self)
+        return self._env.expression_manager.Plus(left, self)
 
     def __sub__(self, right):
-        return get_env().expression_manager.Minus(self, right)
+        return self._env.expression_manager.Minus(self, right)
 
     def __rsub__(self, left):
-        return get_env().expression_manager.Minus(left, self)
+        return self._env.expression_manager.Minus(left, self)
 
     def __mul__(self, right):
-        return get_env().expression_manager.Times(self, right)
+        return self._env.expression_manager.Times(self, right)
 
     def __rmul__(self, left):
-        return get_env().expression_manager.Times(left, self)
+        return self._env.expression_manager.Times(left, self)
 
     def __truediv__(self, right):
-        return get_env().expression_manager.Div(self, right)
+        return self._env.expression_manager.Div(self, right)
 
     def __rtruediv__(self, left):
-        return get_env().expression_manager.Div(left, self)
+        return self._env.expression_manager.Div(left, self)
 
     def __floordiv__(self, right):
-        return get_env().expression_manager.Div(self, right)
+        return self._env.expression_manager.Div(self, right)
 
     def __rfloordiv__(self, left):
-        return get_env().expression_manager.Div(left, self)
+        return self._env.expression_manager.Div(left, self)
 
     def __gt__(self, right):
-        return get_env().expression_manager.GT(self, right)
+        return self._env.expression_manager.GT(self, right)
 
     def __ge__(self, right):
-        return get_env().expression_manager.GE(self, right)
+        return self._env.expression_manager.GE(self, right)
 
     def __lt__(self, right):
-        return get_env().expression_manager.LT(self, right)
+        return self._env.expression_manager.LT(self, right)
 
     def __le__(self, right):
-        return get_env().expression_manager.LE(self, right)
+        return self._env.expression_manager.LE(self, right)
 
     def __pos__(self):
-        return get_env().expression_manager.Plus(0, self)
+        return self._env.expression_manager.Plus(0, self)
 
     def __neg__(self):
-        return get_env().expression_manager.Minus(0, self)
+        return self._env.expression_manager.Minus(0, self)
 
     def Equals(self, right):
-        return get_env().expression_manager.Equals(self, right)
+        return self._env.expression_manager.Equals(self, right)
 
     def And(self, *other):
-        return get_env().expression_manager.And(self, *other)
+        return self._env.expression_manager.And(self, *other)
 
     def __and__(self, *other):
-        return get_env().expression_manager.And(self, *other)
+        return self._env.expression_manager.And(self, *other)
 
     def __rand__(self, *other):
-        return get_env().expression_manager.And(*other, self)
+        return self._env.expression_manager.And(*other, self)
 
     def Or(self, *other):
-        return get_env().expression_manager.Or(self, *other)
+        return self._env.expression_manager.Or(self, *other)
 
     def __or__(self, *other):
-        return get_env().expression_manager.Or(self, *other)
+        return self._env.expression_manager.Or(self, *other)
 
     def __ror__(self, *other):
-        return get_env().expression_manager.Or(*other, self)
+        return self._env.expression_manager.Or(*other, self)
 
     def Not(self):
-        return get_env().expression_manager.Not(self)
+        return self._env.expression_manager.Not(self)
 
     def __invert__(self):
-        return get_env().expression_manager.Not(self)
+        return self._env.expression_manager.Not(self)
 
     def Xor(self, *other):
-        em = get_env().expression_manager
+        em = self._env.expression_manager
         return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
 
     def __xor__(self, *other):
-        em = get_env().expression_manager
+        em = self._env.expression_manager
         return em.And(em.Or(self, *other), em.Not(em.And(self, *other)))
 
     def __rxor__(self, other):
-        em = get_env().expression_manager
+        em = self._env.expression_manager
         return em.And(em.Or(*other, self), em.Not(em.And(*other, self)))
 
     def Implies(self, right):
-        return get_env().expression_manager.Implies(self, right)
+        return self._env.expression_manager.Implies(self, right)
 
     def Iff(self, right):
-        return get_env().expression_manager.Iff(self, right)
+        return self._env.expression_manager.Iff(self, right)

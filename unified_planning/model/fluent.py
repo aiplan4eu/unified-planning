@@ -92,6 +92,11 @@ class Fluent:
         seldom as possible.'''
         return len(self._signature)
 
+    @property
+    def environment(self) -> 'Environment':
+        '''Returns the Fluent environment.'''
+        return self._env
+
     def __call__(self, *args: 'up.model.expression.Expression') -> 'up.model.fnode.FNode':
         '''Returns a fluent expression with the given parameters.'''
         return self._env.expression_manager.FluentExp(self, args)

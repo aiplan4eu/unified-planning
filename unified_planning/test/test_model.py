@@ -24,6 +24,17 @@ class TestModel(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    def test_expression(self):
+        Object = UserType('Object')
+        id = Fluent('id', Object, obj_id = IntType())
+        self.assertEqual(id(1).type, Object)
+        env_2 = up.environment.Environment()
+        Object_2 = env_2.type_manager.UserType('Object')
+        it_2 = env_2.type_manager.IntType()
+        id_2 = Fluent('id', Object_2, obj_id = it_2)
+        self.assertEqual(id_2(1).type, Object_2)
+        self.assertNotEqual(id_2(1).type, Object)
+
     def test_clone_problem_and_action(self):
         for _, (problem, _) in self.problems.items():
             problem_clone_1 = problem.clone()

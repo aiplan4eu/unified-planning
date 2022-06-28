@@ -51,7 +51,7 @@ class Object:
         return self._typename
 
     @property
-    def env(self) -> 'Environment':
+    def environment(self) -> 'Environment':
         """Return the object environment"""
         return self._env
 
