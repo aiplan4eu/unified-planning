@@ -305,10 +305,6 @@ class TestPddlIO(TestCase):
                 w.write_problem(problem_filename)
 
                 reader = PDDLReader()
-                if problem.name != 'hierarchical_blocks_world_with_object':
-                    continue
-                w.print_domain()
-                w.print_problem()
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
                 self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
