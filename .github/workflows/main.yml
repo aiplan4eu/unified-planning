@@ -29,7 +29,7 @@ jobs:
         run: python3 -m mypy unified_planning
 
       - name: Test all packages imports
-        run: bash test_imports.sh
+        run: python3 test_imports.py
 
 
   run-tests-ubuntu:
