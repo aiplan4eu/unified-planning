@@ -430,9 +430,9 @@ class DurativeAction(Action):
         '''Sets the duration interval.'''
         lower, upper = duration.lower, duration.upper
         if not (lower.is_int_constant() or lower.is_real_constant()):
-            raise UPProblemDefinitionError('Duration bound must be constant.')
+            pass
         elif not (upper.is_int_constant() or upper.is_real_constant()):
-            raise UPProblemDefinitionError('Duration bound must be constant.')
+            pass
         elif (upper.constant_value() < lower.constant_value() or
               (upper.constant_value() == lower.constant_value() and
                (duration.is_left_open() or duration.is_right_open()))):

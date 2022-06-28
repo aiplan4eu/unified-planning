@@ -22,6 +22,7 @@ import unified_planning as up
 FEATURES = {
     'PROBLEM_CLASS' : ['ACTION_BASED', 'HIERARCHICAL'],
     'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME', 'INTERMEDIATE_CONDITIONS_AND_EFFECTS', 'TIMED_EFFECT', 'TIMED_GOALS', 'DURATION_INEQUALITIES'],
+    'EXPRESSION_DURATION' : ['STATIC_FLUENTS', 'FLUENTS'],
     'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
     'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
     'EFFECTS_KIND' : ['CONDITIONAL_EFFECTS', 'INCREASE_EFFECTS', 'DECREASE_EFFECTS'],
@@ -146,14 +147,15 @@ basic_temporal_kind.set_problem_class('ACTION_BASED')
 basic_temporal_kind.set_typing('FLAT_TYPING')
 basic_temporal_kind.set_time('CONTINUOUS_TIME')
 
-full_temporal_kind = ProblemKind()
-full_temporal_kind.set_problem_class('ACTION_BASED')
-full_temporal_kind.set_typing('FLAT_TYPING')
-full_temporal_kind.set_time('CONTINUOUS_TIME')
-full_temporal_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS')
-full_temporal_kind.set_time('TIMED_EFFECT')
-full_temporal_kind.set_time('TIMED_GOALS')
-full_temporal_kind.set_time('DURATION_INEQUALITIES')
+temporal_kind = ProblemKind()
+temporal_kind.set_problem_class('ACTION_BASED')
+temporal_kind.set_typing('FLAT_TYPING')
+temporal_kind.set_time('CONTINUOUS_TIME')
+temporal_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS')
+temporal_kind.set_time('TIMED_EFFECT')
+temporal_kind.set_time('TIMED_GOALS')
+temporal_kind.set_time('DURATION_INEQUALITIES')
+temporal_kind.set_expression_duration('STATIC_FLUENTS')
 
 quality_metrics_kind = ProblemKind()
 quality_metrics_kind.set_quality_metrics('ACTIONS_COST')

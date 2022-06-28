@@ -14,7 +14,7 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import basic_temporal_kind
+from unified_planning.model.problem_kind import basic_temporal_kind, temporal_kind
 from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 
@@ -32,3 +32,12 @@ class TestTemporalPlanner(TestCase):
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem).plan
             self.assertEqual(len(plan.timed_actions), 6)
+
+    @skipIfNoOneshotPlannerForProblemKind(temporal_kind)
+    def test_static_fluents_duration(self):
+        problem = self.problems['robot_with_static_fluents_duration'].problem
+
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem).plan
+            self.assertEqual(len(plan.timed_actions), 4)

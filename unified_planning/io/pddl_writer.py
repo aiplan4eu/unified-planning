@@ -301,17 +301,17 @@ class PDDLWriter:
                 out.write(')')
                 l, r = a.duration.lower, a.duration.upper
                 if l == r:
-                    out.write(f'\n  :duration (= ?duration {str(l)})')
+                    out.write(f'\n  :duration (= ?duration {converter.convert(l)})')
                 else:
                     out.write(f'\n  :duration (and ')
                     if a.duration.is_left_open():
-                        out.write(f'(> ?duration {str(l)})')
+                        out.write(f'(> ?duration {converter.convert(l)})')
                     else:
-                        out.write(f'(>= ?duration {str(l)})')
+                        out.write(f'(>= ?duration {converter.convert(l)})')
                     if a.duration.is_right_open():
-                        out.write(f'(< ?duration {str(r)})')
+                        out.write(f'(< ?duration {converter.convert(r)})')
                     else:
-                        out.write(f'(<= ?duration {str(r)})')
+                        out.write(f'(<= ?duration {converter.convert(r)})')
                     out.write(')')
                 if len(a.conditions) > 0:
                     out.write(f'\n  :condition (and ')

@@ -506,8 +506,20 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                 self._kind.set_simulated_entities('SIMULATED_EFFECTS')
         elif isinstance(action, up.model.action.DurativeAction):
             lower, upper = action.duration.lower, action.duration.upper
-            if lower.constant_value() != upper.constant_value():
+            if lower != upper:
                 self._kind.set_time('DURATION_INEQUALITIES')
+            free_vars = self.env.free_vars_extractor.get(lower) | self.env.free_vars_extractor.get(upper)
+            if len(free_vars) > 0:
+                static_fluents = self.get_static_fluents()
+                only_static = True
+                for fv in free_vars:
+                    if fv.fluent() not in static_fluents:
+                        only_static = False
+                        break
+                if only_static:
+                    self._kind.set_expression_duration('STATIC_FLUENTS')
+                else:
+                    self._kind.set_expression_duration('FLUENTS')
             for i, lc in action.conditions.items():
                 if i.lower.delay != 0 or i.upper.delay != 0:
                     self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS')
