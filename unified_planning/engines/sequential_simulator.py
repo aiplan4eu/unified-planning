@@ -21,7 +21,7 @@ from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
-from unified_planning.walkers import StateEvaluator
+from unified_planning.model.walkers import StateEvaluator
 
 
 class InstantaneousEvent(Event):

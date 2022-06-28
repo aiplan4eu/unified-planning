@@ -3,7 +3,7 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "15c0dd3b0e20b0f4a4572e0a5af2d81350b9fec7"
+  up_tamer_commit: "7bfccaee44ab0239caa93b25fca7ec3533e72493"
   up_pyperplan_commit: "4dc20452a3f937bf6d547def5d2a579eda034f57"
 
 jobs:
@@ -20,8 +20,16 @@ jobs:
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
 
+      - name: Install tarski
+        run: |
+          python3 -m pip install tarski[arithmetic]
+          sudo apt install -y gringo
+
       - name: MyPy check
         run: python3 -m mypy unified_planning
+
+      - name: Test all packages imports
+        run: python3 test_imports.py
 
 
   run-tests-ubuntu:

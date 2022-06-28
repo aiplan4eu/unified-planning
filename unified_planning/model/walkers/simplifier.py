@@ -16,17 +16,18 @@
 from fractions import Fraction
 from collections import OrderedDict
 from typing import List, Optional, Set, Union
-import unified_planning
+import unified_planning as up
 import unified_planning.environment
-import unified_planning.walkers as walkers
-from unified_planning.model import FNode, operators as op
+import unified_planning.model.walkers as walkers
+from unified_planning.model.fnode import FNode
+import unified_planning.model.operators as op
 
 
-class Simplifier(walkers.DagWalker):
+class Simplifier(walkers.dag.DagWalker):
     """Performs basic simplifications of the input expression."""
 
-    def __init__(self, env: 'unified_planning.environment.Environment'):
-        walkers.DagWalker.__init__(self)
+    def __init__(self, env: 'up.environment.Environment'):
+        walkers.dag.DagWalker.__init__(self)
         self.env = env
         self.manager = env.expression_manager
 
@@ -37,7 +38,7 @@ class Simplifier(walkers.DagWalker):
             fnode = self.manager.Real(Fraction(value))
         return fnode
 
-    def simplify(self, expression: FNode, problem: Optional['unified_planning.model.Problem'] = None) -> FNode:
+    def simplify(self, expression: FNode, problem: Optional['up.model.problem.Problem'] = None) -> FNode:
         """Performs basic simplification of the given expression.
 
         If a problem is given, it also uses the static fluents of the problem for a better simplification."""
@@ -45,7 +46,7 @@ class Simplifier(walkers.DagWalker):
             self.static_fluents = problem.get_static_fluents()
         else:
             self.static_fluents = set()
-        self.problem: Optional['unified_planning.model.Problem'] = problem
+        self.problem: Optional['up.model.problem.Problem'] = problem
         return self.walk(expression)
 
 
@@ -164,7 +165,7 @@ class Simplifier(walkers.DagWalker):
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set['unified_planning.model.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
+        free_vars: Set['up.model.variable.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]
@@ -172,7 +173,7 @@ class Simplifier(walkers.DagWalker):
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set['unified_planning.model.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
+        free_vars: Set['up.model.variable.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]

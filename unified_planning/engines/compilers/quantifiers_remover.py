@@ -20,9 +20,8 @@ import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.walkers import ExpressionQuantifiersRemover
 from unified_planning.model import Problem, InstantaneousAction, DurativeAction, Action, ProblemKind
-from unified_planning.walkers import Simplifier
+from unified_planning.model.walkers import ExpressionQuantifiersRemover, Simplifier
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
 from typing import List, Dict
 from functools import partial

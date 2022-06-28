@@ -22,7 +22,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import Problem, ProblemKind, Action, Type, Expression, FNode
 from unified_planning.model.types import domain_size, domain_item
-from unified_planning.walkers import Substituter, Simplifier
+from unified_planning.model.walkers import Substituter, Simplifier
 from unified_planning.engines.compilers.utils import lift_action_instance, create_action_with_given_subs
 from typing import Dict, List, Optional, Tuple, Iterator
 from itertools import product

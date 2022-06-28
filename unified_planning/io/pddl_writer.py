@@ -22,7 +22,7 @@ from warnings import warn
 
 import unified_planning as up
 import unified_planning.environment
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.model import DurativeAction
 from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError

@@ -16,7 +16,7 @@
 
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
-from unified_planning.walkers import Substituter
+from unified_planning.model.walkers import Substituter
 from unified_planning.environment import get_env
 from unified_planning.exceptions import UPTypeError
 

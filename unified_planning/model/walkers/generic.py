@@ -20,7 +20,8 @@ else:
     from collections import Iterable
 
 
-from unified_planning.model import FNode, OperatorKind
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
 
 # NodeType to Function Name
 def nt_to_fun(o: OperatorKind) -> str:

@@ -15,10 +15,11 @@
 """This module defines the quantifiers remover class."""
 
 
-import unified_planning.model
-import unified_planning.walkers as walkers
-from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.model import Object, FNode, OperatorKind
+import unified_planning.model.walkers as walkers
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.object import Object
 from unified_planning.model.mixins import ObjectsSetMixin
 from unified_planning.model.expression import Expression
 from typing import List, Dict
@@ -29,7 +30,7 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
     def __init__(self, env):
         self._env = env
         IdentityDagWalker.__init__(self, self._env, True)
-        self._substituter = walkers.Substituter(self._env)
+        self._substituter = walkers.substituter.Substituter(self._env)
 
     def remove_quantifiers(self, expression: FNode, objects_set: 'ObjectsSetMixin'):
         self._objects_set = objects_set

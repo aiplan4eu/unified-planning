@@ -15,12 +15,11 @@
 
 
 import unified_planning.environment
-import unified_planning.walkers as walkers
-import unified_planning.model as op
+import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from typing import List
 
-class IdentityDagWalker(walkers.DagWalker):
+class IdentityDagWalker(walkers.dag.DagWalker):
     """This class traverses an expression and rebuilds it recursively
     identically.
     This could be useful when only some nodes needs to be rewritten
@@ -28,7 +27,7 @@ class IdentityDagWalker(walkers.DagWalker):
     """
 
     def __init__(self, env: 'unified_planning.environment.Environment', invalidate_memoization=False):
-        walkers.DagWalker.__init__(self, invalidate_memoization)
+        walkers.dag.DagWalker.__init__(self, invalidate_memoization)
         self.env = env
         self.manager = env.expression_manager
 

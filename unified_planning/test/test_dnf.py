@@ -17,7 +17,7 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.environment import get_env
-from unified_planning.walkers import Dnf, Nnf, Simplifier, Substituter
+from unified_planning.model.walkers import Dnf, Nnf, Simplifier, Substituter
 
 
 class TestDnf(TestCase):

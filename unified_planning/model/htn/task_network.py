@@ -25,7 +25,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.action import Action
 from unified_planning.model.htn.task import Task, Subtask
 from unified_planning.model.timing import Timepoint
-from unified_planning.walkers import OperatorsExtractor
+from unified_planning.model.walkers import OperatorsExtractor
 
 
 class TaskNetwork:
@@ -117,5 +117,3 @@ class TaskNetwork:
             rhs = Timing(timepoint=rhs, delay=0)
         assert isinstance(rhs, Timing)
         self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
-
-

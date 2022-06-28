@@ -19,7 +19,7 @@ import re
 import sys
 import unified_planning as up
 import unified_planning.environment
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.model import DurativeAction, InstantaneousAction, Fluent, Parameter, Object
 from unified_planning.model.types import _UserType, _RealType, _IntType
 from typing import IO, Dict, List, Optional, cast, Union

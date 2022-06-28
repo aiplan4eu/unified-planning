@@ -14,13 +14,14 @@
 #
 
 
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 
 import unified_planning.environment
-from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.model import FNode, OperatorKind
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.expression import Expression
 from unified_planning.exceptions import UPTypeError
-from unified_planning.model import Expression
 from typing import List, Dict
 
 

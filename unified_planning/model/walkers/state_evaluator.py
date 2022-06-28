@@ -16,16 +16,18 @@
 
 from typing import Dict, List, Optional
 import unified_planning as up
+from unified_planning.model.fnode import FNode
+from unified_planning.model.expression import Expression
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.walkers.quantifier_simplifier import QuantifierSimplifier
+from unified_planning.model.walkers.quantifier_simplifier import QuantifierSimplifier
 
 
 class StateEvaluator(QuantifierSimplifier):
-    """Same to the unified_planning.QuantifierSimplifier, but takes an instance of 'up.model.ROState' instead of the 'assignment' map."""
-    def __init__(self, problem: 'up.model.Problem'):
+    """Same to the unified_planning.QuantifierSimplifier, but takes an instance of 'up.model.state.ROState' instead of the 'assignment' map."""
+    def __init__(self, problem: 'up.model.problem.Problem'):
         QuantifierSimplifier.__init__(self, problem.env, problem)
 
-    def evaluate(self, expression: 'up.model.FNode', state: 'up.model.ROState', _variable_assignments: Dict['up.model.Expression', 'up.model.Expression'] = {}):
+    def evaluate(self, expression: 'FNode', state: 'up.model.state.ROState', _variable_assignments: Dict['Expression', 'Expression'] = {}):
         '''
         Evaluates the given expression in the given state.
         :param expression: The expression that needs to be evaluated.
@@ -35,14 +37,14 @@ class StateEvaluator(QuantifierSimplifier):
         assert self._problem is not None
         assert self._assignments is None
         assert self._variable_assignments is None
-        self._variable_assignments: Optional[Dict['up.model.Expression', 'up.model.Expression']] = _variable_assignments
+        self._variable_assignments: Optional[Dict['Expression', 'Expression']] = _variable_assignments
         self._state = state
         r = self.walk(expression)
         self._variable_assignments = None
         assert r.is_constant()
         return r
 
-    def _deep_subs_simplify(self, expression: 'up.model.FNode', variables_assignments: Dict['up.model.Expression', 'up.model.Expression']) -> 'up.model.FNode':
+    def _deep_subs_simplify(self, expression: 'FNode', variables_assignments: Dict['Expression', 'Expression']) -> 'FNode':
         '''
         This method needs to be updated from the QuantifierRemover in order to use the StateEvaluator inside the
         quantifiers and not the QuantifierSimplifier.
@@ -55,9 +57,9 @@ class StateEvaluator(QuantifierSimplifier):
         assert r.is_constant()
         return r
 
-    def walk_fluent_exp(self, expression: 'up.model.FNode', args: List['up.model.FNode']) -> 'up.model.FNode':
+    def walk_fluent_exp(self, expression: 'FNode', args: List['FNode']) -> 'FNode':
         new_exp = self.manager.FluentExp(expression.fluent(), tuple(args))
         return self._state.get_value(new_exp)
 
-    def walk_param_exp(self, expression: 'up.model.FNode', args: List['up.model.FNode']) -> 'up.model.FNode':
+    def walk_param_exp(self, expression: 'FNode', args: List['FNode']) -> 'FNode':
         raise UPProblemDefinitionError(f"The StateEvaluator.evaluate should only be called on grounded expressions.")

@@ -17,10 +17,11 @@
 import networkx as nx
 import unified_planning as up
 import unified_planning.plans as plans
+import unified_planning.model.walkers as walkers
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import FNode, InstantaneousAction, Expression
-from unified_planning.walkers import Substituter, Simplifier, FreeVarsExtractor, ExpressionQuantifiersRemover
+
 from typing import Callable, Dict, Optional, Set, List, cast
 
 
@@ -84,10 +85,10 @@ class SequentialPlan(plans.plan.Plan):
                 assign a value to said fluent)
             - AND the other ActionInstance reads or writes on the same grounded fluent (reads means that one of his preconditions
                 or one of his condition in a conditional effect depends on said fluent).'''
-        subs = Substituter(self._environment)
-        simp = Simplifier(self._environment)
-        eqr = ExpressionQuantifiersRemover(self._environment)
-        fve = FreeVarsExtractor()
+        subs = walkers.Substituter(self._environment)
+        simp = walkers.Simplifier(self._environment)
+        eqr = walkers.ExpressionQuantifiersRemover(self._environment)
+        fve = walkers.FreeVarsExtractor()
         # last_modifier is the mapping from a grounded fluent to the last action instance that assigned a value to
         # that fluent
         last_modifier: Dict[FNode, 'plans.plan.ActionInstance'] = {}

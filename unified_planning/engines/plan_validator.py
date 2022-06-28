@@ -18,7 +18,7 @@ import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.model import AbstractProblem, Problem, ProblemKind, COWState, UPCOWState
 from unified_planning.engines.results import ValidationResult, ValidationResultStatus, LogMessage, LogLevel
 from unified_planning.engines.sequential_simulator import SequentialSimulator, InstantaneousEvent

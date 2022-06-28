@@ -23,7 +23,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.plans import ActionInstance
-from unified_planning.walkers import OperatorsExtractor
+from unified_planning.model.walkers import OperatorsExtractor
 from fractions import Fraction
 from typing import Iterator, List, Dict, Set, Union, Optional, cast
 
