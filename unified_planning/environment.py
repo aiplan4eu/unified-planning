@@ -36,8 +36,8 @@ class Environment:
         self._tc = unified_planning.model.walkers.TypeChecker(self)
         self._expression_manager = unified_planning.model.ExpressionManager(self)
         self._free_vars_oracle = unified_planning.model.FreeVarsOracle()
-        self._simplifier = unified_planning.walkers.Simplifier(self)
-        self._free_vars_extractor = unified_planning.walkers.FreeVarsExtractor()
+        self._simplifier = unified_planning.model.walkers.Simplifier(self)
+        self._free_vars_extractor = unified_planning.model.walkers.FreeVarsExtractor()
         self._credits_stream: Optional[IO[str]] = sys.stdout
 
     # The getstate and setstate method are needed in the Parallel engine. The
@@ -78,11 +78,11 @@ class Environment:
         return self._factory
 
     @property
-    def simplifier(self) -> 'unified_planning.walkers.Simplifier':
+    def simplifier(self) -> 'unified_planning.model.walkers.Simplifier':
         return self._simplifier
 
     @property
-    def free_vars_extractor(self) -> 'unified_planning.walkers.FreeVarsExtractor':
+    def free_vars_extractor(self) -> 'unified_planning.model.walkers.FreeVarsExtractor':
         return self._free_vars_extractor
 
     @property
