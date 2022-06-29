@@ -28,7 +28,7 @@ from unified_planning.model import InstantaneousAction, DurativeAction, Fluent, 
 from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError, UPException
 from unified_planning.model.types import _UserType
-from typing import Callable, Dict, IO, List, Union, cast
+from typing import Callable, Dict, IO, List, Set, Union, cast
 from io import StringIO
 from functools import reduce
 
@@ -47,6 +47,24 @@ PDDL_KEYWORDS = {'define', 'domain', 'requirements', 'types', 'constants', 'atom
 
 # The following map is used to mangle the invalid names by their class.
 INITIAL_LETTER: Dict[type, str] = {InstantaneousAction: 'a', DurativeAction: 'a', Fluent: 'f', Parameter: 'p', Problem: 'p', Object: 'o'}
+
+
+class ObjectsExtractor(walkers.DagWalker):
+    '''Returns the object in the expression.'''
+
+    def __init__(self):
+        walkers.dag.DagWalker.__init__(self)
+
+    def get(self, expression: 'up.model.Object') -> Set['up.model.Object']:
+        """Returns all the free vars of the given expression."""
+        return self.walk(expression)
+
+    @walkers.handles(up.model.OperatorKind)
+    def walk_all_types(self, expression: 'up.model.FNode', args: List[Set['up.model.Object']]) -> Set['up.model.Object']:
+        res = set(x for y in args for x in y)
+        if expression.is_object_exp():
+            res = res | {expression.object()}
+        return res
 
 
 class ConverterToPDDLString(walkers.DagWalker):
@@ -171,12 +189,14 @@ class PDDLWriter:
         # nto represents the new to old renamings
         self.nto_renamings: Dict[str, Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable']] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
+        self.domain_objects: Set['up.model.Object'] = set()
 
     def _write_domain(self, out: IO[str]):
         if self.problem_kind.has_intermediate_conditions_and_effects():
             raise UPProblemDefinitionError('PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0).')
         if self.problem_kind.has_timed_effect() or self.problem_kind.has_timed_goals():
             raise UPProblemDefinitionError('PDDL2.1 does not support timed effects or timed goals.')
+        obe = ObjectsExtractor()
         out.write('(define ')
         if self.problem.name is None:
             name = 'pddl'
@@ -228,6 +248,36 @@ class PDDLWriter:
         else:
             out.write(f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])})\n' if len(self.problem.user_types) > 0 else '')
 
+        # Iterate the actions to retrieve domain objects
+        for a in self.problem.actions:
+            if isinstance(a, up.model.InstantaneousAction):
+                for p in a.preconditions:
+                    self.domain_objects = self.domain_objects | obe.get(p)
+                for e in a.effects:
+                    if e.is_conditional():
+                        self.domain_objects = self.domain_objects | obe.get(e.condition)
+                    self.domain_objects = self.domain_objects | obe.get(e.fluent)
+                    self.domain_objects = self.domain_objects | obe.get(e.value)
+            elif isinstance(a, DurativeAction):
+                self.domain_objects = self.domain_objects | obe.get(a.duration.lower)
+                self.domain_objects = self.domain_objects | obe.get(a.duration.upper)
+                for interval, cl in a.conditions.items():
+                    for c in cl:
+                        self.domain_objects = self.domain_objects | obe.get(c)
+                for t, el in a.effects.items():
+                    for e in el:
+                        if e.is_conditional():
+                            self.domain_objects = self.domain_objects | obe.get(e.condition)
+                        self.domain_objects = self.domain_objects | obe.get(e.fluent)
+                        self.domain_objects = self.domain_objects | obe.get(e.value)
+        if len(self.domain_objects) > 0:
+            out.write(' (:constants')
+            for t in self.problem.user_types:
+                constants = [o for o in self.domain_objects if o.type == t]
+                if len(constants) > 0:
+                    out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in constants])} - {self._get_mangled_name(t)}')
+            out.write('\n )\n')
+
         predicates = []
         functions = []
         for f in self.problem.fluents:
@@ -266,12 +316,15 @@ class PDDLWriter:
             metric = metrics[0]
             if isinstance(metric, up.model.metrics.MinimizeActionCosts):
                 for a in self.problem.actions:
-                    costs[a] = metric.get_action_cost(a)
+                    cost_exp = metric.get_action_cost(a)
+                    costs[a] = cost_exp
+                    self.domain_objects = self.domain_objects | obe.get(cost_exp)
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 for a in self.problem.actions:
                     costs[a] = self.problem.env.expression_manager.Int(1)
         elif len(metrics) > 1:
             raise up.exceptions.UPUnsupportedProblemTypeError('Only one metric is supported!')
+
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 out.write(f' (:action {self._get_mangled_name(a)}')
@@ -386,7 +439,7 @@ class PDDLWriter:
         if len(self.problem.user_types) > 0:
             out.write(' (:objects')
             for t in self.problem.user_types:
-                objects = [o for o in self.problem.all_objects if o.type == t]
+                objects = [o for o in self.problem.all_objects if o.type == t and o not in self.domain_objects]
                 if len(objects) > 0:
                     out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}')
             out.write('\n )\n')

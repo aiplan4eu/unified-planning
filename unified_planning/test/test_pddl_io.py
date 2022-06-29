@@ -305,6 +305,10 @@ class TestPddlIO(TestCase):
                 w.write_problem(problem_filename)
 
                 reader = PDDLReader()
+                if problem.name != 'basic_with_object_constant':
+                    continue
+                w.print_domain()
+                w.print_problem()
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
                 self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
@@ -321,6 +325,44 @@ class TestPddlIO(TestCase):
                         self.assertEqual(a.duration, parsed_a.duration)
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
+
+    def test_basic_with_object_constant(self):
+        problem = self.problems['basic_with_object_constant'].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = w.get_domain()
+        pddl_problem = w.get_problem()
+
+        expected_domain = '''(define (domain basic_with_object_constant-domain)
+ (:requirements :strips :typing :negative-preconditions)
+ (:types location)
+ (:constants
+   l1 - location
+ )
+ (:predicates (is_at ?loc - location))
+ (:action move
+  :parameters ( ?l_from - location ?l_to - location)
+  :precondition (and (is_at ?l_from) (not (is_at ?l_to)))
+  :effect (and (not (is_at ?l_from)) (is_at ?l_to)))
+ (:action move_to_l1
+  :parameters ( ?l_from - location)
+  :precondition (and (is_at ?l_from) (not (is_at l1)))
+  :effect (and (not (is_at ?l_from)) (is_at l1)))
+)
+'''
+        expected_problem = '''(define (problem basic_with_object_constant-problem)
+ (:domain basic_with_object_constant-domain)
+ (:objects
+   l2 - location
+ )
+ (:init (is_at l1))
+ (:goal (and (is_at l2)))
+)
+'''
+        self.assertEqual(pddl_domain, expected_domain)
+        self.assertEqual(pddl_problem, expected_problem)
+
 
     def test_rationals(self):
         problem = self.problems['robot_decrease'].problem.clone()
@@ -362,6 +404,9 @@ class TestPddlIO(TestCase):
         expected_domain = '''(define (domain ad_hoc-domain)
  (:requirements :strips :typing :equality :conditional-effects)
  (:types when_)
+ (:constants
+   obj_1 - when_
+ )
  (:predicates (f_4ction))
  (:action forall_
   :parameters ( ?and_ - when_)
@@ -371,12 +416,13 @@ class TestPddlIO(TestCase):
         expected_problem = '''(define (problem ad_hoc-problem)
  (:domain ad_hoc-domain)
  (:objects
-   obj_1 obj_1_0 - when_
+   obj_1_0 - when_
  )
  (:init)
  (:goal (and ))
 )
 '''
+        self.assertEqual(pddl_domain, expected_domain)
         self.assertEqual(pddl_problem, expected_problem)
 
 
