@@ -42,7 +42,6 @@ class Timepoint:
         container: Optional[str]
           Identifier of the container in which the timepoint is defined.
           If not set, then a start/end timepoint refers to the enclosing action or method.
-          The container must have an `identifier` property that is a string uniquely identifying it.
         """
         assert container is None or isinstance(container, str)
         self._kind = kind
