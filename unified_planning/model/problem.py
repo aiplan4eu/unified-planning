@@ -517,9 +517,9 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                         only_static = False
                         break
                 if only_static:
-                    self._kind.set_expression_duration('STATIC_FLUENTS')
+                    self._kind.set_expression_duration('STATIC_FLUENTS_IN_DURATION')
                 else:
-                    self._kind.set_expression_duration('FLUENTS')
+                    self._kind.set_expression_duration('FLUENTS_IN_DURATION')
             for i, lc in action.conditions.items():
                 if i.lower.delay != 0 or i.upper.delay != 0:
                     self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS')
