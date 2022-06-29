@@ -28,6 +28,7 @@ class Parameter:
         self._name = name
         self._typename = typename
         self._env = env
+        assert env.type_manager.has_type(typename), 'type of parameter does not belong to the same environment given to the parameter'
 
     def __repr__(self) -> str:
         return f'{str(self.type)} {self.name}'

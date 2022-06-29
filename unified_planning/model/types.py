@@ -170,6 +170,23 @@ class TypeManager:
         self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
         self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
 
+    def has_type(self, type: Type) -> bool:
+        if type.is_bool_type():
+            return type == self._bool
+        elif type.is_int_type():
+            assert isinstance(type, _IntType)
+            return self._ints.get((type.lower_bound, type.upper_bound), None) == type
+        elif type.is_real_type():
+            assert isinstance(type, _RealType)
+            return self._reals.get((type.lower_bound, type.upper_bound), None) == type
+        elif type.is_time_type():
+            return type == TIME
+        elif type.is_user_type():
+            assert isinstance(type, _UserType)
+            return self._user_types.get((type.name, type.father), None) == type
+        else:
+            raise NotImplementedError
+
     def BoolType(self) -> Type:
         return self._bool
 

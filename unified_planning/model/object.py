@@ -28,6 +28,7 @@ class Object:
         self._name = name
         self._typename = typename
         self._env = get_env(env)
+        assert self._env.type_manager.has_type(typename), 'type of the object does not belong to the same environment of the object'
 
     def __repr__(self) -> str:
         return self.name

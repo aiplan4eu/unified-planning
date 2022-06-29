@@ -42,6 +42,9 @@ class TestModel(TestCase):
         with self.assertRaises(AssertionError) as e:
             identity(obj_2)
         self.assertEqual(str(e.exception), 'Object has a different environment of the expression manager')
+        with self.assertRaises(AssertionError) as e:
+            Object('obj', test_type_2)
+        self.assertEqual(str(e.exception), 'type of the object does not belong to the same environment of the object')
 
     def test_clone_problem_and_action(self):
         for _, (problem, _) in self.problems.items():

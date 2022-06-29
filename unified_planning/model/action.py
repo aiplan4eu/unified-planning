@@ -36,9 +36,11 @@ class Action:
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
+                assert self._env.type_manager.has_type(t), 'type of parameter does not belong to the same environment of the action'
                 self._parameters[n] = up.model.parameter.Parameter(n, t, self._env)
         else:
             for n, t in kwargs.items():
+                assert self._env.type_manager.has_type(t), 'type of parameter does not belong to the same environment of the action'
                 self._parameters[n] = up.model.parameter.Parameter(n, t, self._env)
 
     def __eq__(self, oth: object) -> bool:
