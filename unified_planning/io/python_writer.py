@@ -20,6 +20,7 @@ import re
 import sys
 from unicodedata import name
 import unified_planning as up
+import unified_planning.model.htn
 import unified_planning.model.walkers as walkers
 from unified_planning.model.types import _UserType, _IntType, _RealType
 from typing import Dict, IO, Optional, cast
@@ -198,7 +199,7 @@ class PythonWriter:
         for type, exp in self.problem.initial_defaults.items():
             out.write(f'problem_initial_defaults[{_print_python_type(type, names_mapping)}] = {converter.convert(exp)}\n')
 
-        if self.problem.kind.has_hierarchical():  # type: ignore
+        if self.problem.kind.has_hierarchical():
             problem_class = "htn.HierarchicalProblem"
         else:
             problem_class = "Problem"
@@ -290,8 +291,8 @@ class PythonWriter:
                 raise NotImplementedError
             out.write(')\n')
 
-        if self.problem.kind.has_hierarchical():  # type: ignore
-            assert isinstance(self.problem, up.model.htn.hierarchical_problem.HierarchicalProblem)  # type: ignore
+        if self.problem.kind.has_hierarchical():
+            assert isinstance(self.problem, up.model.htn.hierarchical_problem.HierarchicalProblem)
 
             for task in self.problem.tasks:
                 params = params_as_dict(task.parameters)

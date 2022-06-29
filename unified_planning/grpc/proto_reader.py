@@ -238,7 +238,7 @@ class ProtobufReader(Converter):
                 lower_bound=lower_bound, upper_bound=upper_bound
             )
         else:
-            father = problem.user_type(msg.parent_type) if msg.parent_type is not "" else None
+            father = problem.user_type(msg.parent_type) if msg.parent_type != "" else None
             return problem.env.type_manager.UserType(name=msg.type_name, father=father)
 
     @handles(proto.Problem)
