@@ -18,6 +18,7 @@ All objects are memoized so that two syntactically equivalent expressions
 are represented by the same object.
 """
 
+
 import unified_planning as up
 import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
@@ -65,12 +66,16 @@ class ExpressionManager(object):
         res = []
         for e in tuple_args:
             if isinstance(e, up.model.fluent.Fluent):
+                assert e.environment == self.env, 'Fluent has a different environment of the expression manager'
                 res.append(self.FluentExp(e))
             elif isinstance(e, up.model.parameter.Parameter):
+                assert e.environment == self.env, 'Parameter has a different environment of the expression manager'
                 res.append(self.ParameterExp(e))
             elif isinstance(e, up.model.variable.Variable):
+                assert e.environment == self.env, 'Variable has a different environment of the expression manager'
                 res.append(self.VariableExp(e))
             elif isinstance(e, up.model.object.Object):
+                assert e.environment == self.env, 'Object has a different environment of the expression manager'
                 res.append(self.ObjectExp(e))
             elif isinstance(e, up.model.timing.Timing):
                 res.append(self.TimingExp(e))
@@ -83,6 +88,7 @@ class ExpressionManager(object):
             elif isinstance(e, Fraction):
                 res.append(self.Real(e))
             else:
+                assert e.environment == self.env, 'Expression has a different environment of the expression manager'
                 res.append(e)
         return res
 
@@ -92,7 +98,8 @@ class ExpressionManager(object):
         if content in self.expressions:
             return self.expressions[content]
         else:
-            n =up.model.fnode.FNode(content, self._next_free_id)
+            assert all(a.environment == self.env for a in args), '2 FNode in the same expression have different environments'
+            n = up.model.fnode.FNode(content, self._next_free_id, self.env)
             self._next_free_id += 1
             self.expressions[content] = n
             self.env.type_checker.get_type(n)
@@ -191,6 +198,7 @@ class ExpressionManager(object):
         Restriction: parameters type must be compatible with the fluent signature
         """
         assert fluent.arity == len(params)
+        assert fluent.environment == self.env
         params_exp = self.auto_promote(*params)
         return self.create_node(node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent)
 
@@ -200,10 +208,12 @@ class ExpressionManager(object):
 
     def VariableExp(self, var: 'up.model.variable.Variable') ->'up.model.fnode.FNode':
         """Returns an expression for the given variable."""
+        assert var.environment == self.env
         return self.create_node(node_type=OperatorKind.VARIABLE_EXP, args=tuple(), payload=var)
 
     def ObjectExp(self, obj: 'up.model.object.Object') ->'up.model.fnode.FNode':
         """Returns an expression for the given object."""
+        assert obj.environment == self.env
         return self.create_node(node_type=OperatorKind.OBJECT_EXP, args=tuple(), payload=obj)
 
     def TimingExp(self, obj: 'up.model.timing.Timing') -> 'up.model.fnode.FNode':

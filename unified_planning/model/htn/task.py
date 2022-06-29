@@ -40,14 +40,14 @@ class Task:
             assert len(kwargs) == 0
             if isinstance(_parameters, OrderedDict):
                 for param_name, param_type in _parameters.items():
-                    self._parameters.append(up.model.parameter.Parameter(param_name, param_type))
+                    self._parameters.append(up.model.parameter.Parameter(param_name, param_type, self._env))
             elif isinstance(_parameters, List):
                 self._parameters = _parameters[:]
             else:
                 raise NotImplementedError
         else:
             for param_name, param_type in kwargs.items():
-                self._parameters.append(up.model.parameter.Parameter(param_name, param_type))
+                self._parameters.append(up.model.parameter.Parameter(param_name, param_type, self._env))
 
     def __repr__(self) -> str:
         sign = ''

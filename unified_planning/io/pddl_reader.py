@@ -146,7 +146,7 @@ class PDDLReader:
     """
     Parse a PDDL problem and generate a unified_planning problem.
     """
-    def __init__(self, env: Environment = None):
+    def __init__(self, env: typing.Optional[Environment] = None):
         self._env = get_env(env)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
@@ -169,7 +169,7 @@ class PDDLReader:
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
         self._pp_parameters = grammar.parameters
-        self._fve = up.model.walkers.FreeVarsExtractor()
+        self._fve = self._env.free_vars_extractor
         self._totalcost: typing.Optional[up.model.FNode] = None
 
     def _parse_exp(self, problem: up.model.Problem, act: typing.Optional[Union[up.model.Action, htn.Method]],
@@ -212,7 +212,7 @@ class PDDLReader:
                         for g in vars_res['params']:
                             t = types_map[g[1] if len(g) > 1 else 'object']
                             for o in g[0]:
-                                vars[o] = up.model.Variable(o, t)
+                                vars[o] = up.model.Variable(o, t, self._env)
                         stack.append((vars, exp, True))
                         stack.append((vars, exp[2], False))
                     elif problem.has_fluent(exp[0]): # fluent reference
@@ -302,7 +302,7 @@ class PDDLReader:
                 for g in vars_res['params']:
                     t = types_map[g[1] if len(g) > 1 else 'object']
                     for o in g[0]:
-                        vars[o] = up.model.Variable(o, t)
+                        vars[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], vars))
             elif len(exp) == 3 and op == 'at' and exp[1] == 'start':
                 cond = self._parse_exp(problem, act, types_map, {} if vars is None else vars, exp[2])
@@ -495,7 +495,7 @@ class PDDLReader:
         for g in domain_res.get('constants', []):
             t = types_map[g[1] if len(g) > 1 else 'object']
             for o in g[0]:
-                problem.add_object(up.model.Object(o, t))
+                problem.add_object(up.model.Object(o, t, problem.env))
 
         for task in domain_res.get('tasks', []):
             assert isinstance(problem, htn.HierarchicalProblem)
@@ -591,7 +591,7 @@ class PDDLReader:
             for g in problem_res.get('objects', []):
                 t = types_map[g[1] if len(g) > 1 else 'object']
                 for o in g[0]:
-                    problem.add_object(up.model.Object(o, t))
+                    problem.add_object(up.model.Object(o, t, problem.env))
 
             tasknet = problem_res.get('htn', None)
             if tasknet is not None:

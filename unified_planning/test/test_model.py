@@ -24,6 +24,28 @@ class TestModel(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    def test_expression(self):
+        test_type = UserType('test_type')
+        identity = Fluent('identity', test_type, obj = test_type)
+        id = Fluent('id', test_type, obj_id = IntType())
+        self.assertEqual(id(1).type, test_type)
+        env_2 = up.environment.Environment()
+        test_type_2 = env_2.type_manager.UserType('test_type')
+        it_2 = env_2.type_manager.IntType()
+        id_2 = Fluent('id', test_type_2, obj_id = it_2, env = env_2)
+        obj_2 = Object('obj', test_type_2, env_2)
+        self.assertEqual(id_2(1).type, test_type_2)
+        self.assertNotEqual(id_2(1).type, test_type)
+        with self.assertRaises(AssertionError) as e:
+            Equals(id_2(1), obj_2)
+        self.assertEqual(str(e.exception), 'Expression has a different environment of the expression manager')
+        with self.assertRaises(AssertionError) as e:
+            identity(obj_2)
+        self.assertEqual(str(e.exception), 'Object has a different environment of the expression manager')
+        with self.assertRaises(AssertionError) as e:
+            Object('obj', test_type_2)
+        self.assertEqual(str(e.exception), 'type of the object does not belong to the same environment of the object')
+
     def test_clone_problem_and_action(self):
         for _, (problem, _) in self.problems.items():
             problem_clone_1 = problem.clone()

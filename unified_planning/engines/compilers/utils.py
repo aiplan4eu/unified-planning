@@ -22,8 +22,7 @@ from unified_planning.plans import ActionInstance
 from typing import Dict, Iterable, List, Optional, Tuple
 
 
-def check_and_simplify_conditions(problem: Problem, action: DurativeAction, simplifier,
-                                  simplify_constants: bool = False) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
+def check_and_simplify_conditions(problem: Problem, action: DurativeAction, simplifier) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
     '''
     Simplifies conditions and if it is False (a contraddiction)
     returns False, otherwise returns True.
@@ -42,10 +41,7 @@ def check_and_simplify_conditions(problem: Problem, action: DurativeAction, simp
         #conditions (as an And FNode)
         c = problem.env.expression_manager.And(lc)
         #conditions simplified
-        if simplify_constants:
-            cs = simplifier.simplify(c, problem)
-        else:
-            cs = simplifier.simplify(c)
+        cs = simplifier.simplify(c)
         if cs.is_bool_constant():
             if not cs.bool_constant_value():
                 return (False, [],)
@@ -58,8 +54,7 @@ def check_and_simplify_conditions(problem: Problem, action: DurativeAction, simp
     return (True, nac)
 
 
-def check_and_simplify_preconditions(problem: Problem, action: InstantaneousAction, simplifier,
-                                     simplify_constants: bool = False) -> Tuple[bool, List[FNode]]:
+def check_and_simplify_preconditions(problem: Problem, action: InstantaneousAction, simplifier) -> Tuple[bool, List[FNode]]:
     '''
     Simplifies preconditions and if it is False (a contraddiction)
     returns False, otherwise returns True.
@@ -78,10 +73,7 @@ def check_and_simplify_preconditions(problem: Problem, action: InstantaneousActi
     #preconditions (as an And FNode)
     p = problem.env.expression_manager.And(ap)
     #preconditions simplified
-    if simplify_constants:
-        ps = simplifier.simplify(p, problem)
-    else:
-        ps = simplifier.simplify(p)
+    ps = simplifier.simplify(p)
     #new action preconditions
     nap: List[FNode] = []
     if ps.is_bool_constant():
@@ -101,7 +93,7 @@ def create_effect_with_given_subs(problem: Problem, old_effect: Effect,
                                   subs: Dict[Expression, Expression]) -> Optional[Effect]:
     new_fluent = substituter.substitute(old_effect.fluent, subs)
     new_value = substituter.substitute(old_effect.value, subs)
-    new_condition = simplifier.simplify(substituter.substitute(old_effect.condition, subs), problem)
+    new_condition = simplifier.simplify(substituter.substitute(old_effect.condition, subs))
     if new_condition == problem.env.expression_manager.FALSE():
         return None
     else:
@@ -142,7 +134,7 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
                 new_action.set_simulated_effect(SimulatedEffect(new_fluents, fun))
             except UPConflictingEffectsException:
                 return None
-        is_feasible, new_preconditions = check_and_simplify_preconditions(problem, new_action, simplifier, simplify_constants=True)
+        is_feasible, new_preconditions = check_and_simplify_preconditions(problem, new_action, simplifier)
         if not is_feasible:
             return None
         new_action._set_preconditions(new_preconditions)
@@ -175,7 +167,7 @@ def create_action_with_given_subs(problem: Problem, old_action: Action,
                 new_durative_action.set_simulated_effect(t, SimulatedEffect(new_fluents, fun))
             except UPConflictingEffectsException:
                 return None
-        is_feasible, new_conditions = check_and_simplify_conditions(problem, new_durative_action, simplifier, simplify_constants=True)
+        is_feasible, new_conditions = check_and_simplify_conditions(problem, new_durative_action, simplifier)
         if not is_feasible:
             return None
         new_durative_action.clear_conditions()

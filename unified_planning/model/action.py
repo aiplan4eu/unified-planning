@@ -36,10 +36,12 @@ class Action:
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
-                self._parameters[n] = up.model.parameter.Parameter(n, t)
+                assert self._env.type_manager.has_type(t), 'type of parameter does not belong to the same environment of the action'
+                self._parameters[n] = up.model.parameter.Parameter(n, t, self._env)
         else:
             for n, t in kwargs.items():
-                self._parameters[n] = up.model.parameter.Parameter(n, t)
+                assert self._env.type_manager.has_type(t), 'type of parameter does not belong to the same environment of the action'
+                self._parameters[n] = up.model.parameter.Parameter(n, t, self._env)
 
     def __eq__(self, oth: object) -> bool:
         raise NotImplementedError
@@ -234,6 +236,7 @@ class InstantaneousAction(Action):
         self._add_effect_instance(up.model.effect.Effect(fluent_exp, value_exp, condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, effect: 'up.model.effect.Effect'):
+        assert effect.environment == self._env, 'effect does not have the same environment of the action'
         if not effect.is_conditional():
             if effect.is_assignment():
                 if effect.fluent in self._fluents_assigned or effect.fluent in self._fluents_inc_dec:
@@ -514,6 +517,7 @@ class DurativeAction(Action):
                                          condition_exp, kind = up.model.effect.EffectKind.DECREASE))
 
     def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
+        assert self._env == effect.environment, 'effect does not have the same environment of the action'
         fluents_assigned = self._fluents_assigned.setdefault(timing, set())
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
         simulated_effect = self._simulated_effects.get(timing, None)

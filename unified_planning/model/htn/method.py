@@ -70,10 +70,10 @@ class Method:
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
-                self._parameters[n] = Parameter(n, t)
+                self._parameters[n] = Parameter(n, t, self._env)
         else:
             for n, t in kwargs.items():
-                self._parameters[n] = Parameter(n, t)
+                self._parameters[n] = Parameter(n, t, self._env)
 
     def __repr__(self) -> str:
         s = []
@@ -254,6 +254,3 @@ class Method:
             rhs = Timing(timepoint=rhs, delay=0)
         assert isinstance(rhs, Timing)
         self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
-
-
-

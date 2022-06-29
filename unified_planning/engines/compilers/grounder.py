@@ -79,7 +79,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
 
         env = problem.env
         substituter = Substituter(env)
-        simplifier = Simplifier(env)
+        simplifier = Simplifier(env, problem)
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
 
         new_problem = problem.clone()

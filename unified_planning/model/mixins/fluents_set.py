@@ -101,6 +101,7 @@ class FluentsSetMixin:
         if isinstance(fluent_or_name, up.model.fluent.Fluent):
             assert len(kwargs) == 0 and typename is None
             fluent = fluent_or_name
+            assert fluent.environment == self._env, 'Fluent does not have the same environment of the problem'
         else:
             fluent = up.model.fluent.Fluent(fluent_or_name, typename, None, env=self.env, **kwargs)
         if self._has_name_method(fluent.name):
@@ -116,6 +117,7 @@ class FluentsSetMixin:
         for param in fluent.signature:
             if param.type.is_user_type():
                 self._add_user_type_method(param.type)
+
         return fluent
 
     @property

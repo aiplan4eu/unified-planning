@@ -19,7 +19,6 @@ import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import Fluent, Problem, InstantaneousAction, DurativeAction, FNode, Action, Effect, Timing, ProblemKind
-from unified_planning.model.walkers import Simplifier
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
 from unified_planning.exceptions import UPExpressionDefinitionError, UPProblemDefinitionError
@@ -105,7 +104,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
 
         env = problem.env
-        simplifier = Simplifier(env)
+        simplifier = env.simplifier
 
         fluent_remover = NegativeFluentRemover(problem, env)
 

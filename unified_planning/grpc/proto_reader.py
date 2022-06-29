@@ -100,6 +100,7 @@ class ProtobufReader(Converter):
         return model.Parameter(
             msg.name,
             convert_type_str(msg.type, problem),
+            problem.env
         )
 
     @handles(proto.Fluent)
@@ -128,11 +129,11 @@ class ProtobufReader(Converter):
 
         elif msg.kind == proto.ExpressionKind.Value("PARAMETER"):
             return problem.env.expression_manager.ParameterExp(
-                param=Parameter(msg.atom.symbol, convert_type_str(msg.type, problem)),
+                param=Parameter(msg.atom.symbol, convert_type_str(msg.type, problem), problem.env),
             )
         elif msg.kind == proto.ExpressionKind.Value("VARIABLE"):
             return problem.env.expression_manager.VariableExp(
-                var=Variable(msg.atom.symbol, convert_type_str(msg.type, problem)),
+                var=Variable(msg.atom.symbol, convert_type_str(msg.type, problem), problem.env),
             )
         elif msg.kind == proto.ExpressionKind.Value("STATE_VARIABLE"):
             args = []

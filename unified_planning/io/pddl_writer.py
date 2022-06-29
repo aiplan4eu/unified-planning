@@ -38,7 +38,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def __init__(self, env: 'up.environment.Environment'):
         walkers.DagWalker.__init__(self)
-        self.simplifier = walkers.Simplifier(env)
+        self.simplifier = env.simplifier
 
     def convert(self, expression):
         '''Converts the given expression to a PDDL string.'''
