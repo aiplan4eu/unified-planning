@@ -66,12 +66,16 @@ class ExpressionManager(object):
         res = []
         for e in tuple_args:
             if isinstance(e, up.model.fluent.Fluent):
+                assert e.environment == self.env, 'Fluent has a different environment of the expression manager'
                 res.append(self.FluentExp(e))
             elif isinstance(e, up.model.parameter.Parameter):
+                assert e.environment == self.env, 'Parameter has a different environment of the expression manager'
                 res.append(self.ParameterExp(e))
             elif isinstance(e, up.model.variable.Variable):
+                assert e.environment == self.env, 'Variable has a different environment of the expression manager'
                 res.append(self.VariableExp(e))
             elif isinstance(e, up.model.object.Object):
+                assert e.environment == self.env, 'Object has a different environment of the expression manager'
                 res.append(self.ObjectExp(e))
             elif isinstance(e, up.model.timing.Timing):
                 res.append(self.TimingExp(e))
@@ -84,6 +88,7 @@ class ExpressionManager(object):
             elif isinstance(e, Fraction):
                 res.append(self.Real(e))
             else:
+                assert e.environment == self.env, 'Expression has a different environment of the expression manager'
                 res.append(e)
         return res
 

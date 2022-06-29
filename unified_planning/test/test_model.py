@@ -25,15 +25,23 @@ class TestModel(TestCase):
         self.problems = get_example_problems()
 
     def test_expression(self):
-        Object = UserType('Object')
-        id = Fluent('id', Object, obj_id = IntType())
-        self.assertEqual(id(1).type, Object)
+        test_type = UserType('test_type')
+        identity = Fluent('identity', test_type, obj = test_type)
+        id = Fluent('id', test_type, obj_id = IntType())
+        self.assertEqual(id(1).type, test_type)
         env_2 = up.environment.Environment()
-        Object_2 = env_2.type_manager.UserType('Object')
+        test_type_2 = env_2.type_manager.UserType('test_type')
         it_2 = env_2.type_manager.IntType()
-        id_2 = Fluent('id', Object_2, obj_id = it_2)
-        self.assertEqual(id_2(1).type, Object_2)
-        self.assertNotEqual(id_2(1).type, Object)
+        id_2 = Fluent('id', test_type_2, obj_id = it_2, env = env_2)
+        obj_2 = Object('obj', test_type_2, env_2)
+        self.assertEqual(id_2(1).type, test_type_2)
+        self.assertNotEqual(id_2(1).type, test_type)
+        with self.assertRaises(AssertionError) as e:
+            Equals(id_2(1), obj_2)
+        self.assertEqual(str(e.exception), 'Expression has a different environment of the expression manager')
+        with self.assertRaises(AssertionError) as e:
+            identity(obj_2)
+        self.assertEqual(str(e.exception), 'Object has a different environment of the expression manager')
 
     def test_clone_problem_and_action(self):
         for _, (problem, _) in self.problems.items():
