@@ -20,6 +20,7 @@ import re
 import sys
 from unicodedata import name
 import unified_planning as up
+import unified_planning.model.htn
 import unified_planning.model.walkers as walkers
 from unified_planning.model.types import _UserType, _IntType, _RealType
 from typing import Dict, IO, Optional, cast
@@ -90,6 +91,10 @@ class ConverterToPythonString(walkers.DagWalker):
         o = expression.object()
         return f'emgr.ObjectExp({_get_mangled_name(f"object_{o.name}", self._names_mapping)})'
 
+    def walk_timing_exp(self, expression, args):
+        assert len(args) == 0
+        return _convert_timing(expression.timing())
+
     def walk_bool_constant(self, expression, args):
         assert len(args) == 0
         if expression.bool_constant_value():
@@ -143,6 +148,11 @@ class PythonWriter:
     def _write_problem_code(self, out: IO[str]):
 
         names_mapping: Dict[str, str] = {}
+        def params_as_dict(parameters) -> str:
+            """Transforms a list of Parameter into an OrderedDict"""
+            params = ', '.join(f'("{p.name}", {_print_python_type(p.type, names_mapping)})' for p in parameters)
+            return f'OrderedDict([{params}])'
+
         # Initialize names_mapping with valid names
         for type in self.problem.user_types: # define user_types
             utype = cast(_UserType, type)
@@ -188,7 +198,13 @@ class PythonWriter:
         out.write('problem_initial_defaults = {}\n') # define initial_defaults
         for type, exp in self.problem.initial_defaults.items():
             out.write(f'problem_initial_defaults[{_print_python_type(type, names_mapping)}] = {converter.convert(exp)}\n')
-        out.write(f'problem = up.model.Problem("{self.problem.name}", env, initial_defaults=problem_initial_defaults)\n')
+
+        if self.problem.kind.has_hierarchical():
+            problem_class = "htn.HierarchicalProblem"
+        else:
+            problem_class = "Problem"
+        problem_name = f'"{self.problem.name}"' if self.problem.name is not None else "None"
+        out.write(f'problem = up.model.{problem_class}({problem_name}, env, initial_defaults=problem_initial_defaults)\n')
 
         for o in self.problem.all_objects: # add objects to the problem
             out.write(f'problem.add_object({_get_mangled_name(f"object_{o.name}", names_mapping)})\n')
@@ -202,8 +218,7 @@ class PythonWriter:
 
         for a in self.problem.actions: # define actions and add them to the problem
             if isinstance(a, up.model.InstantaneousAction):
-                params = ', '.join(f'("{p.name}", {_print_python_type(p.type, names_mapping)})' for p in a.parameters)
-                params = f'OrderedDict([{params}])'
+                params = params_as_dict(a.parameters)
                 out.write(f'{_get_mangled_name(f"act_{a.name}", names_mapping)} = up.model.InstantaneousAction("{a.name}", _parameters={params})\n')
                 for p in a.preconditions:
                     out.write(f'{_get_mangled_name(f"act_{a.name}", names_mapping)}.add_precondition({converter.convert(p)})\n')
@@ -276,6 +291,48 @@ class PythonWriter:
                 raise NotImplementedError
             out.write(')\n')
 
+        if self.problem.kind.has_hierarchical():
+            assert isinstance(self.problem, up.model.htn.hierarchical_problem.HierarchicalProblem)
+
+            for task in self.problem.tasks:
+                params = params_as_dict(task.parameters)
+                out.write(f'{_get_mangled_name(f"task_{task.name}", names_mapping)} = up.model.htn.Task("{task.name}", _parameters={params})\n')
+                out.write(f'problem.add_task({_get_mangled_name(f"task_{task.name}", names_mapping)})\n')
+
+            for m in self.problem.methods:
+                params = params_as_dict(m.parameters)
+                out.write(f'{_get_mangled_name(f"method_{m.name}", names_mapping)} = up.model.htn.Method("{m.name}", _parameters={params})\n')
+                for mp in m.parameters:
+                    out.write(f'parameter_{mp.name} = {_get_mangled_name(f"method_{m.name}", names_mapping)}.parameter("{mp.name}")\n')
+                achieved_task_name = _get_mangled_name(f'task_{m.achieved_task.task.name}', names_mapping)
+                achieved_task_params = ", ".join([_get_mangled_name(f"parameter_{p.name}", names_mapping) for p in m.achieved_task.parameters])
+
+                out.write(f'{_get_mangled_name(f"method_{m.name}", names_mapping)}.set_task({achieved_task_name}, {achieved_task_params})\n')
+                for p in m.preconditions:
+                    out.write(f'{_get_mangled_name(f"method_{m.name}", names_mapping)}.add_precondition({converter.convert(p)})\n')
+                for c in m.constraints:
+                    out.write(f'{_get_mangled_name(f"method_{m.name}", names_mapping)}.add_constraint({converter.convert(c)})\n')
+                for st in m.subtasks:
+                    if isinstance(st.task, up.model.htn.task.Task):
+                        head = _get_mangled_name(f'task_{st.task.name}', names_mapping)
+                    else:
+                        head = _get_mangled_name(f'act_{st.task.name}', names_mapping)
+                    params = ", ".join([converter.convert(p) for p in st.parameters])
+                    out.write(f'{_get_mangled_name(f"method_{m.name}", names_mapping)}.add_subtask({head}, {params}, ident="{st.identifier}")\n')
+                out.write(f'problem.add_method({_get_mangled_name(f"method_{m.name}", names_mapping)})\n')
+
+            for v in self.problem.task_network.variables:
+                out.write(f'problem.task_network.add_variable("{v.name}", {_print_python_type(v.type, names_mapping)})\n')
+            for st in self.problem.task_network.subtasks:
+                if isinstance(st.task, up.model.htn.task.Task):
+                    head = _get_mangled_name(f'task_{st.task.name}', names_mapping)
+                else:
+                    head = _get_mangled_name(f'act_{st.task.name}', names_mapping)
+                params = ", ".join([converter.convert(p) for p in st.parameters])
+                out.write(f'problem.task_network.add_subtask({head}, {params}, ident="{st.identifier}")\n')
+            for c in self.problem.task_network.constraints:
+                out.write(f'problem.task_network.add_constraint({converter.convert(c)})\n')
+
     def print_problem_python_commands(self):
         '''Prints the string representing all the necessary commands to recreate the problem.'''
         self._write_problem_code(sys.stdout)
@@ -333,10 +390,20 @@ def _convert_timing(timing: up.model.Timing) -> str:
     delay: str = f'{str(timing.delay)}'
     if isinstance(timing.delay, Fraction):
         delay = f'Fraction({str(timing.delay.numerator)}, {str(timing.delay.denominator)})'
-    if timing.is_from_start():
-        return f'up.model.StartTiming({delay})'
+
+    tp = timing.timepoint
+    if timing.is_global():
+        assert tp.container is None
+        if timing.is_from_start():
+            return f'up.model.GlobalStartTiming({delay})'
+        else:
+            return f'up.model.GlobalEndTiming({delay})'
     else:
-        return f'up.model.EndTiming({delay})'
+        container = f'"{tp.container}"' if tp.container is not None else "None"
+        if timing.is_from_start():
+            return f'up.model.StartTiming({delay}, container={container})'
+        else:
+            return f'up.model.EndTiming({delay}, container={container})'
 
 def _convert_interval(interval: up.model.TimeInterval) -> str:
     interval_feature: str = 'up.model.ClosedTimeInterval'

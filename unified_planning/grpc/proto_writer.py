@@ -14,12 +14,13 @@
 #
 # type: ignore[valid-type]
 import fractions
+from itertools import product
+from typing import List
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
-import unified_planning.model
-import unified_planning.plans
+from unified_planning import model, plans, engines
+import unified_planning.model.htn
 import unified_planning.model.walkers as walkers
-from unified_planning import model
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
@@ -30,40 +31,49 @@ from unified_planning.model.operators import (
     OperatorKind,
 )
 from unified_planning.model.timing import TimepointKind
-from itertools import product
-from typing import List
 
 
 def map_operator(op: int) -> str:
     if op == OperatorKind.PLUS:
-        return "+"
+        return "up:plus"
     elif op == OperatorKind.MINUS:
-        return "-"
+        return "up:minus"
     elif op == OperatorKind.TIMES:
-        return "*"
+        return "up:times"
     elif op == OperatorKind.DIV:
-        return "/"
+        return "up:div"
     elif op == OperatorKind.LE:
-        return "<="
+        return "up:le"
     elif op == OperatorKind.LT:
-        return "<"
+        return "up:lt"
     elif op == OperatorKind.EQUALS:
-        return "="
+        return "up:equals"
     elif op == OperatorKind.AND:
-        return "and"
+        return "up:and"
     elif op == OperatorKind.OR:
-        return "or"
+        return "up:or"
     elif op == OperatorKind.NOT:
-        return "not"
+        return "up:not"
     elif op == OperatorKind.IMPLIES:
-        return "implies"
+        return "up:implies"
     elif op == OperatorKind.IFF:
-        return "iff"
+        return "up:iff"
     elif op == OperatorKind.EXISTS:
-        return "exists"
+        return "up:exists"
     elif op == OperatorKind.FORALL:
-        return "forall"
+        return "up:forall"
     raise ValueError(f"Unknown operator `{op}`")
+
+
+def proto_type(tpe: model.Type) -> str:
+    if tpe.is_bool_type():
+        return "up:bool"
+    elif tpe.is_time_type():
+        return "up:time"
+    elif tpe.is_int_type() or tpe.is_real_type():
+        return f"up:{tpe}"
+    elif isinstance(tpe, model.types._UserType):
+        return str(tpe.name)
 
 
 class FNode2Protobuf(walkers.DagWalker):
@@ -80,7 +90,7 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(boolean=expression.bool_constant_value()),
             list=[],
             kind=proto.ExpressionKind.Value("CONSTANT"),
-            type="bool",
+            type="up:bool",
         )
 
     def walk_int_constant(self, expression: model.FNode,
@@ -89,7 +99,7 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(int=expression.int_constant_value()),
             list=[],
             kind=proto.ExpressionKind.Value("CONSTANT"),
-            type="integer",
+            type="up:integer",
         )
 
     def walk_real_constant(self, expression: model.FNode,
@@ -98,7 +108,7 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(real=self._protobuf_writer.convert(expression.real_constant_value())),
             list=[],
             kind=proto.ExpressionKind.Value("CONSTANT"),
-            type="real",
+            type="up:real",
         )
 
     def walk_param_exp(self, expression: model.FNode,
@@ -107,7 +117,7 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(symbol=expression.parameter().name),
             list=[],
             kind=proto.ExpressionKind.Value("PARAMETER"),
-            type=str(expression.parameter().type),
+            type=proto_type(expression.parameter().type),
         )
 
     def walk_variable_exp(self, expression: model.FNode,
@@ -116,7 +126,7 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(symbol=expression.variable().name),
             list=[],
             kind=proto.ExpressionKind.Value("VARIABLE"),
-            type=str(expression.variable().type),
+            type=proto_type(expression.variable().type),
         )
 
     def walk_object_exp(self, expression: model.FNode,
@@ -125,8 +135,42 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(symbol=expression.object().name),
             list=[],
             kind=proto.ExpressionKind.Value("CONSTANT"),
-            type=str(expression.object().type),
+            type=proto_type(expression.object().type),
         )
+
+    def walk_timing_exp(self, expression: model.FNode,
+                        args: List[proto.Expression]) -> proto.Expression:
+        timing = expression.timing()
+        tp = timing.timepoint
+        if timing.timepoint.container is not None:
+            args = [proto.Expression(
+                atom=proto.Atom(symbol=timing.timepoint.container),
+                type="up:container",
+                kind=proto.ExpressionKind.Value("CONTAINER_ID")
+            )]
+        else:
+            args = []
+        if tp.kind == TimepointKind.GLOBAL_START:
+            fn = "up:global_start"
+        elif tp.kind == TimepointKind.GLOBAL_END:
+            fn = "up:global_end"
+        elif tp.kind == TimepointKind.START:
+            fn = "up:start"
+        elif tp.kind == TimepointKind.END:
+            fn = "up:end"
+        else:
+            raise ValueError(f"Unknown timepoint kind: {tp.kind}")
+        fn_exp = proto.Expression(
+            atom=proto.Atom(symbol=fn),
+            kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL")
+        )
+        tp_exp = proto.Expression(
+            list=[fn_exp] + args,
+            type="up:time",
+            kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION")
+        )
+        assert timing.delay == 0
+        return tp_exp
 
     def walk_fluent_exp(self, expression: model.FNode,
                         args: List[proto.Expression]) -> proto.Expression:
@@ -135,7 +179,7 @@ class FNode2Protobuf(walkers.DagWalker):
             proto.Expression(
                 atom=proto.Atom(symbol=expression.fluent().name),
                 kind=proto.ExpressionKind.Value("FLUENT_SYMBOL"),
-                type=str(expression.fluent().type),
+                type=proto_type(expression.fluent().type),
             )
         )
         sub_list.extend(args)
@@ -143,7 +187,7 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=None,
             list=sub_list,
             kind=proto.ExpressionKind.Value("STATE_VARIABLE"),
-            type=str(expression.fluent().type),
+            type=proto_type(expression.fluent().type),
         )
 
     @walkers.handles(BOOL_OPERATORS.union(IRA_OPERATORS).union(RELATIONS))
@@ -155,7 +199,7 @@ class FNode2Protobuf(walkers.DagWalker):
                 atom=proto.Atom(symbol=map_operator(expression.node_type)),
                 list=[],
                 kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
-                type="",
+                type="up:operator",
             )
         )
         # forall/exists: add the declared variables from the payload to the beginning of the parameter list.
@@ -189,7 +233,7 @@ class ProtobufWriter(Converter):
         sig = [self.convert(t) for t in fluent.signature]
         return proto.Fluent(
             name=name,
-            value_type=str(fluent.type),
+            value_type=proto_type(fluent.type),
             parameters=sig,
             default_value=self.convert(problem.fluents_defaults[fluent])
             if fluent in problem.fluents_defaults
@@ -198,29 +242,29 @@ class ProtobufWriter(Converter):
 
     @handles(model.Object)
     def _convert_object(self, obj: model.Object) -> proto.ObjectDeclaration:
-        return proto.ObjectDeclaration(name=obj.name, type=str(obj.type))
+        return proto.ObjectDeclaration(name=obj.name, type=proto_type(obj.type))
 
     @handles(model.FNode)
     def _convert_fnode(self, exp: model.FNode) -> proto.Expression:
         return self._fnode2proto.convert(exp)
 
     @handles(model.types._BoolType)
-    def _convert_bool_type(self, _: model.types._BoolType) -> proto.TypeDeclaration:
-        return proto.TypeDeclaration(type_name="bool")
+    def _convert_bool_type(self, tpe: model.types._BoolType) -> proto.TypeDeclaration:
+        return proto.TypeDeclaration(type_name=proto_type(tpe))
 
     @handles(model.types._UserType)
     def _convert_user_type(self, t: model.types._UserType) -> proto.TypeDeclaration:
         return proto.TypeDeclaration(
-            type_name=t.name, parent_type='' if t.father is None else str(t.father.name)
+            type_name=proto_type(t), parent_type='' if t.father is None else proto_type(t.father)
         )
 
     @handles(model.types._IntType)
     def _convert_integer_type(self, t: model.types._IntType) -> proto.TypeDeclaration:
-        return proto.TypeDeclaration(type_name=str(t))
+        return proto.TypeDeclaration(type_name=proto_type(t))
 
     @handles(model.types._RealType)
     def _convert_real(self, t: model.types._RealType) -> proto.TypeDeclaration:
-        return proto.TypeDeclaration(type_name=str(t))
+        return proto.TypeDeclaration(type_name=proto_type(t))
 
     @handles(model.Effect)
     def _convert_effect(self, effect: model.Effect) -> proto.Effect:
@@ -311,7 +355,7 @@ class ProtobufWriter(Converter):
             kind = proto.Timepoint.TimepointKind.Value("GLOBAL_START")
         elif tp.kind == TimepointKind.GLOBAL_END:
             kind = proto.Timepoint.TimepointKind.Value("GLOBAL_END")
-        return proto.Timepoint(kind=kind)
+        return proto.Timepoint(kind=kind, container_id=tp.container)
 
     @handles(model.Timing)
     def _convert_timing(self, timing: model.Timing) -> proto.Timing:
@@ -355,7 +399,64 @@ class ProtobufWriter(Converter):
             )
         )
 
-    @handles(model.Problem)
+    @handles(model.htn.Task)
+    def _convert_abstract_task(self, task: model.htn.Task) -> proto.AbstractTaskDeclaration:
+        return proto.AbstractTaskDeclaration(
+            name=task.name,
+            parameters=[self.convert(p) for p in task.parameters]
+        )
+
+    @handles(model.htn.ParameterizedTask)
+    def _convert_parameterized_task(self, task: model.htn.ParameterizedTask) -> proto.Task:
+        parameters = []
+        for p in task.parameters:
+            parameters.append(proto.Expression(
+                atom=proto.Atom(symbol=p.name),
+                list=[],
+                kind=proto.ExpressionKind.Value("PARAMETER"),
+                type=proto_type(p.type),
+            ))
+        return proto.Task(
+            id="",
+            task_name=task.task.name,
+            parameters=parameters
+        )
+
+    @handles(model.htn.Subtask)
+    def _convert_subtask(self, subtask: model.htn.Subtask) -> proto.Task:
+        return proto.Task(
+            id=subtask.identifier,
+            task_name=subtask.task.name,
+            parameters=[self.convert(p) for p in subtask.parameters]
+        )
+
+    @handles(model.htn.Method)
+    def _convert_method(self, method: model.htn.Method) -> proto.Method:
+        return proto.Method(
+            name=method.name,
+            parameters=[self.convert(p) for p in method.parameters],
+            achieved_task=self.convert(method.achieved_task),
+            subtasks=[self.convert(st) for st in method.subtasks],
+            constraints=[self.convert(c) for c in method.constraints],
+            conditions=[proto.Condition(cond=self.convert(c)) for c in method.preconditions]
+        )
+
+    @handles(model.htn.TaskNetwork)
+    def _convert_task_network(self, tn: model.htn.TaskNetwork) -> proto.TaskNetwork:
+        return proto.TaskNetwork(
+            variables=[self.convert(v) for v in tn.variables],
+            subtasks=[self.convert(st) for st in tn.subtasks],
+            constraints=[self.convert(c) for c in tn.constraints]
+        )
+
+    def build_hierarchy(self, problem: model.htn.HierarchicalProblem) -> proto.Hierarchy:
+        return proto.Hierarchy(
+            initial_task_network=self.convert(problem.task_network),
+            abstract_tasks=[self.convert(t) for t in problem.tasks],
+            methods=[self.convert(m) for m in problem.methods],
+        )
+
+    @handles(model.Problem, model.htn.HierarchicalProblem)
     def _convert_problem(self, problem: model.Problem) -> proto.Problem:
         goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
         for (t, gs) in problem.timed_goals:
@@ -364,9 +465,14 @@ class ProtobufWriter(Converter):
                 for g in gs
             ]
 
+        problem_name = str(problem.name) if problem.name is not None else ""
+        hierarchy = None
+        if isinstance(problem, model.htn.HierarchicalProblem):
+            hierarchy = self.build_hierarchy(problem)
+
         return proto.Problem(
-            domain_name=str(problem.name + "_domain"),
-            problem_name=problem.name,
+            domain_name=problem_name + "_domain",
+            problem_name=problem_name,
             types=[self.convert(t) for t in problem.user_types],
             fluents=[self.convert(f, problem) for f in problem.fluents],
             objects=[self.convert(o) for o in problem.all_objects],
@@ -381,6 +487,7 @@ class ProtobufWriter(Converter):
             goals=goals,
             features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
+            hierarchy=hierarchy,
         )
 
     @handles(model.metrics.MinimizeActionCosts)
@@ -425,7 +532,7 @@ class ProtobufWriter(Converter):
 
     @handles(model.Parameter)
     def _convert_action_parameter(self, p: model.Parameter) -> proto.Parameter:
-        return proto.Parameter(name=p.name, type=str(p.type))
+        return proto.Parameter(name=p.name, type=proto_type(p.type))
 
     @handles(model.Variable)
     def _convert_expression_variable(self, variable: model.Variable) -> proto.Expression:
@@ -434,7 +541,7 @@ class ProtobufWriter(Converter):
             atom=proto.Atom(symbol=variable.name),
             list=[],
             kind=proto.ExpressionKind.Value("VARIABLE"),
-            type=str(variable.type),
+            type=proto_type(variable.type),
         )
 
     @handles(unified_planning.plans.ActionInstance)

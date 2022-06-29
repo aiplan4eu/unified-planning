@@ -7,15 +7,15 @@ syntax = "proto3";
 // Type of expressions are represented as strings in protobuf format.
 // A type might be, e.g., "int", "bool" or "location", where the latter is a problem-specific type.
 
-// Built-in types:
-//  - "bool"
-//  - "integer"
-//  - "real"
+// Built-in types are namespaced with the `up:` prefix:
+//  - "up:bool"
+//  - "up:integer"
+//  - "up:real"
+//  - "up:time"
 //
 // Any other string (e.g. "location") refers to a symbolic type and must have been declared in the problem definition.
 
-// We can also consider restrictions to int/reals with specific syntax (e.g. "int[0,100]")
-// but we need to agree on the semantics and syntax.
+// We can also consider restrictions to int/reals with specific syntax (e.g. "up:integer[0,100]").
 
 
 // ================== Expressions ====================
@@ -59,6 +59,9 @@ enum ExpressionKind {
     // List. The expression is the application of some parameters to a function. For instance `(+ 1 3)`.
     // The first element of the list must be a FUNCTION_SYMBOL
     FUNCTION_APPLICATION = 6;
+
+    // Atom symbol. Unique identifier of a task or action in the current scope.
+    CONTAINER_ID = 8;
 }
 
 
@@ -220,12 +223,17 @@ message Timepoint {
       GLOBAL_START = 0;
       // Global end of the planning problem. This is context independent and represents the time at which the final state holds.
       GLOBAL_END = 1;
-      // Start of the container (typically the action) in which this symbol occurs
+      // Start of the container (typically the action or method) in which this symbol occurs
       START = 2;
-      // End of the container (typically the action) in which this symbol occurs
+      // End of the container (typically the action or method) in which this symbol occurs
       END = 3;
     }
     TimepointKind kind = 1;
+
+    // If non-empty, identifies the container of which we are extracting the start/end timepoint.
+    // In the context of a task-network or of a method, this could be the `id` of one of the subtasks.
+    // feature: hierarchies
+    string container_id = 2;
 }
 
 // Represents a time (`timepoint` + `delay`), that is a time defined relatively to a particular `timepoint`.
@@ -263,6 +271,119 @@ message Duration {
     Interval controllable_in_bounds = 1;
 }
 
+
+// ============== Hierarchies ====================
+
+// Declares an abstract task together with its expected parameters.
+//
+// Example: goto(robot: Robot, destination: Location)
+message AbstractTaskDeclaration {
+
+    // Example: "goto"
+    string name = 1;
+
+    // Example:
+    //  - robot: Robot
+    //  - destination: Location
+    repeated Parameter parameters = 2;
+}
+
+// Representation of an abstract or primitive task that should be achieved,
+// required either in the initial task network or as a subtask of a method.
+//
+// Example:  task of sending a `robot` to the KITCHEN
+//   - t1: goto(robot, KITCHEN)
+message Task {
+    // Identifier of the task, required to be unique in the method/task-network where the task appears.
+    // The `id` is notably used to refer to the start/end of the task.
+    //
+    // Example: t1
+    string id = 1;
+
+    // Name of the task that should be achieved. It might either
+    //  - an abstract task if the name is the one of a task declared in the problem
+    //  - a primitive task if the name is the one of an action declared in the problem
+    //
+    // Example:
+    //  - "goto" (abstract task)
+    //  - "move" (action / primitive task)
+    string task_name = 2;
+
+    // Example: (for a "goto" task)
+    //  - robot    (a parameter from an outer scope)
+    //  - KITCHEN  (a constant symbol in the problem)
+    repeated Expression parameters = 3;
+}
+
+// A method describes one possible way of achieving a task.
+//
+// Example: A method that make a "move" action and recursively calls itself until reaching the destination.
+message Method {
+    // A name that uniquely identify the method.
+    // This is mostly used for user facing output or plan validation.
+    //
+    // Example: "m-recursive-goto"
+    string name = 1;
+    
+    // Example: [robot: Robot, source: Location, intermediate: Location, destination: Location]
+    repeated Parameter parameters = 2;
+
+    // The task that is achieved by the method.
+    // A subset of the parameters of the method will typically be used to 
+    // define the task that is achieved.
+    //
+    // Example: goto(robot, destination)
+    Task achieved_task = 3;
+
+    // A set of subtasks that should be achieved to carry out the method.
+    // Note that the order of subtasks is irrelevant and that any ordering constraint should be
+    // specified in the `constraints` field.
+    // 
+    // Example:
+    //  - t1: (move robot source intermediate)
+    //  - t2: goto(robot destination)
+    repeated Task subtasks = 4;
+
+    // Constraints enable the definition of ordering constraints as well as constraints 
+    // on the allowed instantiation of the method's parameters.
+    //
+    // Example: 
+    //  - end(t1) < start(t2)
+    //  - source != intermediate
+    repeated Expression constraints = 5;
+
+    // Conjunction of conditions that must hold for the method to be applicable.
+    // As for the conditions of actions, these can be temporally qualified to refer to intermediate timepoints.
+    // In addition to the start/end of the method, the temporal qualification might refer to the start/end of
+    // one of the subtasks using its identifier.
+    //
+    // Example:
+    //  - [start] loc(robot) == source
+    //  - [end(t1)] loc(robot) == intermediate
+    //  - [end] loc(robot) == destination
+    repeated Condition conditions = 6;
+}
+
+// A task network defines a set of subtasks and associated constraints.
+// It is intended to be used to define the initial task network of the hierarchical problem.
+//
+// Example: an arbitrary robot should go to the KITCHEN before time 100
+message TaskNetwork {
+    // robot: Location
+    repeated Parameter variables = 1;
+    // t1: goto(robot, KITCHEN)
+    repeated Task subtasks = 2;
+    // end(t1) <= 100
+    repeated Expression constraints = 3;
+}
+
+// Represents the hierarchical part of a problem.
+// features: hierarchical
+message Hierarchy {
+    repeated AbstractTaskDeclaration abstract_tasks = 1;
+    repeated Method methods = 2;
+    TaskNetwork initial_task_network = 3;
+}
 
 
 
@@ -360,6 +481,12 @@ message Problem {
 
     // The plan quality metrics
     repeated Metric metrics = 11;
+
+
+    // If the problem is hierarchical, defines the tasks and methods as well as the initial task network.
+    // features: hierarchical
+    Hierarchy hierarchy = 12;
+
 }
 
 // Features of the problem.
@@ -367,6 +494,7 @@ message Problem {
 enum Feature {
     // PROBLEM_CLASS
     ACTION_BASED = 0;
+    HIERARCHICAL = 26;
     // TIME
     CONTINUOUS_TIME = 1;
     DISCRETE_TIME = 2;
@@ -432,6 +560,9 @@ message Plan {
     repeated ActionInstance actions = 1;
 
     // TODO: add an optional cost field?
+
+    // TODO: for hierarchical problems, output the decomposition that leads from the initial task network
+    //       into the plan (required for polynomial plan validation, and generally useful for end users)
 }
 
 

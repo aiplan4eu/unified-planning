@@ -20,5 +20,5 @@ import unified_planning.test.examples.hierarchical as hierarchical
 
 
 def get_example_problems():
-    sub_modules = [minimals, realistic, testing_variants]
+    sub_modules = [minimals, realistic, testing_variants, hierarchical]
     return dict(x for m in sub_modules for x in m.get_example_problems().items())

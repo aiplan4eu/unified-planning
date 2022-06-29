@@ -60,6 +60,31 @@ class HierarchicalProblem(up.model.problem.Problem):
         res += hash(self._initial_task_network)
         return res
 
+    def clone(self):
+        new_p = HierarchicalProblem(self._name, self._env)
+        new_p._fluents = self._fluents[:]
+        new_p._actions = [a.clone() for a in self._actions]
+        new_p._user_types = self._user_types[:]
+        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
+        new_p._objects = self._objects[:]
+        new_p._initial_value = self._initial_value.copy()
+        new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
+        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
+        new_p._goals = self._goals[:]
+        new_p._metrics = []
+        for m in self._metrics:
+            if isinstance(m, up.model.metrics.MinimizeActionCosts):
+                costs = {new_p.action(a.name) : c for a, c in m.costs.items()}
+                new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
+            else:
+                new_p._metrics.append(m)
+        new_p._initial_defaults = self._initial_defaults.copy()
+        new_p._fluents_defaults = self._fluents_defaults.copy()
+        new_p._initial_task_network = self._initial_task_network.clone()
+        new_p._methods = self._methods.copy()
+        new_p._abstract_tasks = self._abstract_tasks.copy()
+        return new_p
+
     @property
     def kind(self) -> 'up.model.problem_kind.ProblemKind':
         '''Returns the problem kind of this planning problem.

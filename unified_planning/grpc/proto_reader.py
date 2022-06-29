@@ -38,57 +38,55 @@ from unified_planning.model.operators import OperatorKind
 
 
 def convert_type_str(s: str, problem: Problem) -> model.types.Type:
-    if s == "bool":
+    if s == "up:bool":
         return problem.env.type_manager.BoolType()
-    elif s == "integer":
+    elif s == "up:integer":
         return problem.env.type_manager.IntType()
-    elif "integer[" in s:
+    elif "up:integer[" in s:
         lb = int(s.split("[")[1].split(",")[0])
         ub = int(s.split(",")[1].split("]")[0])
         return problem.env.type_manager.IntType(lb, ub)
-    elif s == "real":
+    elif s == "up:real":
         return problem.env.type_manager.RealType()
-    elif "real[" in s:
+    elif "up:real[" in s:
         return problem.env.type_manager.RealType(
             lower_bound=fractions.Fraction(s.split("[")[1].split(",")[0]),
             upper_bound=fractions.Fraction(s.split(",")[1].split("]")[0]),
         )
     else:
-        if " - " in s:
-            return problem.user_type(s.split(" - ")[0])
-        else:
-            return problem.env.type_manager.UserType(s)
+        assert not s.startswith("up:"), f"Unhandled builtin type: {s}"
+        return problem.user_type(s)
 
 
 # The operators are based on SExpressions supported in PDDL.
 def op_to_node_type(op: str) -> OperatorKind:
-    if op == "+":
+    if op == "up:plus":
         return OperatorKind.PLUS
-    elif op == "-":
+    elif op == "up:minus":
         return OperatorKind.MINUS
-    elif op == "*":
+    elif op == "up:times":
         return OperatorKind.TIMES
-    elif op == "/":
+    elif op == "up:div":
         return OperatorKind.DIV
-    elif op == "=":
+    elif op == "up:equals":
         return OperatorKind.EQUALS
-    elif op == "<=":
+    elif op == "up:le":
         return OperatorKind.LE
-    elif op == "<":
+    elif op == "up:lt":
         return OperatorKind.LT
-    elif op == "and":
+    elif op == "up:and":
         return OperatorKind.AND
-    elif op == "or":
+    elif op == "up:or":
         return OperatorKind.OR
-    elif op == "not":
+    elif op == "up:not":
         return OperatorKind.NOT
-    elif op == "exists":
+    elif op == "up:exists":
         return OperatorKind.EXISTS
-    elif op == "forall":
+    elif op == "up:forall":
         return OperatorKind.FORALL
-    elif op == "implies":
+    elif op == "up:implies":
         return OperatorKind.IMPLIES
-    elif op == "iff":
+    elif op == "up:iff":
         return OperatorKind.IFF
 
     raise ValueError(f"Unknown operator `{op}`")
@@ -116,10 +114,7 @@ class ProtobufReader(Converter):
 
     @handles(proto.ObjectDeclaration)
     def _convert_object(self, msg: proto.ObjectDeclaration, problem: Problem) -> model.Object:
-        obj = model.Object(
-            msg.name, convert_type_str(msg.type, problem)
-        )
-        return obj
+        return model.Object(msg.name, convert_type_str(msg.type, problem))
 
     @handles(proto.Expression)
     def _convert_expression(self, msg: proto.Expression, problem: Problem) -> model.Expression:
@@ -152,7 +147,7 @@ class ProtobufReader(Converter):
                 raise UPException(f"Unable to form fluent expression {msg}")
         elif msg.kind == proto.ExpressionKind.Value(
             "FUNCTION_APPLICATION"
-        ):
+        ) and msg.type != "up:time":
             node_type = None
             args = []
             payload = None
@@ -180,6 +175,25 @@ class ProtobufReader(Converter):
                 args=tuple(args),
                 payload=payload,
             )
+        elif msg.kind == proto.ExpressionKind.Value(
+            "FUNCTION_APPLICATION"
+        ) and msg.type == "up:time":
+            fn = msg.list[0].atom.symbol
+            if fn == "up:start":
+                kd = model.TimepointKind.START
+            elif fn == "up:end":
+                kd = model.TimepointKind.END
+            elif fn == "up:global_start":
+                kd = model.TimepointKind.GLOBAL_START
+            elif fn == "up:global_end":
+                kd = model.TimepointKind.GLOBAL_END
+            else:
+                raise ValueError(f"Invalid temporal qualifier {fn}")
+            container = None
+            if len(msg.list) > 1:
+                container = msg.list[1].atom.symbol
+            tp = model.timing.Timepoint(kd, container)
+            return problem.env.expression_manager.TimingExp(model.Timing(0, tp))
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
@@ -208,15 +222,15 @@ class ProtobufReader(Converter):
 
     @handles(proto.TypeDeclaration)
     def _convert_type_declaration(self, msg: proto.TypeDeclaration, problem: Problem) -> model.Type:
-        if msg.type_name == "bool":
+        if msg.type_name == "up:bool":
             return problem.env.type_manager.BoolType()
-        elif msg.type_name.startswith("integer["):
+        elif msg.type_name.startswith("up:integer["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
             return problem.env.type_manager.IntType(
                 lower_bound=int(tmp[0]) if tmp[0] != "-inf" else None,
                 upper_bound=int(tmp[1]) if tmp[1] != "inf" else None,
             )
-        elif msg.type_name.startswith("real["):
+        elif msg.type_name.startswith("up:real["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
             lower_bound = fractions.Fraction(tmp[0]) if tmp[0] != "-inf" else None
             upper_bound = fractions.Fraction(tmp[1]) if tmp[1] != "inf" else None
@@ -224,14 +238,17 @@ class ProtobufReader(Converter):
                 lower_bound=lower_bound, upper_bound=upper_bound
             )
         else:
-            parent = None
-            if msg.parent_type != "":
-                parent = problem.user_type(msg.parent_type)
-            return problem.env.type_manager.UserType(msg.type_name, parent)
+            father = problem.user_type(msg.parent_type) if msg.parent_type != "" else None
+            return problem.env.type_manager.UserType(name=msg.type_name, father=father)
 
     @handles(proto.Problem)
     def _convert_problem(self, msg: proto.Problem, env: Optional[Environment] = None) -> Problem:
-        problem = Problem(name=msg.problem_name, env=env)
+        problem_name = str(msg.problem_name) if str(msg.problem_name) != "" else None
+        if msg.HasField("hierarchy"):
+            problem = model.htn.HierarchicalProblem(name=problem_name, env=env)
+        else:
+            problem = Problem(name=problem_name, env=env)
+
 
         for t in msg.types:
             problem._add_user_type(self.convert(t, problem))
@@ -273,7 +290,68 @@ class ProtobufReader(Converter):
         for metric in msg.metrics:
             problem.add_quality_metric(self.convert(metric, problem))
 
+        if msg.HasField("hierarchy"):
+            for task in msg.hierarchy.abstract_tasks:
+                problem.add_task(self.convert(task, problem))
+            for method in msg.hierarchy.methods:
+                problem.add_method(self.convert(method, problem))
+            problem._initial_task_network = self.convert(msg.hierarchy.initial_task_network, problem)
+
         return problem
+
+    @handles(proto.AbstractTaskDeclaration)
+    def _convert_abstract_task(self, msg: proto.AbstractTaskDeclaration, problem: Problem):
+        return model.htn.Task(
+            msg.name,
+            [self.convert(p, problem) for p in msg.parameters],
+            problem.env
+        )
+
+    @handles(proto.Task)
+    def _convert_task(self, msg: proto.Task, problem: model.htn.HierarchicalProblem) -> model.htn.Subtask:
+        if problem.has_task(msg.task_name):
+            task = problem.get_task(msg.task_name)
+        elif problem.has_action(msg.task_name):
+            task = problem.action(msg.task_name)
+        else:
+            raise ValueError(f"Unknown task name: {msg.task_name}")
+        parameters = [self.convert(p, problem) for p in msg.parameters]
+        return model.htn.Subtask(task, *parameters, ident=msg.id, _env=problem.env)
+
+    @handles(proto.Method)
+    def _convert_method(self, msg: proto.Method, problem: model.htn.HierarchicalProblem) -> model.htn.Method:
+        method = model.htn.Method(
+            msg.name,
+            [self.convert(p, problem) for p in msg.parameters],
+            problem.env,
+        )
+        achieved_task_params = []
+        for p in msg.achieved_task.parameters:
+            achieved_task_params.append(method.parameter(p.atom.symbol))
+        method.set_task(
+            problem.get_task(msg.achieved_task.task_name),
+            *achieved_task_params
+        )
+        for st in msg.subtasks:
+            method.add_subtask(self.convert(st, problem))
+        for c in msg.constraints:
+            method.add_constraint(self.convert(c, problem))
+        for c in msg.conditions:
+            assert not c.HasField("span"), "Timed conditions are currently unsupported."
+            method.add_precondition(self.convert(c.cond, problem))
+        return method
+
+    @handles(proto.TaskNetwork)
+    def _convert_task_network(self, msg: proto.TaskNetwork, problem: model.htn.HierarchicalProblem) -> model.htn.TaskNetwork:
+        tn = model.htn.TaskNetwork(problem.env)
+        for v in msg.variables:
+            tn.add_variable(v.name, convert_type_str(v.type, problem))
+        for st in msg.subtasks:
+            tn.add_subtask(self.convert(st, problem))
+        for c in msg.constraints:
+            tn.add_constraint(self.convert(c, problem))
+
+        return tn
 
     @handles(proto.Metric)
     def _convert_metric(self, msg: proto.Metric, problem: Problem) -> Union[metrics.MinimizeActionCosts,
@@ -417,28 +495,18 @@ class ProtobufReader(Converter):
 
     @handles(proto.Timepoint)
     def _convert_timepoint(self, msg: proto.Timepoint) -> model.timing.Timepoint:
-        if msg.kind == proto.Timepoint.TimepointKind.Value(
-            "GLOBAL_START"
-        ):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.GLOBAL_START
-            )
-        elif msg.kind == proto.Timepoint.TimepointKind.Value(
-            "GLOBAL_END"
-        ):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.GLOBAL_END
-            )
+        if msg.kind == proto.Timepoint.TimepointKind.Value("GLOBAL_START"):
+            kind = model.timing.TimepointKind.GLOBAL_START
+        elif msg.kind == proto.Timepoint.TimepointKind.Value("GLOBAL_END"):
+            kind = model.timing.TimepointKind.GLOBAL_END
         elif msg.kind == proto.Timepoint.TimepointKind.Value("START"):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.START,
-            )
+            kind = model.timing.TimepointKind.START
         elif msg.kind == proto.Timepoint.TimepointKind.Value("END"):
-            return model.timing.Timepoint(
-                kind=model.timing.TimepointKind.END,
-            )
+            kind = model.timing.TimepointKind.END
         else:
             raise UPException("Unknown timepoint kind: {}".format(msg.kind))
+        container = msg.container_id if msg.container_id != "" else None
+        return model.timing.Timepoint(kind, container)
 
     @handles(proto.Plan)
     def _convert_plan(self, msg: proto.Plan, problem: Problem) -> unified_planning.plans.Plan:
@@ -454,7 +522,7 @@ class ProtobufReader(Converter):
     @handles(proto.ActionInstance)
     def _convert_action_instance(self, msg: proto.ActionInstance, problem: Problem) -> Union[Tuple[model.timing.Timing, unified_planning.plans.ActionInstance, model.timing.Duration],
                                                                                              unified_planning.plans.ActionInstance]:
-        # action instance paramaters are atoms but in UP they are FNodes
+        # action instance parameters are atoms but in UP they are FNodes
         # converting to up.model.FNode
         parameters = tuple([self.convert(param, problem) for param in msg.parameters])
 

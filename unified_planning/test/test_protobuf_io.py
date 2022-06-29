@@ -39,12 +39,12 @@ class TestProtobufIO(TestCase):
         x_pb = self.pb_writer.convert(x, problem)
 
         self.assertEqual(x_pb.name, "x")
-        self.assertEqual(x_pb.value_type, "bool")
+        self.assertEqual(x_pb.value_type, "up:bool")
 
         x_up = self.pb_reader.convert(x_pb, problem)
 
         self.assertEqual(x_up.name, "x")
-        self.assertEqual(str(x_up.type), "bool")
+        self.assertEqual(x_up.type, BoolType())
 
     def test_fluent_2(self):
         problem = self.problems["robot"].problem
@@ -111,9 +111,8 @@ class TestProtobufIO(TestCase):
 
     def test_object_declaration(self):
         problem = Problem("test")
-
         loc_type = UserType("location")
-        obj = Object("l1", loc_type)
+        obj = problem.add_object("l1", loc_type)
         obj_pb = self.pb_writer.convert(obj)
         obj_up = self.pb_reader.convert(obj_pb, problem)
         self.assertEqual(obj, obj_up)
@@ -273,6 +272,7 @@ class TestProtobufProblems(TestCase):
             problem_up = self.pb_reader.convert(problem_pb)
 
             self.assertEqual(problem, problem_up)
+            self.assertEqual(hash(problem), hash(problem_up))
 
     def test_all_plans(self):
         for name, example in self.problems.items():
@@ -282,6 +282,7 @@ class TestProtobufProblems(TestCase):
             plan_up = self.pb_reader.convert(plan_pb, problem)
 
             self.assertEqual(plan, plan_up)
+            self.assertEqual(hash(plan), hash(plan_up))
 
     @skipIfEngineNotAvailable("tamer")
     def test_some_plan_generations(self):

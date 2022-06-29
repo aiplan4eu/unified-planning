@@ -20,6 +20,7 @@ A Task has a name and a signature that defines the types of its parameters.
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from typing import List, OrderedDict, Optional, Union
+from unified_planning.model.fnode import FNode
 from unified_planning.model.action import Action
 from unified_planning.model.timing import Timepoint, TimepointKind
 from unified_planning.model.types import Type
@@ -113,6 +114,14 @@ class Subtask:
         return hash(self._ident) + hash(self._task) + sum(map(hash, self._args))
 
     @property
+    def task(self) -> Union[Task, Action]:
+        return self._task
+
+    @property
+    def parameters(self) -> List['FNode']:
+        return self._args
+
+    @property
     def identifier(self) -> str:
         """Unique identifier of the subtask in its task network."""
         return self._ident
@@ -120,9 +129,9 @@ class Subtask:
     @property
     def start(self) -> Timepoint:
         """Timepoint representing the task's end time."""
-        return Timepoint(TimepointKind.START, container=self)
+        return Timepoint(TimepointKind.START, container=self.identifier)
 
     @property
     def end(self) -> Timepoint:
         """Timepoint representing the task's end time."""
-        return Timepoint(TimepointKind.END, container=self)
+        return Timepoint(TimepointKind.END, container=self.identifier)
