@@ -519,25 +519,27 @@ class PDDLReader:
                 dur_act = up.model.DurativeAction(n, a_params, self._env)
                 dur = a['duration'][0]
                 if dur[0] == '=':
+                    dur.pop(0)
+                    dur.pop(0)
                     dur_act.set_fixed_duration(self._parse_exp(problem, dur_act, types_map,
-                                                               {}, dur[2]))
+                                                               {}, dur))
                 elif dur[0] == 'and':
                     upper = None
                     lower = None
                     for j in range(1, len(dur)):
-                        v = Fraction(dur[j][2])
-                        if dur[j][0] == '>=':
-                            if lower is None or v > lower:
-                                lower = v
-                        elif dur[j][0] == '<=':
-                            if upper is None or v < upper:
-                                upper = v
+                        if dur[j][0] == '>=' and lower is None:
+                            dur[j].pop(0)
+                            dur[j].pop(0)
+                            lower = self._parse_exp(problem, dur_act, types_map, {}, dur[j])
+                        elif dur[j][0] == '<=' and upper is None:
+                            dur[j].pop(0)
+                            dur[j].pop(0)
+                            upper = self._parse_exp(problem, dur_act, types_map, {}, dur[j])
                         else:
                             raise SyntaxError(f'Not able to handle duration constraint of action {n}')
                     if lower is None or upper is None:
                         raise SyntaxError(f'Not able to handle duration constraint of action {n}')
-                    d = up.model.ClosedDurationInterval(self._em.Real(lower),
-                                                        self._em.Real(upper))
+                    d = up.model.ClosedDurationInterval(lower, upper)
                     dur_act.set_duration_constraint(d)
                 else:
                     raise SyntaxError(f'Not able to handle duration constraint of action {n}')

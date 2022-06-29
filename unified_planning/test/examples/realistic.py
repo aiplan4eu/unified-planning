@@ -643,4 +643,59 @@ def get_example_problems():
     hierarchical_blocks_world = Example(problem=problem, plan=plan)
     problems['hierarchical_blocks_world'] = hierarchical_blocks_world
 
+
+    # robot with action duration expressed using static fluents
+    problem = Problem('robot_with_durative_action')
+
+    Location = UserType('Location')
+    Robot = UserType('Robot')
+
+    is_at = Fluent('is_at', BoolType(), position=Location, robot=Robot)
+    is_connected = Fluent('is_connected', BoolType(), l_from=Location, l_to=Location)
+    distance = Fluent('distance', RealType(), l_from=Location, l_to=Location)
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_fluent(distance, default_initial_value=1)
+
+    move = DurativeAction('move', r=Robot, l_from=Location, l_to=Location)
+    r = move.parameter('r')
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.set_fixed_duration((distance(l_from, l_to)))
+    move.add_condition(StartTiming(), is_connected(l_from, l_to))
+    move.add_condition(StartTiming(), is_at(l_from, r))
+    move.add_condition(StartTiming(), Not(is_at(l_to, r)))
+    move.add_effect(StartTiming(), is_at(l_from, r), False)
+    move.add_effect(EndTiming(), is_at(l_to, r), True)
+    problem.add_action(move)
+
+    r1 = Object('r1', Robot)
+    l1 = Object('l1', Location)
+    l2 = Object('l2', Location)
+    l3 = Object('l3', Location)
+    l4 = Object('l4', Location)
+    l5 = Object('l5', Location)
+    problem.add_objects([r1, l1, l2, l3, l4, l5])
+
+    problem.set_initial_value(is_at(l1, r1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.set_initial_value(distance(l1, l2), 10)
+    problem.set_initial_value(distance(l2, l3), 10)
+    problem.set_initial_value(distance(l3, l4), 10)
+    problem.set_initial_value(distance(l4, l5), 10)
+
+    problem.add_goal(is_at(l5, r1))
+
+    plan = up.plans.TimeTriggeredPlan([
+        (Fraction(0, 1), up.plans.ActionInstance(move, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l2))), Fraction(10, 1)),
+        (Fraction(10, 1), up.plans.ActionInstance(move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))), Fraction(10, 1)),
+        (Fraction(10, 1), up.plans.ActionInstance(move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))), Fraction(10, 1)),
+        (Fraction(10, 1), up.plans.ActionInstance(move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5))), Fraction(10, 1))
+    ])
+    robot_static_fluents_duration = Example(problem=problem, plan=plan)
+    problems['robot_with_static_fluents_duration'] = robot_static_fluents_duration
+
     return problems

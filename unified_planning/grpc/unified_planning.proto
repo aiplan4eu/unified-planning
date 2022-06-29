@@ -324,12 +324,12 @@ message Method {
     //
     // Example: "m-recursive-goto"
     string name = 1;
-    
+
     // Example: [robot: Robot, source: Location, intermediate: Location, destination: Location]
     repeated Parameter parameters = 2;
 
     // The task that is achieved by the method.
-    // A subset of the parameters of the method will typically be used to 
+    // A subset of the parameters of the method will typically be used to
     // define the task that is achieved.
     //
     // Example: goto(robot, destination)
@@ -338,16 +338,16 @@ message Method {
     // A set of subtasks that should be achieved to carry out the method.
     // Note that the order of subtasks is irrelevant and that any ordering constraint should be
     // specified in the `constraints` field.
-    // 
+    //
     // Example:
     //  - t1: (move robot source intermediate)
     //  - t2: goto(robot destination)
     repeated Task subtasks = 4;
 
-    // Constraints enable the definition of ordering constraints as well as constraints 
+    // Constraints enable the definition of ordering constraints as well as constraints
     // on the allowed instantiation of the method's parameters.
     //
-    // Example: 
+    // Example:
     //  - end(t1) < start(t2)
     //  - source != intermediate
     repeated Expression constraints = 5;
@@ -502,6 +502,9 @@ enum Feature {
     TIMED_EFFECT = 4;
     TIMED_GOALS = 5;
     DURATION_INEQUALITIES = 6;
+    // EXPRESSION_DURATION
+    STATIC_FLUENTS_IN_DURATION = 27;
+    FLUENTS_IN_DURATION = 28;
     // NUMBERS
     CONTINUOUS_NUMBERS = 7;
     DISCRETE_NUMBERS = 8;

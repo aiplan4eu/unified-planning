@@ -429,13 +429,14 @@ class DurativeAction(Action):
     def set_duration_constraint(self, duration: 'up.model.timing.DurationInterval'):
         '''Sets the duration interval.'''
         lower, upper = duration.lower, duration.upper
-        if not (lower.is_int_constant() or lower.is_real_constant()):
-            raise UPProblemDefinitionError('Duration bound must be constant.')
-        elif not (upper.is_int_constant() or upper.is_real_constant()):
-            raise UPProblemDefinitionError('Duration bound must be constant.')
-        elif (upper.constant_value() < lower.constant_value() or
-              (upper.constant_value() == lower.constant_value() and
-               (duration.is_left_open() or duration.is_right_open()))):
+        tlower = self._env.type_checker.get_type(lower)
+        tupper = self._env.type_checker.get_type(upper)
+        assert tlower.is_int_type() or tlower.is_real_type()
+        assert tupper.is_int_type() or tupper.is_real_type()
+        if (lower.is_constant() and upper.is_constant() and
+            (upper.constant_value() < lower.constant_value() or
+             (upper.constant_value() == lower.constant_value() and
+              (duration.is_left_open() or duration.is_right_open())))):
             raise UPProblemDefinitionError(f'{duration} is an empty interval duration of action: {self.name}.')
         self._duration = duration
 
