@@ -55,7 +55,7 @@ class ObjectsExtractor(walkers.DagWalker):
     def __init__(self):
         walkers.dag.DagWalker.__init__(self)
 
-    def get(self, expression: 'up.model.Object') -> Set['up.model.Object']:
+    def get(self, expression: 'up.model.FNode') -> Set['up.model.Object']:
         """Returns all the free vars of the given expression."""
         return self.walk(expression)
 
@@ -272,10 +272,10 @@ class PDDLWriter:
                         self.domain_objects = self.domain_objects | obe.get(e.value)
         if len(self.domain_objects) > 0:
             out.write(' (:constants')
-            for t in self.problem.user_types:
-                constants = [o for o in self.domain_objects if o.type == t]
+            for ut in self.problem.user_types:
+                constants = [o for o in self.domain_objects if o.type == ut]
                 if len(constants) > 0:
-                    out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in constants])} - {self._get_mangled_name(t)}')
+                    out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in constants])} - {self._get_mangled_name(ut)}')
             out.write('\n )\n')
 
         predicates = []
@@ -318,7 +318,8 @@ class PDDLWriter:
                 for a in self.problem.actions:
                     cost_exp = metric.get_action_cost(a)
                     costs[a] = cost_exp
-                    self.domain_objects = self.domain_objects | obe.get(cost_exp)
+                    if cost_exp is not None:
+                        self.domain_objects = self.domain_objects | obe.get(cost_exp)
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 for a in self.problem.actions:
                     costs[a] = self.problem.env.expression_manager.Int(1)
