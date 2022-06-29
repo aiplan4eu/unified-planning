@@ -17,6 +17,7 @@ This module defines the Parameter class. Both actions and fluents use this class
 '''
 
 
+from typing import Optional
 from unified_planning.environment import Environment, get_env
 import unified_planning as up
 
@@ -24,11 +25,11 @@ import unified_planning as up
 class Parameter:
     '''Represents an action parameter or a fluent parameter.
     A parameter has a name, and a type.'''
-    def __init__(self, name: str, typename: 'up.model.types.Type', env: Environment):
+    def __init__(self, name: str, typename: 'up.model.types.Type', env: Optional[Environment] = None):
         self._name = name
         self._typename = typename
-        self._env = env
-        assert env.type_manager.has_type(typename), 'type of parameter does not belong to the same environment given to the parameter'
+        self._env = get_env(env)
+        assert self._env.type_manager.has_type(typename), 'type of parameter does not belong to the same environment given to the parameter'
 
     def __repr__(self) -> str:
         return f'{str(self.type)} {self.name}'

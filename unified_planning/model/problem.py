@@ -305,8 +305,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
     def add_timed_goal(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
                        goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
         '''Adds a timed goal.'''
-        if not isinstance(goal, bool):
-            assert goal.environment == self._env, 'timed_goal does not have the same environment of the problem'
+        assert isinstance(goal, bool) or goal.environment == self._env, 'timed_goal does not have the same environment of the problem'
         if isinstance(interval, up.model.Timing):
             interval = up.model.TimePointInterval(interval)
         if ((interval.lower.is_from_end() and interval.lower.delay > 0) or
@@ -390,8 +389,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
 
     def add_goal(self, goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
         '''Adds a goal.'''
-        if not isinstance(goal, bool):
-            assert goal.environment == self._env, 'goal does not have the same environment of the problem'
+        assert isinstance(goal, bool) or goal.environment == self._env, 'goal does not have the same environment of the problem'
         goal_exp, = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         if goal_exp != self._env.expression_manager.TRUE():
