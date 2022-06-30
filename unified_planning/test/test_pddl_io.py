@@ -305,10 +305,6 @@ class TestPddlIO(TestCase):
                 w.write_problem(problem_filename)
 
                 reader = PDDLReader()
-                if problem.name != 'basic_with_object_constant':
-                    continue
-                w.print_domain()
-                w.print_problem()
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
                 self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
@@ -322,7 +318,7 @@ class TestPddlIO(TestCase):
                     if isinstance(a, unified_planning.model.InstantaneousAction):
                         self.assertEqual(len(a.effects), len(parsed_a.effects))
                     elif isinstance(a, unified_planning.model.DurativeAction):
-                        self.assertEqual(a.duration, parsed_a.duration)
+                        self.assertEqual(str(a.duration), str(parsed_a.duration))
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
 

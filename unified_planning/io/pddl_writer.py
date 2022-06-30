@@ -50,20 +50,29 @@ INITIAL_LETTER: Dict[type, str] = {InstantaneousAction: 'a', DurativeAction: 'a'
 
 
 class ObjectsExtractor(walkers.DagWalker):
-    '''Returns the object in the expression.'''
+    '''Returns the object instances appearing in the expression.'''
 
     def __init__(self):
         walkers.dag.DagWalker.__init__(self)
 
-    def get(self, expression: 'up.model.FNode') -> Set['up.model.Object']:
+    def get(self, expression: 'up.model.FNode') -> Dict[_UserType, Set[Object]]:
         """Returns all the free vars of the given expression."""
         return self.walk(expression)
 
-    @walkers.handles(up.model.OperatorKind)
-    def walk_all_types(self, expression: 'up.model.FNode', args: List[Set['up.model.Object']]) -> Set['up.model.Object']:
-        res = set(x for y in args for x in y)
-        if expression.is_object_exp():
-            res = res | {expression.object()}
+    def walk_object_exp(self, expression: 'up.model.FNode', args: List[Dict[_UserType, Set[Object]]]) -> Dict[_UserType, Set[Object]]:
+        res: Dict[_UserType, Set[Object]] = {}
+        for a in args:
+            _update_domain_objects(res, a)
+        obj = expression.object()
+        assert obj.type.is_user_type()
+        res.setdefault(cast(_UserType, obj.type), set()).add(obj)
+        return res
+
+    @walkers.handles(set(up.model.OperatorKind).difference((up.model.OperatorKind.OBJECT_EXP, )))
+    def walk_all_types(self, expression: 'up.model.FNode', args: List[Dict[_UserType, Set[Object]]]) -> Dict[_UserType, Set[Object]]:
+        res: Dict[_UserType, Set[Object]] = {}
+        for a in args:
+            _update_domain_objects(res, a)
         return res
 
 
@@ -189,7 +198,7 @@ class PDDLWriter:
         # nto represents the new to old renamings
         self.nto_renamings: Dict[str, Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable']] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
-        self.domain_objects: Set['up.model.Object'] = set()
+        self.domain_objects: Dict[_UserType, Set[Object]] = {}
 
     def _write_domain(self, out: IO[str]):
         if self.problem_kind.has_intermediate_conditions_and_effects():
@@ -252,30 +261,29 @@ class PDDLWriter:
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 for p in a.preconditions:
-                    self.domain_objects = self.domain_objects | obe.get(p)
+                    _update_domain_objects(self.domain_objects, obe.get(p))
                 for e in a.effects:
                     if e.is_conditional():
-                        self.domain_objects = self.domain_objects | obe.get(e.condition)
-                    self.domain_objects = self.domain_objects | obe.get(e.fluent)
-                    self.domain_objects = self.domain_objects | obe.get(e.value)
+                        _update_domain_objects(self.domain_objects, obe.get(e.condition))
+                    _update_domain_objects(self.domain_objects, obe.get(e.fluent))
+                    _update_domain_objects(self.domain_objects, obe.get(e.value))
             elif isinstance(a, DurativeAction):
-                self.domain_objects = self.domain_objects | obe.get(a.duration.lower)
-                self.domain_objects = self.domain_objects | obe.get(a.duration.upper)
+                _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
+                _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
                 for interval, cl in a.conditions.items():
                     for c in cl:
-                        self.domain_objects = self.domain_objects | obe.get(c)
+                        _update_domain_objects(self.domain_objects, obe.get(c))
                 for t, el in a.effects.items():
                     for e in el:
                         if e.is_conditional():
-                            self.domain_objects = self.domain_objects | obe.get(e.condition)
-                        self.domain_objects = self.domain_objects | obe.get(e.fluent)
-                        self.domain_objects = self.domain_objects | obe.get(e.value)
+                            _update_domain_objects(self.domain_objects, obe.get(e.condition))
+                        _update_domain_objects(self.domain_objects, obe.get(e.fluent))
+                        _update_domain_objects(self.domain_objects, obe.get(e.value))
         if len(self.domain_objects) > 0:
             out.write(' (:constants')
-            for ut in self.problem.user_types:
-                constants = [o for o in self.domain_objects if o.type == ut]
-                if len(constants) > 0:
-                    out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in constants])} - {self._get_mangled_name(ut)}')
+            for ut, os in self.domain_objects.items():
+                if len(os) > 0:
+                    out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in os])} - {self._get_mangled_name(ut)}')
             out.write('\n )\n')
 
         predicates = []
@@ -319,7 +327,7 @@ class PDDLWriter:
                     cost_exp = metric.get_action_cost(a)
                     costs[a] = cost_exp
                     if cost_exp is not None:
-                        self.domain_objects = self.domain_objects | obe.get(cost_exp)
+                        _update_domain_objects(self.domain_objects, obe.get(cost_exp))
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 for a in self.problem.actions:
                     costs[a] = self.problem.env.expression_manager.Int(1)
@@ -440,7 +448,7 @@ class PDDLWriter:
         if len(self.problem.user_types) > 0:
             out.write(' (:objects')
             for t in self.problem.user_types:
-                objects = [o for o in self.problem.all_objects if o.type == t and o not in self.domain_objects]
+                objects = [o for o in self.problem.all_objects if o.type == t and o not in self.domain_objects.get(t, set())]
                 if len(objects) > 0:
                     out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}')
             out.write('\n )\n')
@@ -576,3 +584,9 @@ def _get_pddl_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Flu
     if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
         name = f'?{name}'
     return name
+
+def _update_domain_objects(dict_to_update: Dict[_UserType, Set[Object]], values: Dict[_UserType, Set[Object]]) -> None:
+    '''Small utility method that updated a UserType -> Set[Object] dict with another dict of the same type.'''
+    for ut, os in values.items():
+        os_to_update = dict_to_update.setdefault(ut, set())
+        os_to_update |= os
