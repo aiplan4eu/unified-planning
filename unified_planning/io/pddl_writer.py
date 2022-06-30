@@ -25,10 +25,9 @@ import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.model import InstantaneousAction, DurativeAction, Fluent, Parameter, Problem, Object
-from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPTypeError, UPProblemDefinitionError, UPException
 from unified_planning.model.types import _UserType
-from typing import Callable, Dict, IO, List, Set, Union, cast
+from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
 from io import StringIO
 from functools import reduce
 
@@ -448,7 +447,11 @@ class PDDLWriter:
         if len(self.problem.user_types) > 0:
             out.write(' (:objects')
             for t in self.problem.user_types:
-                objects = [o for o in self.problem.all_objects if o.type == t and o not in self.domain_objects.get(t, set())]
+                constants_of_this_type: Optional[Set[Object]] = self.domain_objects.get(t, None) # type: ignore
+                if constants_of_this_type is None:
+                    objects = [o for o in self.problem.all_objects if o.type == t]
+                else:
+                    objects = [o for o in self.problem.all_objects if o.type == t and o not in constants_of_this_type]
                 if len(objects) > 0:
                     out.write(f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}')
             out.write('\n )\n')
