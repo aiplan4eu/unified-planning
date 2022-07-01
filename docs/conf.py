@@ -49,7 +49,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Unified-Planning"
-copyright = "2014, The AIPlan4EU Project"
+copyright = "2021, The AIPlan4EU Project"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
