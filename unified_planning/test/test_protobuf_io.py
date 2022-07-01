@@ -14,8 +14,8 @@
 
 
 import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
-from unified_planning.grpc.proto_reader import ProtobufReader # type: ignore[attr-defined]
-from unified_planning.grpc.proto_writer import ProtobufWriter # type: ignore[attr-defined]
+from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.engines import LogMessage, CompilationKind
@@ -101,7 +101,7 @@ class TestProtobufIO(TestCase):
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertEqual(ex, ex_up)
 
-        o = Object('o', ex)
+        o = Object("o", ex)
         problem.add_object(o)
 
         ex = UserType("location", ex)
@@ -156,7 +156,9 @@ class TestProtobufIO(TestCase):
         action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
 
         self.assertEqual(action_instance.action, action_instance_up.action)
-        self.assertEqual(action_instance.actual_parameters, action_instance_up.actual_parameters)
+        self.assertEqual(
+            action_instance.actual_parameters, action_instance_up.actual_parameters
+        )
 
     def test_plan(self):
         problem = self.problems["robot"].problem
@@ -237,10 +239,20 @@ class TestProtobufIO(TestCase):
             for grounded_action in ground_result.problem.actions:
                 # Test both callable "map_back_action_instance" act the same on every action of the grounded_problem
                 grounded_action_instance = ActionInstance(grounded_action)
-                original_action_instance_up = ground_result.map_back_action_instance(grounded_action_instance)
-                original_action_instance_pb = ground_result_up.map_back_action_instance(grounded_action_instance)
-                self.assertEqual(original_action_instance_pb.action, original_action_instance_up.action)
-                self.assertEqual(original_action_instance_pb.actual_parameters, original_action_instance_up.actual_parameters)
+                original_action_instance_up = ground_result.map_back_action_instance(
+                    grounded_action_instance
+                )
+                original_action_instance_pb = ground_result_up.map_back_action_instance(
+                    grounded_action_instance
+                )
+                self.assertEqual(
+                    original_action_instance_pb.action,
+                    original_action_instance_up.action,
+                )
+                self.assertEqual(
+                    original_action_instance_pb.actual_parameters,
+                    original_action_instance_up.actual_parameters,
+                )
 
     @skipIfEngineNotAvailable("tamer")
     def test_validation_result(self):

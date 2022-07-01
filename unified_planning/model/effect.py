@@ -29,37 +29,56 @@ class EffectKind(Enum):
     INCREASE = auto()
     DECREASE = auto()
 
+
 class Effect:
-    def __init__(self, fluent: 'up.model.fnode.FNode', value: 'up.model.fnode.FNode',
-                 condition: 'up.model.fnode.FNode', kind: EffectKind = EffectKind.ASSIGN):
+    def __init__(
+        self,
+        fluent: "up.model.fnode.FNode",
+        value: "up.model.fnode.FNode",
+        condition: "up.model.fnode.FNode",
+        kind: EffectKind = EffectKind.ASSIGN,
+    ):
         self._fluent = fluent
         self._value = value
         self._condition = condition
         self._kind = kind
-        assert fluent.environment == value.environment and value.environment == condition.environment, 'Effect expressions have different environment.'
+        assert (
+            fluent.environment == value.environment
+            and value.environment == condition.environment
+        ), "Effect expressions have different environment."
 
     def __repr__(self) -> str:
         s = []
         if self.is_conditional():
-            s.append(f'if {str(self._condition)} then')
-        s.append(f'{str(self._fluent)}')
+            s.append(f"if {str(self._condition)} then")
+        s.append(f"{str(self._fluent)}")
         if self.is_assignment():
-            s.append(':=')
+            s.append(":=")
         elif self.is_increase():
-            s.append('+=')
+            s.append("+=")
         elif self.is_decrease():
-            s.append('-=')
-        s.append(f'{str(self._value)}')
-        return ' '.join(s)
+            s.append("-=")
+        s.append(f"{str(self._value)}")
+        return " ".join(s)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Effect):
-            return self._fluent == oth._fluent and self._value == oth._value and self._condition == oth._condition and self._kind == oth._kind
+            return (
+                self._fluent == oth._fluent
+                and self._value == oth._value
+                and self._condition == oth._condition
+                and self._kind == oth._kind
+            )
         else:
             return False
 
     def __hash__(self) -> int:
-        return hash(self._fluent) + hash(self._value) + hash(self._condition) + hash(self._kind)
+        return (
+            hash(self._fluent)
+            + hash(self._value)
+            + hash(self._condition)
+            + hash(self._kind)
+        )
 
     def clone(self):
         new_effect = Effect(self._fluent, self._value, self._condition, self._kind)
@@ -70,25 +89,25 @@ class Effect:
         return not self._condition.is_true()
 
     @property
-    def fluent(self) -> 'up.model.fnode.FNode':
+    def fluent(self) -> "up.model.fnode.FNode":
         """Returns the Fluent that is modified by this effect."""
         return self._fluent
 
     @property
-    def value(self) -> 'up.model.fnode.FNode':
+    def value(self) -> "up.model.fnode.FNode":
         """Returns the value given to the Fluent by this Effect."""
         return self._value
 
-    def set_value(self, new_value: 'up.model.fnode.FNode'):
+    def set_value(self, new_value: "up.model.fnode.FNode"):
         """Sets the value given to the Fluent by this Effect."""
         self._value = new_value
 
     @property
-    def condition(self) -> 'up.model.fnode.FNode':
+    def condition(self) -> "up.model.fnode.FNode":
         """Returns the condition required for this Effect to be applied."""
         return self._condition
 
-    def set_condition(self, new_condition: 'up.model.fnode.FNode'):
+    def set_condition(self, new_condition: "up.model.fnode.FNode"):
         """Sets the condition required for this Effect to be applied."""
         self._condition = new_condition
 
@@ -98,7 +117,7 @@ class Effect:
         return self._kind
 
     @property
-    def environment(self) -> 'up.environment.Environment':
+    def environment(self) -> "up.environment.Environment":
         return self._fluent.environment
 
     def is_assignment(self) -> bool:
@@ -122,21 +141,33 @@ class SimulatedEffect:
     in the given state for the specified fluent expressions.
     """
 
-    def __init__(self, fluents: List['up.model.fnode.FNode'],
-                 function: Callable[['up.model.problem.AbstractProblem', 'up.model.state.ROState',
-                                     Dict['up.model.parameter.Parameter', 'up.model.fnode.FNode']],
-                                    List['up.model.fnode.FNode']]):
+    def __init__(
+        self,
+        fluents: List["up.model.fnode.FNode"],
+        function: Callable[
+            [
+                "up.model.problem.AbstractProblem",
+                "up.model.state.ROState",
+                Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
+            ],
+            List["up.model.fnode.FNode"],
+        ],
+    ):
         for f in fluents:
             if not f.is_fluent_exp():
-                raise up.exceptions.UPUsageError('Simulated effects can be defined on fluent expressions with constant parameters')
+                raise up.exceptions.UPUsageError(
+                    "Simulated effects can be defined on fluent expressions with constant parameters"
+                )
             for c in f.args:
                 if not (c.is_constant or c.is_parameter_exp()):
-                    raise up.exceptions.UPUsageError('Simulated effects can be defined on fluent expressions with constant parameters')
+                    raise up.exceptions.UPUsageError(
+                        "Simulated effects can be defined on fluent expressions with constant parameters"
+                    )
         self._fluents = fluents
         self._function = function
 
     def __repr__(self) -> str:
-        return f'{self._fluents} := simulated'
+        return f"{self._fluents} := simulated"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SimulatedEffect):
@@ -151,11 +182,18 @@ class SimulatedEffect:
         return res
 
     @property
-    def fluents(self) -> List['up.model.fnode.FNode']:
+    def fluents(self) -> List["up.model.fnode.FNode"]:
         return self._fluents
 
     @property
-    def function(self) -> Callable[['up.model.problem.AbstractProblem', 'up.model.state.ROState',
-                                    Dict['up.model.parameter.Parameter', 'up.model.fnode.FNode']],
-                                   List['up.model.fnode.FNode']]:
+    def function(
+        self,
+    ) -> Callable[
+        [
+            "up.model.problem.AbstractProblem",
+            "up.model.state.ROState",
+            Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
+        ],
+        List["up.model.fnode.FNode"],
+    ]:
         return self._function

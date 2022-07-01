@@ -4,3 +4,4 @@ grpc-stubs
 pytest
 pytest-cov
 mypy
+pre-commit

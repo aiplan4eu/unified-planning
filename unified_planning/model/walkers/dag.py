@@ -64,8 +64,10 @@ class DagWalker(Walker):
             except KeyError:
                 f = self.walk_error
 
-            args = [self.memoization[self._get_key(s, **kwargs)] \
-                    for s in self._get_children(expression)]
+            args = [
+                self.memoization[self._get_key(s, **kwargs)]
+                for s in self._get_children(expression)
+            ]
             self.memoization[key] = f(expression, args=args, **kwargs)
         else:
             pass
@@ -105,37 +107,39 @@ class DagWalker(Walker):
     def _get_key(self, expression: FNode, **kwargs):
         if not kwargs:
             return expression
-        raise NotImplementedError("DagWalker should redefine '_get_key'" +
-                                  " when using keywords arguments")
+        raise NotImplementedError(
+            "DagWalker should redefine '_get_key'" + " when using keywords arguments"
+        )
 
     def walk_true(self, expression: FNode, args, **kwargs):
-        #pylint: disable=unused-argument
-        """ Returns True, independently from the children's value."""
+        # pylint: disable=unused-argument
+        """Returns True, independently from the children's value."""
         return True
 
     def walk_false(self, expression: FNode, args, **kwargs):
-        #pylint: disable=unused-argument
-        """ Returns False, independently from the children's value."""
+        # pylint: disable=unused-argument
+        """Returns False, independently from the children's value."""
         return False
 
     def walk_none(self, expression: FNode, args, **kwargs):
-        #pylint: disable=unused-argument
-        """ Returns None, independently from the children's value."""
+        # pylint: disable=unused-argument
+        """Returns None, independently from the children's value."""
         return None
 
     def walk_identity(self, expression: FNode, **kwargs):
-        #pylint: disable=unused-argument
-        """ Returns expression, independently from the childrens's value."""
+        # pylint: disable=unused-argument
+        """Returns expression, independently from the childrens's value."""
         return expression
 
     def walk_any(self, expression: FNode, args, **kwargs):
-        #pylint: disable=unused-argument
-        """ Returns True if any of the children returned True. """
+        # pylint: disable=unused-argument
+        """Returns True if any of the children returned True."""
         return any(args)
 
     def walk_all(self, expression: FNode, args, **kwargs):
-        #pylint: disable=unused-argument
-        """ Returns True if all the children returned True. """
+        # pylint: disable=unused-argument
+        """Returns True if all the children returned True."""
         return all(args)
+
 
 # EOC DagWalker

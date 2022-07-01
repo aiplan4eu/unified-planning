@@ -94,18 +94,16 @@ def op_to_node_type(op: str) -> OperatorKind:
 
 class ProtobufReader(Converter):
     @handles(proto.Parameter)
-    def _convert_parameter(self, msg: proto.Parameter, problem: Problem) -> model.Parameter:
+    def _convert_parameter(
+        self, msg: proto.Parameter, problem: Problem
+    ) -> model.Parameter:
         return model.Parameter(
-            msg.name,
-            convert_type_str(msg.type, problem),
-            problem.env
+            msg.name, convert_type_str(msg.type, problem), problem.env
         )
 
     @handles(proto.Fluent)
     def _convert_fluent(self, msg: proto.Fluent, problem: Problem) -> model.Fluent:
-        value_type: model.types.Type = convert_type_str(
-            msg.value_type, problem
-        )
+        value_type: model.types.Type = convert_type_str(msg.value_type, problem)
         sig: list = []
         for p in msg.parameters:
             sig.append(self.convert(p, problem))
@@ -113,31 +111,37 @@ class ProtobufReader(Converter):
         return fluent
 
     @handles(proto.ObjectDeclaration)
-    def _convert_object(self, msg: proto.ObjectDeclaration, problem: Problem) -> model.Object:
+    def _convert_object(
+        self, msg: proto.ObjectDeclaration, problem: Problem
+    ) -> model.Object:
         return model.Object(msg.name, convert_type_str(msg.type, problem))
 
     @handles(proto.Expression)
-    def _convert_expression(self, msg: proto.Expression, problem: Problem) -> model.Expression:
+    def _convert_expression(
+        self, msg: proto.Expression, problem: Problem
+    ) -> model.Expression:
         if msg.kind == proto.ExpressionKind.Value("CONSTANT"):
             assert msg.atom is not None
             return self.convert(msg.atom, problem)
 
         elif msg.kind == proto.ExpressionKind.Value("PARAMETER"):
             return problem.env.expression_manager.ParameterExp(
-                param=Parameter(msg.atom.symbol, convert_type_str(msg.type, problem), problem.env),
+                param=Parameter(
+                    msg.atom.symbol, convert_type_str(msg.type, problem), problem.env
+                ),
             )
         elif msg.kind == proto.ExpressionKind.Value("VARIABLE"):
             return problem.env.expression_manager.VariableExp(
-                var=Variable(msg.atom.symbol, convert_type_str(msg.type, problem), problem.env),
+                var=Variable(
+                    msg.atom.symbol, convert_type_str(msg.type, problem), problem.env
+                ),
             )
         elif msg.kind == proto.ExpressionKind.Value("STATE_VARIABLE"):
             args = []
             payload = None
 
             fluent = msg.list.pop(0)
-            if fluent.kind == proto.ExpressionKind.Value(
-                "FLUENT_SYMBOL"
-            ):
+            if fluent.kind == proto.ExpressionKind.Value("FLUENT_SYMBOL"):
                 payload = self.convert(fluent.atom, problem)
 
             args.extend([self.convert(m, problem) for m in msg.list])
@@ -145,17 +149,16 @@ class ProtobufReader(Converter):
                 return problem.env.expression_manager.FluentExp(payload, tuple(args))
             else:
                 raise UPException(f"Unable to form fluent expression {msg}")
-        elif msg.kind == proto.ExpressionKind.Value(
-            "FUNCTION_APPLICATION"
-        ) and msg.type != "up:time":
+        elif (
+            msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
+            and msg.type != "up:time"
+        ):
             node_type = None
             args = []
             payload = None
 
             symbol = msg.list.pop(0)
-            if symbol.kind == proto.ExpressionKind.Value(
-                "FUNCTION_SYMBOL"
-            ):
+            if symbol.kind == proto.ExpressionKind.Value("FUNCTION_SYMBOL"):
                 node_type = op_to_node_type(symbol.atom.symbol)
 
             if node_type in [OperatorKind.EXISTS, OperatorKind.FORALL]:
@@ -175,9 +178,10 @@ class ProtobufReader(Converter):
                 args=tuple(args),
                 payload=payload,
             )
-        elif msg.kind == proto.ExpressionKind.Value(
-            "FUNCTION_APPLICATION"
-        ) and msg.type == "up:time":
+        elif (
+            msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
+            and msg.type == "up:time"
+        ):
             fn = msg.list[0].atom.symbol
             if fn == "up:start":
                 kd = model.TimepointKind.START
@@ -198,7 +202,9 @@ class ProtobufReader(Converter):
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
     @handles(proto.Atom)
-    def _convert_atom(self, msg: proto.Atom, problem: Problem) -> Union[model.FNode, model.Fluent, model.Object]:
+    def _convert_atom(
+        self, msg: proto.Atom, problem: Problem
+    ) -> Union[model.FNode, model.Fluent, model.Object]:
         field = msg.WhichOneof("content")
 
         value = getattr(msg, field)
@@ -221,7 +227,9 @@ class ProtobufReader(Converter):
                 return problem.fluent(value)
 
     @handles(proto.TypeDeclaration)
-    def _convert_type_declaration(self, msg: proto.TypeDeclaration, problem: Problem) -> model.Type:
+    def _convert_type_declaration(
+        self, msg: proto.TypeDeclaration, problem: Problem
+    ) -> model.Type:
         if msg.type_name == "up:bool":
             return problem.env.type_manager.BoolType()
         elif msg.type_name.startswith("up:integer["):
@@ -238,17 +246,20 @@ class ProtobufReader(Converter):
                 lower_bound=lower_bound, upper_bound=upper_bound
             )
         else:
-            father = problem.user_type(msg.parent_type) if msg.parent_type != "" else None
+            father = (
+                problem.user_type(msg.parent_type) if msg.parent_type != "" else None
+            )
             return problem.env.type_manager.UserType(name=msg.type_name, father=father)
 
     @handles(proto.Problem)
-    def _convert_problem(self, msg: proto.Problem, env: Optional[Environment] = None) -> Problem:
+    def _convert_problem(
+        self, msg: proto.Problem, env: Optional[Environment] = None
+    ) -> Problem:
         problem_name = str(msg.problem_name) if str(msg.problem_name) != "" else None
         if msg.HasField("hierarchy"):
             problem = model.htn.HierarchicalProblem(name=problem_name, env=env)
         else:
             problem = Problem(name=problem_name, env=env)
-
 
         for t in msg.types:
             problem._add_user_type(self.convert(t, problem))
@@ -295,20 +306,24 @@ class ProtobufReader(Converter):
                 problem.add_task(self.convert(task, problem))
             for method in msg.hierarchy.methods:
                 problem.add_method(self.convert(method, problem))
-            problem._initial_task_network = self.convert(msg.hierarchy.initial_task_network, problem)
+            problem._initial_task_network = self.convert(
+                msg.hierarchy.initial_task_network, problem
+            )
 
         return problem
 
     @handles(proto.AbstractTaskDeclaration)
-    def _convert_abstract_task(self, msg: proto.AbstractTaskDeclaration, problem: Problem):
+    def _convert_abstract_task(
+        self, msg: proto.AbstractTaskDeclaration, problem: Problem
+    ):
         return model.htn.Task(
-            msg.name,
-            [self.convert(p, problem) for p in msg.parameters],
-            problem.env
+            msg.name, [self.convert(p, problem) for p in msg.parameters], problem.env
         )
 
     @handles(proto.Task)
-    def _convert_task(self, msg: proto.Task, problem: model.htn.HierarchicalProblem) -> model.htn.Subtask:
+    def _convert_task(
+        self, msg: proto.Task, problem: model.htn.HierarchicalProblem
+    ) -> model.htn.Subtask:
         if problem.has_task(msg.task_name):
             task = problem.get_task(msg.task_name)
         elif problem.has_action(msg.task_name):
@@ -319,7 +334,9 @@ class ProtobufReader(Converter):
         return model.htn.Subtask(task, *parameters, ident=msg.id, _env=problem.env)
 
     @handles(proto.Method)
-    def _convert_method(self, msg: proto.Method, problem: model.htn.HierarchicalProblem) -> model.htn.Method:
+    def _convert_method(
+        self, msg: proto.Method, problem: model.htn.HierarchicalProblem
+    ) -> model.htn.Method:
         method = model.htn.Method(
             msg.name,
             [self.convert(p, problem) for p in msg.parameters],
@@ -329,8 +346,7 @@ class ProtobufReader(Converter):
         for p in msg.achieved_task.parameters:
             achieved_task_params.append(method.parameter(p.atom.symbol))
         method.set_task(
-            problem.get_task(msg.achieved_task.task_name),
-            *achieved_task_params
+            problem.get_task(msg.achieved_task.task_name), *achieved_task_params
         )
         for st in msg.subtasks:
             method.add_subtask(self.convert(st, problem))
@@ -342,7 +358,9 @@ class ProtobufReader(Converter):
         return method
 
     @handles(proto.TaskNetwork)
-    def _convert_task_network(self, msg: proto.TaskNetwork, problem: model.htn.HierarchicalProblem) -> model.htn.TaskNetwork:
+    def _convert_task_network(
+        self, msg: proto.TaskNetwork, problem: model.htn.HierarchicalProblem
+    ) -> model.htn.TaskNetwork:
         tn = model.htn.TaskNetwork(problem.env)
         for v in msg.variables:
             tn.add_variable(v.name, convert_type_str(v.type, problem))
@@ -354,11 +372,15 @@ class ProtobufReader(Converter):
         return tn
 
     @handles(proto.Metric)
-    def _convert_metric(self, msg: proto.Metric, problem: Problem) -> Union[metrics.MinimizeActionCosts,
-                                                                            metrics.MinimizeSequentialPlanLength,
-                                                                            metrics.MinimizeMakespan,
-                                                                            metrics.MinimizeExpressionOnFinalState,
-                                                                            metrics.MaximizeExpressionOnFinalState]:
+    def _convert_metric(
+        self, msg: proto.Metric, problem: Problem
+    ) -> Union[
+        metrics.MinimizeActionCosts,
+        metrics.MinimizeSequentialPlanLength,
+        metrics.MinimizeMakespan,
+        metrics.MinimizeExpressionOnFinalState,
+        metrics.MaximizeExpressionOnFinalState,
+    ]:
         if msg.kind == proto.Metric.MINIMIZE_ACTION_COSTS:
             costs = {}
             for a, cost in msg.action_costs.items():
@@ -442,15 +464,13 @@ class ProtobufReader(Converter):
         return action
 
     @handles(proto.EffectExpression)
-    def _convert_effect(self, msg: proto.EffectExpression, problem: Problem) -> model.Effect:
+    def _convert_effect(
+        self, msg: proto.EffectExpression, problem: Problem
+    ) -> model.Effect:
         # EffectKind
-        if msg.kind == proto.EffectExpression.EffectKind.Value(
-            "INCREASE"
-        ):
+        if msg.kind == proto.EffectExpression.EffectKind.Value("INCREASE"):
             kind = EffectKind.INCREASE
-        elif msg.kind == proto.EffectExpression.EffectKind.Value(
-            "DECREASE"
-        ):
+        elif msg.kind == proto.EffectExpression.EffectKind.Value("DECREASE"):
             kind = EffectKind.DECREASE
         else:
             kind = EffectKind.ASSIGN
@@ -463,7 +483,9 @@ class ProtobufReader(Converter):
         )
 
     @handles(proto.Duration)
-    def _convert_duration(self, msg: proto.Duration, problem: Problem) -> model.timing.DurationInterval:
+    def _convert_duration(
+        self, msg: proto.Duration, problem: Problem
+    ) -> model.timing.DurationInterval:
         return model.timing.DurationInterval(
             lower=self.convert(msg.controllable_in_bounds.lower, problem),
             upper=self.convert(msg.controllable_in_bounds.upper, problem),
@@ -509,7 +531,9 @@ class ProtobufReader(Converter):
         return model.timing.Timepoint(kind, container)
 
     @handles(proto.Plan)
-    def _convert_plan(self, msg: proto.Plan, problem: Problem) -> unified_planning.plans.Plan:
+    def _convert_plan(
+        self, msg: proto.Plan, problem: Problem
+    ) -> unified_planning.plans.Plan:
         actions = [self.convert(a, problem) for a in msg.actions]
         if all(isinstance(a, tuple) for a in actions):
             # If all actions are tuples, we can assume that they are
@@ -520,8 +544,16 @@ class ProtobufReader(Converter):
             return unified_planning.plans.SequentialPlan(actions=actions)
 
     @handles(proto.ActionInstance)
-    def _convert_action_instance(self, msg: proto.ActionInstance, problem: Problem) -> Union[Tuple[model.timing.Timing, unified_planning.plans.ActionInstance, model.timing.Duration],
-                                                                                             unified_planning.plans.ActionInstance]:
+    def _convert_action_instance(
+        self, msg: proto.ActionInstance, problem: Problem
+    ) -> Union[
+        Tuple[
+            model.timing.Timing,
+            unified_planning.plans.ActionInstance,
+            model.timing.Duration,
+        ],
+        unified_planning.plans.ActionInstance,
+    ]:
         # action instance parameters are atoms but in UP they are FNodes
         # converting to up.model.FNode
         parameters = tuple([self.convert(param, problem) for param in msg.parameters])
@@ -545,7 +577,9 @@ class ProtobufReader(Converter):
             return action_instance
 
     @handles(proto.PlanGenerationResult)
-    def _convert_plan_generation_result(self, result: proto.PlanGenerationResult, problem: Problem) -> unified_planning.engines.PlanGenerationResult:
+    def _convert_plan_generation_result(
+        self, result: proto.PlanGenerationResult, problem: Problem
+    ) -> unified_planning.engines.PlanGenerationResult:
         if result.status == proto.PlanGenerationResult.Status.Value(
             "SOLVED_SATISFICING"
         ):
@@ -570,17 +604,11 @@ class ProtobufReader(Converter):
             status = (
                 unified_planning.engines.results.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
             )
-        elif result.status == proto.PlanGenerationResult.Status.Value(
-            "TIMEOUT"
-        ):
+        elif result.status == proto.PlanGenerationResult.Status.Value("TIMEOUT"):
             status = unified_planning.engines.results.PlanGenerationResultStatus.TIMEOUT
-        elif result.status == proto.PlanGenerationResult.Status.Value(
-            "MEMOUT"
-        ):
+        elif result.status == proto.PlanGenerationResult.Status.Value("MEMOUT"):
             status = unified_planning.engines.results.PlanGenerationResultStatus.MEMOUT
-        elif result.status == proto.PlanGenerationResult.Status.Value(
-            "INTERNAL_ERROR"
-        ):
+        elif result.status == proto.PlanGenerationResult.Status.Value("INTERNAL_ERROR"):
             status = (
                 unified_planning.engines.results.PlanGenerationResultStatus.INTERNAL_ERROR
             )
@@ -611,7 +639,9 @@ class ProtobufReader(Converter):
         )
 
     @handles(proto.LogMessage)
-    def _convert_log_message(self, log: proto.LogMessage) -> unified_planning.engines.LogMessage:
+    def _convert_log_message(
+        self, log: proto.LogMessage
+    ) -> unified_planning.engines.LogMessage:
         if log.level == proto.LogMessage.LogLevel.Value("INFO"):
             return unified_planning.engines.LogMessage(
                 level=unified_planning.engines.LogLevel.INFO,
@@ -636,29 +666,49 @@ class ProtobufReader(Converter):
             raise UPException(f"Unexpected Log Level: {log.level}")
 
     @handles(proto.CompilerResult)
-    def _convert_compiler_result(self, result: proto.CompilerResult, lifted_problem: unified_planning.model.Problem) -> unified_planning.engines.CompilerResult:
-        problem=self.convert(result.problem, lifted_problem.env)
-        map: Dict[unified_planning.model.Action, Tuple[unified_planning.model.Action, List[unified_planning.model.FNode]]] = {}
+    def _convert_compiler_result(
+        self,
+        result: proto.CompilerResult,
+        lifted_problem: unified_planning.model.Problem,
+    ) -> unified_planning.engines.CompilerResult:
+        problem = self.convert(result.problem, lifted_problem.env)
+        map: Dict[
+            unified_planning.model.Action,
+            Tuple[unified_planning.model.Action, List[unified_planning.model.FNode]],
+        ] = {}
         for grounded_action in problem.actions:
-            original_action_instance = self.convert(result.map_back_plan[grounded_action.name], lifted_problem)
-            map[grounded_action] = (original_action_instance.action, original_action_instance.actual_parameters)
+            original_action_instance = self.convert(
+                result.map_back_plan[grounded_action.name], lifted_problem
+            )
+            map[grounded_action] = (
+                original_action_instance.action,
+                original_action_instance.actual_parameters,
+            )
         return unified_planning.engines.CompilerResult(
             problem=problem,
-            map_back_action_instance=partial(unified_planning.engines.compilers.utils.lift_action_instance, map=map),
+            map_back_action_instance=partial(
+                unified_planning.engines.compilers.utils.lift_action_instance, map=map
+            ),
             engine_name=result.engine.name,
-            log_messages=[self.convert(log) for log in result.log_messages]
+            log_messages=[self.convert(log) for log in result.log_messages],
         )
 
     @handles(proto.ValidationResult)
-    def _convert_validation_result(self, result: proto.ValidationResult) -> unified_planning.engines.ValidationResult:
-        if result.status == proto.ValidationResult.ValidationResultStatus.Value("VALID"):
+    def _convert_validation_result(
+        self, result: proto.ValidationResult
+    ) -> unified_planning.engines.ValidationResult:
+        if result.status == proto.ValidationResult.ValidationResultStatus.Value(
+            "VALID"
+        ):
             r_status = unified_planning.engines.ValidationResultStatus.VALID
-        elif result.status == proto.ValidationResult.ValidationResultStatus.Value("INVALID"):
+        elif result.status == proto.ValidationResult.ValidationResultStatus.Value(
+            "INVALID"
+        ):
             r_status = unified_planning.engines.ValidationResultStatus.INVALID
         else:
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
         return unified_planning.engines.ValidationResult(
             status=r_status,
             engine_name=result.engine.name,
-            log_messages=[self.convert(log) for log in result.log_messages]
+            log_messages=[self.convert(log) for log in result.log_messages],
         )

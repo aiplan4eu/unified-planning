@@ -36,13 +36,13 @@ __version__ = ".".join(str(x) for x in VERSION)
 #      * -wip: Working tree is dirty (non committed stuff)
 # See: https://git-scm.com/docs/git-describe
 try:
-    git_version = subprocess.check_output(["git", "describe", "--tags",
-                                            "--dirty=-wip"],
-                                            stderr=subprocess.STDOUT)
-    output = git_version.strip().decode('ascii')
+    git_version = subprocess.check_output(
+        ["git", "describe", "--tags", "--dirty=-wip"], stderr=subprocess.STDOUT
+    )
+    output = git_version.strip().decode("ascii")
     data = output.split("-")
     tag = data[0]
-    match = re.match(r'^v(\d+)\.(\d)+\.(\d)$', tag)
+    match = re.match(r"^v(\d+)\.(\d)+\.(\d)$", tag)
     if match is not None:
         MAJOR, MINOR, REL = tuple(int(x) for x in match.groups())
 
@@ -51,15 +51,15 @@ try:
     except ValueError:
         COMMITS = 0
 
-    if data[-1] == 'wip':
+    if data[-1] == "wip":
         if COMMITS == 0:
-            VERSION = (MAJOR, MINOR, REL, 'post', 1)
-            __version__ = f'{MAJOR}.{MINOR}.{REL}.post1'
+            VERSION = (MAJOR, MINOR, REL, "post", 1)
+            __version__ = f"{MAJOR}.{MINOR}.{REL}.post1"
         else:
-            VERSION = (MAJOR, MINOR, REL, COMMITS, 'post', 1)
-            __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.post1'
+            VERSION = (MAJOR, MINOR, REL, COMMITS, "post", 1)
+            __version__ = f"{MAJOR}.{MINOR}.{REL}.{COMMITS}.post1"
     else:
-        VERSION = (MAJOR, MINOR, REL, COMMITS, 'dev', 1)
-        __version__ = f'{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1'
+        VERSION = (MAJOR, MINOR, REL, COMMITS, "dev", 1)
+        __version__ = f"{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1"
 except Exception as ex:
     pass

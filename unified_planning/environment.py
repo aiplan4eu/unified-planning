@@ -27,10 +27,12 @@ import unified_planning
 
 class Environment:
     """Represents the environment."""
+
     def __init__(self):
         import unified_planning.model
         import unified_planning.engines
         import unified_planning.model.walkers
+
         self._type_manager = unified_planning.model.TypeManager()
         self._factory = unified_planning.engines.Factory(self)
         self._tc = unified_planning.model.walkers.TypeChecker(self)
@@ -48,7 +50,7 @@ class Environment:
     def __getstate__(self):
         state = self.__dict__.copy()
         # Don't pickle _credits_stream
-        del state['_credits_stream']
+        del state["_credits_stream"]
         return state
 
     def __setstate__(self, state):
@@ -57,46 +59,47 @@ class Environment:
         self._credits_stream = None
 
     @property
-    def free_vars_oracle(self) -> 'unified_planning.model.FreeVarsOracle':
+    def free_vars_oracle(self) -> "unified_planning.model.FreeVarsOracle":
         return self._free_vars_oracle
 
     @property
-    def expression_manager(self) -> 'unified_planning.model.ExpressionManager':
+    def expression_manager(self) -> "unified_planning.model.ExpressionManager":
         return self._expression_manager
 
     @property
-    def type_manager(self) -> 'unified_planning.model.TypeManager':
+    def type_manager(self) -> "unified_planning.model.TypeManager":
         return self._type_manager
 
     @property
-    def type_checker(self) -> 'unified_planning.model.walkers.TypeChecker':
-        """ Get the Type Checker """
+    def type_checker(self) -> "unified_planning.model.walkers.TypeChecker":
+        """Get the Type Checker"""
         return self._tc
 
     @property
-    def factory(self) -> 'unified_planning.engines.Factory':
+    def factory(self) -> "unified_planning.engines.Factory":
         return self._factory
 
     @property
-    def simplifier(self) -> 'unified_planning.model.walkers.Simplifier':
+    def simplifier(self) -> "unified_planning.model.walkers.Simplifier":
         return self._simplifier
 
     @property
-    def free_vars_extractor(self) -> 'unified_planning.model.walkers.FreeVarsExtractor':
+    def free_vars_extractor(self) -> "unified_planning.model.walkers.FreeVarsExtractor":
         return self._free_vars_extractor
 
     @property
-    def credits_stream(self) -> 'Optional[IO[str]]':
-        '''Returns the stream where the engines credits are printed.'''
+    def credits_stream(self) -> "Optional[IO[str]]":
+        """Returns the stream where the engines credits are printed."""
         return self._credits_stream
 
     @credits_stream.setter
     def credits_stream(self, new_credits_stream: Optional[IO[str]]):
-        '''Sets the stream where the engines credits are printed.'''
+        """Sets the stream where the engines credits are printed."""
         self._credits_stream = new_credits_stream
 
 
 GLOBAL_ENVIRONMENT: Optional[Environment] = None
+
 
 def get_env(env: Environment = None) -> Environment:
     global GLOBAL_ENVIRONMENT

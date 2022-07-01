@@ -28,14 +28,14 @@ class Credits:
     long_description: str
 
     def write_credits(self, stream: IO[str], full_credits: bool = False):
-        stream.write(f'  * Engine name: {self.name}\n  * Developers:  {self.author}\n')
+        stream.write(f"  * Engine name: {self.name}\n  * Developers:  {self.author}\n")
         if not full_credits:
-            stream.write('  * Description: ')
-            stream.write(self.short_description.replace('\n', '\n  *              '))
-            stream.write('\n')
+            stream.write("  * Description: ")
+            stream.write(self.short_description.replace("\n", "\n  *              "))
+            stream.write("\n")
         else:
-            stream.write(f'  * Contacts:    {self.contact}\n')
-            stream.write(f'  * Website:     {self.website}\n')
-            stream.write(f'  * License:     {self.license}\n  * Description: ')
-            stream.write(self.long_description.replace('\n', '\n  *              '))
-            stream.write('\n')
+            stream.write(f"  * Contacts:    {self.contact}\n")
+            stream.write(f"  * Website:     {self.website}\n")
+            stream.write(f"  * License:     {self.license}\n  * Description: ")
+            stream.write(self.long_description.replace("\n", "\n  *              "))
+            stream.write("\n")

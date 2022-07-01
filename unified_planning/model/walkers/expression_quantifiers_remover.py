@@ -32,18 +32,22 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         IdentityDagWalker.__init__(self, self._env, True)
         self._substituter = walkers.substituter.Substituter(self._env)
 
-    def remove_quantifiers(self, expression: FNode, objects_set: 'ObjectsSetMixin'):
+    def remove_quantifiers(self, expression: FNode, objects_set: "ObjectsSetMixin"):
         self._objects_set = objects_set
         return self.walk(expression)
 
-    def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
+    def _help_walk_quantifiers(
+        self, expression: FNode, args: List[FNode]
+    ) -> List[FNode]:
         vars = expression.variables()
         type_list = [v.type for v in vars]
-        possible_objects: List[List[Object]] = [list(self._objects_set.objects(t)) for t in type_list]
-        #product of n iterables returns a generator of tuples where
+        possible_objects: List[List[Object]] = [
+            list(self._objects_set.objects(t)) for t in type_list
+        ]
+        # product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:
-        #product([1,2], [3,4], [5,6], [7]) =
+        # product([1,2], [3,4], [5,6], [7]) =
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         subs_results = []
         for o in product(*possible_objects):

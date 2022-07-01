@@ -25,33 +25,44 @@ from typing import List, Optional
 
 
 class TypeChecker(walkers.dag.DagWalker):
-    def __init__(self, env: 'unified_planning.environment.Environment'):
+    def __init__(self, env: "unified_planning.environment.Environment"):
         walkers.dag.DagWalker.__init__(self)
         self.env = env
 
-    def get_type(self, expression: FNode) -> 'unified_planning.model.types.Type':
-        """ Returns the unified_planning.model.types type of the expression """
+    def get_type(self, expression: FNode) -> "unified_planning.model.types.Type":
+        """Returns the unified_planning.model.types type of the expression"""
         res = self.walk(expression)
         if res is None:
-            raise UPTypeError("The expression '%s' is not well-formed" \
-                               % str(expression))
+            raise UPTypeError(
+                "The expression '%s' is not well-formed" % str(expression)
+            )
         return res
 
-    def is_compatible_type(self, t_left: 'unified_planning.model.types.Type', t_right: 'unified_planning.model.types.Type') -> bool:
+    def is_compatible_type(
+        self,
+        t_left: "unified_planning.model.types.Type",
+        t_right: "unified_planning.model.types.Type",
+    ) -> bool:
         if t_left == t_right:
             return True
         if t_left.is_user_type() and t_right.is_user_type():
             return t_right in self.env.type_manager.user_type_ancestors(t_left)
-        if not ((t_left.is_int_type() and t_right.is_int_type()) or
-                (t_left.is_real_type() and t_right.is_real_type()) or
-                (t_left.is_real_type() and t_right.is_int_type())):
+        if not (
+            (t_left.is_int_type() and t_right.is_int_type())
+            or (t_left.is_real_type() and t_right.is_real_type())
+            or (t_left.is_real_type() and t_right.is_int_type())
+        ):
             return False
         assert isinstance(t_left, _IntType) or isinstance(t_left, _RealType)
         assert isinstance(t_right, _IntType) or isinstance(t_right, _RealType)
-        left_lower = -float('inf') if t_left.lower_bound is None else t_left.lower_bound
-        left_upper = float('inf') if t_left.upper_bound is None else t_left.upper_bound
-        right_lower = -float('inf') if t_right.lower_bound is None else t_right.lower_bound
-        right_upper = float('inf') if t_right.upper_bound is None else t_right.upper_bound
+        left_lower = -float("inf") if t_left.lower_bound is None else t_left.lower_bound
+        left_upper = float("inf") if t_left.upper_bound is None else t_left.upper_bound
+        right_lower = (
+            -float("inf") if t_right.lower_bound is None else t_right.lower_bound
+        )
+        right_upper = (
+            float("inf") if t_right.upper_bound is None else t_right.upper_bound
+        )
         if right_upper < left_lower or right_lower > left_upper:
             return False
         else:
@@ -63,16 +74,27 @@ class TypeChecker(walkers.dag.DagWalker):
         t_right = self.get_type(value_exp)
         return self.is_compatible_type(t_left, t_right)
 
-    @walkers.handles(OperatorKind.AND, OperatorKind.OR, OperatorKind.NOT, OperatorKind.IMPLIES, OperatorKind.IFF, OperatorKind.EXISTS, OperatorKind.FORALL)
-    def walk_bool_to_bool(self, expression: FNode,
-                          args: List['unified_planning.model.types.Type']) -> Optional['unified_planning.model.types.Type']:
+    @walkers.handles(
+        OperatorKind.AND,
+        OperatorKind.OR,
+        OperatorKind.NOT,
+        OperatorKind.IMPLIES,
+        OperatorKind.IFF,
+        OperatorKind.EXISTS,
+        OperatorKind.FORALL,
+    )
+    def walk_bool_to_bool(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
         assert expression is not None
         for x in args:
             if x is None or x != BOOL:
                 return None
         return BOOL
 
-    def walk_fluent_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> Optional['unified_planning.model.types.Type']:
+    def walk_fluent_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
         assert expression.is_fluent_exp()
         f = expression.fluent()
         if len(args) != len(f.signature):
@@ -82,29 +104,38 @@ class TypeChecker(walkers.dag.DagWalker):
                 return None
         return f.type
 
-    def walk_param_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_param_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert len(args) == 0
         return expression.parameter().type
 
-    def walk_variable_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_variable_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert len(args) == 0
         return expression.variable().type
 
-    def walk_object_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_object_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert len(args) == 0
         return expression.object().type
 
-    def walk_timing_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_timing_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert len(args) == 0
         return TIME
 
     @walkers.handles(OperatorKind.BOOL_CONSTANT)
-    def walk_identity_bool(self, expression: FNode,
-                           args: List['unified_planning.model.types.Type']) -> Optional['unified_planning.model.types.Type']:
+    def walk_identity_bool(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
         assert expression is not None
         assert len(args) == 0
         return BOOL
@@ -113,13 +144,17 @@ class TypeChecker(walkers.dag.DagWalker):
     def walk_identity_real(self, expression, args):
         assert expression is not None
         assert len(args) == 0
-        return self.env.type_manager.RealType(expression.constant_value(), expression.constant_value())
+        return self.env.type_manager.RealType(
+            expression.constant_value(), expression.constant_value()
+        )
 
     @walkers.handles(OperatorKind.INT_CONSTANT)
     def walk_identity_int(self, expression, args):
         assert expression is not None
         assert len(args) == 0
-        return self.env.type_manager.IntType(expression.constant_value(), expression.constant_value())
+        return self.env.type_manager.IntType(
+            expression.constant_value(), expression.constant_value()
+        )
 
     def walk_plus(self, expression, args):
         has_real = False
@@ -132,20 +167,20 @@ class TypeChecker(walkers.dag.DagWalker):
                 has_real = True
         for x in args:
             if x.lower_bound is None:
-                lower = -float('inf')
+                lower = -float("inf")
             elif lower is None:
                 lower = x.lower_bound
             else:
                 lower += x.lower_bound
             if x.upper_bound is None:
-                upper = float('inf')
+                upper = float("inf")
             elif upper is None:
                 upper = x.upper_bound
             else:
                 upper += x.upper_bound
-        if lower == -float('inf'):
+        if lower == -float("inf"):
             lower = None
-        if upper == float('inf'):
+        if upper == float("inf"):
             upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
@@ -164,15 +199,15 @@ class TypeChecker(walkers.dag.DagWalker):
                 has_real = True
         left = args[0]
         right = args[1]
-        left_lower = -float('inf') if left.lower_bound is None else left.lower_bound
-        left_upper = float('inf') if left.upper_bound is None else left.upper_bound
-        right_lower = -float('inf') if right.lower_bound is None else right.lower_bound
-        right_upper = float('inf') if right.upper_bound is None else right.upper_bound
+        left_lower = -float("inf") if left.lower_bound is None else left.lower_bound
+        left_upper = float("inf") if left.upper_bound is None else left.upper_bound
+        right_lower = -float("inf") if right.lower_bound is None else right.lower_bound
+        right_upper = float("inf") if right.upper_bound is None else right.upper_bound
         lower = left_lower - right_upper
         upper = left_upper - right_lower
-        if lower == -float('inf'):
+        if lower == -float("inf"):
             lower = None
-        if upper == float('inf'):
+        if upper == float("inf"):
             upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
@@ -189,17 +224,17 @@ class TypeChecker(walkers.dag.DagWalker):
             if x.is_real_type():
                 has_real = True
         for x in args:
-            l = -float('inf') if x.lower_bound is None else x.lower_bound
-            u = float('inf') if x.upper_bound is None else x.upper_bound
+            l = -float("inf") if x.lower_bound is None else x.lower_bound
+            u = float("inf") if x.upper_bound is None else x.upper_bound
             if lower is None:
                 lower = l
                 upper = u
             else:
-                lower = min(lower*l, lower*u, upper*l, upper*u)
-                upper = max(lower*l, lower*u, upper*l, upper*u)
-        if lower == -float('inf'):
+                lower = min(lower * l, lower * u, upper * l, upper * u)
+                upper = max(lower * l, lower * u, upper * l, upper * u)
+        if lower == -float("inf"):
             lower = None
-        if upper == float('inf'):
+        if upper == float("inf"):
             upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
@@ -224,14 +259,14 @@ class TypeChecker(walkers.dag.DagWalker):
         if to_skip or right.lower_bound != right.upper_bound:
             pass
         else:
-            left_lower = -float('inf') if left.lower_bound is None else left.lower_bound
-            left_upper = float('inf') if left.upper_bound is None else left.upper_bound
+            left_lower = -float("inf") if left.lower_bound is None else left.lower_bound
+            left_upper = float("inf") if left.upper_bound is None else left.upper_bound
             right = right.lower_bound
-            lower = min(left_lower/right, left_upper/right)
-            upper = max(left_lower/right, left_upper/right)
-        if lower == -float('inf'):
+            lower = min(left_lower / right, left_upper / right)
+            upper = max(left_lower / right, left_upper / right)
+        if lower == -float("inf"):
             lower = None
-        if upper == float('inf'):
+        if upper == float("inf"):
             upper = None
         if has_real:
             return self.env.type_manager.RealType(lower, upper)
@@ -241,26 +276,32 @@ class TypeChecker(walkers.dag.DagWalker):
     @walkers.handles(OperatorKind.LE, OperatorKind.LT)
     def walk_math_relation(self, expression, args):
         for x in args:
-            if x is None or not (x.is_int_type() or x.is_real_type() or x.is_time_type()):
+            if x is None or not (
+                x.is_int_type() or x.is_real_type() or x.is_time_type()
+            ):
                 return None
         return BOOL
 
-    def walk_equals(self, expression: FNode,
-                    args: List['unified_planning.model.types.Type']) -> Optional['unified_planning.model.types.Type']:
+    def walk_equals(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
         t = args[0]
         if t is None:
             return None
 
         if t.is_bool_type():
-            raise UPTypeError("The expression '%s' is not well-formed."
-                               "Equality operator is not supported for Boolean"
-                               " terms. Use Iff instead." \
-                               % str(expression))
+            raise UPTypeError(
+                "The expression '%s' is not well-formed."
+                "Equality operator is not supported for Boolean"
+                " terms. Use Iff instead." % str(expression)
+            )
         for x in args:
             if x is None:
                 return None
             elif t.is_user_type() and t != x:
                 return None
-            elif (t.is_int_type() or t.is_real_type()) and not (x.is_int_type() or x.is_real_type()):
+            elif (t.is_int_type() or t.is_real_type()) and not (
+                x.is_int_type() or x.is_real_type()
+            ):
                 return None
         return BOOL

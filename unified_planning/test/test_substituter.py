@@ -13,12 +13,12 @@
 # limitations under the License.
 
 
-
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.model.walkers import Substituter
 from unified_planning.environment import get_env
 from unified_planning.exceptions import UPTypeError
+
 
 class TestSubstituter(TestCase):
     def setUp(self):
@@ -26,14 +26,16 @@ class TestSubstituter(TestCase):
 
     def test_id_walker(self):
         s = Substituter(get_env())
-        #small test on already-done expressions to check the id-dagwalker
-        x = FluentExp(Fluent('x'))
-        y = FluentExp(Fluent('y', IntType()))
+        # small test on already-done expressions to check the id-dagwalker
+        x = FluentExp(Fluent("x"))
+        y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
         f = Bool(False)
         subs = {y: 3}
         # ((25/5)*30*2*2) - (20*5) (500) == (25*4*10) / 2 (500)
-        e1 = Equals(Minus(Times([Div(25, 5), 30, 2, 2]), Times(20, 5)), Div(Times(25, 4, 10) ,2))
+        e1 = Equals(
+            Minus(Times([Div(25, 5), 30, 2, 2]), Times(20, 5)), Div(Times(25, 4, 10), 2)
+        )
         r1 = s.substitute(e1, subs)
         self.assertEqual(r1, e1)
         # T => !x
@@ -47,22 +49,22 @@ class TestSubstituter(TestCase):
 
     def test_substitution(self):
         s = Substituter(get_env())
-        xfluent = Fluent('x', IntType())
+        xfluent = Fluent("x", IntType())
         x = FluentExp(xfluent)
         subst = {}
         subst[x] = Int(5)
         e1 = Plus(x, 1)
         s1 = s.substitute(e1, subst)
         self.assertEqual(s1, Plus(5, 1))
-        #Testing that (a & b) with sbust = {a <- c, (c & b) <- d, (a & b) <- c} is c
-        a = Fluent('a')
-        b = Fluent('b')
-        c = FluentExp(Fluent('c'))
-        d = Fluent('d')
+        # Testing that (a & b) with sbust = {a <- c, (c & b) <- d, (a & b) <- c} is c
+        a = Fluent("a")
+        b = Fluent("b")
+        c = FluentExp(Fluent("c"))
+        d = Fluent("d")
         subst = {}
         subst[a] = c
-        subst[And(c,b)] = d
-        subst[And(a,b)] = c
+        subst[And(c, b)] = d
+        subst[And(a, b)] = c
         e2 = And(a, b)
         s2 = s.substitute(e2, subst)
         self.assertEqual(s2, c)
@@ -70,17 +72,17 @@ class TestSubstituter(TestCase):
         with self.assertRaises(UPTypeError):
             subst = {}
             subst[a] = c
-            subst[And(c,b)] = d
-            subst[And(a,b)] = Int(5)
+            subst[And(c, b)] = d
+            subst[And(a, b)] = Int(5)
             e3 = And(a, b)
             s3 = s.substitute(e3, subst)
 
         subst = {}
         subst[a] = c
-        subst[And(c,b)] = d
+        subst[And(c, b)] = d
         e4 = And(a, b, And(c, b))
         s4 = s.substitute(e4, subst)
-        self.assertEqual(s4, And(c,b,d))
+        self.assertEqual(s4, And(c, b, d))
 
         subst = {}
         subst[a] = c
@@ -92,7 +94,7 @@ class TestSubstituter(TestCase):
         with self.assertRaises(UPTypeError):
             subst = {}
             subst[a] = c
-            subst[And(c,b)] = Plus(1, 2)
+            subst[And(c, b)] = Plus(1, 2)
             e6 = Int(1)
             s.substitute(e6, subst)
 

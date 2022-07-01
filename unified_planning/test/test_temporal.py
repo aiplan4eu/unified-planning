@@ -26,7 +26,7 @@ class TestTemporalPlanner(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(basic_temporal_kind)
     def test_matchcellar(self):
-        problem = self.problems['matchcellar'].problem
+        problem = self.problems["matchcellar"].problem
 
         with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
@@ -35,7 +35,7 @@ class TestTemporalPlanner(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(temporal_kind)
     def test_static_fluents_duration(self):
-        problem = self.problems['robot_with_static_fluents_duration'].problem
+        problem = self.problems["robot_with_static_fluents_duration"].problem
 
         with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
