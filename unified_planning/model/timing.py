@@ -14,6 +14,7 @@
 #
 
 
+from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
 from enum import Enum, auto
 from fractions import Fraction
@@ -162,6 +163,7 @@ class Interval:
         self._upper = upper
         self._is_left_open = is_left_open
         self._is_right_open = is_right_open
+        assert lower.environment == upper.environment, 'Interval s boundaries expression can not have different environments'
 
     def __repr__(self) -> str:
         if self.is_left_open():
@@ -196,6 +198,10 @@ class Interval:
     def upper(self) -> FNode:
         return self._upper
 
+    @property
+    def environment(self) -> 'Environment':
+        return self._lower.environment
+
     def is_left_open(self) -> bool:
         return self._is_left_open
 
@@ -211,6 +217,15 @@ class DurationInterval(Duration, Interval):
     def __init__(self, lower: FNode, upper: FNode, is_left_open: bool = False, is_right_open: bool = False):
         Duration.__init__(self)
         Interval.__init__(self, lower, upper, is_left_open, is_right_open)
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, DurationInterval):
+            return self._lower == oth._lower and self._upper == oth._upper and self._is_left_open == oth._is_left_open and self._is_right_open == oth._is_right_open
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash((self._lower, self.upper, self._is_left_open, self._is_right_open))
 
 
 def ClosedDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:

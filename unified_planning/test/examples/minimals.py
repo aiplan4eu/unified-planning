@@ -311,4 +311,35 @@ def get_example_problems():
     counter_to_50 = Example(problem=problem, plan=plan)
     problems['counter_to_50'] = counter_to_50
 
+    # basic with object constant
+    Location = UserType('Location')
+    is_at = Fluent('is_at', BoolType(), loc = Location)
+    l1 = Object('l1', Location)
+    l2 = Object('l2', Location)
+    move = InstantaneousAction('move', l_from=Location, l_to=Location)
+    l_from = move.parameter('l_from')
+    l_to = move.parameter('l_to')
+    move.add_precondition(is_at(l_from))
+    move.add_precondition(Not(is_at(l_to)))
+    move.add_effect(is_at(l_from), False)
+    move.add_effect(is_at(l_to), True)
+    move_to_l1 = InstantaneousAction('move_to_l1', l_from=Location)
+    l_from = move_to_l1.parameter('l_from')
+    move_to_l1.add_precondition(is_at(l_from))
+    move_to_l1.add_precondition(Not(is_at(l1)))
+    move_to_l1.add_effect(is_at(l_from), False)
+    move_to_l1.add_effect(is_at(l1), True)
+    problem = Problem('basic_with_object_constant')
+    problem.add_fluent(is_at)
+    problem.add_objects([l1, l2])
+    problem.add_action(move)
+    problem.add_action(move_to_l1)
+    problem.set_initial_value(is_at(l1), True)
+    problem.set_initial_value(is_at(l2), False)
+    problem.add_goal(is_at(l2))
+    plan = up.plans.SequentialPlan([up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))])
+    basic_with_object_constant = Example(problem=problem, plan=plan)
+    problems['basic_with_object_constant'] = basic_with_object_constant
+
+
     return problems
