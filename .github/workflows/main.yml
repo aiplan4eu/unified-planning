@@ -91,12 +91,16 @@ jobs:
       - name: Run tests
         run: bash run_tests.sh
 
+      - name: Test code-snippets
+        run: bash test_code_snippets.sh
+
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           fail_ci_if_error: true
+
 
 
   run-tests-windows:

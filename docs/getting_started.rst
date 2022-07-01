@@ -20,7 +20,7 @@ Example
 The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery. The example shows the basic functionalities and objects needed to declare the problem specification.  A more detailed presentation of the different objects is available on the `Google Colab <https://colab.research.google.com/drive/1kbNu3k1SxO1CbTtqfLEUTmU1AuAyxuHG?usp=sharing>`_ Python notebook where we document and explain all the different classes and their semantics.
 
 .. literalinclude:: ./code_snippets/robot_battery.py
-    :lines: 3-39
+    :lines: 3-38
 
 
 In the current version, the Unified-Planning library allows the specification of  classical, numerical and temporal planning problems. In order to support the latitude expressiveness levels we have operators for arithmetic such as plus minus times and division and specific temporal operators to attach conditions and effects to specific timings within the duration of an action. The library :ref:`documentation <api-ref>` provides examples and describes the use of these functionalities.
@@ -36,7 +36,7 @@ Example
 The following example shows how to create a transformer to compile away negative conditions from a problem and to retrieve the plan for the original problem from a plan of the transformed problem. If the planner does not support negative conditions, the original problem could not be solved, while the transformer allows us to solve the problem anyway.
 
 .. literalinclude:: ./code_snippets/robot_battery.py
-    :lines: 43-67
+    :lines: 42-76
 
 
 Solving Interface
@@ -58,7 +58,7 @@ Example
 The following example shows how to get a planner and solve a problem.
 
 .. literalinclude:: ./code_snippets/robot_battery.py
-    :lines: 71-77
+    :lines: 80-86
 
 Input/Output and Interoperability
 =================================
@@ -72,4 +72,4 @@ Example
 The following example shows how to read a PDDL problem from files and how to dump to files in PDDL format a Unified-Planning problem.
 
 .. literalinclude:: ./code_snippets/robot_battery.py
-    :lines: 81-95
+    :lines: 90-104

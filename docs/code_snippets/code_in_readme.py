@@ -13,5 +13,8 @@ problem.set_initial_value(x, False)
 problem.add_goal(x)
 
 with OneshotPlanner(problem_kind=problem.kind) as planner:
-    plan = planner.solve(problem)
-    print(plan)
+    result = planner.solve(problem)
+    if result.status in unified_planning.engines.results.POSITIVE_OUTCOMES:
+        print(f"{planner.name} found this plan: {result.plan}")
+    else:
+        print("No plan found.")
