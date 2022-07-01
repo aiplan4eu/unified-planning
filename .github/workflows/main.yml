@@ -7,7 +7,7 @@ env:
   up_pyperplan_commit: "4dc20452a3f937bf6d547def5d2a579eda034f57"
 
 jobs:
-  mypy-check:
+  basic-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,6 +24,9 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
           sudo apt install -y gringo
+
+      - name: Black check
+        run: python3 -m black --check .
 
       - name: MyPy check
         run: python3 -m mypy unified_planning
