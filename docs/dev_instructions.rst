@@ -16,7 +16,8 @@ We decided to use `black <https://black.readthedocs.io>` to automatically check 
 the code according to a predefined code style.
 
 For maintaining code formatting and styling, instead of humans correcting the linting mistakes,
-we use `pre-commit <https://pre-commit.com/>`.
-When you commit staged Python files, before committing pre-commit hooks are executed and
+we use `pre-commit <https://pre-commit.com/>`. After installing it, execute `pre-commit install`:
+this will install git hooks in .git/ directory of the project.
+Then, wWhen you commit staged Python files, before committing pre-commit hooks are executed and
 black checks the code formatting. If every check passes, the commit is made else, code
 is automatically formatted and sent back for review.
