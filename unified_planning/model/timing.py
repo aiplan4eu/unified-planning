@@ -225,12 +225,7 @@ class DurationInterval(Duration, Interval):
             return False
 
     def __hash__(self) -> int:
-        res = hash(self._lower) + hash(self._upper)
-        if self._is_left_open:
-            res ^= hash('is_left_open')
-        if self._is_right_open:
-            res ^= hash('is_right_open')
-        return res
+        return hash((self._lower, self.upper, self._is_left_open, self._is_right_open))
 
 
 def ClosedDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:
