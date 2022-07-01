@@ -197,7 +197,7 @@ class PDDLWriter:
         # nto represents the new to old renamings
         self.nto_renamings: Dict[str, Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable']] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
-        self.domain_objects: Dict[_UserType, Set[Object]] = {}
+        self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
 
     def _write_domain(self, out: IO[str]):
         if self.problem_kind.has_intermediate_conditions_and_effects():
@@ -258,6 +258,7 @@ class PDDLWriter:
 
         # This method populates the self._domain_objects map
         self._populate_domain_objects(obe)
+        assert self.domain_objects is not None
 
         if len(self.domain_objects) > 0:
             out.write(' (:constants')
@@ -425,6 +426,9 @@ class PDDLWriter:
             name = _get_pddl_name(self.problem)
         out.write(f'(define (problem {name}-problem)\n')
         out.write(f' (:domain {name}-domain)\n')
+        # This method populates the self._domain_objects map
+        self._populate_domain_objects(ObjectsExtractor())
+        assert self.domain_objects is not None
         if len(self.problem.user_types) > 0:
             out.write(' (:objects')
             for t in self.problem.user_types:
@@ -553,28 +557,30 @@ class PDDLWriter:
             raise UPException(f'The item {item} does not correspond to any item renamed.')
 
     def _populate_domain_objects(self, obe: ObjectsExtractor):
-        # Iterate the actions to retrieve domain objects
-        for a in self.problem.actions:
-            if isinstance(a, up.model.InstantaneousAction):
-                for p in a.preconditions:
-                    _update_domain_objects(self.domain_objects, obe.get(p))
-                for e in a.effects:
-                    if e.is_conditional():
-                        _update_domain_objects(self.domain_objects, obe.get(e.condition))
-                    _update_domain_objects(self.domain_objects, obe.get(e.fluent))
-                    _update_domain_objects(self.domain_objects, obe.get(e.value))
-            elif isinstance(a, DurativeAction):
-                _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
-                _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
-                for interval, cl in a.conditions.items():
-                    for c in cl:
-                        _update_domain_objects(self.domain_objects, obe.get(c))
-                for t, el in a.effects.items():
-                    for e in el:
+        if self.domain_objects is None:
+            self.domain_objects = {}
+            # Iterate the actions to retrieve domain objects
+            for a in self.problem.actions:
+                if isinstance(a, up.model.InstantaneousAction):
+                    for p in a.preconditions:
+                        _update_domain_objects(self.domain_objects, obe.get(p))
+                    for e in a.effects:
                         if e.is_conditional():
                             _update_domain_objects(self.domain_objects, obe.get(e.condition))
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+                elif isinstance(a, DurativeAction):
+                    _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
+                    _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
+                    for interval, cl in a.conditions.items():
+                        for c in cl:
+                            _update_domain_objects(self.domain_objects, obe.get(c))
+                    for t, el in a.effects.items():
+                        for e in el:
+                            if e.is_conditional():
+                                _update_domain_objects(self.domain_objects, obe.get(e.condition))
+                            _update_domain_objects(self.domain_objects, obe.get(e.fluent))
+                            _update_domain_objects(self.domain_objects, obe.get(e.value))
 
 
 def _get_pddl_name(item: Union['up.model.Type', 'up.model.Action', 'up.model.Fluent', 'up.model.Object','up.model.Parameter', 'up.model.Variable', 'up.model.Problem']) -> str:
