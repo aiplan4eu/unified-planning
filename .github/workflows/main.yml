@@ -89,11 +89,10 @@ jobs:
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
-        run: pip3 install .
         run: bash run_tests.sh
 
       - name: Test code-snippets
-        run: bash test_code_snippets.sh
+        run: pip3 install ./ ; bash test_code_snippets.sh
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v1
