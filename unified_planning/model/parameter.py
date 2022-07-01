@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-'''
+"""
 This module defines the Parameter class. Both actions and fluents use this class to represent their parameters.
-'''
+"""
 
 
 from typing import Optional
@@ -23,20 +23,32 @@ import unified_planning as up
 
 
 class Parameter:
-    '''Represents an action parameter or a fluent parameter.
-    A parameter has a name, and a type.'''
-    def __init__(self, name: str, typename: 'up.model.types.Type', env: Optional[Environment] = None):
+    """Represents an action parameter or a fluent parameter.
+    A parameter has a name, and a type."""
+
+    def __init__(
+        self,
+        name: str,
+        typename: "up.model.types.Type",
+        env: Optional[Environment] = None,
+    ):
         self._name = name
         self._typename = typename
         self._env = get_env(env)
-        assert self._env.type_manager.has_type(typename), 'type of parameter does not belong to the same environment given to the parameter'
+        assert self._env.type_manager.has_type(
+            typename
+        ), "type of parameter does not belong to the same environment given to the parameter"
 
     def __repr__(self) -> str:
-        return f'{str(self.type)} {self.name}'
+        return f"{str(self.type)} {self.name}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Parameter):
-            return self._name == oth._name and self._typename == oth._typename and self._env == oth._env
+            return (
+                self._name == oth._name
+                and self._typename == oth._typename
+                and self._env == oth._env
+            )
         else:
             return False
 
@@ -45,16 +57,16 @@ class Parameter:
 
     @property
     def name(self) -> str:
-        '''Returns the parameter name.'''
+        """Returns the parameter name."""
         return self._name
 
     @property
-    def type(self) -> 'up.model.types.Type':
-        '''Returns the parameter type.'''
+    def type(self) -> "up.model.types.Type":
+        """Returns the parameter type."""
         return self._typename
 
     @property
-    def environment(self) -> 'Environment':
+    def environment(self) -> "Environment":
         """Return the object environment"""
         return self._env
 

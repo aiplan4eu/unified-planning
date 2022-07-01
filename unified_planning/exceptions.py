@@ -17,37 +17,49 @@
 
 class UPException(Exception):
     """Base class for all custom exceptions of the unified_planning (UP) library."""
+
     pass
+
 
 class UPProblemDefinitionError(UPException):
     pass
 
+
 class UPTypeError(UPException, TypeError):
     pass
+
 
 class UPUnsupportedProblemTypeError(UPException):
     pass
 
+
 class UPUnboundedVariablesError(UPException):
     pass
+
 
 class UPExpressionDefinitionError(UPException):
     pass
 
+
 class UPUnreachableCodeError(UPException):
     pass
+
 
 class UPValueError(UPException):
     pass
 
+
 class UPUsageError(UPException):
     pass
+
 
 class UPNoSuitableEngineAvailableException(UPException):
     pass
 
+
 class UPNoRequestedEngineAvailableException(UPException):
     pass
+
 
 class UPConflictingEffectsException(UPException):
     pass

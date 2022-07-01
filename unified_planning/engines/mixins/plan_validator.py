@@ -17,24 +17,29 @@ import unified_planning as up
 
 
 class PlanValidatorMixin:
-
     @staticmethod
     def is_plan_validator() -> bool:
         return True
 
     @staticmethod
-    def supports_plan(plan_kind: 'up.plans.PlanKind') -> bool:
+    def supports_plan(plan_kind: "up.plans.PlanKind") -> bool:
         raise NotImplementedError
 
-    def validate(self, problem: 'up.model.AbstractProblem',
-                 plan: 'up.plans.Plan') -> 'up.engines.results.ValidationResult':
+    def validate(
+        self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
+    ) -> "up.engines.results.ValidationResult":
         assert isinstance(self, up.engines.engine.Engine)
         if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError(f'{self.name} cannot validate this kind of problem!')
+            raise up.exceptions.UPUsageError(
+                f"{self.name} cannot validate this kind of problem!"
+            )
         if not self.supports_plan(plan.kind):
-            raise up.exceptions.UPUsageError(f'{self.name} cannot validate this kind of plan!')
+            raise up.exceptions.UPUsageError(
+                f"{self.name} cannot validate this kind of plan!"
+            )
         return self._validate(problem, plan)
 
-    def _validate(self, problem: 'up.model.AbstractProblem',
-                  plan: 'up.plans.Plan') -> 'up.engines.results.ValidationResult':
+    def _validate(
+        self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
+    ) -> "up.engines.results.ValidationResult":
         raise NotImplementedError

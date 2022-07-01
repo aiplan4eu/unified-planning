@@ -27,7 +27,7 @@ jobs:
 
       - name: Black check
         run: |
-          python3 -m pip install black==22.6.0
+          python3 -m pip install black[jupyter]==22.6.0
           python3 -m black --check .
 
       - name: MyPy check

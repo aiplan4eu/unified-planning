@@ -15,7 +15,8 @@ from unified_planning.shortcuts import *
 from unified_planning.model.htn import *
 from collections import namedtuple
 
-Example = namedtuple('Example', ['problem', 'plan'])
+Example = namedtuple("Example", ["problem", "plan"])
+
 
 def get_example_problems():
     problems = {}
@@ -40,8 +41,8 @@ def get_example_problems():
     htn.set_initial_value(connected(l2, l1), True)
 
     move = InstantaneousAction("move", l_from=Location, l_to=Location)
-    l_from = move.parameter('l_from')
-    l_to = move.parameter('l_to')
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
     move.add_precondition(Equals(loc, l_from))
     move.add_precondition(connected(l_from, l_to))
     move.add_effect(loc, l_to)
@@ -54,7 +55,9 @@ def get_example_problems():
     go_noop.add_precondition(Equals(loc, target))
     htn.add_method(go_noop)
 
-    go_recursive = Method("go-recursive", source=Location, inter=Location, target=Location)
+    go_recursive = Method(
+        "go-recursive", source=Location, inter=Location, target=Location
+    )
     go_recursive.set_task(go, go_recursive.parameter("target"))
     source = go_recursive.parameter("source")
     inter = go_recursive.parameter("inter")
@@ -69,21 +72,22 @@ def get_example_problems():
     go1 = htn.task_network.add_subtask(go, l4)
     final_loc = htn.task_network.add_variable("final_loc", Location)
     go2 = htn.task_network.add_subtask(go, final_loc)
-    htn.task_network.add_constraint(Or(Equals(final_loc, l1),
-                                       Equals(final_loc, l2)))
+    htn.task_network.add_constraint(Or(Equals(final_loc, l1), Equals(final_loc, l2)))
     htn.task_network.set_strictly_before(go1, go2)
 
     htn.set_initial_value(loc, l1)
-    plan = up.plans.SequentialPlan([
-        up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
-        up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3))),
-        up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
-        up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l3))),
-        up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l2))),
-    ])
+    plan = up.plans.SequentialPlan(
+        [
+            up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+            up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3))),
+            up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
+            up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l3))),
+            up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l2))),
+        ]
+    )
     htn_go = Example(problem=htn, plan=plan)
 
-    problems['htn-go'] = htn_go
+    problems["htn-go"] = htn_go
 
     return problems
 

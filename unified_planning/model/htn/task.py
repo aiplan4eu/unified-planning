@@ -30,10 +30,14 @@ from unified_planning.model.parameter import Parameter
 
 class Task:
     """Represents an abstract task."""
-    def __init__(self, name: str,
-                 _parameters: Optional[Union[OrderedDict[str, Type], List[Parameter]]] = None,
-                 _env: Environment = None,
-                 **kwargs: Type):
+
+    def __init__(
+        self,
+        name: str,
+        _parameters: Optional[Union[OrderedDict[str, Type], List[Parameter]]] = None,
+        _env: Environment = None,
+        **kwargs: Type,
+    ):
         self._env = get_env(_env)
         self._name = name
         self._parameters: List[Parameter] = []
@@ -41,25 +45,33 @@ class Task:
             assert len(kwargs) == 0
             if isinstance(_parameters, OrderedDict):
                 for param_name, param_type in _parameters.items():
-                    self._parameters.append(up.model.parameter.Parameter(param_name, param_type, self._env))
+                    self._parameters.append(
+                        up.model.parameter.Parameter(param_name, param_type, self._env)
+                    )
             elif isinstance(_parameters, List):
                 self._parameters = _parameters[:]
             else:
                 raise NotImplementedError
         else:
             for param_name, param_type in kwargs.items():
-                self._parameters.append(up.model.parameter.Parameter(param_name, param_type, self._env))
+                self._parameters.append(
+                    up.model.parameter.Parameter(param_name, param_type, self._env)
+                )
 
     def __repr__(self) -> str:
-        sign = ''
+        sign = ""
         if len(self.parameters) > 0:
-            sign_items = [f'{p.name}={str(p.type)}' for p in self.parameters]
+            sign_items = [f"{p.name}={str(p.type)}" for p in self.parameters]
             sign = f'[{", ".join(sign_items)}]'
-        return f'{self.name}{sign}'
+        return f"{self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Task):
-            return self._name == oth._name and self._parameters == oth._parameters and self._env == oth._env
+            return (
+                self._name == oth._name
+                and self._parameters == oth._parameters
+                and self._env == oth._env
+            )
         else:
             return False
 
@@ -76,7 +88,7 @@ class Task:
         """Returns the task's parameters as a list."""
         return self._parameters
 
-    def __call__(self, *args: Expression, ident: Optional[str] = None) -> 'Subtask':
+    def __call__(self, *args: Expression, ident: Optional[str] = None) -> "Subtask":
         """Returns a subtask with the given parameters."""
         return Subtask(self, *self._env.expression_manager.auto_promote(args))
 
@@ -86,7 +98,13 @@ _task_id_counter = 0
 
 
 class Subtask:
-    def __init__(self, _task: Union[Action, Task], *args: Expression, ident: Optional[str] = None, _env: Environment = None):
+    def __init__(
+        self,
+        _task: Union[Action, Task],
+        *args: Expression,
+        ident: Optional[str] = None,
+        _env: Environment = None,
+    ):
         self._env = get_env(_env)
         self._task = _task
         self._ident: str
@@ -107,8 +125,12 @@ class Subtask:
     def __eq__(self, other):
         if not isinstance(other, Subtask):
             return False
-        return (self._env == other._env and self._ident == other._ident and
-                self._task == other._task and self._args == other._args)
+        return (
+            self._env == other._env
+            and self._ident == other._ident
+            and self._task == other._task
+            and self._args == other._args
+        )
 
     def __hash__(self):
         return hash(self._ident) + hash(self._task) + sum(map(hash, self._args))
@@ -118,7 +140,7 @@ class Subtask:
         return self._task
 
     @property
-    def parameters(self) -> List['FNode']:
+    def parameters(self) -> List["FNode"]:
         return self._args
 
     @property

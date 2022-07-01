@@ -20,26 +20,36 @@ import unified_planning.engines as engines
 from unified_planning.plans import Plan
 from unified_planning.model import ProblemKind
 from unified_planning.exceptions import UPUsageError
-from unified_planning.engines.results import LogLevel, PlanGenerationResultStatus, Result, ValidationResult, PlanGenerationResult
+from unified_planning.engines.results import (
+    LogLevel,
+    PlanGenerationResultStatus,
+    Result,
+    ValidationResult,
+    PlanGenerationResult,
+)
 from typing import IO, Callable, Dict, List, Optional, Tuple, Type, cast
 from fractions import Fraction
 from multiprocessing import Process, Queue
 
 
-class Parallel(engines.engine.Engine,
-               engines.mixins.OneshotPlannerMixin,
-               engines.mixins.PlanValidatorMixin):
+class Parallel(
+    engines.engine.Engine,
+    engines.mixins.OneshotPlannerMixin,
+    engines.mixins.PlanValidatorMixin,
+):
     """Create a parallel instance of multiple Engines."""
 
-    def __init__(self, engines: List[Tuple[Type[engines.engine.Engine], Dict[str, str]]]):
+    def __init__(
+        self, engines: List[Tuple[Type[engines.engine.Engine], Dict[str, str]]]
+    ):
         self.engines = engines
 
     @property
     def name(self) -> str:
-        return 'Parallel'
+        return "Parallel"
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supports(problem_kind: "ProblemKind") -> bool:
         # The supported features depends on its actual engines
         return True
 
@@ -48,17 +58,18 @@ class Parallel(engines.engine.Engine,
         processes = []
         for idx, (engine_class, opts) in enumerate(self.engines):
             options = opts
-            _p = Process(name=str(idx),
-                         target=_run,
-                         args=(idx, engine_class, options,
-                               signaling_queue, fname, *args))
+            _p = Process(
+                name=str(idx),
+                target=_run,
+                args=(idx, engine_class, options, signaling_queue, fname, *args),
+            )
             processes.append(_p)
             _p.start()
         processes_alive = len(processes)
         results: List[Result] = []
         definitive_result_found: bool = False
         while True:
-            if processes_alive == 0: # Every planner gave a result
+            if processes_alive == 0:  # Every planner gave a result
                 break
             (idx, res) = signaling_queue.get(block=True)
             processes_alive -= 1
@@ -74,34 +85,46 @@ class Parallel(engines.engine.Engine,
                     results.append(res)
         for p in processes:
             p.terminate()
-        if definitive_result_found: # A planner found a definitive result
+        if definitive_result_found:  # A planner found a definitive result
             return [res]
         return results
 
-    def _solve(self, problem: 'up.model.AbstractProblem',
-               callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
-               timeout: Optional[float] = None,
-               output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
+    def _solve(
+        self,
+        problem: "up.model.AbstractProblem",
+        callback: Optional[
+            Callable[["up.engines.results.PlanGenerationResult"], None]
+        ] = None,
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+    ) -> "up.engines.results.PlanGenerationResult":
         for engine, _ in self.engines:
             assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
             if not engine.supports(problem.kind):
-                raise UPUsageError('Parallel engines cannot solve this kind of problem!')
+                raise UPUsageError(
+                    "Parallel engines cannot solve this kind of problem!"
+                )
         if callback is not None:
-            warnings.warn('Parallel engines do not support the callback system.', UserWarning)
+            warnings.warn(
+                "Parallel engines do not support the callback system.", UserWarning
+            )
         if output_stream is not None:
-            warnings.warn('Parallel engines do not support the output stream system.', UserWarning)
+            warnings.warn(
+                "Parallel engines do not support the output stream system.", UserWarning
+            )
 
-        final_reports = self._run_parallel('solve', problem, None, timeout, None)
+        final_reports = self._run_parallel("solve", problem, None, timeout, None)
 
         result_order: List[PlanGenerationResultStatus] = [
-                    PlanGenerationResultStatus.SOLVED_OPTIMALLY,  # List containing the results in the order we prefer them
-                    PlanGenerationResultStatus.UNSOLVABLE_PROVEN,
-                    PlanGenerationResultStatus.SOLVED_SATISFICING,
-                    PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
-                    PlanGenerationResultStatus.TIMEOUT,
-                    PlanGenerationResultStatus.MEMOUT,
-                    PlanGenerationResultStatus.INTERNAL_ERROR,
-                    PlanGenerationResultStatus.UNSUPPORTED_PROBLEM]
+            PlanGenerationResultStatus.SOLVED_OPTIMALLY,  # List containing the results in the order we prefer them
+            PlanGenerationResultStatus.UNSOLVABLE_PROVEN,
+            PlanGenerationResultStatus.SOLVED_SATISFICING,
+            PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+            PlanGenerationResultStatus.TIMEOUT,
+            PlanGenerationResultStatus.MEMOUT,
+            PlanGenerationResultStatus.INTERNAL_ERROR,
+            PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
+        ]
         final_result: Optional[PlanGenerationResult] = None
         result_found: bool = False
         for ro in result_order:
@@ -116,9 +139,17 @@ class Parallel(engines.engine.Engine,
         logs = [up.engines.LogMessage(LogLevel.INFO, str(fr)) for fr in final_reports]
         # if no results are given by the planner, we create a default one
         if final_result is None:
-            return up.engines.PlanGenerationResult(PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
-                                                   None, self.name, log_messages=logs)
-        new_plan = problem.normalize_plan(final_result.plan) if final_result.plan is not None else None
+            return up.engines.PlanGenerationResult(
+                PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                None,
+                self.name,
+                log_messages=logs,
+            )
+        new_plan = (
+            problem.normalize_plan(final_result.plan)
+            if final_result.plan is not None
+            else None
+        )
         if final_result.log_messages is not None:
             logs = final_result.log_messages + logs
         return up.engines.results.PlanGenerationResult(
@@ -126,19 +157,29 @@ class Parallel(engines.engine.Engine,
             new_plan,
             final_result.engine_name,
             final_result.metrics,
-            logs
+            logs,
         )
 
-    def _validate(self, problem: 'up.model.AbstractProblem',
-                  plan: Plan) -> 'up.engines.results.ValidationResult':
+    def _validate(
+        self, problem: "up.model.AbstractProblem", plan: Plan
+    ) -> "up.engines.results.ValidationResult":
         for engine, _ in self.engines:
             assert issubclass(engine, engines.mixins.PlanValidatorMixin)
             if not engine.supports(problem.kind):
-                raise UPUsageError('Parallel engines cannot validate this kind of problem!')
-        return cast(ValidationResult, self._run_parallel('validate', problem, plan)[0])
+                raise UPUsageError(
+                    "Parallel engines cannot validate this kind of problem!"
+                )
+        return cast(ValidationResult, self._run_parallel("validate", problem, plan)[0])
 
 
-def _run(idx: int, EngineClass: type, options: Dict[str, str], signaling_queue: Queue, fname: str, *args):
+def _run(
+    idx: int,
+    EngineClass: type,
+    options: Dict[str, str],
+    signaling_queue: Queue,
+    fname: str,
+    *args
+):
     with EngineClass(**options) as s:
         try:
             local_res = getattr(s, fname)(*args)

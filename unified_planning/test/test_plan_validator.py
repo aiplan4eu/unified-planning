@@ -20,6 +20,7 @@ from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import SequentialPlanValidator, ValidationResultStatus
 from unified_planning.environment import get_env
 
+
 class TestProblem(TestCase):
     def setUp(self):
         TestCase.setUp(self)
@@ -36,8 +37,8 @@ class TestProblem(TestCase):
                 self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
 
     def test_all_from_factory(self):
-        with PlanValidator(name='sequential_plan_validator') as pv:
-            self.assertEqual(pv.name, 'sequential_plan_validator')
+        with PlanValidator(name="sequential_plan_validator") as pv:
+            self.assertEqual(pv.name, "sequential_plan_validator")
             for p in self.problems.values():
                 if not pv.supports(p.problem.kind):
                     continue
@@ -51,8 +52,14 @@ class TestProblem(TestCase):
             pk = problem.kind
             if SequentialPlanValidator.supports(pk):
                 env = unified_planning.environment.Environment()
-                env.factory.preference_list = [e for e in env.factory.preference_list if e != 'tamer']
-                with env.factory.PlanValidator(problem_kind=pk, plan_kind=plan.kind) as pv:
-                    self.assertEqual(pv.name, 'sequential_plan_validator')
+                env.factory.preference_list = [
+                    e for e in env.factory.preference_list if e != "tamer"
+                ]
+                with env.factory.PlanValidator(
+                    problem_kind=pk, plan_kind=plan.kind
+                ) as pv:
+                    self.assertEqual(pv.name, "sequential_plan_validator")
                     validation_result = pv.validate(problem, plan)
-                    self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+                    self.assertEqual(
+                        validation_result.status, ValidationResultStatus.VALID
+                    )

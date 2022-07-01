@@ -24,7 +24,6 @@ class OptimalityGuarantee(Enum):
 
 
 class OneshotPlannerMixin:
-
     @staticmethod
     def is_oneshot_planner() -> bool:
         return True
@@ -33,11 +32,16 @@ class OneshotPlannerMixin:
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
         return False
 
-    def solve(self, problem: 'up.model.AbstractProblem',
-              callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
-              timeout: Optional[float] = None,
-              output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
-        '''This method takes a up.model.AbstractProblem and returns a up.engines.results.PlanGenerationResult,
+    def solve(
+        self,
+        problem: "up.model.AbstractProblem",
+        callback: Optional[
+            Callable[["up.engines.results.PlanGenerationResult"], None]
+        ] = None,
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+    ) -> "up.engines.results.PlanGenerationResult":
+        """This method takes a up.model.AbstractProblem and returns a up.engines.results.PlanGenerationResult,
         which contains information about the solution to the problem given by the planner.
 
         :param problem: is the up.model.AbstractProblem to solve.
@@ -49,14 +53,21 @@ class OneshotPlannerMixin:
         and some additional information about it.
 
         The only required parameter is "problem" but the planner should warn the user if callback, timeout or
-        output_stream are not None and the planner ignores them.'''
+        output_stream are not None and the planner ignores them."""
         assert isinstance(self, up.engines.engine.Engine)
         if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError(f'{self.name} cannot solve this kind of problem!')
+            raise up.exceptions.UPUsageError(
+                f"{self.name} cannot solve this kind of problem!"
+            )
         return self._solve(problem, callback, timeout, output_stream)
 
-    def _solve(self, problem: 'up.model.AbstractProblem',
-               callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
-               timeout: Optional[float] = None,
-               output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
+    def _solve(
+        self,
+        problem: "up.model.AbstractProblem",
+        callback: Optional[
+            Callable[["up.engines.results.PlanGenerationResult"], None]
+        ] = None,
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+    ) -> "up.engines.results.PlanGenerationResult":
         raise NotImplementedError

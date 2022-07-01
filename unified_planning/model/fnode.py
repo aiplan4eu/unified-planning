@@ -22,8 +22,8 @@ from unified_planning.model.operators import OperatorKind
 from typing import List, Optional, Union
 from fractions import Fraction
 
-FNodeContent = collections.namedtuple("FNodeContent",
-                                      ["node_type", "args", "payload"])
+FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "payload"])
+
 
 class FNode(object):
     __slots__ = ["_content", "_node_id", "_env"]
@@ -42,26 +42,26 @@ class FNode(object):
     def __hash__(self) -> int:
         return self._node_id
 
-    def get_nary_expression_string(self, op: str, args: List['FNode']) -> str:
+    def get_nary_expression_string(self, op: str, args: List["FNode"]) -> str:
         p = []
         if len(args) > 0:
-            p.append('(')
+            p.append("(")
             p.append(str(args[0]))
             for x in args[1:]:
                 p.append(op)
                 p.append(str(x))
-            p.append(')')
-        return ''.join(p)
+            p.append(")")
+        return "".join(p)
 
     def __repr__(self) -> str:
         if self.is_bool_constant():
-            return 'true' if self.is_true() else 'false'
+            return "true" if self.is_true() else "false"
         elif self.is_int_constant():
             return str(self.constant_value())
         elif self.is_real_constant():
             return str(self.constant_value())
         elif self.is_fluent_exp():
-            return self.fluent().name + self.get_nary_expression_string(', ', self.args)
+            return self.fluent().name + self.get_nary_expression_string(", ", self.args)
         elif self.is_parameter_exp():
             return self.parameter().name
         elif self.is_variable_exp():
@@ -71,35 +71,35 @@ class FNode(object):
         elif self.is_timing_exp():
             return str(self.timing())
         elif self.is_and():
-            return self.get_nary_expression_string(' and ', self.args)
+            return self.get_nary_expression_string(" and ", self.args)
         elif self.is_or():
-            return self.get_nary_expression_string(' or ', self.args)
+            return self.get_nary_expression_string(" or ", self.args)
         elif self.is_not():
-            return f'(not {str(self.arg(0))})'
+            return f"(not {str(self.arg(0))})"
         elif self.is_implies():
-            return self.get_nary_expression_string(' implies ', self.args)
+            return self.get_nary_expression_string(" implies ", self.args)
         elif self.is_iff():
-            return self.get_nary_expression_string(' iff ', self.args)
+            return self.get_nary_expression_string(" iff ", self.args)
         elif self.is_exists():
-            s = ', '.join(str(v) for v in self.variables())
+            s = ", ".join(str(v) for v in self.variables())
             return f"Exists ({s}) {str(self.arg(0))}"
         elif self.is_forall():
-            s = ', '.join(str(v) for v in self.variables())
+            s = ", ".join(str(v) for v in self.variables())
             return f"Forall ({s}) {str(self.arg(0))}"
         elif self.is_plus():
-            return self.get_nary_expression_string(' + ', self.args)
+            return self.get_nary_expression_string(" + ", self.args)
         elif self.is_minus():
-            return self.get_nary_expression_string(' - ', self.args)
+            return self.get_nary_expression_string(" - ", self.args)
         elif self.is_times():
-            return self.get_nary_expression_string(' * ', self.args)
+            return self.get_nary_expression_string(" * ", self.args)
         elif self.is_div():
-            return self.get_nary_expression_string(' / ', self.args)
+            return self.get_nary_expression_string(" / ", self.args)
         elif self.is_le():
-            return self.get_nary_expression_string(' <= ', self.args)
+            return self.get_nary_expression_string(" <= ", self.args)
         elif self.is_lt():
-            return self.get_nary_expression_string(' < ', self.args)
+            return self.get_nary_expression_string(" < ", self.args)
         elif self.is_equals():
-            return self.get_nary_expression_string(' == ', self.args)
+            return self.get_nary_expression_string(" == ", self.args)
         else:
             raise
 
@@ -116,20 +116,22 @@ class FNode(object):
         return self._env
 
     @property
-    def args(self) -> List['FNode']:
+    def args(self) -> List["FNode"]:
         """Returns the subexpressions."""
         return self._content.args
 
-    def arg(self, idx: int) -> 'FNode':
+    def arg(self, idx: int) -> "FNode":
         """Return the given subexpression at the given position."""
         return self._content.args[idx]
 
     def is_constant(self) -> bool:
         """Test whether the expression is a constant."""
-        return self.node_type == OperatorKind.BOOL_CONSTANT or \
-            self.node_type == OperatorKind.INT_CONSTANT or \
-            self.node_type == OperatorKind.REAL_CONSTANT or \
-            self.node_type == OperatorKind.OBJECT_EXP
+        return (
+            self.node_type == OperatorKind.BOOL_CONSTANT
+            or self.node_type == OperatorKind.INT_CONSTANT
+            or self.node_type == OperatorKind.REAL_CONSTANT
+            or self.node_type == OperatorKind.OBJECT_EXP
+        )
 
     def constant_value(self) -> Union[bool, int, Fraction]:
         """Return the value of the Constant."""
@@ -151,42 +153,42 @@ class FNode(object):
         assert self.is_real_constant()
         return self._content.payload
 
-    def fluent(self) -> 'unified_planning.model.fluent.Fluent':
+    def fluent(self) -> "unified_planning.model.fluent.Fluent":
         """Return the fluent of the FluentExp."""
         assert self.is_fluent_exp()
         return self._content.payload
 
-    def parameter(self) -> 'unified_planning.model.parameter.Parameter':
+    def parameter(self) -> "unified_planning.model.parameter.Parameter":
         """Return the parameter of the ParameterExp."""
         assert self.is_parameter_exp()
         return self._content.payload
 
-    def variable(self) -> 'unified_planning.model.variable.Variable':
+    def variable(self) -> "unified_planning.model.variable.Variable":
         """Return the variable of the VariableExp."""
         assert self.is_variable_exp()
         return self._content.payload
 
-    def variables(self) -> List['unified_planning.model.variable.Variable']:
+    def variables(self) -> List["unified_planning.model.variable.Variable"]:
         """Return the variable of the Exists or Forall."""
         assert self.is_exists() or self.is_forall()
         return list(self._content.payload)
 
-    def object(self) -> 'unified_planning.model.object.Object':
+    def object(self) -> "unified_planning.model.object.Object":
         """Return the object of the ObjectExp."""
         assert self.is_object_exp()
         return self._content.payload
 
-    def timing(self) -> 'unified_planning.model.timing.Timing':
+    def timing(self) -> "unified_planning.model.timing.Timing":
         """Return the object of the TimingExp."""
         assert self.is_timing_exp()
         return self._content.payload
 
     @property
-    def type(self) -> 'unified_planning.model.Type':
+    def type(self) -> "unified_planning.model.Type":
         """Returns the type of this expression."""
         return self._env.type_checker.get_type(self)
 
-    def simplify(self) -> 'FNode':
+    def simplify(self) -> "FNode":
         """Returns the simplified version of this expression."""
         return self._env.simplifier.simplify(self)
 

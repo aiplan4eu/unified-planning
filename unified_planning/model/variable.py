@@ -29,18 +29,30 @@ import unified_planning.model.operators as op
 
 class Variable:
     """Represents a varible."""
-    def __init__(self, name: str, typename: 'unified_planning.model.types.Type', env: Optional[Environment] = None):
+
+    def __init__(
+        self,
+        name: str,
+        typename: "unified_planning.model.types.Type",
+        env: Optional[Environment] = None,
+    ):
         self._name = name
         self._typename = typename
         self._env = get_env(env)
-        assert self._env.type_manager.has_type(typename), 'type of variable does not belong to the same environment of the variable'
+        assert self._env.type_manager.has_type(
+            typename
+        ), "type of variable does not belong to the same environment of the variable"
 
     def __repr__(self) -> str:
-        return f'{str(self.type)} {self.name}'
+        return f"{str(self.type)} {self.name}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Variable):
-            return self._name == oth._name and self._typename == oth._typename and self._env == oth._env
+            return (
+                self._name == oth._name
+                and self._typename == oth._typename
+                and self._env == oth._env
+            )
         else:
             return False
 
@@ -53,12 +65,12 @@ class Variable:
         return self._name
 
     @property
-    def type(self) -> 'unified_planning.model.types.Type':
+    def type(self) -> "unified_planning.model.types.Type":
         """Returns the variable type."""
         return self._typename
 
     @property
-    def environment(self) -> 'Environment':
+    def environment(self) -> "Environment":
         """Return the object environment"""
         return self._env
 
@@ -172,20 +184,31 @@ class FreeVarsOracle(walkers.DagWalker):
         return self.walk(expression)
 
     @walkers.handles(OperatorKind.VARIABLE_EXP)
-    def walk_variable_exp(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
-        #pylint: disable=unused-argument
+    def walk_variable_exp(
+        self, expression: FNode, args: List[Set[Variable]], **kwargs
+    ) -> Set[Variable]:
+        # pylint: disable=unused-argument
         return {expression.variable()}
 
     @walkers.handles(OperatorKind.EXISTS, OperatorKind.FORALL)
-    def walk_quantifier(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
-        #pylint: disable=unused-argument
+    def walk_quantifier(
+        self, expression: FNode, args: List[Set[Variable]], **kwargs
+    ) -> Set[Variable]:
+        # pylint: disable=unused-argument
         return args[0].difference(expression.variables())
 
     @walkers.handles(op.CONSTANTS)
-    def walk_constant(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
-        #pylint: disable=unused-argument
+    def walk_constant(
+        self, expression: FNode, args: List[Set[Variable]], **kwargs
+    ) -> Set[Variable]:
+        # pylint: disable=unused-argument
         return set()
 
-    @walkers.handles(set(OperatorKind) - {OperatorKind.VARIABLE_EXP, OperatorKind.EXISTS, OperatorKind.FORALL})
-    def walk_all(self, expression: FNode, args: List[Set[Variable]], **kwargs) -> Set[Variable]:
+    @walkers.handles(
+        set(OperatorKind)
+        - {OperatorKind.VARIABLE_EXP, OperatorKind.EXISTS, OperatorKind.FORALL}
+    )
+    def walk_all(
+        self, expression: FNode, args: List[Set[Variable]], **kwargs
+    ) -> Set[Variable]:
         return {v for s in args for v in s}

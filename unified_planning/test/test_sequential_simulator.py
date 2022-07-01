@@ -28,25 +28,27 @@ class TestSimulator(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def simulate_on_hierarchical_blocks_world(self, simulator: SimulatorMixin, problem: 'up.model.Problem'):
-        #This test takes a simulator and the problem and makes some testing.
-        self.assertEqual(problem.name, 'hierarchical_blocks_world')
+    def simulate_on_hierarchical_blocks_world(
+        self, simulator: SimulatorMixin, problem: "up.model.Problem"
+    ):
+        # This test takes a simulator and the problem and makes some testing.
+        self.assertEqual(problem.name, "hierarchical_blocks_world")
         em = problem.env.expression_manager
-        move = problem.action('move')
-        clear = problem.fluent('clear')
-        on = problem.fluent('on')
-        ts_1 = problem.object('ts_1')
-        ts_2 = problem.object('ts_2')
-        ts_3 = problem.object('ts_3')
-        block_1 = problem.object('block_1')
-        block_2 = problem.object('block_2')
-        block_3 = problem.object('block_3')
+        move = problem.action("move")
+        clear = problem.fluent("clear")
+        on = problem.fluent("on")
+        ts_1 = problem.object("ts_1")
+        ts_2 = problem.object("ts_2")
+        ts_3 = problem.object("ts_3")
+        block_1 = problem.object("block_1")
+        block_2 = problem.object("block_2")
+        block_3 = problem.object("block_3")
         state = UPCOWState(problem.initial_values)
         # The initial state is:
         # ts_1, block_3, block_1, block_2
         # ts_2
         # ts_3, check clear fluent in the state.
-        Location = problem.user_type('Location')
+        Location = problem.user_type("Location")
         clear_check = [block_2, ts_2, ts_3]
         for o in problem.objects(Location):
             if o in clear_check:
@@ -63,26 +65,42 @@ class TestSimulator(TestCase):
         # move(block_3, from ts_1, to ts_3)
         # move(block_1, from block_2, to ts_1)
         events = simulator.get_events(move, (block_2, block_1, ts_2))
-        self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
+        self.assertEqual(
+            len(events), 1
+        )  # only 1 even corresponds to in Instantaneous Action
         state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(state) # If the state is None it means the action was not applicable
+        self.assertIsNotNone(
+            state
+        )  # If the state is None it means the action was not applicable
 
         events = simulator.get_events(move, (block_1, block_3, block_2))
-        self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
+        self.assertEqual(
+            len(events), 1
+        )  # only 1 even corresponds to in Instantaneous Action
         state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(state) # If the state is None it means the action was not applicable
+        self.assertIsNotNone(
+            state
+        )  # If the state is None it means the action was not applicable
 
         events = simulator.get_events(move, (block_3, ts_1, ts_3))
-        self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
+        self.assertEqual(
+            len(events), 1
+        )  # only 1 even corresponds to in Instantaneous Action
         state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(state) # If the state is None it means the action was not applicable
+        self.assertIsNotNone(
+            state
+        )  # If the state is None it means the action was not applicable
 
         events = simulator.get_events(move, (block_1, block_2, ts_1))
-        self.assertEqual(len(events), 1) # only 1 even corresponds to in Instantaneous Action
+        self.assertEqual(
+            len(events), 1
+        )  # only 1 even corresponds to in Instantaneous Action
         state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(state) # If the state is None it means the action was not applicable
+        self.assertIsNotNone(
+            state
+        )  # If the state is None it means the action was not applicable
         # now we check that the state is what we desired
-        Movable = problem.user_type('Movable')
+        Movable = problem.user_type("Movable")
         check_on = [(block_1, ts_1), (block_2, ts_2), (block_3, ts_3)]
         for obj_tuple in product(problem.objects(Movable), problem.objects(Location)):
             if obj_tuple in check_on:
@@ -95,11 +113,11 @@ class TestSimulator(TestCase):
         self.assertFalse(simulator.is_applicable(event, state))
 
     def test_with_sequential_simualtor_instance(self):
-        problem = self.problems['hierarchical_blocks_world'].problem
+        problem = self.problems["hierarchical_blocks_world"].problem
         simulator = SequentialSimulator(problem)
         self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
     def test_with_smulator_from_factory(self):
-        problem = self.problems['hierarchical_blocks_world'].problem
+        problem = self.problems["hierarchical_blocks_world"].problem
         with Simulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)

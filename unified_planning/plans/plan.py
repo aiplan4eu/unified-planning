@@ -20,15 +20,18 @@ from typing import Callable, Optional, Tuple
 from enum import Enum, auto
 
 
-'''This module defines the different plan classes.'''
+"""This module defines the different plan classes."""
 
 
 class ActionInstance:
-    '''Represents an action instance with the actual parameters.
+    """Represents an action instance with the actual parameters.
 
     NOTE: two action instances of the same action with the same parameters are
-    considered different as it is possible to have the same action twice in a plan.'''
-    def __init__(self, action: 'up.model.Action', params: Tuple['up.model.FNode', ...] = tuple()):
+    considered different as it is possible to have the same action twice in a plan."""
+
+    def __init__(
+        self, action: "up.model.Action", params: Tuple["up.model.FNode", ...] = tuple()
+    ):
         assert len(action.parameters) == len(params)
         self._action = action
         self._params = tuple(params)
@@ -36,31 +39,30 @@ class ActionInstance:
     def __repr__(self) -> str:
         s = []
         if len(self._params) > 0:
-            s.append('(')
+            s.append("(")
             first = True
             for p in self._params:
                 if not first:
-                    s.append(', ')
+                    s.append(", ")
                 s.append(str(p))
                 first = False
-            s.append(')')
-        return self._action.name + ''.join(s)
-
+            s.append(")")
+        return self._action.name + "".join(s)
 
     @property
-    def action(self) -> 'up.model.Action':
-        '''Returns the action.'''
+    def action(self) -> "up.model.Action":
+        """Returns the action."""
         return self._action
 
     @property
-    def actual_parameters(self) -> Tuple['up.model.FNode', ...]:
-        '''Returns the actual parameters.'''
+    def actual_parameters(self) -> Tuple["up.model.FNode", ...]:
+        """Returns the actual parameters."""
         return self._params
 
-    def is_semantically_equivalent(self, oth: 'ActionInstance') -> bool:
-        '''This method returns True Iff the 2 Action Instances have the same semantic.
+    def is_semantically_equivalent(self, oth: "ActionInstance") -> bool:
+        """This method returns True Iff the 2 Action Instances have the same semantic.
 
-        NOTE: This is different from __eq__; there the 2 Action Instances need to be exactly the same object.'''
+        NOTE: This is different from __eq__; there the 2 Action Instances need to be exactly the same object."""
         return self.action == oth.action and self._params == oth._params
 
 
@@ -71,22 +73,27 @@ class PlanKind(Enum):
 
 
 class Plan:
-    '''Represents a generic plan.'''
-    def __init__(self, kind: PlanKind, environment: Optional['Environment'] = None) -> None:
+    """Represents a generic plan."""
+
+    def __init__(
+        self, kind: PlanKind, environment: Optional["Environment"] = None
+    ) -> None:
         self._kind = kind
         self._environment = get_env(environment)
 
     @property
-    def environment(self) -> 'Environment':
-        '''Return this plan environment.'''
+    def environment(self) -> "Environment":
+        """Return this plan environment."""
         return self._environment
 
     @property
     def kind(self) -> PlanKind:
-        '''Returns the plan kind'''
+        """Returns the plan kind"""
         return self._kind
 
-    def replace_action_instances(self, replace_function: Callable[[ActionInstance], ActionInstance]) -> 'Plan':
-        '''This function takes a function from ActionInstance to ActionInstance and returns a new Plan
-        that have the ActionInstance modified by the "replace_function" function.'''
+    def replace_action_instances(
+        self, replace_function: Callable[[ActionInstance], ActionInstance]
+    ) -> "Plan":
+        """This function takes a function from ActionInstance to ActionInstance and returns a new Plan
+        that have the ActionInstance modified by the "replace_function" function."""
         raise NotImplementedError

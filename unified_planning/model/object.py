@@ -24,18 +24,30 @@ import unified_planning.model.types
 
 class Object:
     """Represents an object."""
-    def __init__(self, name: str, typename: 'unified_planning.model.types.Type', env: Optional[Environment] = None):
+
+    def __init__(
+        self,
+        name: str,
+        typename: "unified_planning.model.types.Type",
+        env: Optional[Environment] = None,
+    ):
         self._name = name
         self._typename = typename
         self._env = get_env(env)
-        assert self._env.type_manager.has_type(typename), 'type of the object does not belong to the same environment of the object'
+        assert self._env.type_manager.has_type(
+            typename
+        ), "type of the object does not belong to the same environment of the object"
 
     def __repr__(self) -> str:
         return self.name
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Object):
-            return self._name == oth._name and self._typename == oth._typename and self._env == oth._env
+            return (
+                self._name == oth._name
+                and self._typename == oth._typename
+                and self._env == oth._env
+            )
         else:
             return False
 
@@ -48,12 +60,12 @@ class Object:
         return self._name
 
     @property
-    def type(self) -> 'unified_planning.model.types.Type':
+    def type(self) -> "unified_planning.model.types.Type":
         """Returns the object type."""
         return self._typename
 
     @property
-    def environment(self) -> 'Environment':
+    def environment(self) -> "Environment":
         """Return the object environment"""
         return self._env
 

@@ -19,6 +19,7 @@ import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from typing import List
 
+
 class IdentityDagWalker(walkers.dag.DagWalker):
     """This class traverses an expression and rebuilds it recursively
     identically.
@@ -26,74 +27,85 @@ class IdentityDagWalker(walkers.dag.DagWalker):
     but the structure of the expression has to be kept.
     """
 
-    def __init__(self, env: 'unified_planning.environment.Environment', invalidate_memoization=False):
+    def __init__(
+        self,
+        env: "unified_planning.environment.Environment",
+        invalidate_memoization=False,
+    ):
         walkers.dag.DagWalker.__init__(self, invalidate_memoization)
         self.env = env
         self.manager = env.expression_manager
 
-
-    def walk_and( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_and(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.And(args)
 
-    def walk_or( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_or(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Or(args)
 
-    def walk_not( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_not(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Not(args[0])
 
-    def walk_implies( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_implies(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Implies(args[0], args[1])
 
-    def walk_iff( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_iff(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Iff(args[0], args[1])
 
-    def walk_exists( self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+    def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.Exists(args[0], *expression.variables())
 
-    def walk_forall( self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+    def walk_forall(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.Forall(args[0], *expression.variables())
 
-    def walk_equals( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_equals(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Equals(args[0], args[1])
 
-    def walk_le( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_le(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.LE(args[0], args[1])
 
-    def walk_lt( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_lt(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.LT(args[0], args[1])
 
-    def walk_plus( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_plus(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Plus(args)
 
-    def walk_times( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_times(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Times(args)
 
-    def walk_minus( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_minus(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Minus(args[0], args[1])
 
-    def walk_div( self, expression: FNode, args: List[FNode], **kwargs):
+    def walk_div(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.Div(args[0], args[1])
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.FluentExp(expression.fluent(), tuple(args))
 
-    def walk_bool_constant(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+    def walk_bool_constant(
+        self, expression: FNode, args: List[FNode], **kwargs
+    ) -> FNode:
         return self.manager.Bool(expression.bool_constant_value())
 
-    def walk_int_constant(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+    def walk_int_constant(
+        self, expression: FNode, args: List[FNode], **kwargs
+    ) -> FNode:
         return self.manager.Int(expression.int_constant_value())
 
-    def walk_real_constant(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+    def walk_real_constant(
+        self, expression: FNode, args: List[FNode], **kwargs
+    ) -> FNode:
         return self.manager.Real(expression.real_constant_value())
 
     def walk_param_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.ParameterExp(expression.parameter())
 
-    def walk_variable_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+    def walk_variable_exp(
+        self, expression: FNode, args: List[FNode], **kwargs
+    ) -> FNode:
         return self.manager.VariableExp(expression.variable())
 
-    def walk_object_exp(self, expression: FNode, args: List[FNode],**kwargs) -> FNode:
+    def walk_object_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.ObjectExp(expression.object())
 
-    def walk_timing_exp(self, expression: FNode, args: List[FNode],**kwargs) -> FNode:
+    def walk_timing_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.TimingExp(expression.timing())
