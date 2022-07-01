@@ -28,7 +28,7 @@ jobs:
       - name: Black check
         run: |
           python3 -m pip install black==22.6.0
-          python3 -m black --check .
+          python3 -m black --check --exclude=unified_planning/grpc/generated/ .
 
       - name: MyPy check
         run: python3 -m mypy unified_planning
