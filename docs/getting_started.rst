@@ -70,4 +70,6 @@ The input-output classes and functions can be found in the unified_planning.io p
 Example
 -------
 The following example shows how to read a PDDL problem from files and how to dump to files in PDDL format a Unified-Planning problem.
-::
+
+.. literalinclude:: ./code_snippets/robot_battery.py
+    :lines: 68-81

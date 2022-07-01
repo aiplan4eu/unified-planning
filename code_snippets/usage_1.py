@@ -1,12 +1,12 @@
 from unified_planning.shortcuts import *
 
-x = Fluent('x')
+x = Fluent("x")
 
-a = InstantaneousAction('a')
+a = InstantaneousAction("a")
 a.add_precondition(Not(x))
 a.add_effect(x, True)
 
-problem = Problem('basic')
+problem = Problem("basic")
 problem.add_fluent(x)
 problem.add_action(a)
 problem.set_initial_value(x, False)
