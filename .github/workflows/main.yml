@@ -92,7 +92,7 @@ jobs:
         run: bash run_tests.sh
 
       - name: Test code-snippets
-        run: cd ./unified_planning/ ; bash ../scripts/test_code_snippets.sh ; cd ..
+        run: pip3 install . ; bash scripts/test_code_snippets.sh
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v1

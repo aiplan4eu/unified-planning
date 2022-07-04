@@ -95,7 +95,8 @@ reader = PDDLReader()
 
 # Parsing a PDDL problem from file
 problem = reader.parse_problem(
-    "./test/pddl/counters/domain.pddl", "./test/pddl/counters/problem.pddl"
+    "./unified_planning/test/pddl/counters/domain.pddl",
+    "./unified_planning/test/pddl/counters/problem.pddl",
 )
 
 # Creating a PDDL writer
