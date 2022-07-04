@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Iterator, List, Optional, Tuple, Union, cast
+from typing import Iterator, List, Optional, Tuple, Union
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 
@@ -152,3 +152,14 @@ class SimulatorMixin:
     @staticmethod
     def is_simulator():
         return True
+
+    def is_goal(self, state: "up.model.ROState") -> bool:
+        """
+        Returns True if the given state satisfies the goals of the problem.
+        :param state: the State in which the problem goals are evaluated.
+        :return: True if the evaluation of every goal is True, False otherwise.
+        """
+        return self._is_goal(state)
+
+    def _is_goal(self, state: "up.model.ROState") -> bool:
+        raise NotImplementedError

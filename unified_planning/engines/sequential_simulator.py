@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
@@ -221,6 +221,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
             self._problem.env.expression_manager.auto_promote(parameters)
         )
         return self._events.get((action, tuple(params_exp)), [])
+
+    def _is_goal(self, state: "up.model.ROState") -> bool:
+        return all(
+            self._se.evaluate(g, state).bool_constant_value()
+            for g in cast(up.model.Problem, self._problem).goals
+        )
 
     @property
     def name(self) -> str:

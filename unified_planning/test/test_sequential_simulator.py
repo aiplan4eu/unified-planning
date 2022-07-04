@@ -111,6 +111,36 @@ class TestSimulator(TestCase):
         # which we know is not because the block_3 is not on the table space 1 (ts_1)
         event = simulator.get_events(move, (block_3, ts_1, ts_3))[0]
         self.assertFalse(simulator.is_applicable(event, state))
+        # Now we check if we reached the goal
+        self.assertFalse(simulator.is_goal(state))
+        # To reach the goal, which is designed like this:
+        # ts_1
+        # ts_2
+        # ts_3, block_1, block_2, block_3
+        # We must:
+        # move(block_3, from ts_3, to block_2)
+        # move(block_1, from ts_1, to ts_3)
+        # move(block_3, from block_2, to ts_1)
+        # move(block_2, from ts_2, to block_1)
+        # move(block_3, from ts_1, to block_2)
+        # And then we check if we reached the goal.
+        event = simulator.get_events(move, (block_3, ts_3, block_2))[0]
+        state = cast(UPCOWState, simulator.apply(event, state))
+        self.assertIsNotNone(state)
+        event = simulator.get_events(move, (block_1, ts_1, ts_3))[0]
+        state = cast(UPCOWState, simulator.apply(event, state))
+        self.assertIsNotNone(state)
+        event = simulator.get_events(move, (block_3, block_2, ts_1))[0]
+        state = cast(UPCOWState, simulator.apply(event, state))
+        self.assertIsNotNone(state)
+        event = simulator.get_events(move, (block_2, ts_2, block_1))[0]
+        state = cast(UPCOWState, simulator.apply(event, state))
+        self.assertIsNotNone(state)
+        event = simulator.get_events(move, (block_3, ts_1, block_2))[0]
+        state = cast(UPCOWState, simulator.apply(event, state))
+        self.assertIsNotNone(state)
+
+        self.assertTrue(simulator.is_goal(state))
 
     def test_with_sequential_simualtor_instance(self):
         problem = self.problems["hierarchical_blocks_world"].problem
