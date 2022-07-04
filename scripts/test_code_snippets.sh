@@ -1,5 +1,9 @@
 #!/bin/bash
 
+SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd ${SCRIPTS_DIR}/../
+
 for python_file in ./docs/code_snippets/*.py ; do
     python_basename_file=$(basename ${python_file})
     echo -n "  -> Testing ${python_basename_file}..."

@@ -1,4 +1,5 @@
 import sys
+import pathlib
 import pkgutil
 import importlib
 import subprocess
@@ -6,8 +7,9 @@ import os
 
 exit_code = 0
 
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.resolve()))
+
 packages = ["unified_planning"]
-print(os.getcwd())
 while len(packages) > 0:
     package_name = packages.pop()
     return_code = subprocess.call(
