@@ -95,7 +95,7 @@ reader = PDDLReader()
 
 # Parsing a PDDL problem from file
 problem = reader.parse_problem(
-    "./docs/code_snippets/domain.pddl", "./docs/code_snippets/problem.pddl"
+    "./test/pddl/counters/domain.pddl", "./test/pddl/counters/problem.pddl"
 )
 
 # Creating a PDDL writer
