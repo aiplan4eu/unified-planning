@@ -3,7 +3,6 @@ import pathlib
 import pkgutil
 import importlib
 import subprocess
-import os
 
 exit_code = 0
 
