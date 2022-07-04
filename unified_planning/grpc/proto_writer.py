@@ -558,6 +558,18 @@ class ProtobufWriter(Converter):
             expression=self.convert(metric.expression),
         )
 
+    @handles(model.metrics.Oversubscription)
+    def _convert_oversubscription_metric(
+        self, metric: model.metrics.Oversubscription
+    ) -> proto.Metric:
+        goals = []
+        for g, c in metric.goals.items():
+            goals.append(proto.GoalWithCost(goal=self.convert(g), cost=self.convert(c)))
+        return proto.Metric(
+            kind=proto.Metric.OVERSUBSCRIPTION,
+            goals=goals,
+        )
+
     @handles(model.Parameter)
     def _convert_action_parameter(self, p: model.Parameter) -> proto.Parameter:
         return proto.Parameter(name=p.name, type=proto_type(p.type))

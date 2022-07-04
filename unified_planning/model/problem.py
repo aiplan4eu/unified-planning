@@ -565,6 +565,8 @@ class Problem(
                 self._kind.set_quality_metrics("MAKESPAN")
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 self._kind.set_quality_metrics("PLAN_LENGTH")
+            elif isinstance(metric, up.model.metrics.Oversubscription):
+                self._kind.set_quality_metrics("OVERSUBSCRIPTION")
             else:
                 assert False, "Unknown quality metric"
         return self._kind
