@@ -4,7 +4,9 @@
 
 set -e
 
-cd unified_planning/grpc/
+SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd ${SCRIPTS_DIR}/../unified_planning/grpc/
 
 echo "Generating python bindings with protoc"
 python3 -m grpc_tools.protoc --version

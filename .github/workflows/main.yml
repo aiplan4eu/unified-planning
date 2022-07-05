@@ -34,7 +34,7 @@ jobs:
         run: python3 -m mypy unified_planning
 
       - name: Test all packages imports
-        run: python3 test_imports.py
+        run: python3 scripts/test_imports.py
 
 
   run-tests-ubuntu:
@@ -87,6 +87,9 @@ jobs:
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
           cd ENHSP-Public; git checkout enhsp20-0.9.3; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
+
+      - name: Test code-snippets
+        run: bash scripts/test_code_snippets.sh
 
       - name: Run tests
         run: bash run_tests.sh
@@ -262,7 +265,7 @@ jobs:
         run: sudo apt install jupyter; sudo apt install ipython3
 
       - name: Run colabs
-        run: bash test_colab.sh
+        run: bash scripts/test_colab.sh
 
 
   deploy-pypi:
@@ -284,7 +287,7 @@ jobs:
     - name: Make distrib
       run: |
         python3 -m pip install wheel
-        bash make_distrib.sh
+        bash scripts/make_distrib.sh
 
     - name: Upload to PyPI
       uses: pypa/gh-action-pypi-publish@master

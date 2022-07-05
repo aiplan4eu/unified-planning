@@ -1,9 +1,12 @@
 import sys
+import pathlib
 import pkgutil
 import importlib
 import subprocess
 
 exit_code = 0
+
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.resolve()))
 
 packages = ["unified_planning"]
 while len(packages) > 0:
