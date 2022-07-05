@@ -97,16 +97,34 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param event: the event whose conditions are checked.
         :return: Whether or not the event is applicable in the given state.
         """
+        return (
+            len(self._get_unsatisfied_conditions(event, state, early_termination=True))
+            == 0
+        )
+
+    def _get_unsatisfied_conditions(
+        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+    ) -> List["up.model.FNode"]:
+        """
+        Returns the list of unsatisfied event conditions evaluated in the given state.
+        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied condition.
+        :param state: The State in which the event conditions are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
+        :return: The list of all the event conditions that evaluated to False or the list containing the first condition evaluated to False if the flag "early_termination" is set.
+        """
         # Evaluate every condition and if the condition is False or the condition is not simplified as a
         # boolean constant in the given state, return False. Return True otherwise
+        unsatisfied_conditions = []
         for c in event.conditions:
             evaluated_cond = self._se.evaluate(c, state)
             if (
                 not evaluated_cond.is_bool_constant()
                 or not evaluated_cond.bool_constant_value()
             ):
-                return False
-        return True
+                unsatisfied_conditions.append(c)
+                if early_termination:
+                    break
+        return unsatisfied_conditions
 
     def _apply(
         self, event: "Event", state: "up.model.COWState"
@@ -223,10 +241,26 @@ class SequentialSimulator(Engine, SimulatorMixin):
         return self._events.get((action, tuple(params_exp)), [])
 
     def _is_goal(self, state: "up.model.ROState") -> bool:
-        return all(
-            self._se.evaluate(g, state).bool_constant_value()
-            for g in cast(up.model.Problem, self._problem).goals
-        )
+        return len(self._get_unsatisfied_goals(state, early_termination=True)) == 0
+
+    def _get_unsatisfied_goals(
+        self, state: "up.model.ROState", early_termination: bool = False
+    ) -> List["up.model.FNode"]:
+        """
+        Returns the list of unsatisfied goals evaluated in the given state.
+        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+        :param state: The State in which the problem goals are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
+        :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
+        """
+        unsatisfied_goals = []
+        for g in cast(up.model.Problem, self._problem).goals:
+            g_eval = self._se.evaluate(g, state).bool_constant_value()
+            if not g_eval:
+                unsatisfied_goals.append(g)
+                if early_termination:
+                    break
+        return unsatisfied_goals
 
     @property
     def name(self) -> str:

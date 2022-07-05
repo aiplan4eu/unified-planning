@@ -106,9 +106,13 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                         ValidationResultStatus.INVALID, self.name, logs
                     )
                 current_state = simulator.apply_unsafe(event, current_state)
-        if simulator.is_goal(current_state):
+        unsatisfied_goal = simulator.get_unsatisfied_goals(
+            current_state, early_termination=True
+        )
+        if len(unsatisfied_goal) == 0:
             return ValidationResult(ValidationResultStatus.VALID, self.name, [])
         else:
-            error = "Goal is not reached by the plan."
+            assert len(unsatisfied_goal) == 1
+            error = f"Goal {unsatisfied_goal[0]} is not reached by the plan."
             logs = [LogMessage(LogLevel.ERROR, error)]
             return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)

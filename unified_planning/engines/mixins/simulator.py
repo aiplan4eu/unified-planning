@@ -71,6 +71,25 @@ class SimulatorMixin:
     def _is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
         raise NotImplementedError
 
+    def get_unsatisfied_conditions(
+        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+    ) -> List["up.model.FNode"]:
+        """
+        Returns the list of unsatisfied event conditions evaluated in the given state.
+        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied condition.
+        :param state: The State in which the event conditions are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
+        :return: The list of all the event conditions that evaluated to False or the list containing the first condition evaluated to False if the flag "early_termination" is set.
+        """
+        return self._get_unsatisfied_conditions(
+            event, early_termination=early_termination
+        )
+
+    def _get_unsatisfied_conditions(
+        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+    ) -> List["up.model.FNode"]:
+        raise NotImplementedError
+
     def apply(
         self, event: "Event", state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
@@ -162,4 +181,21 @@ class SimulatorMixin:
         return self._is_goal(state)
 
     def _is_goal(self, state: "up.model.ROState") -> bool:
+        raise NotImplementedError
+
+    def get_unsatisfied_goals(
+        self, state: "up.model.ROState", early_termination: bool = False
+    ) -> List["up.model.FNode"]:
+        """
+        Returns the list of unsatisfied goals evaluated in the given state.
+        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+        :param state: The State in which the problem goals are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
+        :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
+        """
+        return self._get_unsatisfied_goals(state, early_termination)
+
+    def _get_unsatisfied_goals(
+        self, state: "up.model.ROState", early_termination: bool = False
+    ) -> List["up.model.FNode"]:
         raise NotImplementedError
