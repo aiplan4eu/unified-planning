@@ -528,6 +528,10 @@ class Problem(
         """Returns the quality metrics"""
         return self._metrics
 
+    def clear_quality_metrics(self):
+        """Removes the quality metrics"""
+        self._metrics = []
+
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """Returns the problem kind of this planning problem.

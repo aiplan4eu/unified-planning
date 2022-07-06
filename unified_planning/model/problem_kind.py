@@ -117,6 +117,9 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
     def union(self, oth: "ProblemKind") -> "ProblemKind":
         return ProblemKind(self.features.union(oth.features))
 
+    def intersection(self, oth: "ProblemKind") -> "ProblemKind":
+        return ProblemKind(self.features.intersection(oth.features))
+
 
 basic_classical_kind = ProblemKind()
 basic_classical_kind.set_problem_class("ACTION_BASED")
