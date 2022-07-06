@@ -128,7 +128,7 @@ class Factory:
     def __init__(self, env: "Environment"):
         self._env = env
         self._engines: Dict[str, Type["up.engines.engine.Engine"]] = {}
-        self._meta_engines: Dict[str, Type["up.engines.engine.MetaEngine"]] = {}
+        self._meta_engines: Dict[str, Type["up.engines.meta_engine.MetaEngine"]] = {}
         self._credit_disclaimer_printed = False
         for name, (module_name, class_name) in DEFAULT_ENGINES.items():
             try:
