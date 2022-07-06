@@ -69,6 +69,13 @@ DEFAULT_ENGINES = {
     "up_grounder": ("unified_planning.engines.compilers.grounder", "Grounder"),
 }
 
+DEFAULT_META_ENGINES = {
+    "oversubscription": (
+        "unified_planning.engines.oversubscription_planner",
+        "OversubscriptionPlanner",
+    ),
+}
+
 DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward",
     "fast-downward-opt",
@@ -85,6 +92,8 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "tarski_grounder",
     "up_grounder",
 ]
+
+DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
 
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:
@@ -119,16 +128,30 @@ class Factory:
     def __init__(self, env: "Environment"):
         self._env = env
         self._engines: Dict[str, Type["up.engines.engine.Engine"]] = {}
+        self._meta_engines: Dict[str, Type["up.engines.engine.MetaEngine"]] = {}
         self._credit_disclaimer_printed = False
         for name, (module_name, class_name) in DEFAULT_ENGINES.items():
             try:
                 self._add_engine(name, module_name, class_name)
             except ImportError:
                 pass
+        engines = dict(self._engines)
+        for name, (module_name, class_name) in DEFAULT_META_ENGINES.items():
+            try:
+                for engine_name, engine in engines.items():
+                    self._add_meta_engine(
+                        name, module_name, class_name, engine_name, engine
+                    )
+            except ImportError:
+                pass
         self._preference_list = []
         for name in DEFAULT_ENGINES_PREFERENCE_LIST:
             if name in self._engines:
                 self._preference_list.append(name)
+        for name in DEFAULT_META_ENGINES_PREFERENCE_LIST:
+            for e in self._engines.keys():
+                if e.startswith(f"{name}["):
+                    self._preference_list.append(e)
         self.configure_from_file()
 
     @property
@@ -153,6 +176,19 @@ class Factory:
     def add_engine(self, name: str, module_name: str, class_name: str):
         self._add_engine(name, module_name, class_name)
         self._preference_list.append(name)
+        engine = self._engines[name]
+        for me_name, me in self._meta_engines.items():
+            if me.is_compatible_engine(engine):
+                n = f"{me_name}[{name}]"
+                self._engines[n] = me[engine]
+                self._preference_list.append(n)
+
+    def add_meta_engine(self, name: str, module_name: str, class_name: str):
+        for engine_name, engine in self._engines.items():
+            self._add_meta_engine(name, module_name, class_name, engine_name, engine)
+            n = f"{name}[{engine_name}]"
+            if n in self.engines:
+                self._preference_list.append(n)
 
     def configure_from_file(self, config_filename: Optional[str] = None):
         """
@@ -199,6 +235,25 @@ class Factory:
 
             self.add_engine(name, module_name, class_name)
 
+        new_meta_engine_sections = [
+            s for s in config.sections() if s.lower().startswith("meta-engine ")
+        ]
+
+        for s in new_meta_engine_sections:
+            name = s[len("meta-engine ") :]
+
+            module_name = config.get(s, "module_name")
+            assert module_name is not None, (
+                "Missing 'module_name' value in definition of '%s' meta-engine" % name
+            )
+
+            class_name = config.get(s, "class_name")
+            assert class_name is not None, (
+                "Missing 'class_name' value in definition of '%s' meta-engine" % name
+            )
+
+            self.add_meta_engine(name, module_name, class_name)
+
         if "global" in config.sections():
             pref_list = config.get("global", "engine_preference_list")
 
@@ -210,6 +265,23 @@ class Factory:
         module = importlib.import_module(module_name)
         EngineImpl = getattr(module, class_name)
         self._engines[name] = EngineImpl
+
+    def _add_meta_engine(
+        self,
+        name: str,
+        module_name: str,
+        class_name: str,
+        engine_name: str,
+        engine: Type["up.engines.engine.Engine"],
+    ):
+        if name in self._meta_engines:
+            EngineImpl = self._meta_engines[name]
+        else:
+            module = importlib.import_module(module_name)
+            EngineImpl = getattr(module, class_name)
+            self._meta_engines[name] = EngineImpl
+        if EngineImpl.is_compatible_engine(engine):
+            self._engines[f"{name}[{engine_name}]"] = EngineImpl[engine]
 
     def _get_engine_class(
         self,

@@ -14,6 +14,7 @@
 #
 """This module defines the meta engine interface."""
 
+from unified_planning.exceptions import UPUsageError
 from unified_planning.engines.engine import Engine, EngineMeta
 from unified_planning.model import ProblemKind
 from functools import partial
@@ -22,10 +23,22 @@ from typing import Type
 
 class MetaEngineMeta(EngineMeta):
     def __getitem__(self, engine_class: Type[Engine]):
-        self._engine_class = engine_class
-        setattr(self, "supported_kind", partial(self._supported_kind, engine=engine_class))  # type: ignore
-        setattr(self, "supports", partial(self._supports, engine=engine_class))  # type: ignore
-        return self
+        assert issubclass(self, MetaEngine)
+        if not self.is_compatible_engine(engine_class):  # type: ignore
+            raise UPUsageError(f"{engine_class.name} is not compatible with the meta engine {self.name}")  # type: ignore
+
+        class MetaEngineImpl(self):
+            _engine_class = engine_class
+
+            @staticmethod
+            def supported_kind() -> ProblemKind:
+                return self._supported_kind(engine_class)  # type: ignore
+
+            @staticmethod
+            def supports(problem_kind: ProblemKind) -> bool:
+                return self._supports(problem_kind, engine_class)  # type: ignore
+
+        return MetaEngineImpl
 
 
 class MetaEngine(Engine, metaclass=MetaEngineMeta):
@@ -35,6 +48,10 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
     @property
     def engine(self) -> Engine:
         return self._engine
+
+    @staticmethod
+    def is_compatible_engine(engine: Type[Engine]) -> bool:
+        raise NotImplementedError
 
     @staticmethod
     def _supported_kind(engine: Type[Engine]) -> ProblemKind:
