@@ -69,7 +69,10 @@ class SimulatorMixin:
         return self._is_applicable(event, state)
 
     def _is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
-        raise NotImplementedError
+        return (
+            len(self.get_unsatisfied_conditions(event, state, early_termination=True))
+            == 0
+        )
 
     def get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
@@ -82,7 +85,7 @@ class SimulatorMixin:
         :return: The list of all the event conditions that evaluated to False or the list containing the first condition evaluated to False if the flag "early_termination" is set.
         """
         return self._get_unsatisfied_conditions(
-            event, early_termination=early_termination
+            event, state, early_termination=early_termination
         )
 
     def _get_unsatisfied_conditions(
@@ -181,7 +184,7 @@ class SimulatorMixin:
         return self._is_goal(state)
 
     def _is_goal(self, state: "up.model.ROState") -> bool:
-        raise NotImplementedError
+        return len(self.get_unsatisfied_goals(state, early_termination=True)) == 0
 
     def get_unsatisfied_goals(
         self, state: "up.model.ROState", early_termination: bool = False

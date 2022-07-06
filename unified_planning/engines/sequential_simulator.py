@@ -89,19 +89,6 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 raise NotImplementedError
         self._se = StateEvaluator(self._problem)
 
-    def _is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
-        """
-        Returns True if the given event conditions are evaluated as True in the given state;
-        returns False otherwise.
-        :param state: the state where the event conditions are checked.
-        :param event: the event whose conditions are checked.
-        :return: Whether or not the event is applicable in the given state.
-        """
-        return (
-            len(self._get_unsatisfied_conditions(event, state, early_termination=True))
-            == 0
-        )
-
     def _get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
@@ -239,9 +226,6 @@ class SequentialSimulator(Engine, SimulatorMixin):
             self._problem.env.expression_manager.auto_promote(parameters)
         )
         return self._events.get((action, tuple(params_exp)), [])
-
-    def _is_goal(self, state: "up.model.ROState") -> bool:
-        return len(self._get_unsatisfied_goals(state, early_termination=True)) == 0
 
     def _get_unsatisfied_goals(
         self, state: "up.model.ROState", early_termination: bool = False
