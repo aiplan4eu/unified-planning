@@ -20,7 +20,8 @@ import unified_planning.engines.results
 from unified_planning.model import ProblemKind
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
-from typing import Type, IO, Callable, Optional, Union
+from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from typing import Type, IO, Callable, Optional, Union, List, Tuple
 from itertools import chain, combinations
 from queue import PriorityQueue
 from fractions import Fraction
@@ -95,12 +96,12 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         if len(problem.quality_metrics) == 0:
-            goals = []
+            goals: List[Tuple["up.model.FNode", Union[Fraction, int]]] = []
         else:
             assert len(problem.quality_metrics) == 1
             qm = problem.quality_metrics[0]
             assert isinstance(qm, up.model.metrics.Oversubscription)
-            goals = qm.goals
+            goals = list(qm.goals.items())
         q: PriorityQueue = PriorityQueue()
         for l in powerset(goals):
             cost: Union[Fraction, int] = 0

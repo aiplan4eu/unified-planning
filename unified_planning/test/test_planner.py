@@ -213,13 +213,19 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions[3].actual_parameters), 1)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
+        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+    )
     def test_robot_loader_adv(self):
         problem = self.problems["robot_loader_adv"].problem
         move = problem.action("move")
         load = problem.action("load")
         unload = problem.action("unload")
 
-        with OneshotPlanner(problem_kind=problem.kind) as planner:
+        with OneshotPlanner(
+            problem_kind=problem.kind,
+            optimality_guarantee=PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+        ) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
