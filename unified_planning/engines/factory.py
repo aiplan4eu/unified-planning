@@ -166,7 +166,7 @@ class Factory:
         self._engines = {}
         engines_info = list(self._engines_info)
         self._engines_info = []
-        for name, module_name, class_name in self._engines_info:
+        for name, module_name, class_name in engines_info:
             self._add_engine(name, module_name, class_name)
         engines = dict(self._engines)
         meta_engines_info = list(self._meta_engines_info)

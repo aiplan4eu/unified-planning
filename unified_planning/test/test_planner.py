@@ -219,9 +219,7 @@ class TestPlanner(TestCase):
         load = problem.action("load")
         unload = problem.action("unload")
 
-        with OneshotPlanner(
-            problem_kind=problem.kind, optimality_guarantee="SOLVED_OPTIMALLY"
-        ) as planner:
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
