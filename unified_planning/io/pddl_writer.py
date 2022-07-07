@@ -652,9 +652,9 @@ class PDDLWriter:
             metric = metrics[0]
             out.write(" (:metric ")
             if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
-                out.write(f"minimize {metric.expression}")
+                out.write(f"minimize {converter.convert(metric.expression)}")
             elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                out.write(f"maximize {metric.expression}")
+                out.write(f"maximize {converter.convert(metric.expression)}")
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts) or isinstance(
                 metric, up.model.metrics.MinimizeSequentialPlanLength
             ):
