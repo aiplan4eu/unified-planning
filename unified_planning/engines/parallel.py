@@ -44,14 +44,12 @@ class Parallel(
         factory: "up.engines.factory.Factory",
         engines: List[Tuple[str, Dict[str, str]]],
     ):
-        self.engines = []
-        for name, opts in engines:
-            self.engines.append((factory._engines[name], opts))
-        self._name = f"Parallel[{', '.join(n for n, _ in engines)}]"
+        self.engines = engines
+        self._factory = factory
 
     @property
     def name(self) -> str:
-        return self._name
+        return "Parallel"
 
     @staticmethod
     def supports(problem_kind: "ProblemKind") -> bool:
@@ -61,12 +59,20 @@ class Parallel(
     def _run_parallel(self, fname, *args) -> List[Result]:
         signaling_queue: Queue = Queue()
         processes = []
-        for idx, (engine_class, opts) in enumerate(self.engines):
+        for idx, (engine_name, opts) in enumerate(self.engines):
             options = opts
             _p = Process(
                 name=str(idx),
                 target=_run,
-                args=(idx, engine_class, options, signaling_queue, fname, *args),
+                args=(
+                    idx,
+                    self._factory,
+                    engine_name,
+                    options,
+                    signaling_queue,
+                    fname,
+                    *args,
+                ),
             )
             processes.append(_p)
             _p.start()
@@ -103,7 +109,8 @@ class Parallel(
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
-        for engine, _ in self.engines:
+        for engine_name, _ in self.engines:
+            engine = self._factory._engines[engine_name]
             assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
             if not engine.supports(problem.kind):
                 raise UPUsageError(
@@ -168,7 +175,8 @@ class Parallel(
     def _validate(
         self, problem: "up.model.AbstractProblem", plan: Plan
     ) -> "up.engines.results.ValidationResult":
-        for engine, _ in self.engines:
+        for engine_name, _ in self.engines:
+            engine = self._factory._engines[engine_name]
             assert issubclass(engine, engines.mixins.PlanValidatorMixin)
             if not engine.supports(problem.kind):
                 raise UPUsageError(
@@ -179,12 +187,14 @@ class Parallel(
 
 def _run(
     idx: int,
-    EngineClass: type,
+    factory: "up.engines.factory.Factory",
+    engine_name: str,
     options: Dict[str, str],
     signaling_queue: Queue,
     fname: str,
     *args,
 ):
+    EngineClass = factory._engines[engine_name]
     with EngineClass(**options) as s:
         try:
             local_res = getattr(s, fname)(*args)
