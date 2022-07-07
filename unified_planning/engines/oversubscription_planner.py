@@ -41,6 +41,10 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         return f"OversubscriptionPlanner[{self.engine.name}]"
 
     @staticmethod
+    def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
+        return True
+
+    @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
         return engine.is_oneshot_planner()  # type: ignore
 
@@ -90,11 +94,13 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     ) -> "up.engines.results.PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
-        goals = []
-        for qm in problem.quality_metrics:
+        if len(problem.quality_metrics) == 0:
+            goals = []
+        else:
+            assert len(problem.quality_metrics) == 1
+            qm = problem.quality_metrics[0]
             assert isinstance(qm, up.model.metrics.Oversubscription)
-            for g, c in qm.goals.items():
-                goals.append((g, c))
+            goals = qm.goals
         q: PriorityQueue = PriorityQueue()
         for l in powerset(goals):
             cost: Union[Fraction, int] = 0
