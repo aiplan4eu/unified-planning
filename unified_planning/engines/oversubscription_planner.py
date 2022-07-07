@@ -32,8 +32,8 @@ def powerset(iterable):
 
 
 class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
-    def __init__(self):
-        MetaEngine.__init__(self)
+    def __init__(self, *args, **kwargs):
+        MetaEngine.__init__(self, *args, **kwargs)
         mixins.OneshotPlannerMixin.__init__(self)
 
     @property

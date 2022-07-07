@@ -27,8 +27,6 @@ class MetaEngineMeta(EngineMeta):
         if not self.is_compatible_engine(engine_class):  # type: ignore
             raise UPUsageError(f"{engine_class.name} is not compatible with the meta engine {self.name}")  # type: ignore
 
-        global MetaEngineImpl
-
         class MetaEngineImpl(self):  # type: ignore
             _engine_class = engine_class
 

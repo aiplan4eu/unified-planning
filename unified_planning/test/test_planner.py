@@ -17,9 +17,11 @@ import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
+    basic_classical_kind,
     classical_kind,
     basic_numeric_kind,
     quality_metrics_kind,
+    oversubscription_kind,
 )
 from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
@@ -77,6 +79,43 @@ class TestPlanner(TestCase):
 
         with OneshotPlanner(
             names=["tamer", "tamer"],
+            params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
+        ) as planner:
+            self.assertNotEqual(planner, None)
+            final_report = planner.solve(problem)
+            plan = final_report.plan
+            self.assertEqual(
+                final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+            )
+            self.assertEqual(len(plan.actions), 1)
+            self.assertEqual(plan.actions[0].action, a)
+            self.assertEqual(len(plan.actions[0].actual_parameters), 0)
+
+    @skipIfNoOneshotPlannerForProblemKind(
+        basic_classical_kind.union(oversubscription_kind)
+    )
+    def test_basic_oversubscription(self):
+        problem = self.problems["basic_oversubscription"].problem
+        a = problem.action("a")
+
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
+            self.assertNotEqual(planner, None)
+            final_report = planner.solve(problem)
+            plan = final_report.plan
+            self.assertEqual(
+                final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+            )
+            self.assertEqual(len(plan.actions), 1)
+            self.assertEqual(plan.actions[0].action, a)
+            self.assertEqual(len(plan.actions[0].actual_parameters), 0)
+
+    @skipIfEngineNotAvailable("tamer")
+    def test_basic_oversubscription_parallel(self):
+        problem = self.problems["basic_oversubscription"].problem
+        a = problem.action("a")
+
+        with OneshotPlanner(
+            names=["oversubscription[tamer]", "oversubscription[tamer]"],
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
         ) as planner:
             self.assertNotEqual(planner, None)

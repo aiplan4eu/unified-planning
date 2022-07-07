@@ -564,7 +564,11 @@ class ProtobufWriter(Converter):
     ) -> proto.Metric:
         goals = []
         for g, c in metric.goals.items():
-            goals.append(proto.GoalWithCost(goal=self.convert(g), cost=self.convert(c)))
+            goals.append(
+                proto.GoalWithCost(
+                    goal=self.convert(g), cost=self.convert(fractions.Fraction(c))
+                )
+            )
         return proto.Metric(
             kind=proto.Metric.OVERSUBSCRIPTION,
             goals=goals,

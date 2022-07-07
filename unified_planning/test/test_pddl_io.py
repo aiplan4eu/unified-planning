@@ -400,6 +400,7 @@ class TestPddlIO(TestCase):
             if (
                 kind.has_intermediate_conditions_and_effects()
                 or kind.has_object_fluents()
+                or kind.has_oversubscription()
             ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:

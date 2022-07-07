@@ -40,13 +40,18 @@ class Parallel(
     """Create a parallel instance of multiple Engines."""
 
     def __init__(
-        self, engines: List[Tuple[Type[engines.engine.Engine], Dict[str, str]]]
+        self,
+        factory: "up.engines.factory.Factory",
+        engines: List[Tuple[str, Dict[str, str]]],
     ):
-        self.engines = engines
+        self.engines = []
+        for name, opts in engines:
+            self.engines.append((factory._engines[name], opts))
+        self._name = f"Parallel[{', '.join(n for n, _ in engines)}]"
 
     @property
     def name(self) -> str:
-        return "Parallel"
+        return self._name
 
     @staticmethod
     def supports(problem_kind: "ProblemKind") -> bool:
@@ -178,7 +183,7 @@ def _run(
     options: Dict[str, str],
     signaling_queue: Queue,
     fname: str,
-    *args
+    *args,
 ):
     with EngineClass(**options) as s:
         try:

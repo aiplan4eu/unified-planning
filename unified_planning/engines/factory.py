@@ -128,7 +128,9 @@ class Factory:
     def __init__(self, env: "Environment"):
         self._env = env
         self._engines: Dict[str, Type["up.engines.engine.Engine"]] = {}
+        self._engines_info: List[Tuple[str, str, str]] = []
         self._meta_engines: Dict[str, Type["up.engines.meta_engine.MetaEngine"]] = {}
+        self._meta_engines_info: List[Tuple[str, str, str]] = []
         self._credit_disclaimer_printed = False
         for name, (module_name, class_name) in DEFAULT_ENGINES.items():
             try:
@@ -153,6 +155,27 @@ class Factory:
                 if e.startswith(f"{name}["):
                     self._preference_list.append(e)
         self.configure_from_file()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["_engines"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._engines = {}
+        engines_info = list(self._engines_info)
+        self._engines_info = []
+        for name, module_name, class_name in self._engines_info:
+            self._add_engine(name, module_name, class_name)
+        engines = dict(self._engines)
+        meta_engines_info = list(self._meta_engines_info)
+        self._meta_engines_info = []
+        for name, module_name, class_name in meta_engines_info:
+            for engine_name, engine in engines.items():
+                self._add_meta_engine(
+                    name, module_name, class_name, engine_name, engine
+                )
 
     @property
     def engines(self) -> List[str]:
@@ -265,6 +288,7 @@ class Factory:
         module = importlib.import_module(module_name)
         EngineImpl = getattr(module, class_name)
         self._engines[name] = EngineImpl
+        self._engines_info.append((name, module_name, class_name))
 
     def _add_meta_engine(
         self,
@@ -280,6 +304,7 @@ class Factory:
             module = importlib.import_module(module_name)
             EngineImpl = getattr(module, class_name)
             self._meta_engines[name] = EngineImpl
+            self._meta_engines_info.append((name, module_name, class_name))
         if EngineImpl.is_compatible_engine(engine):
             self._engines[f"{name}[{engine_name}]"] = EngineImpl[engine]
 
@@ -440,9 +465,9 @@ class Factory:
             for name, param in zip(names, params):
                 EngineClass = self._get_engine_class(engine_kind, name)
                 all_credits.append(EngineClass.get_credits(**param))
-                engines.append((EngineClass, param))
+                engines.append((name, param))
             self._print_credits(all_credits)
-            p_engine = up.engines.parallel.Parallel(engines)
+            p_engine = up.engines.parallel.Parallel(self, engines)
             return p_engine
         else:
             if params is None:
