@@ -180,6 +180,7 @@ temporal_kind.set_time("DURATION_INEQUALITIES")
 temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
 
 quality_metrics_kind = ProblemKind()
+quality_metrics_kind.set_quality_metrics("PLAN_LENGTH")
 quality_metrics_kind.set_quality_metrics("ACTIONS_COST")
 quality_metrics_kind.set_quality_metrics("FINAL_VALUE")
 

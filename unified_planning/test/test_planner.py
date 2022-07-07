@@ -29,6 +29,7 @@ from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuara
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
 from unified_planning.engines.results import POSITIVE_OUTCOMES
+from unified_planning.model.metrics import MinimizeSequentialPlanLength
 
 
 class TestPlanner(TestCase):
@@ -212,19 +213,20 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions[2].actual_parameters), 2)
             self.assertEqual(len(plan.actions[3].actual_parameters), 1)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
         PlanGenerationResultStatus.SOLVED_OPTIMALLY
     )
     def test_robot_loader_adv(self):
-        problem = self.problems["robot_loader_adv"].problem
+        problem = self.problems["robot_loader_adv"].problem.clone()
+        problem.add_quality_metric(MinimizeSequentialPlanLength())
+
         move = problem.action("move")
         load = problem.action("load")
         unload = problem.action("unload")
 
         with OneshotPlanner(
-            problem_kind=problem.kind,
-            optimality_guarantee=PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+            problem_kind=problem.kind, optimality_guarantee="SOLVED_OPTIMALLY"
         ) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
