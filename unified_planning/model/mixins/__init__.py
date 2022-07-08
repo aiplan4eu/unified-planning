@@ -14,8 +14,10 @@
 #
 
 from unified_planning.model.mixins.actions_set import ActionsSetMixin
+from unified_planning.model.mixins.agents_set import AgentsSetMixin
 from unified_planning.model.mixins.fluents_set import FluentsSetMixin
 from unified_planning.model.mixins.objects_set import ObjectsSetMixin
 from unified_planning.model.mixins.user_types_set import UserTypesSetMixin
 
-__all__ = ["ActionsSetMixin", "FluentsSetMixin", "ObjectsSetMixin", "UserTypesSetMixin"]
+
+__all__ = ["ActionsSetMixin", "AgentsSetMixin", "FluentsSetMixin", "ObjectsSetMixin", "UserTypesSetMixin"]

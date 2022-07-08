@@ -53,13 +53,13 @@ class ObjectsSetMixin:
 
         Examples
         --------
-        >>> from unified_planning.shortcuts import *
-        >>> problem = Problem()
-        >>> cup = UserType("Cup")
-        >>> o1 = Object("o1", cup)  # creates a new object o1
-        >>> problem.add_object(o1)  # adds it to the problem
+        #>>> from unified_planning.shortcuts import *
+        #>>> problem = Problem()
+        #>>> cup = UserType("Cup")
+        #>>> o1 = Object("o1", cup)  # creates a new object o1
+        #>>> problem.add_object(o1)  # adds it to the problem
         o1
-        >>> o2 = problem.add_object("o2", cup)  # alternative syntax to create a new object and add it to the problem.
+        #>>> o2 = problem.add_object("o2", cup)  # alternative syntax to create a new object and add it to the problem.
         """
         if isinstance(obj_or_name, up.model.object.Object):
             assert typename is None

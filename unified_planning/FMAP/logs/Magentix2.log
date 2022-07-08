@@ -1,0 +1,170 @@
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID agplanner(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID aggrinder(PlanningAgent) already exists on the platform
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - depot0(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent3(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID ce18(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID fast0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID fast0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID fast0(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - driver1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - driver1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - driver1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - driver1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  connect() aborted
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID driver1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+Thread-7 ERROR core.BaseAgent - depot0(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID ag1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID ag1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID ag1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID driver1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - depot0(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-6 ERROR core.BaseAgent - distributor0(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - depot0(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID depot0(PlanningAgent) already exists on the platform
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-7 ERROR core.BaseAgent - tru2(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID apn1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID tru3(PlanningAgent) already exists on the platform
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID apn1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID tru3(PlanningAgent) already exists on the platform
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - apn1(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID apn1(PlanningAgent) already exists on the platform
+Thread-8 ERROR core.BaseAgent - tru3(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-5 ERROR core.BaseAgent - cen(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID r0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID r0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID agsaw(PlanningAgent) already exists on the platform
+Thread-7 ERROR core.BaseAgent - r2(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - cent(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionException: close() timed out
+Thread-6 ERROR core.BaseAgent - agplanner(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionException: close() timed out
+Thread-8 ERROR core.BaseAgent - agvarnisher(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID agplanner(PlanningAgent) already exists on the platform
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-8 ERROR core.BaseAgent - agvarnisher(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-7 ERROR core.BaseAgent - agsaw(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-7 ERROR core.BaseAgent - agsaw(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-6 ERROR core.BaseAgent - agplanner(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-6 ERROR core.BaseAgent - agplanner(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-7 ERROR core.BaseAgent - agsaw(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-7 ERROR core.BaseAgent - agsaw(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-8 ERROR core.BaseAgent - agvarnisher(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-5 ERROR core.BaseAgent - aggrinder(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-8 ERROR core.BaseAgent - agvarnisher(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-8 ERROR core.BaseAgent - agvarnisher(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-6 ERROR core.BaseAgent - agplanner(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+Thread-6 ERROR core.BaseAgent - agplanner(PlanningAgent) ended execution incorrectly: org.apache.qpid.transport.SessionClosedException: session closed
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID valet1(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Error connecting to broker
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID cent(PlanningAgent) already exists on the platform
+IoReceiver - localhost/127.0.0.1:5672 ERROR core.BaseAgent - r0(PlanningAgent) ended execution incorrectly: java.lang.NullPointerException
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID r0(PlanningAgent) already exists on the platform
+AWT-EventQueue-0 ERROR agents.MAPboot - Error  Agent ID r0(PlanningAgent) already exists on the platform

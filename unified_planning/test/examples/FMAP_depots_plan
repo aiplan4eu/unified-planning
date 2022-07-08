@@ -1,0 +1,31 @@
+; Hdtg = 0, Hlan = 0
+; Hdtg = 12, Hlan = 12
+; Hdtg = 12, Hlan = 12
+; Hdtg = 31, Hlan = 8
+; Hdtg = 10, Hlan = 8
+; Hdtg = 20, Hlan = 5
+; Hdtg = 6, Hlan = 5
+; Hdtg = 7, Hlan = 4
+; Hdtg = 6, Hlan = 5
+; Hdtg = 18, Hlan = 5
+; Hdtg = 5, Hlan = 5
+; Hdtg = 4, Hlan = 4
+; Hdtg = 3, Hlan = 4
+; Hdtg = 2, Hlan = 2
+; Hdtg = 1, Hlan = 1
+; Hdtg = 0, Hlan = 0
+
+; Solution plan - CoDMAP Distributed format
+; -----------------------------------------
+0: (LiftP hoist0 crate1 pallet0 depot0)
+0: (LiftP hoist1 crate0 pallet1 distributor0)
+6: (DropP hoist1 crate1 pallet1 distributor0)
+8: (DropP hoist2 crate0 pallet2 distributor1)
+1: (Load truck1 depot0 crate1 hoist0)
+2: (Drive truck1 depot0 distributor1)
+3: (Drive truck1 distributor1 distributor0)
+4: (Load truck1 distributor0 crate0 hoist1)
+5: (Unload truck1 distributor0 crate1 hoist1)
+6: (Drive truck1 distributor0 distributor1)
+7: (Unload truck1 distributor1 crate0 hoist2)
+; Stopping...

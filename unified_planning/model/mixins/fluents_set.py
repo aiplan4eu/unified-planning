@@ -99,15 +99,15 @@ class FluentsSetMixin:
 
         Example
         --------
-        >>> from unified_planning.shortcuts import *
-        >>> problem = Problem()
-        >>> location = UserType("Location")
-        >>> at_loc = Fluent("at_loc", BoolType(), l=location)  # creates a new fluent
-        >>> problem.add_fluent(at_loc)  # adds it to the problem
+        #>>> from unified_planning.shortcuts import *
+        #>>> problem = Problem()
+        #>>> location = UserType("Location")
+        #>>> at_loc = Fluent("at_loc", BoolType(), l=location)  # creates a new fluent
+        #>>> problem.add_fluent(at_loc)  # adds it to the problem
         bool at_loc[l=Location]
-        >>> problem.add_fluent("connected", BoolType(), l1=location, l2=location)  # creates a new fluent and add it to the problem.
+        #>>> problem.add_fluent("connected", BoolType(), l1=location, l2=location)  # creates a new fluent and add it to the problem.
         bool connected[l1=Location, l2=Location]
-        >>>
+        #>>>
         """
         if isinstance(fluent_or_name, up.model.fluent.Fluent):
             assert len(kwargs) == 0 and typename is None

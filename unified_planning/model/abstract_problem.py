@@ -47,6 +47,7 @@ class AbstractProblem:
 
     def has_name(self, name: str) -> bool:
         """Returns True iff the given name is already used inside this problem."""
+        print(name, "ooooooooooooooo")
         raise NotImplementedError
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":

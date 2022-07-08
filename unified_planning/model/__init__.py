@@ -58,6 +58,9 @@ from unified_planning.model.types import Type, TypeManager
 from unified_planning.model.variable import Variable, FreeVarsOracle
 import unified_planning.model.metrics
 
+from unified_planning.model.agent import Agent
+
+
 __all__ = [
     "Action",
     "InstantaneousAction",
@@ -101,4 +104,5 @@ __all__ = [
     "TypeManager",
     "Variable",
     "FreeVarsOracle",
+    "Agent",
 ]

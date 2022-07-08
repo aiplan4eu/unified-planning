@@ -1,0 +1,15 @@
+truck0
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/domain_robots_truck
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/ problem_robots_truck0
+truck1
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/domain_robots_truck
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/ problem_robots_truck1
+depot0
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/domain_robots_depot
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/ problem_robots_depot0
+distributor0
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/domain_robots_depot
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/ problem_robots_distributor0
+distributor1
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/domain_robots_depot
+/home/alee8/Scaricati/FMAP/Domains/depots/Pfile01/generato/ problem_robots_distributor1

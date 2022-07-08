@@ -1,0 +1,15 @@
+trunck0
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/DomainDepotsTruck.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/ProblemDepotstruck0.pddl
+trunck1
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/DomainDepotsTruck.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/ProblemDepotstruck1.pddl
+depot0
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/DomainDepotsDepot.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/ProblemDepotsdepot0.pddl
+distributor0
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/DomainDepotsDepot.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/ProblemDepotsdistributor0.pddl
+distributor1
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/DomainDepotsDepot.pddl
+/home/alee8/Scrivania/unified-planning/unified_planning/FMAP/Domains/depots/Pfile01/ProblemDepotsdistributor1.pddl

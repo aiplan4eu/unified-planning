@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Created-By: 1.7.0_25 (Oracle Corporation)
+Main-Class: org.agreement_technologies.agents.MAPboot
