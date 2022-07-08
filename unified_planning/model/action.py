@@ -262,7 +262,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.is_compatible(value_exp):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
         self._add_effect_instance(
             up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
@@ -283,7 +283,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.is_compatible(value_exp):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
         self._add_effect_instance(
             up.model.effect.Effect(
@@ -309,7 +309,7 @@ class InstantaneousAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.is_compatible(value_exp):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
         self._add_effect_instance(
             up.model.effect.Effect(
@@ -679,7 +679,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.is_compatible(value_exp):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
         self._add_effect_instance(
             timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
@@ -701,7 +701,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.is_compatible(value_exp):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
         self._add_effect_instance(
             timing,
@@ -729,7 +729,7 @@ class DurativeAction(Action):
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.is_compatible(value_exp):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
         self._add_effect_instance(
             timing,
