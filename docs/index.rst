@@ -20,6 +20,8 @@ The library is being developed publicly under a permissive open-source license (
 
 Check out our :ref:`Getting Started Guide <getting-started>` and the full :ref:`API Reference <api-ref>`.
 
+Github page of the project available :ref:`here<https://unified-planning.readthedocs.io/en/latest/>`.
+
 
 Table of Contents
 =================

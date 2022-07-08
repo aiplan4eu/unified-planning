@@ -37,6 +37,9 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
         print("No plan found.")
 ```
 
+## Documentation
+
+The documentation is available [here](https://unified-planning.readthedocs.io/en/latest/)
 
 ## Notebooks
 
