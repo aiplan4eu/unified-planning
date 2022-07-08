@@ -14,6 +14,7 @@
 
 import unittest
 import unified_planning as up
+import importlib
 from functools import wraps
 from unified_planning.environment import get_env
 from unified_planning.model import ProblemKind
@@ -105,6 +106,28 @@ class skipIfNoPlanValidatorForProblemKind(object):
             get_env().factory._get_engine_class(
                 "plan_validator", problem_kind=self.kind
             )
+        except:
+            cond = True
+
+        @unittest.skipIf(cond, msg)
+        @wraps(test_fun)
+        def wrapper(*args, **kwargs):
+            return test_fun(*args, **kwargs)
+
+        return wrapper
+
+
+class skipIfModuleNotInstalled(object):
+    """Skip a test if there are no oneshot planner for the given problem kind."""
+
+    def __init__(self, module_name: str):
+        self.module_name = module_name
+
+    def __call__(self, test_fun):
+        msg = f"no module named {self.module_name} installed"
+        cond = False
+        try:
+            importlib.import_module(self.module_name)
         except:
             cond = True
 

@@ -56,6 +56,9 @@ class TestCredits(TestCase):
         credits_printed = credits.getvalue()
         # test that every keyword occur the same number of time in the printed result
         number_of_credits_printed = credits_printed.count(credits_keywords[0])
-        for keyword in credits_keywords:
-            self.assertIn(keyword, credits_printed)
-            self.assertEqual(credits_printed.count(keyword), number_of_credits_printed)
+        if number_of_credits_printed > 0:  # If at least one credit was printed
+            for keyword in credits_keywords:
+                self.assertIn(keyword, credits_printed)
+                self.assertEqual(
+                    credits_printed.count(keyword), number_of_credits_printed
+                )
