@@ -12,12 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-try:
-    import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
-    from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
-    from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
-except:
-    pass
+
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.engines import LogMessage, CompilationKind
@@ -32,13 +27,16 @@ from unified_planning.plans import ActionInstance
 
 
 class TestProtobufIO(TestCase):
+    @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
+        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_fluent(self):
         problem = Problem("test")
         x = Fluent("x")
@@ -53,7 +51,6 @@ class TestProtobufIO(TestCase):
         self.assertEqual(x_up.name, "x")
         self.assertEqual(x_up.type, BoolType())
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_fluent_2(self):
         problem = self.problems["robot"].problem
 
@@ -62,7 +59,6 @@ class TestProtobufIO(TestCase):
             f_up = self.pb_reader.convert(f_pb, problem)
             self.assertEqual(f, f_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_fluent_3(self):
         """Test to handle subtypes of usertypes of Fluent Expression"""
         problem = self.problems["hierarchical_blocks_world"].problem
@@ -72,7 +68,6 @@ class TestProtobufIO(TestCase):
             f_up = self.pb_reader.convert(f_pb, problem)
             self.assertEqual(f, f_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_objects(self):
         """Test to handle subtypes of usertypes of Fluent Expression"""
         problem = self.problems["hierarchical_blocks_world"].problem
@@ -83,7 +78,6 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(o, o_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_expression(self):
         problem = Problem("test")
         ex = problem.env.expression_manager.true_expression
@@ -98,7 +92,6 @@ class TestProtobufIO(TestCase):
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertEqual(ex, ex_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_fluent_expressions(self):
         problem = self.problems["hierarchical_blocks_world"].problem
         problem_pb = self.pb_writer.convert(problem)
@@ -106,7 +99,6 @@ class TestProtobufIO(TestCase):
 
         self.assertEqual(problem, problem_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_type_declaration(self):
         problem = Problem("test")
         ex = UserType("object")
@@ -122,7 +114,6 @@ class TestProtobufIO(TestCase):
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertEqual(ex, ex_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_object_declaration(self):
         problem = Problem("test")
         loc_type = UserType("location")
@@ -131,8 +122,9 @@ class TestProtobufIO(TestCase):
         obj_up = self.pb_reader.convert(obj_pb, problem)
         self.assertEqual(obj, obj_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_problem(self):
+        import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
+
         problem = self.problems["robot"].problem
 
         problem_pb = self.pb_writer.convert(problem)
@@ -144,7 +136,6 @@ class TestProtobufIO(TestCase):
         self.assertEqual(set(problem.kind.features), pb_features)
         self.assertEqual(problem, problem_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_action(self):
         problem = self.problems["robot"].problem
         action = problem.action("move")
@@ -154,7 +145,6 @@ class TestProtobufIO(TestCase):
 
         self.assertEqual(action, action_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_durative_action(self):
         problem = self.problems["matchcellar"].problem
         action = problem.action("mend_fuse")
@@ -164,7 +154,6 @@ class TestProtobufIO(TestCase):
 
         self.assertEqual(action, action_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_action_instance(self):
         problem = self.problems["robot"].problem
         plan = self.problems["robot"].plan
@@ -178,7 +167,6 @@ class TestProtobufIO(TestCase):
             action_instance.actual_parameters, action_instance_up.actual_parameters
         )
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_plan(self):
         problem = self.problems["robot"].problem
         plan = self.problems["robot"].plan
@@ -188,7 +176,6 @@ class TestProtobufIO(TestCase):
 
         self.assertEqual(plan, plan_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_time_triggered_plan(self):
         problem = self.problems["temporal_conditional"].problem
         plan = self.problems["temporal_conditional"].plan
@@ -198,7 +185,6 @@ class TestProtobufIO(TestCase):
 
         self.assertEqual(plan, plan_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_metric(self):
         problem = Problem("test")
         problem.add_quality_metric(metric=MinimizeSequentialPlanLength())
@@ -220,7 +206,6 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(str(metric), str(metric_up))
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_log_message(self):
         def assert_log(log):
             logger_pb = self.pb_writer.convert(log)
@@ -236,7 +221,6 @@ class TestProtobufIO(TestCase):
         log = LogMessage(LogLevel.ERROR, "test message")
         assert_log(log)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     @skipIfEngineNotAvailable("tamer")
     def test_plan_generation(self):
         problem = self.problems["robot"].problem
@@ -250,7 +234,6 @@ class TestProtobufIO(TestCase):
 
             self.assertEqual(final_report, final_report_up)
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_compiler_result(self):
         problem, _ = self.problems["hierarchical_blocks_world"]
         with Compiler(name="up_grounder") as grounder:
@@ -278,7 +261,6 @@ class TestProtobufIO(TestCase):
                     original_action_instance_up.actual_parameters,
                 )
 
-    @skipIfModuleNotInstalled("google.protobuf")
     @skipIfEngineNotAvailable("tamer")
     def test_validation_result(self):
         problem = self.problems["robot"].problem
@@ -296,13 +278,16 @@ class TestProtobufIO(TestCase):
 
 
 class TestProtobufProblems(TestCase):
+    @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
+        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_all_problems(self):
         for name, example in self.problems.items():
             problem = example.problem
@@ -312,7 +297,6 @@ class TestProtobufProblems(TestCase):
             self.assertEqual(problem, problem_up)
             self.assertEqual(hash(problem), hash(problem_up))
 
-    @skipIfModuleNotInstalled("google.protobuf")
     def test_all_plans(self):
         for name, example in self.problems.items():
             problem = example.problem
@@ -323,7 +307,6 @@ class TestProtobufProblems(TestCase):
             self.assertEqual(plan, plan_up)
             self.assertEqual(hash(plan), hash(plan_up))
 
-    @skipIfModuleNotInstalled("google.protobuf")
     @skipIfEngineNotAvailable("tamer")
     def test_some_plan_generations(self):
         problems = [

@@ -20,9 +20,9 @@ from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, skipIfEngineNotAvailable
 
 
-@skipIfEngineNotAvailable("pyperplan")
-@skipIfEngineNotAvailable("tamer")
 class TestFactory(TestCase):
+    @skipIfEngineNotAvailable("pyperplan")
+    @skipIfEngineNotAvailable("tamer")
     def test_config_file(self):
         self.assertTrue("pyperplan" in get_env().factory.preference_list)
         with tempfile.TemporaryDirectory() as tempdir:
