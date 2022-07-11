@@ -518,7 +518,7 @@ class PDDLWriter:
 
                     if a in costs:
                         out.write(
-                            f" (increase total-cost {converter.convert(costs[a])})"
+                            f" (increase (total-cost) {converter.convert(costs[a])})"
                         )
                     out.write(")")
                 out.write(")\n")
@@ -594,7 +594,7 @@ class PDDLWriter:
                             out.write(")")
                     if a in costs:
                         out.write(
-                            f" (at end (increase total-cost {converter.convert(costs[a])}))"
+                            f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
                         )
                     out.write(")")
                 out.write(")\n")
@@ -642,7 +642,7 @@ class PDDLWriter:
             else:
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
         if self.problem.kind.has_actions_cost():
-            out.write(f" (= total-cost 0)")
+            out.write(f" (= (total-cost) 0)")
         out.write(")\n")
         out.write(
             f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
@@ -658,9 +658,9 @@ class PDDLWriter:
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts) or isinstance(
                 metric, up.model.metrics.MinimizeSequentialPlanLength
             ):
-                out.write(f"minimize total-cost")
+                out.write(f"minimize (total-cost)")
             elif isinstance(metric, up.model.metrics.MinimizeMakespan):
-                out.write(f"minimize total-time")
+                out.write(f"minimize (total-time)")
             else:
                 raise NotImplementedError
             out.write(")\n")
