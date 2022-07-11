@@ -104,8 +104,8 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                 cost += c
                 sg.append(g)
             q.append((cost, sg))
-        p.sort(reverse=True, key=lambda t: t[0])
-        while t in p:
+        q.sort(reverse=True, key=lambda t: t[0])
+        for t in q:
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
             for g in t[1]:
