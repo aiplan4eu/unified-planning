@@ -30,8 +30,8 @@ from unified_planning.engines.compilers.utils import (
     check_and_simplify_conditions,
     replace_action,
 )
+from unified_planning.utils import powerset
 from typing import Iterable, List, Dict, Tuple
-from itertools import chain, combinations
 from functools import partial
 
 
@@ -84,11 +84,6 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.CONDITIONAL_EFFECTS_REMOVING
 
-    def _powerset(self, iterable: Iterable) -> Iterable:
-        "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
-        s = list(iterable)
-        return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
-
     def _compile(
         self,
         problem: "up.model.AbstractProblem",
@@ -129,7 +124,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         for action in problem.conditional_actions:
             if isinstance(action, up.model.InstantaneousAction):
                 cond_effects = action.conditional_effects
-                for p in self._powerset(range(len(cond_effects))):
+                for p in powerset(range(len(cond_effects))):
                     new_action = action.clone()
                     new_action.name = get_fresh_name(new_problem, action.name)
                     new_action.clear_effects()
@@ -172,7 +167,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                 cond_effects_timing: List[
                     Tuple["up.model.Effect", "up.model.Timing"]
                 ] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
-                for p in self._powerset(range(len(cond_effects_timing))):
+                for p in powerset(range(len(cond_effects_timing))):
                     new_action = action.clone()
                     new_action.name = get_fresh_name(new_problem, action.name)
                     new_action.clear_effects()

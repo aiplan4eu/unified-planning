@@ -21,15 +21,9 @@ from unified_planning.model import ProblemKind
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.utils import powerset
 from typing import Type, IO, Callable, Optional, Union, List, Tuple
-from itertools import chain, combinations
-from queue import PriorityQueue
 from fractions import Fraction
-
-
-def powerset(iterable):
-    s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
 class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
@@ -102,18 +96,19 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             qm = problem.quality_metrics[0]
             assert isinstance(qm, up.model.metrics.Oversubscription)
             goals = list(qm.goals.items())
-        q: PriorityQueue = PriorityQueue()
+        q = []
         for l in powerset(goals):
             cost: Union[Fraction, int] = 0
             sg = []
             for g, c in l:
                 cost += c
                 sg.append(g)
-            q.put((-1 * cost, sg))
-        while not q.empty():
+            q.append((cost, sg))
+        p.sort(reverse=True, key=lambda t: t[0])
+        while t in p:
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
-            for g in q.get()[1]:
+            for g in t[1]:
                 new_problem.add_goal(g)
             start = time.time()
             res = self.engine.solve(new_problem, callback, timeout, output_stream)

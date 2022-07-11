@@ -42,21 +42,31 @@ class MetaEngineMeta(EngineMeta):
 
 
 class MetaEngine(Engine, metaclass=MetaEngineMeta):
+    """This class represents a meta engine.
+    A meta engine is an engine that can be instantiated over a generic engine.
+    e.g. OversubscriptionPlanner[Tamer] is an Engine class that use the MetaEngine
+    OversubscriptionPlanner over the Tamer Engine."""
+
     def __init__(self, *args, **kwargs):
         self._engine = self._engine_class(*args, **kwargs)
 
     @property
     def engine(self) -> Engine:
+        """Returns the engine used by this MetaEngine class"""
         return self._engine
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
+        """Returns true iff the given engine is compatible with this meta engine"""
         raise NotImplementedError
 
     @staticmethod
     def _supported_kind(engine: Type[Engine]) -> ProblemKind:
+        """Returns the supported kind of this meta engine with the given engine"""
         raise NotImplementedError
 
     @staticmethod
     def _supports(problem_kind: ProblemKind, engine: Type[Engine]) -> bool:
+        """Returns true iff the given problem kind is supported by this meta
+        engine with the given engine"""
         raise NotImplementedError

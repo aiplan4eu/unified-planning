@@ -156,6 +156,12 @@ class Factory:
                     self._preference_list.append(e)
         self.configure_from_file()
 
+    # The getstate and setstate method are needed in the Parallel engine.
+    # The Parallel engine creates a deep copy of the Factory instance
+    # in another process by pickling it.
+    # Since local classes are not picklable and engines instantiated from
+    # a meta engine are local classes, we need to remove them from the
+    # state and then re-create them in the new process.
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["_engines"]
@@ -180,6 +186,9 @@ class Factory:
     @property
     def engines(self) -> List[str]:
         return list(self._engines.keys())
+
+    def engine(self, name: str) -> Type["up.engines.engine.Engine"]:
+        return self._engines[name]
 
     @property
     def preference_list(self) -> List[str]:

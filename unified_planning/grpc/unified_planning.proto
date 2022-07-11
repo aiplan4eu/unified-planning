@@ -465,6 +465,7 @@ message Metric {
     Expression default_action_cost = 4;
 
     // List of goals used to define the oversubscription planning problem.
+    // Empty, if the `kind` is not OVERSUBSCRIPTION
     repeated GoalWithCost goals = 5;
 }
 

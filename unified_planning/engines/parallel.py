@@ -110,7 +110,7 @@ class Parallel(
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
         for engine_name, _ in self.engines:
-            engine = self._factory._engines[engine_name]
+            engine = self._factory.engine(engine_name)
             assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
             if not engine.supports(problem.kind):
                 raise UPUsageError(
@@ -176,7 +176,7 @@ class Parallel(
         self, problem: "up.model.AbstractProblem", plan: Plan
     ) -> "up.engines.results.ValidationResult":
         for engine_name, _ in self.engines:
-            engine = self._factory._engines[engine_name]
+            engine = self._factory.engine(engine_name)
             assert issubclass(engine, engines.mixins.PlanValidatorMixin)
             if not engine.supports(problem.kind):
                 raise UPUsageError(
@@ -194,7 +194,7 @@ def _run(
     fname: str,
     *args,
 ):
-    EngineClass = factory._engines[engine_name]
+    EngineClass = factory.engine(engine_name)
     with EngineClass(**options) as s:
         try:
             local_res = getattr(s, fname)(*args)
