@@ -43,6 +43,10 @@ class Type:
         """Returns true iff is integer type."""
         return False
 
+    def is_compatible(self, t_right: "Type") -> bool:
+        """Returns True if the type t_right can be assigned to a fluent that which type is self."""
+        return is_compatible_type(self, t_right)
+
 
 class _BoolType(Type):
     """Represents the boolean type."""
@@ -92,6 +96,14 @@ class _UserType(Type):
     def father(self) -> Optional[Type]:
         """Returns the type s father."""
         return self._father
+
+    @property
+    def ancestors(self) -> Iterator[Type]:
+        """Returns all the ancestors of the given UserType, including itself."""
+        type: Optional[Type] = self
+        while type is not None:
+            yield type
+            type = cast(_UserType, type).father
 
     def is_user_type(self) -> bool:
         """Returns true iff is a user type."""
@@ -220,9 +232,10 @@ class TypeManager:
             return self._user_types[(name, father)]
         else:
             if father is not None:
+                assert isinstance(father, _UserType)
                 if any(
                     cast(_UserType, ancestor).name == name
-                    for ancestor in self.user_type_ancestors(father)
+                    for ancestor in father.ancestors
                 ):
                     raise UPTypeError(
                         f"The name: {name} is already used. A UserType and one of his ancestors can not share the name."
@@ -230,19 +243,6 @@ class TypeManager:
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
             return ut
-
-    def user_type_ancestors(self, user_type: Type) -> Iterator[Type]:
-        """Returns all the ancestors of the given UserType, including itself."""
-        if not user_type.is_user_type():
-            raise UPTypeError(
-                "The function user_type_ancestors can be called only on UserTypes."
-            )
-        yield user_type
-        user_type = cast(_UserType, user_type)
-        father: Optional[Type] = user_type.father
-        while father is not None:
-            yield father
-            father = cast(_UserType, father).father
 
 
 def domain_size(
@@ -286,3 +286,34 @@ def domain_item(
         return objects_set.env.expression_manager.Int(lb + idx)
     else:
         raise UPProblemDefinitionError("Parameter not groundable!")
+
+
+def is_compatible_type(
+    t_left: "Type",
+    t_right: "Type",
+) -> bool:
+    """Returns True if the type t_right can be assigned to a typed up object that has type t_left.
+    :param t_left: the target type for the assignment.
+    :param t_right: the type of the element that wants to be assigned to the element of type t_left.
+    :return: True if the element of type t_left can be assigned to the element of type t_right; False otherwise."""
+    if t_left == t_right:
+        return True
+    if t_left.is_user_type() and t_right.is_user_type():
+        assert isinstance(t_left, _UserType) and isinstance(t_right, _UserType)
+        return t_right in t_left.ancestors
+    if not (
+        (t_left.is_int_type() and t_right.is_int_type())
+        or (t_left.is_real_type() and t_right.is_real_type())
+        or (t_left.is_real_type() and t_right.is_int_type())
+    ):
+        return False
+    assert isinstance(t_left, _IntType) or isinstance(t_left, _RealType)
+    assert isinstance(t_right, _IntType) or isinstance(t_right, _RealType)
+    left_lower = -float("inf") if t_left.lower_bound is None else t_left.lower_bound
+    left_upper = float("inf") if t_left.upper_bound is None else t_left.upper_bound
+    right_lower = -float("inf") if t_right.lower_bound is None else t_right.lower_bound
+    right_upper = float("inf") if t_right.upper_bound is None else t_right.upper_bound
+    if right_upper < left_lower or right_lower > left_upper:
+        return False
+    else:
+        return True

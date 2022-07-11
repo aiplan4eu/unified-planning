@@ -120,6 +120,11 @@ class FNode(object):
         """Returns the subexpressions."""
         return self._content.args
 
+    @property
+    def type(self) -> "unified_planning.model.Type":
+        """Returns the type of this expression."""
+        return self._env.type_checker.get_type(self)
+
     def arg(self, idx: int) -> "FNode":
         """Return the given subexpression at the given position."""
         return self._content.args[idx]
@@ -182,11 +187,6 @@ class FNode(object):
         """Return the object of the TimingExp."""
         assert self.is_timing_exp()
         return self._content.payload
-
-    @property
-    def type(self) -> "unified_planning.model.Type":
-        """Returns the type of this expression."""
-        return self._env.type_checker.get_type(self)
 
     def simplify(self) -> "FNode":
         """Returns the simplified version of this expression."""
