@@ -290,7 +290,7 @@ class Problem(
     ):
         """Sets the initial value for the given fluent."""
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not fluent_exp.is_compatible(value_exp):
+        if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
         self._initial_value[fluent_exp] = value_exp
 
@@ -413,7 +413,7 @@ class Problem(
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not fluent_exp.is_compatible(value_exp):
+        if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Timed effect has not compatible types!")
         self._add_effect_instance(
             timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
@@ -435,7 +435,7 @@ class Problem(
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not fluent_exp.is_compatible(value_exp):
+        if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Timed effect has not compatible types!")
         self._add_effect_instance(
             timing,
@@ -463,7 +463,7 @@ class Problem(
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not fluent_exp.is_compatible(value_exp):
+        if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Timed effect has not compatible types!")
         self._add_effect_instance(
             timing,

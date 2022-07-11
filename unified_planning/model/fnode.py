@@ -288,10 +288,6 @@ class FNode(object):
         """Test whether the node is the LT operator."""
         return self.node_type == OperatorKind.LT
 
-    def is_compatible(self, value: "FNode") -> bool:
-        """Returns true iff the given value has a compatible type."""
-        return self.type.is_compatible(value.type)
-
     #
     # Infix operators
     #

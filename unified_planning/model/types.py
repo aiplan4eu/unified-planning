@@ -44,7 +44,7 @@ class Type:
         return False
 
     def is_compatible(self, t_right: "Type") -> bool:
-        """Returns True if the 2 types are compatible."""
+        """Returns True if the type t_right can be assigned to a fluent that which type is self."""
         return is_compatible_type(self, t_right)
 
 
@@ -292,6 +292,10 @@ def is_compatible_type(
     t_left: "Type",
     t_right: "Type",
 ) -> bool:
+    """Returns True if the type t_right can be assigned to a typed up object that has type t_left.
+    :param t_left: the target type for the assignment.
+    :param t_right: the type of the element that wants to be assigned to the element of type t_left.
+    :return: True if the element of type t_left can be assigned to the element of type t_right; False otherwise."""
     if t_left == t_right:
         return True
     if t_left.is_user_type() and t_right.is_user_type():
