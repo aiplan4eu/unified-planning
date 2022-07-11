@@ -41,7 +41,13 @@ FEATURES = {
     "EFFECTS_KIND": ["CONDITIONAL_EFFECTS", "INCREASE_EFFECTS", "DECREASE_EFFECTS"],
     "TYPING": ["FLAT_TYPING", "HIERARCHICAL_TYPING"],
     "FLUENTS_TYPE": ["NUMERIC_FLUENTS", "OBJECT_FLUENTS"],
-    "QUALITY_METRICS": ["ACTIONS_COST", "FINAL_VALUE", "MAKESPAN", "PLAN_LENGTH"],
+    "QUALITY_METRICS": [
+        "ACTIONS_COST",
+        "FINAL_VALUE",
+        "MAKESPAN",
+        "PLAN_LENGTH",
+        "OVERSUBSCRIPTION",
+    ],
     "SIMULATED_ENTITIES": ["SIMULATED_EFFECTS"],
 }
 
@@ -111,6 +117,9 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
     def union(self, oth: "ProblemKind") -> "ProblemKind":
         return ProblemKind(self.features.union(oth.features))
 
+    def intersection(self, oth: "ProblemKind") -> "ProblemKind":
+        return ProblemKind(self.features.intersection(oth.features))
+
 
 basic_classical_kind = ProblemKind()
 basic_classical_kind.set_problem_class("ACTION_BASED")
@@ -171,5 +180,9 @@ temporal_kind.set_time("DURATION_INEQUALITIES")
 temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
 
 quality_metrics_kind = ProblemKind()
+quality_metrics_kind.set_quality_metrics("PLAN_LENGTH")
 quality_metrics_kind.set_quality_metrics("ACTIONS_COST")
 quality_metrics_kind.set_quality_metrics("FINAL_VALUE")
+
+oversubscription_kind = ProblemKind()
+oversubscription_kind.set_quality_metrics("OVERSUBSCRIPTION")

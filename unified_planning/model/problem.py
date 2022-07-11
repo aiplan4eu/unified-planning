@@ -528,6 +528,10 @@ class Problem(
         """Returns the quality metrics"""
         return self._metrics
 
+    def clear_quality_metrics(self):
+        """Removes the quality metrics"""
+        self._metrics = []
+
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """Returns the problem kind of this planning problem.
@@ -565,6 +569,8 @@ class Problem(
                 self._kind.set_quality_metrics("MAKESPAN")
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 self._kind.set_quality_metrics("PLAN_LENGTH")
+            elif isinstance(metric, up.model.metrics.Oversubscription):
+                self._kind.set_quality_metrics("OVERSUBSCRIPTION")
             else:
                 assert False, "Unknown quality metric"
         return self._kind

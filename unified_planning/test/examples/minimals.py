@@ -60,6 +60,21 @@ def get_example_problems():
     basic_conditional = Example(problem=problem, plan=plan)
     problems["basic_conditional"] = basic_conditional
 
+    # basic oversubscription
+    x = Fluent("x")
+    a = InstantaneousAction("a")
+    a.add_precondition(Not(x))
+    a.add_effect(x, True)
+    problem = Problem("basic_oversubscription")
+    problem.add_fluent(x)
+    problem.add_action(a)
+    problem.set_initial_value(x, False)
+    qm = up.model.metrics.Oversubscription({FluentExp(x): 10})
+    problem.add_quality_metric(qm)
+    plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
+    basic_oversubscription = Example(problem=problem, plan=plan)
+    problems["basic_oversubscription"] = basic_oversubscription
+
     # complex conditional
     a = Fluent("a")
     b = Fluent("b")

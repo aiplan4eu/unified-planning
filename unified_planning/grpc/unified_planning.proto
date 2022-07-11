@@ -419,6 +419,13 @@ message Assignment {
     Expression value = 2;
 }
 
+// Represents a goal associated with a cost, used to define oversubscription planning.
+message GoalWithCost {
+    // Goal expression
+    Expression goal = 1;
+    // The cost
+    Real cost = 2;
+}
 
 message Metric {
     enum MetricKind {
@@ -432,11 +439,14 @@ message Metric {
       // features: durative_actions
       MINIMIZE_MAKESPAN = 2;
 
-      // Minimize the value of the expression defined in the `expression`` field
+      // Minimize the value of the expression defined in the `expression` field
       MINIMIZE_EXPRESSION_ON_FINAL_STATE = 3;
 
-      // Maximize the value of the expression defined in the `expression`` field
+      // Maximize the value of the expression defined in the `expression` field
       MAXIMIZE_EXPRESSION_ON_FINAL_STATE = 4;
+
+      // Maximize the number of goals reached, weighted by cost
+      OVERSUBSCRIPTION = 5;
     }
     MetricKind kind = 1;
 
@@ -453,6 +463,10 @@ message Metric {
     // This is very awkward to do in this setting where the expression is detached from its scope.
     map<string, Expression> action_costs = 3;
     Expression default_action_cost = 4;
+
+    // List of goals used to define the oversubscription planning problem.
+    // Empty, if the `kind` is not OVERSUBSCRIPTION
+    repeated GoalWithCost goals = 5;
 }
 
 // features: ACTION_BASED
@@ -529,6 +543,7 @@ enum Feature {
     FINAL_VALUE = 22;
     MAKESPAN = 23;
     PLAN_LENGTH = 24;
+    OVERSUBSCRIPTION = 29;
     // SIMULATED_ENTITIES
     SIMULATED_EFFECTS = 25;
 }

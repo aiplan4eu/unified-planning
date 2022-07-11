@@ -81,6 +81,7 @@ class ENHSP(up.engines.PDDLPlanner):
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_quality_metrics("FINAL_VALUE")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
         return supported_kind
 
     @staticmethod

@@ -15,11 +15,13 @@
 
 
 from unified_planning.engines.engine import Engine
+from unified_planning.engines.meta_engine import MetaEngine
 from unified_planning.engines.credits import Credits
 from unified_planning.engines.factory import Factory
 from unified_planning.engines.parallel import Parallel
 from unified_planning.engines.pddl_planner import PDDLPlanner
 from unified_planning.engines.plan_validator import SequentialPlanValidator
+from unified_planning.engines.oversubscription_planner import OversubscriptionPlanner
 from unified_planning.engines.results import (
     Result,
     LogMessage,

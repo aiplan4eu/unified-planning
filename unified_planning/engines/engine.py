@@ -23,7 +23,11 @@ class EngineMeta(type):
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
         for om in ["oneshot_planner", "plan_validator", "compiler", "simulator"]:
-            if not hasattr(obj, "is_" + om) and name != "Engine":
+            if (
+                not hasattr(obj, "is_" + om)
+                and name != "Engine"
+                and name != "MetaEngine"
+            ):
                 setattr(obj, "is_" + om, lambda: False)
         return obj
 

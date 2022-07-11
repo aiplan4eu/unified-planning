@@ -380,6 +380,7 @@ class ProtobufReader(Converter):
         metrics.MinimizeMakespan,
         metrics.MinimizeExpressionOnFinalState,
         metrics.MaximizeExpressionOnFinalState,
+        metrics.Oversubscription,
     ]:
         if msg.kind == proto.Metric.MINIMIZE_ACTION_COSTS:
             costs = {}
@@ -407,6 +408,11 @@ class ProtobufReader(Converter):
             return metrics.MaximizeExpressionOnFinalState(
                 expression=self.convert(msg.expression, problem)
             )
+        elif msg.kind == proto.Metric.OVERSUBSCRIPTION:
+            goals = {}
+            for g in msg.goals:
+                goals[self.convert(g.goal, problem)] = self.convert(g.cost)
+            return metrics.Oversubscription(goals)
         else:
             raise UPException(f"Unknown metric kind `{msg.kind}`")
 

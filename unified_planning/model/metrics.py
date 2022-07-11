@@ -14,7 +14,8 @@
 #
 
 import unified_planning as up
-from typing import Dict, Optional
+from fractions import Fraction
+from typing import Dict, Optional, Union
 
 
 class PlanQualityMetric:
@@ -65,3 +66,11 @@ class MaximizeExpressionOnFinalState(PlanQualityMetric):
 
     def __repr__(self):
         return f"maximize {self.expression}"
+
+
+class Oversubscription(PlanQualityMetric):
+    def __init__(self, goals: Dict["up.model.FNode", Union[Fraction, int]]):
+        self.goals = goals
+
+    def __repr__(self):
+        return f"oversubscription planning goals: {self.goals}"
