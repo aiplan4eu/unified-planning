@@ -24,9 +24,8 @@ from typing import List, Set, Tuple
 class LinearChecker(DagWalker):
     """Checks if the given expression is linear or not and returns the set of the fluents appearing in the expression."""
 
-    def __init__(self, env: "up.environment.Environment"):
-        DagWalker.__init__(self, env)
-        self.env = env
+    def __init__(self):
+        DagWalker.__init__(self)
 
     def get_fluents(
         self, expression: "up.model.fnode.FNode"
@@ -41,7 +40,7 @@ class LinearChecker(DagWalker):
     def walk_default(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]] :],
+        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
         is_linear = True
         fluents: Set["up.model.fnode.FNode"] = set()
@@ -54,7 +53,7 @@ class LinearChecker(DagWalker):
     def walk_times(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]] :],
+        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
         is_linear = True
         arg_with_fluents_found = False  # We must check that at most 1 of the arguments contains fluent_expression
@@ -76,7 +75,7 @@ class LinearChecker(DagWalker):
     def walk_div(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]] :],
+        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
         assert len(args) == 2
         numerator_is_linear, numerator_fluents = args[0]
@@ -93,12 +92,12 @@ class LinearChecker(DagWalker):
     def walk_fluent_exp(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]] :],
+        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
         is_linear = all(
             a.is_constant() or a.is_parameter_exp for a in expression.args
         )  # NOTE not sure about the parameters
-        fluents = set(expression)
+        fluents: Set["up.model.fnode.FNode"] = {expression}
         for b, sf in args:
             if not b:
                 is_linear = False

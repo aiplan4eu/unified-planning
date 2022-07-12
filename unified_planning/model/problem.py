@@ -538,14 +538,20 @@ class Problem(
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible."""
-        fluents_to_increase: Set["up.model.fluent.Fluent"] = set()
+        fluents_to_only_increase: Set["up.model.fnode.FNode"] = set()
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class("ACTION_BASED")
         self._kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         for metric in self._metrics:
-            if isinstance(
-                metric, up.model.metrics.MinimizeExpressionOnFinalState
-            ) or isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
+                self._kind.set_quality_metrics("FINAL_VALUE")
+                (
+                    is_linear,
+                    fluents_to_only_increase,
+                ) = self._env.linear_checker.get_fluents(metric.expression)
+                if not is_linear:
+                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
                 self._kind.set_quality_metrics("FINAL_VALUE")
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
                 self._kind.set_quality_metrics("ACTIONS_COST")
@@ -560,13 +566,13 @@ class Problem(
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
         for action in self._actions:
-            self._update_problem_kind_action(action)
+            self._update_problem_kind_action(action, fluents_to_only_increase)
         if len(self._timed_effects) > 0:
             self._kind.set_time("CONTINUOUS_TIME")
             self._kind.set_time("TIMED_EFFECT")
         for effect_list in self._timed_effects.values():
             for effect in effect_list:
-                self._update_problem_kind_effect(effect)
+                self._update_problem_kind_effect(effect, fluents_to_only_increase)
         if len(self._timed_goals) > 0:
             self._kind.set_time("TIMED_GOALS")
             self._kind.set_time("CONTINUOUS_TIME")
@@ -577,13 +583,21 @@ class Problem(
             self._update_problem_kind_condition(goal)
         return self._kind
 
-    def _update_problem_kind_effect(self, e: "up.model.effect.Effect"):
+    def _update_problem_kind_effect(
+        self,
+        e: "up.model.effect.Effect",
+        fluents_to_only_increase: Set["up.model.fnode.FNode"],
+    ):
         if e.is_conditional():
             self._update_problem_kind_condition(e.condition)
             self._kind.set_effects_kind("CONDITIONAL_EFFECTS")
         if e.is_increase():
+            is_linear, fluents = self._env.linear_checker.get_fluents(e.value)
+            # HERE, #TODO _update_problem_kind_condition.
             self._kind.set_effects_kind("INCREASE_EFFECTS")
         elif e.is_decrease():
+            if e.fluent in fluents_to_only_increase:
+                self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             self._kind.set_effects_kind("DECREASE_EFFECTS")
 
     def _update_problem_kind_condition(self, exp: "up.model.fnode.FNode"):
@@ -618,14 +632,18 @@ class Problem(
         for p in fluent.signature:
             self._update_problem_kind_type(p.type)
 
-    def _update_problem_kind_action(self, action: "up.model.action.Action"):
+    def _update_problem_kind_action(
+        self,
+        action: "up.model.action.Action",
+        fluents_to_only_increase: Set["up.model.fnode.FNode"],
+    ):
         for p in action.parameters:
             self._update_problem_kind_type(p.type)
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self._update_problem_kind_condition(c)
             for e in action.effects:
-                self._update_problem_kind_effect(e)
+                self._update_problem_kind_effect(e, fluents_to_only_increase)
             if action.simulated_effect is not None:
                 self._kind.set_simulated_entities("SIMULATED_EFFECTS")
         elif isinstance(action, up.model.action.DurativeAction):
@@ -655,7 +673,7 @@ class Problem(
                 if t.delay != 0:
                     self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
                 for e in le:
-                    self._update_problem_kind_effect(e)
+                    self._update_problem_kind_effect(e, fluents_to_only_increase)
             if len(action.simulated_effects) > 0:
                 self._kind.set_simulated_entities("SIMULATED_EFFECTS")
             self._kind.set_time("CONTINUOUS_TIME")
