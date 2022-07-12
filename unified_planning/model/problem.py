@@ -538,8 +538,25 @@ class Problem(
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible."""
+        fluents_to_increase: Set["up.model.fluent.Fluent"] = set()
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class("ACTION_BASED")
+        self._kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        for metric in self._metrics:
+            if isinstance(
+                metric, up.model.metrics.MinimizeExpressionOnFinalState
+            ) or isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+                self._kind.set_quality_metrics("FINAL_VALUE")
+            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
+                self._kind.set_quality_metrics("ACTIONS_COST")
+            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
+                self._kind.set_quality_metrics("MAKESPAN")
+            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+                self._kind.set_quality_metrics("PLAN_LENGTH")
+            elif isinstance(metric, up.model.metrics.Oversubscription):
+                self._kind.set_quality_metrics("OVERSUBSCRIPTION")
+            else:
+                assert False, "Unknown quality metric"
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
         for action in self._actions:
@@ -558,21 +575,6 @@ class Problem(
                 self._update_problem_kind_condition(goal)
         for goal in self._goals:
             self._update_problem_kind_condition(goal)
-        for metric in self._metrics:
-            if isinstance(
-                metric, up.model.metrics.MinimizeExpressionOnFinalState
-            ) or isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                self._kind.set_quality_metrics("FINAL_VALUE")
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                self._kind.set_quality_metrics("ACTIONS_COST")
-            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
-                self._kind.set_quality_metrics("MAKESPAN")
-            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
-                self._kind.set_quality_metrics("PLAN_LENGTH")
-            elif isinstance(metric, up.model.metrics.Oversubscription):
-                self._kind.set_quality_metrics("OVERSUBSCRIPTION")
-            else:
-                assert False, "Unknown quality metric"
         return self._kind
 
     def _update_problem_kind_effect(self, e: "up.model.effect.Effect"):
