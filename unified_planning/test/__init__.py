@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from importlib.util import find_spec
 import unittest
 import unified_planning as up
 import importlib
@@ -127,7 +128,7 @@ class skipIfModuleNotInstalled(object):
         msg = f"no module named {self.module_name} installed"
         cond = False
         try:
-            importlib.import_module(self.module_name)
+            find_spec(self.module_name)
         except:
             cond = True
 
