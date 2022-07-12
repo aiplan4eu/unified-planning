@@ -41,7 +41,9 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
     @staticmethod
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
-        return True
+        if optimality_guarantee == OptimalityGuarantee.SATISFICING:
+            return True
+        return False
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
@@ -107,6 +109,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                 sg.append(g)
             q.append((cost, sg))
         q.sort(reverse=True, key=lambda t: t[0])
+        incomplete = False
         for t in q:
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
@@ -117,13 +120,27 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             if timeout is not None:
                 timeout -= time.time() - start
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
+                if incomplete:
+                    status = PlanGenerationResultStatus.SOLVED_SATISFICING
+                else:
+                    status = PlanGenerationResultStatus.SOLVED_OPTIMALLY
                 return PlanGenerationResult(
-                    PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+                    status,
                     res.plan,
                     self.name,
                     metrics=res.metrics,
                     log_messages=res.log_messages,
                 )
-        return PlanGenerationResult(
-            PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY, None, self.name
-        )
+            elif res.status in [
+                PlanGenerationResultStatus.TIMEOUT,
+                PlanGenerationResultStatus.MEMOUT,
+                PlanGenerationResultStatus.INTERNAL_ERROR,
+                PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
+                PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+            ]:
+                incomplete = True
+        if incomplete:
+            status = PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+        else:
+            status = PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+        return PlanGenerationResult(status, None, self.name)
