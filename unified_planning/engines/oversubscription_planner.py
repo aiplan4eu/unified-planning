@@ -20,6 +20,10 @@ import unified_planning.engines.results
 from unified_planning.model import ProblemKind
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
+from unified_planning.engines.results import (
+    PlanGenerationResultStatus,
+    PlanGenerationResult,
+)
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.utils import powerset
 from typing import Type, IO, Callable, Optional, Union, List, Tuple
@@ -81,12 +85,10 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        callback: Optional[
-            Callable[["up.engines.results.PlanGenerationResult"], None]
-        ] = None,
+        callback: Optional[Callable[["PlanGenerationResult"], None]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
-    ) -> "up.engines.results.PlanGenerationResult":
+    ) -> "PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         if len(problem.quality_metrics) == 0:
@@ -115,5 +117,13 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             if timeout is not None:
                 timeout -= time.time() - start
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
-                return res
-        return res
+                return PlanGenerationResult(
+                    PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+                    res.plan,
+                    self.name,
+                    metrics=res.metrics,
+                    log_messages=res.log_messages,
+                )
+        return PlanGenerationResult(
+            PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY, None, self.name
+        )
