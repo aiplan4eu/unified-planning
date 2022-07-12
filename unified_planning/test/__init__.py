@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from importlib.util import find_spec
+
 import unittest
 import unified_planning as up
-import importlib
 from functools import wraps
+from importlib.util import find_spec
 from unified_planning.environment import get_env
 from unified_planning.model import ProblemKind
 from unified_planning.test.pddl import enhsp
