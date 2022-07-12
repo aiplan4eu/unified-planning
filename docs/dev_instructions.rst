@@ -12,12 +12,12 @@ In this guide we present the developers instructions for the Unified-Planning li
 Code formatting
 ===============
 
-We decided to use `black <https://black.readthedocs.io>` to automatically check and format
+We decided to use `black <https://black.readthedocs.io>`_ to automatically check and format
 the code according to a predefined code style.
 
 For maintaining code formatting and styling, instead of humans correcting the linting mistakes,
-we use `pre-commit <https://pre-commit.com/>`. After installing it, execute `pre-commit install`:
+we use `pre-commit <https://pre-commit.com/>`_. After installing it, execute `pre-commit install`:
 this will install git hooks in .git/ directory of the project.
-Then, wWhen you commit staged Python files, before committing pre-commit hooks are executed and
+Then, when you commit staged Python files, before committing pre-commit hooks are executed and
 black checks the code formatting. If every check passes, the commit is made else, code
 is automatically formatted and sent back for review.
