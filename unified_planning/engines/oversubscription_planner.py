@@ -20,6 +20,10 @@ import unified_planning.engines.results
 from unified_planning.model import ProblemKind
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
+from unified_planning.engines.results import (
+    PlanGenerationResultStatus,
+    PlanGenerationResult,
+)
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.utils import powerset
 from typing import Type, IO, Callable, Optional, Union, List, Tuple
@@ -37,7 +41,9 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
     @staticmethod
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
-        return True
+        if optimality_guarantee == OptimalityGuarantee.SATISFICING:
+            return True
+        return False
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
@@ -81,12 +87,10 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        callback: Optional[
-            Callable[["up.engines.results.PlanGenerationResult"], None]
-        ] = None,
+        callback: Optional[Callable[["PlanGenerationResult"], None]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
-    ) -> "up.engines.results.PlanGenerationResult":
+    ) -> "PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         if len(problem.quality_metrics) == 0:
@@ -105,6 +109,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                 sg.append(g)
             q.append((cost, sg))
         q.sort(reverse=True, key=lambda t: t[0])
+        incomplete = False
         for t in q:
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
@@ -113,7 +118,32 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             start = time.time()
             res = self.engine.solve(new_problem, callback, timeout, output_stream)
             if timeout is not None:
-                timeout -= time.time() - start
+                timeout -= min(timeout, time.time() - start)
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
-                return res
-        return res
+                if incomplete:
+                    status = PlanGenerationResultStatus.SOLVED_SATISFICING
+                else:
+                    status = PlanGenerationResultStatus.SOLVED_OPTIMALLY
+                return PlanGenerationResult(
+                    status,
+                    res.plan,
+                    self.name,
+                    metrics=res.metrics,
+                    log_messages=res.log_messages,
+                )
+            elif res.status == PlanGenerationResultStatus.TIMEOUT:
+                return PlanGenerationResult(
+                    PlanGenerationResultStatus.TIMEOUT, None, self.name
+                )
+            elif res.status in [
+                PlanGenerationResultStatus.MEMOUT,
+                PlanGenerationResultStatus.INTERNAL_ERROR,
+                PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
+                PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+            ]:
+                incomplete = True
+        if incomplete:
+            status = PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+        else:
+            status = PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+        return PlanGenerationResult(status, None, self.name)

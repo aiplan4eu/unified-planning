@@ -104,7 +104,7 @@ class TestPlanner(TestCase):
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertEqual(
-                final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+                final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY
             )
             self.assertEqual(len(plan.actions), 1)
             self.assertEqual(plan.actions[0].action, a)
@@ -123,7 +123,7 @@ class TestPlanner(TestCase):
             final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertEqual(
-                final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+                final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY
             )
             self.assertEqual(len(plan.actions), 1)
             self.assertEqual(plan.actions[0].action, a)
