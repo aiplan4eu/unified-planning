@@ -51,9 +51,15 @@ class ENHSP(up.engines.PDDLPlanner):
         ]
 
     def _result_status(
-        self, problem: "up.model.Problem", plan: Optional["up.plans.Plan"]
+        self,
+        problem: "up.model.Problem",
+        plan: Optional["up.plans.Plan"],
+        retval: int,
+        log_messages: Optional[List["up.engines.LogMessage"]] = None,
     ) -> "up.engines.results.PlanGenerationResultStatus":
-        if plan is None:
+        if retval != 0:
+            return up.engines.results.PlanGenerationResultStatus.INTERNAL_ERROR
+        elif plan is None:
             return up.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         else:
             return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
