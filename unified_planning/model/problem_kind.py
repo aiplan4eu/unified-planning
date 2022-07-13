@@ -63,7 +63,8 @@ class ProblemKindMeta(type):
 
         def _unset(self, feature, possible_features):
             assert feature in possible_features
-            self._features.remove(feature)
+            if feature in self._features:
+                self._features.remove(feature)
 
         def _has(self, feature):
             return feature in self._features

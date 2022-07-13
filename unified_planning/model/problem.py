@@ -581,6 +581,11 @@ class Problem(
                 self._update_problem_kind_condition(goal)
         for goal in self._goals:
             self._update_problem_kind_condition(goal)
+        if (
+            not self._kind.has_continuous_numbers()
+            and not self._kind.has_discrete_numbers()
+        ):
+            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         return self._kind
 
     def _update_problem_kind_effect(
@@ -588,17 +593,82 @@ class Problem(
         e: "up.model.effect.Effect",
         fluents_to_only_increase: Set["up.model.fnode.FNode"],
     ):
+        value = self._env.simplifier.simplify(e.value)
         if e.is_conditional():
             self._update_problem_kind_condition(e.condition)
             self._kind.set_effects_kind("CONDITIONAL_EFFECTS")
         if e.is_increase():
-            is_linear, fluents = self._env.linear_checker.get_fluents(e.value)
-            # HERE, #TODO _update_problem_kind_condition.
             self._kind.set_effects_kind("INCREASE_EFFECTS")
+            # If the value is not a real/int constant or
+            # or it's a negative increase on a fluent that must only be increase
+            # The problem is not of type simple_numeric_planning
+            if (not value.is_int_constant() and not value.is_real_constant()) or (
+                value.constant_value() < 0 and e.fluent in fluents_to_only_increase
+            ):
+                self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_decrease():
             if e.fluent in fluents_to_only_increase:
                 self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             self._kind.set_effects_kind("DECREASE_EFFECTS")
+        elif e.is_assignment():
+            value_type = value.type
+            if (
+                value_type.is_int_type() or value_type.is_real_type()
+            ):  # the value is a number
+                if (  # If the value (a number) is not a constant, a Plus or a Minus, unset "SIMPLE_NUMERIC_PLANNING"
+                    not value.is_constant()
+                    and not value.is_plus()
+                    and not value.is_minus()
+                ):
+                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                elif value.is_plus():  # The value is a Plus
+                    if (
+                        not (
+                            len(value.args) == 2
+                        )  # The arguments of the Plus are not 2
+                        or not (  # or
+                            any(  # no1 of the 2 arguments is exactly the effect fluent
+                                a.is_fluent_exp() and a.fluent == e.fluent
+                                for a in value.args
+                            )
+                        )
+                        or not (  # or
+                            any(  # no1 of the 2 arguments is a constant ( > 0 if the fluent must only be increased)
+                                a.is_constant()
+                                and (
+                                    a.constant_value() > 0
+                                    or e.fluent not in fluents_to_only_increase
+                                )
+                                for a in value.args
+                            )  # unset the "SIMPLE_NUMERIC_PLANNING" flag
+                        )
+                    ):
+                        self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                elif value.is_minus():  # The value is a Minus
+                    if (
+                        not (
+                            len(value.args) == 2
+                        )  # The arguments of the Minus are not 2 or
+                        or e.fluent
+                        in fluents_to_only_increase  # or the fluent must only be increased
+                        or not (  # or
+                            any(  # no1 of the 2 arguments is exactly the effect fluent
+                                a.is_fluent_exp() and a.fluent == e.fluent
+                                for a in value.args
+                            )
+                        )
+                        or not (  # or
+                            any(  # no1 of the 2 arguments is a constant
+                                a.is_constant()
+                                and (
+                                    a.constant_value() > 0
+                                    or e.fluent not in fluents_to_only_increase
+                                )
+                                for a in value.args
+                            )  # unset the "SIMPLE_NUMERIC_PLANNING" flag
+                        )
+                    ):
+                        self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
     def _update_problem_kind_condition(self, exp: "up.model.fnode.FNode"):
         ops = self._operators_extractor.get(exp)
@@ -612,6 +682,9 @@ class Problem(
             self._kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         if OperatorKind.FORALL in ops:
             self._kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        is_linear, _ = self._env.linear_checker.get_fluents(exp)
+        if not is_linear:
+            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
     def _update_problem_kind_type(self, type: "up.model.types.Type"):
         if type.is_user_type():

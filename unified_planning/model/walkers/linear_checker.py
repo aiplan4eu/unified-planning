@@ -31,7 +31,7 @@ class LinearChecker(DagWalker):
         self, expression: "up.model.fnode.FNode"
     ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
         """Returns the tuple containing a flag saying if the expression is linear or not and the set of the fluent_expressions appearing in the expression."""
-        return self.walk(self.env.simplifier.simplify(expression))
+        return self.walk(expression.environment.simplifier.simplify(expression))
 
     @walkers.handles(
         set(OperatorKind)
