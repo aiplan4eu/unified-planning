@@ -22,11 +22,6 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.results import CompilerResult
 from unified_planning.walkers import Simplifier
 from unified_planning.shortcuts import *
-from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.exceptions import UPExpressionDefinitionError, UPProblemDefinitionError
-from typing import List, Dict, Union
-from functools import partial
 from unified_planning.model.operators import OperatorKind
 
 NUM = 'num'
@@ -36,10 +31,6 @@ GOAL = 'goal'
 SEEN_PHI = 'seen-phi'
 SEEN_PSI = 'seen-psi'
 SEPARATOR = '-'
-GOAL_ACHIEVED = "goal-achieved"
-
-
-
 
 class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     """Translate problem in another problem with no trajectory constraints."""
@@ -94,7 +85,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
         if not self.supports_compilation(compilation_kind):
             raise up.exceptions.UPUsageError('This compiler cannot handle this kind of compilation!')
-
         self._env = problem.env
         self._simplifier = Simplifier(self._env)
         with self._env.factory.Compiler(problem_kind=problem.kind, compilation_kind=engines.CompilationKind.GROUNDING) as grounder:
@@ -102,12 +92,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         A = grounding_result.problem.actions
         I_g = grounding_result.problem.initial_values
         I = self._ground_initial_state(A, I_g)
-        C = problem.trajectory_constraints[0].args
+        C = self._simplifier.simplify(And(problem.trajectory_constraints))
+        C = C.args if C.is_and() else [C]
         relevancy_dict = self._build_relevancy_dict(C)
         A_prime = []
         G_prime = []
         I_prime, F_prime = self._get_monitoring_atoms(C, I)
-        compiled_action = 0
         for c in self._LTC(C):
             monitoring_atom = FluentExp(Fluent(f'{c._monitoring_atom_predicate}', BoolType()))
             G_prime.append(monitoring_atom)
@@ -115,21 +105,20 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for a in A:
             E = []
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
-            if len(relevant_constraints) > 0:
-                compiled_action += 1
             for c in relevant_constraints:
                 match c.node_type:
                     case OperatorKind.ALWAYS : 
                         precondition, to_add = self._manage_always_compilation(c.args[0], a)
                     case OperatorKind.AT_MOST_ONCE : 
-                        precondition, to_add = self._manage_amo_compilation(c.args[0], c.monitoring_atom, a, E)
+                        precondition, to_add = self._manage_amo_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
                     case OperatorKind.SOMETIME_BEFORE : 
                         precondition, to_add = self._manage_sb_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
                     case OperatorKind.SOMETIME : 
                         self._manage_sometime_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
                     case OperatorKind.SOMETIME_AFTER : 
                         self._manage_sa_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
-                    case _ : pass
+                    case _ : 
+                        raise Exception(f'ERROR This compiler cannot handle this constraint = {c}')
                 if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
                     if to_add:
                         a.preconditions.append(precondition)
@@ -137,8 +126,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 a.effects.append(eff)
             if FALSE() not in a.preconditions:
                 A_prime.append(a)
-        for key in I_prime:
-            I_g[FluentExp(Fluent(f'{key}', BoolType()))] = TRUE()
         G_new = self._simplifier.simplify(And(grounding_result.problem.goals, G_prime))
         grounding_result.problem.clear_goals()
         grounding_result.problem.add_goal(G_new)
@@ -152,14 +139,14 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         return grounding_result
 
     def _manage_sa_compilation(self, phi, psi, m_atom, a, E):
-            R1 = self._simplifier.simplify(self._regression(phi, a))
-            R2 = self._simplifier.simplify(self._regression(psi, a))
-            monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
-            if phi != R1 or psi != R2:
-                cond = self._simplifier.simplify(And([R1, Not(R2)]))
-                self._add_cond_eff(E, cond, monitoring_atom)
-            if psi != R2:
-                self._add_cond_eff(E, R2, monitoring_atom)
+        R1 = self._simplifier.simplify(self._regression(phi, a))
+        R2 = self._simplifier.simplify(self._regression(psi, a))
+        monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
+        if phi != R1 or psi != R2:
+            cond = self._simplifier.simplify(And([R1, Not(R2)]))
+            self._add_cond_eff(E, cond, Not(monitoring_atom))
+        if psi != R2:
+            self._add_cond_eff(E, R2, monitoring_atom)
 
     def _manage_sometime_compilation(self, phi, m_atom, a, E):
         monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
@@ -182,11 +169,11 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _manage_amo_compilation(self, phi, m_atom, a, E):
         monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
-        R = self._regression(phi, a)
+        R = self._simplifier.simplify(self._regression(phi, a))
         if R == phi:
             return None, False
         else:
-            rho = self._simplifier.simplify([Not(R), Not(monitoring_atom), phi])
+            rho = self._simplifier.simplify(Or([Not(R), Not(monitoring_atom), phi]))
             self._add_cond_eff(E, R, monitoring_atom)
             return rho, True
 
@@ -199,7 +186,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _add_cond_eff(self, E, cond, eff):
         if (not self._simplifier.simplify(cond).is_false()):
-            E.append(Effect(eff, cond, TRUE()))
+            E.append(Effect(condition=cond, fluent=eff, value=TRUE()))
 
     def _get_relevant_constraints(self, a, relevancy_dict):
         relevant_constrains = []
@@ -221,7 +208,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 if I[key_gr].is_true():
                     I_grunded[key_gr] = I[key_gr]
         return I_grunded
-
 
     def _remove_duplicates(self, relevant_atoms):
         elems = []
@@ -296,7 +282,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     raise Exception("PROBLEM NOT SOLVABLE: an always is violated in the initial state")
         return initial_state_prime, monitoring_atoms
 
-
     def _build_relevancy_dict(self, C):
         relevancy_dict = {}
         for c in C:
@@ -342,13 +327,16 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         disjunction = []
         for eff in action.effects:
             cond = eff.condition
-            if literal == eff.fluent:
-                if (literal.is_not() and eff.value.is_false()) or ((not literal.is_not()) and eff.value.is_true()):
-                    if cond:
-                        # in this case cond == TRUE(), so it is a simple effect
-                        return True 
-                    # cond is a list of literals
-                    disjunction.append(cond)
+            if eff.value.is_false():  
+                eff = Not(eff.fluent)
+            else:
+                eff = eff.fluent         
+            if literal == eff:
+                if cond.is_true():
+                    # in this case cond == TRUE(), so it is a simple effect
+                    return TRUE() 
+                # cond is a list of literals
+                disjunction.append(cond)
         if not disjunction:
             return False
         return Or(disjunction)

@@ -91,7 +91,7 @@ class FNode(object):
         elif self.is_sometime_after():
             s = ', '.join(str(v) for v in self.args)
             return f"Sometime-After({str(s)})"
-        elif self.is_at_most_once:
+        elif self.is_at_most_once():
             return f"At-Most-Once({str(self.arg(0))})"
         elif self.is_forall():
             s = ', '.join(str(v) for v in self.variables())

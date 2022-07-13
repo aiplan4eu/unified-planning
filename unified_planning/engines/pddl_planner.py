@@ -92,10 +92,6 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 timeout: Optional[float] = None,
                 output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
         assert isinstance(problem, up.model.Problem)
-        if problem.kind.has_trajectory_constraints():
-            with problem.env.factory.Compiler(problem_kind=problem.kind, compilation_kind=up.engines.CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING) as grounder:
-                grounding_result = grounder.compile(problem, up.engines.CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING)
-                problem = grounding_result.problem
         w = PDDLWriter(problem, self._needs_requirements)
         plan = None
         logs: List['up.engines.results.LogMessage'] = []
