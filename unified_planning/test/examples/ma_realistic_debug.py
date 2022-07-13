@@ -23,7 +23,7 @@ from realistic import get_example_problems
 from unified_planning.model.environment_ma import Environment_ma
 
 from unified_planning.io.pddl_writer import PDDLWriter
-from unified_planning.io.pddl_writer_ma import PDDLWriter_MA
+from unified_planning.io.pddl_writer_ma import PDDLWriter_MA, Write_MA_Problem
 from unified_planning.io.pddl_reader import PDDLReader
 #from unified_planning.transformers import NegativeConditionsRemover
 
@@ -98,7 +98,7 @@ def ma_example():
     ma_problem = MultiAgentProblem('robots')
     ma_problem.add_agent(robot1)
     ma_problem.add_agent(robot2)
-    ma_problem.add_environment_(environment)
+    ma_problem.add_environment(environment)
     ma_problem.add_objects(objects_problem)
     #problem = ma_problem.compile()
     problem = ma_problem.compile_ma()
@@ -190,7 +190,7 @@ def ma_example_2():
     ma_problem.add_agent(robot3)
     ma_problem.add_agent(robot4)
     ma_problem.add_agent(robot5)
-    ma_problem.add_environment_(environment)
+    ma_problem.add_environment(environment)
     ma_problem.add_objects(objects_problem)
 
 
@@ -249,6 +249,8 @@ def ma_example_2():
     robot1.add_fluents(fluents_problem)
     robot2.add_fluents(fluents_problem)
     robot3.add_fluents(fluents_problem)
+    robot4.add_fluents(fluents_problem)
+    robot5.add_fluents(fluents_problem)
     robot1.add_actions(actions_problem)
     robot2.add_actions(actions_problem)
     robot3.add_actions(actions_problem)
@@ -264,6 +266,10 @@ def ma_example_2():
     robot3.add_goals(goals_problem)
     robot4.add_goals(goals_problem)
     robot5.add_goals(goals_problem)
+    surface = UserType('surface', None)
+    ciao = Fluent('ciao', None, surface=surface)
+    robot5.add_fluent(ciao)
+    environment.add_fluent(ciao)
 
     ma_problem = MultiAgentProblem('depot_trucks')
     ma_problem.add_agent(robot1)
@@ -271,8 +277,9 @@ def ma_example_2():
     ma_problem.add_agent(robot3)
     ma_problem.add_agent(robot4)
     ma_problem.add_agent(robot5)
-    ma_problem.add_environment_(environment)
+    ma_problem.add_environment(environment)
     ma_problem.add_objects(objects_problem)
+
 
     #Add shared data
     #problem = ma_problem.compile()
@@ -314,28 +321,39 @@ def ma_example_2():
     #Perchè io prima compilo e ottengo il ma problem di depot e poi
     #faccio lo stesso con depot_truck.
     #Questa mappatura mi serve per creare i
-    problem_depots = problems['depots'].problem
-    problem.add_agent_list(problem_depots, 'depot0')
-    problem.add_agent_list(problem_depots, 'distributor0')
-    problem.add_agent_list(problem_depots, 'distributor1')
+
+    '''problem_depots = problems['depots'].problem
+    problem.map_agent_problem(problem_depots, 'depot0')
+    problem.map_agent_problem(problem_depots, 'distributor0')
+    problem.map_agent_problem(problem_depots, 'distributor1')
 
     problem_trucks = problems['depot_trucks'].problem
-    problem.add_agent_list(problem_trucks, 'truck0')
-    problem.add_agent_list(problem_trucks, 'truck1')
+    problem.map_agent_problem(problem_trucks, 'truck0')
+    problem.map_agent_problem(problem_trucks, 'truck1')
 
-
-    #print(problem._agent_list_problems)
-    #ok = problem.write_CL_FMAP()
     problems_ma = [problem_depots, problem_trucks]
-
-    problem.write_ma_problem(problems_ma)
-
+    
+    problem.write_ma_problem(self, problems_ma)
     plan = problem.FMAP_planner()
+    print(plan)'''
+
+    problem_depots = problems['depots'].problem
+    problem_trucks = problems['depot_trucks'].problem
+    problems_ma = [problem_depots, problem_trucks]
+    w = Write_MA_Problem()
+    w.map_agent_problem(problem_depots, 'depot0')
+    w.map_agent_problem(problem_depots, 'distributor0')
+    w.map_agent_problem(problem_depots, 'distributor1')
+    w.map_agent_problem(problem_trucks, 'truck0')
+    w.map_agent_problem(problem_trucks, 'truck1')
+    w.write_ma_problem(problems_ma)
+    plan = w.FMAP_planner()
 
     print(plan)
 
-    #problemmmm = [problem, problem]
-    #ag_listsss = [['depot0', 'distributor0', "distributor1"], ['truck0', 'truck1']]
-    #problem.write_ma_problem(problemmmm, ag_listsss)
+
+
+
+
 
 ma_example_2()
