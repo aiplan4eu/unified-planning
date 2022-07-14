@@ -521,6 +521,12 @@ class TestProblem(TestCase):
 
         self.assertEqual(2, len(problem.task_network.subtasks))
 
+    def test_simple_numeric_planning_kind(self):
+        problem = self.problems["robot"].problem
+        self.assertTrue(problem.kind.has_simple_numeric_planning())
+        problem = self.problems["travel_with_consumptions"].problem
+        self.assertTrue(problem.kind.has_simple_numeric_planning())
+
 
 if __name__ == "__main__":
     main()

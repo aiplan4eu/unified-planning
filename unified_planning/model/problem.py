@@ -608,11 +608,22 @@ class Problem(
             self._kind.set_effects_kind("CONDITIONAL_EFFECTS")
         if e.is_increase():
             self._kind.set_effects_kind("INCREASE_EFFECTS")
-            # If the value is not a real/int constant or
-            # or it's a negative increase on a fluent that must only be increase
-            # The problem is not of type simple_numeric_planning
-            if (not value.is_int_constant() and not value.is_real_constant()) or (
-                value.constant_value() < 0 and e.fluent in fluents_to_only_increase
+            # If the value is a number (int or real) and it violates the constraint
+            # on the "fluents_to_only_increase", unset simple_numeric_planning
+            if (
+                (value.is_int_constant() or value.is_real_constant())
+                and value.constant_value() < 0
+                and e.fluent in fluents_to_only_increase
+            ):
+                self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            # if the value is not a fluent or
+            # it is not a static fluent
+            # or it's value violates on the "fluents_to_only_increase",
+            # unset simple_numeric_planning
+            elif (
+                not value.is_fluent_exp()
+                or not value.fluent() in self.get_static_fluents()
+                or self.initial_values[value] < 0
             ):
                 self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_decrease():
@@ -641,7 +652,7 @@ class Problem(
                         if not fluent.is_fluent_exp():
                             fluent, constant = constant, fluent
                         # now, if "fluent" is not a fluent_exp unset Simple_numeric_Planning
-                        if not fluent.is_fluent_exp() or fluent.fluent() != e.fluent:
+                        if not fluent.is_fluent_exp() or fluent != e.fluent:
                             self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
                         elif (
                             not constant.is_constant()
