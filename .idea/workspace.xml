@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c49d00c7-85dd-4347-9cbb-7dedf88b11aa" name="Changes" comment="" />
+    <list default="true" id="c49d00c7-85dd-4347-9cbb-7dedf88b11aa" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -30,7 +32,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/DomainDepot_trucks.pddl",
+    "last_opened_file_path": "/home/alee8/Scrivania/Merge_UP/unified-planning",
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "two.files.diff.last.used.file": "/home/alee8/Scrivania/unified-planning/unified_planning/test/examples/DomainDepot_trucks.pddl"
@@ -79,6 +81,7 @@
       <workItem from="1657706521678" duration="11151000" />
       <workItem from="1657739176659" duration="5911000" />
       <workItem from="1657752715761" duration="10018000" />
+      <workItem from="1657767263491" duration="309000" />
     </task>
     <servers />
   </component>
