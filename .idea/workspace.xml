@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c49d00c7-85dd-4347-9cbb-7dedf88b11aa" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/bug_report.md" beforeDir="false" afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/bug_report.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/user-story.md" beforeDir="false" afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/user-story.md" afterDir="false" />
-    </list>
+    <list default="true" id="c49d00c7-85dd-4347-9cbb-7dedf88b11aa" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -81,7 +78,7 @@
       <workItem from="1657640135704" duration="6553000" />
       <workItem from="1657706521678" duration="11151000" />
       <workItem from="1657739176659" duration="5911000" />
-      <workItem from="1657752715761" duration="9532000" />
+      <workItem from="1657752715761" duration="10018000" />
     </task>
     <servers />
   </component>
