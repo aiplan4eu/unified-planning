@@ -891,43 +891,29 @@ def get_example_problems():
 
 
 
-
-
-
-
-
-
     ####################################################DEPOT####################################################
 
     place = UserType('place', None)
     hoist = UserType('hoist', None)
     surface = UserType('surface', None)
-    # agent = UserType('agent', None)                #questo in depot è sottointeso, per ora lo specifichaimo
     depot = UserType('depot', place)
-    # ma anche ad agent
 
-    distributor = UserType('distributor', place)  # ma anche ad agent
-    # truck = UserType('truck', agent)
+    distributor = UserType('distributor', place)
     truck = UserType('truck', None)
     crate = UserType('crate', surface)
     pallet = UserType('pallet', surface)
 
-    # myAgent = Fluent('myAgent', None, [place])
     clear_h = Fluent('clear_h', None, hoist = hoist)
     clear_s = Fluent('clear_s', None, surface = surface)
 
     located = Fluent('located', None, hoist = hoist, place = place)
     at = Fluent('at', None, truck = truck, place = place)
     placed = Fluent('placed', None, pallet = pallet, place = place)
-    pos_p = Fluent('pos_p', None, crate = crate, place = place)  # Non posso utilizzare (place or truck)?
-    pos_u = Fluent('pos_u', None, crate = crate, truck = truck)  # Si può fare in un modo migliore?
-    # pos_s = Fluent('pos_s', None, [pallet, place])
+    pos_p = Fluent('pos_p', None, crate = crate, place = place)
+    pos_u = Fluent('pos_u', None, crate = crate, truck = truck)
     on_h = Fluent('on_h', None, crate = crate, hoist = hoist)
     on_u = Fluent('on_u', None, crate = crate, truck = truck)
     on_s = Fluent('on_s', None, crate = crate, surface = surface)
-    # we = Fluent('we', None, [crate, hoist, truck])
-
-    # battery_charge = Fluent('battery_charge', RealType(0, 100))
 
     truck0 = Object('truck0', truck)
     truck1 = Object('truck1', truck)
@@ -938,8 +924,6 @@ def get_example_problems():
     z = LiftP.parameter('z')
     p = LiftP.parameter('p')
 
-    # LiftP.add_precondition(myAgent(truck))
-    # LiftP.add_precondition(myAgent(p))
     LiftP.add_precondition(located(h, p))
     LiftP.add_precondition(placed(z, p))
     LiftP.add_precondition(clear_h(h))
@@ -952,17 +936,14 @@ def get_example_problems():
     LiftP.add_effect(clear_h(h), False)
     LiftP.add_effect(clear_s(z), True)
 
-    # Load.add_precondition(pos(crate))
-    # Load.add_precondition(Not(clear(crate)))
     LiftC = InstantaneousAction('LiftC', h=hoist, c=crate, z=crate, p=place)
     h = LiftC.parameter('h')
     c = LiftC.parameter('c')
     z = LiftC.parameter('z')
     p = LiftC.parameter('p')
 
-    # LiftC.add_precondition(myAgent(p))
+
     LiftC.add_precondition(located(h, p))
-    # load.add_precondition(clear(truck, h))
     LiftC.add_precondition(pos_p(z, p))
     LiftC.add_precondition(clear_h(h))
     LiftC.add_precondition(pos_p(c, p))
@@ -973,7 +954,7 @@ def get_example_problems():
     LiftC.add_effect(clear_s(c), False)
     LiftC.add_effect(clear_h(h), False)
     LiftC.add_effect(clear_s(z), True)
-    # load.add_effect(Not(clear(h)))
+
 
     DropP = InstantaneousAction('DropP', h=hoist, c=crate, z=pallet, p=place)
     h = DropP.parameter('h')
@@ -981,16 +962,15 @@ def get_example_problems():
     z = DropP.parameter('z')
     p = DropP.parameter('p')
 
-    # DropP.add_precondition(myAgent(p))
+
     DropP.add_precondition(located(h, p))
     DropP.add_precondition(placed(z, p))
-    # load.add_precondition(clear(truck, h))
     DropP.add_precondition(clear_s(z))
     DropP.add_precondition(on_h(c, h))
     DropP.add_precondition(Not(clear_s(c)))
     DropP.add_precondition(Not(clear_h(h)))
 
-    # unload.add_precondition(we(c, h, truck))
+
 
     DropP.add_effect(clear_h(h), True)
     DropP.add_effect(clear_s(c), True)
@@ -1003,16 +983,15 @@ def get_example_problems():
     z = DropC.parameter('z')
     p = DropC.parameter('p')
 
-    # DropC.add_precondition(myAgent(p))
+
     DropC.add_precondition(located(h, p))
     DropC.add_precondition(pos_p(z, p))
-    # load.add_precondition(clear(truck, h))
     DropC.add_precondition(clear_s(z))
     DropC.add_precondition(on_h(c, h))
     DropC.add_precondition(Not(clear_s(c)))
     DropC.add_precondition(Not(clear_h(h)))
 
-    # unload.add_precondition(we(c, h, truck))
+
 
     DropC.add_effect(clear_h(h), True)
     DropC.add_effect(clear_s(c), True)
@@ -1053,49 +1032,24 @@ def get_example_problems():
     problem.add_action(DropP)
     problem.add_action(DropC)
 
-    # problem.add_fluent(myAgent, default_initial_value=False)
-    problem.add_fluent(clear_h, default_initial_value=False)
 
+    problem.add_fluent(clear_h, default_initial_value=False)
     problem.add_fluent(located, default_initial_value=False)
-    problem.add_fluent(at)  #
+    problem.add_fluent(at)
     problem.add_fluent(placed, default_initial_value=False)
     problem.add_fluent(pos_p, default_initial_value=False)
     problem.add_fluent(pos_u, default_initial_value=False)
-    # problem.add_fluent(pos_s, default_initial_value=False)
     problem.add_fluent(on_u, default_initial_value=False)
     problem.add_fluent(on_s, default_initial_value=False)
     problem.add_fluent(on_h, default_initial_value=False)
     problem.add_fluent(clear_s, default_initial_value=False)
 
-    # problem.add_fluent(we,  default_initial_value=False)
 
-    # problem.add_fluent(battery_charge) ##### <------ da togliere
-    # problem.set_initial_value(battery_charge, 100) #da togliere
-
-    # add_shared_data def in problem, in realistic decido gli shared data
-    # Non è possibile definire dopo clear, at, ecc.. perchè non sono
-    # nella lista fluents
-
-    # possibile soluzione prenderli dai predicati e decidere quali sono
-    # gli shared data in ma_realistic, in questo caso def
-    # add_shared_data in ma_problem
-
-    '''problem.add_shared_data(clear)
-    problem.add_shared_data(at)
-    problem.add_shared_data(pos)
-    problem.add_shared_data(pos_u)
-    problem.add_shared_data(on)
-    problem.add_shared_data(on_u)
-    problem.add_shared_data(on_s)
-
-    print("wwwwwwwwwwwwwwwwww", problem.get_shared_data())'''
-    # problem.add_fluent(at, default_initial_value=False)
     problem.set_initial_value(at(truck0, depot0), False)
     problem.set_initial_value(at(truck0, distributor0), False)
     problem.set_initial_value(at(truck1, distributor0), False)
     problem.set_initial_value(at(truck1, distributor1), False)
 
-    # problem.set_initial_value(myAgent(depot0), True)
     problem.set_initial_value(pos_p(crate0, distributor0), True)
     problem.set_initial_value(clear_s(crate0), True)
     problem.set_initial_value(on_s(crate0, pallet1), True)
@@ -1129,11 +1083,10 @@ def get_example_problems():
     place = UserType('place', None)
     hoist = UserType('hoist', None)
     surface = UserType('surface', None)
-    agent = UserType('agent', None)
     depot = UserType('depot', place)
 
     distributor = UserType('distributor', place)
-    truck = UserType('truck', agent)
+    truck = UserType('truck', None)
     crate = UserType('crate', surface)
     pallet = UserType('pallet', surface)
 
@@ -1270,6 +1223,239 @@ def get_example_problems():
     plan = None
     depot_truck = Example(problem=problem, plan=plan)
     problems['depot_truck'] = depot_truck
+
+
+
+
+
+    ########################################depot_mix########################################
+
+    place = UserType('place', None)
+    hoist = UserType('hoist', None)
+    surface = UserType('surface', None)
+    depot = UserType('depot', place)
+
+    distributor = UserType('distributor', place)
+    truck = UserType('truck', None)
+    crate = UserType('crate', surface)
+    pallet = UserType('pallet', surface)
+
+    clear_h = Fluent('clear_h', None, hoist = hoist)
+    clear_s = Fluent('clear_s', None, surface = surface)
+    located = Fluent('located', None, hoist = hoist, place = place)
+    at = Fluent('at', None, truck = truck, place = place)
+    placed = Fluent('placed', None, pallet = pallet, place = place)
+    pos_p = Fluent('pos_p', None, crate = crate, place = place)
+    pos_u = Fluent('pos_u', None, crate = crate, truck = truck)
+    on_h = Fluent('on_h', None, crate = crate, hoist = hoist)
+    on_u = Fluent('on_u', None, crate = crate, truck = truck)
+    on_s = Fluent('on_s', None, crate = crate, surface = surface)
+
+    truck0 = Object('truck0', truck)
+    truck1 = Object('truck1', truck)
+
+    drive = InstantaneousAction('Drive', t=truck, x=place, y=place)
+    t = drive.parameter('t')
+    x = drive.parameter('x')
+    y = drive.parameter('y')
+
+    drive.add_precondition(at(t, x))
+    drive.add_effect(at(t, y), True)
+
+    load = InstantaneousAction('Load', t=truck, p=place, c=crate, h=hoist)
+    c = load.parameter('c')
+    p = load.parameter('p')
+    t = load.parameter('t')
+    h = load.parameter('h')
+
+    load.add_precondition(at(t, p))
+    load.add_precondition(pos_p(c, p))
+    load.add_precondition(Not(clear_s(c)))
+    load.add_precondition(Not(clear_h(h)))
+    load.add_precondition(on_h(c, h))
+    load.add_precondition(located(h, p))
+
+    load.add_effect(clear_h(h), True)
+    load.add_effect(clear_s(c), True)
+    load.add_effect(pos_u(c, t), True)
+    load.add_effect(on_u(c, t), True)
+
+    unload = InstantaneousAction('Unload', t=truck, p=place, c=crate, h=hoist)
+    c = unload.parameter('c')
+    t = load.parameter('t')
+    p = unload.parameter('p')
+    h = unload.parameter('h')
+
+    unload.add_precondition(located(h, p))
+    unload.add_precondition(at(t, p))
+    unload.add_precondition(pos_u(c, t))
+    unload.add_precondition(on_u(c, t))
+    unload.add_precondition(clear_h(h))
+    unload.add_precondition(clear_s(c))
+
+    unload.add_effect(pos_p(c, p), True)
+    unload.add_effect(on_h(c, h), True)
+    unload.add_effect(clear_s(c), False)
+    unload.add_effect(clear_h(h), False)
+
+    LiftP = InstantaneousAction('LiftP', h=hoist, c=crate, z=pallet, p=place)
+    h = LiftP.parameter('h')
+    c = LiftP.parameter('c')
+    z = LiftP.parameter('z')
+    p = LiftP.parameter('p')
+
+
+    LiftP.add_precondition(located(h, p))
+    LiftP.add_precondition(placed(z, p))
+    LiftP.add_precondition(clear_h(h))
+    LiftP.add_precondition(pos_p(c, p))
+    LiftP.add_precondition(on_s(c, z))
+    LiftP.add_precondition(clear_s(c))
+
+    LiftP.add_effect(on_h(c, h), True)
+    LiftP.add_effect(clear_s(c), False)
+    LiftP.add_effect(clear_h(h), False)
+    LiftP.add_effect(clear_s(z), True)
+
+    LiftC = InstantaneousAction('LiftC', h=hoist, c=crate, z=crate, p=place)
+    h = LiftC.parameter('h')
+    c = LiftC.parameter('c')
+    z = LiftC.parameter('z')
+    p = LiftC.parameter('p')
+
+
+    LiftC.add_precondition(located(h, p))
+    LiftC.add_precondition(pos_p(z, p))
+    LiftC.add_precondition(clear_h(h))
+    LiftC.add_precondition(pos_p(c, p))
+    LiftC.add_precondition(on_s(c, z))
+    LiftC.add_precondition(clear_s(c))
+
+    LiftC.add_effect(on_h(c, h), True)
+    LiftC.add_effect(clear_s(c), False)
+    LiftC.add_effect(clear_h(h), False)
+    LiftC.add_effect(clear_s(z), True)
+
+    DropP = InstantaneousAction('DropP', h=hoist, c=crate, z=pallet, p=place)
+    h = DropP.parameter('h')
+    c = DropP.parameter('c')
+    z = DropP.parameter('z')
+    p = DropP.parameter('p')
+
+
+    DropP.add_precondition(located(h, p))
+    DropP.add_precondition(placed(z, p))
+    DropP.add_precondition(clear_s(z))
+    DropP.add_precondition(on_h(c, h))
+    DropP.add_precondition(Not(clear_s(c)))
+    DropP.add_precondition(Not(clear_h(h)))
+
+    DropP.add_effect(clear_h(h), True)
+    DropP.add_effect(clear_s(c), True)
+    DropP.add_effect(clear_s(z), False)
+    DropP.add_effect(on_s(c, z), True)
+
+    DropC = InstantaneousAction('DropC', h=hoist, c=crate, z=crate, p=place)
+    h = DropC.parameter('h')
+    c = DropC.parameter('c')
+    z = DropC.parameter('z')
+    p = DropC.parameter('p')
+
+
+    DropC.add_precondition(located(h, p))
+    DropC.add_precondition(pos_p(z, p))
+    DropC.add_precondition(clear_s(z))
+    DropC.add_precondition(on_h(c, h))
+    DropC.add_precondition(Not(clear_s(c)))
+    DropC.add_precondition(Not(clear_h(h)))
+
+    DropC.add_effect(clear_h(h), True)
+    DropC.add_effect(clear_s(c), True)
+    DropC.add_effect(clear_s(z), False)
+    DropC.add_effect(on_s(c, z), True)
+
+    problem = Problem('depot')
+    depot0 = Object('depot0', depot)
+    distributor0 = Object('distributor0', distributor)
+    distributor1 = Object('distributor1', distributor)
+
+    crate0 = Object('crate0', crate)
+    crate1 = Object('crate1', crate)
+    pallet0 = Object('pallet0', pallet)
+    pallet1 = Object('pallet1', pallet)
+    pallet2 = Object('pallet2', pallet)
+    hoist0 = Object('hoist0', hoist)
+    hoist1 = Object('hoist1', hoist)
+    hoist2 = Object('hoist2', hoist)
+
+    problem.add_object(crate0)
+    problem.add_object(crate1)
+    problem.add_object(truck0)
+    problem.add_object(truck1)
+    problem.add_object(depot0)
+    problem.add_object(distributor0)
+    problem.add_object(distributor1)
+    problem.add_object(pallet0)
+    problem.add_object(pallet1)
+    problem.add_object(pallet2)
+    problem.add_object(hoist0)
+    problem.add_object(hoist1)
+    problem.add_object(hoist2)
+
+    problem.add_action(LiftP)
+    problem.add_action(LiftC)
+    problem.add_action(DropP)
+    problem.add_action(DropC)
+
+    problem.add_action(drive)
+    problem.add_action(load)
+    problem.add_action(unload)
+
+
+    problem.add_fluent(clear_h, default_initial_value=False)
+    problem.add_fluent(located, default_initial_value=False)
+    problem.add_fluent(at)
+    problem.add_fluent(placed, default_initial_value=False)
+    problem.add_fluent(pos_p, default_initial_value=False)
+    problem.add_fluent(pos_u, default_initial_value=False)
+    problem.add_fluent(on_u, default_initial_value=False)
+    problem.add_fluent(on_s, default_initial_value=False)
+    problem.add_fluent(on_h, default_initial_value=False)
+    problem.add_fluent(clear_s, default_initial_value=False)
+
+    problem.set_initial_value(at(truck0, depot0), False)
+    problem.set_initial_value(at(truck0, distributor0), False)
+    problem.set_initial_value(at(truck1, distributor0), False)
+    problem.set_initial_value(at(truck1, distributor1), False)
+
+    problem.set_initial_value(pos_p(crate0, distributor0), True)
+    problem.set_initial_value(clear_s(crate0), True)
+    problem.set_initial_value(on_s(crate0, pallet1), True)
+    problem.set_initial_value(pos_p(crate1, depot0), True)
+    problem.set_initial_value(clear_s(crate1), True)
+    problem.set_initial_value(on_s(crate1, pallet0), True)
+    problem.set_initial_value(at(truck0, distributor1), True)
+    problem.set_initial_value(at(truck1, depot0), True)
+    problem.set_initial_value(located(hoist0, depot0), True)
+    problem.set_initial_value(clear_h(hoist0), True)
+    problem.set_initial_value(located(hoist1, distributor0), True)
+    problem.set_initial_value(clear_h(hoist1), True)
+    problem.set_initial_value(located(hoist2, distributor1), True)
+    problem.set_initial_value(clear_h(hoist2), True)
+    problem.set_initial_value(placed(pallet0, depot0), True)
+    problem.set_initial_value(Not(clear_s(pallet0)), True)
+    problem.set_initial_value(placed(pallet1, distributor0), True)
+    problem.set_initial_value(Not(clear_s(pallet1)), True)
+    problem.set_initial_value(placed(pallet2, distributor1), True)
+    problem.set_initial_value(clear_s(pallet2), True)
+    problem.set_initial_value(at(truck0, distributor1), True)
+
+    problem.add_goal(on_s(crate0, pallet2))
+    problem.add_goal(on_s(crate1, pallet1))
+    plan = None
+    depot = Example(problem=problem, plan=plan)
+    problems['depot_mix'] = depot
+
 
     return problems
 

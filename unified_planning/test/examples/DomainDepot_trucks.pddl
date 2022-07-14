@@ -7,7 +7,6 @@
 )
 (:predicates 
   (myAgent ?a - truck)
-  (ciao ?x - surface)
   (clear ?x - (either surface hoist)))
 (:functions
   (located ?h - hoist) - place
