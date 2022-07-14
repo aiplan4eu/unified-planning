@@ -15,7 +15,7 @@
 
 import unified_planning as up
 
-# from unified_planning.model.agent import Agent
+from unified_planning.model.agent import Agent
 from typing import List, Dict, Optional, cast
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 
@@ -36,18 +36,18 @@ class AgentsSetMixin:
     ):
         self._env = env
         self._has_name_method = has_name_method
-        self._agents: List["up.model.fluent.Agent"] = []
+        self._agents: List[Agent] = []
 
-    def add_agent(self, agent: "up.model.agent.Agent"):
+    def add_agent(self, agent: Agent):
         """This method adds an Agent"""
         if agent not in self._agents:
             self._agents.append(agent)
 
-    def agents(self) -> List["up.model.agent.Agent"]:
+    def agents(self) -> List[Agent]:
         """Returns the agents."""
         return self._agents
 
-    def agent(self, ID: str) -> "up.model.agent.Agent":
+    def agent(self, ID: str) -> Agent:
         """Returns the agent with the given ID."""
         for agent in self._agents:
             if agent._ID == ID:

@@ -104,7 +104,7 @@ class Agent(FluentsSetMixin, ActionsSetMixin, AgentsSetMixin):
     ):
         """Sets the initial value for the given fluent."""
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
         self._initial_value[fluent_exp] = value_exp
 
