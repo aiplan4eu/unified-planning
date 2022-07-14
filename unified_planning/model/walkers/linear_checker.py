@@ -18,20 +18,23 @@ import unified_planning as up
 import unified_planning.model.walkers as walkers
 from unified_planning.model.walkers.dag import DagWalker
 from unified_planning.model.operators import OperatorKind
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 
 class LinearChecker(DagWalker):
-    """Checks if the given expression is linear or not and returns the set of the fluents appearing in the expression."""
+    """Checks if the given expression is linear or not and returns the set of the fluents appearing in the expression.
 
-    def __init__(self):
+    Optionally takes a problem to consider static fluents as constants."""
+
+    def __init__(self, problem: Optional["up.model.problem.Problem"] = None):
         DagWalker.__init__(self)
+        self._problem = problem
 
     def get_fluents(
         self, expression: "up.model.fnode.FNode"
     ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
         """Returns the tuple containing a flag saying if the expression is linear or not and the set of the fluent_expressions appearing in the expression."""
-        return self.walk(expression.environment.simplifier.simplify(expression))
+        return self.walk(expression)
 
     @walkers.handles(
         set(OperatorKind)
@@ -45,8 +48,8 @@ class LinearChecker(DagWalker):
         is_linear = True
         fluents: Set["up.model.fnode.FNode"] = set()
         for b, sf in args:
-            if not b:  # If one of the args is not linear, the expression is not linear
-                is_linear = False
+            # If one of the args is not linear, the whole expression is not linear
+            is_linear = is_linear and b
             fluents |= sf  # Update the fluents appearing in the arguments
         return (is_linear, fluents)
 
@@ -59,8 +62,7 @@ class LinearChecker(DagWalker):
         arg_with_fluents_found = False  # We must check that at most 1 of the arguments contains fluent_expression
         fluents: Set["up.model.fnode.FNode"] = set()
         for b, sf in args:
-            if not b:
-                is_linear = False
+            is_linear = is_linear and b
             if (
                 len(sf) > 0 and not arg_with_fluents_found
             ):  # First arg that contains fluent_expressions
@@ -94,12 +96,16 @@ class LinearChecker(DagWalker):
         expression: "up.model.fnode.FNode",
         args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
-        is_linear = all(
-            a.is_constant() or a.is_parameter_exp for a in expression.args
-        )  # NOTE not sure about the parameters
-        fluents: Set["up.model.fnode.FNode"] = {expression}
+        is_linear = True
+        fluents: Set["up.model.fnode.FNode"] = set()
+        # If the problem is not given or the fluent is not in the problem's static fluents,
+        # it must be added to the expression fluents
+        if (
+            self._problem is None
+            or expression.fluent() not in self._problem.get_static_fluents()
+        ):
+            fluents.add(expression)
         for b, sf in args:
-            if not b:
-                is_linear = False
+            is_linear = is_linear and b
             fluents |= sf
         return (is_linear, fluents)

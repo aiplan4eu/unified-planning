@@ -39,7 +39,6 @@ class Environment:
         self._expression_manager = unified_planning.model.ExpressionManager(self)
         self._free_vars_oracle = unified_planning.model.FreeVarsOracle()
         self._simplifier = unified_planning.model.walkers.Simplifier(self)
-        self._linear_checker = unified_planning.model.walkers.LinearChecker()
         self._free_vars_extractor = unified_planning.model.walkers.FreeVarsExtractor()
         self._credits_stream: Optional[IO[str]] = sys.stdout
 
@@ -83,10 +82,6 @@ class Environment:
     @property
     def simplifier(self) -> "unified_planning.model.walkers.Simplifier":
         return self._simplifier
-
-    @property
-    def linear_checker(self) -> "unified_planning.model.walkers.LinearChecker":
-        return self._linear_checker
 
     @property
     def free_vars_extractor(self) -> "unified_planning.model.walkers.FreeVarsExtractor":
