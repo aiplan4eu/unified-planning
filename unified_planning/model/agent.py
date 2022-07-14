@@ -36,6 +36,9 @@ class Agent(
     AgentsSetMixin
 
 ):
+
+    '''Represents an Agent.'''
+
     def __init__(
             self,
             ID: str = None,
@@ -49,9 +52,8 @@ class Agent(
         )
         ActionsSetMixin.__init__(self, self.env, self._add_user_type_method, self.has_name)
         AgentsSetMixin.__init__(self, self.env, self._has_name_method)
-        self._ID =  ID
+        self._ID: str =  ID
         self._goals: List['up.model.fnode.FNode'] = []
-        #self._env = env
         self._initial_value: Dict['unified_planning.model.fnode.FNode', 'unified_planning.model.fnode.FNode'] = {}
 
 
@@ -60,7 +62,6 @@ class Agent(
         return (
             self.has_action(name)
             or self.has_fluent(name)
-            #or self.has_type(name)
         )
 
     def add_goal(self, goal: Union['unified_planning.model.fnode.FNode', 'unified_planning.model.fluent.Fluent', bool]):
@@ -102,6 +103,7 @@ class Agent(
         self._initial_value[fluent_exp] = value_exp
 
     def set_initial_values(self, init_values):
+        """Sets the initial values for the specified fluent list."""
         for fluent, value in init_values.items():
             self.set_initial_value(fluent, value)
 

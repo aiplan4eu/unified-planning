@@ -31,44 +31,30 @@ class AgentsSetMixin:
     def __init__(
         self,
         env,
-        #add_user_type_method,
         has_name_method,
     ):
-
         self._env = env
-        #self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._agents: List["up.model.fluent.Agent"] = []
-
-        # The field initial default optionally associates a type to a default value. When a new fluent is
-        # created with no explicit default, it will be associated with the initial-default of his type, if any.
-
-    '''def __init__(self, has_name_method):
-        self._has_name_method = has_name_method
-        self._agents: List['up.model.agent.Agent'] = []'''
 
     def add_agent(self, agent: 'up.model.agent.Agent'):
         '''This method adds an Agent'''
         if agent not in self._agents:
-            #t = cast(Agent, agent)
-            #if self._has_name_method(t.name):
-            #    raise UPProblemDefinitionError(f'The agent name {t.name} is already used in the problem')
             self._agents.append(agent)
 
-    @property
     def agents(self) -> List['up.model.agent.Agent']:
         '''Returns the agents.'''
         return self._agents
 
     def agent(self, ID: str) -> 'up.model.agent.Agent':
-        '''Returns the agent with the given name.'''
+        '''Returns the agent with the given ID.'''
         for agent in self._agents:
             if agent._ID == ID:
                 return agent
         raise UPValueError(f'Agent {ID} is not defined!')
 
     def has_agent(self, ID: str) -> bool:
-        '''Returns True iff the agent 'name' is defined.'''
+        '''Returns True iff the agent 'ID' is defined.'''
         for agent in self._agents:
             if agent._ID == ID:
                 return True

@@ -16,9 +16,9 @@ from functools import reduce
 from .pddl_writer import ConverterToPDDLString
 from .pddl_writer import PDDLWriter
 from .pddl_writer import ObjectsExtractor
-import re
 from unified_planning.model.problem import *
 from unified_planning.model.types import _UserType
+import os
 
 functions_dict = {}
 PDDL_KEYWORDS = {
@@ -94,7 +94,91 @@ PDDL_KEYWORDS = {
     "preferences",
 }
 
-# The following map is used to mangle the invalid names by their class.
+
+class Write_MA_Problem:
+
+    def __init__(
+        self,
+        problem = None,
+        agent = None,
+    ):
+        self._problem = problem
+        self._agent = agent
+        self._map_agents_problems = {}
+
+
+    def write_ma_problem(self, problems):
+        for prob, agent_list in self._map_agents_problems.items():
+            if type(problems) is list:
+                name = problems[0]._name
+                for p in problems:
+                    if p._name == prob:
+                        problem = p
+            else:
+                problem = problems
+                name = problem._name
+            write_domain = False
+            for ag in agent_list:
+                #passo l'agente e il problema. L'agente mi servirà sia per il dominio
+                #che per il problema ex: myAgent "depot0", distributor0" ecc.
+                w = PDDLWriter_MA(ag, problem)
+                if write_domain == False:
+                    w.write_domain(f'Domain{problem._name.capitalize()}.pddl')
+                    write_domain = True
+                w.write_problem(f'Problem{name.capitalize()}{ag.capitalize()}.pddl')
+                w.write_agents_txt('agent-list.txt')
+
+    def map_agent_problem(self, problem, agent_list):
+        prob = problem._name
+        if prob not in self._map_agents_problems:
+            self._map_agents_problems[prob] = []
+        if agent_list not in self._map_agents_problems[prob]:
+            self._map_agents_problems[prob].append(agent_list)
+
+
+    def FMAP_planner(self):
+        #path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
+        #path_file = "home/alee8/Scrivania/unified-planning/unified_planning/test/examples/"
+        path = "../../FMAP"
+        #path_file = "Domains/depots/Pfile01/ok/"
+        path_file = "../test/examples/"
+        cwd = os.getcwd()
+            #os.chdir(path)
+        try:
+            os.chdir(path)
+            print("Inserting inside-", os.getcwd())
+        # Caching the exception
+        except:
+            print("Something wrong with specified\
+                  directory. Exception- ", sys.exc_info())
+
+        out = StringIO()
+        out.write(f'java -jar FMAP.jar')
+        #name è uguale al primo nome del problema dentro agent_list
+        name = next(iter(self._map_agents_problems))
+        for prob, agents_list in self._map_agents_problems.items():
+            for agent in agents_list:
+                out.write(f' {agent} {path_file}Domain{prob.capitalize()}.pddl {path_file}Problem{name.capitalize()}{agent.capitalize()}.pddl')
+        #out.write(f' {path_file}agent-list.txt')
+        #out.write(f' agent-list.txt')
+        command = out.getvalue()
+        #from os import walk
+        #filenames = next(walk(path_file), (None, None, []))[2]
+        print(command)
+        #os.system(command)
+        plan = os.popen(command).read()
+        os.chdir(cwd)
+        name = f'FMAP_{name}_plan'
+        self.write_FMAP_plan(name, plan)
+        return plan
+
+    def write_FMAP_plan(self, filename: str, plan):
+        '''Dumps to file the FMAP plan.'''
+        with open(filename, 'w') as f:
+            f.write(plan)
+
+
+
 
 class ConverterToPDDLString_MA(ConverterToPDDLString):
     '''Represents a planning MultiAgentProblem.'''
@@ -105,11 +189,12 @@ class ConverterToPDDLString_MA(ConverterToPDDLString):
 
 class PDDLWriter_MA(PDDLWriter):
     '''Represents a planning MultiAgentProblem.'''
-    def __init__(self, ag, *args, **kwargs):
+    def __init__(self, ag:str , *args, **kwargs):
         super(PDDLWriter_MA, self).__init__(*args, **kwargs)
-        self._ag =ag
+        self._ag = ag
         #self.agent_list = []
         self.shared_data = {}
+
 
     def _type_name_or_object_freshname(self, type: 'unified_planning.model.Type') -> str:
         return type.name if type.name != "object" else self.object_freshname # type: ignore
@@ -152,8 +237,6 @@ class PDDLWriter_MA(PDDLWriter):
 
     def _write_domain(self, out: IO[str]):
         #for agent in self.problem.agents_list:
-
-        #
         problem_kind = self.problem.kind
         if self.problem_kind.has_intermediate_conditions_and_effects():
             raise UPProblemDefinitionError(
@@ -209,8 +292,6 @@ class PDDLWriter_MA(PDDLWriter):
 
         if self.problem_kind.has_hierarchical_typing(): # type: ignore
             user_types_hierarchy = self.problem.user_types_hierarchy
-            #print("wiiiiiii", user_types_hierarchy)
-            #breakpoint()
             out.write(f'(:types')
             stack: List["unified_planning.model.Type"] = (
                 user_types_hierarchy[None] if None in user_types_hierarchy else []
@@ -223,7 +304,7 @@ class PDDLWriter_MA(PDDLWriter):
                 current_type = stack.pop()
                 direct_sons: List['unified_planning.model.Type'] = user_types_hierarchy[current_type]
                 if direct_sons:
-                    #verifico se il tipo è un agente o meno, nel caso in cui è un agente, aggiungo (either ... - agent9
+                    #verifico se il tipo è un agente o meno, nel caso in cui è un agente, aggiungo (either ... - agent)
                     for agent in self.problem._agents:
                         type = self.problem.object(agent._ID)
                         if type.type in direct_sons:
@@ -262,7 +343,6 @@ class PDDLWriter_MA(PDDLWriter):
         for f in self.problem.fluents:
             if f.type.is_bool_type():
                 if f not in self.problem.get_flu_functions():
-                    import re
                     p = re.compile(r"[a-z]+_")
                     query = re.search(p, f.name)
                     if query:
@@ -273,18 +353,7 @@ class PDDLWriter_MA(PDDLWriter):
                                 if self._type_name_or_object_freshname(p) not in dict[query[0]]:
                                     type = self._type_name_or_object_freshname(p.type)
                                     dict[query[0]].append(type)
-        #for f in self.problem.fluents():
-        #    if f.type().is_bool_type():
-        #        if f not in self.problem.get_flu_functions():
-        #            params = []
-        #            i = 0
-        #            for p in f.signature():
-        #                if p.is_user_type():
-        #                    params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
-        #                    i += 1
-        #                else:
-        #                    raise UPTypeError('PDDL supports only user type parameters')
-        #            predicates.append(f'({f.name()}{"".join(params)})\n')
+
 
             elif f.type().is_int_type() or f.type().is_real_type():
                 params = []
@@ -301,21 +370,11 @@ class PDDLWriter_MA(PDDLWriter):
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
             functions.append("(total-cost)")
 
-        #type = self.problem.get_obj_type_father(self.problem.agents_list[0]._ID)
-        #type = self.problem.get_obj_type_father(self._ag)
-
-        #print(type, self._ag, ok.type().name())
-        #breakpoint()
-
         type = self.problem.object(self._ag).type
         if type._father.name == 'agent':
             type = type.name
         else:
             type = type._father
-
-
-
-        #out.write(f'(:predicates \n  (myAgent ?a - {type})\n  {"  ".join(predicates)})\n' if len(predicates) > 0 else '')
 
         out.write(f'(:predicates \n  (myAgent ?a - {type})')
         for i, k in dict.items():
@@ -355,18 +414,6 @@ class PDDLWriter_MA(PDDLWriter):
                 else:
                     i = i.replace("_", "")
                     out.write(f'  ({i} ?{k[0][0]} - {k[0]}) - {k[1]}\n')
-
-
-                    #out.write(f'\n  ({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name()) for o in f.signature()])}')
-                    #params = []
-                    #i = 0
-                    #for p in f.signature():
-                    #    if p.is_user_type():
-                    #        params.append(f' ?p{str(i)} - {self._type_name_or_object_freshname(p)}')
-                    #        i += 1
-                    #    else:
-                    #        raise UPTypeError('PDDL supports only user type parameters')
-                    #functions.append(f'({f.name()}{"".join(params)})\n')
             out.write(f')\n')
 
         converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
@@ -402,7 +449,7 @@ class PDDLWriter_MA(PDDLWriter):
 
                 #preconditions
                 if len(a.preconditions) > 0:
-                    type = self.problem.get_obj_type_father(self._ag)
+                    type = self.problem.set_obj_type_father(self._ag)
                     for ap in a.parameters:
                         if type == ap.type :
                             parameter_name = ap.name
@@ -414,11 +461,8 @@ class PDDLWriter_MA(PDDLWriter):
                     out.write(f'\n :precondition (and')
                     out.write(f' (myAgent ?{parameter_name})')
                     for p in a.preconditions:
-                        # print(p, "(", p.fluent.name(), "?", p._content.args[0], ")", converter.convert(p))
-
                         if len(p._content.args) > 1 and p.is_fluent_exp and p.fluent() in self.problem.get_flu_functions():
                             flu_name = p.fluent().name
-                            #out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
                             flu_name = self.remove_underscore(flu_name)
                             out.write(f' (= ({flu_name} ?{")".join([str(p.arg(0))])}) ?{p.arg(1)})')
                         else:
@@ -442,7 +486,6 @@ class PDDLWriter_MA(PDDLWriter):
                         if e.value.is_true():
                             if len(e.fluent._content.args) > 1 and e.fluent.fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent.fluent().name
-                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
                                 flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (assign ({flu_name} ?{")".join([str(e.fluent.arg(0))])}) ?{e.fluent.arg(1)})')
                             else:
@@ -454,7 +497,6 @@ class PDDLWriter_MA(PDDLWriter):
                         elif e.value.is_false():
                             if len(e.fluent._content.args) > 1 and e.fluent.fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent.fluent().name()
-                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
                                 flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (not (= ({flu_name} ?{")".join([str(e.fluent.arg(0))])}) ?{e.fluent.arg(1)})')
                             else:
@@ -467,7 +509,6 @@ class PDDLWriter_MA(PDDLWriter):
                         elif e.is_increase():
                             if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent().fluent().name()
-                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
                                 flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (increase (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)} {converter.convert(e.value())})')
                             else:
@@ -478,7 +519,6 @@ class PDDLWriter_MA(PDDLWriter):
                         elif e.is_decrease():
                             if len(e.fluent()._content.args) > 1 and e.fluent().fluent() in self.problem.get_flu_functions():
                                 flu_name = e.fluent().fluent().name()
-                                # out.write(f'\n :precondition (and {" ".join([converter.convert(p)])})')
                                 flu_name = self.remove_underscore(flu_name)
                                 out.write(f' (decrease (= ({flu_name} ?{")".join([str(e.fluent().arg(0))])}) ?{e.fluent().arg(1)} {converter.convert(e.value())})')
                             else:
@@ -607,18 +647,6 @@ class PDDLWriter_MA(PDDLWriter):
         # if the pddl valid name is the same of the original one and it does not create conflicts,
         # it can be returned
         new_name = tmp_name
-        '''if tmp_name == original_name and tmp_name not in self.nto_renamings:
-            new_name = tmp_name
-        else:
-            count = 0
-            new_name = tmp_name
-            while self.problem.has_name(new_name) or new_name in self.nto_renamings:
-                new_name = f"{tmp_name}_{count}"
-                count += 1
-        assert (
-            new_name not in self.nto_renamings
-            and new_name not in self.otn_renamings.values()
-        )'''
         self.otn_renamings[item] = new_name
         self.nto_renamings[new_name] = item
         return new_name
@@ -629,18 +657,12 @@ class PDDLWriter_MA(PDDLWriter):
             name = 'pddl'
         else:
             name = f'{self.problem.name}'
-        #out.write(f'(define (problem {name}-problem)\n')
         obe = ObjectsExtractor()
         out.write(f'(define (problem pddl-problem)\n')
-        #out.write(f'(:domain {name}-domain)\n')
         out.write(f'(:domain pddl-domain)\n')
         if len(self.problem.user_types) > 0:
             out.write('(:objects ')
             for t in self.problem.user_types:
-                
-                '''constants_of_this_type = self.domain_objects.get(
-                    cast(_UserType, t), None
-                )'''
                 constants_of_this_type = None
                 if constants_of_this_type is None:
                     objects = [o for o in self.problem.all_objects if o.type == t]
@@ -650,7 +672,6 @@ class PDDLWriter_MA(PDDLWriter):
                         for o in self.problem.all_objects
                         if o.type == t and o not in constants_of_this_type
                     ]
-                #objects: List['unified_planning.model.Object'] = list(self.problem.objects(t))
                 if len(objects) > 0:
                     out.write(
                         f'\n {" ".join([o.name for o in objects])} - {self._type_name_or_object_freshname(t)}')
@@ -696,35 +717,8 @@ class PDDLWriter_MA(PDDLWriter):
                         i = i.replace("_", "")
                         out.write(f'\n  (({i} ?{k[0][0]} - {k[0]}) - {k[1]})')
 
-
-                    #params = []
-                    #i = 0
-
-                    #user_type_name = f.name()
-                    #if len(f.signature()) > 1:
-                    #    out.write(f'\n (({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name())  for o in f.signature()])})')
-                    #else:
-                    #    out.write(
-                    #        f'\n ({user_type_name} ?{(f.signature()[0].name())[0]} - {") - ".join([str(o.name()) for o in f.signature()])})')
-
-                    #for p in f.signature():
-                    #    if p.is_user_type():
-                    #        params.append(f'?{(str(p.name()))[0]}{str(i)} - {self._type_name_or_object_freshname(p)}')
-                    #        i += 1
-                    #    else:
-                    #        raise UPTypeError('PDDL supports only user type parameters')
-                    #shared.append(f'\n  ({f.name()}{"".join(params)})')
-
-                    #Verificare se è possibile fare: ((pos ?c - crate) - (either place truck)) "aggiungere either"
-                    #print(f, f.signature()[0].father(), f.signature()[0].name(), "ooooooooooooooooooo")
-                    #print(self._type_name_or_object_freshname(f))
-
-                #else:
-                #    raise UPTypeError('Not boolean')
-            #out.write('(:shared-data ')
-            #out.write(f'{" ".join(shared)})' if len(shared) > 0 else '')
         shared_agents = []
-        for agent in self.problem.get_agents():
+        for agent in self.problem.agents():
             if agent._ID == self._ag:
                 pass
             else:
@@ -738,8 +732,6 @@ class PDDLWriter_MA(PDDLWriter):
         out.write(f' (myAgent {type})')
 
 
-        #print(self..(self._ag._ID))
-        #for f, v in self.problem.initial_values.items():
         agent = self.problem.agent(self._ag)
         for f, v in agent._initial_value.items(): #Passo gli initial_value dell'agente
             if v.is_true():
@@ -749,12 +741,8 @@ class PDDLWriter_MA(PDDLWriter):
                     subst = ""
                     fluent = re.sub(regex, subst, fluent, 0, re.MULTILINE)
                     out.write(f'\n (= ({fluent} {") ".join([converter.convert(o) for o in f._content.args])})')
-
-                    #print(f.fluent.name())
                 else:
-                    #fluent = f._content.args[0].fluent.name()
                     f = converter.convert(f)
-
                     regex = r"_[a-zA-Z]+"
                     subst = ""
                     f = re.sub(regex, subst, f, 0, re.MULTILINE)
