@@ -523,16 +523,39 @@ class TestProblem(TestCase):
 
     def test_simple_numeric_planning_kind(self):
         problem = self.problems["robot"].problem
-        # self.assertFalse(problem.kind.has_simple_numeric_planning())
+        # False because the problem has an assignment instead of a decrease
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
 
         problem = self.problems["robot_decrease"].problem
+        # Fixes problem above
         self.assertTrue(problem.kind.has_simple_numeric_planning())
 
         problem = self.problems["travel"].problem
         self.assertTrue(problem.kind.has_simple_numeric_planning())
 
         problem = self.problems["travel_with_consumptions"].problem
+        # False because the problem has a multiplication of 2 static fluents, fixed in the grounding
         self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+        # NOTE Code commented because we don't have a grounder that supports "FINAL_VALUE", but by "hacking it", this test works
+        # with Compiler(problem_kind=problem.kind) as grounder:
+        #     grounded_problem = grounder.compile(problem, CompilationKind.GROUNDING).problem
+        #     self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
+
+        names_of_SNP_problems = [
+            "counter_to_50",
+            "robot_decrease",
+            "robot_locations_connected",
+            "robot_locations_visited",
+            "robot_with_durative_action",
+            "travel",
+            "robot_fluent_of_user_type_with_int_id",
+        ]
+        for problem, _ in self.problems.values():
+            if problem.name in names_of_SNP_problems:
+                self.assertTrue(problem.kind.has_simple_numeric_planning())
+            else:
+                self.assertFalse(problem.kind.has_simple_numeric_planning())
 
 
 if __name__ == "__main__":

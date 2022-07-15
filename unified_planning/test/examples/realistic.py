@@ -912,7 +912,7 @@ def get_example_problems():
     problem.add_action(move)
 
     problem.add_quality_metric(
-        up.model.metrics.MinimizeExpressionOnFinalState(total_travel_time)
+        up.model.metrics.MinimizeExpressionOnFinalState(total_travel_time())
     )
 
     l1 = Object("l1", Location)

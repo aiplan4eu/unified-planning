@@ -65,7 +65,6 @@ class ProblemKindMeta(type):
             assert feature in possible_features
             if feature in self._features:
                 self._features.remove(feature)
-                assert False
 
         def _has(self, feature):
             return feature in self._features
