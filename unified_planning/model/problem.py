@@ -538,7 +538,13 @@ class Problem(
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible."""
+        # Create the needed data structures
         fluents_to_only_increase: Set["up.model.fnode.FNode"] = set()
+        fluents_to_only_decrease: Set["up.model.fnode.FNode"] = set()
+        static_fluents: Set["up.model.fluent.Fluents"] = self.get_static_fluents()
+        initial_values: Dict[
+            "up.model.fnode.FNode", "up.model.fnode.FNode"
+        ] = self.initial_values
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
         simplifier = up.model.walkers.simplifier.Simplifier(self._env, self)
         linear_checker = up.model.walkers.linear_checker.LinearChecker(self)
@@ -556,6 +562,12 @@ class Problem(
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
                 self._kind.set_quality_metrics("FINAL_VALUE")
+                (
+                    is_linear,
+                    fluents_to_only_decrease,
+                ) = linear_checker.get_fluents(metric.expression)
+                if not is_linear:
+                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
                 self._kind.set_quality_metrics("ACTIONS_COST")
             elif isinstance(metric, up.model.metrics.MinimizeMakespan):
@@ -570,7 +582,13 @@ class Problem(
             self._update_problem_kind_fluent(fluent)
         for action in self._actions:
             self._update_problem_kind_action(
-                action, fluents_to_only_increase, simplifier, linear_checker
+                action,
+                fluents_to_only_increase,
+                fluents_to_only_decrease,
+                static_fluents,
+                initial_values,
+                simplifier,
+                linear_checker,
             )
         if len(self._timed_effects) > 0:
             self._kind.set_time("CONTINUOUS_TIME")
@@ -578,7 +596,13 @@ class Problem(
         for effect_list in self._timed_effects.values():
             for effect in effect_list:
                 self._update_problem_kind_effect(
-                    effect, fluents_to_only_increase, simplifier, linear_checker
+                    effect,
+                    fluents_to_only_increase,
+                    fluents_to_only_decrease,
+                    static_fluents,
+                    initial_values,
+                    simplifier,
+                    linear_checker,
                 )
         if len(self._timed_goals) > 0:
             self._kind.set_time("TIMED_GOALS")
@@ -599,6 +623,9 @@ class Problem(
         self,
         e: "up.model.effect.Effect",
         fluents_to_only_increase: Set["up.model.fnode.FNode"],
+        fluents_to_only_decrease: Set["up.model.fnode.FNode"],
+        static_fluents: Set["up.model.fnode.FNode"],
+        initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
@@ -609,64 +636,88 @@ class Problem(
         if e.is_increase():
             self._kind.set_effects_kind("INCREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint
-            # on the "fluents_to_only_increase", unset simple_numeric_planning
-            if (
-                (value.is_int_constant() or value.is_real_constant())
-                and value.constant_value() < 0
-                and e.fluent in fluents_to_only_increase
+            # on the "fluents_to_only_increase" or on "fluents_to_only_decrease", unset simple_numeric_planning
+            if (value.is_int_constant() or value.is_real_constant()) and (
+                (value.constant_value() < 0 and e.fluent in fluents_to_only_increase)
+                or (value.constant_value() > 0 and e.fluent in fluents_to_only_decrease)
             ):
                 self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            # if the value is not a fluent or
-            # it is not a static fluent
-            # or it's value violates on the "fluents_to_only_increase",
-            # unset simple_numeric_planning
-            elif (
-                not value.is_fluent_exp()
-                or not value.fluent() in self.get_static_fluents()
-                or self.initial_values[value] < 0
-            ):
+            # if the value is a static fluent, we check that it does not
+            # violate the increase/decrease constraints
+            elif value.is_fluent_exp() and value.fluent() in self.get_static_fluents():
+                if e.fluent.fluent() in fluents_to_only_increase:
+                    # iterate over all the initial values of the fluent and check that the initial value is a constant
+                    # that does no violate the increase constraint
+                    for f_exp, initial_value in initial_values.items():
+                        if f_exp.fluent() == value.fluent() and (
+                            not initial_value.is_constant()
+                            or initial_value.constant_value() < 0
+                        ):
+                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                            break
+                elif e.fluent.fluent() in fluents_to_only_decrease:
+                    # iterate over all the initial values of the fluent and check that the initial value is a constant
+                    # that does no violate the decrease constraint
+                    for f_exp, initial_value in initial_values.items():
+                        if f_exp.fluent() == value.fluent() and (
+                            not initial_value.is_constant()
+                            or initial_value.constant_value() > 0
+                        ):
+                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                            break
+            else:
                 self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_decrease():
-            if (
-                not value.is_int_constant() and not value.is_real_constant()
-            ) or e.fluent in fluents_to_only_increase:
-                self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             self._kind.set_effects_kind("DECREASE_EFFECTS")
+            # If the value is a number (int or real) and it violates the constraint
+            # on the "fluents_to_only_increase" or on "fluents_to_only_decrease", unset simple_numeric_planning
+            if (  # value is a constant number
+                value.is_int_constant() or value.is_real_constant()
+            ):
+                if (
+                    e.fluent in fluents_to_only_increase and value.constant_value() > 0
+                ) or (
+                    e.fluent in fluents_to_only_decrease and value.constant_value() < 0
+                ):
+                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            # if the value is a static fluent, we check that it does not
+            # violate the increase/decrease constraints
+            elif value.is_fluent_exp() and value.fluent() in self.get_static_fluents():
+                if e.fluent.fluent() in fluents_to_only_increase:
+                    # iterate over all the initial values of the fluent and check that the initial value is a constant
+                    # that does no violate the increase constraint
+                    for f_exp, initial_value in initial_values.items():
+                        if f_exp.fluent() == value.fluent() and (
+                            not initial_value.is_constant()
+                            or initial_value.constant_value() > 0
+                        ):
+                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                            break
+                elif e.fluent.fluent() in fluents_to_only_decrease:
+                    # iterate over all the initial values of the fluent and check that the initial value is a constant
+                    # that does no violate the decrease constraint
+                    for f_exp, initial_value in initial_values.items():
+                        if f_exp.fluent() == value.fluent() and (
+                            not initial_value.is_constant()
+                            or initial_value.constant_value() < 0
+                        ):
+                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                            break
+            else:
+                self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_assignment():
             value_type = value.type
             if (
                 value_type.is_int_type() or value_type.is_real_type()
             ):  # the value is a number
-                if (  # If the value (a number) is not a constant, a Plus or a Minus, unset "SIMPLE_NUMERIC_PLANNING"
-                    not value.is_constant()
-                    and not value.is_plus()
-                    and not value.is_minus()
+                if (  # if the fluent has increase/decrease constraints or the value assigned is not a constant,
+                    # unset "SIMPLE_NUMERIC_PLANNING"
+                    e.fluent in fluents_to_only_increase
+                    or e.fluent in fluents_to_only_decrease
+                    or not value.is_constant()
                 ):
+                    print(value)
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                elif value.is_plus() or value.is_minus():
-                    if len(value.args) != 2:  # The plus/minus is not of length 2
-                        self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                    else:
-                        # assume that fluent is the first of the 2 args, if the first one is not a fluent, swap them.
-                        fluent, constant = value.args[0], value.args[1]
-                        if not fluent.is_fluent_exp():
-                            fluent, constant = constant, fluent
-                        # now, if "fluent" is not a fluent_exp unset Simple_numeric_Planning
-                        if not fluent.is_fluent_exp() or fluent != e.fluent:
-                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                        elif (
-                            not constant.is_constant()
-                        ):  # "constant" in not a constant_exp, unset Simple_numeric_Planning
-                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                        # the value is a minus on a fluent that can only be increased
-                        elif value.is_minus() and e.fluent in fluents_to_only_increase:
-                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                        # the value is a plus with a negative value
-                        elif (
-                            e.fluent in fluents_to_only_increase
-                            and constant.constant_value() < 0
-                        ):
-                            self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
     def _update_problem_kind_condition(
         self,
@@ -711,6 +762,9 @@ class Problem(
         self,
         action: "up.model.action.Action",
         fluents_to_only_increase: Set["up.model.fnode.FNode"],
+        fluents_to_only_decrease: Set["up.model.fnode.FNode"],
+        static_fluents: Set["up.model.fnode.FNode"],
+        initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
@@ -721,7 +775,13 @@ class Problem(
                 self._update_problem_kind_condition(c, linear_checker)
             for e in action.effects:
                 self._update_problem_kind_effect(
-                    e, fluents_to_only_increase, simplifier, linear_checker
+                    e,
+                    fluents_to_only_increase,
+                    fluents_to_only_decrease,
+                    static_fluents,
+                    initial_values,
+                    simplifier,
+                    linear_checker,
                 )
             if action.simulated_effect is not None:
                 self._kind.set_simulated_entities("SIMULATED_EFFECTS")
@@ -753,7 +813,13 @@ class Problem(
                     self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
                 for e in le:
                     self._update_problem_kind_effect(
-                        e, fluents_to_only_increase, simplifier, linear_checker
+                        e,
+                        fluents_to_only_increase,
+                        fluents_to_only_decrease,
+                        static_fluents,
+                        initial_values,
+                        simplifier,
+                        linear_checker,
                     )
             if len(action.simulated_effects) > 0:
                 self._kind.set_simulated_entities("SIMULATED_EFFECTS")

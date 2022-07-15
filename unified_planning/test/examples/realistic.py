@@ -886,27 +886,20 @@ def get_example_problems():
     robot_static_fluents_duration = Example(problem=problem, plan=plan)
     problems["robot_with_static_fluents_duration"] = robot_static_fluents_duration
 
-    # travel with consumptions
-    problem = Problem("travel_with_consumptions")
+    # travel
+    problem = Problem("travel")
 
     Location = UserType("Location")
-    Robot = UserType("Robot")
 
     is_at = Fluent("is_at", BoolType(), position=Location)
     is_connected = Fluent("is_connected", BoolType(), l_from=Location, l_to=Location)
     travel_time = Fluent("travel_time", IntType(0, 500), l_from=Location, l_to=Location)
-    road_consumption_factor = Fluent(
-        "road_consumption_factor", IntType(5, 100), l_from=Location, l_to=Location
-    )
     total_travel_time = Fluent("total_travel_time", IntType(0, None))
-    total_fuel_consumption = Fluent("total_fuel_consumption", IntType(0, None))
 
     problem.add_fluent(is_at, default_initial_value=False)
     problem.add_fluent(is_connected, default_initial_value=False)
     problem.add_fluent(travel_time, default_initial_value=500)
-    problem.add_fluent(road_consumption_factor, default_initial_value=100)
     problem.add_fluent(total_travel_time, default_initial_value=0)
-    problem.add_fluent(total_fuel_consumption, default_initial_value=0)
 
     move = InstantaneousAction("move", l_from=Location, l_to=Location)
     l_from = move.parameter("l_from")
@@ -916,16 +909,10 @@ def get_example_problems():
     move.add_effect(is_at(l_from), False)
     move.add_effect(is_at(l_to), True)
     move.add_increase_effect(total_travel_time, travel_time(l_from, l_to))
-    move.add_increase_effect(
-        total_fuel_consumption,
-        travel_time(l_from, l_to) * road_consumption_factor(l_from, l_to),
-    )
     problem.add_action(move)
 
     problem.add_quality_metric(
-        up.model.metrics.MinimizeExpressionOnFinalState(
-            2 * total_fuel_consumption + 50 * total_travel_time
-        )
+        up.model.metrics.MinimizeExpressionOnFinalState(total_travel_time)
     )
 
     l1 = Object("l1", Location)
@@ -946,14 +933,8 @@ def get_example_problems():
     problem.set_initial_value(travel_time(l2, l3), 70)
     problem.set_initial_value(travel_time(l1, l3), 100)
     problem.set_initial_value(travel_time(l3, l4), 100)
-    problem.set_initial_value(travel_time(l4, l5), 120)
+    problem.set_initial_value(travel_time(l4, l5), 99)
     problem.set_initial_value(travel_time(l3, l5), 200)
-    problem.set_initial_value(road_consumption_factor(l1, l2), 30)
-    problem.set_initial_value(road_consumption_factor(l2, l3), 27)
-    problem.set_initial_value(road_consumption_factor(l1, l3), 50)
-    problem.set_initial_value(road_consumption_factor(l3, l4), 15)
-    problem.set_initial_value(road_consumption_factor(l4, l5), 13)
-    problem.set_initial_value(road_consumption_factor(l3, l5), 40)
 
     problem.add_goal(is_at(l5))
 
@@ -964,7 +945,7 @@ def get_example_problems():
             up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
         ]
     )
-    travel_with_consumptions = Example(problem=problem, plan=plan)
-    problems["travel_with_consumptions"] = travel_with_consumptions
+    travel = Example(problem=problem, plan=plan)
+    problems["travel"] = travel
 
     return problems
