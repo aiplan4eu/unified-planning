@@ -24,11 +24,17 @@ from typing import List, Optional, Set, Tuple
 class LinearChecker(DagWalker):
     """Checks if the given expression is linear or not and returns the set of the fluents appearing in the expression.
 
-    Optionally takes a problem to consider static fluents as constants."""
+    Optionally takes a problem to consider static fluents as constants.
+
+    Important NOTE:
+    After the initialization, the problem given as input can not be modified
+    or the Simplifier behaviour is undefined."""
 
     def __init__(self, problem: Optional["up.model.problem.Problem"] = None):
         DagWalker.__init__(self)
-        self._problem = problem
+        self._static_fluents: Set["up.model.fluent.Fluent"] = (
+            problem.get_static_fluents() if problem is not None else set()
+        )
 
     def get_fluents(
         self, expression: "up.model.fnode.FNode"
@@ -100,10 +106,7 @@ class LinearChecker(DagWalker):
         fluents: Set["up.model.fnode.FNode"] = set()
         # If the problem is not given or the fluent is not in the problem's static fluents,
         # it must be added to the expression fluents
-        if (
-            self._problem is None
-            or expression.fluent() not in self._problem.get_static_fluents()
-        ):
+        if expression.fluent() not in self._static_fluents:
             fluents.add(expression)
         for b, sf in args:
             is_linear = is_linear and b
