@@ -433,10 +433,12 @@ class Problem(
             condition_exp,
         ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Timed effect has not compatible types!")
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
             timing,
             up.model.effect.Effect(
@@ -461,10 +463,12 @@ class Problem(
             condition_exp,
         ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Timed effect has not compatible types!")
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
             timing,
             up.model.effect.Effect(
@@ -542,14 +546,11 @@ class Problem(
         fluents_to_only_increase: Set["up.model.fnode.FNode"] = set()
         fluents_to_only_decrease: Set["up.model.fnode.FNode"] = set()
         static_fluents: Set["up.model.fluent.Fluent"] = self.get_static_fluents()
-        initial_values: Dict[
-            "up.model.fnode.FNode", "up.model.fnode.FNode"
-        ] = self.initial_values
 
         # sf_positive_negative is a map from static_fluent to a tuple of 2 booleans, where the first one
         # says if the static values are only positive and the second one says if every static value is only negative.
         sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]] = {}
-        for f, v in initial_values.items():
+        for f, v in self.initial_values.items():
             if f.fluent() in static_fluents and (
                 f.type.is_int_type() or f.type.is_real_type()
             ):
@@ -605,7 +606,6 @@ class Problem(
                 fluents_to_only_increase,
                 fluents_to_only_decrease,
                 static_fluents,
-                initial_values,
                 sf_positive_or_negative,
                 simplifier,
                 linear_checker,
@@ -620,7 +620,6 @@ class Problem(
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
                     static_fluents,
-                    initial_values,
                     sf_positive_or_negative,
                     simplifier,
                     linear_checker,
@@ -645,8 +644,7 @@ class Problem(
         e: "up.model.effect.Effect",
         fluents_to_only_increase: Set["up.model.fnode.FNode"],
         fluents_to_only_decrease: Set["up.model.fnode.FNode"],
-        static_fluents: Set["up.model.fnode.FNode"],
-        initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
+        static_fluents: Set["up.model.fluent.Fluent"],
         sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
@@ -770,8 +768,7 @@ class Problem(
         action: "up.model.action.Action",
         fluents_to_only_increase: Set["up.model.fnode.FNode"],
         fluents_to_only_decrease: Set["up.model.fnode.FNode"],
-        static_fluents: Set["up.model.fnode.FNode"],
-        initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
+        static_fluents: Set["up.model.fluent.Fluent"],
         sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
@@ -787,7 +784,6 @@ class Problem(
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
                     static_fluents,
-                    initial_values,
                     sf_positive_or_negative,
                     simplifier,
                     linear_checker,
@@ -802,7 +798,6 @@ class Problem(
                 lower
             ) | self.env.free_vars_extractor.get(upper)
             if len(free_vars) > 0:
-                static_fluents = self.get_static_fluents()
                 only_static = True
                 for fv in free_vars:
                     if fv.fluent() not in static_fluents:
@@ -826,7 +821,6 @@ class Problem(
                         fluents_to_only_increase,
                         fluents_to_only_decrease,
                         static_fluents,
-                        initial_values,
                         sf_positive_or_negative,
                         simplifier,
                         linear_checker,

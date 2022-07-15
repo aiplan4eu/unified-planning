@@ -894,7 +894,7 @@ def get_example_problems():
     is_at = Fluent("is_at", BoolType(), position=Location)
     is_connected = Fluent("is_connected", BoolType(), l_from=Location, l_to=Location)
     travel_time = Fluent("travel_time", IntType(0, 500), l_from=Location, l_to=Location)
-    total_travel_time = Fluent("total_travel_time", IntType(0, None))
+    total_travel_time = Fluent("total_travel_time", IntType())
 
     problem.add_fluent(is_at, default_initial_value=False)
     problem.add_fluent(is_connected, default_initial_value=False)

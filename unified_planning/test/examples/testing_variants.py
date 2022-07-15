@@ -423,8 +423,8 @@ def get_example_problems():
     road_consumption_factor = Fluent(
         "road_consumption_factor", IntType(5, 100), l_from=Location, l_to=Location
     )
-    total_travel_time = Fluent("total_travel_time", IntType(0, None))
-    total_fuel_consumption = Fluent("total_fuel_consumption", IntType(0, None))
+    total_travel_time = Fluent("total_travel_time", IntType())
+    total_fuel_consumption = Fluent("total_fuel_consumption", IntType())
 
     problem.add_fluent(is_at, default_initial_value=False)
     problem.add_fluent(is_connected, default_initial_value=False)
