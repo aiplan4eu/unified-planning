@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import unittest
 import unified_planning as up
 from functools import wraps
+from importlib.util import find_spec
 from unified_planning.environment import get_env
 from unified_planning.model import ProblemKind
 from unified_planning.test.pddl import enhsp
@@ -107,6 +109,25 @@ class skipIfNoPlanValidatorForProblemKind(object):
             )
         except:
             cond = True
+
+        @unittest.skipIf(cond, msg)
+        @wraps(test_fun)
+        def wrapper(*args, **kwargs):
+            return test_fun(*args, **kwargs)
+
+        return wrapper
+
+
+class skipIfModuleNotInstalled(object):
+    """Skip a test if there are no oneshot planner for the given problem kind."""
+
+    def __init__(self, module_name: str):
+        self.module_name = module_name
+
+    def __call__(self, test_fun):
+        msg = f"no module named {self.module_name} installed"
+        test = find_spec(self.module_name)
+        cond = test is None
 
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)

@@ -17,9 +17,9 @@ from functools import partial
 from typing import Tuple, Union, Optional
 import fractions
 from typing import OrderedDict
-from unified_planning.exceptions import UPException
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
+from unified_planning.exceptions import UPException
 from unified_planning import Environment
 from unified_planning import model
 from unified_planning.model import metrics
