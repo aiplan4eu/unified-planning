@@ -20,7 +20,7 @@ from typing import IO, Optional, Union
 
 class ReplannerMixin:
     def __init__(self, problem: "up.model.AbstractProblem"):
-        self._problem = problem
+        self._problem = problem.clone()
         self_class = type(self)
         assert issubclass(self_class, up.engines.engine.Engine)
         if not self_class.supports(problem.kind):
