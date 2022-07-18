@@ -44,9 +44,7 @@ class Environment_ma(
     ):
         UserTypesSetMixin.__init__(self, self.has_name)
         self._env = unified_planning.environment.get_env(env)
-        FluentsSetMixin.__init__(
-            self, self.env, self._add_user_type, self.has_name
-        )
+        FluentsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         self._goals: List["up.model.fnode.FNode"] = []
         self._initial_value: Dict[
             "unified_planning.model.fnode.FNode", "unified_planning.model.fnode.FNode"
@@ -54,10 +52,7 @@ class Environment_ma(
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
-        return (
-            self.has_fluent(name)
-            or self.has_type(name)
-        )
+        return self.has_fluent(name) or self.has_type(name)
 
     def set_initial_value(
         self,
@@ -90,7 +85,6 @@ class Environment_ma(
     ]:
         """Gets the initial values"""
         return self._initial_value
-
 
     def add_goal(
         self,

@@ -72,9 +72,7 @@ class MultiAgentProblem(
     ):
         AbstractProblem.__init__(self, name, env)
         UserTypesSetMixin.__init__(self, self.has_name)
-        FluentsSetMixin.__init__(
-            self, self.env, self._add_user_type, self.has_name
-        )
+        FluentsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         AgentsSetMixin.__init__(self, self.env, self._has_name_method)
@@ -108,8 +106,8 @@ class MultiAgentProblem(
             for f in ag.fluents:
                 s.append(f"  {str(ag._ID)} {str(f)}\n")
         if self.get_environment_ma() is not None:
-            if len(self.get_environment_ma().fluents) > 0: # type: ignore
-                for f in self.get_environment_ma().fluents: # type: ignore
+            if len(self.get_environment_ma().fluents) > 0:  # type: ignore
+                for f in self.get_environment_ma().fluents:  # type: ignore
                     s.append(f"  {'ma_environment'} {str(f)}\n")
         s.append("]\n\n")
 
@@ -143,8 +141,8 @@ class MultiAgentProblem(
             for g in ag._goals:
                 s.append(f"  {str(g)}\n")
         if self.get_environment_ma() is not None:
-            if len(self.get_environment_ma().goals) > 0: # type: ignore
-                for g in self.get_environment_ma().goals: # type: ignore
+            if len(self.get_environment_ma().goals) > 0:  # type: ignore
+                for g in self.get_environment_ma().goals:  # type: ignore
                     s.append(f"  {'ma_environment'} {str(g)}\n")
         s.append("]\n\n")
 
@@ -280,12 +278,16 @@ class MultiAgentProblem(
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
-    def add_environment(self, env_ma) -> Union["up.model.environment_ma.Environment_ma", None]:
+    def add_environment(
+        self, env_ma
+    ) -> Union["up.model.environment_ma.Environment_ma", None]:
         """Add a MA-environment."""
         self._env_ma = env_ma
         return self._env_ma
 
-    def get_environment_ma(self) -> Union["up.model.environment_ma.Environment_ma", None]:
+    def get_environment_ma(
+        self,
+    ) -> Union["up.model.environment_ma.Environment_ma", None]:
         """Get a MA-environment."""
         return self._env_ma
 
@@ -304,7 +306,10 @@ class MultiAgentProblem(
             return new_fluent
 
     def sub_exp(
-        self, fluent_to_replace: "up.model.fluent.Fluent", expression: FNode, params=None
+        self,
+        fluent_to_replace: "up.model.fluent.Fluent",
+        expression: FNode,
+        params=None,
     ):
         """Create a new expression"""
         key = fluent_to_replace.name
@@ -407,8 +412,12 @@ class MultiAgentProblem(
                         if e.fluent._content.args != ():
                             args = e.fluent._content.args
                             new_fluent = self.new_agent_fluent(old_fluent)
-                            new_fluent = Fluent(new_fluent.name, None, new_fluent._signature)
-                            new_exp = self.env.expression_manager.FluentExp(new_fluent, args)
+                            new_fluent = Fluent(
+                                new_fluent.name, None, new_fluent._signature
+                            )
+                            new_exp = self.env.expression_manager.FluentExp(
+                                new_fluent, args
+                            )
                             new_act.add_effect(new_exp, e._value, e._condition)
 
                         else:  # example (battery_charge_0 - 10) "robot"
@@ -643,7 +652,6 @@ class MultiAgentProblem(
             self._kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
-
 
     def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
         """Returns the set of the static fluents.
