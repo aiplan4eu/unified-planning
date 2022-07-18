@@ -22,6 +22,7 @@ from unified_planning.engines.parallel import Parallel
 from unified_planning.engines.pddl_planner import PDDLPlanner
 from unified_planning.engines.plan_validator import SequentialPlanValidator
 from unified_planning.engines.oversubscription_planner import OversubscriptionPlanner
+from unified_planning.engines.replanner import Replanner
 from unified_planning.engines.results import (
     Result,
     LogMessage,

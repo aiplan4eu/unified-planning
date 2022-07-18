@@ -27,6 +27,8 @@ from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
+from unified_planning.engines.mixins.replanner import ReplannerMixin
+from unified_planning.engines.mixins.simulator import SimulatorMixin
 from typing import IO, Dict, Tuple, Optional, List, Union, Type, cast
 from pathlib import PurePath
 
@@ -73,6 +75,10 @@ DEFAULT_META_ENGINES = {
     "oversubscription": (
         "unified_planning.engines.oversubscription_planner",
         "OversubscriptionPlanner",
+    ),
+    "replanner": (
+        "unified_planning.engines.replanner",
+        "Replanner",
     ),
 }
 
@@ -338,8 +344,10 @@ class Factory:
         for name in self._preference_list:
             EngineClass = self._engines[name]
             if getattr(EngineClass, "is_" + engine_kind)():
-                assert optimality_guarantee is None or issubclass(
-                    EngineClass, OneshotPlannerMixin
+                assert (
+                    optimality_guarantee is None
+                    or issubclass(EngineClass, OneshotPlannerMixin)
+                    or issubclass(EngineClass, ReplannerMixin)
                 )
                 assert compilation_kind is None or issubclass(
                     EngineClass, CompilerMixin
@@ -349,9 +357,7 @@ class Factory:
                     EngineClass.supports(problem_kind)
                     and (
                         optimality_guarantee is None
-                        or cast(OneshotPlannerMixin, EngineClass).satisfies(
-                            optimality_guarantee
-                        )
+                        or EngineClass.satisfies(optimality_guarantee)  # type: ignore
                     )
                     and (
                         compilation_kind is None
@@ -381,13 +387,10 @@ class Factory:
                         for f in problem_features
                     ]
                     if optimality_guarantee is not None:
-                        x.append(
-                            str(
-                                cast(Type[OneshotPlannerMixin], EngineClass).satisfies(
-                                    optimality_guarantee
-                                )
-                            )
-                        )
+                        assert issubclass(
+                            EngineClass, OneshotPlannerMixin
+                        ) or issubclass(EngineClass, ReplannerMixin)
+                        x.append(str(EngineClass.satisfies(optimality_guarantee)))
                     planners_features.append(x)
         if len(planners_features) > 0:
             header = ["Engine"] + problem_features
@@ -493,13 +496,13 @@ class Factory:
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
             if problem is None:
-                assert engine_kind != "simulator"
+                assert engine_kind not in ["simulator", "replanner"]
                 res = EngineClass(**params)
             else:
-                assert engine_kind == "simulator"
+                assert engine_kind in ["simulator", "replanner"]
                 assert issubclass(EngineClass, up.engines.engine.Engine)
-                assert issubclass(
-                    EngineClass, up.engines.mixins.simulator.SimulatorMixin
+                assert issubclass(EngineClass, SimulatorMixin) or issubclass(
+                    EngineClass, ReplannerMixin
                 )
                 res = EngineClass(problem=problem, **params)
             if name is not None:
@@ -608,6 +611,34 @@ class Factory:
         """
         return self._get_engine(
             "simulator", name, None, params, problem.kind, problem=problem
+        )
+
+    def Replanner(
+        self,
+        problem: "up.model.AbstractProblem",
+        *,
+        name: Optional[str] = None,
+        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a Replanner. There are two ways to call this method:
+        - using 'problem' (with its kind) and 'optimality_guarantee' parameters.
+          e.g. Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)
+        - using 'name' (the name of a specific replanner) and 'params'
+          (replanner dependent options).
+          e.g. Replanner(problem, name='replanner[tamer]')
+        """
+        if isinstance(optimality_guarantee, str):
+            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+        return self._get_engine(
+            "replanner",
+            name,
+            None,
+            params,
+            problem.kind,
+            optimality_guarantee,
+            problem=problem,
         )
 
     def print_engines_info(

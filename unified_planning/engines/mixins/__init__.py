@@ -20,3 +20,4 @@ from unified_planning.engines.mixins.oneshot_planner import (
 )
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
+from unified_planning.engines.mixins.replanner import ReplannerMixin
