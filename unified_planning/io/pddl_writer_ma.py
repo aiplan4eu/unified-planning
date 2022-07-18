@@ -14,92 +14,19 @@ from typing import IO, List, Optional
 from io import StringIO
 from functools import reduce
 from .pddl_writer import ConverterToPDDLString
-from .pddl_writer import PDDLWriter
+from .pddl_writer import PDDLWriter, _get_pddl_name
 from .pddl_writer import ObjectsExtractor
 from unified_planning.model.problem import *
 from unified_planning.model.types import _UserType
 import os
 
-functions_dict = {}
-PDDL_KEYWORDS = {
-    "define",
-    "domain",
-    "requirements",
-    "types",
-    "constants",
-    "atomic",
-    "predicates",
-    "problem",
-    "atomic",
-    "constraints",
-    "either",
-    "number",
-    "action",
-    "parameters",
-    "precondition",
-    "effect",
-    "and",
-    "forall",
-    "preference",
-    "or",
-    "not",
-    "imply",
-    "exists",
-    "scale-up",
-    "scale-down",
-    "increase",
-    "decrease",
-    "durative-action",
-    "duration",
-    "condition",
-    "at",
-    "over",
-    "start",
-    "end",
-    "all",
-    "derived",
-    "objects",
-    "init",
-    "goal",
-    "when",
-    "decrease",
-    "always",
-    "sometime",
-    "within",
-    "at-most-once",
-    "sometime-after",
-    "sometime-before",
-    "always-within",
-    "hold-during",
-    "hold-after",
-    "metric",
-    "minimize",
-    "maximize",
-    "total-time",
-    "is-violated",
-    "strips",
-    "negative-preconditions",
-    "typing",
-    "disjunctive-preconditions",
-    "equality",
-    "existential-preconditions",
-    "universal-preconditions",
-    "quantified-preconditions",
-    "conditional-effects",
-    "fluents",
-    "adl",
-    "durative-actions",
-    "derived-predicates",
-    "timed-initial-literals",
-    "preferences",
-}
-
+functions_dict: Dict["str", "List[str]"] = {}
 
 class Write_MA_Problem:
     def __init__(
         self,
-        problem=None,
-        agent=None,
+        problem = None,
+        agent = None,
     ):
         self._problem = problem
         self._agent = agent
@@ -134,13 +61,9 @@ class Write_MA_Problem:
             self._map_agents_problems[prob].append(agent_list)
 
     def FMAP_planner(self):
-        # path = "/home/alee8/Scrivania/unified-planning/unified_planning/FMAP"
-        # path_file = "home/alee8/Scrivania/unified-planning/unified_planning/test/examples/"
         path = "../../FMAP"
-        # path_file = "Domains/depots/Pfile01/ok/"
         path_file = "../test/examples/"
         cwd = os.getcwd()
-        # os.chdir(path)
         try:
             os.chdir(path)
             print("Inserting inside-", os.getcwd())
@@ -154,20 +77,15 @@ class Write_MA_Problem:
 
         out = StringIO()
         out.write(f"java -jar FMAP.jar")
-        # name è uguale al primo nome del problema dentro agent_list
         name = next(iter(self._map_agents_problems))
         for prob, agents_list in self._map_agents_problems.items():
             for agent in agents_list:
                 out.write(
                     f" {agent} {path_file}Domain{prob.capitalize()}.pddl {path_file}Problem{name.capitalize()}{agent.capitalize()}.pddl"
                 )
-        # out.write(f' {path_file}agent-list.txt')
-        # out.write(f' agent-list.txt')
+
         command = out.getvalue()
-        # from os import walk
-        # filenames = next(walk(path_file), (None, None, []))[2]
         print(command)
-        # os.system(command)
         plan = os.popen(command).read()
         os.chdir(cwd)
         name = f"FMAP_{name}_plan"
@@ -193,8 +111,6 @@ class PDDLWriter_MA(PDDLWriter):
     def __init__(self, ag: str, *args, **kwargs):
         super(PDDLWriter_MA, self).__init__(*args, **kwargs)
         self._ag = ag
-        # self.agent_list = []
-        self.shared_data = {}
 
     def _type_name_or_object_freshname(
         self, type: "unified_planning.model.Type"
@@ -218,11 +134,6 @@ class PDDLWriter_MA(PDDLWriter):
         """Dumps to file the agents_txt."""
         with open(filename, "w") as f:
             self._write_agents_txt(f)
-
-    def _write_CL_FMAP(self, out: IO[str]):
-        out.write(f"java -jar FMAP.jar ")
-        for ag in self.problem.agents_list:
-            out.write(f"{ag._ID} ")
 
     def write_ma_problem(self, problems, ag_list_problems):
         wrt_domain = False
@@ -466,7 +377,10 @@ class PDDLWriter_MA(PDDLWriter):
 
                 # preconditions
                 if len(a.preconditions) > 0:
-                    type = self.problem.set_obj_type_father(self._ag)
+                    """If the type has no parent, I create agent and set agent as parent"""
+                    for object in self.problem.all_objects:
+                        if object._name == self._ag:
+                            type = object.type.father
                     for ap in a.parameters:
                         if type == ap.type:
                             parameter_name = ap.name
@@ -697,13 +611,11 @@ class PDDLWriter_MA(PDDLWriter):
 
         if isinstance(item, up.model.Type):
             assert item.is_user_type()
-            original_name = cast(_UserType, item).name
             tmp_name = _get_pddl_name(item)
             # If the problem is hierarchical and the name is object, we want to change it
             if self.problem_kind.has_hierarchical_typing() and tmp_name == "object":
                 tmp_name = f"{tmp_name}_"
         else:
-            original_name = item.name
             tmp_name = _get_pddl_name(item)
         # if the pddl valid name is the same of the original one and it does not create conflicts,
         # it can be returned
@@ -738,7 +650,6 @@ class PDDLWriter_MA(PDDLWriter):
                         f'\n {" ".join([o.name for o in objects])} - {self._type_name_or_object_freshname(t)}'
                     )
             out.write("\n)\n")
-        shared = []
         dict = {}
         out.write("(:shared-data")
         if self.problem.get_shared_data():
@@ -771,7 +682,6 @@ class PDDLWriter_MA(PDDLWriter):
                                     dict[data_name].append(type)
                 else:
                     raise UPTypeError("Not boolean")
-            ok = {}
             for i, k in dict.items():
                 if len(k) > 2:
                     # k.pop(0)
@@ -868,34 +778,3 @@ class PDDLWriter_MA(PDDLWriter):
         elif len(metrics) > 1:
             raise
         out.write(")\n")
-
-
-def _get_pddl_name(
-    item: Union[
-        "up.model.Type",
-        "up.model.Action",
-        "up.model.Fluent",
-        "up.model.Object",
-        "up.model.Parameter",
-        "up.model.Variable",
-        "up.model.Problem",
-    ]
-) -> str:
-    """This function returns a pddl name for the chosen item"""
-    name = item.name  # type: ignore
-    assert name is not None
-    name = name.lower()
-    regex = re.compile(r"^[a-zA-Z]+.*")
-    if (
-        re.match(regex, name) is None
-    ):  # If the name does not start with an alphabetic char, we make it start with one.
-        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
-
-    name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
-    while (
-        name in PDDL_KEYWORDS
-    ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
-        name = f"{name}_"
-    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
-        name = f"?{name}"
-    return name

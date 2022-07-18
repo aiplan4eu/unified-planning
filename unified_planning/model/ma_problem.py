@@ -68,26 +68,25 @@ class MultiAgentProblem(
         self,
         name: str = None,
         env: "up.environment.Environment" = None,
-        *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        env_ma: Union["up.model.environment_ma.Environment_ma", None] = None,
     ):
         AbstractProblem.__init__(self, name, env)
         UserTypesSetMixin.__init__(self, self.has_name)
         FluentsSetMixin.__init__(
-            self, self.env, self._add_user_type, self.has_name, initial_defaults
+            self, self.env, self._add_user_type, self.has_name
         )
         ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         AgentsSetMixin.__init__(self, self.env, self._has_name_method)
 
-        self.env_ma = None
+        self._env_ma: Union["up.model.environment_ma.Environment_ma", None] = env_ma
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._goals: List["up.model.fnode.FNode"] = list()
         self._shared_data_list: List["up.model.fluent.Fluent"] = []
-        self._new_fluents: Dict["up.model.fluent.Fluent"] = {}
-        self._new_objects: Dict["up.model.object.Object"] = {}
+        self._new_fluents: Dict["str", "up.model.fluent.Fluent"] = {}
+        self._new_objects: Dict["str", "up.model.object.Object"] = {}
         self._shared_data: List["up.model.fluent.Fluent"] = []
-        self._flu_fuctions: List["up.model.fluent.Fluent"] = []
+        self._flu_functions: List["up.model.fluent.Fluent"] = []
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
@@ -108,9 +107,10 @@ class MultiAgentProblem(
         for ag in self.agents():
             for f in ag.fluents:
                 s.append(f"  {str(ag._ID)} {str(f)}\n")
-        if len(self.get_environment_ma().fluents) > 0:
-            for f in self.get_environment_ma().fluents:
-                s.append(f"  {'ma_environment'} {str(f)}\n")
+        if self.get_environment_ma() is not None:
+            if len(self.get_environment_ma().fluents) > 0: # type: ignore
+                for f in self.get_environment_ma().fluents: # type: ignore
+                    s.append(f"  {'ma_environment'} {str(f)}\n")
         s.append("]\n\n")
 
         s.append("actions = [\n")
@@ -142,9 +142,10 @@ class MultiAgentProblem(
         for ag in self.agents():
             for g in ag._goals:
                 s.append(f"  {str(g)}\n")
-        if len(self.get_environment_ma().goals) > 0:
-            for g in self.get_environment_ma().goals:
-                s.append(f"  {'ma_environment'} {str(g)}\n")
+        if self.get_environment_ma() is not None:
+            if len(self.get_environment_ma().goals) > 0: # type: ignore
+                for g in self.get_environment_ma().goals: # type: ignore
+                    s.append(f"  {'ma_environment'} {str(g)}\n")
         s.append("]\n\n")
 
         if len(self.quality_metrics) > 0:
@@ -169,10 +170,10 @@ class MultiAgentProblem(
             return False
         if set(self._actions) != set(oth._actions):
             return False
-        oth_initial_values = oth.initial_values
-        if len(self.initial_values) != len(oth_initial_values):
+        oth_initial_values = oth._initial_value
+        if len(self._initial_value) != len(oth_initial_values):
             return False
-        for fluent, value in self.initial_values.items():
+        for fluent, value in self._initial_value.items():
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False
@@ -206,7 +207,7 @@ class MultiAgentProblem(
             res += hash(ut)
         for o in self._objects:
             res += hash(o)
-        for iv in self.initial_values.items():
+        for iv in self._initial_value.items():
             res += hash(iv)
         for t, el in self._timed_effects.items():
             res += hash(t)
@@ -229,7 +230,7 @@ class MultiAgentProblem(
             or self.has_type(name)
         )
 
-    def add_shared_data(self, Fluent: List["up.model.fluent.Fluent"]):
+    def add_shared_data(self, Fluent: "up.model.fluent.Fluent"):
         """Adds a shared data."""
         if Fluent in self._shared_data:
             raise UPProblemDefinitionError("Name " + Fluent.name + " already defined!")
@@ -246,22 +247,18 @@ class MultiAgentProblem(
 
     def add_flu_function(self, Fluent: "up.model.fluent.Fluent"):
         """Adds a fluent function."""
-        if Fluent in self._flu_fuctions:
+        if Fluent in self._flu_functions:
             raise UPProblemDefinitionError("Name " + Fluent.name + " already defined!")
-        self._flu_fuctions.append(Fluent)
+        self._flu_functions.append(Fluent)
 
     def get_flu_functions(self) -> List["up.model.fluent.Fluent"]:
         """Returns the shared_data fluents."""
-        return self._flu_fuctions
+        return self._flu_functions
 
     def add_flu_functions_list(self, fluents: List["up.model.fluent.Fluent"]):
         """Adds fluents functions."""
         for fluent in fluents:
-            self._flu_fuctions.append(fluent)
-
-    def add_quality_metric(self, metric: "up.model.metrics.PlanQualityMetric"):
-        """Adds a quality metric"""
-        self._metrics.append(metric)
+            self._flu_functions.append(fluent)
 
     @property
     def quality_metrics(self) -> List["up.model.metrics.PlanQualityMetric"]:
@@ -283,20 +280,14 @@ class MultiAgentProblem(
             actual_parameters.append(v)
         return fluent(*actual_parameters)
 
-    def set_obj_type_father(self, name_obj: "up.model.types.Type"):
-        """If the type has no parent, I create agent and set agent as parent"""
-        for object in self.all_objects:
-            if object._name == name_obj:
-                obj_type_father = object.type._father
-                return obj_type_father
-
-    def add_environment(self, env_ma) -> "up.environment_ma.Environment_ma":
+    def add_environment(self, env_ma) -> Union["up.model.environment_ma.Environment_ma", None]:
         """Add a MA-environment."""
-        self.env_ma = env_ma
+        self._env_ma = env_ma
+        return self._env_ma
 
-    def get_environment_ma(self) -> "up.environment_ma.Environment_ma":
+    def get_environment_ma(self) -> Union["up.model.environment_ma.Environment_ma", None]:
         """Get a MA-environment."""
-        return self.env_ma
+        return self._env_ma
 
     def remove_user_type(self, user_type: "up.model.types.Type"):
         """Removes the users types."""
@@ -306,13 +297,14 @@ class MultiAgentProblem(
         if user_type in self.user_types_hierarchy[key]:
             self.user_types_hierarchy[key].remove(user_type)
 
-    def new_agent_fluent(self, key: "up.model.fluent.Fluent"):
+    def new_agent_fluent(self, old_fluent: "up.model.fluent.Fluent"):
+        key = old_fluent.name
         if key in self._new_fluents.keys():
             new_fluent = self._new_fluents[key]
             return new_fluent
 
     def sub_exp(
-        self, fluent_to_replace: Fluent, expresion: BoolExpression, params=None
+        self, fluent_to_replace: "up.model.fluent.Fluent", expression: FNode, params=None
     ):
         """Create a new expression"""
         key = fluent_to_replace.name
@@ -327,19 +319,18 @@ class MultiAgentProblem(
                     fluent_to_replace, params
                 )
             sub = Substituter(self.env)
-            subs_map = {}
+            subs_map: Dict[Expression, Expression] = {}
             subs_map[old_exp] = new_exp
-            print("subs_map", subs_map)
-            new_expresion = sub.substitute(expresion, subs_map)
+            new_expression = sub.substitute(expression, subs_map)
         else:
             assert False, (key, "This fluent is not in the problem!")
-        return new_expresion
+        return new_expression
 
     def compile(self):
         for flu in self.get_environment_ma().fluents:
             flu = copy.copy(flu)
-            new_flu = Fluent((flu.name() + "_env"), flu._typename, flu._signature)
-            self._new_fluents[flu.name()] = new_flu
+            new_flu = Fluent((flu.name + "_env"), flu._typename, flu._signature)
+            self._new_fluents[flu.name] = new_flu
             self.add_fluent(new_flu)
 
         for flu, value in self.get_environment_ma().get_initial_values().items():
@@ -378,30 +369,30 @@ class MultiAgentProblem(
                     is_fluent = False
 
                     for arg in p._content.args:
-                        if arg.is_fluent_exp:
+                        if arg.is_fluent_exp():
                             is_fluent = True
                     if is_fluent:
-                        if p.args[0].is_fluent_exp:  # example: (not robot_at_0(l_to))
+                        if p.args[0].is_fluent_exp():  # example: (not robot_at_0(l_to))
                             params = p._content.args[0]._content.args
-                            fluent_to_replace = p.args[0].fluent
+                            fluent_to_replace = p.args[0].fluent()
                             new_exp_p = self.sub_exp(fluent_to_replace, p, params)
                             new_act.add_precondition(new_exp_p)
 
                         else:  # example: (10 <= battery_charge_0) "robot"
-                            fluent_to_replace = p.args[1].fluent
+                            fluent_to_replace = p.args[1].fluent()
                             new_exp_p = self.sub_exp(fluent_to_replace, p)
                             new_act.add_precondition(new_exp_p)
 
-                    elif p.is_fluent_exp:  # example: robot_at_0(l_from) "robot"
+                    elif p.is_fluent_exp():  # example: robot_at_0(l_from) "robot"
                         params = p.args
-                        fluent_to_replace = p.fluent
+                        fluent_to_replace = p.fluent()
                         new_exp_p = self.sub_exp(fluent_to_replace, p, params)
                         new_act.add_precondition(new_exp_p)
 
                     elif (
-                        p.is_not and p._content.args[0]._content.args[0].is_fluent_exp
+                        p.is_not and p._content.args[0]._content.args[0].is_fluent_exp()
                     ):  # example: (not (is_at_0(robot) == l_to)) "robot_fluent_of_user_type"
-                        fluent_to_replace = p._content.args[0]._content.args[0].fluent
+                        fluent_to_replace = p._content.args[0]._content.args[0].fluent()
                         args = p._content.args[0]._content.args[0]._content.args
                         new_exp_p = self.sub_exp(fluent_to_replace, p, args)
                         new_act.add_precondition(new_exp_p)
@@ -411,42 +402,46 @@ class MultiAgentProblem(
 
                 # Effects
                 for e in act._effects:  # example robot_at_0(l_from) "robot"
-                    if e.fluent.is_fluent_exp:
-                        key = e.fluent.fluent().name
+                    if e.fluent.is_fluent_exp():
+                        old_fluent = e.fluent.fluent()
                         if e.fluent._content.args != ():
                             args = e.fluent._content.args
-                            new_fluent = self.new_agent_fluent(key)
-                            new_fluent = new_fluent(args)
-                            new_act.add_effect(new_fluent, e._value, e._condition)
+                            new_fluent = self.new_agent_fluent(old_fluent)
+                            new_fluent = Fluent(new_fluent.name, None, new_fluent._signature)
+                            new_exp = self.env.expression_manager.FluentExp(new_fluent, args)
+                            new_act.add_effect(new_exp, e._value, e._condition)
+
                         else:  # example (battery_charge_0 - 10) "robot"
-                            new_fluent = self.new_agent_fluent(key)
+
+                            new_fluent = self.new_agent_fluent(old_fluent)
                             fluent_to_replace = (
                                 e.fluent().fluent()
                             )  # effect (battery_charge_0 - 10)
                             new_exp_e = self.sub_exp(fluent_to_replace, e._value)
                             new_act.add_effect(new_fluent, new_exp_e, e._condition)
+
                 self.add_action(new_act)
 
             # Initial Value
             for flu, value in ag.get_initial_values().items():
-                if flu.is_fluent_exp:
-                    fluent_to_replace = flu.fluent
+                if flu.is_fluent_exp():
+                    fluent_to_replace = flu.fluent()
                     args = flu._content.args
                     new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
                 else:  # example (not clear_s(pallet0)) "depot"
-                    fluent_to_replace = flu._content.args[0].fluent
+                    fluent_to_replace = flu._content.args[0].fluent()
                     args = flu._content.args[0]._content.args
                     new_exp_init = self.sub_exp(fluent_to_replace, flu, args)
                 self._initial_value[new_exp_init] = value
 
             # Goals
             for goal in ag.get_goals():
-                if goal.is_fluent_exp:  # example:  robot_at(l2) "robot"
-                    fluent_to_replace = goal.fluent
+                if goal.is_fluent_exp():  # example:  robot_at(l2) "robot"
+                    fluent_to_replace = goal.fluent()
                     args = goal._content.args
                     new_exp_goal = self.sub_exp(fluent_to_replace, goal, args)
                 else:  # example:  (is_at(r1) == l1) "robot_fluent_of_user_type"
-                    fluent_to_replace = goal._content.args[0].fluent
+                    fluent_to_replace = goal._content.args[0].fluent()
                     args = goal._content.args[0]._content.args
                     new_exp_goal = self.sub_exp(fluent_to_replace, goal, args)
                 self.add_goal(new_exp_goal)
@@ -648,3 +643,33 @@ class MultiAgentProblem(
             self._kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
+
+
+    def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
+        """Returns the set of the static fluents.
+
+        Static fluents are those who can't change their values because they never
+        appear in the "fluent" field of an effect, therefore there are no Actions
+        in the Problem that can change their value."""
+        static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
+        for a in self._actions:
+            if isinstance(a, up.model.action.InstantaneousAction):
+                for e in a.effects:
+                    static_fluents.discard(e.fluent.fluent())
+                if a.simulated_effect is not None:
+                    for f in a.simulated_effect.fluents:
+                        static_fluents.discard(f.fluent())
+            elif isinstance(a, up.model.action.DurativeAction):
+                for el in a.effects.values():
+                    for e in el:
+                        static_fluents.discard(e.fluent.fluent())
+                for _, se in a.simulated_effects.items():
+                    for f in se.fluents:
+                        static_fluents.discard(f.fluent())
+            else:
+                raise NotImplementedError
+        for el in self._timed_effects.values():
+            for e in el:
+                if e.fluent.fluent() in static_fluents:
+                    static_fluents.remove(e.fluent.fluent())
+        return static_fluents

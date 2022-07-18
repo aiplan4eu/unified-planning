@@ -27,10 +27,12 @@ from fractions import Fraction
 from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.mixins import (
     FluentsSetMixin,
+    UserTypesSetMixin,
 )
 
 
 class Environment_ma(
+    UserTypesSetMixin,
     FluentsSetMixin,
 ):
 
@@ -39,11 +41,12 @@ class Environment_ma(
     def __init__(
         self,
         env: "unified_planning.environment.Environment" = None,
-        *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
+        UserTypesSetMixin.__init__(self, self.has_name)
         self._env = unified_planning.environment.get_env(env)
-        FluentsSetMixin.__init__(self, self.env, self.has_name, initial_defaults)
+        FluentsSetMixin.__init__(
+            self, self.env, self._add_user_type, self.has_name
+        )
         self._goals: List["up.model.fnode.FNode"] = []
         self._initial_value: Dict[
             "unified_planning.model.fnode.FNode", "unified_planning.model.fnode.FNode"
@@ -51,7 +54,10 @@ class Environment_ma(
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
-        return self.has_fluent(name)
+        return (
+            self.has_fluent(name)
+            or self.has_type(name)
+        )
 
     def set_initial_value(
         self,
@@ -85,27 +91,6 @@ class Environment_ma(
         """Gets the initial values"""
         return self._initial_value
 
-    def get_initial_value(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """Gets the initial value of the fluents.
-
-        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible."""
-        res = self._initial_value
-        for f in self._fluents:
-            if f.arity == 0:
-                f_exp = self._env.expression_manager.FluentExp(f)
-                res[f_exp] = self.initial_value(f_exp)
-            else:
-                ground_size = 1
-                domain_sizes = []
-                for p in f.signature:
-                    ds = domain_size(self, p.type)
-                    domain_sizes.append(ds)
-                    ground_size *= ds
-                for i in range(ground_size):
-                    f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
-                    res[f_exp] = self.initial_value(f_exp)
-        return res
 
     def add_goal(
         self,
