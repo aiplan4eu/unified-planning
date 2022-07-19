@@ -120,7 +120,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 else:
                     raise Exception(f'ERROR This compiler cannot handle this constraint = {c}')
                 if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
-                    if to_add:
+                    if to_add and not precondition.is_true():
                         a.preconditions.append(precondition)
             for eff in E:
                 a.effects.append(eff)
