@@ -421,7 +421,7 @@ class PDDLReader:
                     exp, ParseResults
                 )  # NOTE not sure if we always have a ParseResult here, but this implementation assumes it
                 action_assignments = universal_assignments.setdefault(act, [])
-                action_assignments.append(eff)
+                action_assignments.append(exp)
             else:
                 eff = (
                     self._parse_exp(problem, act, types_map, {}, exp, assignments),
