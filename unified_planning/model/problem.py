@@ -354,7 +354,7 @@ class Problem(
         self,
     ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
         """Returns the problem's defined initial values.
-        IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values."""
+        IMPORTANT NOTE: For all the initial values of the problem use Problem.initial_values."""
         return self._initial_value
 
     def add_timed_goal(
@@ -550,6 +550,42 @@ class Problem(
         # sf_positive_negative is a map from static_fluent to a tuple of 2 booleans, where the first one
         # says if the static values are only positive and the second one says if every static value is only negative.
         sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]] = {}
+        for f, v in self._initial_value.items():
+            if f in static_fluents and (f.type.is_int_type() or f.type.is_real_type()):
+                only_positive, only_negative = sf_positive_or_negative.get(
+                    f.fluent(), (True, True)
+                )
+                only_positive = (
+                    only_positive and v.is_constant() and v.constant_value() >= 0
+                )
+                only_negative = (
+                    only_negative and v.is_constant() and v.constant_value() <= 0
+                )
+                sf_positive_or_negative[f.fluent()] = (only_positive, only_negative)
+        for f in self._fluents:
+            if f in static_fluents and (f.type.is_int_type() or f.type.is_real_type()):
+                only_positive, only_negative = sf_positive_or_negative.get(
+                    f.fluent(), (True, True)
+                )
+                only_positive = (
+                    only_positive and v.is_constant() and v.constant_value() >= 0
+                )
+                only_negative = (
+                    only_negative and v.is_constant() and v.constant_value() <= 0
+                )
+                sf_positive_or_negative[f.fluent()] = (only_positive, only_negative)
+        for f, v in self._fluents_defaults.items():
+            if f in static_fluents and (f.type.is_int_type() or f.type.is_real_type()):
+                only_positive, only_negative = sf_positive_or_negative.get(
+                    f.fluent(), (True, True)
+                )
+                only_positive = (
+                    only_positive and v.is_constant() and v.constant_value() >= 0
+                )
+                only_negative = (
+                    only_negative and v.is_constant() and v.constant_value() <= 0
+                )
+                sf_positive_or_negative[f.fluent()] = (only_positive, only_negative)
         for f, v in self.initial_values.items():
             if f.fluent() in static_fluents and (
                 f.type.is_int_type() or f.type.is_real_type()
