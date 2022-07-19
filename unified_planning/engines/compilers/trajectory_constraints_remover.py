@@ -12,25 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the negative preconditions remover class."""
+"""This module defines the trajectory constraints remover class."""
 
-from calendar import c
-from webbrowser import Opera
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.walkers import Simplifier
+from unified_planning.walkers import Simplifier, ExpressionQuantifiersRemover
 from unified_planning.shortcuts import *
 from unified_planning.model.operators import OperatorKind
 
-NUM = 'num'
-CONSTRAINTS = 'constraints'
-HOLD = 'hold'
-GOAL = 'goal'
-SEEN_PHI = 'seen-phi'
-SEEN_PSI = 'seen-psi'
-SEPARATOR = '-'
+NUM = "num"
+CONSTRAINTS = "constraints"
+HOLD = "hold"
+GOAL = "goal"
+SEEN_PHI = "seen-phi"
+SEEN_PSI = "seen-psi"
+SEPARATOR = "-"
 
 class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     """Translate problem in another problem with no trajectory constraints."""
@@ -40,7 +38,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     @property
     def name(self):
-        return 'TrajectoryConstraintsRemover'
+        return "TrajectoryConstraintsRemover"
 
     @staticmethod
     def supports(problem_kind):
@@ -87,13 +85,16 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             raise up.exceptions.UPUsageError('This compiler cannot handle this kind of compilation!')
         self._env = problem.env
         self._simplifier = Simplifier(self._env)
+        self._expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
         with self._env.factory.Compiler(problem_kind=problem.kind, compilation_kind=engines.CompilationKind.GROUNDING) as grounder:
             grounding_result = grounder.compile(problem, engines.CompilationKind.GROUNDING)
+        self._problem = grounding_result.problem
         A = grounding_result.problem.actions
         I_g = grounding_result.problem.initial_values
         I = self._ground_initial_state(A, I_g)
         C = self._simplifier.simplify(And(problem.trajectory_constraints))
         C = C.args if C.is_and() else [C]
+        C = self._remove_quantifire(C)
         relevancy_dict = self._build_relevancy_dict(C)
         A_prime = []
         G_prime = []
@@ -106,19 +107,18 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             E = []
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
-                match c.node_type:
-                    case OperatorKind.ALWAYS : 
-                        precondition, to_add = self._manage_always_compilation(c.args[0], a)
-                    case OperatorKind.AT_MOST_ONCE : 
-                        precondition, to_add = self._manage_amo_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
-                    case OperatorKind.SOMETIME_BEFORE : 
-                        precondition, to_add = self._manage_sb_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
-                    case OperatorKind.SOMETIME : 
-                        self._manage_sometime_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
-                    case OperatorKind.SOMETIME_AFTER : 
-                        self._manage_sa_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
-                    case _ : 
-                        raise Exception(f'ERROR This compiler cannot handle this constraint = {c}')
+                if c.is_always():
+                    precondition, to_add = self._manage_always_compilation(c.args[0], a)
+                elif c.is_at_most_once():
+                    precondition, to_add = self._manage_amo_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
+                elif c.is_sometime_before():
+                    precondition, to_add = self._manage_sb_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
+                elif c.is_sometime():
+                    self._manage_sometime_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
+                elif c.is_sometime_after():
+                    self._manage_sa_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
+                else:
+                    raise Exception(f'ERROR This compiler cannot handle this constraint = {c}')
                 if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
                     if to_add:
                         a.preconditions.append(precondition)
@@ -137,6 +137,43 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for init_val in I_prime:
             grounding_result.problem.set_initial_value(FluentExp(Fluent(f'{init_val}', BoolType())), TRUE())
         return grounding_result
+
+    def _remove_quantifire(self, C):
+        new_C = []
+        for c in C:
+            if c.is_always():
+                new_C.append(Always(self._get_constraints_condition(c.args[0])))
+            elif c.is_sometime():
+                new_C.append(Sometime(self._get_constraints_condition(c.args[0])))
+            elif c.is_at_most_once():
+                new_C.append(Sometime(self._get_constraints_condition(c.args[0])))
+            elif c.is_sometime_before():
+                new_C.append(Sometime_Before(
+                             self._get_constraints_condition(c.args[0]),
+                             self._get_constraints_condition(c.args[1]))
+                            )
+            elif c.is_sometime_after():
+                new_C.append(Sometime_After(
+                             self._get_constraints_condition(c.args[0]),
+                             self._get_constraints_condition(c.args[1]))
+                            )
+        return new_C
+
+    def _get_constraints_condition(self, cond):
+        if cond.is_forall() or cond.is_exists():
+            return self._expression_quantifier_remover.remove_quantifiers(cond, self._problem)
+        elif cond.is_and():
+            args = []
+            for arg in cond.args:
+                args.append(self._get_constraints_condition(arg))
+            return self._simplifier.simplify(And(args))
+        elif cond.is_or():
+            args = []
+            for arg in cond.args:
+                args.append(self._get_constraints_condition(arg))
+            return self._simplifier.simplify(Or(args))
+        else :
+            return cond
 
     def _manage_sa_compilation(self, phi, psi, m_atom, a, E):
         R1 = self._simplifier.simplify(self._regression(phi, a))
@@ -228,7 +265,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             if phi_neg in set:
                 return FALSE()
             else:
-                # phi is not in the initial state
                 if phi.is_not():
                     return TRUE()
                 else:
@@ -248,17 +284,16 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             raise Exception("ERROR in initial state evaluation of a constraint")
 
     def _evaluate_constraint(self, constr, initial_state):
-        match constr.node_type:
-            case OperatorKind.SOMETIME:
-                return HOLD, self._true_init(initial_state, constr.args[0])
-            case OperatorKind.SOMETIME_AFTER:
-                return HOLD, self._true_init(initial_state, constr.args[1]) or not self._true_init(initial_state, constr.args[0])
-            case OperatorKind.SOMETIME_BEFORE:
-                return SEEN_PSI, self._true_init(initial_state, constr.args[1])
-            case OperatorKind.AT_MOST_ONCE:
-                return SEEN_PHI, self._true_init(initial_state, constr.args[0])
-            case _ : 
-                return None, self._true_init(initial_state, constr.args[0])
+        if constr.is_sometime():
+            return HOLD, self._true_init(initial_state, constr.args[0])
+        elif constr.is_sometime_after():
+            return HOLD, self._true_init(initial_state, constr.args[1]) or not self._true_init(initial_state, constr.args[0])
+        elif constr.is_sometime_before():
+            return SEEN_PSI, self._true_init(initial_state, constr.args[1])
+        elif constr.is_at_most_once():
+            return SEEN_PHI, self._true_init(initial_state, constr.args[0])
+        else:
+            return None, self._true_init(initial_state, constr.args[0])
 
     def _get_monitoring_atoms(self, C, I):
         monitoring_atoms = []
@@ -298,7 +333,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     def _get_all_atoms(self, condition):
         if condition.is_fluent_exp():
             return [condition]
-        elif condition.is_and() or condition.is_or():
+        elif condition.is_and() or condition.is_or() or condition.is_not():
             atoms = []
             for arg in condition.args:
                 atoms += self._get_all_atoms(arg)
@@ -333,26 +368,24 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 eff = eff.fluent         
             if literal == eff:
                 if cond.is_true():
-                    # in this case cond == TRUE(), so it is a simple effect
                     return TRUE() 
-                # cond is a list of literals
                 disjunction.append(cond)
         if not disjunction:
             return False
         return Or(disjunction)
 
     def _regression(self, phi, action):
-        match phi.node_type:
-            case OperatorKind.BOOL_CONSTANT : 
-                return phi
-            case OperatorKind.FLUENT_EXP : 
-                return self._gamma_substitution(phi, action)
-            case OperatorKind.OR : 
-                return Or([self._regression(component, action) for component in phi.args])
-            case OperatorKind.AND:
-                return And([self._regression(component, action) for component in phi.args])
-            case OperatorKind.NOT : 
-                return Not(self._regression(phi.args[0], action))
-            case _ :    
-                raise up.exceptions.UPUsageError('This compiler cannot handle this expression')
+        if phi.is_false() or phi.is_true():
+            return phi
+        elif phi.is_fluent_exp():
+            return self._gamma_substitution(phi, action)
+        elif phi.is_or():
+            return Or([self._regression(component, action) for component in phi.args])
+        elif phi.is_and():
+            return And([self._regression(component, action) for component in phi.args])
+        elif phi.is_not():
+            return Not(self._regression(phi.args[0], action))
+        else:
+            raise up.exceptions.UPUsageError("This compiler cannot handle this expression")
+ 
 
