@@ -26,7 +26,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
 from unified_planning.plans import ActionInstance
-from unified_planning.walkers import OperatorsExtractor
+from unified_planning.walkers import OperatorsExtractor, Simplifier
 from fractions import Fraction
 from typing import Iterator, List, Dict, Set, Union, Optional, cast
 
@@ -97,8 +97,8 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         s.append(']\n\n')
         if self.trajectory_constraints:
             s.append('trajectory constraints = [\n')
-            for g in self.trajectory_constraints:
-                s.append(f'  {str(g)}\n')
+            for c in self.trajectory_constraints:
+                s.append(f'  {str(c)}\n')
             s.append(']\n\n')
         if len(self.quality_metrics) > 0:
             s.append('quality metrics = [\n')
@@ -400,8 +400,24 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
 
     def add_trajectory_constraint(self, constraint: 'up.model.fnode.FNode'):
         '''Adds a trajectory constraint.'''
+        new_traj_list = []
         constraint_exp, = self._env.expression_manager.auto_promote(constraint)
-        self._trajectory_constraints.append(constraint_exp)
+        new_traj_list.append(Simplifier(self._env).simplify(
+            self._env.expression_manager.And(self._trajectory_constraints, constraint_exp,)
+        ))
+        self._trajectory_constraints = new_traj_list
+
+    def del_trajectory_constraint(self, constraint: 'up.model.fnode.FNode'):
+        '''Delete a trajectory constraint'''
+        if len(self._trajectory_constraints) > 0:
+            new_traj_list = []
+            traj_constrs = list(self._trajectory_constraints[0].args)
+            if constraint in traj_constrs: 
+                traj_constrs.remove(constraint)
+                new_traj_list.append(self._env.expression_manager.And(traj_constrs))
+                self._trajectory_constraints = new_traj_list
+            elif constraint == self._trajectory_constraints[0]:
+                self._trajectory_constraints = new_traj_list
 
     @property
     def goals(self) -> List['up.model.fnode.FNode']:
