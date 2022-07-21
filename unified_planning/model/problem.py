@@ -15,6 +15,7 @@
 """This module defines the problem class."""
 
 
+from functools import reduce
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
@@ -550,20 +551,42 @@ class Problem(
         # sf_positive_negative is a map from static_fluent to a tuple of 2 booleans, where the first one
         # says if the static values are only positive and the second one says if every static value is only negative.
         sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]] = {}
-        for f, v in self.initial_values.items():
-            if f.fluent() in static_fluents and (
-                f.type.is_int_type() or f.type.is_real_type()
-            ):
-                only_positive, only_negative = sf_positive_or_negative.get(
-                    f.fluent(), (True, True)
+        for f in self._fluents:
+            if f in static_fluents and (f.type.is_int_type() or f.type.is_real_type()):
+                # Calculate the number of expected grounded items for this fluent.
+                # This is done by multiplying all the domain size of the types in the fluent's signature
+                n_grounded_fluents = reduce(
+                    lambda x, y: x * y,
+                    (up.model.types.domain_size(self, p.type) for p in f.signature),
+                    1,
                 )
-                only_positive = (
-                    only_positive and v.is_constant() and v.constant_value() >= 0
-                )
-                only_negative = (
-                    only_negative and v.is_constant() and v.constant_value() <= 0
-                )
-                sf_positive_or_negative[f.fluent()] = (only_positive, only_negative)
+                count = 0
+                only_positive, only_negative = True, True
+                for f_exp, v in self._initial_value.items():
+                    if f_exp.fluent() == f:
+                        count += 1
+                        only_positive = (
+                            only_positive
+                            and v.is_constant()
+                            and v.constant_value() >= 0
+                        )
+                        only_negative = (
+                            only_negative
+                            and v.is_constant()
+                            and v.constant_value() <= 0
+                        )
+                # Not every grounded fluent was initialized, check the default
+                if count < n_grounded_fluents:
+                    v = self._fluents_defaults[
+                        f
+                    ]  # KeyError here should not be possible
+                    only_positive = (
+                        only_positive and v.is_constant() and v.constant_value() >= 0
+                    )
+                    only_negative = (
+                        only_negative and v.is_constant() and v.constant_value() <= 0
+                    )
+                sf_positive_or_negative[f] = (only_positive, only_negative)
 
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
         simplifier = up.model.walkers.simplifier.Simplifier(self._env, self)
@@ -577,6 +600,7 @@ class Problem(
                 (
                     is_linear,
                     fluents_to_only_increase,
+                    fluents_to_only_decrease,
                 ) = linear_checker.get_fluents(metric.expression)
                 if not is_linear:
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
@@ -585,6 +609,7 @@ class Problem(
                 (
                     is_linear,
                     fluents_to_only_decrease,
+                    fluents_to_only_increase,
                 ) = linear_checker.get_fluents(metric.expression)
                 if not is_linear:
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
@@ -740,7 +765,7 @@ class Problem(
             self._kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         if OperatorKind.FORALL in ops:
             self._kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-        is_linear, _ = linear_checker.get_fluents(exp)
+        is_linear, _, _ = linear_checker.get_fluents(exp)
         if not is_linear:
             self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 

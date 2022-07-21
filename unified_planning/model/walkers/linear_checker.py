@@ -16,6 +16,7 @@
 
 import unified_planning as up
 import unified_planning.model.walkers as walkers
+from unified_planning.environment import Environment, get_env
 from unified_planning.model.walkers.dag import DagWalker
 from unified_planning.model.operators import OperatorKind
 from typing import List, Optional, Set, Tuple
@@ -30,85 +31,174 @@ class LinearChecker(DagWalker):
     After the initialization, the problem given as input can not be modified
     or the Simplifier behaviour is undefined."""
 
-    def __init__(self, problem: Optional["up.model.problem.Problem"] = None):
+    def __init__(
+        self,
+        problem: Optional["up.model.problem.Problem"] = None,
+        env: Optional["up.environment.Environment"] = None,
+    ):
         DagWalker.__init__(self)
-        self._static_fluents: Set["up.model.fluent.Fluent"] = (
-            problem.get_static_fluents() if problem is not None else set()
-        )
+        if problem is not None and env is not None:
+            assert (
+                problem.env == env
+            ), "The given environemt is different from the given problem environment"
+            self._static_fluents: Set[
+                "up.model.fluent.Fluent"
+            ] = problem.get_static_fluents()
+            self._env = env
+        elif problem is not None:  # and env is None
+            self._static_fluents = problem.get_static_fluents()
+            self._env = problem.env
+        else:
+            self._static_fluents = set()
+            self._env = get_env(env)
 
     def get_fluents(
         self, expression: "up.model.fnode.FNode"
-    ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
+    ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         """Returns the tuple containing a flag saying if the expression is linear or not and the set of the fluent_expressions appearing in the expression."""
-        return self.walk(expression)
+        return self.walk(self._env.simplifier.simplify(expression))
 
     @walkers.handles(
         set(OperatorKind)
-        - set({OperatorKind.TIMES, OperatorKind.DIV, OperatorKind.FLUENT_EXP})
+        - set(
+            {
+                OperatorKind.TIMES,
+                OperatorKind.DIV,
+                OperatorKind.MINUS,
+                OperatorKind.FLUENT_EXP,
+            }
+        )
     )
     def walk_default(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
-    ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
+        args: List[
+            Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]
+        ],
+    ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         is_linear = True
-        fluents: Set["up.model.fnode.FNode"] = set()
-        for b, sf in args:
+        positive_fluents: Set["up.model.fnode.FNode"] = set()
+        negative_fluents: Set["up.model.fnode.FNode"] = set()
+        for b, spf, snf in args:
             # If one of the args is not linear, the whole expression is not linear
             is_linear = is_linear and b
-            fluents |= sf  # Update the fluents appearing in the arguments
-        return (is_linear, fluents)
+            # Update the positive and negative fluents appearing in the arguments
+            positive_fluents |= spf
+            negative_fluents |= snf
+        return (is_linear, positive_fluents, negative_fluents)
 
     def walk_times(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
-    ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
+        args: List[
+            Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]
+        ],
+    ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         is_linear = True
         arg_with_fluents_found = False  # We must check that at most 1 of the arguments contains fluent_expression
-        fluents: Set["up.model.fnode.FNode"] = set()
-        for b, sf in args:
+        positivity = True
+        positive_fluents: Set["up.model.fnode.FNode"] = set()
+        negative_fluents: Set["up.model.fnode.FNode"] = set()
+        for b, spf, snf in args:
             is_linear = is_linear and b
             if (
-                len(sf) > 0 and not arg_with_fluents_found
-            ):  # First arg that contains fluent_expressions
+                len(spf) > 0 or len(snf) > 0
+            ) and not arg_with_fluents_found:  # First arg that contains fluent_expressions
                 arg_with_fluents_found = True
             elif (
-                len(sf) > 0 and arg_with_fluents_found
-            ):  # Second argument that contains fluent_expressions
+                len(spf) > 0 or len(snf) > 0
+            ) > 0 and arg_with_fluents_found:  # Second argument that contains fluent_expressions
                 is_linear = False
-            fluents |= sf
-        return (is_linear, fluents)
+            positive_fluents |= spf
+            negative_fluents |= snf
+        for a in expression.args:
+            if (a.is_int_constant() or a.is_real_constant()) and a.constant_value() < 0:
+                positivity = not positivity
+        if positivity:
+            return (is_linear, positive_fluents, negative_fluents)
+        else:
+            return (is_linear, negative_fluents, positive_fluents)
 
     def walk_div(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
-    ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
+        args: List[
+            Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]
+        ],
+    ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         assert len(args) == 2
-        numerator_is_linear, numerator_fluents = args[0]
-        denominator_is_linear, denominator_fluents = args[1]
-        fluents: Set["up.model.fnode.FNode"] = numerator_fluents | denominator_fluents
+        (
+            numerator_is_linear,
+            numerator_positive_fluents,
+            numerator_negative_fluents,
+        ) = args[0]
+        (
+            denominator_is_linear,
+            denominator_positive_fluents,
+            denominator_negative_fluents,
+        ) = args[1]
+        positive_fluents: Set["up.model.fnode.FNode"] = (
+            numerator_positive_fluents | denominator_positive_fluents
+        )
+        negative_fluents: Set["up.model.fnode.FNode"] = (
+            numerator_negative_fluents | denominator_negative_fluents
+        )
+        positivity = True
+        for a in expression.args:
+            if (a.is_int_constant() or a.is_real_constant()) and a.constant_value() < 0:
+                positivity = not positivity
+
         # A division is linear only if both numerators and denominator as linear and the denominator does not have fluents
-        return (
+        is_linear = (
             numerator_is_linear
             and denominator_is_linear
-            and len(denominator_fluents) == 0,
-            fluents,
+            and len(denominator_positive_fluents) == 0
+            and len(denominator_negative_fluents) == 0
         )
+        if positivity:
+            return (is_linear, positive_fluents, negative_fluents)
+        else:
+            return (is_linear, negative_fluents, positive_fluents)
+
+    def walk_minus(
+        self,
+        expression: "up.model.fnode.FNode",
+        args: List[
+            Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]
+        ],
+    ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
+        assert len(args) == 2
+        is_linear = True
+        positive_fluents: Set["up.model.fnode.FNode"] = set()
+        negative_fluents: Set["up.model.fnode.FNode"] = set()
+        # First argument is like the default
+        b, spf, snf = args[0]
+        is_linear = is_linear and b
+        positive_fluents |= spf
+        negative_fluents |= snf
+        # Second argument swap positive and negative fluents
+        b, spf, snf = args[1]
+        is_linear = is_linear and b
+        negative_fluents |= spf
+        positive_fluents |= snf
+        return (is_linear, positive_fluents, negative_fluents)
 
     def walk_fluent_exp(
         self,
         expression: "up.model.fnode.FNode",
-        args: List[Tuple[bool, Set["up.model.fnode.FNode"]]],
-    ) -> Tuple[bool, Set["up.model.fnode.FNode"]]:
+        args: List[
+            Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]
+        ],
+    ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         is_linear = True
-        fluents: Set["up.model.fnode.FNode"] = set()
+        positive_fluents: Set["up.model.fnode.FNode"] = set()
+        negative_fluents: Set["up.model.fnode.FNode"] = set()
         # If the problem is not given or the fluent is not in the problem's static fluents,
         # it must be added to the expression fluents
         if expression.fluent() not in self._static_fluents:
-            fluents.add(expression)
-        for b, sf in args:
+            positive_fluents.add(expression)
+        for b, spf, snf in args:
             is_linear = is_linear and b
-            fluents |= sf
-        return (is_linear, fluents)
+            positive_fluents |= spf
+            negative_fluents |= snf
+        return (is_linear, positive_fluents, negative_fluents)
