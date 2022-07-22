@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from itertools import product
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
@@ -420,6 +421,7 @@ class PDDLReader:
                 assert isinstance(
                     exp, ParseResults
                 )  # NOTE not sure if we always have a ParseResult here, but this implementation assumes it
+                # Get the list of universal_assignments linked to this action. If it does not exist, default it to the empty list
                 action_assignments = universal_assignments.setdefault(act, [])
                 action_assignments.append(exp)
             else:
@@ -854,13 +856,25 @@ class PDDLReader:
 
             for action, eff_list in universal_assignments.items():
                 for eff in eff_list:
-                    # Version that works with only 1 variable in the forall assignment and forall assignments are not nested
-                    # print(eff)
-                    var_def = eff[1]
-                    var_name = var_def[0]
-                    var_type = problem.user_type(var_def[2])
-                    for o in problem.objects(var_type):
-                        assignments = {var_name: o}
+                    # Parse the variable definition part and create 2 lists, the first one with the variable names,
+                    # the second one with the variable types.
+                    vars_string = " ".join(eff[1])
+                    vars_res = self._pp_parameters.parseString(vars_string)
+                    var_names: List[str] = []
+                    var_types: List["up.model.Type"] = []
+                    for g in vars_res["params"]:
+                        t = types_map[g[1] if len(g) > 1 else "object"]
+                        for o in g[0]:
+                            var_names.append(f"?{o}")
+                            var_types.append(t)
+                    # for each variable type, get all the objects of that type and calculate the cartesian
+                    # product between all the given objects and iterate over them, changing the variable assignments
+                    # in the added effect
+                    for objects in product(*(problem.objects(t) for t in var_types)):
+                        assert len(var_names) == len(objects)
+                        assignments = {
+                            name: obj for name, obj in zip(var_names, objects)
+                        }
                         if isinstance(action, up.model.InstantaneousAction):
                             self._add_effect(
                                 problem,
