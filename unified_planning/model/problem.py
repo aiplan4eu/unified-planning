@@ -662,6 +662,9 @@ class Problem(
             and not self._kind.has_discrete_numbers()
         ):
             self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+        else:
+            if not self._kind.has_simple_numeric_planning():
+                self._kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         return self._kind
 
     def _update_problem_kind_effect(

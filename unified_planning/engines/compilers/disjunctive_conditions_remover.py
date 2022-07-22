@@ -58,6 +58,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")

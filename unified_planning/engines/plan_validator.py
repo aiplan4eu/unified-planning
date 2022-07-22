@@ -66,6 +66,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITY")

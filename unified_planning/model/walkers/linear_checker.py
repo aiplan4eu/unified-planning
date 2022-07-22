@@ -55,7 +55,10 @@ class LinearChecker(DagWalker):
     def get_fluents(
         self, expression: "up.model.fnode.FNode"
     ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
-        """Returns the tuple containing a flag saying if the expression is linear or not and the set of the fluent_expressions appearing in the expression."""
+        """
+        Returns the tuple containing a flag saying if the expression is linear or not,
+        the set of the fluent_expressions appearing with a positive sign in the expression
+        and the set of the fluent_expressions appearing with a negative sign in the expression ."""
         return self.walk(self._env.simplifier.simplify(expression))
 
     @walkers.handles(
