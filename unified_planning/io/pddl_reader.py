@@ -81,6 +81,11 @@ class PDDLGrammar:
                         )
                     )
                 )
+                # + Group(
+                #   Optional(
+                #       Suppress("-") + name
+                #   )
+                # )
             )
             + Suppress(")")
         )

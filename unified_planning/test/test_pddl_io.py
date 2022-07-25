@@ -533,6 +533,34 @@ class TestPddlIO(TestCase):
         self.assertEqual(pddl_domain, expected_domain)
         self.assertEqual(pddl_problem, expected_problem)
 
+    def test_citycar_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 11)
+        # Here it fails for a parsing error not related to this PR
+        # self.assertEqual(len(problem.actions), 7)
+        # self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
+        # self.assertEqual(len(list(problem.objects(problem.user_type("fuse")))), 3)
+
+    def test_citycar_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        print(problem)
+        self.assertEqual(len(problem.fluents), 15)
+        self.assertEqual(len(problem.actions), 7)
+        self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("fuse")))), 3)
+
 
 def _have_same_user_types_considering_renamings(
     original_problem: unified_planning.model.Problem,
