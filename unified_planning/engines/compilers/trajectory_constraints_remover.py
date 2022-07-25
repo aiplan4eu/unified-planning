@@ -172,6 +172,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             for arg in cond.args:
                 args.append(self._get_constraints_condition(arg))
             return self._simplifier.simplify(Or(args))
+        elif cond.is_not():
+            return self._simplifier.simplify(Not(self._get_constraints_condition(cond.args[0])))
         else :
             return cond
 
