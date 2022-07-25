@@ -544,8 +544,8 @@ class Problem(
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible."""
         # Create the needed data structures
-        fluents_to_only_increase: Set["up.model.fnode.FNode"] = set()
-        fluents_to_only_decrease: Set["up.model.fnode.FNode"] = set()
+        fluents_to_only_increase: Set["up.model.fluent.Fluent"] = set()
+        fluents_to_only_decrease: Set["up.model.fluent.Fluent"] = set()
         static_fluents: Set["up.model.fluent.Fluent"] = self.get_static_fluents()
 
         # sf_positive_negative is a map from static_fluent to a tuple of 2 booleans, where the first one
@@ -599,18 +599,22 @@ class Problem(
                 self._kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
-                    fluents_to_only_increase,
-                    fluents_to_only_decrease,
+                    fnode_to_only_increase,
+                    fnode_to_only_decrease,
                 ) = linear_checker.get_fluents(metric.expression)
+                fluents_to_only_increase = {e.fluent() for e in fnode_to_only_increase}
+                fluents_to_only_decrease = {e.fluent() for e in fnode_to_only_decrease}
                 if not is_linear:
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
                 self._kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
-                    fluents_to_only_decrease,
-                    fluents_to_only_increase,
+                    fnode_to_only_decrease,
+                    fnode_to_only_increase,
                 ) = linear_checker.get_fluents(metric.expression)
+                fluents_to_only_increase = {e.fluent() for e in fnode_to_only_increase}
+                fluents_to_only_decrease = {e.fluent() for e in fnode_to_only_decrease}
                 if not is_linear:
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
@@ -670,8 +674,8 @@ class Problem(
     def _update_problem_kind_effect(
         self,
         e: "up.model.effect.Effect",
-        fluents_to_only_increase: Set["up.model.fnode.FNode"],
-        fluents_to_only_decrease: Set["up.model.fnode.FNode"],
+        fluents_to_only_increase: Set["up.model.fluent.Fluent"],
+        fluents_to_only_decrease: Set["up.model.fluent.Fluent"],
         static_fluents: Set["up.model.fluent.Fluent"],
         sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]],
         simplifier: "up.model.walkers.simplifier.Simplifier",
@@ -794,8 +798,8 @@ class Problem(
     def _update_problem_kind_action(
         self,
         action: "up.model.action.Action",
-        fluents_to_only_increase: Set["up.model.fnode.FNode"],
-        fluents_to_only_decrease: Set["up.model.fnode.FNode"],
+        fluents_to_only_increase: Set["up.model.fluent.Fluent"],
+        fluents_to_only_decrease: Set["up.model.fluent.Fluent"],
         static_fluents: Set["up.model.fluent.Fluent"],
         sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]],
         simplifier: "up.model.walkers.simplifier.Simplifier",
