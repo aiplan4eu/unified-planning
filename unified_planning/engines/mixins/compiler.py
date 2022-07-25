@@ -109,4 +109,5 @@ class CompilerMixin:
     def _compile(
         self, problem: "up.model.AbstractProblem", compilation_kind: CompilationKind
     ) -> "up.engines.results.CompilerResult":
+        """Method called by the Compiler.compile method."""
         raise NotImplementedError

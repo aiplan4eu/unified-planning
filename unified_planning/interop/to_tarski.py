@@ -294,7 +294,11 @@ def convert_problem_to_tarski(
     problem: "unified_planning.model.Problem",
 ) -> "tarski.fstrips.problem.Problem":
     """Converts a problem in the unified_planning.model.Problem representation in the equivalent
-    tarski.fstrips.Problem representation."""
+    tarski.fstrips.Problem representation.
+
+    :param problem: The up.model.Problem to convert.
+    :return: The generated tarski.fstrips.Problem.
+    """
     features: List[str] = []
     kind = problem.kind
     if kind.has_equality():

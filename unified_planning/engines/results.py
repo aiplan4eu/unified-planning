@@ -25,6 +25,11 @@ from typing import Callable, Dict, Optional, List
 
 
 class ValidationResultStatus(Enum):
+    """
+    Enum representing the 2 possible values in the satus field of a ValidationResult:
+    VALID or INVALID.
+    """
+
     VALID = (
         auto()
     )  # The plan is valid for the problem, it satisfies all the hard constraints
@@ -34,6 +39,20 @@ class ValidationResultStatus(Enum):
 
 
 class PlanGenerationResultStatus(Enum):
+    """
+    Enum representing the 9 possible values in the status field of a PlanGenerationResult:
+    SOLVED_SATISFICING        -> Valid plan found.
+    SOLVED_OPTIMALLY          -> Optimal plan found.
+    UNSOLVABLE_PROVEN         -> The problem is impossible, no valid plan exists.
+    UNSOLVABLE_INCOMPLETELY   -> The planner could not find a plan, but it's not sure that
+                                 the problem is impossible (The planner is incomplete)
+    TIMEOUT                   -> The planner ran out of time
+    MEMOUT                    -> The planner ran out of memory
+    INTERNAL_ERROR            -> The planner had an internal error
+    UNSUPPORTED_PROBLEM       -> The problem given is not supported by the planner
+    INTERMEDIATE              -> The report is not a final one but it's given through the callback function
+    """
+
     SOLVED_SATISFICING = auto()  # Valid plan found.
     SOLVED_OPTIMALLY = auto()  # Optimal plan found.
     UNSOLVABLE_PROVEN = auto()  # The problem is impossible, no valid plan exists.
@@ -66,6 +85,11 @@ NEGATIVE_OUTCOMES = frozenset(
 
 
 class LogLevel(Enum):
+    """
+    Enum representing the 4 possible values in the verbosity level of a LogMessage:
+    DEBUG, INFO, WARNING and ERROR
+    """
+
     DEBUG = auto()
     INFO = auto()
     WARNING = auto()
@@ -74,7 +98,10 @@ class LogLevel(Enum):
 
 @dataclass
 class LogMessage:
-    """This class is composed by a message and an integer indicating this message level, like Debug, Info, Warning or Error."""
+    """
+    This class is composed by a message and the Enum LogLevel indicating
+    this message level, like Debug, Info, Warning or Error.
+    """
 
     level: LogLevel
     message: str

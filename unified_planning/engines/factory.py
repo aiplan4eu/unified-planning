@@ -191,18 +191,26 @@ class Factory:
 
     @property
     def engines(self) -> List[str]:
+        """Returns the list of the available engines names."""
         return list(self._engines.keys())
 
     def engine(self, name: str) -> Type["up.engines.engine.Engine"]:
+        """Returns a specific engine.
+
+        :param name: The name of the engine in the factory.
+        :return: The engine Class.
+        """
         return self._engines[name]
 
     @property
     def preference_list(self) -> List[str]:
+        """Returns the current list of preferences."""
         return self._preference_list
 
     @preference_list.setter
     def preference_list(self, preference_list: List[str]):
-        """Defines the order in which to pick the engines.
+        """
+        Defines the order in which to pick the engines.
         The list is not required to contain all the engines. It is
         possible to define a subsets of the engines, or even just
         one. The impact of this, is that the engine will never be
@@ -212,6 +220,14 @@ class Factory:
         self._preference_list = preference_list
 
     def add_engine(self, name: str, module_name: str, class_name: str):
+        """
+        Adds an engine Class to the factory, given the module and the class names.
+
+        :param name: The name of the added engine Class in the factory.
+        :param module_name: The name of the module in which the engine Class is defined.
+        :param class_name: The name of the engine Class.
+        :return: None.
+        """
         self._add_engine(name, module_name, class_name)
         self._preference_list.append(name)
         engine = self._engines[name]
@@ -222,6 +238,14 @@ class Factory:
                 self._preference_list.append(n)
 
     def add_meta_engine(self, name: str, module_name: str, class_name: str):
+        """
+        Adds a meta engine Class to the factory, given the module and the class names.
+
+        :param name: The name of the added meta engine Class in the factory.
+        :param module_name: The name of the module in which the meta engine Class is defined.
+        :param class_name: The name of the meta engine Class.
+        :return: None.
+        """
         for engine_name, engine in self._engines.items():
             self._add_meta_engine(name, module_name, class_name, engine_name, engine)
             n = f"{name}[{engine_name}]"
@@ -246,6 +270,8 @@ class Factory:
         If not given, the configuration is read from the first `up.ini` or `.up.ini` file
         located in any of the parent directories from which this code was called  or,
         otherwise, from one of the following files: `~/up.ini`, `~/.up.ini`, `~/.uprc`.
+
+        :param config_filename: The path of the file containing the wanted configuration.
         """
         config = configparser.ConfigParser()
         if config_filename is None:

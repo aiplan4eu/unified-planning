@@ -135,6 +135,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a up.model.Problem and the up.engines.CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+        and returns a CompilerResult where the problem does not have the Not operator as a condition or in the goals.
+
+        :param problem: The instance of the up.model.Problem that must be grounded.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
+        only NEGATIVE_CONDITIONS_REMOVING is supported by this compiler
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
         assert isinstance(problem, Problem)
 
         env = problem.env

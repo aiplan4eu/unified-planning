@@ -47,6 +47,7 @@ class Engine(metaclass=EngineMeta):
 
     @property
     def name(self) -> str:
+        """Returns the engine name."""
         raise NotImplementedError
 
     @property

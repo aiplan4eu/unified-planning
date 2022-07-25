@@ -77,20 +77,35 @@ class ObjectsSetMixin:
             self._add_user_type_method(obj.type)
         return obj
 
-    def add_objects(self, objs: List["up.model.object.Object"]):
-        """Adds the given objects."""
-        for obj in objs:
+    def add_objects(self, objects: List["up.model.object.Object"]):
+        """
+        Adds the given objects to the problem.
+
+        :param objects: The list of objects that must be added to the problem.
+        """
+        for obj in objects:
             self.add_object(obj)
 
     def object(self, name: str) -> "up.model.object.Object":
-        """Returns the object with the given name."""
+        """
+        Returns the object with the given name.
+
+        :param name: The name of the target object in the problem.
+        """
         for o in self._objects:
             if o.name == name:
                 return o
         raise UPValueError(f"Object of name: {name} is not defined!")
 
     def has_object(self, name: str) -> bool:
-        """Returns true if the object with the given name is in the problem."""
+        """
+        Returns true if the object with the given name is in the problem,
+        False otherwise.
+
+        :param name: The name of the target object in the problem.
+        :return: True if an object with the given name is in the problem,
+        False otherwise.
+        """
         for o in self._objects:
             if o.name == name:
                 return True
@@ -99,12 +114,19 @@ class ObjectsSetMixin:
     def objects(
         self, typename: "up.model.types.Type"
     ) -> Iterator["up.model.object.Object"]:
-        """Returns the objects of the given user type and of its heirs."""
+        """
+        Returns the objects compatible with the given type: this includes the given
+        type and its heirs.
+
+        :param typename: The target type of the objects that are retrieved.
+        :return: A generator of all the objects in the problem that are compatible with the
+        given type.
+        """
         for obj in self._objects:
             if cast(_UserType, obj.type).is_subtype(typename):
                 yield obj
 
     @property
     def all_objects(self) -> List["up.model.object.Object"]:
-        """Returns all the objects."""
+        """Returns the list containing all the objects in the problem."""
         return self._objects

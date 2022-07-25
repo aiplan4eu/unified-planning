@@ -97,6 +97,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         """
         Returns the list of unsatisfied event conditions evaluated in the given state.
         If the flag "early_termination" is set, the method ends and returns at the first unsatisfied condition.
+
         :param state: The State in which the event conditions are evaluated.
         :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
         :return: The list of all the event conditions that evaluated to False or the list containing the first condition evaluated to False if the flag "early_termination" is set.
@@ -122,6 +123,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         Returns None if the event is not applicable in the given state, otherwise returns a new COWState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
+
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions to check and the effects to apply.
         :return: None if the event is not applicable in the given state, a new COWState with some updated values
@@ -139,6 +141,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
+
         :param state: the state where the event formulas are evaluated.
         :param event: the event that has the information about the effects to apply.
         :return: A new COWState with some updated values.
@@ -199,7 +202,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
         Returns a view over all the events that are applicable in the given State;
         an Event is considered applicable in a given State, when all the Event condition
         simplify as True when evaluated in the State.
-        :param state: the state where the formulas are evaluated.
+
+        :param state: The state where the formulas are evaluated.
         :return: an Iterator of applicable Events.
         """
         for events in self._events.values():
@@ -216,8 +220,9 @@ class SequentialSimulator(Engine, SimulatorMixin):
     ) -> List["Event"]:
         """
         Returns a list containing all the events derived from the given action, grounded with the given parameters.
-        :param action: the action containing the information to create the event.
-        :param parameters: the parameters needed to ground the action
+
+        :param action: The action containing the information to create the event.
+        :param parameters: The parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         """
         if action not in cast(up.model.Problem, self._problem).actions:
@@ -235,6 +240,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         """
         Returns the list of unsatisfied goals evaluated in the given state.
         If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+
         :param state: The State in which the problem goals are evaluated.
         :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
         :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.

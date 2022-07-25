@@ -28,6 +28,14 @@ class Credits:
     long_description: str
 
     def write_credits(self, stream: IO[str], full_credits: bool = False):
+        """
+        Writes those credits on the given IO[str]; based on the flag 'full_credits'
+        discriminates if the user wants a long version or a short version.
+
+        :param stream: The IO[str] stream on which the credits are written.
+        :param full_credits: Flag deciding if the user wants long or short credits.
+        :return: None.
+        """
         stream.write(f"  * Engine name: {self.name}\n  * Developers:  {self.author}\n")
         if not full_credits:
             stream.write("  * Description: ")

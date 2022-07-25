@@ -60,21 +60,37 @@ class FluentsSetMixin:
         return self._fluents
 
     def fluent(self, name: str) -> "up.model.fluent.Fluent":
-        """Returns the fluent with the given name."""
+        """
+        Returns the fluent with the given name.
+
+        :param name: The name of the target fluent:
+        :return: The fluent with the given name.
+        """
         for f in self._fluents:
             if f.name == name:
                 return f
         raise UPValueError(f"Fluent of name: {name} is not defined!")
 
     def has_fluent(self, name: str) -> bool:
-        """Returns true if the fluent with the given name is in the problem."""
+        """
+        Returns true if the fluent with the given name is in the problem,
+        False otherwise.
+
+        :param name: The name of the target fluent.
+        :return: True if the fluent with the given name is in the problem,
+        False otherwise.
+        """
         for f in self._fluents:
             if f.name == name:
                 return True
         return False
 
     def add_fluents(self, fluents: List["up.model.fluent.Fluent"]):
-        """Adds the given fluents."""
+        """
+        Adds the given list of fluents to the problem.
+
+        :param fluents: The list of fluents that must be added to the problem.
+        """
         for fluent in fluents:
             self.add_fluent(fluent)
 
@@ -144,5 +160,5 @@ class FluentsSetMixin:
 
     @property
     def initial_defaults(self) -> Dict["up.model.types.Type", "up.model.fnode.FNode"]:
-        """Returns the problem's fluents defaults."""
+        """Returns the problem's fluents defaults for each type."""
         return self._initial_defaults

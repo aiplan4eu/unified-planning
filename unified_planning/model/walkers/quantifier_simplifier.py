@@ -27,7 +27,10 @@ from unified_planning.model.walkers.simplifier import Simplifier
 
 
 class QuantifierSimplifier(Simplifier):
-    """Same to the unified_planning.Simplifier, but does not expand quantifiers and solves them locally."""
+    """
+    Same to the unified_planning.Simplifier, but does not expand quantifiers and solves them
+    locally using the problem given at construction time.
+    """
 
     def __init__(
         self,
@@ -47,6 +50,17 @@ class QuantifierSimplifier(Simplifier):
         assignments: Dict["Expression", "Expression"],
         variable_assignments: Dict["Expression", "Expression"],
     ):
+        """
+        Simplifies the expression and the quantifiers in it.
+        The quantifiers are substituted with their grounded version using
+        the problem given at construction time.
+
+        :param expression: The expression to simplify and to remove quantifiers from.
+        :param assignments: The mapping from a fluent expression to it's value; every fluent expression
+        in the given expression must have a value.
+        :param variable_assignment: Param used for solving internal quantifiers.
+        :return: The simplified expression without quantifiers.
+        """
         assert self._problem is not None
         assert self._assignments is None
         assert self._variable_assignments is None

@@ -223,12 +223,17 @@ class ConverterToANMLString(walkers.DagWalker):
 
 
 class ANMLWriter:
-    """This class can be used to write a Problem in ANML."""
+    """This class can be used to write a unified_planning Problem in ANML."""
 
     def __init__(self, problem: "up.model.Problem"):
         self.problem = problem
 
     def _write_problem(self, out: IO[str]):
+        """
+        Writes the ANML problem in the given IO[str].
+
+        :param out: The IO[str] object on which the ANML problem is written.
+        """
         names_mapping: Dict[
             Union[
                 "up.model.Type",
@@ -370,7 +375,11 @@ class ANMLWriter:
         return out.getvalue()
 
     def write_problem(self, filename: str):
-        """Dumps to file the ANML problem."""
+        """
+        Dumps to file the ANML problem.
+
+        :param filename: The path to the file where the ANML problem must be written.
+        """
         with open(filename, "w") as f:
             self._write_problem(f)
 

@@ -105,6 +105,16 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a up.model.Problem and the up.engines.CompilationKind.QUANTIFIERS_REMOVING
+        and returns a CompilerResult where the problem does not have universal or existential (Forall or Exists)
+        operands; The quantifiers are substituted with their grounded version by using the problem's objects.
+
+        :param problem: The instance of the up.model.Problem that must be returned without quantifiers.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
+        only QUANTIFIERS_REMOVING is supported by this compiler
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
         assert isinstance(problem, Problem)
 
         env = problem.env

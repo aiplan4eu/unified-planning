@@ -95,6 +95,15 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a up.model.Problem and the up.engines.CompilationKind.GROUNDING compilaton kind
+        and returns a CompilerResult where the problem does not have actions with parameters; so every action is grounded.
+
+        :param problem: The instance of the up.model.Problem that must be grounded.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
+        only GROUNDING is supported by this compiler
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
         assert isinstance(problem, Problem)
 
         env = problem.env

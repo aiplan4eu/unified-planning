@@ -15,10 +15,8 @@
 
 
 from fractions import Fraction
-from itertools import count
 import re
 import sys
-from unicodedata import name
 import unified_planning as up
 import unified_planning.model.htn
 import unified_planning.model.walkers as walkers
@@ -467,7 +465,10 @@ class PythonWriter:
         return out.getvalue()
 
     def write_problem_code_to_file(self, filename: str):
-        """Dumps to file the PDDL domain."""
+        """Dumps to file the python commands to recreate the problem.
+
+        :param filename: The path to the file where the python code must be written.
+        """
         with open(filename, "w") as f:
             self._write_problem_code(f)
 

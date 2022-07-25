@@ -29,6 +29,14 @@ class PlanValidatorMixin:
     def validate(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.ValidationResult":
+        """This method takes an up.model.AbstractProblem, an up.plans.Plan and returns a up.engines.results.ValidationResult,
+        which contains information about the validity of the given plan for the given problem.
+
+        :param problem: Is the up.model.AbstractProblem on which the plan is validated.
+        :param plan: Is the up.plans.Plan that is validated on the given problem.
+        :return: the up.engines.results.ValidationResult returned by the PlanValidator; a data structure containing the
+        ValidationResultStatus (VALID or INVALID) and some additional information about it.
+        """
         assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self.supports(problem.kind):
             msg = f"{self.name} cannot validate this kind of problem!"
@@ -47,4 +55,5 @@ class PlanValidatorMixin:
     def _validate(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.ValidationResult":
+        """Method called by the PlanValidator.validate method."""
         raise NotImplementedError

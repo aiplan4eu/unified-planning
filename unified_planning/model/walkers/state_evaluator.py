@@ -33,12 +33,14 @@ class StateEvaluator(QuantifierSimplifier):
         expression: "FNode",
         state: "up.model.state.ROState",
         _variable_assignments: Dict["Expression", "Expression"] = {},
-    ):
+    ) -> FNode:
         """
         Evaluates the given expression in the given state.
         :param expression: The expression that needs to be evaluated.
         :param state: The state where the expression needs to be evaluated.
         :param _variable_assignment: For internal use only. Parameter used to solve quantifiers.
+        :return: The constant expression corresponding to the given expression evaluated in the
+        given state.
         """
         assert self._problem is not None
         assert self._assignments is None

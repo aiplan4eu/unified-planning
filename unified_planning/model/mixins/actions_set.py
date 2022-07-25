@@ -77,28 +77,43 @@ class ActionsSetMixin:
 
     @property
     def unconditional_actions(self) -> List["up.model.action.Action"]:
-        """Returns the conditional actions.
+        """Returns the unconditional actions.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
         return [a for a in self._actions if not a.is_conditional()]
 
     def action(self, name: str) -> "up.model.action.Action":
-        """Returns the action with the given name."""
+        """
+        Returns the action with the given name.
+
+        :param name: The name of the target action.
+        :return: The action in the problem with the given name.
+        """
         for a in self._actions:
             if a.name == name:
                 return a
         raise UPValueError(f"Action of name: {name} is not defined!")
 
     def has_action(self, name: str) -> bool:
-        """Returns True if the problem has the action with the given name ."""
+        """
+        Returns True if the problem has the action with the given name,
+        False otherwise.
+
+        :param name: The name of the target action.
+        :return: True if the problem has an action with the given name, False otherwise.
+        """
         for a in self._actions:
             if a.name == name:
                 return True
         return False
 
     def add_action(self, action: "up.model.action.Action"):
-        """Adds the given action."""
+        """
+        Adds the given action to the problem.
+
+        :param action: The action that must be added to the problem.
+        """
         assert (
             action.env == self._env
         ), "Action does not have the same environment of the problem"
@@ -110,6 +125,10 @@ class ActionsSetMixin:
                 self._add_user_type_method(param.type)
 
     def add_actions(self, actions: List["up.model.action.Action"]):
-        """Adds the given actions."""
+        """
+        Adds the given actions to the problem.
+
+        :param actions: The list of actions that must be added to the problem.
+        """
         for action in actions:
             self.add_action(action)

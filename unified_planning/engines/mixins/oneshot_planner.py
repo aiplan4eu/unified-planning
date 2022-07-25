@@ -73,4 +73,5 @@ class OneshotPlannerMixin:
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
+        """Method called by the OneshotPlannerMixin.solve method."""
         raise NotImplementedError

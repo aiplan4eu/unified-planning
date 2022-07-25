@@ -106,6 +106,15 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
         assert isinstance(problem, Problem)
+        """
+        Takes an instance of a up.model.Problem and the up.engines.CompilationKind.CONDITIONAL_EFFECTS_REMOVING compilaton kind
+        and returns a CompilerResult where the problem does not have conditional effects.
+
+        :param problem: The instance of the up.model.Problem that must be returned without conditional effects.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
+        only CONDITIONAL_EFFECTS_REMOVING is supported by this compiler
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
 
         env = problem.env
         simplifier = env.simplifier

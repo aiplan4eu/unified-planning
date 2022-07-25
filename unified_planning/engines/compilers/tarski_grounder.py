@@ -89,6 +89,15 @@ class TarskiGrounder(Engine, CompilerMixin):
     def _compile(
         self, problem: "up.model.AbstractProblem", compilation_kind: "CompilationKind"
     ) -> CompilerResult:
+        """
+        Takes an instance of a up.model.Problem and the up.engines.CompilationKind.GROUNDING compilaton kind
+        and returns a CompilerResult where the problem does not have actions with parameters; so every action is grounded.
+
+        :param problem: The instance of the up.model.Problem that must be grounded.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
+        only GROUNDING is supported by this compiler
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
         assert isinstance(problem, Problem)
 
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
@@ -136,6 +145,7 @@ class TarskiGrounder(Engine, CompilerMixin):
 
     @staticmethod
     def get_credits(**kwargs) -> Optional[Credits]:
+        """Returns the up.engines.engine.Credits instance created for the TarskiGrounder."""
         return credits
 
     def destroy(self):

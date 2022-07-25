@@ -51,11 +51,16 @@ class UserTypesSetMixin:
 
     @property
     def user_types(self) -> List["up.model.types.Type"]:
-        """Returns the user types."""
+        """Returns the list of all the user types in the problem."""
         return self._user_types
 
     def user_type(self, name: str) -> "up.model.types.Type":
-        """Returns the user type with the given name."""
+        """
+        Returns the user type in the problem with the given name.
+
+        :param name: The target name for the type.
+        :return: The type in the problem with the given name.
+        """
         for ut in self.user_types:
             assert ut.is_user_type()
             if cast(_UserType, ut).name == name:
@@ -63,7 +68,14 @@ class UserTypesSetMixin:
         raise UPValueError(f"UserType {name} is not defined!")
 
     def has_type(self, name: str) -> bool:
-        """Returns True iff the type 'name' is defined."""
+        """
+        Returns True if the type with the given name is defined in the
+        problem, False, otherwise.
+
+        :param name: The target name for the type.
+        :return: True if a type with the given name is in the problem,
+        False otherwise.
+        """
         for ut in self.user_types:
             assert ut.is_user_type()
             if cast(_UserType, ut).name == name:
@@ -74,8 +86,12 @@ class UserTypesSetMixin:
     def user_types_hierarchy(
         self,
     ) -> Dict[Optional["up.model.types.Type"], List["up.model.types.Type"]]:
-        """Returns a Dict where every key represents an Optional Type and the value
-        associated to the key is the List of the direct sons of the Optional Type."""
+        """
+        Returns a Dict where every key represents an Optional Type and the value
+        associated to the key is the List of the direct sons of the Optional Type.
+
+        All the user types corresponding to the 'None' key are fatherless.
+        """
         res: Dict[Optional["up.model.types.Type"], List["up.model.types.Type"]] = {}
         for t in self._user_types:
             if t not in res:

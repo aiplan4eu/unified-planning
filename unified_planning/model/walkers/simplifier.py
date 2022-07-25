@@ -54,7 +54,11 @@ class Simplifier(walkers.dag.DagWalker):
     def simplify(self, expression: FNode) -> FNode:
         """Performs basic simplification of the given expression.
 
-        If a problem is given at the costructor, it also uses the static fluents of the problem for a better simplification."""
+        If a problem is given at the costructor, it also uses the static fluents of the problem for a better simplification.
+
+        :param expression: The target expression that must be simplified with constant propagation.
+        :return: The simplified expression.
+        """
         return self.walk(expression)
 
     def walk_and(self, expression: FNode, args: List[FNode]) -> FNode:
