@@ -599,8 +599,8 @@ class Problem(
                 self._kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
-                    fnode_to_only_increase,
-                    fnode_to_only_decrease,
+                    fnode_to_only_increase,  # positive fluents in minimize can only be increased
+                    fnode_to_only_decrease,  # negative fluents in minimize can only be decreased
                 ) = linear_checker.get_fluents(metric.expression)
                 fluents_to_only_increase = {e.fluent() for e in fnode_to_only_increase}
                 fluents_to_only_decrease = {e.fluent() for e in fnode_to_only_decrease}
@@ -610,8 +610,8 @@ class Problem(
                 self._kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
-                    fnode_to_only_decrease,
-                    fnode_to_only_increase,
+                    fnode_to_only_decrease,  # positive fluents in maximize can only be decreased
+                    fnode_to_only_increase,  # negative fluents in maximize can only be increased
                 ) = linear_checker.get_fluents(metric.expression)
                 fluents_to_only_increase = {e.fluent() for e in fnode_to_only_increase}
                 fluents_to_only_decrease = {e.fluent() for e in fnode_to_only_decrease}
