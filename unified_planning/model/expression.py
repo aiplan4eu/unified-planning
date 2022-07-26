@@ -225,6 +225,29 @@ class ExpressionManager(object):
         else:
             return self.create_node(node_type=OperatorKind.OR, args=tuple_args)
 
+    def XOr(
+        self, *args: Union[BoolExpression, Iterable[BoolExpression]]
+    ) -> "up.model.fnode.FNode":
+        """Returns an exclusive disjunction of terms.
+        This function has polimorphic n-arguments:
+          - XOr(a,b,c)
+          - XOr([a,b,c])
+        Restriction: Arguments must be boolean
+        """
+        tuple_args = tuple(self.auto_promote(*args))
+
+        if len(tuple_args) == 0:
+            return self.FALSE()
+        elif len(tuple_args) == 1:
+            return tuple_args[0]
+        else:
+            new_args = []
+            for a in tuple_args:
+                new_args.append(
+                    self.And([a] + [self.Not(o) for o in tuple_args if o is not a])
+                )
+            return self.Or(new_args)
+
     def Not(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:

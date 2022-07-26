@@ -143,9 +143,10 @@ class Problem(
         if set(self._actions) != set(oth._actions):
             return False
         oth_initial_values = oth.initial_values
-        if len(self.initial_values) != len(oth_initial_values):
+        initial_values = self.initial_values
+        if len(initial_values) != len(oth_initial_values):
             return False
-        for fluent, value in self.initial_values.items():
+        for fluent, value in initial_values.items():
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False

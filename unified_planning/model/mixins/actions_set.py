@@ -60,6 +60,16 @@ class ActionsSetMixin:
                 yield a
 
     @property
+    def sensing_actions(self) -> Iterator["up.model.action.SensingAction"]:
+        """Returs all the sensing actions of the problem.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        seldom as possible."""
+        for a in self._actions:
+            if isinstance(a, up.model.action.SensingAction):
+                yield a
+
+    @property
     def durative_actions(self) -> Iterator["up.model.action.DurativeAction"]:
         """
         Returns all the `DurativeActions` of the `Problem`.
