@@ -28,9 +28,9 @@ class ContingentPlanNode:
     ):
         self.action_instance = action_instance
         self.observation = observation
-        self.children: List[ContingentPlanNode] = []
+        self.children: List["ContingentPlanNode"] = []
 
-    def add_child(self, obj: ContingentPlanNode):
+    def add_child(self, obj: "ContingentPlanNode"):
         self.children.append(obj)
 
     def replace_action_instances(
@@ -38,10 +38,10 @@ class ContingentPlanNode:
         replace_function: Callable[
             ["plans.plan.ActionInstance"], "plans.plan.ActionInstance"
         ],
-    ) -> ContingentPlanNode:
+    ) -> "ContingentPlanNode":
         ai = replace_function(self.action_instance)
         res = ContingentPlanNode(ai, self.observation)
-        children: List[ContingentPlanNode] = []
+        children: List["ContingentPlanNode"] = []
         for c in self.children:
             res.add_child(c.replace_action_instances(replace_function))
         return res
