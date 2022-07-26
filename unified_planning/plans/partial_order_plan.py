@@ -117,7 +117,7 @@ class PartialOrderPlan(plans.plan.Plan):
     def replace_action_instances(
         self,
         replace_function: Callable[
-            ["plans.plan.ActionInstance"], "plans.plan.ActionInstance"
+            ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "plans.plan.Plan":
         new_adj_list: Dict[
@@ -125,9 +125,15 @@ class PartialOrderPlan(plans.plan.Plan):
         ] = {}
         # Populate the new adjacency list with the replaced action instances
         for node in self._graph.nodes:
-            new_adj_list[replace_function(node)] = [
-                replace_function(successor) for successor in self._graph.neighbors(node)
-            ]
+            key = replace_function(node)
+            if key is not None:
+                replaced_neighbors = []
+                for successor in self._graph.neighbors(node):
+                    replaced_successor = replace_function(successor)
+                    if replaced_successor is not None:
+                        replaced_neighbors.append(replaced_successor)
+                if len(replaced_neighbors) > 0:
+                    new_adj_list[key] = replaced_neighbors
         new_env = self._environment
         for ai in new_adj_list.keys():
             new_env = ai.action.env

@@ -24,6 +24,7 @@ from unified_planning.test import (
     TestCase,
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
+    skipIfEngineNotAvailable,
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
@@ -131,7 +132,49 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         self.assertEqual(len(dnf_problem.actions), 1)
 
-    def test_temproal_mockup_1(self):
+    @skipIfEngineNotAvailable("pyperplan")
+    def test_ad_hoc_3(self):
+        # mockup problem
+        a = Fluent("a")
+        b = Fluent("b")
+        c = Fluent("c")
+        act_a = InstantaneousAction("act_a")
+        act_a.add_effect(a, TRUE())
+        act_b = InstantaneousAction("act_b")
+        act_b.add_effect(b, TRUE())
+        act_c = InstantaneousAction("act_c")
+        act_c.add_effect(c, TRUE())
+        problem = Problem("mockup")
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_action(act_a)
+        problem.add_action(act_b)
+        problem.add_action(act_c)
+        problem.set_initial_value(a, False)
+        problem.set_initial_value(b, False)
+        problem.set_initial_value(c, False)
+        problem.add_goal(And(a, Or(b, c)))
+        dnfr = DisjunctiveConditionsRemover()
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        dnf_problem = res.problem
+
+        self.assertEqual(len(dnf_problem.actions), 5)
+        self.assertEqual(len(dnf_problem.goals), 1)
+        self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
+
+        with OneshotPlanner(name="pyperplan") as planner:
+            os_res = planner.solve(dnf_problem)
+            with PlanValidator(name="sequential_plan_validator") as validator:
+                valid_res = validator.validate(
+                    problem,
+                    os_res.plan.replace_action_instances(res.map_back_action_instance),
+                )
+                self.assertEqual(
+                    valid_res.status, up.engines.results.ValidationResultStatus.VALID
+                )
+
+    def test_temporal_mockup_1(self):
         # temporal mockup
         a = Fluent("a")
         b = Fluent("b")
@@ -164,7 +207,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnf_problem = res.problem
         self.assertEqual(len(dnf_problem.actions), 81)
 
-    def test_temproal_mockup_2(self):
+    def test_temporal_mockup_2(self):
         # temporal mockup
         a = Fluent("a")
         b = Fluent("b")

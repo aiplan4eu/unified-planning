@@ -104,10 +104,14 @@ class TimeTriggeredPlan(plans.plan.Plan):
     def replace_action_instances(
         self,
         replace_function: Callable[
-            ["plans.plan.ActionInstance"], "plans.plan.ActionInstance"
+            ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "plans.plan.Plan":
-        new_ai = [(s, replace_function(ai), d) for s, ai, d in self._actions]
+        new_ai = []
+        for s, ai, d in self._actions:
+            replaced_ai = replace_function(ai)
+            if replaced_ai is not None:
+                new_ai.append((s, replaced_ai, d))
         new_env = self._environment
         if len(new_ai) > 0:
             _, ai, _ = new_ai[0]

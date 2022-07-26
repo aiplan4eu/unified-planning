@@ -31,7 +31,7 @@ from unified_planning.model import (
     ProblemKind,
 )
 from unified_planning.model.walkers import Dnf
-from typing import List, Tuple, Dict, cast
+from typing import List, Optional, Tuple, Dict, cast
 from itertools import product
 from functools import partial
 
@@ -95,11 +95,14 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         env = problem.env
 
-        new_to_old: Dict[Action, Action] = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
+        new_problem.clear_goals()
+        # new_problem.clear_timed_goals()
+        # TODO Extend code to timed goals
 
         dnf = Dnf(env)
         for a in problem.actions:
@@ -142,6 +145,26 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                     new_problem.add_action(nda)
             else:
                 raise NotImplementedError
+
+        new_goal = dnf.get_dnf_expression(env.expression_manager.And(problem.goals))
+        if new_goal.is_or():
+            fake_fluent = up.model.Fluent(
+                get_fresh_name(new_problem, f"{self.name}_fake_goal")
+            )
+            fake_action = InstantaneousAction(
+                f"{self.name}_fake_action", _env=problem.env
+            )
+            fake_action.add_effect(fake_fluent, True)
+            for and_exp in new_goal.args:
+                na = self._create_new_action_with_given_precond(
+                    new_problem, and_exp, fake_action
+                )
+                new_to_old[na] = None
+                new_problem.add_action(na)
+            new_problem.add_fluent(fake_fluent, default_initial_value=False)
+            new_problem.add_goal(fake_fluent)
+        else:
+            new_problem.add_goal(new_goal)
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
