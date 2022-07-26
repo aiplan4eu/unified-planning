@@ -96,7 +96,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":functions"
             + Group(
-                OneOrMore(predicate) + Optional(Suppress("- number"))
+                OneOrMore(predicate + Optional(Suppress("- number")))
             ).setResultsName("functions")
             + Suppress(")")
         )
