@@ -4,7 +4,7 @@
           floor - object
          )
 
-(:predicates 
+(:predicates
 
 (going_up ?person - passenger)
 (going_down ?person - passenger)
@@ -71,7 +71,7 @@
 						     (not (boarded ?q)))
 						 (or (served ?q)
 						     (not (origin ?q ?f)))))))
-		    (imply 
+		    (imply
 		     (exists (?p - passenger)
 			     (and (never_alone ?p)
 				  (or (and (origin ?p ?f)
@@ -80,7 +80,7 @@
 					   (not (destin ?p ?f))))))
 		     (exists (?q - passenger)
 			     (and (attendant ?q)
-				  (or (and (boarded ?q) 
+				  (or (and (boarded ?q)
 					   (not (destin ?q ?f)))
 				      (and (not (served ?q))
 					   (origin ?q ?f))))))
@@ -90,21 +90,21 @@
 
 		    (or (forall (?p - passenger)
 				(imply (vip ?p) (served ?p)))
-			(exists 
+			(exists
 			 (?p - passenger)
 			 (and (vip ?p)
 			      (or (origin ?p ?f) (destin ?p ?f)))))
-		    (forall 
-		     (?p - passenger) 
-		     (imply 
-		      (no-access ?p ?f) (not (boarded ?p))))) 
- :effect (and 
-	  (forall (?p - passenger) 
-                  (when (and (boarded ?p) 
+		    (forall
+		     (?p - passenger)
+		     (imply
+		      (no-access ?p ?f) (not (boarded ?p)))))
+ :effect (and
+	  (forall (?p - passenger)
+                  (when (and (boarded ?p)
                              (destin ?p ?f))
-                        (and (not (boarded ?p)) 
+                        (and (not (boarded ?p))
                              (served  ?p))))
-	  (forall (?p - passenger)                
+	  (forall (?p - passenger)
 		  (when (and (origin ?p ?f) (not (served ?p)))
 			(boarded ?p)))))
 
@@ -113,7 +113,7 @@
 
 (:action up
   :parameters (?f1 - floor ?f2 - floor)
-  :precondition (and (lift-at ?f1) (above ?f1 ?f2)  
+  :precondition (and (lift-at ?f1) (above ?f1 ?f2)
                      (forall (?p - passenger)
 			     (imply (going_down ?p)
 				      (not (boarded ?p)))))

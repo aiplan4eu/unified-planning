@@ -20,7 +20,7 @@
     (at_garage ?g - garage ?xy - junction ) ;; position of the starting garage
 
   )
-(:functions (total-cost))
+(:functions (total-cost) - number)
 
 ;; move the car in a road: no limit on the number of cars on the road
 (:action move_car_in_road

@@ -81,11 +81,6 @@ class PDDLGrammar:
                         )
                     )
                 )
-                # + Group(
-                #   Optional(
-                #       Suppress("-") + name
-                #   )
-                # )
             )
             + Suppress(")")
         )
@@ -100,7 +95,9 @@ class PDDLGrammar:
         functions_def = (
             Suppress("(")
             + ":functions"
-            + Group(OneOrMore(predicate)).setResultsName("functions")
+            + Group(
+                OneOrMore(predicate) + Optional(Suppress("- number"))
+            ).setResultsName("functions")
             + Suppress(")")
         )
 

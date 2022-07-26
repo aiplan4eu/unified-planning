@@ -533,6 +533,19 @@ class TestPddlIO(TestCase):
         self.assertEqual(pddl_domain, expected_domain)
         self.assertEqual(pddl_problem, expected_problem)
 
+    def test_miconic_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 15)
+        self.assertEqual(len(problem.actions), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("passenger")))), 2)
+        self.assertEqual(len(list(problem.objects(problem.user_type("floor")))), 4)
+
     def test_citycar_reader(self):
         reader = PDDLReader()
 
@@ -541,25 +554,44 @@ class TestPddlIO(TestCase):
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
-        self.assertEqual(len(problem.fluents), 11)
-        # Here it fails for a parsing error not related to this PR
-        # self.assertEqual(len(problem.actions), 7)
-        # self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
-        # self.assertEqual(len(list(problem.objects(problem.user_type("fuse")))), 3)
+        self.assertEqual(len(problem.fluents), 10)
+        self.assertEqual(len(problem.actions), 7)
+        self.assertEqual(len(list(problem.objects(problem.user_type("junction")))), 9)
+        self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
+        self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
 
-    def test_citycar_reader(self):
+    def test_robot_fastener_reader(self):
         reader = PDDLReader()
 
-        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "domain.pddl")
-        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "problem.pddl")
+        domain_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "robot_fastener", "domain.pddl"
+        )
+        problem_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "robot_fastener", "problem.pddl"
+        )
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
-        print(problem)
-        self.assertEqual(len(problem.fluents), 15)
-        self.assertEqual(len(problem.actions), 7)
-        self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
-        self.assertEqual(len(list(problem.objects(problem.user_type("fuse")))), 3)
+        self.assertEqual(len(problem.fluents), 5)
+        self.assertEqual(len(problem.actions), 1)
+        self.assertEqual(len(list(problem.objects(problem.user_type("robot")))), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("fastener")))), 3)
+
+    def test_safe_road_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 1)
+        self.assertEqual(len(problem.actions), 2)
+        natural_disaster = problem.action("natural_disaster")
+        # 9 effects because the forall is expanded in 3 * 3 possible locations instantiations
+        self.assertEqual(len(natural_disaster.effects), 9)
+        self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
 
 def _have_same_user_types_considering_renamings(
