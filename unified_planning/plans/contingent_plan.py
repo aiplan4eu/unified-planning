@@ -13,21 +13,18 @@
 # limitations under the License.
 #
 
-
 import unified_planning as up
 import unified_planning.plans as plans
-import unified_planning.model.walkers as walkers
-from unified_planning.environment import Environment
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode, InstantaneousAction, Expression
-from typing import Callable, Dict, Optional, Set, List, cast
+from typing import Callable, Dict, Optional, List
 
 
 class ContingentPlanNode:
     def __init__(
         self,
         action_instance: "plans.plan.ActionInstance",
-        observation: Optional[Dict[FNode, FNode]] = None,
+        observation: Optional[
+            Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]
+        ] = None,
     ):
         self.action_instance = action_instance
         self.observation = observation
@@ -44,7 +41,7 @@ class ContingentPlanNode:
     ) -> ContingentPlanNode:
         ai = replace_function(self.action_instance)
         res = ContingentPlanNode(ai, self.observation)
-        children = []
+        children: List[ContingentPlanNode] = []
         for c in self.children:
             res.add_child(c.replace_action_instances(replace_function))
         return res
@@ -66,8 +63,9 @@ class ContingentPlanNode:
         count += hash(self.action_instance.action) + hash(
             self.action_instance.actual_parameters
         )
-        for k, v in self.observation.items():
-            count += hash(k) + hash(v)
+        if self.observation is not None:
+            for k, v in self.observation.items():
+                count += hash(k) + hash(v)
         for c in self.children:
             count += hash(c)
         return count
@@ -76,7 +74,7 @@ class ContingentPlanNode:
         if isinstance(item, plans.plan.ActionInstance):
             if item.is_semantically_equivalent(self.action_instance):
                 return True
-            for c in children:
+            for c in self.children:
                 if item in c:
                     return True
             return False
@@ -90,7 +88,7 @@ class ContingentPlan(plans.plan.Plan):
     def __init__(
         self,
         root_node: Optional["ContingentPlanNode"] = None,
-        environment: Optional["Environment"] = None,
+        environment: Optional["up.Environment"] = None,
     ):
         # if we have a specific env or we don't have any actions
         if environment is not None or root_node is None:
@@ -116,10 +114,12 @@ class ContingentPlan(plans.plan.Plan):
         return hash(self.root_node)
 
     def __contains__(self, item: object) -> bool:
+        if self.root_node is None:
+            return False
         return item in self.root_node
 
     @property
-    def root_node(self) -> "ContingentPlanNode":
+    def root_node(self) -> Optional["ContingentPlanNode"]:
         """Returns the ContingentPlanNode."""
         return self._root_node
 

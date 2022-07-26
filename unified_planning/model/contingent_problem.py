@@ -16,7 +16,8 @@
 import unified_planning as up
 from unified_planning.model.problem import Problem
 from unified_planning.model.expression import ConstantExpression
-from typing import Dict
+from unified_planning.model.types import domain_size
+from typing import Dict, Set, List, Union
 
 
 class ContingentProblem(Problem):
@@ -28,8 +29,8 @@ class ContingentProblem(Problem):
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
         Problem.__init__(self, name, env, initial_defaults=initial_defaults)
-        self._hidden_fluents = set()
-        self._initial_constraints = []
+        self._hidden_fluents: Set["up.model.fnode.FNode"] = set()
+        self._initial_constraints: List["up.model.fnode.FNode"] = []
 
     def __repr__(self) -> str:
         s = []
