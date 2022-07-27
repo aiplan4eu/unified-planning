@@ -278,6 +278,10 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         with OneshotPlanner(name="tamer") as planner:
             os_res = planner.solve(dnf_problem)
+            # print(dnf_problem)
+            # print(os_res.plan)
+            # print("--------")
+            # print(os_res.plan.replace_action_instances(res.map_back_action_instance))
             with PlanValidator(name="tamer") as validator:
                 valid_res = validator.validate(
                     problem,
