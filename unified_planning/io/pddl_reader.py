@@ -14,7 +14,6 @@
 #
 
 from itertools import product
-from numpy import isin
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
