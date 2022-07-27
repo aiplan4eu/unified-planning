@@ -575,6 +575,9 @@ class Problem(
                             and v.is_constant()
                             and v.constant_value() <= 0
                         )
+                        # early termination condition
+                        if not only_positive and not only_negative:
+                            break
                 # Not every grounded fluent was initialized, check the default
                 if count < n_grounded_fluents:
                     v = self._fluents_defaults[
