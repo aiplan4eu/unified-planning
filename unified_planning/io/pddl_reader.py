@@ -304,7 +304,7 @@ class PDDLReader:
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
                     solved.append(self._em.FluentExp(f, tuple(args)))
-                elif exp[0] in assignments:
+                elif exp[0] in assignments:  # quantified assignment variable
                     assert len(exp) == 1
                     solved.append(self._em.ObjectExp(assignments[exp[0]]))
                 else:
@@ -334,7 +334,7 @@ class PDDLReader:
                         stack.append((var, exp, True))
                         for e in exp[1:]:
                             stack.append((var, e, False))
-                    elif exp[0] in assignments:
+                    elif exp[0] in assignments:  # quantified assignment variable
                         assert len(exp) == 1
                         stack.append((var, exp, True))
                     elif len(exp) == 1:  # expand an element inside brackets
@@ -346,7 +346,7 @@ class PDDLReader:
                         exp[0] == "?" and exp[1:] in var
                     ):  # variable in a quantifier expression
                         solved.append(self._em.VariableExp(var[exp[1:]]))
-                    elif exp in assignments:
+                    elif exp in assignments:  # quantified assignment variable
                         solved.append(self._em.ObjectExp(assignments[exp]))
                     elif exp[0] == "?":  # action parameter
                         assert act is not None
