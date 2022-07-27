@@ -14,6 +14,7 @@
 #
 
 from itertools import product
+from numpy import isin
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
@@ -420,6 +421,7 @@ class PDDLReader:
                 )
                 act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
+                assert isinstance(exp, ParseResults)
                 # Get the list of universal_assignments linked to this action. If it does not exist, default it to the empty list
                 action_assignments = universal_assignments.setdefault(act, [])
                 action_assignments.append(exp)
