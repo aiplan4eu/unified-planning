@@ -13,12 +13,14 @@
 # limitations under the License.
 #
 
+from itertools import product
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 import pyparsing
 import typing
 from unified_planning.environment import Environment, get_env
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model import FNode
 from collections import OrderedDict
 from fractions import Fraction
@@ -93,7 +95,9 @@ class PDDLGrammar:
         functions_def = (
             Suppress("(")
             + ":functions"
-            + Group(OneOrMore(predicate)).setResultsName("functions")
+            + Group(
+                OneOrMore(predicate + Optional(Suppress("- number")))
+            ).setResultsName("functions")
             + Suppress(")")
         )
 
@@ -279,6 +283,7 @@ class PDDLReader:
         types_map: Dict[str, up.model.Type],
         var: Dict[str, up.model.Variable],
         exp: Union[ParseResults, str],
+        assignments: Dict[str, "up.model.Object"] = {},
     ) -> up.model.FNode:
         stack = [(var, exp, False)]
         solved: List[up.model.FNode] = []
@@ -299,6 +304,9 @@ class PDDLReader:
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
                     solved.append(self._em.FluentExp(f, tuple(args)))
+                elif exp[0] in assignments:  # quantified assignment variable
+                    assert len(exp) == 1
+                    solved.append(self._em.ObjectExp(assignments[exp[0]]))
                 else:
                     raise up.exceptions.UPUnreachableCodeError
             else:
@@ -326,6 +334,9 @@ class PDDLReader:
                         stack.append((var, exp, True))
                         for e in exp[1:]:
                             stack.append((var, e, False))
+                    elif exp[0] in assignments:  # quantified assignment variable
+                        assert len(exp) == 1
+                        stack.append((var, exp, True))
                     elif len(exp) == 1:  # expand an element inside brackets
                         stack.append((var, exp[0], False))
                     else:
@@ -335,6 +346,8 @@ class PDDLReader:
                         exp[0] == "?" and exp[1:] in var
                     ):  # variable in a quantifier expression
                         solved.append(self._em.VariableExp(var[exp[1:]]))
+                    elif exp in assignments:  # quantified assignment variable
+                        solved.append(self._em.ObjectExp(assignments[exp]))
                     elif exp[0] == "?":  # action parameter
                         assert act is not None
                         solved.append(self._em.ParameterExp(act.parameter(exp[1:])))
@@ -358,9 +371,13 @@ class PDDLReader:
         problem: up.model.Problem,
         act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
         types_map: Dict[str, up.model.Type],
+        universal_assignments: typing.Optional[
+            Dict["up.model.Action", List[ParseResults]]
+        ],
         exp: Union[ParseResults, str],
         cond: Union[up.model.FNode, bool] = True,
         timing: typing.Optional[up.model.Timing] = None,
+        assignments: Dict[str, "up.model.Object"] = {},
     ):
         to_add = [(exp, cond)]
         while to_add:
@@ -373,40 +390,46 @@ class PDDLReader:
                 for e in exp:
                     to_add.append((e, cond))
             elif op == "when":
-                cond = self._parse_exp(problem, act, types_map, {}, exp[1])
+                cond = self._parse_exp(problem, act, types_map, {}, exp[1], assignments)
                 to_add.append((exp[2], cond))
             elif op == "not":
                 exp = exp[1]
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp),
+                    self._parse_exp(problem, act, types_map, {}, exp, assignments),
                     self._em.FALSE(),
                     cond,
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "assign":
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp[1]),
-                    self._parse_exp(problem, act, types_map, {}, exp[2]),
+                    self._parse_exp(problem, act, types_map, {}, exp[1], assignments),
+                    self._parse_exp(problem, act, types_map, {}, exp[2], assignments),
                     cond,
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "increase":
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp[1]),
-                    self._parse_exp(problem, act, types_map, {}, exp[2]),
+                    self._parse_exp(problem, act, types_map, {}, exp[1], assignments),
+                    self._parse_exp(problem, act, types_map, {}, exp[2], assignments),
                     cond,
                 )
                 act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp[1]),
-                    self._parse_exp(problem, act, types_map, {}, exp[2]),
+                    self._parse_exp(problem, act, types_map, {}, exp[1], assignments),
+                    self._parse_exp(problem, act, types_map, {}, exp[2], assignments),
                     cond,
                 )
                 act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+            elif op == "forall":
+                assert isinstance(exp, ParseResults)
+                # Get the list of universal_assignments linked to this action. If it does not exist, default it to the empty list
+                assert universal_assignments is not None
+                action_assignments = universal_assignments.setdefault(act, [])
+                action_assignments.append(exp)
             else:
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp),
+                    self._parse_exp(problem, act, types_map, {}, exp, assignments),
                     self._em.TRUE(),
                     cond,
                 )
@@ -469,7 +492,11 @@ class PDDLReader:
         problem: up.model.Problem,
         act: up.model.DurativeAction,
         types_map: Dict[str, up.model.Type],
+        universal_assignments: typing.Optional[
+            Dict["up.model.Action", List[ParseResults]]
+        ],
         eff: ParseResults,
+        assignments: Dict[str, "up.model.Object"] = {},
     ):
         to_add = [eff]
         while to_add:
@@ -480,12 +507,28 @@ class PDDLReader:
                     to_add.append(e)
             elif len(eff) == 3 and op == "at" and eff[1] == "start":
                 self._add_effect(
-                    problem, act, types_map, eff[2], timing=up.model.StartTiming()
+                    problem,
+                    act,
+                    types_map,
+                    universal_assignments,
+                    eff[2],
+                    timing=up.model.StartTiming(),
+                    assignments=assignments,
                 )
             elif len(eff) == 3 and op == "at" and eff[1] == "end":
                 self._add_effect(
-                    problem, act, types_map, eff[2], timing=up.model.EndTiming()
+                    problem,
+                    act,
+                    types_map,
+                    universal_assignments,
+                    eff[2],
+                    timing=up.model.EndTiming(),
+                    assignments=assignments,
                 )
+            elif len(eff) == 3 and op == "forall":
+                assert universal_assignments is not None
+                action_assignments = universal_assignments.setdefault(act, [])
+                action_assignments.append(eff)
             else:
                 raise SyntaxError(f"Not able to handle: {eff}")
 
@@ -631,6 +674,7 @@ class PDDLReader:
 
         types_map: Dict[str, "up.model.Type"] = {}
         object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
+        universal_assignments: Dict["up.model.Action", List[ParseResults]] = {}
         for types_list in domain_res.get("types", []):
             # types_list is a List of 1 or 2 elements, where the first one
             # is a List of types, and the second one can be their father,
@@ -751,7 +795,9 @@ class PDDLReader:
                 cond = a["cond"][0]
                 self._add_condition(problem, dur_act, cond, types_map)
                 eff = a["eff"][0]
-                self._add_timed_effects(problem, dur_act, types_map, eff)
+                self._add_timed_effects(
+                    problem, dur_act, types_map, universal_assignments, eff
+                )
                 problem.add_action(dur_act)
                 has_actions_cost = has_actions_cost and self._durative_action_has_cost(
                     dur_act
@@ -763,7 +809,9 @@ class PDDLReader:
                         self._parse_exp(problem, act, types_map, {}, a["pre"][0])
                     )
                 if "eff" in a:
-                    self._add_effect(problem, act, types_map, a["eff"][0])
+                    self._add_effect(
+                        problem, act, types_map, universal_assignments, a["eff"][0]
+                    )
                 problem.add_action(act)
                 has_actions_cost = (
                     has_actions_cost and self._instantaneous_action_has_cost(act)
@@ -811,6 +859,48 @@ class PDDLReader:
                 t = types_map[g[1] if len(g) > 1 else "object"]
                 for o in g[0]:
                     problem.add_object(up.model.Object(o, t, problem.env))
+
+            for action, eff_list in universal_assignments.items():
+                for eff in eff_list:
+                    # Parse the variable definition part and create 2 lists, the first one with the variable names,
+                    # the second one with the variable types.
+                    vars_string = " ".join(eff[1])
+                    vars_res = self._pp_parameters.parseString(vars_string)
+                    var_names: List[str] = []
+                    var_types: List["up.model.Type"] = []
+                    for g in vars_res["params"]:
+                        t = types_map[g[1] if len(g) > 1 else "object"]
+                        for o in g[0]:
+                            var_names.append(f"?{o}")
+                            var_types.append(t)
+                    # for each variable type, get all the objects of that type and calculate the cartesian
+                    # product between all the given objects and iterate over them, changing the variable assignments
+                    # in the added effect
+                    for objects in product(*(problem.objects(t) for t in var_types)):
+                        assert len(var_names) == len(objects)
+                        assignments = {
+                            name: obj for name, obj in zip(var_names, objects)
+                        }
+                        if isinstance(action, up.model.InstantaneousAction):
+                            self._add_effect(
+                                problem,
+                                action,
+                                types_map,
+                                None,
+                                eff[2],
+                                assignments=assignments,
+                            )
+                        elif isinstance(action, up.model.DurativeAction):
+                            self._add_timed_effects(
+                                problem,
+                                action,
+                                types_map,
+                                None,
+                                eff[2],
+                                assignments=assignments,
+                            )
+                        else:
+                            raise NotImplementedError
 
             tasknet = problem_res.get("htn", None)
             if tasknet is not None:
@@ -924,5 +1014,9 @@ class PDDLReader:
                                     metric_exp
                                 )
                             )
-
+        else:
+            if len(universal_assignments) != 0:
+                raise UPUsageError(
+                    "The domain has quantified assignments. In the unified_planning library this is compatible only if the problem is given and not only the domain."
+                )
         return problem
