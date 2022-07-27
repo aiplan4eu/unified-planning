@@ -101,8 +101,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
         new_problem.clear_goals()
-        # new_problem.clear_timed_goals()
-        # TODO Extend code to timed goals
+        new_problem.clear_timed_goals()
 
         dnf = Dnf(env)
         for a in problem.actions:
@@ -146,14 +145,42 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
 
-        new_goal = dnf.get_dnf_expression(env.expression_manager.And(problem.goals))
+        self._remove_disjunctions_from_goals_adding_new_elements(
+            dnf,
+            new_problem,
+            new_to_old,
+            problem.goals,
+        )
+
+        for t, gl in problem.timed_goals.items():
+            self._remove_disjunctions_from_goals_adding_new_elements(
+                dnf,
+                new_problem,
+                new_to_old,
+                gl,
+                t,
+            )
+
+        return CompilerResult(
+            new_problem, partial(replace_action, map=new_to_old), self.name
+        )
+
+    def _remove_disjunctions_from_goals_adding_new_elements(
+        self,
+        dnf: Dnf,
+        new_problem: "up.model.Problem",
+        new_to_old: Dict[Action, Optional[Action]],
+        goals: List["up.model.FNode"],
+        timing: Optional["up.model.timing.TimeInterval"] = None,
+    ):
+        env = new_problem.env
+        new_goal = dnf.get_dnf_expression(env.expression_manager.And(goals))
         if new_goal.is_or():
+            new_name = self.name if timing is None else f"{self.name}_timed"
             fake_fluent = up.model.Fluent(
-                get_fresh_name(new_problem, f"{self.name}_fake_goal")
+                get_fresh_name(new_problem, f"{new_name}_fake_goal")
             )
-            fake_action = InstantaneousAction(
-                f"{self.name}_fake_action", _env=problem.env
-            )
+            fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
             fake_action.add_effect(fake_fluent, True)
             for and_exp in new_goal.args:
                 na = self._create_new_action_with_given_precond(
@@ -162,17 +189,19 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_to_old[na] = None
                 new_problem.add_action(na)
             new_problem.add_fluent(fake_fluent, default_initial_value=False)
-            new_problem.add_goal(fake_fluent)
+            if timing is None:
+                new_problem.add_goal(fake_fluent)
+            else:
+                new_problem.add_timed_goal(timing, fake_fluent)
         else:
-            new_problem.add_goal(new_goal)
-
-        return CompilerResult(
-            new_problem, partial(replace_action, map=new_to_old), self.name
-        )
+            if timing is None:
+                new_problem.add_goal(new_goal)
+            else:
+                new_problem.add_timed_goal(timing, new_goal)
 
     def _create_new_durative_action_with_given_conds_at_given_times(
         self,
-        new_problem,
+        new_problem: "up.model.Problem",
         interval_list: List[TimeInterval],
         cond_list: List[FNode],
         original_action: DurativeAction,
@@ -189,7 +218,10 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         return new_action
 
     def _create_new_action_with_given_precond(
-        self, new_problem, precond: FNode, original_action: InstantaneousAction
+        self,
+        new_problem: "up.model.Problem",
+        precond: FNode,
+        original_action: InstantaneousAction,
     ) -> InstantaneousAction:
         new_action = original_action.clone()
         new_action.name = get_fresh_name(new_problem, original_action.name)

@@ -230,3 +230,59 @@ class TestDisjunctiveConditionsRemover(TestCase):
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
         self.assertEqual(len(dnf_problem.actions), 1)
+
+    @skipIfEngineNotAvailable("tamer")
+    def test_temporal_mockup_3(self):
+        # mockup problem
+        a = Fluent("a")
+        b = Fluent("b")
+        c = Fluent("c")
+        act_a = InstantaneousAction("act_a")
+        act_a.add_effect(a, TRUE())
+        act_b = InstantaneousAction("act_b")
+        act_b.add_effect(b, True)
+        act_c = InstantaneousAction("act_c")
+        act_c.add_effect(c, TRUE())
+        n_act_a = InstantaneousAction("n_act_a")
+        n_act_a.add_effect(a, FALSE())
+        n_act_b = InstantaneousAction("n_act_b")
+        n_act_b.add_effect(b, False)
+        n_act_c = InstantaneousAction("n_act_c")
+        n_act_c.add_effect(c, FALSE())
+        problem = Problem("mockup")
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_action(act_a)
+        problem.add_action(act_b)
+        problem.add_action(act_c)
+        problem.add_action(n_act_a)
+        problem.add_action(n_act_b)
+        problem.add_action(n_act_c)
+        problem.set_initial_value(a, True)
+        problem.set_initial_value(b, True)
+        problem.set_initial_value(c, True)
+        problem.add_timed_goal(StartTiming(5), Not(And(a, Or(b, c))))
+        problem.add_goal(And(a, Or(b, c)))
+        dnfr = DisjunctiveConditionsRemover()
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        dnf_problem = res.problem
+
+        self.assertEqual(len(dnf_problem.actions), 10)
+        self.assertEqual(len(dnf_problem.goals), 1)
+        self.assertEqual(len(dnf_problem.timed_goals), 1)
+        self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
+        for gl in dnf_problem.timed_goals.values():
+            self.assertEqual(len(gl), 1)
+            self.assertTrue(gl[0].is_fluent_exp())
+
+        with OneshotPlanner(name="tamer") as planner:
+            os_res = planner.solve(dnf_problem)
+            with PlanValidator(name="tamer") as validator:
+                valid_res = validator.validate(
+                    problem,
+                    os_res.plan.replace_action_instances(res.map_back_action_instance),
+                )
+                self.assertEqual(
+                    valid_res.status, up.engines.results.ValidationResultStatus.VALID
+                )
