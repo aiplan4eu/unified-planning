@@ -420,9 +420,6 @@ class PDDLReader:
                 )
                 act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
-                assert isinstance(
-                    exp, ParseResults
-                )  # NOTE not sure if we always have a ParseResult here, but this implementation assumes it
                 # Get the list of universal_assignments linked to this action. If it does not exist, default it to the empty list
                 action_assignments = universal_assignments.setdefault(act, [])
                 action_assignments.append(exp)
