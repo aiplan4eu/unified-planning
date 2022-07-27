@@ -371,7 +371,9 @@ class PDDLReader:
         problem: up.model.Problem,
         act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
         types_map: Dict[str, up.model.Type],
-        universal_assignments: Dict["up.model.Action", List[ParseResults]],
+        universal_assignments: typing.Optional[
+            Dict["up.model.Action", List[ParseResults]]
+        ],
         exp: Union[ParseResults, str],
         cond: Union[up.model.FNode, bool] = True,
         timing: typing.Optional[up.model.Timing] = None,
@@ -422,6 +424,7 @@ class PDDLReader:
             elif op == "forall":
                 assert isinstance(exp, ParseResults)
                 # Get the list of universal_assignments linked to this action. If it does not exist, default it to the empty list
+                assert universal_assignments is not None
                 action_assignments = universal_assignments.setdefault(act, [])
                 action_assignments.append(exp)
             else:
@@ -489,7 +492,9 @@ class PDDLReader:
         problem: up.model.Problem,
         act: up.model.DurativeAction,
         types_map: Dict[str, up.model.Type],
-        universal_assignments: Dict["up.model.Action", List[ParseResults]],
+        universal_assignments: typing.Optional[
+            Dict["up.model.Action", List[ParseResults]]
+        ],
         eff: ParseResults,
         assignments: Dict[str, "up.model.Object"] = {},
     ):
@@ -521,6 +526,7 @@ class PDDLReader:
                     assignments=assignments,
                 )
             elif len(eff) == 3 and op == "forall":
+                assert universal_assignments is not None
                 action_assignments = universal_assignments.setdefault(act, [])
                 action_assignments.append(eff)
             else:
@@ -880,7 +886,7 @@ class PDDLReader:
                                 problem,
                                 action,
                                 types_map,
-                                universal_assignments,
+                                None,
                                 eff[2],
                                 assignments=assignments,
                             )
@@ -889,7 +895,7 @@ class PDDLReader:
                                 problem,
                                 action,
                                 types_map,
-                                universal_assignments,
+                                None,
                                 eff[2],
                                 assignments=assignments,
                             )
