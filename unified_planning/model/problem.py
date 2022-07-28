@@ -542,6 +542,8 @@ class Problem(
         self._kind.set_problem_class("ACTION_BASED")
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
+        for object in self._objects:
+            self._update_problem_kind_type(object.type)
         for action in self._actions:
             self._update_problem_kind_action(action)
         if len(self._timed_effects) > 0:
