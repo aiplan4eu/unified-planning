@@ -67,24 +67,6 @@ class TestPDDLPlanner(TestCase):
             self.assertEqual(len(plan.actions[1].actual_parameters), 0)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
-    def test_robot(self):
-        problem = self.problems["robot"].problem
-        move = problem.action("move")
-
-        with OneshotPlanner(name="opt-pddl-planner") as planner:
-            self.assertNotEqual(planner, None)
-
-            final_report = planner.solve(problem)
-            plan = final_report.plan
-            self.assertEqual(
-                final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY
-            )
-            self.assertNotEqual(plan, None)
-            self.assertEqual(len(plan.actions), 1)
-            self.assertEqual(plan.actions[0].action, move)
-            self.assertEqual(len(plan.actions[0].actual_parameters), 2)
-
-    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_robot_decrease(self):
         problem = self.problems["robot_decrease"].problem
         move = problem.action("move")

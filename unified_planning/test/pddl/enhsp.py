@@ -69,7 +69,6 @@ class ENHSP(up.engines.PDDLPlanner):
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
-        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
