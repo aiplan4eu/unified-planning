@@ -548,49 +548,6 @@ class Problem(
         fluents_to_only_decrease: Set["up.model.fluent.Fluent"] = set()
         static_fluents: Set["up.model.fluent.Fluent"] = self.get_static_fluents()
 
-        # sf_positive_negative is a map from static_fluent to a tuple of 2 booleans, where the first one
-        # says if the static values are only positive and the second one says if every static value is only negative.
-        sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]] = {}
-        for f in self._fluents:
-            if f in static_fluents and (f.type.is_int_type() or f.type.is_real_type()):
-                # Calculate the number of expected grounded items for this fluent.
-                # This is done by multiplying all the domain size of the types in the fluent's signature
-                n_grounded_fluents = reduce(
-                    lambda x, y: x * y,
-                    (up.model.types.domain_size(self, p.type) for p in f.signature),
-                    1,
-                )
-                count = 0
-                only_positive, only_negative = True, True
-                for f_exp, v in self._initial_value.items():
-                    if f_exp.fluent() == f:
-                        count += 1
-                        only_positive = (
-                            only_positive
-                            and v.is_constant()
-                            and v.constant_value() >= 0
-                        )
-                        only_negative = (
-                            only_negative
-                            and v.is_constant()
-                            and v.constant_value() <= 0
-                        )
-                        # early termination condition
-                        if not only_positive and not only_negative:
-                            break
-                # Not every grounded fluent was initialized, check the default
-                if count < n_grounded_fluents:
-                    v = self._fluents_defaults[
-                        f
-                    ]  # KeyError here should not be possible
-                    only_positive = (
-                        only_positive and v.is_constant() and v.constant_value() >= 0
-                    )
-                    only_negative = (
-                        only_negative and v.is_constant() and v.constant_value() <= 0
-                    )
-                sf_positive_or_negative[f] = (only_positive, only_negative)
-
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
         simplifier = up.model.walkers.simplifier.Simplifier(self._env, self)
         linear_checker = up.model.walkers.linear_checker.LinearChecker(self)
@@ -605,9 +562,14 @@ class Problem(
                     fnode_to_only_increase,  # positive fluents in minimize can only be increased
                     fnode_to_only_decrease,  # negative fluents in minimize can only be decreased
                 ) = linear_checker.get_fluents(metric.expression)
-                fluents_to_only_increase = {e.fluent() for e in fnode_to_only_increase}
-                fluents_to_only_decrease = {e.fluent() for e in fnode_to_only_decrease}
-                if not is_linear:
+                if is_linear:
+                    fluents_to_only_increase = {
+                        e.fluent() for e in fnode_to_only_increase
+                    }
+                    fluents_to_only_decrease = {
+                        e.fluent() for e in fnode_to_only_decrease
+                    }
+                else:
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
                 self._kind.set_quality_metrics("FINAL_VALUE")
@@ -616,9 +578,14 @@ class Problem(
                     fnode_to_only_decrease,  # positive fluents in maximize can only be decreased
                     fnode_to_only_increase,  # negative fluents in maximize can only be increased
                 ) = linear_checker.get_fluents(metric.expression)
-                fluents_to_only_increase = {e.fluent() for e in fnode_to_only_increase}
-                fluents_to_only_decrease = {e.fluent() for e in fnode_to_only_decrease}
-                if not is_linear:
+                if is_linear:
+                    fluents_to_only_increase = {
+                        e.fluent() for e in fnode_to_only_increase
+                    }
+                    fluents_to_only_decrease = {
+                        e.fluent() for e in fnode_to_only_decrease
+                    }
+                else:
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
                 self._kind.set_quality_metrics("ACTIONS_COST")
@@ -638,7 +605,6 @@ class Problem(
                 fluents_to_only_increase,
                 fluents_to_only_decrease,
                 static_fluents,
-                sf_positive_or_negative,
                 simplifier,
                 linear_checker,
             )
@@ -652,7 +618,6 @@ class Problem(
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
                     static_fluents,
-                    sf_positive_or_negative,
                     simplifier,
                     linear_checker,
                 )
@@ -679,8 +644,6 @@ class Problem(
         e: "up.model.effect.Effect",
         fluents_to_only_increase: Set["up.model.fluent.Fluent"],
         fluents_to_only_decrease: Set["up.model.fluent.Fluent"],
-        static_fluents: Set["up.model.fluent.Fluent"],
-        sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
@@ -691,7 +654,8 @@ class Problem(
         if e.is_increase():
             self._kind.set_effects_kind("INCREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint
-            # on the "fluents_to_only_increase" or on "fluents_to_only_decrease", unset simple_numeric_planning
+            # on the "fluents_to_only_increase" or on "fluents_to_only_decrease",
+            # unset simple_numeric_planning
             if (  # value is a constant number
                 value.is_int_constant() or value.is_real_constant()
             ):
@@ -701,26 +665,13 @@ class Problem(
                     e.fluent in fluents_to_only_decrease and value.constant_value() > 0
                 ):
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            # if the value is a static fluent, we check that it does not
-            # violate the increase/decrease constraints
-            elif value.is_fluent_exp() and value.fluent() in static_fluents:
-                value_only_positive, value_only_negative = sf_positive_or_negative[
-                    value.fluent()
-                ]
-                if (
-                    e.fluent.fluent() in fluents_to_only_increase
-                    and not value_only_positive
-                ) or (
-                    e.fluent.fluent() in fluents_to_only_decrease
-                    and not value_only_negative
-                ):
-                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_decrease():
             self._kind.set_effects_kind("DECREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint
-            # on the "fluents_to_only_increase" or on "fluents_to_only_decrease", unset simple_numeric_planning
+            # on the "fluents_to_only_increase" or on "fluents_to_only_decrease",
+            # unset simple_numeric_planning
             if (  # value is a constant number
                 value.is_int_constant() or value.is_real_constant()
             ):
@@ -728,20 +679,6 @@ class Problem(
                     e.fluent in fluents_to_only_increase and value.constant_value() > 0
                 ) or (
                     e.fluent in fluents_to_only_decrease and value.constant_value() < 0
-                ):
-                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            # if the value is a static fluent, we check that it does not
-            # violate the increase/decrease constraints
-            elif value.is_fluent_exp() and value.fluent() in static_fluents:
-                value_only_positive, value_only_negative = sf_positive_or_negative[
-                    value.fluent()
-                ]
-                if (
-                    e.fluent.fluent() in fluents_to_only_increase
-                    and not value_only_negative
-                ) or (
-                    e.fluent.fluent() in fluents_to_only_decrease
-                    and not value_only_positive
                 ):
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
@@ -804,7 +741,6 @@ class Problem(
         fluents_to_only_increase: Set["up.model.fluent.Fluent"],
         fluents_to_only_decrease: Set["up.model.fluent.Fluent"],
         static_fluents: Set["up.model.fluent.Fluent"],
-        sf_positive_or_negative: Dict["up.model.fluent.Fluent", Tuple[bool, bool]],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
@@ -818,8 +754,6 @@ class Problem(
                     e,
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
-                    static_fluents,
-                    sf_positive_or_negative,
                     simplifier,
                     linear_checker,
                 )
@@ -855,8 +789,6 @@ class Problem(
                         e,
                         fluents_to_only_increase,
                         fluents_to_only_decrease,
-                        static_fluents,
-                        sf_positive_or_negative,
                         simplifier,
                         linear_checker,
                     )

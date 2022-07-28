@@ -37,20 +37,20 @@ class LinearChecker(DagWalker):
         env: Optional["up.environment.Environment"] = None,
     ):
         DagWalker.__init__(self)
-        if problem is not None and env is not None:
-            assert (
-                problem.env == env
-            ), "The given environemt is different from the given problem environment"
+        if problem is not None:
+            if env is not None:
+                assert (
+                    problem.env == env
+                ), "The given environemt is different from the given problem environment"
             self._static_fluents: Set[
                 "up.model.fluent.Fluent"
             ] = problem.get_static_fluents()
-            self._env = env
-        elif problem is not None:  # and env is None
-            self._static_fluents = problem.get_static_fluents()
             self._env = problem.env
+            self._simplifier = walkers.Simplifier(self._env, problem)
         else:
             self._static_fluents = set()
             self._env = get_env(env)
+            self._simplifier = self._env.simplifier
 
     def get_fluents(
         self, expression: "up.model.fnode.FNode"
@@ -59,7 +59,7 @@ class LinearChecker(DagWalker):
         Returns the tuple containing a flag saying if the expression is linear or not,
         the set of the fluent_expressions appearing with a positive sign in the expression
         and the set of the fluent_expressions appearing with a negative sign in the expression ."""
-        return self.walk(self._env.simplifier.simplify(expression))
+        return self.walk(self._simplifier.simplify(expression))
 
     @walkers.handles(
         set(OperatorKind)
@@ -100,24 +100,35 @@ class LinearChecker(DagWalker):
         is_linear = True
         arg_with_fluents_found = False  # We must check that at most 1 of the arguments contains fluent_expression
         positivity = True
+        positivity_unknown = False
         positive_fluents: Set["up.model.fnode.FNode"] = set()
         negative_fluents: Set["up.model.fnode.FNode"] = set()
-        for b, spf, snf in args:
+        tc = self._env.type_checker
+        for i, (b, spf, snf) in enumerate(args):
             is_linear = is_linear and b
-            if (
-                len(spf) > 0 or len(snf) > 0
-            ) and not arg_with_fluents_found:  # First arg that contains fluent_expressions
-                arg_with_fluents_found = True
-            elif (
-                len(spf) > 0 or len(snf) > 0
-            ) > 0 and arg_with_fluents_found:  # Second argument that contains fluent_expressions
-                is_linear = False
-            positive_fluents |= spf
-            negative_fluents |= snf
-        for a in expression.args:
-            if (a.is_int_constant() or a.is_real_constant()) and a.constant_value() < 0:
-                positivity = not positivity
-        if positivity:
+            if len(spf) > 0 or len(snf) > 0:
+                if (
+                    not arg_with_fluents_found
+                ):  # First arg that contains fluent_expressions
+                    arg_with_fluents_found = True
+                else:  # Second argument that contains fluent_expressions
+                    is_linear = False
+                positive_fluents |= spf
+                negative_fluents |= snf
+            else:
+                t = tc(expression.arg(i))
+                if t.lower_bound() > 0:
+                    pass
+                elif t.upper_bound() < 0:
+                    positivity = not positivity
+                else:
+                    positivity_unknown = True
+        if not is_linear:
+            return (is_linear, set(), set())
+        if positivity_unknown:
+            fluents = positive_fluents | negative_fluents
+            return (is_linear, fluents, fluents)
+        elif positivity:
             return (is_linear, positive_fluents, negative_fluents)
         else:
             return (is_linear, negative_fluents, positive_fluents)
@@ -140,6 +151,17 @@ class LinearChecker(DagWalker):
             denominator_positive_fluents,
             denominator_negative_fluents,
         ) = args[1]
+
+        # A division is linear only if both numerators and denominator as linear and the denominator does not have fluents
+        is_linear = (
+            numerator_is_linear
+            and denominator_is_linear
+            and len(denominator_positive_fluents) == 0
+            and len(denominator_negative_fluents) == 0
+        )
+        if not is_linear:
+            return (is_linear, set(), set())
+
         positive_fluents: Set["up.model.fnode.FNode"] = (
             numerator_positive_fluents | denominator_positive_fluents
         )
@@ -151,13 +173,6 @@ class LinearChecker(DagWalker):
             if (a.is_int_constant() or a.is_real_constant()) and a.constant_value() < 0:
                 positivity = not positivity
 
-        # A division is linear only if both numerators and denominator as linear and the denominator does not have fluents
-        is_linear = (
-            numerator_is_linear
-            and denominator_is_linear
-            and len(denominator_positive_fluents) == 0
-            and len(denominator_negative_fluents) == 0
-        )
         if positivity:
             return (is_linear, positive_fluents, negative_fluents)
         else:
@@ -184,7 +199,10 @@ class LinearChecker(DagWalker):
         is_linear = is_linear and b
         negative_fluents |= spf
         positive_fluents |= snf
-        return (is_linear, positive_fluents, negative_fluents)
+        if not is_linear:
+            return (is_linear, set(), set())
+        else:
+            return (is_linear, positive_fluents, negative_fluents)
 
     def walk_fluent_exp(
         self,
@@ -194,14 +212,7 @@ class LinearChecker(DagWalker):
         ],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         is_linear = True
-        positive_fluents: Set["up.model.fnode.FNode"] = set()
-        negative_fluents: Set["up.model.fnode.FNode"] = set()
-        # If the problem is not given or the fluent is not in the problem's static fluents,
-        # it must be added to the expression fluents
-        if expression.fluent() not in self._static_fluents:
-            positive_fluents.add(expression)
+        positive_fluents.add(expression)
         for b, spf, snf in args:
             is_linear = is_linear and b
-            positive_fluents |= spf
-            negative_fluents |= snf
-        return (is_linear, positive_fluents, negative_fluents)
+        return (is_linear, set(), set())
