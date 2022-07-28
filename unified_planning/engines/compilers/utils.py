@@ -259,6 +259,20 @@ def replace_action(
     try:
         replaced_action = map[action_instance.action]
     except KeyError:
+        for a in map.keys():
+            if a.name == action_instance.action.name:
+                key = a
+        # print(key)
+        # print(action_instance.action)
+        print(key == action_instance.action)
+        print(hash(key) == hash(action_instance.action))
+        print(key in map)
+        found = False
+        for a in map.keys():
+            if a == key:
+                found = True
+        print(found)
+        print(map[key])
         raise UPUsageError(
             "The Action of the given ActionInstance does not have a valid replacement."
         )

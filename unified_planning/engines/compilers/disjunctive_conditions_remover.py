@@ -96,6 +96,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         env = problem.env
 
         new_to_old: Dict[Action, Optional[Action]] = {}
+        new_fluents: List["up.model.Fluent"] = []
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
@@ -145,10 +146,15 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
 
+        # Meaningful action is the list of the actions that modify fluents that are not added
+        # just to remove the disjunction from goals
+        meaningful_actions: List["up.model.Action"] = new_problem.actions[:]
+
         self._remove_disjunctions_from_goals_adding_new_elements(
             dnf,
             new_problem,
             new_to_old,
+            new_fluents,
             problem.goals,
         )
 
@@ -157,9 +163,28 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 dnf,
                 new_problem,
                 new_to_old,
+                new_fluents,
                 gl,
                 t,
             )
+
+        # Every meaningful action must set to False every new fluent added.
+        # For the DurativeActions this must happen every time the action modifies something
+        em = env.expression_manager
+        # new_effects is the List of effects that must be added to every meaningful action
+        new_effects: List["up.model.Effect"] = [
+            up.model.Effect(em.FluentExp(f), em.FALSE(), em.TRUE()) for f in new_fluents
+        ]
+        for a in meaningful_actions:
+            if isinstance(a, InstantaneousAction):
+                for e in new_effects:
+                    a._add_effect_instance(e)
+            elif isinstance(a, DurativeAction):
+                for t in a.effects:
+                    for e in new_effects:
+                        a._add_effect_instance(t, e)
+            else:
+                raise NotImplementedError
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
@@ -170,6 +195,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         dnf: Dnf,
         new_problem: "up.model.Problem",
         new_to_old: Dict[Action, Optional[Action]],
+        new_fluents: List["up.model.Fluent"],
         goals: List["up.model.FNode"],
         timing: Optional["up.model.timing.TimeInterval"] = None,
     ):
@@ -189,6 +215,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_to_old[na] = None
                 new_problem.add_action(na)
             new_problem.add_fluent(fake_fluent, default_initial_value=False)
+            new_fluents.append(fake_fluent)
             if timing is None:
                 new_problem.add_goal(fake_fluent)
             else:
