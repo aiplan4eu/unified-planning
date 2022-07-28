@@ -15,7 +15,6 @@
 """This module defines the problem class."""
 
 
-from functools import reduce
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
@@ -617,7 +616,6 @@ class Problem(
                     effect,
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
-                    static_fluents,
                     simplifier,
                     linear_checker,
                 )

@@ -532,16 +532,12 @@ class TestProblem(TestCase):
         self.assertTrue(problem.kind.has_simple_numeric_planning())
 
         problem = self.problems["travel"].problem
-        self.assertTrue(problem.kind.has_simple_numeric_planning())
-
-        problem = self.problems["travel_with_consumptions"].problem
-        # False because the problem has a multiplication of 2 static fluents, fixed in the grounding
+        # False because the problem has a non-constant increase
         self.assertFalse(problem.kind.has_simple_numeric_planning())
 
-        # NOTE Code commented because we don't have a grounder that supports "FINAL_VALUE", but by "hacking it", this test works
-        # with Compiler(problem_kind=problem.kind, compilation_kind=CompilationKind.GROUNDING) as grounder:
-        #     grounded_problem = grounder.compile(problem, CompilationKind.GROUNDING).problem
-        #     self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
+        problem = self.problems["travel_with_consumptions"].problem
+        # False because the problem has a multiplication of 2 static fluents
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
 
         names_of_SNP_problems = [
             "counter_to_50",
@@ -549,7 +545,6 @@ class TestProblem(TestCase):
             "robot_locations_connected",
             "robot_locations_visited",
             "robot_with_durative_action",
-            "travel",
             "robot_fluent_of_user_type_with_int_id",
         ]
         for problem, _ in self.problems.values():
@@ -591,43 +586,6 @@ class TestProblem(TestCase):
                 problem, CompilationKind.GROUNDING
             ).problem
             self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
-
-    def test_simple_numeric_planning_ad_hoc_2(self):
-        problem = Problem("ad_hoc_2")
-        Location = UserType("Location")
-        is_at = Fluent("is_at", position=Location)
-        distance = Fluent("distance", IntType(), loc_1=Location, loc_2=Location)
-        total_distance = Fluent("total_distance", IntType())
-        move = InstantaneousAction("move", l_from=Location, l_to=Location)
-        l_from = move.parameter("l_from")
-        l_to = move.parameter("l_to")
-        move.add_precondition(is_at(l_from))
-        move.add_effect(is_at(l_from), False)
-        move.add_effect(is_at(l_to), True)
-        move.add_increase_effect(total_distance, distance(l_from, l_to))
-        l1 = Object("l1", Location)
-        l2 = Object("l2", Location)
-        problem.add_fluent(is_at, default_initial_value=False)
-        problem.add_fluent(distance, default_initial_value=-100)
-        problem.add_fluent(total_distance, default_initial_value=0)
-        problem.add_action(move)
-        problem.add_objects([l1, l2])
-        problem.add_quality_metric(
-            up.model.metrics.MaximizeExpressionOnFinalState(
-                5 * Minus(0, total_distance)
-            )
-        )
-
-        # False because the default for distance is negative, but the total_distance can only be increased (appears negated in a miximize)
-        self.assertFalse(problem.kind.has_simple_numeric_planning())
-
-        problem.set_initial_value(distance(l1, l2), 5)
-        problem.set_initial_value(distance(l2, l1), 5)
-        problem.set_initial_value(distance(l1, l1), 0)
-        problem.set_initial_value(distance(l2, l2), 0)
-
-        # True because the default for distance now does not matter, since we initialized every possible grounding of distance
-        self.assertTrue(problem.kind.has_simple_numeric_planning())
 
 
 if __name__ == "__main__":

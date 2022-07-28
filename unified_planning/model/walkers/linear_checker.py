@@ -19,6 +19,7 @@ import unified_planning.model.walkers as walkers
 from unified_planning.environment import Environment, get_env
 from unified_planning.model.walkers.dag import DagWalker
 from unified_planning.model.operators import OperatorKind
+from unified_planning.model.types import _IntType, _RealType
 from typing import List, Optional, Set, Tuple
 
 
@@ -116,10 +117,13 @@ class LinearChecker(DagWalker):
                 positive_fluents |= spf
                 negative_fluents |= snf
             else:
-                t = tc(expression.arg(i))
-                if t.lower_bound() > 0:
+                t = tc.get_type(expression.arg(i))
+                assert isinstance(t, _IntType) or isinstance(t, _RealType)
+                if t.lower_bound is None or t.upper_bound is None:
+                    positivity_unknown = True
+                elif t.lower_bound > 0:
                     pass
-                elif t.upper_bound() < 0:
+                elif t.upper_bound < 0:
                     positivity = not positivity
                 else:
                     positivity_unknown = True
@@ -212,7 +216,6 @@ class LinearChecker(DagWalker):
         ],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         is_linear = True
-        positive_fluents.add(expression)
         for b, spf, snf in args:
             is_linear = is_linear and b
-        return (is_linear, set(), set())
+        return (is_linear, {expression}, set())
