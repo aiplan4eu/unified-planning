@@ -58,6 +58,9 @@ from unified_planning.model.timing import (
 from unified_planning.model.types import Type, TypeManager
 from unified_planning.model.variable import Variable, FreeVarsOracle
 import unified_planning.model.metrics
+from unified_planning.model.ma_problem import MultiAgentProblem
+from unified_planning.model.agent import Agent
+from unified_planning.model.environment_ma import MAEnvironment
 
 __all__ = [
     "Action",
@@ -103,4 +106,7 @@ __all__ = [
     "TypeManager",
     "Variable",
     "FreeVarsOracle",
+    "MultiAgentProblem",
+    "Agent",
+    "MAEnvironment",
 ]
