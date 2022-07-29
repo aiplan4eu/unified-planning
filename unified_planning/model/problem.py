@@ -799,6 +799,8 @@ class Problem(
     ):
         for p in action.parameters:
             self._update_problem_kind_type(p.type)
+        if isinstance(action, up.model.action.SensingAction):
+            self._kind.set_problem_class("CONTINGENT")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self._update_problem_kind_condition(c, linear_checker)

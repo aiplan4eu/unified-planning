@@ -140,6 +140,6 @@ class ContingentProblem(Problem):
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         minimum time as possible."""
-        res = super().kind
-        res.set_problem_class("CONTINGENT")
-        return res
+        self._kind = super().kind
+        self._kind.set_problem_class("CONTINGENT")
+        return self._kind
