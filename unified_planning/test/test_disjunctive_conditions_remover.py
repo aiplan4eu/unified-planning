@@ -77,17 +77,18 @@ class TestDisjunctiveConditionsRemover(TestCase):
         for e in self.problems.values():
             p = e.problem
             kind = p.kind
-            if kind.has_disjunctive_conditions() and dcr.supports(kind):
+            if dcr.supports(kind):
                 # If the problem has quantifiers, try remove them or skip it
                 if kind.has_universal_conditions() or kind.has_existential_conditions():
                     if qr.supports(kind):
                         p = qr.compile(p, CompilationKind.QUANTIFIERS_REMOVING).problem
                     else:
                         continue
-                compiled_problem = dcr.compile(
-                    p, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
-                ).problem
-                self.assertFalse(compiled_problem.kind.has_disjunctive_conditions())
+                if p.kind.has_disjunctive_conditions():
+                    compiled_problem = dcr.compile(
+                        p, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+                    ).problem
+                    self.assertFalse(compiled_problem.kind.has_disjunctive_conditions())
 
     def test_ad_hoc_1(self):
         # mockup problem
