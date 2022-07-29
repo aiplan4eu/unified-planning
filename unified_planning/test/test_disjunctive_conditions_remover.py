@@ -28,7 +28,10 @@ from unified_planning.test import (
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
-from unified_planning.engines.compilers import DisjunctiveConditionsRemover
+from unified_planning.engines.compilers import (
+    DisjunctiveConditionsRemover,
+    QuantifiersRemover,
+)
 
 
 class TestDisjunctiveConditionsRemover(TestCase):
@@ -36,200 +39,219 @@ class TestDisjunctiveConditionsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    # @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
-    # @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(full_numeric_kind))
-    # def test_robot_locations_visited(self):
-    #     problem = self.problems["robot_locations_visited"].problem
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(full_numeric_kind))
+    def test_robot_locations_visited(self):
+        problem = self.problems["robot_locations_visited"].problem
 
-    #     with Compiler(
-    #         problem_kind=problem.kind,
-    #         compilation_kind=CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING,
-    #     ) as dnfr:
-    #         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
-    #         dnf_problem = res.problem
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING,
+        ) as dnfr:
+            res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+            dnf_problem = res.problem
 
-    #         res_2 = dnfr.compile(
-    #             problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
-    #         )
-    #         dnf_problem_2 = res_2.problem
+            res_2 = dnfr.compile(
+                problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+            )
+            dnf_problem_2 = res_2.problem
 
-    #         self.assertEqual(dnf_problem, dnf_problem_2)
+            self.assertEqual(dnf_problem, dnf_problem_2)
 
-    #     self.assertEqual(len(problem.actions), 2)
-    #     self.assertEqual(len(dnf_problem.actions), 3)
+        self.assertEqual(len(problem.actions), 2)
+        self.assertEqual(len(dnf_problem.actions), 3)
 
-    #     with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
-    #         self.assertNotEqual(planner, None)
-    #         dnf_plan = planner.solve(dnf_problem).plan
-    #         plan = dnf_plan.replace_action_instances(res.map_back_action_instance)
-    #         for ai in plan.actions:
-    #             a = ai.action
-    #             self.assertEqual(a, problem.action(a.name))
-    #         with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
-    #             self.assertTrue(pv.validate(problem, plan))
+        with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
+            self.assertNotEqual(planner, None)
+            dnf_plan = planner.solve(dnf_problem).plan
+            plan = dnf_plan.replace_action_instances(res.map_back_action_instance)
+            for ai in plan.actions:
+                a = ai.action
+                self.assertEqual(a, problem.action(a.name))
+            with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
+                self.assertTrue(pv.validate(problem, plan))
 
-    # def test_ad_hoc_1(self):
-    #     # mockup problem
-    #     a = Fluent("a")
-    #     b = Fluent("b")
-    #     c = Fluent("c")
-    #     d = Fluent("d")
-    #     act = InstantaneousAction("act")
-    #     # (a <-> (b -> c)) -> (a & d)
-    #     # In Dnf:
-    #     # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
-    #     cond = Implies(Iff(a, Implies(b, c)), And(a, d))
-    #     possible_conditions = [
-    #         {Not(a), Not(b)},
-    #         {Not(a), FluentExp(c)},
-    #         {FluentExp(b), Not(c), FluentExp(a)},
-    #         {FluentExp(a), FluentExp(d)},
-    #     ]
-    #     act.add_precondition(cond)
-    #     act.add_effect(a, TRUE())
-    #     problem = Problem("mockup")
-    #     problem.add_fluent(a)
-    #     problem.add_fluent(b)
-    #     problem.add_fluent(c)
-    #     problem.add_fluent(d)
-    #     problem.add_action(act)
-    #     problem.set_initial_value(a, True)
-    #     problem.set_initial_value(b, False)
-    #     problem.set_initial_value(c, True)
-    #     problem.set_initial_value(d, False)
-    #     problem.add_goal(a)
-    #     dnfr = DisjunctiveConditionsRemover()
-    #     res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
-    #     dnf_problem = res.problem
+    def test_all_problem_kind(self):
+        dcr = DisjunctiveConditionsRemover()
+        qr = QuantifiersRemover()
+        for e in self.problems.values():
+            p = e.problem
+            kind = p.kind
+            if kind.has_disjunctive_conditions() and dcr.supports(kind):
+                # If the problem has quantifiers, try remove them or skip it
+                if kind.has_universal_conditions() or kind.has_existential_conditions():
+                    if qr.supports(kind):
+                        p = qr.compile(p, CompilationKind.QUANTIFIERS_REMOVING).problem
+                    else:
+                        continue
+                compiled_problem = dcr.compile(
+                    p, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+                ).problem
+                self.assertFalse(compiled_problem.kind.has_disjunctive_conditions())
 
-    #     self.assertEqual(len(dnf_problem.actions), 4)
-    #     # Cycle over all actions. For every new action assume that the precondition is equivalent
-    #     # to one in the possible_preconditions and that no other action has the same precondition.
-    #     for i, new_action in enumerate(dnf_problem.actions):
-    #         self.assertEqual(new_action.effects, act.effects)
-    #         preconditions = set(new_action.preconditions)
-    #         self.assertIn(preconditions, possible_conditions)
-    #         for j, new_action_oth_acts in enumerate(dnf_problem.actions):
-    #             preconditions_oth_acts = set(new_action_oth_acts.preconditions)
-    #             if i != j:
-    #                 self.assertNotEqual(preconditions, preconditions_oth_acts)
+    def test_ad_hoc_1(self):
+        # mockup problem
+        a = Fluent("a")
+        b = Fluent("b")
+        c = Fluent("c")
+        d = Fluent("d")
+        act = InstantaneousAction("act")
+        # (a <-> (b -> c)) -> (a & d)
+        # In Dnf:
+        # (!a & !b) | (!a & c) | (a & b & !c) | (a & d)
+        cond = Implies(Iff(a, Implies(b, c)), And(a, d))
+        possible_conditions = [
+            {Not(a), Not(b)},
+            {Not(a), FluentExp(c)},
+            {FluentExp(b), Not(c), FluentExp(a)},
+            {FluentExp(a), FluentExp(d)},
+        ]
+        act.add_precondition(cond)
+        act.add_effect(a, TRUE(), cond)
+        problem = Problem("mockup")
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_fluent(d)
+        problem.add_action(act)
+        problem.set_initial_value(a, True)
+        problem.set_initial_value(b, False)
+        problem.set_initial_value(c, True)
+        problem.set_initial_value(d, False)
+        problem.add_goal(a)
+        dnfr = DisjunctiveConditionsRemover()
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        dnf_problem = res.problem
 
-    # def test_ad_hoc_2(self):
-    #     # mockup problem
-    #     a = Fluent("a")
-    #     act = InstantaneousAction("act")
-    #     cond = And(a, a)
-    #     act.add_precondition(cond)
-    #     act.add_effect(a, TRUE())
-    #     problem = Problem("mockup")
-    #     problem.add_fluent(a)
-    #     problem.add_action(act)
-    #     problem.set_initial_value(a, True)
-    #     problem.add_goal(a)
-    #     dnfr = DisjunctiveConditionsRemover()
-    #     res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
-    #     dnf_problem = res.problem
+        self.assertEqual(len(dnf_problem.actions), 4)
+        # Cycle over all actions. For every new action assume that the precondition is equivalent
+        # to one in the possible_preconditions and that no other action has the same precondition.
+        for i, new_action in enumerate(dnf_problem.actions):
+            preconditions = set(new_action.preconditions)
+            self.assertIn(preconditions, possible_conditions)
+            for j, new_action_oth_acts in enumerate(dnf_problem.actions):
+                preconditions_oth_acts = set(new_action_oth_acts.preconditions)
+                if i != j:
+                    self.assertNotEqual(preconditions, preconditions_oth_acts)
+            self.assertEqual(len(new_action.effects), 4)
+            self.assertEqual(len(new_action.conditional_effects), 4)
 
-    #     self.assertEqual(len(dnf_problem.actions), 1)
+    def test_ad_hoc_2(self):
+        # mockup problem
+        a = Fluent("a")
+        act = InstantaneousAction("act")
+        cond = And(a, a)
+        act.add_precondition(cond)
+        act.add_effect(a, TRUE())
+        problem = Problem("mockup")
+        problem.add_fluent(a)
+        problem.add_action(act)
+        problem.set_initial_value(a, True)
+        problem.add_goal(a)
+        dnfr = DisjunctiveConditionsRemover()
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        dnf_problem = res.problem
 
-    # @skipIfEngineNotAvailable("pyperplan")
-    # def test_ad_hoc_3(self):
-    #     # mockup problem
-    #     a = Fluent("a")
-    #     b = Fluent("b")
-    #     c = Fluent("c")
-    #     act_a = InstantaneousAction("act_a")
-    #     act_a.add_effect(a, TRUE())
-    #     act_b = InstantaneousAction("act_b")
-    #     act_b.add_effect(b, TRUE())
-    #     act_c = InstantaneousAction("act_c")
-    #     act_c.add_effect(c, TRUE())
-    #     problem = Problem("mockup")
-    #     problem.add_fluent(a)
-    #     problem.add_fluent(b)
-    #     problem.add_fluent(c)
-    #     problem.add_action(act_a)
-    #     problem.add_action(act_b)
-    #     problem.add_action(act_c)
-    #     problem.set_initial_value(a, False)
-    #     problem.set_initial_value(b, False)
-    #     problem.set_initial_value(c, False)
-    #     problem.add_goal(And(a, Or(b, c)))
-    #     dnfr = DisjunctiveConditionsRemover()
-    #     res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
-    #     dnf_problem = res.problem
+        self.assertEqual(len(dnf_problem.actions), 1)
 
-    #     self.assertEqual(len(dnf_problem.actions), 5)
-    #     self.assertEqual(len(dnf_problem.goals), 1)
-    #     self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
+    @skipIfEngineNotAvailable("pyperplan")
+    def test_ad_hoc_3(self):
+        # mockup problem
+        a = Fluent("a")
+        b = Fluent("b")
+        c = Fluent("c")
+        act_a = InstantaneousAction("act_a")
+        act_a.add_effect(a, TRUE())
+        act_b = InstantaneousAction("act_b")
+        act_b.add_effect(b, TRUE())
+        act_c = InstantaneousAction("act_c")
+        act_c.add_effect(c, TRUE())
+        problem = Problem("mockup")
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_action(act_a)
+        problem.add_action(act_b)
+        problem.add_action(act_c)
+        problem.set_initial_value(a, False)
+        problem.set_initial_value(b, False)
+        problem.set_initial_value(c, False)
+        problem.add_goal(And(a, Or(b, c)))
+        dnfr = DisjunctiveConditionsRemover()
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        dnf_problem = res.problem
 
-    #     with OneshotPlanner(name="pyperplan") as planner:
-    #         os_res = planner.solve(dnf_problem)
-    #         with PlanValidator(name="sequential_plan_validator") as validator:
-    #             valid_res = validator.validate(
-    #                 problem,
-    #                 os_res.plan.replace_action_instances(res.map_back_action_instance),
-    #             )
-    #             self.assertEqual(
-    #                 valid_res.status, up.engines.results.ValidationResultStatus.VALID
-    #             )
+        self.assertEqual(len(dnf_problem.actions), 5)
+        self.assertEqual(len(dnf_problem.goals), 1)
+        self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
 
-    # def test_temporal_mockup_1(self):
-    #     # temporal mockup
-    #     a = Fluent("a")
-    #     b = Fluent("b")
-    #     c = Fluent("c")
-    #     d = Fluent("d")
-    #     act = DurativeAction("act")
-    #     # !a => (b | ((c <-> d) & d))
-    #     # In Dnf:
-    #     # a | b | (c & d)
-    #     exp = Implies(Not(a), Or(b, And(Iff(c, d), d)))
-    #     act.add_condition(StartTiming(), exp)
-    #     act.add_condition(StartTiming(1), exp)
-    #     act.add_condition(ClosedTimeInterval(StartTiming(2), StartTiming(3)), exp)
-    #     act.add_condition(ClosedTimeInterval(StartTiming(4), StartTiming(5)), exp)
-    #     act.add_effect(StartTiming(6), a, TRUE())
+        with OneshotPlanner(name="pyperplan") as planner:
+            os_res = planner.solve(dnf_problem)
+            with PlanValidator(name="sequential_plan_validator") as validator:
+                valid_res = validator.validate(
+                    problem,
+                    os_res.plan.replace_action_instances(res.map_back_action_instance),
+                )
+                self.assertEqual(
+                    valid_res.status, up.engines.results.ValidationResultStatus.VALID
+                )
 
-    #     problem = Problem("temporal_mockup")
-    #     problem.add_fluent(a)
-    #     problem.add_fluent(b)
-    #     problem.add_fluent(c)
-    #     problem.add_fluent(d)
-    #     problem.add_action(act)
-    #     problem.set_initial_value(a, False)
-    #     problem.set_initial_value(b, False)
-    #     problem.set_initial_value(c, True)
-    #     problem.set_initial_value(d, False)
-    #     problem.add_goal(a)
-    #     dnfr = DisjunctiveConditionsRemover()
-    #     res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
-    #     dnf_problem = res.problem
-    #     self.assertEqual(len(dnf_problem.actions), 81)
+    def test_temporal_mockup_1(self):
+        # temporal mockup
+        a = Fluent("a")
+        b = Fluent("b")
+        c = Fluent("c")
+        d = Fluent("d")
+        act = DurativeAction("act")
+        # !a => (b | ((c <-> d) & d))
+        # In Dnf:
+        # a | b | (c & d)
+        exp = Implies(Not(a), Or(b, And(Iff(c, d), d)))
+        act.add_condition(StartTiming(), exp)
+        act.add_condition(StartTiming(1), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_effect(StartTiming(6), a, TRUE())
 
-    # def test_temporal_mockup_2(self):
-    #     # temporal mockup
-    #     a = Fluent("a")
-    #     b = Fluent("b")
-    #     act = DurativeAction("act")
-    #     exp = And(Not(a), b)
-    #     act.add_condition(StartTiming(), exp)
-    #     act.add_condition(StartTiming(1), exp)
-    #     act.add_condition(ClosedTimeInterval(StartTiming(2), StartTiming(3)), exp)
-    #     act.add_condition(ClosedTimeInterval(StartTiming(4), StartTiming(5)), exp)
-    #     act.add_effect(StartTiming(6), a, TRUE())
+        problem = Problem("temporal_mockup")
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_fluent(c)
+        problem.add_fluent(d)
+        problem.add_action(act)
+        problem.set_initial_value(a, False)
+        problem.set_initial_value(b, False)
+        problem.set_initial_value(c, True)
+        problem.set_initial_value(d, False)
+        problem.add_goal(a)
+        dnfr = DisjunctiveConditionsRemover()
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        dnf_problem = res.problem
+        self.assertEqual(len(dnf_problem.actions), 81)
 
-    #     problem = Problem("temporal_mockup")
-    #     problem.add_fluent(a)
-    #     problem.add_fluent(b)
-    #     problem.add_action(act)
-    #     problem.set_initial_value(a, False)
-    #     problem.set_initial_value(b, False)
-    #     problem.add_goal(a)
-    #     dnfr = DisjunctiveConditionsRemover()
-    #     res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
-    #     dnf_problem = res.problem
-    #     self.assertEqual(len(dnf_problem.actions), 1)
+    def test_temporal_mockup_2(self):
+        # temporal mockup
+        a = Fluent("a")
+        b = Fluent("b")
+        act = DurativeAction("act")
+        exp = And(Not(a), b)
+        act.add_condition(StartTiming(), exp)
+        act.add_condition(StartTiming(1), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(2), StartTiming(3)), exp)
+        act.add_condition(ClosedTimeInterval(StartTiming(4), StartTiming(5)), exp)
+        act.add_effect(StartTiming(6), a, TRUE())
+
+        problem = Problem("temporal_mockup")
+        problem.add_fluent(a)
+        problem.add_fluent(b)
+        problem.add_action(act)
+        problem.set_initial_value(a, False)
+        problem.set_initial_value(b, False)
+        problem.add_goal(a)
+        dnfr = DisjunctiveConditionsRemover()
+        res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        dnf_problem = res.problem
+        self.assertEqual(len(dnf_problem.actions), 1)
 
     @skipIfEngineNotAvailable("tamer")
     def test_temporal_mockup_3(self):
@@ -278,10 +300,6 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         with OneshotPlanner(name="tamer") as planner:
             os_res = planner.solve(dnf_problem)
-            # print(dnf_problem)
-            # print(os_res.plan)
-            # print("--------")
-            # print(os_res.plan.replace_action_instances(res.map_back_action_instance))
             with PlanValidator(name="tamer") as validator:
                 valid_res = validator.validate(
                     problem,
