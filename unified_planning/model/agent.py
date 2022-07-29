@@ -49,14 +49,10 @@ class Agent(
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
         self._env = unified_planning.environment.get_env(env)
-        FluentsSetMixin.__init__(self, self.env, self.has_name, initial_defaults) #verificare qui
+        FluentsSetMixin.__init__(self, self.env, self.has_name, initial_defaults)
         ActionsSetMixin.__init__(self, self.env, self._add_user_type_method, self.has_name)
         self._name: str = name
         self._ma_problem = ma_problem
-        self._goals: List["up.model.fnode.FNode"] = []
-        self._initial_value: Dict[
-            "unified_planning.model.fnode.FNode", "unified_planning.model.fnode.FNode"
-        ] = {}
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
