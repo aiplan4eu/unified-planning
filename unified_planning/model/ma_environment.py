@@ -38,7 +38,7 @@ class MAEnvironment(
 
     def __init__(
         self,
-        ma_problem: "unified_planning.model.MultiAgentProblem",
+        ma_problem: "up.model.MultiAgentProblem",
     ):
         self._ma_problem = ma_problem
         self._env = up.environment.get_env(self._ma_problem.env)

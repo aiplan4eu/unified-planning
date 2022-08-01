@@ -52,14 +52,14 @@ class AgentsSetMixin:
         return self._agents
 
     def agent(self, name: str) -> "Agent":
-        """Returns the agent with the given ID."""
+        """Returns the agent with the given name."""
         for agent in self._agents:
             if agent._name == name:
                 return agent
         raise UPValueError(f"Agent {name} is not defined!")
 
     def has_agent(self, name: str) -> bool:
-        """Returns True iff the agent 'ID' is defined."""
+        """Returns True iff the agent 'name' is defined."""
         for agent in self._agents:
             print(agent._name)
             if agent._name == name:

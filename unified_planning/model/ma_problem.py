@@ -160,7 +160,7 @@ class MultiAgentProblem(
         return self._env_ma
 
     @property
-    def get_ma_environment(self) -> ["up.model.MAEnvironment"]:
+    def get_ma_environment(self) -> "up.model.MAEnvironment":
         """Get a MA-environment."""
         return self._env_ma
 
@@ -179,7 +179,7 @@ class MultiAgentProblem(
     ):
         """Sets the MA-environment initial value for the given fluent."""
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
         self._env_initial_value[fluent_exp] = value_exp
 
@@ -287,7 +287,7 @@ class MultiAgentProblem(
         """Sets the initial value for the given agent."""
         initial_value = {}
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
+        if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
         initial_value[fluent_exp] = value_exp
 
@@ -295,7 +295,6 @@ class MultiAgentProblem(
             self._agent_initial_value.setdefault(agent, [])
             self._agent_initial_value[agent].append(initial_value)
         else:
-            print(self.agents)
             raise UPValueError(f"Agent {agent._name} is not defined!")
 
     def set_agent_initial_values(
