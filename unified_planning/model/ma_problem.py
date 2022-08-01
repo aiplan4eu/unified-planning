@@ -47,13 +47,16 @@ class MultiAgentProblem(
         self,
         name: str = None,
         env: "up.environment.Environment" = None,
+        *,
+        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {}
     ):
         AbstractProblem.__init__(self, name, env)
         UserTypesSetMixin.__init__(self, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         AgentsSetMixin.__init__(self, self.env, self.has_name)
 
-        self._env_ma: "up.model.environment_ma.MAEnvironment" = up.model.environment_ma.MAEnvironment()
+        self._initial_defaults = initial_defaults
+        self._env_ma: "up.model.MAEnvironment" = up.model.MAEnvironment(self)
         self._env_initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._agent_goals: Dict["up.model.agent.Agent", List["up.model.fnode.FNode"]] = {}
         self._agent_initial_value: Dict["up.model.agent.Agent", List[Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]]] = {}
@@ -151,13 +154,13 @@ class MultiAgentProblem(
             or self.has_agent(name)
         )
 
-    def add_environment(self, env_ma) -> Union["up.model.environment_ma.MAEnvironment"]:
+    def set_ma_environment(self, env_ma) -> Union["up.model.MAEnvironment"]:
         """Add a MAenvironment."""
         self._env_ma = env_ma
         return self._env_ma
 
     @property
-    def get_ma_environment(self) -> Union["up.model.environment_ma.MAEnvironment"]:
+    def get_ma_environment(self) -> ["up.model.MAEnvironment"]:
         """Get a MA-environment."""
         return self._env_ma
 

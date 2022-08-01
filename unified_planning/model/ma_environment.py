@@ -15,7 +15,6 @@
 
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
-from typing import List, OrderedDict, Optional, Union
 import unified_planning.model.operators as op
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
@@ -35,18 +34,30 @@ from unified_planning.model.mixins import (
 class MAEnvironment(
     FluentsSetMixin,
 ):
-    """Represents a Environment_ma."""
+    """Represents a MAEnvironment."""
 
     def __init__(
         self,
-        env: "up.environment.Environment" = None,
-        *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        ma_problem: "unified_planning.model.MultiAgentProblem",
     ):
-        self._env = get_env(env)
-        FluentsSetMixin.__init__(self, self.env, self.has_name, initial_defaults)
+        self._ma_problem = ma_problem
+        self._env = up.environment.get_env(self._ma_problem.env)
+        FluentsSetMixin.__init__(self, self.env, self._ma_problem._add_user_type_method, self.has_name, self._ma_problem._initial_defaults)
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
-        return (self.has_fluent(name))
+        return (self.has_fluent(name) or self._ma_problem.has_name(name))
 
+    @property
+    def environment(self) -> "Environment":
+        """Returns the MAEnvironment environment."""
+        return self._env
+
+    def __repr__(self) -> str:
+        s = []
+        s.append(f"MA-Environment\n\n")
+        s.append("fluents = [\n")
+        for f in self._fluents:
+            s.append(f" {str(f)}\n")
+        s.append("]\n\n")
+        return "".join(s)

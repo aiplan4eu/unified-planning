@@ -60,7 +60,7 @@ from unified_planning.model.variable import Variable, FreeVarsOracle
 import unified_planning.model.metrics
 from unified_planning.model.ma_problem import MultiAgentProblem
 from unified_planning.model.agent import Agent
-from unified_planning.model.environment_ma import MAEnvironment
+from unified_planning.model.ma_environment import MAEnvironment
 
 __all__ = [
     "Action",

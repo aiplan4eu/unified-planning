@@ -13,7 +13,8 @@
 # limitations under the License.
 
 
-import unified_planning
+import unified_planning as up
+from unified_planning.environment import get_env, Environment
 from unified_planning.shortcuts import *
 import unified_planning.model.operators as op
 from unified_planning.exceptions import (
@@ -43,19 +44,51 @@ class Agent(
     def __init__(
         self,
         name: str,
-        env: "unified_planning.environment.Environment" = None,
-        ma_problem: "unified_planning.model.MultiAgentProblem" = None,
-        *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        ma_problem: "unified_planning.model.MultiAgentProblem",
     ):
-        self._env = unified_planning.environment.get_env(env)
-        FluentsSetMixin.__init__(self, self.env, self.has_name, initial_defaults)
-        ActionsSetMixin.__init__(self, self.env, self._add_user_type_method, self.has_name)
         self._name: str = name
         self._ma_problem = ma_problem
+        self._env = up.environment.get_env(self._ma_problem.env)
+        FluentsSetMixin.__init__(self, self.env, self._ma_problem._add_user_type_method, self.has_name, self._ma_problem._initial_defaults)
+        ActionsSetMixin.__init__(self, self.env, self._ma_problem._add_user_type_method, self.has_name)
+
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
-        return (self.has_action(name) or self.has_fluent(name))
+        return (self.has_action(name) or self.has_fluent(name) or self._ma_problem.has_name(name))
 
+    @property
+    def name(self) -> str:
+        """Returns the Agent name."""
+        return self._name
 
+    @property
+    def environment(self) -> "Environment":
+        """Returns the Agent environment."""
+        return self._env
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, Agent):
+            return (
+                self._name == oth._name
+                and self._ma_problem == oth._ma_problem
+                and self._env == oth._env
+            )
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash(self._name)
+
+    def __repr__(self) -> str:
+        s = []
+        s.append(f"Agent name = {str(self._name)}\n\n")
+        s.append("fluents = [\n")
+        for f in self._fluents:
+            s.append(f" {str(f)}\n")
+        s.append("]\n\n")
+        s.append("actions = [\n")
+        for a in self._actions:
+            s.append(f" {str(a)}\n")
+        s.append("]\n\n")
+        return "".join(s)
