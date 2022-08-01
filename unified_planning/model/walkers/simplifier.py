@@ -24,7 +24,11 @@ import unified_planning.model.operators as op
 
 
 class Simplifier(walkers.dag.DagWalker):
-    """Performs basic simplifications of the input expression."""
+    """Performs basic simplifications of the input expression.
+
+    Important NOTE:
+    After the initialization, the problem given as input can not be modified
+    or the Simplifier behaviour is undefined."""
 
     def __init__(
         self,

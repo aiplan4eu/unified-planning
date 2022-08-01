@@ -281,10 +281,12 @@ class InstantaneousAction(Action):
             condition_exp,
         ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Increase effects can be created only on numeric types!")
         self._add_effect_instance(
             up.model.effect.Effect(
                 fluent_exp,
@@ -307,10 +309,12 @@ class InstantaneousAction(Action):
             condition_exp,
         ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
             up.model.effect.Effect(
                 fluent_exp,
@@ -699,10 +703,12 @@ class DurativeAction(Action):
             condition_exp,
         ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Increase effects can be created only on numeric types!")
         self._add_effect_instance(
             timing,
             up.model.effect.Effect(
@@ -727,10 +733,12 @@ class DurativeAction(Action):
             condition_exp,
         ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
             timing,
             up.model.effect.Effect(

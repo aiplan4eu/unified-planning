@@ -886,4 +886,66 @@ def get_example_problems():
     robot_static_fluents_duration = Example(problem=problem, plan=plan)
     problems["robot_with_static_fluents_duration"] = robot_static_fluents_duration
 
+    # travel
+    problem = Problem("travel")
+
+    Location = UserType("Location")
+
+    is_at = Fluent("is_at", BoolType(), position=Location)
+    is_connected = Fluent("is_connected", BoolType(), l_from=Location, l_to=Location)
+    travel_time = Fluent("travel_time", IntType(0, 500), l_from=Location, l_to=Location)
+    total_travel_time = Fluent("total_travel_time", IntType())
+
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_fluent(travel_time, default_initial_value=500)
+    problem.add_fluent(total_travel_time, default_initial_value=0)
+
+    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_precondition(is_at(l_from))
+    move.add_precondition(is_connected(l_from, l_to))
+    move.add_effect(is_at(l_from), False)
+    move.add_effect(is_at(l_to), True)
+    move.add_increase_effect(total_travel_time, travel_time(l_from, l_to))
+    problem.add_action(move)
+
+    problem.add_quality_metric(
+        up.model.metrics.MinimizeExpressionOnFinalState(total_travel_time())
+    )
+
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    l4 = Object("l4", Location)
+    l5 = Object("l5", Location)
+    problem.add_objects([l1, l2, l3, l4, l5])
+
+    problem.set_initial_value(is_at(l1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l1, l3), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.set_initial_value(is_connected(l3, l5), True)
+    problem.set_initial_value(travel_time(l1, l2), 60)
+    problem.set_initial_value(travel_time(l2, l3), 70)
+    problem.set_initial_value(travel_time(l1, l3), 100)
+    problem.set_initial_value(travel_time(l3, l4), 100)
+    problem.set_initial_value(travel_time(l4, l5), 99)
+    problem.set_initial_value(travel_time(l3, l5), 200)
+
+    problem.add_goal(is_at(l5))
+
+    plan = up.plans.SequentialPlan(
+        [
+            up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+            up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
+            up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
+        ]
+    )
+    travel = Example(problem=problem, plan=plan)
+    problems["travel"] = travel
+
     return problems
