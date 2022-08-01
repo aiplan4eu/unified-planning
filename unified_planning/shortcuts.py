@@ -434,6 +434,24 @@ def OneshotPlanner(
     )
 
 
+def AnytimePlanner(
+    *,
+    name: Optional[str] = None,
+    params: Dict[str, str] = None,
+    problem_kind: ProblemKind = ProblemKind()
+) -> Engine:
+    """
+    Returns a anytime planner. There are two ways to call this method:
+    - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
+      e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
+    - using 'problem_kind'.
+      e.g. AnytimePlanner(problem_kind=problem.kind)
+    """
+    return get_env().factory.AnytimePlanner(
+        name=name, params=params, problem_kind=problem_kind
+    )
+
+
 def PlanValidator(
     *,
     name: Optional[str] = None,

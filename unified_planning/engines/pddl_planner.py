@@ -159,9 +159,6 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        callback: Optional[
-            Callable[["up.engines.results.PlanGenerationResult"], None]
-        ] = None,
         heuristic: Optional[
             Callable[["up.model.state.ROState"], Optional[float]]
         ] = None,

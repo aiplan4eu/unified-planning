@@ -24,6 +24,7 @@ class EngineMeta(type):
         obj = type.__new__(cls, name, bases, dct)
         for om in [
             "oneshot_planner",
+            "anytime_planner",
             "plan_validator",
             "compiler",
             "simulator",

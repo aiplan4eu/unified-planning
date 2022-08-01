@@ -27,7 +27,7 @@ from unified_planning.engines.results import (
     ValidationResult,
     PlanGenerationResult,
 )
-from typing import IO, Callable, Dict, List, Optional, Tuple, Type, cast
+from typing import IO, Dict, List, Optional, Tuple, Type, cast
 from fractions import Fraction
 from multiprocessing import Process, Queue
 
@@ -124,9 +124,6 @@ class Parallel(
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        callback: Optional[
-            Callable[["up.engines.results.PlanGenerationResult"], None]
-        ] = None,
         heuristic: Optional[
             Callable[["up.model.state.ROState"], Optional[float]]
         ] = None,
@@ -136,16 +133,12 @@ class Parallel(
         for engine_name, _ in self.engines:
             engine = self._factory.engine(engine_name)
             assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
-        if callback is not None:
-            warnings.warn(
-                "Parallel engines do not support the callback system.", UserWarning
-            )
         if output_stream is not None:
             warnings.warn(
                 "Parallel engines do not support the output stream system.", UserWarning
             )
 
-        final_reports = self._run_parallel("solve", problem, None, timeout, None)
+        final_reports = self._run_parallel("solve", problem, timeout, None)
 
         result_order: List[PlanGenerationResultStatus] = [
             PlanGenerationResultStatus.SOLVED_OPTIMALLY,  # List containing the results in the order we prefer them

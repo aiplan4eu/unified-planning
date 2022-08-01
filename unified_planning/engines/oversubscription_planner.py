@@ -26,7 +26,7 @@ from unified_planning.engines.results import (
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.utils import powerset
-from typing import Type, IO, Callable, Optional, Union, List, Tuple
+from typing import Type, IO, Optional, Union, List, Tuple
 from fractions import Fraction
 
 
@@ -95,7 +95,6 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        callback: Optional[Callable[["PlanGenerationResult"], None]] = None,
         heuristic: Optional[
             Callable[["up.model.state.ROState"], Optional[float]]
         ] = None,
@@ -128,7 +127,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                 new_problem.add_goal(g)
             start = time.time()
             res = self.engine.solve(
-                new_problem, callback, heuristic, timeout, output_stream
+                new_problem, heuristic, timeout, output_stream
             )
             if timeout is not None:
                 timeout -= min(timeout, time.time() - start)

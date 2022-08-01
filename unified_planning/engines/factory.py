@@ -606,6 +606,22 @@ class Factory:
             "oneshot_planner", name, names, params, problem_kind, optimality_guarantee
         )
 
+    def AnytimePlanner(
+        self,
+        *,
+        name: Optional[str] = None,
+        params: Dict[str, str] = None,
+        problem_kind: ProblemKind = ProblemKind(),
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a anytime planner. There are two ways to call this method:
+        - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
+          e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
+        - using 'problem_kind'.
+          e.g. AnytimePlanner(problem_kind=problem.kind)
+        """
+        return self._get_engine("anytime_planner", name, None, params, problem_kind)
+
     def PlanValidator(
         self,
         *,

@@ -46,9 +46,6 @@ class OneshotPlannerMixin:
     def solve(
         self,
         problem: "up.model.AbstractProblem",
-        callback: Optional[
-            Callable[["up.engines.results.PlanGenerationResult"], None]
-        ] = None,
         heuristic: Optional[
             Callable[["up.model.state.ROState"], Optional[float]]
         ] = None,
@@ -60,7 +57,6 @@ class OneshotPlannerMixin:
         which contains information about the solution to the problem given by the planner.
 
         :param problem: is the `AbstractProblem` to solve.
-        :param callback: is a function used by the planner to give reports to the user during the problem resolution, defaults to `None`.
         :param heuristic: is a function that given a state returns its heuristic value or `None` if the state is a dead-end, defaults to `None`.
         :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to `None`.
         :param output_stream: is a stream of strings where the planner writes his
@@ -68,8 +64,8 @@ class OneshotPlannerMixin:
         :return: the `PlanGenerationResult` created by the planner; a data structure containing the :class:`~unified_planning.plans.Plan` found
             and some additional information about it.
 
-        The only required parameter is `problem` but the planner should warn the user if `callback`,
-        `heuristic`, `timeout` or `output_stream` are not `None` and the planner ignores them.
+        The only required parameter is `problem` but the planner should warn the user if `heuristic`,
+        `timeout` or `output_stream` are not `None` and the planner ignores them.
         """
         assert isinstance(self, up.engines.engine.Engine)
         problem_kind = problem.kind
@@ -82,14 +78,11 @@ class OneshotPlannerMixin:
         if not problem_kind.has_quality_metrics() and self.optimality_required:
             msg = f"The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
-        return self._solve(problem, callback, heuristic, timeout, output_stream)
+        return self._solve(problem, heuristic, timeout, output_stream)
 
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        callback: Optional[
-            Callable[["up.engines.results.PlanGenerationResult"], None]
-        ] = None,
         heuristic: Optional[
             Callable[["up.model.state.ROState"], Optional[float]]
         ] = None,
