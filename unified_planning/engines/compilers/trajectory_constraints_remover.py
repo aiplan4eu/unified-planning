@@ -92,19 +92,19 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         A = grounding_result.problem.actions
         I_g = grounding_result.problem.initial_values
         I = self._ground_initial_state(A, I_g)
-        C = self._simplifier.simplify(And(problem.trajectory_constraints))
-        C = C.args if C.is_and() else [C]
+        C_temp = self._simplifier.simplify(And(problem.trajectory_constraints))
+        C = C_temp.args if C_temp.is_and() else [C_temp]
         C = self._remove_quantifire(C)
         relevancy_dict = self._build_relevancy_dict(C)
         A_prime = []
-        G_prime = []
+        G_temp = []
         I_prime, F_prime = self._get_monitoring_atoms(C, I)
         for c in self._LTC(C):
             monitoring_atom = FluentExp(Fluent(f'{c._monitoring_atom_predicate}', BoolType()))
-            G_prime.append(monitoring_atom)
-        G_prime = And(G_prime)
+            G_temp.append(monitoring_atom)
+        G_prime = And(G_temp)
         for a in A:
-            E = []
+            E = list() # type: ignore
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
                 if c.is_always():
@@ -146,7 +146,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             elif c.is_sometime():
                 new_C.append(Sometime(self._get_constraints_condition(c.args[0])))
             elif c.is_at_most_once():
-                new_C.append(Sometime(self._get_constraints_condition(c.args[0])))
+                new_C.append(At_Most_Once(self._get_constraints_condition(c.args[0])))
             elif c.is_sometime_before():
                 new_C.append(Sometime_Before(
                              self._get_constraints_condition(c.args[0]),
@@ -304,8 +304,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for constr in C:
             if not constr.is_always():
                 type, init_state_value = self._evaluate_constraint(constr, I)
-                monitoring_atom = FluentExp(Fluent(f'{type}{SEPARATOR}{monitoring_atoms_counter}', BoolType()))
-                monitoring_atoms.append(monitoring_atom)
+                fluent = Fluent(f'{type}{SEPARATOR}{monitoring_atoms_counter}', BoolType())
+                monitoring_atoms.append(fluent)
+                monitoring_atom = FluentExp(fluent)
                 constr.set_monitoring_atom_predicate(monitoring_atom)
                 if init_state_value:
                     initial_state_prime.append(monitoring_atom)
