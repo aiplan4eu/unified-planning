@@ -247,7 +247,7 @@ class PDDLGrammar:
 
 class PDDLReader:
     """
-    Parse a PDDL problem and generate a unified_planning problem.
+    Parse a PDDL problem and generate a unified_planning.model.Problem.
     """
 
     def __init__(self, env: typing.Optional[Environment] = None):
@@ -656,6 +656,16 @@ class PDDLReader:
     def parse_problem(
         self, domain_filename: str, problem_filename: typing.Optional[str] = None
     ) -> "up.model.Problem":
+        """
+        Takes in input a filename containing the PDDL domain and optionally a filename
+        containing the PDDL problem and returns the parsed up.model.Problem.
+
+        Note that if the "problem_filename" is None, an incomplete Problem will be returned.
+
+        :param domain_filename: The path to the file containing the PDDL domain.
+        :param problem_filename: Optionally the path to the file containing the PDDl problem.
+        :return: The up.model.Problem parsed from the given pddl domain + problem.
+        """
         domain_res = self._pp_domain.parseFile(domain_filename)
 
         problem: up.model.Problem
