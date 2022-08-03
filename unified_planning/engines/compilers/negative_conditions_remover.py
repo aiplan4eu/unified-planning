@@ -80,6 +80,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
 
     @property
     def name(self):
@@ -120,6 +121,14 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: CompilationKind
+    ) -> ProblemKind:
+        new_kind = ProblemKind(problem_kind.features)
+        new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")
+        return new_kind
 
     def _compile(
         self,

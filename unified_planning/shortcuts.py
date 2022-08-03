@@ -215,23 +215,39 @@ def PlanValidator(
 def Compiler(
     *,
     name: Optional[str] = None,
+    names: Optional[List[str]] = None,
     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     compilation_kind: Optional[Union["up.engines.CompilationKind", str]] = None,
+    compilation_kinds: Optional[List[Union["up.engines.CompilationKind", str]]] = None
 ) -> "up.engines.engine.Engine":
     """
-    Returns a Compiler. There are two ways to call this method:
-    - using 'name' (the name of a specific grounder) and 'params'
-        (grounder dependent options).
-        e.g. Compiler(name='tamer', params={'opt': 'val'})
+    Returns a Compiler or a pipeline of Compilers.
+
+    To get a Compiler there are two ways to call this method:
+    - using 'name' (the name of a specific compiler) and 'params'
+      (compiler dependent options).
+      e.g. Compiler(name='tamer', params={'opt': 'val'})
     - using 'problem_kind' and 'compilation_kind' parameters.
-        e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDER)
+      e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)
+
+    To get a pipeline of Compilers there are two ways to call this method:
+    - using 'names' (the names of the specific compilers), 'params'
+      (compilers dependent options) and 'compilation_kinds'.
+      e.g. Compiler(names=['up_quantifiers_remover', 'up_grounder'],
+                    params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
+                    compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
+    - using 'problem_kind' and 'compilation_kinds' parameters.
+      e.g. Compiler(problem_kind=problem.kind,
+                    compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
     """
     return get_env().factory.Compiler(
         name=name,
+        names=names,
         params=params,
         problem_kind=problem_kind,
         compilation_kind=compilation_kind,
+        compilation_kinds=compilation_kinds,
     )
 
 

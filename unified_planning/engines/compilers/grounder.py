@@ -40,6 +40,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
     ):
         engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.GROUNDING)
         self._grounding_actions_map = grounding_actions_map
 
     @property
@@ -82,6 +83,12 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.GROUNDING
+
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: CompilationKind
+    ) -> ProblemKind:
+        return ProblemKind(problem_kind.features)
 
     def _compile(
         self,

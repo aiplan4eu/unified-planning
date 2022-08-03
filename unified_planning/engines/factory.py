@@ -344,63 +344,55 @@ class Factory:
         for name in self._preference_list:
             EngineClass = self._engines[name]
             if getattr(EngineClass, "is_" + engine_kind)():
-                assert (
-                    optimality_guarantee is None
-                    or issubclass(EngineClass, OneshotPlannerMixin)
-                    or issubclass(EngineClass, ReplannerMixin)
-                )
-                assert compilation_kind is None or issubclass(
-                    EngineClass, CompilerMixin
-                )
-                assert plan_kind is None or issubclass(EngineClass, PlanValidatorMixin)
-                if (
-                    EngineClass.supports(problem_kind)
-                    and (
-                        optimality_guarantee is None
-                        or EngineClass.satisfies(optimality_guarantee)  # type: ignore
+                if engine_kind == "oneshot_planner" or engine_kind == "replanner":
+                    assert (
+                        issubclass(EngineClass, OneshotPlannerMixin)
+                        or issubclass(EngineClass, ReplannerMixin
                     )
-                    and (
-                        compilation_kind is None
-                        or cast(CompilerMixin, EngineClass).supports_compilation(
-                            compilation_kind
-                        )
-                    )
-                    and (
-                        plan_kind is None
-                        or cast(PlanValidatorMixin, EngineClass).supports_plan(
-                            plan_kind
-                        )
-                    )
-                ):
+                    assert compilation_kind is None
+                    assert plan_kind is None
+                    if optimality_guarantee is not None and not EngineClass.satisfies(
+                        optimality_guarantee
+                    ):
+                        continue
+                elif engine_kind == "plan_validator":
+                    assert issubclass(EngineClass, PlanValidatorMixin)
+                    assert optimality_guarantee is None
+                    assert compilation_kind is None
+                    if plan_kind is not None and not EngineClass.supports_plan(
+                        plan_kind
+                    ):
+                        continue
+                elif engine_kind == "compiler":
+                    assert issubclass(EngineClass, CompilerMixin)
+                    assert optimality_guarantee is None
+                    assert plan_kind is None
+                    if (
+                        compilation_kind is not None
+                        and not EngineClass.supports_compilation(compilation_kind)
+                    ):
+                        continue
+                else:
+                    assert optimality_guarantee is None
+                    assert compilation_kind is None
+                    assert plan_kind is None
+                if EngineClass.supports(problem_kind):
                     return EngineClass
-                elif (
-                    compilation_kind is None
-                    or cast(CompilerMixin, EngineClass).supports_compilation(
-                        compilation_kind
-                    )
-                ) and (
-                    plan_kind is None
-                    or cast(PlanValidatorMixin, EngineClass).supports_plan(plan_kind)
-                ):
+                else:
                     x = [name] + [
                         str(EngineClass.supports(ProblemKind({f})))
                         for f in problem_features
                     ]
-                    if optimality_guarantee is not None:
-                        assert issubclass(
-                            EngineClass, OneshotPlannerMixin
-                        ) or issubclass(EngineClass, ReplannerMixin)
-                        x.append(str(EngineClass.satisfies(optimality_guarantee)))
                     planners_features.append(x)
         if len(planners_features) > 0:
             header = ["Engine"] + problem_features
-            if optimality_guarantee is not None:
-                header.append("OPTIMALITY_GUARANTEE")
             msg = f"No available engine supports all the problem features:\n{format_table(header, planners_features)}"
         elif compilation_kind is not None:
             msg = f"No available engine supports {compilation_kind}"
         elif plan_kind is not None:
             msg = f"No available engine supports {plan_kind}"
+        elif optimality_guarantee is not None:
+            msg = f"No available engine supports {optimality_guarantee}"
         else:
             msg = f"No available {engine_kind} engine"
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
@@ -463,10 +455,11 @@ class Factory:
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
+        compilation_kinds: Optional[List["CompilationKind"]] = None,
         plan_kind: Optional["PlanKind"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
     ) -> "up.engines.engine.Engine":
-        if names is not None:
+        if names is not None and engine_kind != "compiler":
             assert name is None
             assert problem is None, "Parallel simulation is not supported"
             if params is None:
@@ -481,7 +474,32 @@ class Factory:
             self._print_credits(all_credits)
             p_engine = up.engines.parallel.Parallel(self, engines)
             return p_engine
+        elif engine_kind == "compiler" and compilation_kinds is not None:
+            assert name is None
+            assert names is not None or problem_kind is not None
+            if names is None:
+                names = [None for i in range(len(compilation_kinds))]  # type: ignore
+            if params is None:
+                params = [{} for i in range(len(compilation_kinds))]
+            assert isinstance(params, List) and len(names) == len(params)
+            compilers: List["up.engines.engine.Engine"] = []
+            all_credits = []
+            for name, param, compilation_kind in zip(names, params, compilation_kinds):
+                EngineClass = self._get_engine_class(
+                    engine_kind, name, problem_kind, compilation_kind=compilation_kind
+                )
+                assert issubclass(EngineClass, CompilerMixin)
+                problem_kind = EngineClass.resulting_problem_kind(
+                    problem_kind, compilation_kind
+                )
+                all_credits.append(EngineClass.get_credits(**param))
+                compiler = EngineClass(**param)  # type: ignore
+                compiler.default = compilation_kind
+                compilers.append(compiler)
+            self._print_credits(all_credits)
+            return up.engines.compilers.compilers_pipeline.CompilersPipeline(compilers)
         else:
+            assert names is None
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
@@ -495,16 +513,20 @@ class Factory:
             )
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
-            if problem is None:
-                assert engine_kind not in ["simulator", "replanner"]
-                res = EngineClass(**params)
-            else:
-                assert engine_kind in ["simulator", "replanner"]
+            if engine_kind in ["simulator", "replanner"]:
+                assert problem is not None
                 assert issubclass(EngineClass, up.engines.engine.Engine)
-                assert issubclass(EngineClass, SimulatorMixin) or issubclass(
-                    EngineClass, ReplannerMixin
+                assert (
+                    issubclass(EngineClass, SimulatorMixin)
+                    or issubclass(EngineClass, ReplannerMixin)
                 )
                 res = EngineClass(problem=problem, **params)
+            elif engine_kind == "compiler":
+                assert issubclass(EngineClass, CompilerMixin)
+                res = EngineClass(**params)  # type: ignore
+                res.default = compilation_kind
+            else:
+                res = EngineClass(**params)
             if name is not None:
                 res.error_on_failed_checks = False
             return res
@@ -571,27 +593,53 @@ class Factory:
         self,
         *,
         name: Optional[str] = None,
-        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        names: Optional[List[str]] = None,
+        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         compilation_kind: Optional[Union["CompilationKind", str]] = None,
+        compilation_kinds: Optional[List[Union["CompilationKind", str]]] = None,
     ) -> "up.engines.engine.Engine":
         """
-        Returns a Compiler. There are two ways to call this method:
-        - using 'name' (the name of a specific grounder) and 'params'
-          (grounder dependent options).
+        Returns a Compiler or a pipeline of Compilers.
+
+        To get a Compiler there are two ways to call this method:
+        - using 'name' (the name of a specific compiler) and 'params'
+          (compiler dependent options).
           e.g. Compiler(name='tamer', params={'opt': 'val'})
         - using 'problem_kind' and 'compilation_kind' parameters.
-          e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDER)
+          e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)
+
+        To get a pipeline of Compilers there are two ways to call this method:
+        - using 'names' (the names of the specific compilers), 'params'
+          (compilers dependent options) and 'compilation_kinds'.
+          e.g. Compiler(names=['up_quantifiers_remover', 'up_grounder'],
+                        params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
+                        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
+        - using 'problem_kind' and 'compilation_kinds' parameters.
+          e.g. Compiler(problem_kind=problem.kind,
+                        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
         """
         if isinstance(compilation_kind, str):
             compilation_kind = CompilationKind[compilation_kind]
+
+        kinds: Optional[List[CompilationKind]] = None
+        if compilation_kinds is not None:
+            kinds = []
+            for kind in compilation_kinds:
+                if isinstance(kind, str):
+                    kinds.append(CompilationKind[kind])
+                else:
+                    assert isinstance(kind, CompilationKind)
+                    kinds.append(kind)
+
         return self._get_engine(
             "compiler",
             name,
-            None,
+            names,
             params,
             problem_kind,
             compilation_kind=compilation_kind,
+            compilation_kinds=kinds,
         )
 
     def Simulator(

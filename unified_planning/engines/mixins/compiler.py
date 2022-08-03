@@ -15,7 +15,9 @@
 
 from warnings import warn
 import unified_planning as up
+from unified_planning.model import ProblemKind
 from enum import Enum, auto
+from typing import Optional
 
 
 class CompilationKind(Enum):
@@ -27,6 +29,17 @@ class CompilationKind(Enum):
 
 
 class CompilerMixin:
+    def __init__(self, default: Optional[CompilationKind] = None):
+        self._default = default
+
+    @property
+    def default(self):
+        return self._default
+
+    @default.setter
+    def default(self, default: Optional[CompilationKind] = None):
+        self._default = default
+
     @staticmethod
     def is_compiler() -> bool:
         return True
@@ -35,10 +48,22 @@ class CompilerMixin:
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         raise NotImplementedError
 
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: CompilationKind
+    ) -> ProblemKind:
+        raise NotImplementedError
+
     def compile(
-        self, problem: "up.model.AbstractProblem", compilation_kind: CompilationKind
+        self,
+        problem: "up.model.AbstractProblem",
+        compilation_kind: Optional[CompilationKind] = None,
     ) -> "up.engines.results.CompilerResult":
         assert isinstance(self, up.engines.engine.Engine)
+        if compilation_kind is None:
+            compilation_kind = self._default
+        if compilation_kind is None:
+            raise up.exceptions.UPUsageError(f"Compilation kind needs to be specified!")
         if not self.skip_checks and not self.supports(problem.kind):
             msg = f"{self.name} cannot handle this kind of problem!"
             if self.error_on_failed_checks:

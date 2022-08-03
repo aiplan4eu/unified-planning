@@ -17,7 +17,7 @@
 
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import Problem
+from unified_planning.model import AbstractProblem
 from unified_planning.plans import ActionInstance
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -143,7 +143,7 @@ class ValidationResult(Result):
 class CompilerResult(Result):
     """Class that represents the result of a compile call."""
 
-    problem: Optional[Problem]
+    problem: Optional[AbstractProblem]
     map_back_action_instance: Optional[
         Callable[[ActionInstance], Optional[ActionInstance]]
     ]

@@ -50,6 +50,9 @@ class TarskiGrounder(Engine, CompilerMixin):
 
     def __init__(self, **kwargs):
         Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.GROUNDING)
+        if len(kwargs) > 0:
+            raise
 
     @property
     def name(self) -> str:
@@ -76,6 +79,12 @@ class TarskiGrounder(Engine, CompilerMixin):
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.GROUNDING
+
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: CompilationKind
+    ) -> ProblemKind:
+        return ProblemKind(problem_kind.features)
 
     def _compile(
         self, problem: "up.model.AbstractProblem", compilation_kind: "CompilationKind"

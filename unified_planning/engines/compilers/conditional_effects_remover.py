@@ -47,6 +47,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
 
     @property
     def name(self):
@@ -88,6 +89,16 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.CONDITIONAL_EFFECTS_REMOVING
+
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: CompilationKind
+    ) -> ProblemKind:
+        new_kind = ProblemKind(problem_kind.features)
+        if new_kind.has_conditional_effects():
+            new_kind.unset_effects_kind("CONDITIONAL_EFFECTS")
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+        return new_kind
 
     def _compile(
         self,
