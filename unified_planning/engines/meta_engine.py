@@ -48,6 +48,7 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
     OversubscriptionPlanner over the Tamer Engine."""
 
     def __init__(self, *args, **kwargs):
+        Engine.__init__(self)
         self._engine = self._engine_class(*args, **kwargs)
 
     @property

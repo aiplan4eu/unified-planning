@@ -26,6 +26,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.engine import Engine, Credits
 from unified_planning.engines.results import CompilerResult
 from unified_planning.engines.compilers.grounder import Grounder
+from unified_planning.exceptions import UPUsageError
 from tarski.grounding import LPGroundingStrategy
 
 
@@ -48,8 +49,7 @@ class TarskiGrounder(Engine, CompilerMixin):
     """Implements the gounder that uses tarski."""
 
     def __init__(self, **kwargs):
-        if len(kwargs) > 0:
-            raise
+        Engine.__init__(self)
 
     @property
     def name(self) -> str:

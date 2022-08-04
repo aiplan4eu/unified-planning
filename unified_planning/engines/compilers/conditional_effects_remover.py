@@ -31,7 +31,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
 )
 from unified_planning.utils import powerset
-from typing import Iterable, List, Dict, Tuple
+from typing import List, Dict, Tuple
 from functools import partial
 
 
@@ -44,6 +44,9 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
 
     Also the conditional timed_effects are removed maintaining the same
     semanthics. When this is not possible, an exception is raised."""
+
+    def __init__(self):
+        engines.engine.Engine.__init__(self)
 
     @property
     def name(self):

@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from enum import Enum, auto
 from typing import IO, Optional, Callable, Union
@@ -55,10 +56,12 @@ class OneshotPlannerMixin:
         The only required parameter is "problem" but the planner should warn the user if callback, timeout or
         output_stream are not None and the planner ignores them."""
         assert isinstance(self, up.engines.engine.Engine)
-        if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError(
-                f"{self.name} cannot solve this kind of problem!"
-            )
+        if not self.skip_checks and not self.supports(problem.kind):
+            msg = f"{self.name} cannot solve this kind of problem!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warn(msg)
         return self._solve(problem, callback, timeout, output_stream)
 
     def _solve(

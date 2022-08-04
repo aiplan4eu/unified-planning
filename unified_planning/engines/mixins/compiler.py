@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from enum import Enum, auto
 
@@ -38,14 +39,18 @@ class CompilerMixin:
         self, problem: "up.model.AbstractProblem", compilation_kind: CompilationKind
     ) -> "up.engines.results.CompilerResult":
         assert isinstance(self, up.engines.engine.Engine)
-        if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError(
-                f"{self.name} cannot handle this kind of problem!"
-            )
+        if not self.skip_checks and not self.supports(problem.kind):
+            msg = f"{self.name} cannot handle this kind of problem!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warn(msg)
         if not self.supports_compilation(compilation_kind):
-            raise up.exceptions.UPUsageError(
-                f"{self.name} cannot handle this kind of compilation!"
-            )
+            msg = f"{self.name} cannot handle this kind of compilation!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warn(msg)
         return self._compile(problem, compilation_kind)
 
     def _compile(

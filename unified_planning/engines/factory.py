@@ -501,7 +501,7 @@ class Factory:
                 assert issubclass(
                     EngineClass, up.engines.mixins.simulator.SimulatorMixin
                 )
-                return EngineClass(problem, **params)
+                return EngineClass(problem=problem, **params)
 
     @property
     def environment(self) -> "Environment":

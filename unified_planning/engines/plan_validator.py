@@ -43,6 +43,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
     """Performs plan validation."""
 
     def __init__(self, **options):
+        engines.engine.Engine.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
             unified_planning.environment.get_env(options.get("env", None))
         )

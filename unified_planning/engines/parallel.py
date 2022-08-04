@@ -44,6 +44,7 @@ class Parallel(
         factory: "up.engines.factory.Factory",
         engines: List[Tuple[str, Dict[str, str]]],
     ):
+        up.engines.engine.Engine.__init__(self)
         self.engines = engines
         self._factory = factory
 

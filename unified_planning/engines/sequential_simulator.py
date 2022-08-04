@@ -14,6 +14,7 @@
 #
 
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
+from warnings import warn
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
@@ -54,12 +55,27 @@ class SequentialSimulator(Engine, SimulatorMixin):
     Sequential SimulatorMixin implementation.
     """
 
-    def __init__(self, problem: "up.model.Problem"):
+    def __init__(
+        self,
+        problem: "up.model.Problem",
+        skip_checks: bool = False,
+        error_on_failed_checks: bool = True,
+    ):
+        Engine.__init__(self)
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
-        assert Grounder.supports(pk)
+        if not skip_checks and error_on_failed_checks:
+            assert Grounder.supports(
+                pk
+            ), "The simulator's grounder does not support the given problem"
+        elif not skip_checks:
+            if not Grounder.supports(pk):
+                warn("The simulator's grounder does not support the given problem")
         assert isinstance(self._problem, up.model.Problem)
         grounder = Grounder()
+        # Pass the flags values
+        grounder.skip_checks = skip_checks
+        grounder.error_on_failed_checks = error_on_failed_checks
         self._grounding_result = grounder.compile(
             self._problem, up.engines.CompilationKind.GROUNDING
         )
