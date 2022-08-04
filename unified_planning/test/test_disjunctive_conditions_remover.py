@@ -16,15 +16,16 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
+    basic_classical_kind,
     classical_kind,
     full_numeric_kind,
     full_classical_kind,
+    basic_temporal_kind,
 )
 from unified_planning.test import (
     TestCase,
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
-    skipIfEngineNotAvailable,
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
@@ -155,7 +156,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
 
         self.assertEqual(len(dnf_problem.actions), 1)
 
-    @skipIfEngineNotAvailable("pyperplan")
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
     def test_ad_hoc_3(self):
         # mockup problem
         a = Fluent("a")
@@ -186,7 +187,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         self.assertEqual(len(dnf_problem.goals), 1)
         self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
 
-        with OneshotPlanner(name="pyperplan") as planner:
+        with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
             os_res = planner.solve(dnf_problem)
             with PlanValidator(name="sequential_plan_validator") as validator:
                 valid_res = validator.validate(
@@ -254,7 +255,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnf_problem = res.problem
         self.assertEqual(len(dnf_problem.actions), 1)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfNoOneshotPlannerForProblemKind(basic_temporal_kind)
     def test_temporal_mockup_3(self):
         # mockup problem
         a = Fluent("a")

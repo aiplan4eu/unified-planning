@@ -251,13 +251,13 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             for e in el:
                 if e.is_conditional():
                     new_cond = dnf.get_dnf_expression(e.condition)
-                    new_e = e.clone()
                     if new_cond.is_or():
                         for and_exp in new_cond.args:
-                            new_new_e = new_e.clone()
-                            new_new_e.set_condition(and_exp)
-                            new_action._add_effect_instance(t, new_new_e)
+                            new_e = e.clone()
+                            new_e.set_condition(and_exp)
+                            new_action._add_effect_instance(t, new_e)
                     else:
+                        new_e = e.clone()
                         new_e.set_condition(new_cond)
                         new_action._add_effect_instance(t, new_e)
                 else:
@@ -283,13 +283,13 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         for e in original_action.effects:
             if e.is_conditional():
                 new_cond = dnf.get_dnf_expression(e.condition)
-                new_e = e.clone()
                 if new_cond.is_or():
                     for and_exp in new_cond.args:
-                        new_new_e = new_e.clone()
-                        new_new_e.set_condition(and_exp)
-                        new_action._add_effect_instance(new_new_e)
+                        new_e = e.clone()
+                        new_e.set_condition(and_exp)
+                        new_action._add_effect_instance(new_e)
                 else:
+                    new_e = e.clone()
                     new_e.set_condition(new_cond)
                     new_action._add_effect_instance(new_e)
             else:
