@@ -84,10 +84,14 @@ class SequentialPlan(plans.plan.Plan):
     def replace_action_instances(
         self,
         replace_function: Callable[
-            ["plans.plan.ActionInstance"], "plans.plan.ActionInstance"
+            ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "up.plans.plan.Plan":
-        new_ai = [replace_function(ai) for ai in self._actions]
+        new_ai = []
+        for ai in self._actions:
+            replaced_ai = replace_function(ai)
+            if replaced_ai is not None:
+                new_ai.append(replaced_ai)
         new_env = self._environment
         if len(new_ai) > 0:
             new_env = new_ai[0].action.env

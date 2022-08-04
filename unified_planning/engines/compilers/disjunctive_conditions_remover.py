@@ -31,7 +31,7 @@ from unified_planning.model import (
     ProblemKind,
 )
 from unified_planning.model.walkers import Dnf
-from typing import List, Tuple, Dict, cast
+from typing import List, Optional, Tuple, Dict, cast
 from itertools import product
 from functools import partial
 
@@ -95,11 +95,14 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         env = problem.env
 
-        new_to_old: Dict[Action, Action] = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
+        new_fluents: List["up.model.Fluent"] = []
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
+        new_problem.clear_goals()
+        new_problem.clear_timed_goals()
 
         dnf = Dnf(env)
         for a in problem.actions:
@@ -110,13 +113,13 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 if new_precond.is_or():
                     for and_exp in new_precond.args:
                         na = self._create_new_action_with_given_precond(
-                            new_problem, and_exp, a
+                            new_problem, and_exp, a, dnf
                         )
                         new_to_old[na] = a
                         new_problem.add_action(na)
                 else:
                     na = self._create_new_action_with_given_precond(
-                        new_problem, new_precond, a
+                        new_problem, new_precond, a, dnf
                     )
                     new_to_old[na] = a
                     new_problem.add_action(na)
@@ -136,23 +139,103 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 conditions_tuple = cast(Tuple[List[FNode], ...], product(*conditions))
                 for cond_list in conditions_tuple:
                     nda = self._create_new_durative_action_with_given_conds_at_given_times(
-                        new_problem, interval_list, cond_list, a
+                        new_problem, interval_list, cond_list, a, dnf
                     )
                     new_to_old[nda] = a
                     new_problem.add_action(nda)
             else:
                 raise NotImplementedError
 
+        # Meaningful action is the list of the actions that modify fluents that are not added
+        # just to remove the disjunction from goals
+        meaningful_actions: List["up.model.Action"] = new_problem.actions[:]
+
+        self._remove_disjunctions_from_goals_adding_new_elements(
+            dnf,
+            new_problem,
+            new_to_old,
+            new_fluents,
+            problem.goals,
+        )
+
+        for t, gl in problem.timed_goals.items():
+            self._remove_disjunctions_from_goals_adding_new_elements(
+                dnf,
+                new_problem,
+                new_to_old,
+                new_fluents,
+                gl,
+                t,
+            )
+
+        # Every meaningful action must set to False every new fluent added.
+        # For the DurativeActions this must happen every time the action modifies something
+        em = env.expression_manager
+        # new_effects is the List of effects that must be added to every meaningful action
+        new_effects: List["up.model.Effect"] = [
+            up.model.Effect(em.FluentExp(f), em.FALSE(), em.TRUE()) for f in new_fluents
+        ]
+        for a in meaningful_actions:
+            # Since we modify the action that is a key in the Dict, we must update the mapping
+            old_action = new_to_old.pop(a)
+            if isinstance(a, InstantaneousAction):
+                for e in new_effects:
+                    a._add_effect_instance(e)
+            elif isinstance(a, DurativeAction):
+                for tim in a.effects:
+                    for e in new_effects:
+                        a._add_effect_instance(tim, e)
+            else:
+                raise NotImplementedError
+            new_to_old[a] = old_action
+
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
 
+    def _remove_disjunctions_from_goals_adding_new_elements(
+        self,
+        dnf: Dnf,
+        new_problem: "up.model.Problem",
+        new_to_old: Dict[Action, Optional[Action]],
+        new_fluents: List["up.model.Fluent"],
+        goals: List["up.model.FNode"],
+        timing: Optional["up.model.timing.TimeInterval"] = None,
+    ):
+        env = new_problem.env
+        new_goal = dnf.get_dnf_expression(env.expression_manager.And(goals))
+        if new_goal.is_or():
+            new_name = self.name if timing is None else f"{self.name}_timed"
+            fake_fluent = up.model.Fluent(
+                get_fresh_name(new_problem, f"{new_name}_fake_goal")
+            )
+            fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
+            fake_action.add_effect(fake_fluent, True)
+            for and_exp in new_goal.args:
+                na = self._create_new_action_with_given_precond(
+                    new_problem, and_exp, fake_action, dnf
+                )
+                new_to_old[na] = None
+                new_problem.add_action(na)
+            new_problem.add_fluent(fake_fluent, default_initial_value=False)
+            new_fluents.append(fake_fluent)
+            if timing is None:
+                new_problem.add_goal(fake_fluent)
+            else:
+                new_problem.add_timed_goal(timing, fake_fluent)
+        else:
+            if timing is None:
+                new_problem.add_goal(new_goal)
+            else:
+                new_problem.add_timed_goal(timing, new_goal)
+
     def _create_new_durative_action_with_given_conds_at_given_times(
         self,
-        new_problem,
+        new_problem: "up.model.Problem",
         interval_list: List[TimeInterval],
         cond_list: List[FNode],
         original_action: DurativeAction,
+        dnf: Dnf,
     ) -> DurativeAction:
         new_action = original_action.clone()
         new_action.name = get_fresh_name(new_problem, original_action.name)
@@ -163,10 +246,30 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                     new_action.add_condition(i, co)
             else:
                 new_action.add_condition(i, c)
+        new_action.clear_effects()
+        for t, el in original_action.effects.items():
+            for e in el:
+                if e.is_conditional():
+                    new_cond = dnf.get_dnf_expression(e.condition)
+                    if new_cond.is_or():
+                        for and_exp in new_cond.args:
+                            new_e = e.clone()
+                            new_e.set_condition(and_exp)
+                            new_action._add_effect_instance(t, new_e)
+                    else:
+                        new_e = e.clone()
+                        new_e.set_condition(new_cond)
+                        new_action._add_effect_instance(t, new_e)
+                else:
+                    new_action._add_effect_instance(t, e)
         return new_action
 
     def _create_new_action_with_given_precond(
-        self, new_problem, precond: FNode, original_action: InstantaneousAction
+        self,
+        new_problem: "up.model.Problem",
+        precond: FNode,
+        original_action: InstantaneousAction,
+        dnf: Dnf,
     ) -> InstantaneousAction:
         new_action = original_action.clone()
         new_action.name = get_fresh_name(new_problem, original_action.name)
@@ -176,4 +279,19 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_action.add_precondition(leaf)
         else:
             new_action.add_precondition(precond)
+        new_action.clear_effects()
+        for e in original_action.effects:
+            if e.is_conditional():
+                new_cond = dnf.get_dnf_expression(e.condition)
+                if new_cond.is_or():
+                    for and_exp in new_cond.args:
+                        new_e = e.clone()
+                        new_e.set_condition(and_exp)
+                        new_action._add_effect_instance(new_e)
+                else:
+                    new_e = e.clone()
+                    new_e.set_condition(new_cond)
+                    new_action._add_effect_instance(new_e)
+            else:
+                new_action._add_effect_instance(e)
         return new_action

@@ -75,6 +75,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         for grounded_action in grounded_problem.actions:
             if isinstance(grounded_action, up.model.InstantaneousAction):
                 lifted_ai = lift_map(ActionInstance(grounded_action))
+                assert lifted_ai is not None
                 event_list = self._events.setdefault(
                     (lifted_ai.action, lifted_ai.actual_parameters), []
                 )

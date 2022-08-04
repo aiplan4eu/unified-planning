@@ -92,8 +92,10 @@ class Plan:
         return self._kind
 
     def replace_action_instances(
-        self, replace_function: Callable[[ActionInstance], ActionInstance]
+        self, replace_function: Callable[[ActionInstance], Optional[ActionInstance]]
     ) -> "Plan":
         """This function takes a function from ActionInstance to ActionInstance and returns a new Plan
-        that have the ActionInstance modified by the "replace_function" function."""
+        that have the ActionInstance modified by the "replace_function" function.
+
+        If the returned ActionInstance is None it means that the ActionInstance should not go in the resulting plan."""
         raise NotImplementedError

@@ -144,7 +144,9 @@ class CompilerResult(Result):
     """Class that represents the result of a compile call."""
 
     problem: Optional[Problem]
-    map_back_action_instance: Optional[Callable[[ActionInstance], ActionInstance]]
+    map_back_action_instance: Optional[
+        Callable[[ActionInstance], Optional[ActionInstance]]
+    ]
     engine_name: str
     log_messages: Optional[List[LogMessage]] = field(default=None)
 
