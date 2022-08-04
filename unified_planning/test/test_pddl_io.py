@@ -19,10 +19,12 @@ import pytest
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
+from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import full_numeric_kind
 from unified_planning.model.types import _UserType
+from unified_planning.engines import PlanGenerationResultStatus
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -595,6 +597,9 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
     @skipIfNoOneshotPlannerForProblemKind(full_numeric_kind)
+    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
+        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+    )
     def test_reading_domain_only(self):
         reader = PDDLReader()
 
