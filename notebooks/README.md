@@ -18,6 +18,15 @@ In particular we will go through the following steps:
 * read and write PDDL problems.
 
 
+## PDDL I/O
+
+[![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](PDDL_IO_Example.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/PDDL_IO_Example.ipynb)
+
+In this notebook we show how to parse a problem from PDDL in the unified_planning and how to write
+a unified_planning problem in PDDL.
+
+
 ## Temporal Planning
 
 [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Unified_Planning_Temporal.ipynb)

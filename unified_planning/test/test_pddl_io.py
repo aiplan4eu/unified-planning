@@ -18,7 +18,7 @@ from typing import cast
 import pytest
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
+from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import full_numeric_kind
@@ -594,7 +594,7 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(natural_disaster.effects), 9)
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
-    @skipIfEngineNotAvailable("opt-pddl-planner")
+    @skipIfNoOneshotPlannerForProblemKind(full_numeric_kind)
     def test_reading_domain_only(self):
         reader = PDDLReader()
 
@@ -621,7 +621,9 @@ class TestPddlIO(TestCase):
                             value_fluent(object_j),
                         )
                     )
-            with OneshotPlanner(name="opt-pddl-planner") as planner:
+            with OneshotPlanner(
+                problem_kind=problem.kind, optimality_guarantee="SOLVED_OPTIMALLY"
+            ) as planner:
                 plan = planner.solve(problem).plan
                 self.assertEqual(len(plan.actions), expected_plan_length)
 
