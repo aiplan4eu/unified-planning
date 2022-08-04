@@ -494,14 +494,17 @@ class Factory:
             self._print_credits([credits])
             if problem is None:
                 assert engine_kind != "simulator"
-                return EngineClass(**params)
+                res = EngineClass(**params)
             else:
                 assert engine_kind == "simulator"
                 assert issubclass(EngineClass, up.engines.engine.Engine)
                 assert issubclass(
                     EngineClass, up.engines.mixins.simulator.SimulatorMixin
                 )
-                return EngineClass(problem, **params)
+                res = EngineClass(problem=problem, **params)
+            if name is not None:
+                res.error_on_failed_checks = False
+            return res
 
     @property
     def environment(self) -> "Environment":

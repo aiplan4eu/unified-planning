@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
@@ -21,6 +20,7 @@ from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
 from unified_planning.model.walkers import StateEvaluator
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
 
 class InstantaneousEvent(Event):
@@ -55,6 +55,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
     """
 
     def __init__(self, problem: "up.model.Problem"):
+        Engine.__init__(self)
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
         assert Grounder.supports(pk)

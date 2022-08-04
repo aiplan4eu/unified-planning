@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 
 
@@ -29,14 +30,18 @@ class PlanValidatorMixin:
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.ValidationResult":
         assert isinstance(self, up.engines.engine.Engine)
-        if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError(
-                f"{self.name} cannot validate this kind of problem!"
-            )
-        if not self.supports_plan(plan.kind):
-            raise up.exceptions.UPUsageError(
-                f"{self.name} cannot validate this kind of plan!"
-            )
+        if not self.skip_checks and not self.supports(problem.kind):
+            msg = f"{self.name} cannot validate this kind of problem!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warn(msg)
+        if not self.skip_checks and not self.supports_plan(plan.kind):
+            msg = f"{self.name} cannot validate this kind of plan!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warn(msg)
         return self._validate(problem, plan)
 
     def _validate(

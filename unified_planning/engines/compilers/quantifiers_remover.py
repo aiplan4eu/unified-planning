@@ -46,6 +46,9 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
     becomes:
         Or(is_green(s1), is_green(s2), is_green(s3))."""
 
+    def __init__(self):
+        engines.engine.Engine.__init__(self)
+
     @property
     def name(self):
         return "qurm"

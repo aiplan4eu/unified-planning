@@ -14,6 +14,7 @@
 #
 
 from typing import Iterator, List, Optional, Tuple, Union
+from warnings import warn
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 
@@ -53,10 +54,13 @@ class SimulatorMixin:
         assert issubclass(
             self_class, up.engines.engine.Engine
         ), "SimulatorMixin does not implement the up.engines.Engine class"
-        if not self_class.supports(problem.kind):
-            raise UPUsageError(
-                f"The problem named: {problem.name} is not supported by the {self_class}."
-            )
+        assert isinstance(self, up.engines.engine.Engine)
+        if not self.skip_checks and not self_class.supports(problem.kind):
+            msg = f"The problem named: {problem.name} is not supported by the {self_class}."
+            if self.error_on_failed_checks:
+                raise UPUsageError(msg)
+            else:
+                warn(msg)
 
     def is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
         """

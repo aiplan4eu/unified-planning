@@ -39,6 +39,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         self,
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
     ):
+        engines.engine.Engine.__init__(self)
         self._grounding_actions_map = grounding_actions_map
 
     @property

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from shutil import move
+
 import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
@@ -29,6 +29,7 @@ from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuara
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
 from unified_planning.engines.results import POSITIVE_OUTCOMES
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 
 
@@ -138,6 +139,7 @@ class TestPlanner(TestCase):
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
         ) as planner:
             self.assertNotEqual(planner, None)
+            planner.error_on_failed_checks = True
             with self.assertRaises(up.exceptions.UPUsageError) as e:
                 final_report = planner.solve(problem)
             self.assertIn("cannot solve this kind of problem", str(e.exception))
@@ -243,6 +245,31 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions[2].actual_parameters), 3)
             self.assertEqual(len(plan.actions[3].actual_parameters), 3)
             self.assertEqual(len(plan.actions[4].actual_parameters), 3)
+
+    @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_check_flags(self):
+        problem = self.problems["robot"].problem
+        error_msg = "ENHSP cannot solve this kind of problem!"
+        with OneshotPlanner(name="opt-pddl-planner") as planner:
+
+            # By default, when getting an Engine by name, we get a warning if the problem is not
+            # supported
+            with warnings.catch_warnings(record=True) as w:
+                plan = planner.solve(problem).plan
+                self.assertIsNotNone(plan)
+                self.assertEqual(len(w), 1)
+                self.assertEqual(error_msg, str(w[-1].message))
+
+            # We can set the Engine to give an error when the problem is not supported
+            planner.error_on_failed_checks = True
+            with self.assertRaises(UPUsageError) as e:
+                planner.solve(problem)
+            self.assertEqual(error_msg, str(e.exception))
+
+            # Or we can set the check to be completely skipped
+            planner.skip_checks = True
+            plan = planner.solve(problem).plan
+            self.assertIsNotNone(plan)
 
 
 if __name__ == "__main__":

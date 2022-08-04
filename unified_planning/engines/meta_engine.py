@@ -48,12 +48,31 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
     OversubscriptionPlanner over the Tamer Engine."""
 
     def __init__(self, *args, **kwargs):
+        Engine.__init__(self)
         self._engine = self._engine_class(*args, **kwargs)
 
     @property
     def engine(self) -> Engine:
         """Returns the engine used by this MetaEngine class"""
         return self._engine
+
+    @property
+    def skip_checks(self) -> bool:
+        return self._skip_checks
+
+    @skip_checks.setter
+    def skip_checks(self, new_value: bool):
+        self._skip_checks = new_value
+        self._engine.skip_checks = new_value
+
+    @property
+    def error_on_failed_checks(self) -> bool:
+        return self._error_on_failed_checks
+
+    @error_on_failed_checks.setter
+    def error_on_failed_checks(self, new_value: bool):
+        self._error_on_failed_checks = new_value
+        self.engine.error_on_failed_checks = new_value
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:

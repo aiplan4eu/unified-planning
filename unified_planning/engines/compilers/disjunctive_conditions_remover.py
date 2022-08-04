@@ -45,6 +45,9 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
     an AND of leaf nodes.
     """
 
+    def __init__(self):
+        engines.engine.Engine.__init__(self)
+
     @property
     def name(self):
         return "dcrm"

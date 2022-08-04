@@ -35,9 +35,61 @@ class EngineMeta(type):
 class Engine(metaclass=EngineMeta):
     """Represents the engine interface."""
 
+    def __init__(self, **kwargs):
+        self._skip_checks = False
+        self._error_on_failed_checks = True
+
     @property
     def name(self) -> str:
         raise NotImplementedError
+
+    @property
+    def skip_checks(self) -> bool:
+        """
+        Flag defining if this engine skips the checks on the problem's problem_kind before
+        executing methods like solve, compile or validate.
+
+        By default this is set to False.
+        """
+        return self._skip_checks
+
+    @skip_checks.setter
+    def skip_checks(self, new_value: bool):
+        """
+        Sets the flag defining if this engine skips the checks on the problem's problem_kind before
+        executing methods like solve, compile or validate.
+
+        By default this is set to False.
+
+        Note that this flag deactivates some safety measures, so when deactivated the given errors might
+        not be totally clear.
+        """
+        self._skip_checks = new_value
+
+    @property
+    def error_on_failed_checks(self) -> bool:
+        """
+        When a check on the problem's problem_kind fails, this flag determines if this fail returns
+        just a warning (when False), without failing the execution, or if the fail must return an
+        error and stop the execution (when True).
+
+        The default value is True.
+
+        Note that if the property Engine.skip_checks is set to True, the value of this flag becomes
+        irrelevant.
+
+        Note also that this flag deactivates some safety measures, so when deactivated the given errors might
+        not be totally clear.
+        """
+        return self._error_on_failed_checks
+
+    @error_on_failed_checks.setter
+    def error_on_failed_checks(self, new_value: bool):
+        """
+        Sets the flag deciding if a fail on the problem's kind checks should return in an error or
+        just in a warning.
+        """
+        self._error_on_failed_checks = new_value
 
     @staticmethod
     def supported_kind() -> ProblemKind:

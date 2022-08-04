@@ -78,6 +78,9 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
     This is done by substituting every fluent that appears with a Not into the conditions
     with different fluent representing  his negation."""
 
+    def __init__(self):
+        engines.engine.Engine.__init__(self)
+
     @property
     def name(self):
         return "ncrm"
