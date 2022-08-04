@@ -56,6 +56,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
     """
 
     def __init__(self, problem: "up.model.Problem"):
+        Engine.__init__(self)
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
         assert Grounder.supports(pk)
