@@ -20,6 +20,7 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.plans import ActionInstance
 from typing import List, Callable, Optional
 from functools import partial
+from warnings import warn
 
 
 class CompilersPipeline(engines.engine.Engine, CompilerMixin):
@@ -37,6 +38,11 @@ class CompilersPipeline(engines.engine.Engine, CompilerMixin):
         compilation_kind: Optional["up.engines.CompilationKind"] = None,
     ) -> "up.engines.results.CompilerResult":
         assert isinstance(self, engines.engine.Engine)
+        if compilation_kind is not None:
+            warn(
+                "Compilers pipeline ignores the compilation_kind parameter.",
+                UserWarning,
+            )
         new_problem: "up.model.AbstractProblem" = problem
         map_back_functions = []
         for engine in self._compilers:

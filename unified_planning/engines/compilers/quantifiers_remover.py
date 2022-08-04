@@ -97,6 +97,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
         new_kind.unset_conditions_kind("EXISTENTIAL_CONDITIONS")
+        new_kind.unset_conditions_kind("UNIVERSAL_CONDITIONS")
         return new_kind
 
     def _compile(
