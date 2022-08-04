@@ -256,6 +256,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         self.assertEqual(len(dnf_problem.actions), 1)
 
     @skipIfNoOneshotPlannerForProblemKind(basic_temporal_kind)
+    @skipIfNoPlanValidatorForProblemKind(basic_temporal_kind.union(classical_kind))
     def test_temporal_mockup_3(self):
         # mockup problem
         a = Fluent("a")
@@ -300,9 +301,9 @@ class TestDisjunctiveConditionsRemover(TestCase):
             self.assertEqual(len(gl), 1)
             self.assertTrue(gl[0].is_fluent_exp())
 
-        with OneshotPlanner(name="tamer") as planner:
+        with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
             os_res = planner.solve(dnf_problem)
-            with PlanValidator(name="tamer") as validator:
+            with PlanValidator(problem_kind=problem.kind) as validator:
                 valid_res = validator.validate(
                     problem,
                     os_res.plan.replace_action_instances(res.map_back_action_instance),
