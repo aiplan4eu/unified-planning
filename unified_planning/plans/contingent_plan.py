@@ -36,15 +36,21 @@ class ContingentPlanNode:
     def replace_action_instances(
         self,
         replace_function: Callable[
-            ["plans.plan.ActionInstance"], "plans.plan.ActionInstance"
+            ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
-    ) -> "ContingentPlanNode":
-        ai = replace_function(self.action_instance)
-        res = ContingentPlanNode(ai, self.observation)
+    ) -> List["ContingentPlanNode"]:
         children: List["ContingentPlanNode"] = []
         for c in self.children:
-            res.add_child(c.replace_action_instances(replace_function))
-        return res
+            for child in c.replace_action_instances(replace_function):
+                children.append(child)
+        ai = replace_function(self.action_instance)
+        if ai is not None:
+            res = ContingentPlanNode(ai, self.observation)
+            for child in children:
+                res.add_child(child)
+            return [res]
+        else:
+            return children
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ContingentPlanNode):
@@ -126,11 +132,13 @@ class ContingentPlan(plans.plan.Plan):
     def replace_action_instances(
         self,
         replace_function: Callable[
-            ["plans.plan.ActionInstance"], "plans.plan.ActionInstance"
+            ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "up.plans.plan.Plan":
         if self.root_node is None:
             return ContingentPlan(None, self._environment)
-        new_root = self.root_node.replace_action_instances(replace_function)
+        new_nodes = self.root_node.replace_action_instances(replace_function)
+        assert len(new_nodes) == 1
+        new_root = new_nodes[0]
         new_env = new_root.action_instance.action.env
         return ContingentPlan(new_root, new_env)
