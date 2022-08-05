@@ -28,15 +28,14 @@ class AnytimePlannerMixin:
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> Iterator["up.engines.results.PlanGenerationResult"]:
-        """This method takes a up.model.AbstractProblem and returns a up.engines.results.PlanGenerationResult,
+        """This method takes a up.model.AbstractProblem and returns an iterator of up.engines.results.PlanGenerationResult,
         which contains information about the solution to the problem given by the planner.
 
         :param problem: is the up.model.AbstractProblem to solve.
         :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to None.
         :param output_stream: is a stream of strings where the planner writes his
         output (and also errors) while the planner is solving the problem, defaults to None
-        :return: the up.engines.results.PlanGenerationResult created by the planner; a data structure containing the up.plan.Plan found
-        and some additional information about it.
+        :return: an iterator of up.engines.results.PlanGenerationResult created by the planner.
 
         The only required parameter is "problem" but the planner should warn the user if timeout or
         output_stream are not None and the planner ignores them."""
@@ -54,4 +53,8 @@ class AnytimePlannerMixin:
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> Iterator["up.engines.results.PlanGenerationResult"]:
+        """
+        Method called by the AnytimePlannerMixin.solve method that has to be implemented
+        by the engines that implement this operation mode.
+        """
         raise NotImplementedError
