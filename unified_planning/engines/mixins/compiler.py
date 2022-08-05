@@ -33,7 +33,7 @@ class CompilerMixin:
         self._default = default
 
     @property
-    def default(self) -> CompilationKind:
+    def default(self) -> Optional[CompilationKind]:
         """Returns the default compilation kind.
 
         :return: The default compilation kind.
@@ -41,7 +41,7 @@ class CompilerMixin:
         return self._default
 
     @default.setter
-    def default(self, default: Optional[CompilationKind] = None):
+    def default(self, default: Optional[CompilationKind]):
         """Sets the default compilation kind.
 
         :default: The default compilation kind to set.
