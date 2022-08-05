@@ -16,6 +16,7 @@
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.engines import SequentialSimulator, SimulatorMixin
+from unified_planning.engines.compilers import Grounder
 from unified_planning.model import UPCOWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
@@ -44,6 +45,7 @@ class TestSimulator(TestCase):
         block_2 = problem.object("block_2")
         block_3 = problem.object("block_3")
         state = UPCOWState(problem.initial_values)
+
         # The initial state is:
         # ts_1, block_3, block_1, block_2
         # ts_2
@@ -68,6 +70,7 @@ class TestSimulator(TestCase):
         self.assertEqual(
             len(events), 1
         )  # only 1 even corresponds to in Instantaneous Action
+
         state = cast(UPCOWState, simulator.apply(events[0], state))
         self.assertIsNotNone(
             state
@@ -144,11 +147,11 @@ class TestSimulator(TestCase):
 
     def test_with_sequential_simulator_instance(self):
         problem = self.problems["hierarchical_blocks_world"].problem
-        with Compiler(name="up_grounder") as grounder:
-            simulator = (SequentialSimulator[grounder])(problem)
-            self.simulate_on_hierarchical_blocks_world(simulator, problem)
+        simulator = (SequentialSimulator[Grounder])(problem)
+        self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
     def test_with_simulator_from_factory(self):
         problem = self.problems["hierarchical_blocks_world"].problem
+
         with Simulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)

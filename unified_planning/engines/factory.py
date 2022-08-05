@@ -84,7 +84,6 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "enhsp-opt",
     "tamer",
     "sequential_plan_validator",
-    "sequential_simulator",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
     "up_negative_conditions_remover",
@@ -93,7 +92,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_grounder",
 ]
 
-DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
+DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription", "sequential_simulator"]
 
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:

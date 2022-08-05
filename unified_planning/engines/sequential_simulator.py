@@ -90,6 +90,7 @@ class SequentialSimulator(MetaEngine, SimulatorMixin):
         grounded_problem: "up.model.Problem" = cast(
             up.model.Problem, self._grounding_result.problem
         )
+
         lift_map = self._grounding_result.map_back_action_instance
         assert lift_map is not None
 
@@ -279,7 +280,7 @@ class SequentialSimulator(MetaEngine, SimulatorMixin):
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
         """Returns true iff the given engine is compatible with this meta engine"""
-        return issubclass(engine, CompilerMixin) and engine.supports_compilation(
+        return engine.is_compiler() and engine.supports_compilation(
             CompilationKind.GROUNDING
         )
 
