@@ -36,6 +36,12 @@ class ReplannerMixin:
     def satisfies(
         optimality_guarantee: "up.engines.mixins.oneshot_planner.OptimalityGuarantee",
     ) -> bool:
+        """
+        Returns True iff the engine satisfies the given optimality guarantee.
+
+        :param optimality_guarantee: the given optimality guarantee.
+        :return: True iff the engine satisfies the given optimality guarantee.
+        """
         return False
 
     def solve(
@@ -43,8 +49,16 @@ class ReplannerMixin:
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
-        """Solves the problem that is given in the constructor and that can be
-        updated through the other engine methods."""
+        """
+        Solves the problem that is given in the constructor and that can be
+        updated through the other engine methods.
+
+        :param timeout: the time in seconds that the planner has at max to solve the problem, defaults to None.
+        :param output_stream: a stream of strings where the planner writes his
+        output (and also errors) while the planner is solving the problem, defaults to None.
+        :return: the up.engines.results.PlanGenerationResult created by the planner;
+        a data structure containing the up.plan.Plan found and some additional information about it.
+        """
         return self._solve(timeout, output_stream)
 
     def update_initial_value(
@@ -60,27 +74,48 @@ class ReplannerMixin:
             Fraction,
         ],
     ):
-        """Updates the initial value for the given fluent."""
+        """
+        Updates the initial value for the given fluent.
+
+        :param fluent: the fluent expression to which the value is updated.
+        :param value: the new value of the given fluent expression.
+        """
         return self._update_initial_value(fluent, value)
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
-        """Adds a goal."""
+        """
+        Adds a goal.
+
+        :param goal: the new goal to add to the problem.
+        """
         return self._add_goal(goal)
 
     def remove_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
-        """Removes the given goal."""
+        """
+        Removes the given goal.
+
+        :param goal: the goal to remove to the problem.
+        """
         return self._remove_goal(goal)
 
     def add_action(self, action: "up.model.action.Action"):
-        """Adds the given action."""
+        """
+        Adds the given action.
+
+        :param action: the new action to add to the problem.
+        """
         return self._add_action(action)
 
     def remove_action(self, name: str):
-        """Removes the given action."""
+        """
+        Removes the given action.
+
+        :param action: the action to remove to the problem.
+        """
         return self._remove_action(name)
 
     def _solve(
@@ -88,6 +123,10 @@ class ReplannerMixin:
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
+        """
+        Method called by the ReplannerMixin.solve method that has to be implemented
+        by the engines that implement this operation mode.
+        """
         raise NotImplementedError
 
     def _update_initial_value(
@@ -103,20 +142,40 @@ class ReplannerMixin:
             Fraction,
         ],
     ):
+        """
+        Method called by the ReplannerMixin.update_initial_value method that has to be implemented
+        by the engines that implement this operation mode.
+        """
         raise NotImplementedError
 
     def _add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
+        """
+        Method called by the ReplannerMixin.add_goal method that has to be implemented
+        by the engines that implement this operation mode.
+        """
         raise NotImplementedError
 
     def _remove_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
+        """
+        Method called by the ReplannerMixin.remove_goal method that has to be implemented
+        by the engines that implement this operation mode.
+        """
         raise NotImplementedError
 
     def _add_action(self, action: "up.model.action.Action"):
+        """
+        Method called by the ReplannerMixin.add_action method that has to be implemented
+        by the engines that implement this operation mode.
+        """
         raise NotImplementedError
 
     def _remove_action(self, name: str):
+        """
+        Method called by the ReplannerMixin.remove_action method that has to be implemented
+        by the engines that implement this operation mode.
+        """
         raise NotImplementedError

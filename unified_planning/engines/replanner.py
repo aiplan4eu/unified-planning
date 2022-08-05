@@ -28,6 +28,11 @@ from fractions import Fraction
 
 
 class Replanner(MetaEngine, mixins.ReplannerMixin):
+    """
+    This meta engine implements the replanner operation mode starting
+    a new oneshot planning query with the updated problem instance.
+    """
+
     def __init__(self, problem: "up.model.AbstractProblem", *args, **kwargs):
         MetaEngine.__init__(self, *args, **kwargs)
         mixins.ReplannerMixin.__init__(self, problem)
