@@ -33,11 +33,19 @@ class CompilerMixin:
         self._default = default
 
     @property
-    def default(self):
+    def default(self) -> CompilationKind:
+        """Returns the default compilation kind.
+
+        :return: The default compilation kind.
+        """
         return self._default
 
     @default.setter
     def default(self, default: Optional[CompilationKind] = None):
+        """Sets the default compilation kind.
+
+        :default: The default compilation kind to set.
+        """
         self._default = default
 
     @staticmethod
@@ -52,6 +60,13 @@ class CompilerMixin:
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: CompilationKind
     ) -> ProblemKind:
+        """Returns the problem kind of a problem resulting by the given compilation
+        applied to a problem that has the given problem kind.
+
+        :param problem_kind: The given problem kind.
+        :param compilation_kind: The given compilation kind.
+        :return: The resulting problem kind.
+        """
         raise NotImplementedError
 
     def compile(
@@ -59,6 +74,19 @@ class CompilerMixin:
         problem: "up.model.AbstractProblem",
         compilation_kind: Optional[CompilationKind] = None,
     ) -> "up.engines.results.CompilerResult":
+        """
+        Takes an instance of a up.model.AbstractProblem and a supported
+        up.engines.CompilationKind and returns the data structure
+        containing the compiled problem, a function that allows the rewriting
+        of a plan from the compiled problem to the original one and
+        some compiler info, like the name and some logs on the compiling.
+
+        If the compilation_kind is not specified, the default is used.
+
+        :param problem: The instance of the up.model.AbstractProblem on which the compilation is applied.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem.
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
         assert isinstance(self, up.engines.engine.Engine)
         if compilation_kind is None:
             compilation_kind = self._default

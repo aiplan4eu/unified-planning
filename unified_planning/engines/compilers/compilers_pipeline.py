@@ -24,6 +24,12 @@ from warnings import warn
 
 
 class CompilersPipeline(engines.engine.Engine, CompilerMixin):
+    """
+    This engine implements a compilers pipeline.
+    A list of compilers is given in the class constructor and the engine implements
+    the compile operation mode executing the pipeline of the given compilers.
+    """
+
     def __init__(self, compilers: List[engines.engine.Engine]):
         CompilerMixin.__init__(self)
         self._compilers = compilers
