@@ -92,27 +92,29 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         problem goal. Otherwise False is returned."""
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
-        simulator = SequentialSimulator(problem)
-        current_state: "COWState" = UPCOWState(problem.initial_values)
-        count = 0  # used for better error indexing
-        for ai in plan.actions:
-            action = ai.action
-            assert isinstance(action, unified_planning.model.InstantaneousAction)
-            count = count + 1
-            events = simulator.get_events(action, ai.actual_parameters)
-            assert len(events) < 2, f"{str(ai)} + {len(events)}"
-            for event in events:
-                if not simulator.is_applicable(event, current_state):
-                    error = f"Preconditions {event.conditions} of {str(count)}-th action instance {str(ai)} are not satisfied."
-                    logs = [LogMessage(LogLevel.ERROR, error)]
-                    return ValidationResult(
-                        ValidationResultStatus.INVALID, self.name, logs
-                    )
-                current_state = simulator.apply_unsafe(event, current_state)
-        unsatisfied_goals = simulator.get_unsatisfied_goals(current_state)
-        if len(unsatisfied_goals) == 0:
-            return ValidationResult(ValidationResultStatus.VALID, self.name, [])
-        else:
-            error = f"Goals {unsatisfied_goals} are not satisfied by the plan."
-            logs = [LogMessage(LogLevel.ERROR, error)]
-            return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+        with problem.env.factory.Simulator(
+            problem, name="sequential_simulator[up_grounder]"
+        ) as simulator:
+            current_state: "COWState" = UPCOWState(problem.initial_values)
+            count = 0  # used for better error indexing
+            for ai in plan.actions:
+                action = ai.action
+                assert isinstance(action, unified_planning.model.InstantaneousAction)
+                count = count + 1
+                events = simulator.get_events(action, ai.actual_parameters)
+                assert len(events) < 2, f"{str(ai)} + {len(events)}"
+                for event in events:
+                    if not simulator.is_applicable(event, current_state):
+                        error = f"Preconditions {event.conditions} of {str(count)}-th action instance {str(ai)} are not satisfied."
+                        logs = [LogMessage(LogLevel.ERROR, error)]
+                        return ValidationResult(
+                            ValidationResultStatus.INVALID, self.name, logs
+                        )
+                    current_state = simulator.apply_unsafe(event, current_state)
+            unsatisfied_goals = simulator.get_unsatisfied_goals(current_state)
+            if len(unsatisfied_goals) == 0:
+                return ValidationResult(ValidationResultStatus.VALID, self.name, [])
+            else:
+                error = f"Goals {unsatisfied_goals} are not satisfied by the plan."
+                logs = [LogMessage(LogLevel.ERROR, error)]
+                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)

@@ -16,11 +16,14 @@
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
+from unified_planning.engines.meta_engine import MetaEngine
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
+from unified_planning.engines.mixins.compiler import CompilerMixin, CompilationKind
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
+from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.walkers import StateEvaluator
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Type, Union, cast
 
 
 class InstantaneousEvent(Event):
@@ -49,27 +52,48 @@ class InstantaneousEvent(Event):
         return self._simulated_effect
 
 
-class SequentialSimulator(Engine, SimulatorMixin):
+class SequentialSimulator(MetaEngine, SimulatorMixin):
     """
     Sequential SimulatorMixin implementation.
     """
 
-    def __init__(self, problem: "up.model.Problem"):
-        Engine.__init__(self)
+    def __init__(
+        self,
+        problem: "up.model.Problem",
+        *args,
+        **kwargs,
+    ):
+        MetaEngine.__init__(self, *args, **kwargs)
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
-        assert Grounder.supports(pk)
+
+        # Safety checks
+        if not self._engine.supports_compilation(CompilationKind.GROUNDING):
+            raise UPUsageError(
+                f"The grounder class {self._engine} given to the SequentialSimulator does not support the GROUNDING CompilationKind!"
+            )
+        if not self._engine.supports(pk):
+            raise UPUsageError(
+                f"The grounder class {self._engine} does not support the problem {problem.name}!"
+            )
         assert isinstance(self._problem, up.model.Problem)
-        grounder = Grounder()
+        if not self.supports(pk):
+            raise UPUsageError(
+                f"The problem {problem.name} is not supported by {self.name}!"
+            )
+
+        # problem grounding
+        grounder = self._engine
         self._grounding_result = grounder.compile(
             self._problem, up.engines.CompilationKind.GROUNDING
         )
-
         grounded_problem: "up.model.Problem" = cast(
             up.model.Problem, self._grounding_result.problem
         )
         lift_map = self._grounding_result.map_back_action_instance
         assert lift_map is not None
+
+        # events creation
         self._events: Dict[
             Tuple["up.model.Action", Tuple["up.model.FNode", ...]], List[Event]
         ] = {}
@@ -250,10 +274,18 @@ class SequentialSimulator(Engine, SimulatorMixin):
 
     @property
     def name(self) -> str:
-        return "sequential_simulator"
+        return f"sequential_simulator[{self._engine.name}]"
 
     @staticmethod
-    def supported_kind() -> "up.model.ProblemKind":
+    def is_compatible_engine(engine: Type[Engine]) -> bool:
+        """Returns true iff the given engine is compatible with this meta engine"""
+        return issubclass(engine, CompilerMixin) and engine.supports_compilation(
+            CompilationKind.GROUNDING
+        )
+
+    @staticmethod
+    def _supported_kind(engine: Type[Engine]) -> ProblemKind:
+        """Returns the supported kind of this meta engine with the given engine"""
         supported_kind = up.model.ProblemKind()
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
@@ -273,8 +305,10 @@ class SequentialSimulator(Engine, SimulatorMixin):
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        return supported_kind
+        return engine.supported_kind().intersection(supported_kind)
 
     @staticmethod
-    def supports(problem_kind):
-        return problem_kind <= SequentialSimulator.supported_kind()
+    def _supports(problem_kind: ProblemKind, engine: Type[Engine]) -> bool:
+        """Returns true iff the given problem kind is supported by this meta
+        engine with the given engine"""
+        return problem_kind <= SequentialSimulator._supported_kind(engine)

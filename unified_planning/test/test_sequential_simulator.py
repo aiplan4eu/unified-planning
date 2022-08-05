@@ -142,12 +142,13 @@ class TestSimulator(TestCase):
 
         self.assertTrue(simulator.is_goal(state))
 
-    def test_with_sequential_simualtor_instance(self):
+    def test_with_sequential_simulator_instance(self):
         problem = self.problems["hierarchical_blocks_world"].problem
-        simulator = SequentialSimulator(problem)
-        self.simulate_on_hierarchical_blocks_world(simulator, problem)
+        with Compiler(name="up_grounder") as grounder:
+            simulator = (SequentialSimulator[grounder])(problem)
+            self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
-    def test_with_smulator_from_factory(self):
+    def test_with_simulator_from_factory(self):
         problem = self.problems["hierarchical_blocks_world"].problem
         with Simulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)

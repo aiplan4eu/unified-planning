@@ -42,10 +42,6 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
     ),
-    "sequential_simulator": (
-        "unified_planning.engines.sequential_simulator",
-        "SequentialSimulator",
-    ),
     "up_conditional_effects_remover": (
         "unified_planning.engines.compilers.conditional_effects_remover",
         "ConditionalEffectsRemover",
@@ -73,6 +69,10 @@ DEFAULT_META_ENGINES = {
     "oversubscription": (
         "unified_planning.engines.oversubscription_planner",
         "OversubscriptionPlanner",
+    ),
+    "sequential_simulator": (
+        "unified_planning.engines.sequential_simulator",
+        "SequentialSimulator",
     ),
 }
 
