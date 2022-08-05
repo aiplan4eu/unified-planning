@@ -70,11 +70,13 @@ class ExpressionManager(object):
     def _polymorph_args_to_tuple(
         self, *args: Union[Expression, Iterable[Expression]]
     ) -> Tuple[Expression, ...]:
-        """Helper function to return a tuple of arguments from args.
+        """
+        Helper function to return a tuple of arguments from args.
         This function is used to allow N-ary operators to express their arguments
         both as a list of arguments or as a tuple of arguments: e.g.,
            And([a,b,c]) and And(a,b,c)
-        are both valid, and they are converted into a tuple (a,b,c)"""
+        are both valid, and they are converted into a tuple (a,b,c)
+        """
 
         res = []
         for p in args:
@@ -87,6 +89,13 @@ class ExpressionManager(object):
     def auto_promote(
         self, *args: Union[Expression, Iterable[Expression]]
     ) -> List["up.model.fnode.FNode"]:
+        """
+        Method that takes an iterable of expressions and returns the list
+        of these expressions casted to FNode.
+
+        :param args: The iterable of expression that must be promoted to FNode.
+        :return: The resulting list of FNode.
+        """
         tuple_args = self._polymorph_args_to_tuple(*args)
         res = []
         for e in tuple_args:

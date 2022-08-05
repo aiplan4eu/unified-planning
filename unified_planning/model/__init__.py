@@ -31,6 +31,7 @@ from unified_planning.model.problem import Problem
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.state import ROState, COWState, UPCOWState
 from unified_planning.model.timing import (
+    Timepoint,
     TimepointKind,
     Timing,
     StartTiming,

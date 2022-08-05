@@ -25,12 +25,27 @@ from typing import List, Callable, Dict
 
 
 class EffectKind(Enum):
+    """
+    The Enum representing the possible effects in the unified_planning.
+
+    The semantic is the following of an effect with fluent F, value V and condition C:
+    ASSIGN   => if C then F <= V
+    INCREASE => if C then F <= F + V
+    DECREASE => if C then F <= F - V
+    """
+
     ASSIGN = auto()
     INCREASE = auto()
     DECREASE = auto()
 
 
 class Effect:
+    """
+    This class represent an effect. It has a Fluent, modified by this effect, a value
+    that determines how the fluent is modified, a condition that determines if the effect
+    is actually applied or not and an EffectKind that determines the semantic of the effect.
+    """
+
     def __init__(
         self,
         fluent: "up.model.fnode.FNode",
@@ -85,7 +100,10 @@ class Effect:
         return new_effect
 
     def is_conditional(self) -> bool:
-        """Returns True if the Effect condition is not True."""
+        """
+        Returns True if the Effect condition is not True; this means that the effect might
+        not always be applied but depends on the runtime evaluation of it's condition.
+        """
         return not self._condition.is_true()
 
     @property
@@ -99,7 +117,11 @@ class Effect:
         return self._value
 
     def set_value(self, new_value: "up.model.fnode.FNode"):
-        """Sets the value given to the Fluent by this Effect."""
+        """
+        Sets the value given to the Fluent by this Effect.
+
+        :param new_value: The value that will be set as this effect's value.
+        """
         self._value = new_value
 
     @property
@@ -108,7 +130,11 @@ class Effect:
         return self._condition
 
     def set_condition(self, new_condition: "up.model.fnode.FNode"):
-        """Sets the condition required for this Effect to be applied."""
+        """
+        Sets the condition required for this Effect to be applied.
+
+        :param new_condition: The expression set as this effect's condition.
+        """
         self._condition = new_condition
 
     @property
@@ -118,18 +144,19 @@ class Effect:
 
     @property
     def environment(self) -> "up.environment.Environment":
+        """Returns this effect's environment."""
         return self._fluent.environment
 
     def is_assignment(self) -> bool:
-        """Returns True if the kind of this Effect is an assignment."""
+        """Returns True if the kind of this Effect is an assignment, False otherwise."""
         return self._kind == EffectKind.ASSIGN
 
     def is_increase(self) -> bool:
-        """Returns True if the kind of this Effect is an increase."""
+        """Returns True if the kind of this Effect is an increase, False otherwise."""
         return self._kind == EffectKind.INCREASE
 
     def is_decrease(self) -> bool:
-        """Returns True if the kind of this Effect is a decrease."""
+        """Returns True if the kind of this Effect is a decrease, False otherwise."""
         return self._kind == EffectKind.DECREASE
 
 
@@ -183,6 +210,7 @@ class SimulatedEffect:
 
     @property
     def fluents(self) -> List["up.model.fnode.FNode"]:
+        """Returns the list of fluents modified by this SimulatedEffect."""
         return self._fluents
 
     @property
@@ -196,4 +224,8 @@ class SimulatedEffect:
         ],
         List["up.model.fnode.FNode"],
     ]:
+        """
+        Return the function that contains the information on how the fluents of this SimulatedEffect
+        are modified when the simulated effect is applied.
+        """
         return self._function

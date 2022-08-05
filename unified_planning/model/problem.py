@@ -42,7 +42,7 @@ class Problem(
     ActionsSetMixin,
     ObjectsSetMixin,
 ):
-    """Represents a, action based planning problem."""
+    """Represents an action based planning problem."""
 
     def __init__(
         self,

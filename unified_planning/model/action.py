@@ -91,11 +91,16 @@ class Action:
         return list(self._parameters.values())
 
     def parameter(self, name: str) -> "up.model.parameter.Parameter":
-        """Returns the parameter of the action with the given name."""
+        """
+        Returns the parameter of the action with the given name.
+
+        :param name: The name of the searched parameter.
+        :return: The parameter of the action witht eh given name.
+        """
         return self._parameters[name]
 
     def is_conditional(self) -> bool:
-        """Returns True if the action has conditional effects."""
+        """Returns True if the action has conditional effects, False otherwise."""
         raise NotImplementedError
 
 
@@ -200,7 +205,7 @@ class InstantaneousAction(Action):
         return self._effects
 
     def clear_effects(self):
-        """Removes all effects."""
+        """Removes all the action's effects."""
         self._effects = []
         self._fluents_assigned = set()
         self._fluents_inc_dec = set()
@@ -214,7 +219,7 @@ class InstantaneousAction(Action):
         return [e for e in self._effects if e.is_conditional()]
 
     def is_conditional(self) -> bool:
-        """Returns True if the action has conditional effects."""
+        """Returns True if the action has conditional effects, False otherwise."""
         return any(e.is_conditional() for e in self._effects)
 
     @property
@@ -234,7 +239,11 @@ class InstantaneousAction(Action):
             bool,
         ],
     ):
-        """Adds the given action precondition."""
+        """
+        Adds the given expression to action's preconditions.
+
+        :param precondition: The expression that must be added to the action's preconditions.
+        """
         (precondition_exp,) = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         if precondition_exp == self._env.expression_manager.TRUE():
@@ -253,7 +262,14 @@ class InstantaneousAction(Action):
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given action effect."""
+        """
+        Adds the given assignment to the action's effects.
+
+        :param fluent: The fluent which value is modified by the assignment.
+        :param value: The value to assign to the given fluent.
+        :param condition: The condition in which this effect is applied; the default
+        value is True.
+        """
         (
             fluent_exp,
             value_exp,
@@ -274,7 +290,14 @@ class InstantaneousAction(Action):
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given action increase effect."""
+        """
+        Adds the given increase effect to the action's effects.
+
+        :param fluent: The fluent which value is increased.
+        :param value: The given fluent is incremented by the given value.
+        :param condition: The condition in which this effect is applied; the default
+        value is True.
+        """
         (
             fluent_exp,
             value_exp,
@@ -302,7 +325,14 @@ class InstantaneousAction(Action):
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given action decrease effect."""
+        """
+        Adds the given decrease effect to the action's effects.
+
+        :param fluent: The fluent which value is decrease.
+        :param value: The given fluent is decremented by the given value.
+        :param condition: The condition in which this effect is applied; the default
+        value is True.
+        """
         (
             fluent_exp,
             value_exp,
@@ -361,7 +391,12 @@ class InstantaneousAction(Action):
         return self._simulated_effect
 
     def set_simulated_effect(self, simulated_effect: "up.model.effect.SimulatedEffect"):
-        """Sets the given simulated effect."""
+        """
+        Sets the given simulated effect as the only action's simulated effect.
+
+        :param simulated_effect: The SimulatedEffect instance that must be set as this action's only
+        simulated effect.
+        """
         for f in simulated_effect.fluents:
             if f in self._fluents_assigned or f in self._fluents_inc_dec:
                 raise UPConflictingEffectsException(
@@ -520,7 +555,11 @@ class DurativeAction(Action):
     def conditions(
         self,
     ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
-        """Returns the action conditions."""
+        """
+        Returns the action conditions; a map from TimeInterval to a list of Expressions
+        indicating that for this action to be applicable, during the whole TimeInterval
+        set as key, all the expression in the mapped list must evaluate to True.
+        """
         return self._conditions
 
     def clear_conditions(self):
@@ -529,7 +568,7 @@ class DurativeAction(Action):
 
     @property
     def effects(self) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
-        """Returns the action effects."""
+        """Returns the all the action's effects."""
         return self._effects
 
     def clear_effects(self):
@@ -542,10 +581,12 @@ class DurativeAction(Action):
     def conditional_effects(
         self,
     ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
-        """Return the action conditional effects.
+        """
+        Return the action conditional effects.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             cond_effect_list = [e for e in effect_list if e.is_conditional()]
@@ -557,10 +598,12 @@ class DurativeAction(Action):
     def unconditional_effects(
         self,
     ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
-        """Return the action unconditional effects.
+        """
+        Return the action unconditional effects.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         retval: Dict[up.model.timing.Timing, List[up.model.effect.Effect]] = {}
         for timing, effect_list in self._effects.items():
             uncond_effect_list = [e for e in effect_list if not e.is_conditional()]
@@ -569,11 +612,15 @@ class DurativeAction(Action):
         return retval
 
     def is_conditional(self) -> bool:
-        """Returns True if the action has conditional effects."""
+        """Returns True if the action has conditional effects, False otherwise."""
         return any(e.is_conditional() for l in self._effects.values() for e in l)
 
     def set_duration_constraint(self, duration: "up.model.timing.DurationInterval"):
-        """Sets the duration interval."""
+        """
+        Sets the duration interval for this action.
+
+        :param duration: The new duration interval of this action.
+        """
         lower, upper = duration.lower, duration.upper
         tlower = self._env.type_checker.get_type(lower)
         tupper = self._env.type_checker.get_type(upper)
@@ -596,6 +643,11 @@ class DurativeAction(Action):
         self._duration = duration
 
     def set_fixed_duration(self, value: Union["up.model.fnode.FNode", int, Fraction]):
+        """
+        Sets the duration interval for this action as the interval [value, value].
+
+        :param value: The value set as both edges of this action's duration.
+        """
         (value_exp,) = self._env.expression_manager.auto_promote(value)
         self.set_duration_constraint(up.model.timing.FixedDuration(value_exp))
 
@@ -604,6 +656,12 @@ class DurativeAction(Action):
         lower: Union["up.model.fnode.FNode", int, Fraction],
         upper: Union["up.model.fnode.FNode", int, Fraction],
     ):
+        """
+        Sets the duration interval for this action as the interval [lower, upper].
+
+        :param lower: The value set as the lower edge of this action's duration.
+        :param upper: The value set as the upper edge of this action's duration.
+        """
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
         self.set_duration_constraint(
             up.model.timing.ClosedDurationInterval(lower_exp, upper_exp)
@@ -614,6 +672,14 @@ class DurativeAction(Action):
         lower: Union["up.model.fnode.FNode", int, Fraction],
         upper: Union["up.model.fnode.FNode", int, Fraction],
     ):
+        """
+        Sets the duration interval for this action as the interval ]lower, upper[.
+
+        :param lower: The value set as the lower edge of this action's duration.
+        :param upper: The value set as the upper edge of this action's duration.
+
+        Note that lower and upper are not part of the interval.
+        """
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
         self.set_duration_constraint(
             up.model.timing.OpenDurationInterval(lower_exp, upper_exp)
@@ -624,6 +690,14 @@ class DurativeAction(Action):
         lower: Union["up.model.fnode.FNode", int, Fraction],
         upper: Union["up.model.fnode.FNode", int, Fraction],
     ):
+        """
+        Sets the duration interval for this action as the interval ]lower, upper].
+
+        :param lower: The value set as the lower edge of this action's duration.
+        :param upper: The value set as the upper edge of this action's duration.
+
+        Note that lower is not part of the interval.
+        """
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
         self.set_duration_constraint(
             up.model.timing.LeftOpenDurationInterval(lower_exp, upper_exp)
@@ -634,6 +708,14 @@ class DurativeAction(Action):
         lower: Union["up.model.fnode.FNode", int, Fraction],
         upper: Union["up.model.fnode.FNode", int, Fraction],
     ):
+        """
+        Sets the duration interval for this action as the interval [lower, upper[.
+
+        :param lower: The value set as the lower edge of this action's duration.
+        :param upper: The value set as the upper edge of this action's duration.
+
+        Note that upper is not part of the interval.
+        """
         lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
         self.set_duration_constraint(
             up.model.timing.RightOpenDurationInterval(lower_exp, upper_exp)
@@ -649,7 +731,15 @@ class DurativeAction(Action):
             bool,
         ],
     ):
-        """Adds the given condition."""
+        """
+        Adds the given expression to the action's conditions. For this action to be applicable
+        the given expression must evaluate to True during the whole given interval.
+
+        :param interval: The interval in which the given expression must evaluate to True for this
+        action to be applicable.
+        :param condition: The expression that must be True in the given interval for this
+        action to be applicable.
+        """
         if isinstance(interval, up.model.Timing):
             interval = up.model.TimePointInterval(interval)
         (condition_exp,) = self._env.expression_manager.auto_promote(condition)
@@ -674,7 +764,15 @@ class DurativeAction(Action):
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given action effect."""
+        """
+        At the given time, adds the given assignment to the action's effects.
+
+        :param timing: The exact time in which the assignment is applied.
+        :param fluent: The fluent which value is modified by the assignment.
+        :param value: The value to assign to the given fluent.
+        :param condition: The condition in which this effect is applied; the default
+        value is True.
+        """
         (
             fluent_exp,
             value_exp,
@@ -696,7 +794,15 @@ class DurativeAction(Action):
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given action increase effect."""
+        """
+        At the given time, adds the given increment to the action's effects.
+
+        :param timing: The exact time in which the increment is applied.
+        :param fluent: The fluent which value is incremented by the added effect.
+        :param value: The given fluent is incremented by the given value.
+        :param condition: The condition in which this effect is applied; the default
+        value is True.
+        """
         (
             fluent_exp,
             value_exp,
@@ -726,7 +832,15 @@ class DurativeAction(Action):
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given action decrease effect."""
+        """
+        At the given time, adds the given decrement to the action's effects.
+
+        :param timing: The exact time in which the decrement is applied.
+        :param fluent: The fluent which value is decremented by the added effect.
+        :param value: The given fluent is decremented by the given value.
+        :param condition: The condition in which this effect is applied; the default
+        value is True.
+        """
         (
             fluent_exp,
             value_exp,
@@ -794,7 +908,12 @@ class DurativeAction(Action):
         timing: "up.model.timing.Timing",
         simulated_effect: "up.model.effect.SimulatedEffect",
     ):
-        """Sets the given simulated effect at the specified timing"""
+        """
+        Sets the given simulated effect at the specified timing.
+
+        :param timing: The time in which the simulated effect must be applied.
+        :param simulated effects: The simulated effect that must be applied at the given timing.
+        """
         for f in simulated_effect.fluents:
             if f in self._fluents_assigned.get(
                 timing, set()

@@ -19,7 +19,12 @@ from typing import Optional
 
 
 class AbstractProblem:
-    """This is an abstract class that represents a generic planning problem"""
+    """
+    This is an abstract class that represents a generic planning problem.
+
+    Together with the up.model.mixins classes it defines the most common
+    functionalities of planning problems.
+    """
 
     def __init__(self, name: str = None, env: "up.environment.Environment" = None):
         self._env = up.environment.get_env(env)
@@ -49,11 +54,22 @@ class AbstractProblem:
         raise NotImplementedError
 
     def has_name(self, name: str) -> bool:
-        """Returns True iff the given name is already used inside this problem."""
+        """
+        Returns True the given name is already used inside this problem,
+        False otherwise.
+
+        :param name: The target name to search in the problem.
+        :return: True if the name is already used in the problem, False otherwise.
+        """
         raise NotImplementedError
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
-        """Normalizes the given plan, that is potentially the result of another
+        """
+        Normalizes the given plan, that is potentially the result of another
         problem, updating the object references present in it with the ones of
-        this problem which are syntactically equal."""
+        this problem which are syntactically equal.
+
+        :param plan: The plan that must be normalized.
+        :return: A plan syntactically valid for this problem.
+        """
         raise NotImplementedError
