@@ -493,7 +493,7 @@ class Factory:
                     problem_kind, compilation_kind
                 )
                 all_credits.append(EngineClass.get_credits(**param))
-                compiler = EngineClass(**param)  # type: ignore
+                compiler = EngineClass(**param)
                 compiler.default = compilation_kind
                 compilers.append(compiler)
             self._print_credits(all_credits)
@@ -522,8 +522,8 @@ class Factory:
                 )
                 res = EngineClass(problem=problem, **params)
             elif engine_kind == "compiler":
-                assert issubclass(EngineClass, CompilerMixin)
-                res = EngineClass(**params)  # type: ignore
+                res = EngineClass(**params)
+                assert isinstance(res, CompilerMixin)
                 res.default = compilation_kind
             else:
                 res = EngineClass(**params)
