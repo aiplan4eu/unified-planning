@@ -105,17 +105,20 @@ class Fluent:
 
     @property
     def signature(self) -> List["up.model.parameter.Parameter"]:
-        """Returns the fluent signature.
-        The signature is the List of Parameters.
+        """
+        Returns the fluent signature.
+        The signature is the List of Parameters indicating the types compatible with this fluent.
         """
         return self._signature
 
     @property
     def arity(self) -> int:
-        """Returns the fluent arity.
+        """
+        Returns the fluent arity.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         return len(self._signature)
 
     @property
@@ -126,7 +129,12 @@ class Fluent:
     def __call__(
         self, *args: "up.model.expression.Expression"
     ) -> "up.model.fnode.FNode":
-        """Returns a fluent expression with the given parameters."""
+        """
+        Returns a fluent expression with the given parameters.
+
+        :param args: The expressions used as this fluent's parameters in the created expression.
+        :return: The created FluentExp.
+        """
         return self._env.expression_manager.FluentExp(self, args)
 
     #
