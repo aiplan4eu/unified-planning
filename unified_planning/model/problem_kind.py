@@ -81,6 +81,14 @@ class ProblemKindMeta(type):
 
 @total_ordering
 class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
+    """
+    This class represents the main interesting feature that a planning problem can have in order to understand
+    if an engine is capable of solving the problem or not; some features might also help the engine, allowing
+    some assumptions to be made.
+
+    The ProblemKind of a Problem is calculated by it's kind property.
+    """
+
     def __init__(self, features: Set[str] = set()):
         self._features: Set[str] = set(features)
 

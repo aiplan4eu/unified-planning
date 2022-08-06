@@ -23,7 +23,15 @@ import unified_planning.model.types
 
 
 class Object:
-    """Represents an object."""
+    """
+    Represents an Object of the unified_planning library.
+
+    An Object contains 2 parts:
+    - name: a string containing the Object's name.
+    - type: a unified_planning.model.Type representing the planning user_type associated to this object.
+
+    The Object class is immutable.
+    """
 
     def __init__(
         self,

@@ -26,6 +26,17 @@ FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "pay
 
 
 class FNode(object):
+
+    """
+    The FNode class represents an expression tree in the unified_planning library.
+
+    Since the FNode is immutable and the same expression can be used in more than one expression tree, it
+    is actually a DAG, but the signle expression can be seen as a tree for simplicity.
+
+    All the expressions are managed by the ExpressionManager in the environment, so this class should never
+    be instantiated or modified by the user.
+    """
+
     __slots__ = ["_content", "_node_id", "_env"]
 
     def __init__(self, content: FNodeContent, node_id: int, environment: Environment):
@@ -105,19 +116,22 @@ class FNode(object):
 
     @property
     def node_id(self) -> int:
+        """Returns the id of this expression."""
         return self._node_id
 
     @property
     def node_type(self) -> OperatorKind:
+        """Returns the OperatorKind that defines the semantic of this expression."""
         return self._content.node_type
 
     @property
     def environment(self) -> Environment:
+        """Returns the environment in which this expression exists."""
         return self._env
 
     @property
     def args(self) -> List["FNode"]:
-        """Returns the subexpressions."""
+        """Returns the subexpressions of this expression."""
         return self._content.args
 
     @property
@@ -126,11 +140,16 @@ class FNode(object):
         return self._env.type_checker.get_type(self)
 
     def arg(self, idx: int) -> "FNode":
-        """Return the given subexpression at the given position."""
+        """
+        Return the given subexpression at the given position.
+
+        :param idx: The index of the wanted subexpression.
+        :return: The expression at the position idx.
+        """
         return self._content.args[idx]
 
     def is_constant(self) -> bool:
-        """Test whether the expression is a constant."""
+        """Returns True if the expression is a constant, False otherwise."""
         return (
             self.node_type == OperatorKind.BOOL_CONSTANT
             or self.node_type == OperatorKind.INT_CONSTANT
@@ -139,37 +158,37 @@ class FNode(object):
         )
 
     def constant_value(self) -> Union[bool, int, Fraction]:
-        """Return the value of the Constant."""
+        """Returns the constant value stored in this expression."""
         assert self.is_constant()
         return self._content.payload
 
     def bool_constant_value(self) -> bool:
-        """Return the bool value of the Constant."""
+        """Return constant boolean value stored in this expression."""
         assert self.is_bool_constant()
         return self._content.payload
 
     def int_constant_value(self) -> int:
-        """Return the int value of the Constant."""
+        """Return constant integer value stored in this expression."""
         assert self.is_int_constant()
         return self._content.payload
 
     def real_constant_value(self) -> Fraction:
-        """Return the real value of the Constant."""
+        """Return constant real value stored in this expression."""
         assert self.is_real_constant()
         return self._content.payload
 
     def fluent(self) -> "unified_planning.model.fluent.Fluent":
-        """Return the fluent of the FluentExp."""
+        """Return the Fluent stored in this expression."""
         assert self.is_fluent_exp()
         return self._content.payload
 
     def parameter(self) -> "unified_planning.model.parameter.Parameter":
-        """Return the parameter of the ParameterExp."""
+        """Return the Parameter stored in this expression."""
         assert self.is_parameter_exp()
         return self._content.payload
 
     def variable(self) -> "unified_planning.model.variable.Variable":
-        """Return the variable of the VariableExp."""
+        """Return the Variable stored in this expression."""
         assert self.is_variable_exp()
         return self._content.payload
 
@@ -179,17 +198,21 @@ class FNode(object):
         return list(self._content.payload)
 
     def object(self) -> "unified_planning.model.object.Object":
-        """Return the object of the ObjectExp."""
+        """Return the Object stored in this expression."""
         assert self.is_object_exp()
         return self._content.payload
 
     def timing(self) -> "unified_planning.model.timing.Timing":
-        """Return the object of the TimingExp."""
+        """Return the Timing stored in this expression."""
         assert self.is_timing_exp()
         return self._content.payload
 
     def simplify(self) -> "FNode":
-        """Returns the simplified version of this expression."""
+        """
+        Returns the simplified version of this expression.
+
+        The simplification is done just by constant propagation.
+        """
         return self._env.simplifier.simplify(self)
 
     def is_bool_constant(self) -> bool:

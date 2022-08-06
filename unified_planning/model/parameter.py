@@ -23,8 +23,12 @@ import unified_planning as up
 
 
 class Parameter:
-    """Represents an action parameter or a fluent parameter.
-    A parameter has a name, and a type."""
+    """
+    Represents an action parameter or a fluent parameter.
+    A parameter has a name, and a type.
+
+    The Parameter class is immutable.
+    """
 
     def __init__(
         self,
