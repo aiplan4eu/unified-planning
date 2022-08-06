@@ -280,7 +280,7 @@ class SequentialSimulator(MetaEngine, SimulatorMixin):
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
         """Returns true iff the given engine is compatible with this meta engine"""
-        return engine.is_compiler() and engine.supports_compilation(
+        return issubclass(engine, CompilerMixin) and engine.supports_compilation(
             CompilationKind.GROUNDING
         )
 
