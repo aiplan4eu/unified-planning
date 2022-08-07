@@ -21,7 +21,7 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
 class Type:
-    """Basic class for representing a type."""
+    """Base class for representing a type."""
 
     def is_bool_type(self) -> bool:
         """Returns true iff is boolean type."""
@@ -44,7 +44,13 @@ class Type:
         return False
 
     def is_compatible(self, t_right: "Type") -> bool:
-        """Returns True if the type t_right can be assigned to a fluent that which type is self."""
+        """
+        Returns True if the type t_right can be assigned to a fluent that which type is self.
+        Note that types compatibility is not a simmetric property.
+
+        :param t_right: The type tested for compatibility.
+        :return: True if something the given type can always be assigned to a fluent with self type.
+        """
         return is_compatible_type(self, t_right)
 
 
@@ -94,12 +100,12 @@ class _UserType(Type):
 
     @property
     def father(self) -> Optional[Type]:
-        """Returns the type s father."""
+        """Returns the type's father."""
         return self._father
 
     @property
     def ancestors(self) -> Iterator[Type]:
-        """Returns all the ancestors of the given UserType, including itself."""
+        """Returns all the ancestors of this type, including itself."""
         type: Optional[Type] = self
         while type is not None:
             yield type
@@ -110,8 +116,14 @@ class _UserType(Type):
         return True
 
     def is_subtype(self, t: Type) -> bool:
-        """Returns true iff is a subtype of the given type."""
-        assert t.is_user_type()
+        """
+        Returns true iff the given type is a subtype of the given type.
+        Note: t is a subtype of self if t is in the self's ancestors (or if t and self are the same type).
+
+        :param t: The type tested for subtyping.
+        :return: True if the given type is a subtype of self.
+        """
+        assert t.is_user_type(), "Subtyping is only available for UserTypes."
         p: Optional[Type] = self
         while p is not None:
             if p == t:
@@ -121,6 +133,8 @@ class _UserType(Type):
 
 
 class _IntType(Type):
+    """Represents an Integer type. The given bounds are not semantically bounding for the planners."""
+
     def __init__(self, lower_bound: int = None, upper_bound: int = None):
         Type.__init__(self)
         self._lower_bound = lower_bound
@@ -138,10 +152,12 @@ class _IntType(Type):
 
     @property
     def lower_bound(self) -> Optional[int]:
+        """Returns this type lower bound."""
         return self._lower_bound
 
     @property
     def upper_bound(self) -> Optional[int]:
+        """Returns this type upper bound."""
         return self._upper_bound
 
     def is_int_type(self) -> bool:
@@ -149,6 +165,8 @@ class _IntType(Type):
 
 
 class _RealType(Type):
+    """Represents a Real type. The given bounds are not semantically bounding for the planners."""
+
     def __init__(self, lower_bound: Fraction = None, upper_bound: Fraction = None):
         Type.__init__(self)
         self._lower_bound = lower_bound
@@ -166,10 +184,12 @@ class _RealType(Type):
 
     @property
     def lower_bound(self) -> Optional[Fraction]:
+        """Returns this type lower bound."""
         return self._lower_bound
 
     @property
     def upper_bound(self) -> Optional[Fraction]:
+        """Returns this type upper bound."""
         return self._upper_bound
 
     def is_real_type(self) -> bool:
@@ -181,6 +201,8 @@ TIME = _TimeType()
 
 
 class TypeManager:
+    """Class that manages the types in the environment."""
+
     def __init__(self):
         self._bool = BOOL
         self._ints: Dict[Tuple[Optional[int], Optional[int]], Type] = {}
@@ -188,6 +210,12 @@ class TypeManager:
         self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
 
     def has_type(self, type: Type) -> bool:
+        """
+        Returns True if the given type is already defined in this environment.
+
+        :param type: The type searched in this environment.
+        :return: True if the given type is found, False otherwise.
+        """
         if type.is_bool_type():
             return type == self._bool
         elif type.is_int_type():
@@ -205,9 +233,18 @@ class TypeManager:
             raise NotImplementedError
 
     def BoolType(self) -> Type:
+        """Returns this environment's boolean type."""
         return self._bool
 
     def IntType(self, lower_bound: int = None, upper_bound: int = None) -> Type:
+        """
+        Returns the integer type defined in this environment with the given bounds.
+        If the type already exists, it is returned, otherwise it is created and returned.
+
+        :param lower_bound: The integer used as this type's lower bound.
+        :param upper_bound: The integer used as this type's upper bound.
+        :return: The retrieved or created type.
+        """
         k = (lower_bound, upper_bound)
         if k in self._ints:
             return self._ints[k]
@@ -219,6 +256,14 @@ class TypeManager:
     def RealType(
         self, lower_bound: Fraction = None, upper_bound: Fraction = None
     ) -> Type:
+        """
+        Returns the real type defined in this environment with the given bounds.
+        If the type already exists, it is returned, otherwise it is created and returned.
+
+        :param lower_bound: The Fraction used as this type's lower bound.
+        :param upper_bound: The Fraction used as this type's upper bound.
+        :return: The retrieved or created type.
+        """
         k = (lower_bound, upper_bound)
         if k in self._reals:
             return self._reals[k]
@@ -228,6 +273,14 @@ class TypeManager:
             return rt
 
     def UserType(self, name: str, father: Optional[Type] = None) -> Type:
+        """
+        Returns the user type defined in this environment with the given name and father.
+        If the type already exists, it is returned, otherwise it is created and returned.
+
+        :param name: The name of this user type.
+        :param father: The user type that must be set as the father for this type.
+        :return:  The retrieved or created type.
+        """
         if (name, father) in self._user_types:
             return self._user_types[(name, father)]
         else:
@@ -292,10 +345,13 @@ def is_compatible_type(
     t_left: "Type",
     t_right: "Type",
 ) -> bool:
-    """Returns True if the type t_right can be assigned to a typed up object that has type t_left.
+    """
+    Returns True if the type t_right can be assigned to a typed up object that has type t_left.
+
     :param t_left: the target type for the assignment.
     :param t_right: the type of the element that wants to be assigned to the element of type t_left.
-    :return: True if the element of type t_left can be assigned to the element of type t_right; False otherwise."""
+    :return: True if the element of type t_left can be assigned to the element of type t_right; False otherwise.
+    """
     if t_left == t_right:
         return True
     if t_left.is_user_type() and t_right.is_user_type():

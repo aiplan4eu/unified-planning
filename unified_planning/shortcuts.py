@@ -28,130 +28,339 @@ from fractions import Fraction
 
 
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    """
+    Returns a conjunction of terms.
+    This function has polimorphic n-arguments:
+        - And(a,b,c)
+        - And([a,b,c])
+    Restriction: Arguments must be boolean.
+
+    :param *args: Either an Iterable of boolean expressions, like '[a, b, c]', or an unpacked version
+    of it, like 'a, b, c'.
+    :return: The AND expression created.
+    """
     return get_env().expression_manager.And(*args)
 
 
 def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    """
+    Returns an disjunction of terms.
+    This function has polimorphic n-arguments:
+        - Or(a,b,c)
+        - Or([a,b,c])
+    Restriction: Arguments must be boolean
+
+    :param *args: Either an Iterable of boolean expressions, like '[a, b, c]', or an unpacked version
+    of it, like 'a, b, c'.
+    :return: The OR expression created.
+    """
     return get_env().expression_manager.Or(*args)
 
 
 def Not(expression: BoolExpression) -> FNode:
+    """
+    Creates an expression of the form:
+            not expression
+    Restriction: expression must be of boolean type
+
+    :param expression: The boolean expression of which the negation must be created.
+    :return: The created NOT expression.
+    """
     return get_env().expression_manager.Not(expression)
 
 
 def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
+    """
+    Creates an expression of the form:
+        left -> right
+    Restriction: Left and Right must be of boolean type
+
+    :param left: The boolean expression acting as the premise of the Implies.
+    :param right: The boolean expression actiong as the implied part of the Implies.
+    :return: The created Implication.
+    """
     return get_env().expression_manager.Implies(left, right)
 
 
 def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
+    """
+    Creates an expression of the form:
+        left <-> right
+    Semantically, The expression is True only if left and right have the same value.
+    Restriction: Left and Right must be of boolean type
+
+    :param left: The left member of the Iff expression.
+    :param right: The right member of the Iff expression.
+    :return: The created Iff expression.
+    """
     return get_env().expression_manager.Iff(left, right)
 
 
 def Exists(
     expression: BoolExpression, *vars: "unified_planning.model.Variable"
 ) -> FNode:
+    """
+    Creates an expression of the form:
+        Exists (var[0]... var[n]) | expression
+    Restriction: expression must be of boolean type and
+                vars must be of 'up.Variable' type
+
+    :param expression: The main expression of the existential. The expression should contain
+    the given variables.
+    :param *vars: All the Variables appearing in the existential expression.
+    :return: The created Existential expression.
+    """
     return get_env().expression_manager.Exists(expression, *vars)
 
 
 def Forall(
     expression: BoolExpression, *vars: "unified_planning.model.Variable"
 ) -> FNode:
+    """Creates an expression of the form:
+        Forall (var[0]... var[n]) | expression
+    Restriction: expression must be of boolean type and
+                vars must be of 'up.Variable' type
+
+    :param expression: The main expression of the universal quantifier. The expression should contain
+    the given variables.
+    :param *vars: All the Variables appearing in the universal expression.
+    :return: The created Forall expression.
+    """
     return get_env().expression_manager.Forall(expression, *vars)
 
 
 def FluentExp(
     fluent: "unified_planning.model.Fluent", params: Tuple[Expression, ...] = tuple()
 ) -> FNode:
+    """
+    Creates an expression for the given fluent and parameters.
+    Restriction: parameters type must be compatible with the fluent signature
+
+    :param fluent: The Fluent that will be set as the payload of this expression.
+    :param params: The expression acting as parameters for this Fluent; mainly the parameters will
+    be objects (when the FluentExp is grounded) or action's parameters (when the FLuentExp is lifted).
+    :return: The created Fluent Expression.
+    """
     return get_env().expression_manager.FluentExp(fluent, params)
 
 
 def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
+    """
+    Returns an expression for the given action parameter.
+
+    :param param: The Parameter that must be promoted to FNode.
+    :return: The FNode containing the given parameter as his payload.
+    """
     return get_env().expression_manager.ParameterExp(param)
 
 
 def VariableExp(var: "unified_planning.model.Variable") -> FNode:
+    """
+    Returns an expression for the given variable.
+
+    :param var: The Variable that must be promoted to FNode.
+    :return: The FNode containing the given variable as his payload.
+    """
     return get_env().expression_manager.VariableExp(var)
 
 
 def ObjectExp(obj: "unified_planning.model.Object") -> FNode:
+    """
+    Returns an expression for the given object.
+
+    :param obj: The Object that must be promoted to FNode.
+    :return: The FNode containing the given object as his payload.
+    """
     return get_env().expression_manager.ObjectExp(obj)
 
 
 def TRUE() -> FNode:
+    """Return the boolean constant True."""
     return get_env().expression_manager.TRUE()
 
 
 def FALSE() -> FNode:
+    """Return the boolean constant False."""
     return get_env().expression_manager.FALSE()
 
 
 def Bool(value: bool) -> FNode:
+    """
+    Return a boolean constant.
+
+    :param value: The boolean value that must be promoted to FNode.
+    :return: The FNode containing the given value as his payload.
+    """
     return get_env().expression_manager.Bool(value)
 
 
 def Int(value: int) -> FNode:
+    """
+    Return an int constant.
+
+    :param value: The integer that must be promoted to FNode.
+    :return: The FNode containing the given integer as his payload.
+    """
     return get_env().expression_manager.Int(value)
 
 
 def Real(value: Fraction) -> FNode:
+    """
+    Return a real constant.
+
+    :param value: The Fraction that must be promoted to FNode.
+    :return: The FNode containing the given fraction as his payload.
+    """
     return get_env().expression_manager.Real(value)
 
 
 def Plus(*args: Union[Expression, Iterable[Expression]]) -> FNode:
+    """
+    Creates an expression of the form:
+    args[0] + ... + args[n]
+
+    :param *args: Either an Iterable of expressions, like '[a, b, 3]', or an unpacked version
+    of it, like 'a, b, 3'.
+    :return: The PLUS expression created. ('like a + b + 3')
+    """
     return get_env().expression_manager.Plus(*args)
 
 
 def Minus(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of the form: left - right.
+
+    :param left: The Minus minuend.
+    :param right: The Minus subtrahend.
+    :return: The created Minus expression.
+    """
     return get_env().expression_manager.Minus(left, right)
 
 
 def Times(*args: Union[Expression, Iterable[Expression]]) -> FNode:
+    """
+    Creates an expression of the form:
+    args[0] * ... * args[n]
+
+    :param *args: Either an Iterable of expressions, like '[a, b, 3]', or an unpacked version
+    of it, like 'a, b, 3'.
+    :return: The TIMES expression created. ('like a * b * 3')
+    """
     return get_env().expression_manager.Times(*args)
 
 
 def Div(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of the form: left / right.
+
+    :param left: The Div dividend.
+    :param right: The Div divisor.
+    :return: The created DIv expression.
+    """
     return get_env().expression_manager.Div(left, right)
 
 
 def LE(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of the form: left <= right.
+
+    :param left: The left side of the <=.
+    :param right: The right side of the <=.
+    :return: The created LE expression.
+    """
     return get_env().expression_manager.LE(left, right)
 
 
 def GE(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of the form: left >= right.
+
+    :param left: The left side of the >=.
+    :param right: The right side of the >=.
+    :return: The created GE expression.
+    """
     return get_env().expression_manager.GE(left, right)
 
 
 def LT(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of the form: left < right.
+
+    :param left: The left side of the <.
+    :param right: The right side of the <.
+    :return: The created LT expression.
+    """
     return get_env().expression_manager.LT(left, right)
 
 
 def GT(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of the form: left > right.
+
+    :param left: The left side of the >.
+    :param right: The right side of the >.
+    :return: The created GT expression.
+    """
     return get_env().expression_manager.GT(left, right)
 
 
 def Equals(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of the form: left == right.
+
+    NOTE: Is not valid for boolean expression, for those use Iff.
+
+    :param left: The left side of the ==.
+    :param right: The right side of the ==.
+    :return: The created Equals expression.
+    """
     return get_env().expression_manager.Equals(left, right)
 
 
 def BoolType() -> unified_planning.model.types.Type:
+    """Returns the global environment's boolean type."""
     return get_env().type_manager.BoolType()
 
 
 def IntType(
     lower_bound: int = None, upper_bound: int = None
 ) -> unified_planning.model.types.Type:
+    """
+    Returns the integer type defined in the global environment with the given bounds.
+    If the type already exists, it is returned, otherwise it is created and returned.
+
+    :param lower_bound: The integer used as this type's lower bound.
+    :param upper_bound: The integer used as this type's upper bound.
+    :return: The retrieved or created type.
+    """
     return get_env().type_manager.IntType(lower_bound, upper_bound)
 
 
 def RealType(
     lower_bound: Fraction = None, upper_bound: Fraction = None
 ) -> unified_planning.model.types.Type:
+    """
+    Returns the real type defined in this environment with the given bounds.
+    If the type already exists, it is returned, otherwise it is created and returned.
+
+    :param lower_bound: The Fraction used as this type's lower bound.
+    :param upper_bound: The Fraction used as this type's upper bound.
+    :return: The retrieved or created type.
+    """
     return get_env().type_manager.RealType(lower_bound, upper_bound)
 
 
 def UserType(
     name: str, father: Optional[Type] = None
 ) -> unified_planning.model.types.Type:
+    """
+    Returns the user type defined in this environment with the given name and father.
+    If the type already exists, it is returned, otherwise it is created and returned.
+
+    :param name: The name of this user type.
+    :param father: The user type that must be set as the father for this type.
+    :return:  The retrieved or created type.
+    """
     return get_env().type_manager.UserType(name, father)
 
 

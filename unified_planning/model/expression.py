@@ -320,7 +320,8 @@ class ExpressionManager(object):
     def FluentExp(
         self, fluent: "up.model.fluent.Fluent", params: Tuple[Expression, ...] = tuple()
     ) -> "up.model.fnode.FNode":
-        """Creates an expression for the given fluent and parameters.
+        """
+        Creates an expression for the given fluent and parameters.
         Restriction: parameters type must be compatible with the fluent signature
 
         :param fluent: The Fluent that will be set as the payload of this expression.

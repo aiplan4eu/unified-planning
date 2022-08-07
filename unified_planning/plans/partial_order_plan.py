@@ -35,7 +35,8 @@ class PartialOrderPlan(plans.plan.Plan):
         environment: Optional["Environment"] = None,
         _graph: Optional[nx.DiGraph] = None,
     ):
-        """Constructs the PartialOrderPlan using the adjacency list representation.
+        """
+        Constructs the PartialOrderPlan using the adjacency list representation.
 
         :param adjacency_list: The Dictionary representing the adjacency list for this PartialOrderPlan.
         :param env: The environment in which the ActionInstances in the adjacency_list are created.
@@ -120,6 +121,13 @@ class PartialOrderPlan(plans.plan.Plan):
             ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "plans.plan.Plan":
+        """
+        Returns a new PartialOrderPlan where every action of the current plan is replaced using the given function.
+
+        :param replace_function: The function that applied to an ActionInstance A returns the ActionInstance B; B
+        replaces A in the resulting plan.
+        :return: The PartialOrderPlan where every action is replaced using the given function.
+        """
         new_adj_list: Dict[
             "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
         ] = {}
@@ -152,6 +160,12 @@ class PartialOrderPlan(plans.plan.Plan):
     def get_neighbors(
         self, action_instance: ActionInstance
     ) -> Iterator[ActionInstance]:
+        """
+        Returns an Iterator over all the neighbors of the given action instance.
+
+        :param action_instance: The ActionInstance of which neeighbors must be retrieved.
+        :return: The Iterator over all the neighbors of the given action instance.
+        """
         try:
             retval = self._graph.neighbors(action_instance)
         except nx.NetworkXError:

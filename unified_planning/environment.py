@@ -60,31 +60,38 @@ class Environment:
 
     @property
     def free_vars_oracle(self) -> "unified_planning.model.FreeVarsOracle":
+        """Returns the environment's FreeVarsOracle."""
         return self._free_vars_oracle
 
     @property
     def expression_manager(self) -> "unified_planning.model.ExpressionManager":
+        """Returns the environment's ExpressionManager."""
         return self._expression_manager
 
     @property
     def type_manager(self) -> "unified_planning.model.TypeManager":
+        """Returns the environment's TypeManager."""
         return self._type_manager
 
     @property
     def type_checker(self) -> "unified_planning.model.walkers.TypeChecker":
+        """Returns the environment's TypeChecker."""
         """Get the Type Checker"""
         return self._tc
 
     @property
     def factory(self) -> "unified_planning.engines.Factory":
+        """Returns the environment's Factory."""
         return self._factory
 
     @property
     def simplifier(self) -> "unified_planning.model.walkers.Simplifier":
+        """Returns the environment's Simplifier."""
         return self._simplifier
 
     @property
     def free_vars_extractor(self) -> "unified_planning.model.walkers.FreeVarsExtractor":
+        """Returns the environment's FreeVarsExtractor."""
         return self._free_vars_extractor
 
     @property
@@ -102,6 +109,12 @@ GLOBAL_ENVIRONMENT: Optional[Environment] = None
 
 
 def get_env(env: Environment = None) -> Environment:
+    """
+    Returns the given env if it is not None, returns the GLOBAL_ENVIRNMENT otherwise.
+
+    :param env: The environment to return.
+    :return: The given environment if it is not None, the GLOBAL_ENVIRONMENT otherwise.
+    """
     global GLOBAL_ENVIRONMENT
     if env is None:
         if GLOBAL_ENVIRONMENT is None:

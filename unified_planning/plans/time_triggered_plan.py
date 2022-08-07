@@ -30,7 +30,8 @@ class TimeTriggeredPlan(plans.plan.Plan):
         actions: List[Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]],
         environment: Optional["Environment"] = None,
     ):
-        """The first Fraction represents the absolute time in which the action
+        """
+        The first Fraction represents the absolute time in which the action
         Action starts, while the last Fraction represents the duration
         of the action to fullfill the problem goals.
         The Action can be an InstantaneousAction, this is represented with a duration set
@@ -95,10 +96,12 @@ class TimeTriggeredPlan(plans.plan.Plan):
     def timed_actions(
         self,
     ) -> List[Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]]:
-        """Returns the sequence of tuples (start, action_instance, duration) where:
+        """
+        Returns the sequence of tuples (start, action_instance, duration) where:
         start is when the action starts;
         action_instance is the action applied;
-        duration is the (optional) duration of the action."""
+        duration is the (optional) duration of the action.
+        """
         return self._actions
 
     def replace_action_instances(
@@ -107,6 +110,13 @@ class TimeTriggeredPlan(plans.plan.Plan):
             ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "plans.plan.Plan":
+        """
+        Returns a new TimeTriggeredPlan where every action of the current plan is replaced using the given function.
+
+        :param replace_function: The function that applied to an ActionInstance A returns the ActionInstance B; B
+        replaces A in the resulting plan.
+        :return: The TimeTriggeredPlan where every action is replaced using the given function.
+        """
         new_ai = []
         for s, ai, d in self._actions:
             replaced_ai = replace_function(ai)

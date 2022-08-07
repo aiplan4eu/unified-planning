@@ -87,6 +87,13 @@ class SequentialPlan(plans.plan.Plan):
             ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "up.plans.plan.Plan":
+        """
+        Returns a new SequentialPlan where every action of the current plan is replaced using the given function.
+
+        :param replace_function: The function that applied to an ActionInstance A returns the ActionInstance B; B
+        replaces A in the resulting plan.
+        :return: The SequentialPlan where every action is replaced using the given function.
+        """
         new_ai = []
         for ai in self._actions:
             replaced_ai = replace_function(ai)
@@ -100,14 +107,19 @@ class SequentialPlan(plans.plan.Plan):
     def to_partial_order_plan(
         self, problem: "up.model.mixins.ObjectsSetMixin"
     ) -> "up.plans.partial_order_plan.PartialOrderPlan":
-        """Returns the PartialOrderPlan version of this SequentialPlan.
+        """
+        Returns the PartialOrderPlan version of this SequentialPlan.
 
         This is done by keeping the ordering constraints, given by the SequentialPlan, between 2 ActionInstances
         that satisfy one of these conditions:
         + at least one of the 2 ActionInstances writes on a grounded fluent (writes means that one of his effects
                 assign a value to said fluent)
             - AND the other ActionInstance reads or writes on the same grounded fluent (reads means that one of his preconditions
-                or one of his condition in a conditional effect depends on said fluent)."""
+                or one of his condition in a conditional effect depends on said fluent).
+
+        :param problem: The problem for which the sequential plan is created.
+        :return: A PartialOrderPlan compatible with the problem.
+        """
         subs = walkers.Substituter(self._environment)
         simp = self._environment.simplifier
         eqr = walkers.ExpressionQuantifiersRemover(self._environment)
