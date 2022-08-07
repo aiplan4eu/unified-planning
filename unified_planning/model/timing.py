@@ -22,6 +22,15 @@ from typing import Union, Optional
 
 
 class TimepointKind(Enum):
+    """
+    Enum representing all the possible kinds of a Timepoint.
+    The kind of a Timepoint defines it's semantic:
+    GLOBAL_START => At the start of the plan
+    GLOBAL_END   => At the end of the plan
+    START        => At the start of the action
+    END          => At the end of the action
+    """
+
     GLOBAL_START = auto()
     GLOBAL_END = auto()
     START = auto()
@@ -29,8 +38,11 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
+    """Class used to define the point in the time from which a Timing is considered."""
+
     def __init__(self, kind: TimepointKind, container: Optional[str] = None):
-        """Creates a new timepoint.
+        """
+        Creates a new timepoint.
 
         It is typically used to refer to:
          - the start/end of the containing action or method, or
@@ -72,6 +84,7 @@ class Timepoint:
 
     @property
     def kind(self) -> TimepointKind:
+        """Returns the kind of this Timepoint; the kind defines the semantic of the Timepoint."""
         return self._kind
 
     @property
@@ -81,6 +94,13 @@ class Timepoint:
 
 
 class Timing:
+    """
+    Class that used a Timepoint to define from when this Timing is considered and a delay,
+    representing the distance from the given timepoint.
+    For example:
+    A GLOBAL_START Timepoint with a delay of 5 means 5 units of time after the start of the plan.
+    """
+
     def __init__(self, delay: Union[int, Fraction], timepoint: Timepoint):
         self._timepoint = timepoint
         self._delay = delay
@@ -102,38 +122,53 @@ class Timing:
 
     @property
     def delay(self) -> Union[int, Fraction]:
+        """Returns the delay set for this Timing from the Timepoint."""
         return self._delay
 
     @property
     def timepoint(self) -> Timepoint:
+        """Returns the Timepoint from which this Timing is considered."""
         return self._timepoint
 
     def is_global(self) -> bool:
+        """
+        Returns True if this Timing refers to the global timing in the plan and not the start/end of an action,
+        False otherwise.
+        """
         return (
             self._timepoint.kind == TimepointKind.GLOBAL_START
             or self._timepoint.kind == TimepointKind.GLOBAL_END
         )
 
     def is_from_start(self) -> bool:
+        """Returns True if this Timing is from the start, False if it is from the end."""
         return (
             self._timepoint.kind == TimepointKind.START
             or self._timepoint.kind == TimepointKind.GLOBAL_START
         )
 
     def is_from_end(self) -> bool:
+        """Returns True if this Timing is from the end, False if it is from the start."""
         return not self.is_from_start()
 
 
 def StartTiming(
     delay: Union[int, Fraction] = 0, container: Optional[str] = None
 ) -> Timing:
-    """Represents the start timing of an action.
+    """
+    Returns the start timing of an action.
     Created with a delay > 0 represents "delay" time
     after the start of an action.
 
     For example, action starts at time 5:
     StartTiming() = 5
-    StartTiming(3) = 5+3 = 8"""
+    StartTiming(3) = 5+3 = 8.
+
+    :param delay: The delay from the start of an action.
+    :param container: Identifier of the container in which the timepoint is defined.
+        If not set, then refers to the enclosing action or method.
+    :return: The created Timing.
+    """
 
     return Timing(delay, Timepoint(TimepointKind.START, container=container))
 
@@ -141,34 +176,53 @@ def StartTiming(
 def EndTiming(
     delay: Union[int, Fraction] = 0, container: Optional[str] = None
 ) -> Timing:
-    """Represents the end timing of an action.
+    """
+    Returns the end timing of an action.
     Created with a delay > 0 represents "delay" time
     before the end of an action.
 
     For example, action ends at time 10:
     EndTiming() = 10
-    EndTiming(1.5) = 10-Fraction(3, 2) = Fraction(17, 2) = 8.5"""
+    EndTiming(1.5) = 10-Fraction(3, 2) = Fraction(17, 2) = 8.5.
+
+    :param delay: The delay from the end of an action.
+    :param container: Identifier of the container in which the timepoint is defined.
+        If not set, then refers to the enclosing action or method.
+    :return: The created Timing.
+    """
 
     return Timing(delay, Timepoint(TimepointKind.END, container=container))
 
 
 def GlobalStartTiming(delay: Union[int, Fraction] = 0):
-    """Represents the absolute timing.
+    """
+    Represents the absolute timing.
     Created with a delay > 0 represents "delay" time
-    after the start of the execution."""
+    after the start of the execution.
+
+    :param delay: The delay from the start of the plan.
+    :return: The created Timing.
+    """
 
     return Timing(delay, Timepoint(TimepointKind.GLOBAL_START))
 
 
 def GlobalEndTiming(delay: Union[int, Fraction] = 0):
-    """Represents the end timing of an execution.
+    """
+    Represents the end timing of an execution.
     Created with a delay > 0 represents "delay" time
-    before the end of the execution."""
+    before the end of the execution.
+
+    :param delay: The delay from the start of the plan.
+    :return: The created Timing.
+    """
 
     return Timing(delay, Timepoint(TimepointKind.GLOBAL_END))
 
 
 class Interval:
+    """Class that defines an interval with 2 expressions as bounds."""
+
     def __init__(
         self,
         lower: FNode,
@@ -216,20 +270,25 @@ class Interval:
 
     @property
     def lower(self) -> FNode:
+        """Returns the Interval's lower bound."""
         return self._lower
 
     @property
     def upper(self) -> FNode:
+        """Returns the Interval's upper bound."""
         return self._upper
 
     @property
     def environment(self) -> "Environment":
+        """Returns the Interval's environment."""
         return self._lower.environment
 
     def is_left_open(self) -> bool:
+        """Returns True if the lower bound of this Interval is not included in the Interval, False otherwise."""
         return self._is_left_open
 
     def is_right_open(self) -> bool:
+        """Returns True if the lower bound of this Interval is not included in the Interval, False otherwise."""
         return self._is_right_open
 
 
@@ -238,6 +297,8 @@ class Duration:
 
 
 class DurationInterval(Duration, Interval):
+    """Class used to indicate that an Interval is also a Duration."""
+
     def __init__(
         self,
         lower: FNode,
@@ -264,20 +325,35 @@ class DurationInterval(Duration, Interval):
 
 
 def ClosedDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:
-    """Represents the (closed) interval duration constraint:
+    """
+    Represents the (closed) interval duration constraint:
     [lower, upper]
+
+    :param lower: The expression defining the lower bound of this interval.
+    :param upper: The expression defining the upper bound of this interval.
+    :return: The created DurationInterval.
     """
     return DurationInterval(lower, upper)
 
 
 def FixedDuration(size: FNode) -> DurationInterval:
-    """Represents a fixed duration constraint"""
+    """
+    Represents a fixed duration constraint.
+
+
+    :param size: The expression defining the only value in this interval.
+    :return: The created DurationInterval.
+    """
     return DurationInterval(size, size)
 
 
 def OpenDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:
     """Represents the (open) interval duration constraint:
     (lower, upper)
+
+    :param lower: The expression defining the lower bound of this interval.
+    :param upper: The expression defining the upper bound of this interval.
+    :return: The created DurationInterval.
     """
     return DurationInterval(lower, upper, True, True)
 
@@ -285,6 +361,10 @@ def OpenDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:
 def LeftOpenDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:
     """Represents the (left open, right closed) interval duration constraint:
     (lower, upper]
+
+    :param lower: The expression defining the lower bound of this interval.
+    :param upper: The expression defining the upper bound of this interval.
+    :return: The created DurationInterval.
     """
     return DurationInterval(lower, upper, True, False)
 
@@ -292,11 +372,17 @@ def LeftOpenDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:
 def RightOpenDurationInterval(lower: FNode, upper: FNode) -> DurationInterval:
     """Represents the (left closed, right open) interval duration constraint:
     [lower, upper)
+
+    :param lower: The expression defining the lower bound of this interval.
+    :param upper: The expression defining the upper bound of this interval.
+    :return: The created DurationInterval.
     """
     return DurationInterval(lower, upper, False, True)
 
 
 class TimeInterval:
+    """Represents an Interval where the 2 bounds are Timing."""
+
     def __init__(
         self,
         lower: Timing,
@@ -358,25 +444,54 @@ class TimeInterval:
 
 
 def TimePointInterval(tp: Timing) -> TimeInterval:
-    """Represents the (point) temporal interval: [tp, tp]"""
+    """
+    Returns the (point) temporal interval: [tp, tp]
+
+    :param tp: The only Timing belonging to this interval.
+    :return: The created TimeInterval.
+    """
     return TimeInterval(tp, tp)
 
 
 def ClosedTimeInterval(lower: Timing, upper: Timing) -> TimeInterval:
-    """Represents the (closed) temporal interval: [lower, upper]"""
+    """
+    Returns the (closed) temporal interval: [lower, upper]
+
+    :param lower: The Timing defining the lower bound of this interval.
+    :param upper: The Timing defining the upper bound of this interval.
+    :return: The created TimeInterval.
+    """
     return TimeInterval(lower, upper)
 
 
 def OpenTimeInterval(lower: Timing, upper: Timing) -> TimeInterval:
-    """Represents the (open) temporal interval: (lower, upper)"""
+    """
+    Returns the (open) temporal interval: (lower, upper)
+
+    :param lower: The Timing defining the lower bound of this interval.
+    :param upper: The Timing defining the upper bound of this interval.
+    :return: The created TimeInterval.
+    """
     return TimeInterval(lower, upper, True, True)
 
 
 def LeftOpenTimeInterval(lower: Timing, upper: Timing) -> TimeInterval:
-    """Represents the (left open, right closed) temporal interval: (lower, upper]"""
+    """
+    Returns the (left open, right closed) temporal interval: (lower, upper]
+
+    :param lower: The Timing defining the lower bound of this interval.
+    :param upper: The Timing defining the upper bound of this interval.
+    :return: The created TimeInterval.
+    """
     return TimeInterval(lower, upper, True, False)
 
 
 def RightOpenTimeInterval(lower: Timing, upper: Timing) -> TimeInterval:
-    """Represents the (left closed, right open) temporal interval: [lower, upper)"""
+    """
+    Returns the (left closed, right open) temporal interval: [lower, upper)
+
+    :param lower: The Timing defining the lower bound of this interval.
+    :param upper: The Timing defining the upper bound of this interval.
+    :return: The created TimeInterval.
+    """
     return TimeInterval(lower, upper, False, True)

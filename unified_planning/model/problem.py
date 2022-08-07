@@ -42,7 +42,11 @@ class Problem(
     ActionsSetMixin,
     ObjectsSetMixin,
 ):
-    """Represents an action based planning problem."""
+    """
+    Represents the classical planning problem, with Actions, Fluents, Objects and UserTypes.
+
+    The Actions can be DurativeAction when the problem deals with time.
+    """
 
     def __init__(
         self,
@@ -214,7 +218,11 @@ class Problem(
         return new_p
 
     def has_name(self, name: str) -> bool:
-        """Returns true if the name is in the problem."""
+        """
+        Returns true if the given name is already in the problem, False otherwise.
+
+        :param name: The target name to find in the problem.
+        :return: True if the givne name is already in the problem, False otherwise."""
         return (
             self.has_action(name)
             or self.has_fluent(name)
@@ -223,7 +231,14 @@ class Problem(
         )
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
-        """Normalizes the given plan updating the action and object instances."""
+        """
+        Normalizes the given plan, that is potentially the result of another
+        problem, updating the object references present in it with the ones of
+        this problem which are syntactically equal.
+
+        :param plan: The plan that must be normalized.
+        :return: A plan syntactically valid for this problem.
+        """
         return plan.replace_action_instances(self._replace_action_instance)
 
     def _replace_action_instance(
@@ -247,11 +262,13 @@ class Problem(
         return up.plans.ActionInstance(new_a, tuple(params))
 
     def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
-        """Returns the set of the static fluents.
+        """
+        Returns the set of the static fluents.
 
         Static fluents are those who can't change their values because they never
         appear in the "fluent" field of an effect, therefore there are no Actions
-        in the Problem that can change their value."""
+        in the Problem that can change their value.
+        """
         static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
@@ -288,7 +305,12 @@ class Problem(
             Fraction,
         ],
     ):
-        """Sets the initial value for the given fluent."""
+        """
+        Sets the initial value for the given fluent.
+
+        :param fluent: The grounded fluent of which the initial value must be set.
+        :param value: The value assigned in the initial state to the given fluent.
+        """
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
@@ -297,7 +319,12 @@ class Problem(
     def initial_value(
         self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
     ) -> "up.model.fnode.FNode":
-        """Gets the initial value of the given fluent."""
+        """
+        Retrieves the initial value assigned to the given fluent.
+
+        :param fluent: The target fluent of which the value in the initial state must be retrieved.
+        :return: The value expression assigned to the given fluent in the inital state.
+        """
         (fluent_exp,) = self._env.expression_manager.auto_promote(fluent)
         for a in fluent_exp.args:
             if not a.is_constant():
@@ -328,10 +355,12 @@ class Problem(
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """Gets the initial value of the fluents.
+        """
+        Gets the initial value of all the grounded fluents present in the problem.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         res = self._initial_value
         for f in self._fluents:
             if f.arity == 0:
@@ -353,7 +382,10 @@ class Problem(
     def explicit_initial_values(
         self,
     ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """Returns the problem's defined initial values.
+        """
+        Returns the problem's defined initial values; those are only the initial values set with the
+        'self.set_inital_value(fluent, value)' method.
+
         IMPORTANT NOTE: For all the initial values of the problem use Problem.initial_values."""
         return self._initial_value
 
@@ -362,7 +394,13 @@ class Problem(
         interval: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
         goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool],
     ):
-        """Adds a timed goal."""
+        """
+        Adds the timed goal to the problem. A timed goal is a goal that must be satisfied only in a
+        given period of time.
+
+        :param interval: The interval of time in which the given goal must be True.
+        :param goal: The expression that must be evaluated to True in the given interval.
+        """
         assert (
             isinstance(goal, bool) or goal.environment == self._env
         ), "timed_goal does not have the same environment of the problem"
@@ -386,11 +424,11 @@ class Problem(
     def timed_goals(
         self,
     ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
-        """Returns the timed goals."""
+        """Returns all the timed goals in the problem."""
         return self._timed_goals
 
     def clear_timed_goals(self):
-        """Removes the timed goals."""
+        """Removes all the timed goals of the problem."""
         self._timed_goals = {}
 
     def add_timed_effect(
@@ -400,7 +438,15 @@ class Problem(
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given timed effect."""
+        """
+        Adds the given timed effect to the problem; a timed effect is an effect applied at a fixed time.
+
+        :param timing: The exact time in which the given effect is applied.
+        :param fluent: The fluent modified by the effect.
+        :param value: The value assigned to the given fluent at the given time.
+        :param condition: The condition that must be evaluated to True in order for this effect to be
+        actually applied.
+        """
         if timing.is_from_end():
             raise UPProblemDefinitionError(
                 f"Timing used in timed effect cannot be EndTiming."
@@ -426,7 +472,15 @@ class Problem(
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given timed increase effect."""
+        """
+        Adds the given timed increase effect to the problem; a timed effect is an effect applied at a fixed time.
+
+        :param timing: The exact time in which the given effect is applied.
+        :param fluent: The fluent increased by the effect.
+        :param value: The value of which the given fluent is increase at the given time.
+        :param condition: The condition that must be evaluated to True in order for this effect to be
+        actually applied.
+        """
         (
             fluent_exp,
             value_exp,
@@ -456,7 +510,15 @@ class Problem(
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        """Adds the given timed decrease effect."""
+        """
+        Adds the given timed decrease effect to the problem; a timed effect is an effect applied at a fixed time.
+
+        :param timing: The exact time in which the given effect is applied.
+        :param fluent: The fluent decreased by the effect.
+        :param value: The value of which the given fluent is decrease at the given time.
+        :param condition: The condition that must be evaluated to True in order for this effect to be
+        actually applied.
+        """
         (
             fluent_exp,
             value_exp,
@@ -495,17 +557,22 @@ class Problem(
     def timed_effects(
         self,
     ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
-        """Returns the timed effects."""
+        """Returns all the timed effects in the problem."""
         return self._timed_effects
 
     def clear_timed_effects(self):
-        """Removes the timed effects."""
+        """Removes all the timed effects from the problem."""
         self._timed_effects = {}
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
-        """Adds a goal."""
+        """
+        Adds the given goal to the problem; a goal is an expression that must be evaluated to True at the
+        end of the execution of a plan. If a plan does not satisfy all the given goals, it is not valid.
+
+        :param goal: The goal added to the problem.
+        """
         assert (
             isinstance(goal, bool) or goal.environment == self._env
         ), "goal does not have the same environment of the problem"
@@ -516,32 +583,40 @@ class Problem(
 
     @property
     def goals(self) -> List["up.model.fnode.FNode"]:
-        """Returns the goals."""
+        """Returns all the goals in the problem."""
         return self._goals
 
     def clear_goals(self):
-        """Removes the goals."""
+        """Removes all the goals in the problem."""
         self._goals = []
 
     def add_quality_metric(self, metric: "up.model.metrics.PlanQualityMetric"):
-        """Adds a quality metric"""
+        """
+        Adds the given quality metric to the problem; a quality metric defines extra requirements that a plan
+        must satisfy in order to be valid.
+
+        :param metric: The quality metric that a plan of this problem must satisfy in order to be valid.
+        """
         self._metrics.append(metric)
 
     @property
     def quality_metrics(self) -> List["up.model.metrics.PlanQualityMetric"]:
-        """Returns the quality metrics"""
+        """Returns all the quality metrics in the problem."""
         return self._metrics
 
     def clear_quality_metrics(self):
-        """Removes the quality metrics"""
+        """Removes all the quality metrics in the problem."""
         self._metrics = []
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
-        """Returns the problem kind of this planning problem.
+        """
+        Calculates and returns the problem kind of this planning problem.
+        If the problem is modified this method must be called again in order to be reliable.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         # Create the needed data structures
         fluents_to_only_increase: Set["up.model.fluent.Fluent"] = set()
         fluents_to_only_decrease: Set["up.model.fluent.Fluent"] = set()
