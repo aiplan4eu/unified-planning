@@ -28,7 +28,7 @@ from unified_planning.model import (
 )
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from typing import Dict
+from typing import Dict, Optional
 from functools import partial
 
 
@@ -48,6 +48,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.QUANTIFIERS_REMOVING)
 
     @property
     def name(self):
@@ -89,6 +90,15 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.QUANTIFIERS_REMOVING
+
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
+    ) -> ProblemKind:
+        new_kind = ProblemKind(problem_kind.features)
+        new_kind.unset_conditions_kind("EXISTENTIAL_CONDITIONS")
+        new_kind.unset_conditions_kind("UNIVERSAL_CONDITIONS")
+        return new_kind
 
     def _compile(
         self,

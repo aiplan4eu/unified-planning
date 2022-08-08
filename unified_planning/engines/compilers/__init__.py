@@ -24,3 +24,4 @@ from unified_planning.engines.compilers.quantifiers_remover import QuantifiersRe
 from unified_planning.engines.compilers.negative_conditions_remover import (
     NegativeConditionsRemover,
 )
+from unified_planning.engines.compilers.compilers_pipeline import CompilersPipeline

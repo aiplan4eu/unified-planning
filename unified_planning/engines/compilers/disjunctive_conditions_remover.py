@@ -47,6 +47,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
 
     @property
     def name(self):
@@ -88,6 +89,14 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
+    ) -> ProblemKind:
+        new_kind = ProblemKind(problem_kind.features)
+        new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        return new_kind
 
     def _compile(
         self,

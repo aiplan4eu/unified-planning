@@ -15,7 +15,9 @@
 
 from warnings import warn
 import unified_planning as up
+from unified_planning.model import ProblemKind
 from enum import Enum, auto
+from typing import Optional
 
 
 class CompilationKind(Enum):
@@ -27,6 +29,25 @@ class CompilationKind(Enum):
 
 
 class CompilerMixin:
+    def __init__(self, default: Optional[CompilationKind] = None):
+        self._default = default
+
+    @property
+    def default(self) -> Optional[CompilationKind]:
+        """Returns the default compilation kind.
+
+        :return: The default compilation kind.
+        """
+        return self._default
+
+    @default.setter
+    def default(self, default: Optional[CompilationKind]):
+        """Sets the default compilation kind.
+
+        :default: The default compilation kind to set.
+        """
+        self._default = default
+
     @staticmethod
     def is_compiler() -> bool:
         return True
@@ -35,10 +56,42 @@ class CompilerMixin:
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         raise NotImplementedError
 
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
+    ) -> ProblemKind:
+        """Returns the problem kind of a problem resulting by the given compilation
+        applied to a problem that has the given problem kind.
+
+        :param problem_kind: The given problem kind.
+        :param compilation_kind: The given compilation kind.
+        :return: The resulting problem kind.
+        """
+        raise NotImplementedError
+
     def compile(
-        self, problem: "up.model.AbstractProblem", compilation_kind: CompilationKind
+        self,
+        problem: "up.model.AbstractProblem",
+        compilation_kind: Optional[CompilationKind] = None,
     ) -> "up.engines.results.CompilerResult":
+        """
+        Takes an instance of a up.model.AbstractProblem and a supported
+        up.engines.CompilationKind and returns the data structure
+        containing the compiled problem, a function that allows the rewriting
+        of a plan from the compiled problem to the original one and
+        some compiler info, like the name and some logs on the compiling.
+
+        If the compilation_kind is not specified, the default is used.
+
+        :param problem: The instance of the up.model.AbstractProblem on which the compilation is applied.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem.
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
         assert isinstance(self, up.engines.engine.Engine)
+        if compilation_kind is None:
+            compilation_kind = self._default
+        if compilation_kind is None:
+            raise up.exceptions.UPUsageError(f"Compilation kind needs to be specified!")
         if not self.skip_checks and not self.supports(problem.kind):
             msg = f"{self.name} cannot handle this kind of problem!"
             if self.error_on_failed_checks:
