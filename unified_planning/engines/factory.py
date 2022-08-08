@@ -345,9 +345,8 @@ class Factory:
             EngineClass = self._engines[name]
             if getattr(EngineClass, "is_" + engine_kind)():
                 if engine_kind == "oneshot_planner" or engine_kind == "replanner":
-                    assert (
-                        issubclass(EngineClass, OneshotPlannerMixin)
-                        or issubclass(EngineClass, ReplannerMixin
+                    assert issubclass(EngineClass, OneshotPlannerMixin) or issubclass(
+                        EngineClass, ReplannerMixin
                     )
                     assert compilation_kind is None
                     assert plan_kind is None
@@ -515,11 +514,6 @@ class Factory:
             self._print_credits([credits])
             if engine_kind in ["simulator", "replanner"]:
                 assert problem is not None
-                assert issubclass(EngineClass, up.engines.engine.Engine)
-                assert (
-                    issubclass(EngineClass, SimulatorMixin)
-                    or issubclass(EngineClass, ReplannerMixin)
-                )
                 res = EngineClass(problem=problem, **params)
             elif engine_kind == "compiler":
                 res = EngineClass(**params)

@@ -58,7 +58,7 @@ class CompilerMixin:
 
     @staticmethod
     def resulting_problem_kind(
-        problem_kind: ProblemKind, compilation_kind: CompilationKind
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         """Returns the problem kind of a problem resulting by the given compilation
         applied to a problem that has the given problem kind.

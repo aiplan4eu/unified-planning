@@ -55,8 +55,17 @@ class Parallel(
         return "Parallel"
 
     @staticmethod
+    def supported_kind() -> ProblemKind:
+        raise UPUsageError("The Parallel supported kind depends on its actual engines")
+
+    @staticmethod
     def supports(problem_kind: "ProblemKind") -> bool:
         # The supported features depends on its actual engines
+        return True
+
+    @staticmethod
+    def supports_plan(plan_kind: "up.plans.PlanKind") -> bool:
+        # The supported plan depends on its actual engines
         return True
 
     def _run_parallel(self, fname, *args) -> List[Result]:

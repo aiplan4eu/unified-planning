@@ -219,7 +219,7 @@ def Compiler(
     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     compilation_kind: Optional[Union["up.engines.CompilationKind", str]] = None,
-    compilation_kinds: Optional[List[Union["up.engines.CompilationKind", str]]] = None
+    compilation_kinds: Optional[List[Union["up.engines.CompilationKind", str]]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a Compiler or a pipeline of Compilers.

@@ -35,7 +35,7 @@ from unified_planning.exceptions import (
     UPExpressionDefinitionError,
     UPProblemDefinitionError,
 )
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from functools import partial
 
 
@@ -124,7 +124,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def resulting_problem_kind(
-        problem_kind: ProblemKind, compilation_kind: CompilationKind
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
         new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")

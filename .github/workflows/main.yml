@@ -4,7 +4,7 @@ on: push
 
 env:
   up_tamer_commit: "5b6013aa3d56a8731147a442a831a81f73727d4d"
-  up_pyperplan_commit: "119c0ed9f8443884a4800d91842c85c2c0f319f7"
+  up_pyperplan_commit: "b4fb924320af9f1870db51d20a925aa913255527"
 
 jobs:
   basic-check:

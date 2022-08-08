@@ -31,7 +31,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
 )
 from unified_planning.utils import powerset
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from functools import partial
 
 
@@ -92,7 +92,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def resulting_problem_kind(
-        problem_kind: ProblemKind, compilation_kind: CompilationKind
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
         if new_kind.has_conditional_effects():

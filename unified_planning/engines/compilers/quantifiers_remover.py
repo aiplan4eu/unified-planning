@@ -28,7 +28,7 @@ from unified_planning.model import (
 )
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from typing import Dict
+from typing import Dict, Optional
 from functools import partial
 
 
@@ -93,7 +93,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def resulting_problem_kind(
-        problem_kind: ProblemKind, compilation_kind: CompilationKind
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
         new_kind.unset_conditions_kind("EXISTENTIAL_CONDITIONS")
