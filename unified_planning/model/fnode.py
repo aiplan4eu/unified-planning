@@ -159,7 +159,7 @@ class FNode(object):
 
     def fluent(self) -> 'unified_planning.model.fluent.Fluent':
         """Return the fluent of the FluentExp."""
-        assert self.is_fluent_exp()
+        assert self.is_fluent_exp() 
         return self._content.payload
 
     def parameter(self) -> 'unified_planning.model.parameter.Parameter':

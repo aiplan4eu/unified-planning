@@ -118,6 +118,8 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             return False
         if set(self._actions) != set(oth._actions):
             return False
+        if set(self._trajectory_constraints) != set(oth._trajectory_constraints):
+            return False
         oth_initial_values = oth.initial_values
         if len(self.initial_values) != len(oth_initial_values):
             return False
@@ -155,6 +157,8 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             res += hash(ut)
         for o in self._objects:
             res += hash(o)
+        for c in self._trajectory_constraints:
+            res += hash(c)
         for iv in self.initial_values.items():
             res += hash(iv)
         for t, el in self._timed_effects.items():
@@ -180,6 +184,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
+        new_p._trajectory_constraints = self._trajectory_constraints[:]
         new_p._metrics = []
         for m in self._metrics:
             if isinstance(m, up.model.metrics.MinimizeActionCosts):
@@ -432,6 +437,10 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
     def clear_goals(self):
         '''Removes the goals.'''
         self._goals = []
+
+    def clear_trajectory_constraints(self):
+        '''Removes the trajectory_constraints.'''
+        self._trajectory_constraints = []
 
     def add_quality_metric(self, metric: 'up.model.metrics.PlanQualityMetric'):
         '''Adds a quality metric'''

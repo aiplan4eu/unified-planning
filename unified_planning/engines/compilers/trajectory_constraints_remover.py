@@ -93,8 +93,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         I_g = grounding_result.problem.initial_values
         I = self._ground_initial_state(A, I_g)
         C_temp = self._simplifier.simplify(And(problem.trajectory_constraints))
-        C = C_temp.args if C_temp.is_and() else [C_temp]
-        C = self._remove_quantifire(C)
+        C = self._build_constraint_list(C_temp)
         relevancy_dict = self._build_relevancy_dict(C)
         A_prime = []
         G_temp = []
@@ -129,6 +128,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         G_new = self._simplifier.simplify(And(grounding_result.problem.goals, G_prime))
         grounding_result.problem.clear_goals()
         grounding_result.problem.add_goal(G_new)
+        grounding_result.problem.clear_trajectory_constraints()
         for fluent in F_prime:
             grounding_result.problem.add_fluent(fluent)
         grounding_result.problem.clear_actions()
@@ -137,6 +137,11 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for init_val in I_prime:
             grounding_result.problem.set_initial_value(FluentExp(Fluent(f'{init_val}', BoolType())), TRUE())
         return grounding_result
+
+    def _build_constraint_list(self, C_temp):
+        C_list = C_temp.args if C_temp.is_and() else [C_temp]
+        C_to_return = self._simplifier.simplify(And(self._remove_quantifire(C_list)))
+        return C_to_return.args if C_to_return.is_and() else [C_to_return]
 
     def _remove_quantifire(self, C):
         new_C = []
@@ -157,6 +162,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                              self._get_constraints_condition(c.args[0]),
                              self._get_constraints_condition(c.args[1]))
                             )
+            else:
+                new_C.append(self._get_constraints_condition(c))
         return new_C
 
     def _get_constraints_condition(self, cond):
@@ -225,7 +232,10 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _add_cond_eff(self, E, cond, eff):
         if (not self._simplifier.simplify(cond).is_false()):
-            E.append(Effect(condition=cond, fluent=eff, value=TRUE()))
+            if eff.is_not():
+                E.append(Effect(condition=cond, fluent=eff.args[0], value=FALSE()))
+            else:
+                E.append(Effect(condition=cond, fluent=eff, value=TRUE()))
 
     def _get_relevant_constraints(self, a, relevancy_dict):
         relevant_constrains = []

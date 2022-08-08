@@ -200,7 +200,7 @@ class ExpressionManager(object):
 
     def At_Most_Once(self, *expression: BoolExpression) -> 'up.model.fnode.FNode':
         if len(expression) !=1:
-            raise UPExpressionDefinitionError(f"Sometime of expression: {str(expression)} must be created with exactly with one parameter.")
+            raise UPExpressionDefinitionError(f"At-Most-Once of expression: {str(expression)} must be created with exactly with one parameter.")
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.AT_MOST_ONCE, args=expressions)
 
