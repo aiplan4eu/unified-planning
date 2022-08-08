@@ -44,22 +44,22 @@ class ReplannerMixin:
         """
         return False
 
-    def solve(
+    def resolve(
         self,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
         """
-        Solves the problem that is given in the constructor and that can be
+        Resolves the problem that is given in the constructor and that can be
         updated through the other engine methods.
 
-        :param timeout: the time in seconds that the planner has at max to solve the problem, defaults to None.
+        :param timeout: the time in seconds that the planner has at max to resolve the problem, defaults to None.
         :param output_stream: a stream of strings where the planner writes his
         output (and also errors) while the planner is solving the problem, defaults to None.
         :return: the up.engines.results.PlanGenerationResult created by the planner;
         a data structure containing the up.plan.Plan found and some additional information about it.
         """
-        return self._solve(timeout, output_stream)
+        return self._resolve(timeout, output_stream)
 
     def update_initial_value(
         self,
@@ -118,13 +118,13 @@ class ReplannerMixin:
         """
         return self._remove_action(name)
 
-    def _solve(
+    def _resolve(
         self,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
         """
-        Method called by the ReplannerMixin.solve method that has to be implemented
+        Method called by the ReplannerMixin.resolve method that has to be implemented
         by the engines that implement this operation mode.
         """
         raise NotImplementedError

@@ -33,25 +33,25 @@ class TestReplanner(TestCase):
         x = problem.fluent("x")
 
         with Replanner(problem) as replanner:
-            res = replanner.solve()
+            res = replanner.resolve()
             self.assertIn(res.status, POSITIVE_OUTCOMES)
 
             replanner.remove_action(a.name)
-            res = replanner.solve()
+            res = replanner.resolve()
             self.assertIn(res.status, NEGATIVE_OUTCOMES)
 
             replanner.add_action(a)
-            res = replanner.solve()
+            res = replanner.resolve()
             self.assertIn(res.status, POSITIVE_OUTCOMES)
 
             replanner.update_initial_value(x, True)
-            res = replanner.solve()
+            res = replanner.resolve()
             self.assertIn(res.status, POSITIVE_OUTCOMES)
             self.assertEqual(len(res.plan.actions), 0)
 
             replanner.remove_goal(x)
             replanner.add_goal(Not(x))
-            res = replanner.solve()
+            res = replanner.resolve()
             self.assertIn(res.status, NEGATIVE_OUTCOMES)
 
             replanner.remove_action(a.name)
@@ -59,5 +59,5 @@ class TestReplanner(TestCase):
             a.add_precondition(x)
             a.add_effect(x, False)
             replanner.add_action(a)
-            res = replanner.solve()
+            res = replanner.resolve()
             self.assertIn(res.status, POSITIVE_OUTCOMES)

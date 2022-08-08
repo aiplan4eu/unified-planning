@@ -60,7 +60,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
     def _supports(problem_kind: "ProblemKind", engine: Type[Engine]) -> bool:
         return problem_kind <= Replanner._supported_kind(engine)
 
-    def _solve(
+    def _resolve(
         self,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
