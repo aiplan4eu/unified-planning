@@ -22,7 +22,13 @@ from typing import Optional
 class EngineMeta(type):
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
-        for om in ["oneshot_planner", "plan_validator", "compiler", "simulator"]:
+        for om in [
+            "oneshot_planner",
+            "plan_validator",
+            "compiler",
+            "simulator",
+            "replanner",
+        ]:
             if (
                 not hasattr(obj, "is_" + om)
                 and name != "Engine"

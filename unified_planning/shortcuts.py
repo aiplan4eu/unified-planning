@@ -161,7 +161,7 @@ def OneshotPlanner(
     names: Optional[List[str]] = None,
     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
-    optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None
+    optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> Engine:
     """
     Returns a oneshot planner. There are three ways to call this method:
@@ -189,7 +189,7 @@ def PlanValidator(
     names: Optional[List[str]] = None,
     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
-    plan_kind: Optional[Union["up.plans.PlanKind", str]] = None
+    plan_kind: Optional[Union["up.plans.PlanKind", str]] = None,
 ) -> Engine:
     """
     Returns a plan validator. There are three ways to call this method:
@@ -217,7 +217,7 @@ def Compiler(
     name: Optional[str] = None,
     params: Union[Dict[str, str], List[Dict[str, str]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
-    compilation_kind: Optional[Union["up.engines.CompilationKind", str]] = None
+    compilation_kind: Optional[Union["up.engines.CompilationKind", str]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a Compiler. There are two ways to call this method:
@@ -239,7 +239,7 @@ def Simulator(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
-    params: Union[Dict[str, str], List[Dict[str, str]]] = None
+    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a Simulator. There are two ways to call this method:
@@ -250,6 +250,29 @@ def Simulator(
         e.g. Simulator(problem, name='sequential_simulator')
     """
     return get_env().factory.Simulator(problem=problem, name=name, params=params)
+
+
+def Replanner(
+    problem: "up.model.AbstractProblem",
+    *,
+    name: Optional[str] = None,
+    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+    optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
+) -> "up.engines.engine.Engine":
+    """
+    Returns a Replanner. There are two ways to call this method:
+    - using 'problem' (with its kind) and 'optimality_guarantee' parameters.
+      e.g. Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)
+    - using 'name' (the name of a specific replanner) and 'params'
+      (replanner dependent options).
+      e.g. Replanner(problem, name='replanner[tamer]')
+    """
+    return get_env().factory.Replanner(
+        problem=problem,
+        name=name,
+        params=params,
+        optimality_guarantee=optimality_guarantee,
+    )
 
 
 def print_engines_info(stream: IO[str] = sys.stdout, full_credits: bool = False):

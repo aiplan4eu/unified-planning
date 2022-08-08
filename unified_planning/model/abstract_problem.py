@@ -40,6 +40,9 @@ class AbstractProblem:
         """Sets the problem name."""
         self._name = new_name
 
+    def clone(self):
+        raise NotImplementedError
+
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """Returns the ProblemKind of this problem."""
