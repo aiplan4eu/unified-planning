@@ -46,6 +46,9 @@ class OneshotPlannerMixin:
         callback: Optional[
             Callable[["up.engines.results.PlanGenerationResult"], None]
         ] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.ROState"], Optional[float]]
+        ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
@@ -71,13 +74,16 @@ class OneshotPlannerMixin:
                 raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
-        return self._solve(problem, callback, timeout, output_stream)
+        return self._solve(problem, callback, heuristic, timeout, output_stream)
 
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
         callback: Optional[
             Callable[["up.engines.results.PlanGenerationResult"], None]
+        ] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.ROState"], Optional[float]]
         ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,

@@ -550,7 +550,8 @@ class Factory:
             elif engine_kind == "compiler":
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)
-                res.default = compilation_kind
+                if compilation_kind is not None:
+                    res.default = compilation_kind
             else:
                 res = EngineClass(**params)
             if name is not None:
