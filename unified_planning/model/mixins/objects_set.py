@@ -104,7 +104,7 @@ class ObjectsSetMixin:
 
         :param name: The name of the target object in the problem.
         :return: True if an object with the given name is in the problem,
-        False otherwise.
+                False otherwise.
         """
         for o in self._objects:
             if o.name == name:

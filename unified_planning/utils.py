@@ -21,3 +21,12 @@ def powerset(iterable):
     "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
     s = list(iterable)
     return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
+
+    """
+    :class:`~unified_planning.model.Problem`
+    :meth:`supports_compilation <unified_planning.engines.mixins.compiler.CompilerMixin.supports_compilation>`
+    :class:`~unified_planning.engines.CompilationKind`
+    :class:`~unified_planning.plans.Plan`
+
+
+     """

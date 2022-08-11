@@ -36,7 +36,7 @@ def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     Restriction: Arguments must be boolean.
 
     :param *args: Either an Iterable of boolean expressions, like '[a, b, c]', or an unpacked version
-    of it, like 'a, b, c'.
+        of it, like 'a, b, c'.
     :return: The AND expression created.
     """
     return get_env().expression_manager.And(*args)
@@ -51,7 +51,7 @@ def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     Restriction: Arguments must be boolean
 
     :param *args: Either an Iterable of boolean expressions, like '[a, b, c]', or an unpacked version
-    of it, like 'a, b, c'.
+        of it, like 'a, b, c'.
     :return: The OR expression created.
     """
     return get_env().expression_manager.Or(*args)
@@ -106,7 +106,7 @@ def Exists(
                 vars must be of 'up.Variable' type
 
     :param expression: The main expression of the existential. The expression should contain
-    the given variables.
+        the given variables.
     :param *vars: All the Variables appearing in the existential expression.
     :return: The created Existential expression.
     """
@@ -122,7 +122,7 @@ def Forall(
                 vars must be of 'up.Variable' type
 
     :param expression: The main expression of the universal quantifier. The expression should contain
-    the given variables.
+        the given variables.
     :param *vars: All the Variables appearing in the universal expression.
     :return: The created Forall expression.
     """
@@ -138,7 +138,7 @@ def FluentExp(
 
     :param fluent: The Fluent that will be set as the payload of this expression.
     :param params: The expression acting as parameters for this Fluent; mainly the parameters will
-    be objects (when the FluentExp is grounded) or action's parameters (when the FLuentExp is lifted).
+        be objects (when the FluentExp is grounded) or action's parameters (when the FLuentExp is lifted).
     :return: The created Fluent Expression.
     """
     return get_env().expression_manager.FluentExp(fluent, params)
@@ -220,7 +220,7 @@ def Plus(*args: Union[Expression, Iterable[Expression]]) -> FNode:
     args[0] + ... + args[n]
 
     :param *args: Either an Iterable of expressions, like '[a, b, 3]', or an unpacked version
-    of it, like 'a, b, 3'.
+        of it, like 'a, b, 3'.
     :return: The PLUS expression created. ('like a + b + 3')
     """
     return get_env().expression_manager.Plus(*args)
@@ -243,7 +243,7 @@ def Times(*args: Union[Expression, Iterable[Expression]]) -> FNode:
     args[0] * ... * args[n]
 
     :param *args: Either an Iterable of expressions, like '[a, b, 3]', or an unpacked version
-    of it, like 'a, b, 3'.
+        of it, like 'a, b, 3'.
     :return: The TIMES expression created. ('like a * b * 3')
     """
     return get_env().expression_manager.Times(*args)

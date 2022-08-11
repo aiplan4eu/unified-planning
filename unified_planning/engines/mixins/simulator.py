@@ -41,17 +41,18 @@ class Event:
 class SimulatorMixin:
     """
     SimulatorMixin abstract class.
-    This class defines the interface that a simulator must implement.
+    This class defines the interface that an :class:`~unified_planning.engines.Engine`
+    that is also a `Simulator` must implement.
 
-    Important NOTE: The AbstractProblem instance is given at the constructor.
+    Important NOTE: The `AbstractProblem` instance is given at the constructor.
     """
 
     def __init__(self, problem: "up.model.AbstractProblem") -> None:
         """
-        Takes an instance of a problem and eventually some parameters, that represent
-        some specific settings of the SimulatorMixin.
+        Takes an instance of a `problem` and eventually some parameters, that represent
+        some specific settings of the `SimulatorMixin`.
 
-        :param problem: the problem that defines the domain in which the simulation exists.
+        :param problem: the `problem` that defines the domain in which the simulation exists.
         """
         self._problem = problem
         self_class = type(self)
@@ -68,12 +69,12 @@ class SimulatorMixin:
 
     def is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
         """
-        Returns True if the given event conditions are evaluated as True in the given state;
-        returns False otherwise.
+        Returns `True` if the given `event conditions` are evaluated as `True` in the given `state`;
+        returns `False` otherwise.
 
-        :param state: the state where the event conditions are checked.
-        :param event: the event whose conditions are checked.
-        :return: Whether or not the event is applicable in the given state.
+        :param state: the `state` where the `event conditions` are checked.
+        :param event: the `even`t whose `conditions` are checked.
+        :return: Whether or not the `event` is applicable in the given `state`.
         """
         return self._is_applicable(event, state)
 
@@ -87,12 +88,13 @@ class SimulatorMixin:
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
-        Returns the list of unsatisfied event conditions evaluated in the given state.
-        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied condition.
+        Returns the list of `unsatisfied event conditions` evaluated in the given `state`.
+        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
 
-        :param state: The State in which the event conditions are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
-        :return: The list of all the event conditions that evaluated to False or the list containing the first condition evaluated to False if the flag "early_termination" is set.
+        :param state: The `State` in which the `event conditions` are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied condition`.
+        :return: The list of all the `event conditions` that evaluated to `False` or the list containing the first
+            `condition` evaluated to `False` if the flag `early_termination` is set.
         """
         return self._get_unsatisfied_conditions(
             event, state, early_termination=early_termination
@@ -110,14 +112,14 @@ class SimulatorMixin:
         self, event: "Event", state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
         """
-        Returns None if the event is not applicable in the given state, otherwise returns a new COWState,
-        which is a copy of the given state but the applicable effects of the event are applied; therefore
-        some fluent values are updated.
+        Returns `None` if the `event` is not applicable in the given `state`, otherwise returns a new `COWState`,
+        which is a copy of the given `state` where the `applicable effects` of the `event` are applied; therefore
+        some `fluent values` are updated.
 
-        :param state: the state where the event formulas are calculated.
-        :param event: the event that has the information about the conditions to check and the effects to apply.
-        :return: None if the event is not applicable in the given state, a new COWState with some updated values
-         if the event is applicable.
+        :param state: the `state` where the event formulas are calculated.
+        :param event: the `event` that has the information about the `conditions` to check and the `effects` to apply.
+        :return: `None` if the `event` is not applicable in the given `state`, a new `COWState` with some updated `values`
+            if the `event` is applicable.
         """
         return self._apply(event, state)
 
@@ -133,13 +135,13 @@ class SimulatorMixin:
         self, event: "Event", state: "up.model.COWState"
     ) -> "up.model.COWState":
         """
-        Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
-        some fluent values are updated.
-        IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
+        Returns a new `COWState`, which is a copy of the given `state` but the applicable `effects` of the
+        `event` are applied; therefore some `fluent` values are updated.
+        IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
 
-        :param state: the state where the event formulas are evaluated.
-        :param event: the event that has the information about the effects to apply.
-        :return: A new COWState with some updated values.
+        :param state: the `state` where the `event formulas` are evaluated.
+        :param event: the `event` that has the information about the `effects` to apply.
+        :return: A new `COWState` with some updated values.
         """
         return self._apply_unsafe(event, state)
 
@@ -153,12 +155,12 @@ class SimulatorMixin:
 
     def get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
         """
-        Returns a view over all the events that are applicable in the given State;
-        an Event is considered applicable in a given State, when all the Event condition
-        simplify as True when evaluated in the State.
+        Returns a view over all the `events` that are applicable in the given `State`;
+        an `Event` is considered applicable in a given `State`, when all the `Event condition`
+        simplify as `True` when evaluated in the `State`.
 
-        :param state: the state where the formulas are evaluated.
-        :return: an Iterator of applicable Events.
+        :param state: the `state` where the formulas are evaluated.
+        :return: an `Iterator` of applicable `Events`.
         """
         return self._get_applicable_events(state)
 
@@ -176,11 +178,11 @@ class SimulatorMixin:
         ],
     ) -> List["Event"]:
         """
-        Returns a list containing all the events derived from the given action, grounded with the given parameters.
+        Returns a list containing all the `events` derived from the given `action`, grounded with the given `parameters`.
 
-        :param action: the action containing the information to create the event.
-        :param parameters: the parameters needed to ground the action
-        :return: the List of Events derived from this action with these parameters.
+        :param action: the `action` containing the information to create the `event`.
+        :param parameters: the `parameters` needed to ground the `action`.
+        :return: the List of `Events` derived from this `action` with these `parameters`.
         """
         if len(action.parameters) != len(parameters):
             raise UPUsageError(
@@ -206,10 +208,10 @@ class SimulatorMixin:
 
     def is_goal(self, state: "up.model.ROState") -> bool:
         """
-        Returns True if the given state satisfies the goals of the problem.
+        Returns `True` if the given `state` satisfies the :class:`~unified_planning.model.AbstractProblem` :func:`goals <unified_planning.model.Problem.goals>`.
 
-        :param state: the State in which the problem goals are evaluated.
-        :return: True if the evaluation of every goal is True, False otherwise.
+        :param state: the `State` in which the `problem goals` are evaluated.
+        :return: `True` if the evaluation of every `goal` is `True`, `False` otherwise.
         """
         return self._is_goal(state)
 
@@ -223,12 +225,12 @@ class SimulatorMixin:
         self, state: "up.model.ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
-        Returns the list of unsatisfied goals evaluated in the given state.
-        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+        Returns the list of `unsatisfied goals` evaluated in the given `state`.
+        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied goal`.
 
-        :param state: The State in which the problem goals are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
-        :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
+        :param state: The `State` in which the `problem goals` are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied goal`.
+        :return: The list of all the `goals` that evaluated to `False` or the list containing the first `goal` evaluated to `False` if the flag `early_termination` is set.
         """
         return self._get_unsatisfied_goals(state, early_termination)
 

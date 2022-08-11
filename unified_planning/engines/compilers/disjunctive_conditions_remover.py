@@ -37,12 +37,16 @@ from functools import partial
 
 
 class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
-    """DisjunctiveConditions remover class: this class offers the capability
-    to transform a problem with preconditions not in the DNF form
-    into one with all the preconditions in DNF form (an OR of AND);
-    Then this OR is decomposed into subactions, therefore after this
-    remover is called, every action condition or precondition will be
-    an AND of leaf nodes.
+    """
+    DisjunctiveConditions remover class: this class offers the capability
+    to transform a :class:`~unified_planning.model.Problem` with `DisjunctiveConditions` into a semantically equivalent `Problem`
+    where the :class:`Actions <unified_planning.model.Action>` `conditions <unified_planning.model.InstantaneousAction.preconditions>` don't contain the `Or` operand.
+
+    This is done by taking all the `Actions conditions` that are not in the `DNF` form (an `OR` of `ANDs`) and calculate the equivalent `DNF`.
+    Then, the resulting `OR` is decomposed into multiple `subActions`; every `subAction` has the same :func:`Effects <unified_planning.model.InstantaneousAction.effects>`
+    of the original `Action`, and as condition an element of the decomposed `Or`. So, for every element of the `Or`, an `Action` is created.
+
+    For this `Compiler`, only the `DISJUNCTIVE_CONDITIONS_REMOVING` :class:`~unified_planning.engines.CompilationKind` is supported.
     """
 
     def __init__(self):
@@ -104,13 +108,13 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
         """
-        Takes an instance of a up.model.Problem and the up.engines.CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING compilaton kind
-        and returns a CompilerResult where the problem does not have actions with disjunctive conditions.
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the `DISJUNCTIVE_CONDITIONS_REMOVING` `~unified_planning.engines.CompilationKind`
+        and returns a `CompilerResult` where the `Problem` does not have `Actions` with disjunctive conditions.
 
-        :param problem: The instance of the up.model.Problem that must be returned without disjunctive conditions.
-        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
-        only DISJUNCTIVE_CONDITIONS_REMOVING is supported by this compiler
-        :return: The resulting up.engines.results.CompilerResult data structure.
+        :param problem: The instance of the `Problem` that must be returned without disjunctive conditions.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
+            only `DISJUNCTIVE_CONDITIONS_REMOVING` is supported by this compiler
+        :return: The resulting `CompilerResult` data structure.
         """
         assert isinstance(problem, Problem)
 
