@@ -44,6 +44,7 @@ class OperatorKind(Enum):
     LE = auto()
     LT = auto()
     EQUALS = auto()
+    DOT = auto()
 
 
 BOOL_OPERATORS = frozenset(

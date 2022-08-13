@@ -146,6 +146,7 @@ class ExpressionManager(object):
             "up.model.parameter.Parameter",
             "up.model.variable.Variable",
             "up.model.timing.Timing",
+            "up.model.Agent",
             bool,
             int,
             Fraction,
@@ -335,6 +336,18 @@ class ExpressionManager(object):
         return self.create_node(
             node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent
         )
+
+    def Dot(
+        self, agent: "up.model.Agent", fluent_exp: "up.model.fnode.FNode"
+    ) -> "up.model.fnode.FNode":
+        """Creates an expression for the given agent and fluent_exp.
+        """
+        assert agent.environment == self.env
+        fluent_exp = self.auto_promote(fluent_exp)
+        return self.create_node(
+            node_type=OperatorKind.DOT, args=tuple(fluent_exp), payload=agent
+        )
+
 
     def ParameterExp(
         self, param: "up.model.parameter.Parameter"
