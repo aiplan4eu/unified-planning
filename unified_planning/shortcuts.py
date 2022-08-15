@@ -326,6 +326,9 @@ def Equals(left: Expression, right: Expression) -> FNode:
     """
     return get_env().expression_manager.Equals(left, right)
 
+def Dot(left: Agent, right: List[FNode]) -> FNode:
+    return get_env().expression_manager.Dot(left, right)
+
 
 def BoolType() -> unified_planning.model.types.Type:
     """Returns the global environment's boolean type."""

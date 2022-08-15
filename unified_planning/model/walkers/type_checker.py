@@ -285,17 +285,20 @@ class TypeChecker(walkers.dag.DagWalker):
         return BOOL
 
     def walk_agent_exp(
-        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+        self, expression: FNode, args: List[FNode]
     ) -> Optional["unified_planning.model.types.Type"]:
         assert expression.is_dot()
         a = expression.agent()
+        t = args[0]
+        if t is None:
+            return None
         if len(args) != 1:
             return None
-        if not args.is_fluent_exp():
+        if not t.is_fluent_exp():
             return None
-        if not args[0].is_fluent_exp():
+        if not t.is_fluent_exp():
             return None
-        f = args[0].fluent().name
+        f = t.fluent().name
         if not a.fluent(f):
             return None
         return args[0].fluent().type

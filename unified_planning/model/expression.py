@@ -338,7 +338,7 @@ class ExpressionManager(object):
         )
 
     def Dot(
-        self, agent: "up.model.Agent", fluent_exp: "up.model.fnode.FNode"
+        self, agent: "up.model.Agent", fluent_exp: List["up.model.fnode.FNode"]
     ) -> "up.model.fnode.FNode":
         """Creates an expression for the given agent and fluent_exp.
         """
