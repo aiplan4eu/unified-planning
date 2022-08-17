@@ -17,7 +17,7 @@ import unified_planning as up
 from unified_planning.model.problem import Problem
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.types import domain_size
-from typing import Dict, Set, List, Union
+from typing import Dict, Sequence, Set, List, Union
 
 
 class ContingentProblem(Problem):
@@ -84,7 +84,7 @@ class ContingentProblem(Problem):
         return new_p
 
     def add_oneof_initial_constraint(
-        self, fluents: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
+        self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
         em = self._env.expression_manager
         for f in fluents:
@@ -94,7 +94,7 @@ class ContingentProblem(Problem):
         self._initial_constraints.append(c)
 
     def add_or_initial_constraint(
-        self, fluents: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
+        self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
         c = self._env.expression_manager.Or(fluents)
         self._initial_constraints.append(c)

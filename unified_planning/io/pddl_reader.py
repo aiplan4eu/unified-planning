@@ -18,6 +18,7 @@ import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 import typing
+from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPUsageError
 from collections import OrderedDict
@@ -914,6 +915,9 @@ class PDDLReader:
                     dur_act
                 )
             else:
+                act: typing.Optional[
+                    Union[up.model.SensingAction, up.model.InstantaneousAction]
+                ] = None
                 if "obs" in a:
                     act = up.model.SensingAction(n, a_params, self._env)
                     if a["obs"][0][0] == "and":
@@ -1126,16 +1130,19 @@ class PDDLReader:
                     else:
                         raise SyntaxError(f"Not able to handle this TIL {i}")
                 elif i[0] == "oneof":
+                    assert isinstance(problem, ContingentProblem)
                     fluents = [
                         self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
                     ]
                     problem.add_oneof_initial_constraint(fluents)
                 elif i[0] == "or":
+                    assert isinstance(problem, ContingentProblem)
                     fluents = [
                         self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
                     ]
                     problem.add_or_initial_constraint(fluents)
                 elif i[0] == "unknown":
+                    assert isinstance(problem, ContingentProblem)
                     if len(i) != 2:
                         raise SyntaxError(
                             "`unknown` constraint requires exactly one argument."
