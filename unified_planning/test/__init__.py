@@ -124,8 +124,11 @@ class skipIfModuleNotInstalled(object):
 
     def __call__(self, test_fun):
         msg = f"no module named {self.module_name} installed"
-        test = find_spec(self.module_name)
-        cond = test is None
+        try:
+            test = find_spec(self.module_name)
+            cond = test is None
+        except ModuleNotFoundError:
+            cond = True
 
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
