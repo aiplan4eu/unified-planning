@@ -981,3 +981,13 @@ class SensingAction(InstantaneousAction):
     def observed_fluents(self) -> List["up.model.fnode.FNode"]:
         """Returns the observed fluents."""
         return self._observed_fluents
+
+    def __repr__(self) -> str:
+        b = InstantaneousAction.__repr__(self)[0:-3]
+        s = ["sensing-", b]
+        s.append("    observations = [\n")
+        for e in self._observed_fluents:
+            s.append(f"      {str(e)}\n")
+        s.append("    ]\n")
+        s.append("  }")
+        return "".join(s)

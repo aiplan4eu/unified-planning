@@ -87,7 +87,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :contingent"
                 )
             )
             + Suppress(")")
@@ -155,6 +155,7 @@ class PDDLGrammar:
             + Suppress(")")
             + Optional(":precondition" - nested_expr().setResultsName("pre"))
             + Optional(":effect" - nested_expr().setResultsName("eff"))
+            + Optional(":observe" - nested_expr().setResultsName("obs"))
             + Suppress(")")
         )
 
@@ -743,6 +744,12 @@ class PDDLReader:
                 self._env,
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
             )
+        elif ":contingent" in set(domain_res.get("features", [])):
+            problem = up.model.ContingentProblem(
+                domain_res["name"],
+                self._env,
+                initial_defaults={self._tm.BoolType(): self._em.FALSE()},
+            )
         else:
             problem = up.model.Problem(
                 domain_res["name"],
@@ -907,7 +914,19 @@ class PDDLReader:
                     dur_act
                 )
             else:
-                act = up.model.InstantaneousAction(n, a_params, self._env)
+                if "obs" in a:
+                    act = up.model.SensingAction(n, a_params, self._env)
+                    if a["obs"][0][0] == "and":
+                        for o in a["obs"][0][1:]:
+                            act.add_observed_fluent(
+                                self._parse_exp(problem, act, types_map, {}, o)
+                            )
+                    else:
+                        act.add_observed_fluent(
+                            self._parse_exp(problem, act, types_map, {}, a["obs"][0])
+                        )
+                else:
+                    act = up.model.InstantaneousAction(n, a_params, self._env)
                 if "pre" in a:
                     act.add_precondition(
                         self._parse_exp(problem, act, types_map, {}, a["pre"][0])
@@ -1084,7 +1103,10 @@ class PDDLReader:
                         )
                     )
 
-            for i in problem_res.get("init", []):
+            init_lst = problem_res.get("init", [])
+            if len(init_lst) == 1 and init_lst[0][0] == "and":
+                init_lst = init_lst[0][1:]
+            for i in init_lst:
                 if i[0] == "=":
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i[1]),
@@ -1103,6 +1125,23 @@ class PDDLReader:
                         problem.add_timed_effect(ti, va.arg(0), va.arg(1))
                     else:
                         raise SyntaxError(f"Not able to handle this TIL {i}")
+                elif i[0] == "oneof":
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_oneof_initial_constraint(fluents)
+                elif i[0] == "or":
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_or_initial_constraint(fluents)
+                elif i[0] == "unknown":
+                    if len(i) != 2:
+                        raise SyntaxError(
+                            "`unknown` constraint requires exactly one argument."
+                        )
+                    arg = self._parse_exp(problem, None, types_map, {}, i[1])
+                    problem.add_unknown_initial_constraint(arg)
                 else:
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i),
