@@ -278,7 +278,7 @@ class TypeChecker(walkers.dag.DagWalker):
                 return None
         return BOOL
 
-    @walkers.handles(OperatorKind.DOT, OperatorKind.DOT)
+    @walkers.handles(OperatorKind.DOT)
     def walk_dot(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> Optional["unified_planning.model.types.Type"]:
