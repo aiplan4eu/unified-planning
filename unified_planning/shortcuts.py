@@ -326,7 +326,7 @@ def Equals(left: Expression, right: Expression) -> FNode:
     """
     return get_env().expression_manager.Equals(left, right)
 
-def Dot(left: Agent, right: List[FNode]) -> FNode:
+def Dot(left: Agent, right: FNode) -> FNode:
     return get_env().expression_manager.Dot(left, right)
 
 

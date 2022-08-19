@@ -74,7 +74,7 @@ class FNode(object):
         elif self.is_fluent_exp():
             return self.fluent().name + self.get_nary_expression_string(", ", self.args)
         elif self.is_dot():
-            return self.agent().name + self.get_nary_expression_string(", ", self.args)
+            return "%s.%s" %(self.agent().name, self.arg(0))
         elif self.is_parameter_exp():
             return self.parameter().name
         elif self.is_variable_exp():
