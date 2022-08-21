@@ -45,6 +45,42 @@ class TypeChecker(walkers.dag.DagWalker):
             )
         return res
 
+    def is_compatible_type(
+        self,
+        t_left: "unified_planning.model.types.Type",
+        t_right: "unified_planning.model.types.Type",
+    ) -> bool:
+        if t_left == t_right:
+            return True
+        if t_left.is_user_type() and t_right.is_user_type():
+            return t_right in self.env.type_manager.user_type_ancestors(t_left)
+        if not (
+            (t_left.is_int_type() and t_right.is_int_type())
+            or (t_left.is_real_type() and t_right.is_real_type())
+            or (t_left.is_real_type() and t_right.is_int_type())
+        ):
+            return False
+        assert isinstance(t_left, _IntType) or isinstance(t_left, _RealType)
+        assert isinstance(t_right, _IntType) or isinstance(t_right, _RealType)
+        left_lower = -float("inf") if t_left.lower_bound is None else t_left.lower_bound
+        left_upper = float("inf") if t_left.upper_bound is None else t_left.upper_bound
+        right_lower = (
+            -float("inf") if t_right.lower_bound is None else t_right.lower_bound
+        )
+        right_upper = (
+            float("inf") if t_right.upper_bound is None else t_right.upper_bound
+        )
+        if right_upper < left_lower or right_lower > left_upper:
+            return False
+        else:
+            return True
+
+    def is_compatible_exp(self, fluent_exp: FNode, value_exp: FNode) -> bool:
+        """Returns true iff the given expressions have compatible types."""
+        t_left = self.get_type(fluent_exp)
+        t_right = self.get_type(value_exp)
+        return self.is_compatible_type(t_left, t_right)
+
     @walkers.handles(
         OperatorKind.AND,
         OperatorKind.OR,
@@ -72,7 +108,7 @@ class TypeChecker(walkers.dag.DagWalker):
         if len(args) != len(f.signature):
             return None
         for (arg, param) in zip(args, f.signature):
-            if not arg.is_compatible(param.type):
+            if not self.is_compatible_type(arg, param.type):
                 return None
         return f.type
 
@@ -278,7 +314,7 @@ class TypeChecker(walkers.dag.DagWalker):
                 return None
         return BOOL
 
-    @walkers.handles(OperatorKind.DOT)
+    @walkers.handles(OperatorKind.DOT, OperatorKind.DOT)
     def walk_dot(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> Optional["unified_planning.model.types.Type"]:

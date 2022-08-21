@@ -147,6 +147,7 @@ class ExpressionManager(object):
             "up.model.variable.Variable",
             "up.model.timing.Timing",
             "up.model.Agent",
+            "up.model.MAEnvironment",
             bool,
             int,
             Fraction,
@@ -338,7 +339,7 @@ class ExpressionManager(object):
         )
 
     def Dot(
-        self, agent: "up.model.Agent", *fluent_exp: "up.model.fnode.FNode"
+        self, agent: Union["up.model.Agent", "up.model.MAEnvironment"], *fluent_exp: "up.model.fnode.FNode"
     ) -> "up.model.fnode.FNode":
         """Creates an expression for the given agent and fluent_exp.
         """

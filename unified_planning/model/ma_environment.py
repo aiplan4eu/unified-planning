@@ -40,6 +40,7 @@ class MAEnvironment(
         self,
         ma_problem: "up.model.MultiAgentProblem",
     ):
+        self._name = 'MA_Environment'
         self._ma_problem = ma_problem
         self._env = up.environment.get_env(self._ma_problem.env)
         FluentsSetMixin.__init__(self, self.env, self._ma_problem._add_user_type_method, self.has_name, self._ma_problem._initial_defaults)
@@ -49,13 +50,18 @@ class MAEnvironment(
         return (self.has_fluent(name) or self._ma_problem.has_name(name))
 
     @property
+    def name(self) -> str:
+        """Returns the agent name."""
+        return self._name
+
+    @property
     def environment(self) -> "Environment":
         """Returns the MAEnvironment environment."""
         return self._env
 
     def __repr__(self) -> str:
         s = []
-        s.append(f"MA-Environment\n\n")
+        s.append(f"MA_Environment:\n\n")
         s.append("fluents = [\n")
         for f in self._fluents:
             s.append(f" {str(f)}\n")

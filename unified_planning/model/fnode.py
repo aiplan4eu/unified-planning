@@ -74,7 +74,7 @@ class FNode(object):
         elif self.is_fluent_exp():
             return self.fluent().name + self.get_nary_expression_string(", ", self.args)
         elif self.is_dot():
-            return "%s.%s" %(self.agent().name, self.arg(0))
+            return "%s.%s" %(self.agent().name, self.arg(0)) if type(self.arg(0)) is unified_planning.model.agent.Agent else "%s.%s" %(self.ma_env().name, self.arg(0))
         elif self.is_parameter_exp():
             return self.parameter().name
         elif self.is_variable_exp():
@@ -318,7 +318,12 @@ class FNode(object):
         return self.node_type == OperatorKind.DOT
 
     def agent(self) -> "unified_planning.model.Agent":
-        """Return the fluent of the AgentExp."""
+        """Return the agent of Dot operator."""
+        assert self.is_dot()
+        return self._content.payload
+
+    def ma_env(self) -> "unified_planning.model.MAEnvironment":
+        """Return the ma_env of Dot operator."""
         assert self.is_dot()
         return self._content.payload
 
