@@ -49,13 +49,24 @@ class Agent(
         self._name: str = name
         self._ma_problem = ma_problem
         self._env = up.environment.get_env(self._ma_problem.env)
-        FluentsSetMixin.__init__(self, self.env, self._ma_problem._add_user_type_method, self.has_name, self._ma_problem._initial_defaults)
-        ActionsSetMixin.__init__(self, self.env, self._ma_problem._add_user_type_method, self.has_name)
-
+        FluentsSetMixin.__init__(
+            self,
+            self.env,
+            self._ma_problem._add_user_type_method,
+            self.has_name,
+            self._ma_problem._initial_defaults,
+        )
+        ActionsSetMixin.__init__(
+            self, self.env, self._ma_problem._add_user_type_method, self.has_name
+        )
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
-        return (self.has_action(name) or self.has_fluent(name) or self._ma_problem.has_name(name))
+        return (
+            self.has_action(name)
+            or self.has_fluent(name)
+            or self._ma_problem.has_name(name)
+        )
 
     @property
     def name(self) -> str:

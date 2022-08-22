@@ -37,10 +37,7 @@ from unified_planning.model.mixins import (
 
 
 class MultiAgentProblem(
-    AbstractProblem,
-    UserTypesSetMixin,
-    ObjectsSetMixin,
-    AgentsSetMixin
+    AbstractProblem, UserTypesSetMixin, ObjectsSetMixin, AgentsSetMixin
 ):
     """Represents a planning MultiAgentProblem."""
 
@@ -49,7 +46,7 @@ class MultiAgentProblem(
         name: str = None,
         env: "up.environment.Environment" = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {}
+        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
         AbstractProblem.__init__(self, name, env)
         UserTypesSetMixin.__init__(self, self.has_name)
@@ -61,7 +58,6 @@ class MultiAgentProblem(
         self._goals: List["up.model.fnode.FNode"] = list()
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
-
 
     def __repr__(self) -> str:
         s = []
@@ -75,8 +71,8 @@ class MultiAgentProblem(
             for f in ag.fluents:
                 s.append(f"  {str(ag._name)}: {str(f)}\n")
         if self.get_ma_environment is not None:
-            if len(self.get_ma_environment.fluents) > 0: # type: ignore
-                for f in self.get_ma_environment.fluents: # type: ignore
+            if len(self.get_ma_environment.fluents) > 0:  # type: ignore
+                for f in self.get_ma_environment.fluents:  # type: ignore
                     s.append(f"  {'MA-Environment'} {str(f)}\n")
         s.append("]\n\n")
 
@@ -123,7 +119,6 @@ class MultiAgentProblem(
         s.append("]\n\n")
 
         return "".join(s)
-
 
     def __hash__(self) -> int:
         res = hash(self._kind) + hash(self._name)
@@ -175,8 +170,7 @@ class MultiAgentProblem(
             self._goals.append(goal_exp)
 
     def add_goals(
-            self,
-            goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
+        self, goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
     ):
         """Sets the goals for the given agent."""
         for goal in goals:
@@ -188,8 +182,7 @@ class MultiAgentProblem(
         return self._goals
 
     def agent_goals(
-            self,
-            agent: "up.model.agent.Agent"
+        self, agent: "up.model.agent.Agent"
     ) -> List["up.model.fnode.FNode"]:
         """Returns the goals for the given agent"""
         agent_goals = []
@@ -218,9 +211,7 @@ class MultiAgentProblem(
         return agents_goals
 
     def add_agent_goals(
-            self,
-            agent: "up.model.agent.Agent",
-            goals: List["up.model.fnode.FNode"]
+        self, agent: "up.model.agent.Agent", goals: List["up.model.fnode.FNode"]
     ):
         """Sets the goals for the given agent."""
         for goal in goals:
@@ -240,22 +231,23 @@ class MultiAgentProblem(
         """Removes the goals."""
         self._goals = []
 
-    def add_env_goals(
-            self,
-            goals: List["up.model.fnode.FNode"]
-    ):
+    def add_env_goals(self, goals: List["up.model.fnode.FNode"]):
         """Sets the goals for the given agent."""
         for goal in goals:
             if not goal.is_fluent_exp() and goal.args[0].is_fluent_exp():
                 sub = Substituter(self.env)
                 subs_map = {}
-                env_goal = self.env.expression_manager.Dot(self.get_ma_environment, goal.args[0])
+                env_goal = self.env.expression_manager.Dot(
+                    self.get_ma_environment, goal.args[0]
+                )
                 old_exp = sub._get_key(goal.args[0])
                 new_exp = sub._get_key(env_goal)
                 subs_map[old_exp] = new_exp
                 env_goal = sub.substitute(goal, subs_map)
             else:
-                env_goal = self.env.expression_manager.Dot(self.get_ma_environment, goal)
+                env_goal = self.env.expression_manager.Dot(
+                    self.get_ma_environment, goal
+                )
             self.add_goal(env_goal)
 
     @property
@@ -264,13 +256,15 @@ class MultiAgentProblem(
         ma_env_goals = []
         for i in self._goals:
             if not i.is_dot() and i.args[0].is_dot():
-                if type(i.args[0]._content.payload) is up.model.ma_environment.MAEnvironment:
+                if (
+                    type(i.args[0]._content.payload)
+                    is up.model.ma_environment.MAEnvironment
+                ):
                     ma_env_goals.append(i)
             else:
                 if type(i._content.payload) is up.model.ma_environment.MAEnvironment:
                     ma_env_goals.append(i)
         return ma_env_goals
-
 
     def set_initial_value(
         self,
@@ -292,13 +286,11 @@ class MultiAgentProblem(
         self._initial_value[fluent_exp] = value_exp
 
     def set_initial_values(
-            self,
-            initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]
+        self, initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]
     ):
         """Sets the initial_values"""
         for k, v in initial_values.items():
             self.set_initial_value(k, v)
-
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
@@ -306,9 +298,9 @@ class MultiAgentProblem(
         return self._initial_value
 
     def set_agent_initial_values(
-            self,
-            agent: "up.model.agent.Agent",
-            initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]
+        self,
+        agent: "up.model.agent.Agent",
+        initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
     ):
         """Sets the initial_values for the given agent."""
         for k, v in initial_values.items():
@@ -325,8 +317,7 @@ class MultiAgentProblem(
             self.set_initial_value(agent_initial_value, v)
 
     def agent_initial_values(
-            self,
-            agent:  "up.model.agent.Agent"
+        self, agent: "up.model.agent.Agent"
     ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
         """Returns the initial_values for the given agent"""
         agent_initial_values = {}
@@ -342,7 +333,9 @@ class MultiAgentProblem(
         return agent_initial_values
 
     @property
-    def agents_initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
+    def agents_initial_values(
+        self,
+    ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
         """Returns the initial_values of agents"""
         agents_initial_values = {}
         for i, v in self._initial_value.items():
@@ -356,34 +349,41 @@ class MultiAgentProblem(
 
     @property
     def env_initial_values(
-            self,
+        self,
     ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
         """Returns the initial_values of MA-environment"""
         env_initial_values = {}
         for i, v in self._initial_value.items():
             if not i.is_dot() and i.args[0].is_dot():
-                if type(i.args[0]._content.payload) is up.model.ma_environment.MAEnvironment:
+                if (
+                    type(i.args[0]._content.payload)
+                    is up.model.ma_environment.MAEnvironment
+                ):
                     env_initial_values[i] = v
             else:
                 if type(i._content.payload) is up.model.ma_environment.MAEnvironment:
                     env_initial_values[i] = v
         return env_initial_values
+
     def set_env_initial_values(
-            self,
-            initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]
+        self, initial_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]
     ):
         """Sets the initial_values."""
         for k, v in initial_values.items():
             if not k.is_fluent_exp() and k.args[0].is_fluent_exp():
                 sub = Substituter(self.env)
                 subs_map = {}
-                env_initial_value = self.env.expression_manager.Dot(self.get_ma_environment, k.args[0])
+                env_initial_value = self.env.expression_manager.Dot(
+                    self.get_ma_environment, k.args[0]
+                )
                 old_exp = sub._get_key(k.args[0])
                 new_exp = sub._get_key(env_initial_value)
                 subs_map[old_exp] = new_exp
                 env_initial_value = sub.substitute(k, subs_map)
             else:
-                env_initial_value = self.env.expression_manager.Dot(self.get_ma_environment, k)
+                env_initial_value = self.env.expression_manager.Dot(
+                    self.get_ma_environment, k
+                )
             self.set_initial_value(env_initial_value, v)
 
     def _get_ith_fluent_exp(

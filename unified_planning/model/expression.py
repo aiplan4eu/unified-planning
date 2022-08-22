@@ -339,15 +339,15 @@ class ExpressionManager(object):
         )
 
     def Dot(
-        self, agent: Union["up.model.Agent", "up.model.MAEnvironment"], *fluent_exp: "up.model.fnode.FNode"
+        self,
+        agent: Union["up.model.Agent", "up.model.MAEnvironment"],
+        *fluent_exp: "up.model.fnode.FNode",
     ) -> "up.model.fnode.FNode":
-        """Creates an expression for the given agent and fluent_exp.
-        """
+        """Creates an expression for the given agent and fluent_exp."""
         assert agent.environment == self.env
         return self.create_node(
             node_type=OperatorKind.DOT, args=tuple(fluent_exp), payload=agent
         )
-
 
     def ParameterExp(
         self, param: "up.model.parameter.Parameter"

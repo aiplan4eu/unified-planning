@@ -38,12 +38,15 @@ class AgentsSetMixin:
     def env(self) -> "up.environment.Environment":
         """Returns the problem environment."""
         return self._env
+
     def add_agent(self, agent: "Agent"):
         """This method adds an Agent"""
         if agent not in self._agents:
             t = cast(Agent, agent)
             if self._has_name_method(t._name):
-               raise UPProblemDefinitionError(f'The agent name {t._name} is already used in the problem')
+                raise UPProblemDefinitionError(
+                    f"The agent name {t._name} is already used in the problem"
+                )
             self._agents.append(agent)
 
     @property
@@ -65,4 +68,3 @@ class AgentsSetMixin:
             if agent._name == name:
                 return True
         return False
-

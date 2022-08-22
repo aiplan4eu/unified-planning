@@ -59,7 +59,7 @@ class TypeChecker(walkers.dag.DagWalker):
         OperatorKind.IFF,
         OperatorKind.EXISTS,
         OperatorKind.FORALL,
-        OperatorKind.DOT
+        OperatorKind.DOT,
     )
     def walk_bool_to_bool(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
