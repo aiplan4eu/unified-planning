@@ -45,12 +45,6 @@ class TypeChecker(walkers.dag.DagWalker):
             )
         return res
 
-    def is_compatible_exp(self, fluent_exp: FNode, value_exp: FNode) -> bool:
-        """Returns true iff the given expressions have compatible types."""
-        t_left = self.get_type(fluent_exp)
-        t_right = self.get_type(value_exp)
-        return self.is_compatible_type(t_left, t_right)
-
     @walkers.handles(
         OperatorKind.AND,
         OperatorKind.OR,
