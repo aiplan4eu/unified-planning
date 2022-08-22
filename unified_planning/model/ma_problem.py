@@ -37,7 +37,10 @@ from unified_planning.model.mixins import (
 
 
 class MultiAgentProblem(
-    AbstractProblem, UserTypesSetMixin, ObjectsSetMixin, AgentsSetMixin,
+    AbstractProblem,
+    UserTypesSetMixin,
+    ObjectsSetMixin,
+    AgentsSetMixin,
 ):
     """Represents a planning MultiAgentProblem."""
 
