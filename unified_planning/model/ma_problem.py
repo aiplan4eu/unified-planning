@@ -119,7 +119,7 @@ class MultiAgentProblem(
         s.append("MA-environment goals = [\n")
         if len(self.env_goals) > 0:
             for goal in self.env_goals:
-                s.append(f"  {'MA-Environment'} {str(goal)}\n")
+                s.append(f" {'MA-Environment'} {str(goal)}\n")
         s.append("]\n\n")
 
         return "".join(s)
@@ -149,7 +149,7 @@ class MultiAgentProblem(
             self.get_ma_environment.has_fluent(name)
             or self.has_object(name)
             or self.has_type(name)
-            #or self.has_agent(name)
+            or self.has_agent(name)
         )
 
     def set_ma_environment(self, env_ma) -> Union["up.model.MAEnvironment"]:
@@ -184,7 +184,7 @@ class MultiAgentProblem(
 
     @property
     def goals(self) -> List["up.model.fnode.FNode"]:
-        """Returns the goals of agents."""
+        """Returns the goals."""
         return self._goals
 
     def agent_goals(

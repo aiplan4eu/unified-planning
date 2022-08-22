@@ -51,17 +51,17 @@ class MAEnvironment(
 
     @property
     def name(self) -> str:
-        """Returns the agent name."""
+        """Returns the MA-environment name."""
         return self._name
 
     @property
     def environment(self) -> "Environment":
-        """Returns the MAEnvironment environment."""
+        """Returns the MA-environment environment."""
         return self._env
 
     def __repr__(self) -> str:
         s = []
-        s.append(f"MA_Environment:\n\n")
+        s.append(f"{str(self._name)}\n\n")
         s.append("fluents = [\n")
         for f in self._fluents:
             s.append(f" {str(f)}\n")
