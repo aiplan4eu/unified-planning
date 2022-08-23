@@ -169,7 +169,7 @@ jobs:
       - name: Install tarski
         run: |
           python3 -m pip install tarski[arithmetic]
-          brew install gringo
+#          brew install gringo -- Commented because not working on github actions
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
