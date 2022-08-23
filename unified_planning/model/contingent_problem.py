@@ -143,3 +143,11 @@ class ContingentProblem(Problem):
         self._kind = super().kind
         self._kind.set_problem_class("CONTINGENT")
         return self._kind
+
+    @property
+    def constraints(self) -> List["up.model.fnode.FNode"]:
+        return self._initial_constraints
+
+    @property
+    def hidden(self) -> Set["up.model.fnode.FNode"]:
+        return self._hidden_fluents
