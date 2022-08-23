@@ -40,7 +40,7 @@ from unified_planning.plans import SequentialPlan, PlanKind
 
 
 class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
-    """Performs plan validation."""
+    """Performs :class:`~unified_planning.plans.Plan` validation."""
 
     def __init__(self, **options):
         engines.engine.Engine.__init__(self)

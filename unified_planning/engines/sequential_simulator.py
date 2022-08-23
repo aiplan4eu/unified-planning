@@ -96,11 +96,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
     ) -> List["up.model.FNode"]:
         """
         Returns the list of unsatisfied event conditions evaluated in the given state.
-        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied condition.
+        If the flag `early_termination` is set, the method ends and returns at the first unsatisfied condition.
 
-        :param state: The State in which the event conditions are evaluated.
+        :param state: The `State` in which the event conditions are evaluated.
         :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
-        :return: The list of all the event conditions that evaluated to False or the list containing the first condition evaluated to False if the flag "early_termination" is set.
+        :return: The list of all the event conditions that evaluated to `False` or the list containing the first
+            condition evaluated to False if the flag `early_termination` is set.
         """
         # Evaluate every condition and if the condition is False or the condition is not simplified as a
         # boolean constant in the given state, return False. Return True otherwise
@@ -120,14 +121,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
         self, event: "Event", state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
         """
-        Returns None if the event is not applicable in the given state, otherwise returns a new COWState,
+        Returns `None` if the event is not applicable in the given state, otherwise returns a new COWState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
 
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions to check and the effects to apply.
         :return: None if the event is not applicable in the given state, a new COWState with some updated values
-         if the event is applicable.
+            if the event is applicable.
         """
         if not self.is_applicable(event, state):
             return None

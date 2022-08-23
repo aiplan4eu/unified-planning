@@ -60,7 +60,7 @@ if ENV_USE_ASYNCIO is not None:
 
 class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     """
-    This class is the interface of a generic PDDL planner
+    This class is the interface of a generic PDDL :class:`OneshotPlanner <unified_planning.engines.mixins.OneshotPlannerMixin>`
     that can be invocated through a subprocess call.
     """
 
@@ -102,7 +102,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         ],
     ) -> "up.plans.Plan":
         """
-        Takes a problem, a filename and a map of renamings and returns the plan parsed from the file.
+        Takes a problem, a filename and a map of renaming and returns the plan parsed from the file.
 
         :param problem: The up.model.problem.Problem instance for which the plan is generated.
         :param plan_filename: The path of the file in which the plan is written.

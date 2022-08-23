@@ -21,10 +21,10 @@ from typing import List, Dict, Optional, cast
 
 class UserTypesSetMixin:
     """
-    This class is a mixin that contains a set of user types with some related methods.
+    This class is a mixin that contains a `set` of `user types` with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
-    of the attributes (e.g. has_name_method), it is required to pass the very same
+    of the attributes (e.g. `has_name_method`), it is required to pass the very same
     arguments to the mixins constructors.
     """
 
@@ -51,15 +51,15 @@ class UserTypesSetMixin:
 
     @property
     def user_types(self) -> List["up.model.types.Type"]:
-        """Returns the list of all the user types in the problem."""
+        """Returns the `list` of all the `user types` in the `problem`."""
         return self._user_types
 
     def user_type(self, name: str) -> "up.model.types.Type":
         """
-        Returns the user type in the problem with the given name.
+        Returns the `user type` in the `problem` with the given `name`.
 
-        :param name: The target name for the type.
-        :return: The type in the problem with the given name.
+        :param name: The target `name` for the `type`.
+        :return: The `type` in the `problem` with the given `name`.
         """
         for ut in self.user_types:
             assert ut.is_user_type()
@@ -69,12 +69,12 @@ class UserTypesSetMixin:
 
     def has_type(self, name: str) -> bool:
         """
-        Returns True if the type with the given name is defined in the
-        problem, False, otherwise.
+        Returns `True` if the `type` with the given `name` is defined in the
+        `problem`, `False`, otherwise.
 
-        :param name: The target name for the type.
-        :return: True if a type with the given name is in the problem,
-        False otherwise.
+        :param name: The target `name` for the `type`.
+        :return: `True` if a `type` with the given `name` is in the `problem`,
+            `False` otherwise.
         """
         for ut in self.user_types:
             assert ut.is_user_type()
@@ -87,10 +87,10 @@ class UserTypesSetMixin:
         self,
     ) -> Dict[Optional["up.model.types.Type"], List["up.model.types.Type"]]:
         """
-        Returns a Dict where every key represents an Optional Type and the value
-        associated to the key is the List of the direct sons of the Optional Type.
+        Returns a `Dict` where every `key` represents an `Optional Type` and the `value`
+        associated to the `key` is the `List` of the `direct sons` of the `Optional Type`.
 
-        All the user types corresponding to the 'None' key are fatherless.
+        All the `user types` corresponding to the 'None' key are fatherless.
         """
         res: Dict[Optional["up.model.types.Type"], List["up.model.types.Type"]] = {}
         for t in self._user_types:

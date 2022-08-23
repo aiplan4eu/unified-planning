@@ -26,7 +26,7 @@ from typing import Callable, Dict, Optional, List
 
 class ValidationResultStatus(Enum):
     """
-    Enum representing the 2 possible values in the satus field of a ValidationResult:
+    Enum representing the 2 possible values in the `status` field of a :class:`~unified_planning.engines.ValidationResult`:
     VALID or INVALID.
     """
 
@@ -40,7 +40,7 @@ class ValidationResultStatus(Enum):
 
 class PlanGenerationResultStatus(Enum):
     """
-    Enum representing the 9 possible values in the status field of a PlanGenerationResult:
+    Enum representing the 9 possible values in the status field of a :class:`~unified_planning.engines.PlanGenerationResult`:
     SOLVED_SATISFICING        -> Valid plan found.
     SOLVED_OPTIMALLY          -> Optimal plan found.
     UNSOLVABLE_PROVEN         -> The problem is impossible, no valid plan exists.
@@ -86,7 +86,7 @@ NEGATIVE_OUTCOMES = frozenset(
 
 class LogLevel(Enum):
     """
-    Enum representing the 4 possible values in the verbosity level of a LogMessage:
+    Enum representing the 4 possible values in the verbosity level of a :class:`~unified_planning.engines.LogMessage`:
     DEBUG, INFO, WARNING and ERROR
     """
 

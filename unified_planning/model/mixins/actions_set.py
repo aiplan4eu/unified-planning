@@ -20,10 +20,10 @@ from typing import Iterator, List
 
 class ActionsSetMixin:
     """
-    This class is a mixin that contains a set of actions with some related methods.
+    This class is a mixin that contains a `set` of `actions` with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
-    of the attributes (e.g. env, add_user_type_method, has_name_method), it is required
+    of the attributes (e.g. `env`, `add_user_type_method`, `has_name_method`), it is required
     to pass the very same arguments to the mixins constructors.
     """
 
@@ -35,60 +35,68 @@ class ActionsSetMixin:
 
     @property
     def env(self) -> "up.environment.Environment":
-        """Returns the problem environment."""
+        """Returns the `Problem` environment."""
         return self._env
 
     @property
     def actions(self) -> List["up.model.action.Action"]:
-        """Returns the list of the actions in the problem."""
+        """Returns the list of the `Actions` in the `Problem`."""
         return self._actions
 
     def clear_actions(self):
-        """Removes all the problem actions."""
+        """Removes all the `Problem` `Actions`."""
         self._actions = []
 
     @property
     def instantaneous_actions(self) -> Iterator["up.model.action.InstantaneousAction"]:
-        """Returs all the instantaneous actions of the problem.
+        """
+        Returns all the `InstantaneousActions` of the `Problem`.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 yield a
 
     @property
     def durative_actions(self) -> Iterator["up.model.action.DurativeAction"]:
-        """Returs all the durative actions of the problem.
+        """
+        Returns all the `DurativeActions` of the `Problem`.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         for a in self._actions:
             if isinstance(a, up.model.action.DurativeAction):
                 yield a
 
     @property
     def conditional_actions(self) -> List["up.model.action.Action"]:
-        """Returns the conditional actions.
+        """
+        Returns the `conditional Actions`.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         return [a for a in self._actions if a.is_conditional()]
 
     @property
     def unconditional_actions(self) -> List["up.model.action.Action"]:
-        """Returns the unconditional actions.
+        """
+        Returns the `unconditional Actions`.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         return [a for a in self._actions if not a.is_conditional()]
 
     def action(self, name: str) -> "up.model.action.Action":
         """
-        Returns the action with the given name.
+        Returns the `action` with the given `name`.
 
-        :param name: The name of the target action.
-        :return: The action in the problem with the given name.
+        :param name: The `name` of the target `action`.
+        :return: The `action` in the `problem` with the given `name`.
         """
         for a in self._actions:
             if a.name == name:
@@ -97,11 +105,11 @@ class ActionsSetMixin:
 
     def has_action(self, name: str) -> bool:
         """
-        Returns True if the problem has the action with the given name,
-        False otherwise.
+        Returns `True` if the `problem` has the `action` with the given `name`,
+        `False` otherwise.
 
-        :param name: The name of the target action.
-        :return: True if the problem has an action with the given name, False otherwise.
+        :param name: The `name` of the target `action`.
+        :return: `True` if the `problem` has an `action` with the given `name`, `False` otherwise.
         """
         for a in self._actions:
             if a.name == name:
@@ -110,9 +118,9 @@ class ActionsSetMixin:
 
     def add_action(self, action: "up.model.action.Action"):
         """
-        Adds the given action to the problem.
+        Adds the given `action` to the `problem`.
 
-        :param action: The action that must be added to the problem.
+        :param action: The `action` that must be added to the `problem`.
         """
         assert (
             action.env == self._env
@@ -126,9 +134,9 @@ class ActionsSetMixin:
 
     def add_actions(self, actions: List["up.model.action.Action"]):
         """
-        Adds the given actions to the problem.
+        Adds the given `actions` to the `problem`.
 
-        :param actions: The list of actions that must be added to the problem.
+        :param actions: The `list` of `actions` that must be added to the `problem`.
         """
         for action in actions:
             self.add_action(action)

@@ -37,7 +37,12 @@ class Parallel(
     engines.mixins.OneshotPlannerMixin,
     engines.mixins.PlanValidatorMixin,
 ):
-    """Create a parallel instance of multiple Engines."""
+    """
+    Create a parallel instance of multiple :class:`Engines <unified_planning.engines.Engine>`.
+
+    The `Engines` run the same command in parallel and the first definitive :class:`Result <unified_planning.engines.Result>` returned
+    by the `Engine` is returned to the user.
+    """
 
     def __init__(
         self,

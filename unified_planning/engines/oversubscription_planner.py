@@ -31,6 +31,14 @@ from fractions import Fraction
 
 
 class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
+    """
+    This class defines the OversubscriptionPlanner :class:`~unified_planning.engines.MetaEngine`.
+
+    An oversubscription :class:`~unified_planning.model.Problem` is a `Problem` with some optional `goals`, where
+    each one of those `goals` has a gain. The optimal :class:`~unified_planning.plans.Plan` is the one that maximizes the
+    total gain by achieving some or all the optional goals.
+    """
+
     def __init__(self, *args, **kwargs):
         MetaEngine.__init__(self, *args, **kwargs)
         mixins.OneshotPlannerMixin.__init__(self)

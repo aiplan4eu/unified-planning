@@ -146,7 +146,10 @@ class ConverterToPythonString(walkers.DagWalker):
 
 
 class PythonWriter:
-    """This class can be used to write a Problem in PDDL."""
+    """
+    This class is used to write the python code used to create the given :class:`~unified_planning.model.Problem`
+    in the `unified_planning` data structure.
+    """
 
     def __init__(self, problem: "up.model.Problem"):
         self.problem = problem
@@ -455,17 +458,17 @@ class PythonWriter:
                 )
 
     def print_problem_python_commands(self):
-        """Prints the string representing all the necessary commands to recreate the problem."""
+        """Prints the string representing all the necessary commands to recreate the :class:`~unified_planning.model.Problem`."""
         self._write_problem_code(sys.stdout)
 
     def write_problem_code(self) -> str:
-        """Returns the string representing all the necessary commands to recreate the problem."""
+        """Returns the string representing all the necessary commands to recreate the :class:`~unified_planning.model.Problem`."""
         out = StringIO()
         self._write_problem_code(out)
         return out.getvalue()
 
     def write_problem_code_to_file(self, filename: str):
-        """Dumps to file the python commands to recreate the problem.
+        """Dumps to file the python commands to recreate the :class:`~unified_planning.model.Problem`.
 
         :param filename: The path to the file where the python code must be written.
         """
