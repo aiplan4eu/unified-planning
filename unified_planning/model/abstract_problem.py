@@ -20,10 +20,10 @@ from typing import Optional
 
 class AbstractProblem:
     """
-    This is an abstract class that represents a generic planning problem.
+    This is an abstract class that represents a generic `planning problem`.
 
-    Together with the up.model.mixins classes it defines the most common
-    functionalities of planning problems.
+    Together with the `unified_planning.model.mixins` classes it defines the most common
+    functionalities of `planning problems`.
     """
 
     def __init__(self, name: str = None, env: "up.environment.Environment" = None):
@@ -32,17 +32,17 @@ class AbstractProblem:
 
     @property
     def env(self) -> "up.environment.Environment":
-        """Returns the problem environment."""
+        """Returns the `Problem` `Environment`."""
         return self._env
 
     @property
     def name(self) -> Optional[str]:
-        """Returns the problem name."""
+        """Returns the `Problem` `name`."""
         return self._name
 
     @name.setter
     def name(self, new_name: str):
-        """Sets the problem name."""
+        """Sets the `Problem` `name`."""
         self._name = new_name
 
     def clone(self):
@@ -50,26 +50,26 @@ class AbstractProblem:
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
-        """Returns the ProblemKind of this problem."""
+        """Returns the :class:`~unified_planning.model.ProblemKind` of this `Problem`."""
         raise NotImplementedError
 
     def has_name(self, name: str) -> bool:
         """
-        Returns True the given name is already used inside this problem,
-        False otherwise.
+        Returns `True` the given `name` is already used inside this `Problem`,
+        `False` otherwise.
 
-        :param name: The target name to search in the problem.
-        :return: True if the name is already used in the problem, False otherwise.
+        :param name: The target `name` to search in the `Problem`.
+        :return: `True` if the `name` is already used in the `Problem`, `False` otherwise.
         """
         raise NotImplementedError
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
         """
-        Normalizes the given plan, that is potentially the result of another
-        problem, updating the object references present in it with the ones of
-        this problem which are syntactically equal.
+        Normalizes the given `Plan`, that is potentially the result of another
+        `Problem`, updating the `Object` references in the `Plan` with the ones of
+        this `Problem` which are syntactically equal.
 
-        :param plan: The plan that must be normalized.
-        :return: A plan syntactically valid for this problem.
+        :param plan: The `Plan` that must be normalized.
+        :return: A `Plan` syntactically valid for this `Problem`.
         """
         raise NotImplementedError

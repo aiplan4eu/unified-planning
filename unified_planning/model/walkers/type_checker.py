@@ -25,7 +25,7 @@ from typing import List, Optional
 
 
 class TypeChecker(walkers.dag.DagWalker):
-    """Walker used to retrieve the type of an expression."""
+    """Walker used to retrieve the `Type` of an expression."""
 
     def __init__(self, env: "unified_planning.environment.Environment"):
         walkers.dag.DagWalker.__init__(self)
@@ -33,10 +33,10 @@ class TypeChecker(walkers.dag.DagWalker):
 
     def get_type(self, expression: FNode) -> "unified_planning.model.types.Type":
         """
-        Returns the unified_planning.model.types.Type of the expression.
+        Returns the `Type` of the expression.
 
-        :param expression: The expression of which the type must be retrieved.
-        :return: The expression Type.
+        :param expression: The expression of which the `Type` must be retrieved.
+        :return: The expression `Type`.
         """
         res = self.walk(expression)
         if res is None:

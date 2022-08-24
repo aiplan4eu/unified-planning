@@ -20,17 +20,17 @@ from typing import List, Set
 
 
 class FreeVarsExtractor(walkers.dag.DagWalker):
-    """This expression walker returns all the fluent expression in the given expression."""
+    """This expression walker returns all the `fluent` expression in the given expression."""
 
     def __init__(self):
         walkers.dag.DagWalker.__init__(self)
 
     def get(self, expression: FNode) -> Set[FNode]:
         """
-        Returns all the fluent expression in the given expression.
+        Returns all the `fluent expressions` in the given expression.
 
-        :param expression: The expression containing the fluent expressions to be returned.
-        :return: The set of fluent expressions appearing in the given expression.
+        :param expression: The expression containing the `fluent expressions` to be returned.
+        :return: The set of `fluent expressions` appearing in the given expression.
         """
         return self.walk(expression)
 

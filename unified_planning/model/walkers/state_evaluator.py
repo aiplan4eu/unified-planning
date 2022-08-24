@@ -23,7 +23,8 @@ from unified_planning.model.walkers.quantifier_simplifier import QuantifierSimpl
 
 
 class StateEvaluator(QuantifierSimplifier):
-    """Same to the unified_planning.QuantifierSimplifier, but takes an instance of 'up.model.state.ROState' instead of the 'assignment' map."""
+    """Same to the :class:`~unified_planning.model.walkers.QuantifierSimplifier`, but takes an instance of
+    :class:`~unified_planning.model.ROState` instead of the `assignment` map."""
 
     def __init__(self, problem: "up.model.problem.Problem"):
         QuantifierSimplifier.__init__(self, problem.env, problem)
@@ -35,12 +36,12 @@ class StateEvaluator(QuantifierSimplifier):
         _variable_assignments: Dict["Expression", "Expression"] = {},
     ) -> FNode:
         """
-        Evaluates the given expression in the given state.
+        Evaluates the given expression in the given `State`.
         :param expression: The expression that needs to be evaluated.
-        :param state: The state where the expression needs to be evaluated.
+        :param state: The `State` where the expression needs to be evaluated.
         :param _variable_assignment: For internal use only. Parameter used to solve quantifiers.
         :return: The constant expression corresponding to the given expression evaluated in the
-        given state.
+            given `State`.
         """
         assert self._problem is not None
         assert self._assignments is None

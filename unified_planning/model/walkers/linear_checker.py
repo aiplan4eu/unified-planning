@@ -24,13 +24,15 @@ from typing import List, Optional, Set, Tuple
 
 
 class LinearChecker(DagWalker):
-    """Checks if the given expression is linear or not and returns the set of the fluents appearing in the expression.
+    """
+    Checks if the given expression is linear or not and returns the `set` of the `fluents` appearing in the expression.
 
-    Optionally takes a problem to consider static fluents as constants.
+    Optionally takes a :class:`~unified_planning.model.Problem` to consider static `fluents` as constants.
 
     Important NOTE:
     After the initialization, the problem given as input can not be modified
-    or the Simplifier behaviour is undefined."""
+    or the `LinearChecker` behavior is undefined.
+    """
 
     def __init__(
         self,
@@ -58,8 +60,9 @@ class LinearChecker(DagWalker):
     ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         """
         Returns the tuple containing a flag saying if the expression is linear or not,
-        the set of the fluent_expressions appearing with a positive sign in the expression
-        and the set of the fluent_expressions appearing with a negative sign in the expression ."""
+        the `set` of the `fluent_expressions` appearing with a positive sign in the expression
+        and the `set` of the `fluent_expressions` appearing with a negative sign in the expression .
+        """
         return self.walk(self._simplifier.simplify(expression))
 
     @walkers.handles(

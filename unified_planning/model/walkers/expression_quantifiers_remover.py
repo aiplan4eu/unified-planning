@@ -30,9 +30,9 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
     """
     This walker is used to remove all the quantifiers from an expression by substituting
     them with the semantically equivalent grounded expression; this is why this walker
-    also needs an instance of the problem containing the objects (an implementation of
-    ObjectsSetMixin) when the 'remove_quantifiers' method is called, and the result can not
-    be cached because the problem can change, and therefore the resulting expression chganges.
+    also needs an instance of the `problem` containing the `objects` (an implementation of
+    `ObjectsSetMixin`) when the `remove_quantifiers` method is called, and the result can not
+    be cached because the `problem` can change, and therefore the resulting expression changes.
     """
 
     def __init__(self, env):
@@ -44,17 +44,17 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         self, expression: FNode, objects_set: "ObjectsSetMixin"
     ) -> FNode:
         """
-        This method takes in input an expression that might contain quiantifiers and a problem
-        containing objects, and returns an equivalent expression in the given problem.
+        This method takes in input an expression that might contain quantifiers and a `problem`
+        containing `objects`, and returns an equivalent expression in the given `problem`.
         The returned expression has no quantifiers.
 
         :param expression: The target expression to be returned without quantifiers.
         :param object_set: The problem containing the objects to ground the quantifiers.
         :return: An expression semantically equivalent to the given expression without quantifiers
-        in it.
+            in it.
 
         Note: The returned expression is not always equivalent to the given expression, but only considering
-        the objects in the given problem.
+        the `objects` in the given `problem`.
         """
         self._objects_set = objects_set
         return self.walk(expression)

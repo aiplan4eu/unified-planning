@@ -48,7 +48,7 @@ class Substituter(IdentityDagWalker):
 
         :param expression: The target expression for the substitution.
         :param substitutions: The map containing the substitutions, every time a key is found,
-        it is substituted with it's value.
+            it is substituted with it's value.
         :return: The expression where every key expression is substituted with it's value.
 
         Lets consider the examples:

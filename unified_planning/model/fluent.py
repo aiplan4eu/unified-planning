@@ -95,26 +95,26 @@ class Fluent:
 
     @property
     def name(self) -> str:
-        """Returns the fluent name."""
+        """Returns the `Fluent` `name`."""
         return self._name
 
     @property
     def type(self) -> "up.model.types.Type":
-        """Returns the fluent type."""
+        """Returns the `Fluent` `Type`."""
         return self._typename
 
     @property
     def signature(self) -> List["up.model.parameter.Parameter"]:
         """
-        Returns the fluent signature.
-        The signature is the List of Parameters indicating the types compatible with this fluent.
+        Returns the `Fluent` `signature`.
+        The `signature` is the `List` of `Parameters` indicating the :class:`Types <unified_planning.model.Type>` compatible with this `Fluent`.
         """
         return self._signature
 
     @property
     def arity(self) -> int:
         """
-        Returns the fluent arity.
+        Returns the `Fluent` arity.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible.
@@ -123,7 +123,7 @@ class Fluent:
 
     @property
     def environment(self) -> "Environment":
-        """Returns the Fluent environment."""
+        """Returns the `Fluent` `Environment`."""
         return self._env
 
     def __call__(
