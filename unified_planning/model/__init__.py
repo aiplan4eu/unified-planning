@@ -80,6 +80,7 @@ __all__ = [
     "ROState",
     "COWState",
     "UPCOWState",
+    "Timepoint",
     "TimepointKind",
     "Timing",
     "StartTiming",

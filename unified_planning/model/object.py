@@ -24,13 +24,13 @@ import unified_planning.model.types
 
 class Object:
     """
-    Represents an Object of the unified_planning library.
+    Represents an `Object` of the `unified_planning` library.
 
-    An Object contains 2 parts:
-    - name: a string containing the Object's name.
-    - type: a unified_planning.model.Type representing the planning user_type associated to this object.
+    An `Object` contains 2 parts:
+    - `name`: a string containing the `Object's` :func:`name <unified_planning.model.Object.name>`.
+    - `type`: a :class:`~unified_planning.model.Type` representing the planning :func:`user_type <unified_planning.model.Object.type>` associated to this `Object`.
 
-    The Object class is immutable.
+    The `Object` class is immutable.
     """
 
     def __init__(
@@ -64,17 +64,17 @@ class Object:
 
     @property
     def name(self) -> str:
-        """Returns the object name."""
+        """Returns the `Object` `name`."""
         return self._name
 
     @property
     def type(self) -> "unified_planning.model.types.Type":
-        """Returns the object type."""
+        """Returns the `Object` `Type`."""
         return self._typename
 
     @property
     def environment(self) -> "Environment":
-        """Return the object environment"""
+        """Return the `Object` `Environment`"""
         return self._env
 
     #

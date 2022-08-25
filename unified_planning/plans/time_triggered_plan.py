@@ -31,11 +31,11 @@ class TimeTriggeredPlan(plans.plan.Plan):
         environment: Optional["Environment"] = None,
     ):
         """
-        The first Fraction represents the absolute time in which the action
-        Action starts, while the last Fraction represents the duration
-        of the action to fullfill the problem goals.
-        The Action can be an InstantaneousAction, this is represented with a duration set
-        to None.
+        The first `Fraction` represents the absolute time in which the
+        `Action` starts, while the last `Fraction` represents the duration
+        of the `Action` to fulfill the `problem goals`.
+        The `Action` can be an `InstantaneousAction`, this is represented with a duration set
+        to `None`.
         """
         # if we have a specific env or we don't have any actions
         if environment is not None or not actions:
@@ -97,10 +97,10 @@ class TimeTriggeredPlan(plans.plan.Plan):
         self,
     ) -> List[Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]]:
         """
-        Returns the sequence of tuples (start, action_instance, duration) where:
-        start is when the action starts;
-        action_instance is the action applied;
-        duration is the (optional) duration of the action.
+        Returns the sequence of tuples (`start`, `action_instance`, `duration`) where:
+        - `start` is when the `ActionInstance` starts;
+        - `action_instance` is the `grounded Action` applied;
+        - `duration` is the (optional) duration of the `ActionInstance`.
         """
         return self._actions
 
@@ -111,11 +111,11 @@ class TimeTriggeredPlan(plans.plan.Plan):
         ],
     ) -> "plans.plan.Plan":
         """
-        Returns a new TimeTriggeredPlan where every action of the current plan is replaced using the given function.
+        Returns a new `TimeTriggeredPlan` where every `ActionInstance` of the current `Plan` is replaced using the given `replace_function`.
 
-        :param replace_function: The function that applied to an ActionInstance A returns the ActionInstance B; B
-        replaces A in the resulting plan.
-        :return: The TimeTriggeredPlan where every action is replaced using the given function.
+        :param replace_function: The function that applied to an `ActionInstance A` returns the `ActionInstance B`; `B`
+            replaces `A` in the resulting `Plan`.
+        :return: The `TimeTriggeredPlan` where every `ActionInstance` is replaced using the given `replace_function`.
         """
         new_ai = []
         for s, ai, d in self._actions:

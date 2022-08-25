@@ -180,7 +180,7 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Returns a conjunction of terms.
-        This function has polimorphic n-arguments:
+        This function has polymorphic n-arguments:
           - `And(a,b,c)`
           - `And([a,b,c])`
         Restriction: Arguments must be `boolean`.
@@ -203,7 +203,7 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Returns an disjunction of terms.
-        This function has polimorphic n-arguments:
+        This function has polymorphic n-arguments:
           - `Or(a,b,c)`
           - `Or([a,b,c])`
         Restriction: Arguments must be `boolean`

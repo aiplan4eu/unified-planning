@@ -13,10 +13,10 @@
 # limitations under the License.
 #
 """
-This module defines the Environment class.
-The Environment is a structure that contains multiple
+This module defines the `Environment` class.
+The `Environment` is a structure that contains multiple
 singleton objects that are used throughout the system,
-such as the ExpressionManager, TypeChecker, TypeManager.
+such as the :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeChecker <unified_planning.Environment.type_checker>`, :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeManager <unified_planning.Environment.type_manager>`.
 """
 
 
@@ -26,7 +26,14 @@ import unified_planning
 
 
 class Environment:
-    """Represents the environment."""
+    """
+    Represents the environment in the `unified_planning` library.
+
+    The `Environment` is a structure that contains multiple
+    singleton objects that are used throughout the system,
+    such as the :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeChecker <unified_planning.Environment.type_checker>`, :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeManager <unified_planning.Environment.type_manager>`.
+
+    """
 
     def __init__(self):
         import unified_planning.model
@@ -44,7 +51,7 @@ class Environment:
 
     # The getstate and setstate method are needed in the Parallel engine. The
     #  Parallel engine creates a deep copy of the Environment instance in
-    #  another process by pickling the enviroment fields.
+    #  another process by pickling the environment fields.
     # Since the IO[str] class is not picklable, we need to remove it from the
     #  state and then add it as None in the new process
     def __getstate__(self):
@@ -60,48 +67,48 @@ class Environment:
 
     @property
     def free_vars_oracle(self) -> "unified_planning.model.FreeVarsOracle":
-        """Returns the environment's FreeVarsOracle."""
+        """Returns the environment's `FreeVarsOracle`."""
         return self._free_vars_oracle
 
     @property
     def expression_manager(self) -> "unified_planning.model.ExpressionManager":
-        """Returns the environment's ExpressionManager."""
+        """Returns the environment's `ExpressionManager`."""
         return self._expression_manager
 
     @property
     def type_manager(self) -> "unified_planning.model.TypeManager":
-        """Returns the environment's TypeManager."""
+        """Returns the environment's `TypeManager`."""
         return self._type_manager
 
     @property
     def type_checker(self) -> "unified_planning.model.walkers.TypeChecker":
-        """Returns the environment's TypeChecker."""
+        """Returns the environment's `TypeChecker`."""
         """Get the Type Checker"""
         return self._tc
 
     @property
     def factory(self) -> "unified_planning.engines.Factory":
-        """Returns the environment's Factory."""
+        """Returns the environment's `Factory`."""
         return self._factory
 
     @property
     def simplifier(self) -> "unified_planning.model.walkers.Simplifier":
-        """Returns the environment's Simplifier."""
+        """Returns the environment's `Simplifier`."""
         return self._simplifier
 
     @property
     def free_vars_extractor(self) -> "unified_planning.model.walkers.FreeVarsExtractor":
-        """Returns the environment's FreeVarsExtractor."""
+        """Returns the environment's `FreeVarsExtractor`."""
         return self._free_vars_extractor
 
     @property
     def credits_stream(self) -> "Optional[IO[str]]":
-        """Returns the stream where the engines credits are printed."""
+        """Returns the stream where the :class:`Engines <unified_planning.engines.Engine>` :func:`credits <unified_planning.engines.Engine.get_credits>` are printed."""
         return self._credits_stream
 
     @credits_stream.setter
     def credits_stream(self, new_credits_stream: Optional[IO[str]]):
-        """Sets the stream where the engines credits are printed."""
+        """Sets the stream where the :class:`Engines <unified_planning.engines.Engine>` :func:`credits <unified_planning.engines.Engine.get_credits>` are printed."""
         self._credits_stream = new_credits_stream
 
 
@@ -110,10 +117,10 @@ GLOBAL_ENVIRONMENT: Optional[Environment] = None
 
 def get_env(env: Environment = None) -> Environment:
     """
-    Returns the given env if it is not None, returns the GLOBAL_ENVIRNMENT otherwise.
+    Returns the given env if it is not `None`, returns the `GLOBAL_ENVIRONMENT` otherwise.
 
     :param env: The environment to return.
-    :return: The given environment if it is not None, the GLOBAL_ENVIRONMENT otherwise.
+    :return: The given `environment` if it is not `None`, the `GLOBAL_ENVIRONMENT` otherwise.
     """
     global GLOBAL_ENVIRONMENT
     if env is None:

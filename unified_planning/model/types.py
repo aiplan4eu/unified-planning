@@ -21,35 +21,36 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
 class Type:
-    """Base class for representing a type."""
+    """Base class for representing a `Type`."""
 
     def is_bool_type(self) -> bool:
-        """Returns true iff is boolean type."""
+        """Returns `True` iff is `boolean Type`."""
         return False
 
     def is_user_type(self) -> bool:
-        """Returns true iff is a user type."""
+        """Returns `True` iff is a `user Type`."""
         return False
 
     def is_real_type(self) -> bool:
-        """Returns true iff is real type."""
+        """Returns `True` iff is `real` `Type`."""
         return False
 
     def is_int_type(self) -> bool:
-        """Returns true iff is integer type."""
+        """Returns `True` iff is `integer Type`."""
         return False
 
     def is_time_type(self) -> bool:
-        """Returns true iff is integer type."""
+        """Returns `True` iff is `time `True`."""
         return False
 
     def is_compatible(self, t_right: "Type") -> bool:
         """
-        Returns True if the type t_right can be assigned to a fluent that which type is self.
-        Note that types compatibility is not a simmetric property.
+        Returns `True` if the `Type` `t_right` can be assigned to a :class:`~unified_planning.model.Fluent` that which :func:`type <unified_planning.model.Fluent.type>` is self.
+        Note that types compatibility is not a symmetric property.
 
         :param t_right: The type tested for compatibility.
-        :return: True if something the given type can always be assigned to a fluent with self type.
+        :return: `True` if something, generally an :class:`~unified_planning.model.Object` or an :func:`action parameters <unified_planning.model.Action.parameters>`,
+            with the given `type` can always be assigned to a `fluent` with this `type`.
         """
         return is_compatible_type(self, t_right)
 
@@ -201,7 +202,7 @@ TIME = _TimeType()
 
 
 class TypeManager:
-    """Class that manages the types in the environment."""
+    """Class that manages the :class:`Types <unified_planning.model.Type>` in the :class:`~unified_planning.Environment`."""
 
     def __init__(self):
         self._bool = BOOL
@@ -211,10 +212,10 @@ class TypeManager:
 
     def has_type(self, type: Type) -> bool:
         """
-        Returns True if the given type is already defined in this environment.
+        Returns `True` if the given type is already defined in this :class:`~unified_planning.Environment`.
 
-        :param type: The type searched in this environment.
-        :return: True if the given type is found, False otherwise.
+        :param type: The type searched in this `Environment`.
+        :return: `True` if the given `type` is found, `False` otherwise.
         """
         if type.is_bool_type():
             return type == self._bool
@@ -233,17 +234,17 @@ class TypeManager:
             raise NotImplementedError
 
     def BoolType(self) -> Type:
-        """Returns this environment's boolean type."""
+        """Returns this `Environment's` boolean `Type`."""
         return self._bool
 
     def IntType(self, lower_bound: int = None, upper_bound: int = None) -> Type:
         """
-        Returns the integer type defined in this environment with the given bounds.
-        If the type already exists, it is returned, otherwise it is created and returned.
+        Returns the `integer type` defined in this :class:`~unified_planning.Environment` with the given bounds.
+        If the `Type` already exists, it is returned, otherwise it is created and returned.
 
         :param lower_bound: The integer used as this type's lower bound.
         :param upper_bound: The integer used as this type's upper bound.
-        :return: The retrieved or created type.
+        :return: The retrieved or created `Type`.
         """
         k = (lower_bound, upper_bound)
         if k in self._ints:
@@ -257,12 +258,12 @@ class TypeManager:
         self, lower_bound: Fraction = None, upper_bound: Fraction = None
     ) -> Type:
         """
-        Returns the real type defined in this environment with the given bounds.
+        Returns the `real type` defined in this :class:`~unified_planning.Environment` with the given bounds.
         If the type already exists, it is returned, otherwise it is created and returned.
 
         :param lower_bound: The Fraction used as this type's lower bound.
         :param upper_bound: The Fraction used as this type's upper bound.
-        :return: The retrieved or created type.
+        :return: The retrieved or created `Type`.
         """
         k = (lower_bound, upper_bound)
         if k in self._reals:
@@ -274,12 +275,12 @@ class TypeManager:
 
     def UserType(self, name: str, father: Optional[Type] = None) -> Type:
         """
-        Returns the user type defined in this environment with the given name and father.
+        Returns the user type defined in this :class:`~unified_planning.Environment` with the given `name` and `father`.
         If the type already exists, it is returned, otherwise it is created and returned.
 
         :param name: The name of this user type.
         :param father: The user type that must be set as the father for this type.
-        :return:  The retrieved or created type.
+        :return: The retrieved or created `Type`.
         """
         if (name, father) in self._user_types:
             return self._user_types[(name, father)]
@@ -302,7 +303,14 @@ def domain_size(
     objects_set: "unified_planning.model.mixins.ObjectsSetMixin",
     typename: "unified_planning.model.types.Type",
 ) -> int:
-    """Returns the domain size of the given type."""
+    """
+    Returns the domain size of the given type; the domain size is the number of values
+    that an element with the given `Type` can have.
+
+    :param object_set: The :class:`~unified_planning.model.AbstractProblem` instance containing the :class:`Objects <unified_planning.model.Object>`.
+    :param typename: The type of which the domain size (in the given `object_set`) is returned.
+    :return: The number of values that the given `Type` can have in the given `Problem`.
+    """
     if typename.is_bool_type():
         return 2
     elif typename.is_user_type():
@@ -323,7 +331,14 @@ def domain_item(
     typename: "unified_planning.model.types.Type",
     idx: int,
 ) -> "unified_planning.model.fnode.FNode":
-    """Returns the ith domain item of the given type."""
+    """
+    Returns the ith element of the given `type` in the given `problem`.
+
+    :param object_set: The :class:`~unified_planning.model.AbstractProblem` instance containing the :class:`Objects <unified_planning.model.Object>`.
+    :param typename: The type of which the `idx` element is returned.
+    :param idx: The index of the domain item that is returned
+    :return: The `idx` domain item of the given `Type` in the domain of the given `Problem` instance.
+    """
     if typename.is_bool_type():
         return objects_set.env.expression_manager.Bool(idx == 0)
     elif typename.is_user_type():
