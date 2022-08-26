@@ -131,6 +131,11 @@ def get_possible_config_locations() -> List[str]:
 
 
 class Factory:
+    """
+    Class that manages all the different :class:`Engines <unified_planning.engines.Engine>` classes
+    and handles the operation modes available in the library.
+    """
+
     def __init__(self, env: "Environment"):
         self._env = env
         self._engines: Dict[str, Type["up.engines.engine.Engine"]] = {}
@@ -191,27 +196,45 @@ class Factory:
 
     @property
     def engines(self) -> List[str]:
+        """Returns the list of the available :class:`Engines <unified_planning.engines.Engine>` names."""
         return list(self._engines.keys())
 
     def engine(self, name: str) -> Type["up.engines.engine.Engine"]:
+        """
+        Returns a specific `Engine` class.
+
+        :param name: The name of the `engine` in the factory.
+        :return: The `engine` Class.
+        """
         return self._engines[name]
 
     @property
     def preference_list(self) -> List[str]:
+        """Returns the current list of preferences."""
         return self._preference_list
 
     @preference_list.setter
     def preference_list(self, preference_list: List[str]):
-        """Defines the order in which to pick the engines.
-        The list is not required to contain all the engines. It is
-        possible to define a subsets of the engines, or even just
-        one. The impact of this, is that the engine will never be
-        selected automatically. Note, however, that the engine can
-        still be selected by calling it by name.
+        """
+        Defines the order in which to pick the :class:`Engines <unified_planning.engines.Engine>`.
+        The list is not required to contain all the `Engines`. It is
+        possible to define a subsets of the `Engines`, or even just
+        one.
+
+        The impact of not including an `Engine`, is that it will never be
+        selected automatically. Note, however, that it can
+        still be selected by using it's name in the Operation modes.
         """
         self._preference_list = preference_list
 
     def add_engine(self, name: str, module_name: str, class_name: str):
+        """
+        Adds an :class:`Engine <unified_planning.engines.Engine>` Class to the factory, given the module and the class names.
+
+        :param name: The `name` of the added `engine Class` in the factory.
+        :param module_name: The `name` of the module in which the `engine Class` is defined.
+        :param class_name: The `name` of the `engine Class`.
+        """
         self._add_engine(name, module_name, class_name)
         self._preference_list.append(name)
         engine = self._engines[name]
@@ -222,6 +245,13 @@ class Factory:
                 self._preference_list.append(n)
 
     def add_meta_engine(self, name: str, module_name: str, class_name: str):
+        """
+        Adds a :class:`MetaEngine <unified_planning.engines.MetaEngine>` Class to the `Factory`, given the module and the class names.
+
+        :param name: The `name` of the added `meta engine Class` in the factory.
+        :param module_name: The `name` of the module in which the `meta engine Class` is defined.
+        :param class_name: The name of the `meta engine Class`.
+        """
         for engine_name, engine in self._engines.items():
             self._add_meta_engine(name, module_name, class_name, engine_name, engine)
             n = f"{name}[{engine_name}]"
@@ -246,6 +276,8 @@ class Factory:
         If not given, the configuration is read from the first `up.ini` or `.up.ini` file
         located in any of the parent directories from which this code was called  or,
         otherwise, from one of the following files: `~/up.ini`, `~/.up.ini`, `~/.uprc`.
+
+        :param config_filename: The path of the file containing the wanted configuration.
         """
         config = configparser.ConfigParser()
         if config_filename is None:

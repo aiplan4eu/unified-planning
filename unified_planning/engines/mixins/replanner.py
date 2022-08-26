@@ -19,6 +19,8 @@ from typing import IO, Optional, Union
 
 
 class ReplannerMixin:
+    """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `Replanner`."""
+
     def __init__(self, problem: "up.model.AbstractProblem"):
         self._problem = problem.clone()
         self_class = type(self)
@@ -55,9 +57,9 @@ class ReplannerMixin:
 
         :param timeout: the time in seconds that the planner has at max to resolve the problem, defaults to None.
         :param output_stream: a stream of strings where the planner writes his
-        output (and also errors) while the planner is solving the problem, defaults to None.
+            output (and also errors) while the planner is solving the problem, defaults to None.
         :return: the up.engines.results.PlanGenerationResult created by the planner;
-        a data structure containing the up.plan.Plan found and some additional information about it.
+            a data structure containing the up.plan.Plan found and some additional information about it.
         """
         return self._resolve(timeout, output_stream)
 

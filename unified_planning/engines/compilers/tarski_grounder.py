@@ -46,7 +46,11 @@ credits = Credits(
 
 
 class TarskiGrounder(Engine, CompilerMixin):
-    """Implements the gounder that uses tarski."""
+    """
+    Implements a Grounder using `tarski <https://github.com/aig-upf/tarski>`_ .
+    For more details about Grounding check the :class:`~unified_planning.engines.compilers.Grounder`
+    documentation.
+    """
 
     def __init__(self, **kwargs):
         Engine.__init__(self)
@@ -89,6 +93,15 @@ class TarskiGrounder(Engine, CompilerMixin):
     def _compile(
         self, problem: "up.model.AbstractProblem", compilation_kind: "CompilationKind"
     ) -> CompilerResult:
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`
+        and returns a `CompilerResult` where the problem does not have actions with parameters; so every action is grounded.
+
+        :param problem: The instance of the `Problem` that must be grounded.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
+            only `GROUNDING` is supported by this compiler
+        :return: The resulting `CompilerResult` data structure.
+        """
         assert isinstance(problem, Problem)
 
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
@@ -136,6 +149,7 @@ class TarskiGrounder(Engine, CompilerMixin):
 
     @staticmethod
     def get_credits(**kwargs) -> Optional[Credits]:
+        """Returns the up.engines.engine.Credits instance created for the TarskiGrounder."""
         return credits
 
     def destroy(self):

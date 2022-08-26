@@ -93,6 +93,11 @@ def op_to_node_type(op: str) -> OperatorKind:
 
 
 class ProtobufReader(Converter):
+    """
+    ProtobufReader: This class uses the convert method to take the protobuf representation of a
+    unified_planning Problem and return the equivalent unified_planning Problem instance.
+    """
+
     @handles(proto.Parameter)
     def _convert_parameter(
         self, msg: proto.Parameter, problem: Problem

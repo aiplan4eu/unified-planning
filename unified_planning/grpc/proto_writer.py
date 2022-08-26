@@ -238,6 +238,11 @@ def map_feature(feature: str) -> proto.Feature:
 
 
 class ProtobufWriter(Converter):
+    """
+    ProtoWriter: This class uses the convert method to take a unified_planning Problem instance
+    and return the equivalent protobuf representation.
+    """
+
     def __init__(self):
         super().__init__()
         self._fnode2proto = FNode2Protobuf(self)

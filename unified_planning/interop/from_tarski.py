@@ -244,7 +244,13 @@ def _convert_type_and_update_dict(
 def convert_problem_from_tarski(
     env: Environment, tarski_problem: tarski.fstrips.Problem
 ) -> "unified_planning.model.Problem":
-    """Converts a tarski problem in a unified_planning.Problem."""
+    """
+    Converts a tarski problem in a `Problem`.
+
+    :param env: The unified_planning `Environment`.
+    :param tarski_problem: The tarski problem to convert.
+    :return: The generated `Problem`.
+    """
     em = env.expression_manager
     tm = env.type_manager
     lang = tarski_problem.language

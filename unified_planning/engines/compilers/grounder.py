@@ -33,7 +33,21 @@ from functools import partial
 
 
 class Grounder(engines.engine.Engine, CompilerMixin):
-    """Performs action grounding."""
+    """
+    Grounder class: the `Grounder` takes a :class:`~unified_planning.model.Problem` where the :class:`Actions <unified_planning.model.Action>`
+    have :func:`Parameters <unified_planning.model.Action.parameters>` (meaning the `Actions` are lifted) and, through the :func:`~unified_planning.engines.mixins.CompilerMixin.compile`
+    method, returns a `Problem` where every `Action` does not have `Parameters` (meaning the `Actions` are grounded).
+
+    When an `Action` grounding creates an `Action` without :func:`Effects <unified_planning.model.InstantaneousAction.effects>`, or an `Action` with impossible
+    :func:`conditions <unified_planning.model.InstantaneousAction.preconditions>`, the `Action` is discarded and not added to the final `Problem`.
+
+    At construction time, the Grounder class can optionally take a map from `Action` to `List[Tuple[FNode, ...]]`. If this map is not None,
+    it will be used for grounding instead of the implemented algorithm; the use of this parameter is mainly created to easily support
+    the integration of external grounders inside the library. To see a practical example, checkout the :class:`~unified_planning.engines.compilers.TarskiGrounder` `_compile`
+    implementation.
+
+    This `Compiler` supports only the the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`.
+    """
 
     def __init__(
         self,
@@ -95,6 +109,15 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`
+        and returns a `CompilerResult` where the problem does not have actions with parameters; so every action is grounded.
+
+        :param problem: The instance of the `Problem` that must be grounded.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
+            only `GROUNDING` is supported by this compiler
+        :return: The resulting `CompilerResult` data structure.
+        """
         assert isinstance(problem, Problem)
 
         env = problem.env

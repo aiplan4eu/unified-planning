@@ -26,6 +26,17 @@ FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "pay
 
 
 class FNode(object):
+
+    """
+    The `FNode` class represents an `expression tree` in the `unified_planning` library.
+
+    Since the `FNode` is immutable and the same `expression` can be used in more than one `expression tree`, it
+    is actually a `DAG`, but the `single expression` can be seen as a `tree` for simplicity.
+
+    All the expressions are managed by the :func:`ExpressionManager <unified_planning.Environment.expression_manager>` in the `Environment`, so this class should never
+    be instantiated or modified by the user.
+    """
+
     __slots__ = ["_content", "_node_id", "_env"]
 
     def __init__(self, content: FNodeContent, node_id: int, environment: Environment):
@@ -105,32 +116,40 @@ class FNode(object):
 
     @property
     def node_id(self) -> int:
+        """Returns the `id` of this expression."""
         return self._node_id
 
     @property
     def node_type(self) -> OperatorKind:
+        """Returns the `OperatorKind` that defines the semantic of this expression."""
         return self._content.node_type
 
     @property
     def environment(self) -> Environment:
+        """Returns the `Environment` in which this expression exists."""
         return self._env
 
     @property
     def args(self) -> List["FNode"]:
-        """Returns the subexpressions."""
+        """Returns the subexpressions of this expression."""
         return self._content.args
 
     @property
     def type(self) -> "unified_planning.model.Type":
-        """Returns the type of this expression."""
+        """Returns the `Type` of this expression."""
         return self._env.type_checker.get_type(self)
 
     def arg(self, idx: int) -> "FNode":
-        """Return the given subexpression at the given position."""
+        """
+        Return the given subexpression at the given position.
+
+        :param idx: The `index` of the wanted subexpression.
+        :return: The expression at the position `idx`.
+        """
         return self._content.args[idx]
 
     def is_constant(self) -> bool:
-        """Test whether the expression is a constant."""
+        """Returns `True` if the expression is a constant, `False` otherwise."""
         return (
             self.node_type == OperatorKind.BOOL_CONSTANT
             or self.node_type == OperatorKind.INT_CONSTANT
@@ -139,153 +158,157 @@ class FNode(object):
         )
 
     def constant_value(self) -> Union[bool, int, Fraction]:
-        """Return the value of the Constant."""
+        """Returns the constant value stored in this expression."""
         assert self.is_constant()
         return self._content.payload
 
     def bool_constant_value(self) -> bool:
-        """Return the bool value of the Constant."""
+        """Return constant `boolean` value stored in this expression."""
         assert self.is_bool_constant()
         return self._content.payload
 
     def int_constant_value(self) -> int:
-        """Return the int value of the Constant."""
+        """Return constant `integer` value stored in this expression."""
         assert self.is_int_constant()
         return self._content.payload
 
     def real_constant_value(self) -> Fraction:
-        """Return the real value of the Constant."""
+        """Return constant `real` value stored in this expression."""
         assert self.is_real_constant()
         return self._content.payload
 
     def fluent(self) -> "unified_planning.model.fluent.Fluent":
-        """Return the fluent of the FluentExp."""
+        """Return the `Fluent` stored in this expression."""
         assert self.is_fluent_exp()
         return self._content.payload
 
     def parameter(self) -> "unified_planning.model.parameter.Parameter":
-        """Return the parameter of the ParameterExp."""
+        """Return the `Parameter` stored in this expression."""
         assert self.is_parameter_exp()
         return self._content.payload
 
     def variable(self) -> "unified_planning.model.variable.Variable":
-        """Return the variable of the VariableExp."""
+        """Return the `Variable` stored in this expression."""
         assert self.is_variable_exp()
         return self._content.payload
 
     def variables(self) -> List["unified_planning.model.variable.Variable"]:
-        """Return the variable of the Exists or Forall."""
+        """Return the `Variables` of the `Exists` or `Forall`."""
         assert self.is_exists() or self.is_forall()
         return list(self._content.payload)
 
     def object(self) -> "unified_planning.model.object.Object":
-        """Return the object of the ObjectExp."""
+        """Return the `Object` stored in this expression."""
         assert self.is_object_exp()
         return self._content.payload
 
     def timing(self) -> "unified_planning.model.timing.Timing":
-        """Return the object of the TimingExp."""
+        """Return the `Timing` stored in this expression."""
         assert self.is_timing_exp()
         return self._content.payload
 
     def simplify(self) -> "FNode":
-        """Returns the simplified version of this expression."""
+        """
+        Returns the simplified version of this expression.
+
+        The simplification is done just by constant propagation by the :class:`~unified_planning.model.walkers.Simplifier`
+        """
         return self._env.simplifier.simplify(self)
 
     def is_bool_constant(self) -> bool:
-        """Test whether the expression is a boolean constant."""
+        """Test whether the expression is a `boolean` constant."""
         return self.node_type == OperatorKind.BOOL_CONSTANT
 
     def is_int_constant(self) -> bool:
-        """Test whether the expression is an integer constant."""
+        """Test whether the expression is an `integer` constant."""
         return self.node_type == OperatorKind.INT_CONSTANT
 
     def is_real_constant(self) -> bool:
-        """Test whether the expression is a real constant."""
+        """Test whether the expression is a `real` constant."""
         return self.node_type == OperatorKind.REAL_CONSTANT
 
     def is_true(self) -> bool:
-        """Test whether the expression is the True Boolean constant."""
+        """Test whether the expression is the `True` Boolean constant."""
         return self.is_bool_constant() and self.constant_value() == True
 
     def is_false(self) -> bool:
-        """Test whether the expression is the False Boolean constant."""
+        """Test whether the expression is the `False` Boolean constant."""
         return self.is_bool_constant() and self.constant_value() == False
 
     def is_and(self) -> bool:
-        """Test whether the node is the And operator."""
+        """Test whether the node is the `And` operator."""
         return self.node_type == OperatorKind.AND
 
     def is_or(self) -> bool:
-        """Test whether the node is the Or operator."""
+        """Test whether the node is the `Or` operator."""
         return self.node_type == OperatorKind.OR
 
     def is_not(self) -> bool:
-        """Test whether the node is the Not operator."""
+        """Test whether the node is the `Not` operator."""
         return self.node_type == OperatorKind.NOT
 
     def is_implies(self) -> bool:
-        """Test whether the node is the Implies operator."""
+        """Test whether the node is the `Implies` operator."""
         return self.node_type == OperatorKind.IMPLIES
 
     def is_iff(self) -> bool:
-        """Test whether the node is the Iff operator."""
+        """Test whether the node is the `Iff` operator."""
         return self.node_type == OperatorKind.IFF
 
     def is_exists(self) -> bool:
-        """Test whether the node is the Exists operator."""
+        """Test whether the node is the `Exists` operator."""
         return self.node_type == OperatorKind.EXISTS
 
     def is_forall(self) -> bool:
-        """Test whether the node is the Forall operator."""
+        """Test whether the node is the `Forall` operator."""
         return self.node_type == OperatorKind.FORALL
 
     def is_fluent_exp(self) -> bool:
-        """Test whether the node is a fluent."""
+        """Test whether the node is a :class:`~unified_planning.model.Fluent` Expression."""
         return self.node_type == OperatorKind.FLUENT_EXP
 
     def is_parameter_exp(self) -> bool:
-        """Test whether the node is an action parameter."""
+        """Test whether the node is an :func:`action parameter <unified_planning.model.Action.parameters>`."""
         return self.node_type == OperatorKind.PARAM_EXP
 
     def is_variable_exp(self) -> bool:
-        """Test whether the node is a variable."""
+        """Test whether the node is a :class:`~unified_planning.model.Variable` Expression."""
         return self.node_type == OperatorKind.VARIABLE_EXP
 
     def is_object_exp(self) -> bool:
-        """Test whether the node is an action object."""
+        """Test whether the node is an :class:`~unified_planning.model.Object` Expression."""
         return self.node_type == OperatorKind.OBJECT_EXP
 
     def is_timing_exp(self) -> bool:
-        """Test whether the node is an action object."""
+        """Test whether the node is a :class:`~unified_planning.model.Timing` Expression."""
         return self.node_type == OperatorKind.TIMING_EXP
 
     def is_plus(self) -> bool:
-        """Test whether the node is the Plus operator."""
+        """Test whether the node is the `Plus` operator."""
         return self.node_type == OperatorKind.PLUS
 
     def is_minus(self) -> bool:
-        """Test whether the node is the Minus operator."""
+        """Test whether the node is the `Minus` operator."""
         return self.node_type == OperatorKind.MINUS
 
     def is_times(self) -> bool:
-        """Test whether the node is the Times operator."""
+        """Test whether the node is the `Times` operator."""
         return self.node_type == OperatorKind.TIMES
 
     def is_div(self) -> bool:
-        """Test whether the node is the Div operator."""
+        """Test whether the node is the `Div` operator."""
         return self.node_type == OperatorKind.DIV
 
     def is_equals(self) -> bool:
-        """Test whether the node is the Equals operator."""
+        """Test whether the node is the `Equals` operator."""
         return self.node_type == OperatorKind.EQUALS
 
     def is_le(self) -> bool:
-        """Test whether the node is the LE operator."""
+        """Test whether the node is the `LE` operator."""
         return self.node_type == OperatorKind.LE
 
     def is_lt(self) -> bool:
-        """Test whether the node is the LT operator."""
+        """Test whether the node is the `LT` operator."""
         return self.node_type == OperatorKind.LT
 
     #

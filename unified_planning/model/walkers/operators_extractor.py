@@ -25,8 +25,13 @@ class OperatorsExtractor(walkers.dag.DagWalker):
     def __init__(self):
         walkers.dag.DagWalker.__init__(self)
 
-    def get(self, expression: FNode) -> Set[int]:
-        """Returns all the operators of the given expression."""
+    def get(self, expression: FNode) -> Set[OperatorKind]:
+        """
+        Returns all the operators of the given expression.
+
+        :param expression: The target expression.
+        :return: The set containing all the operators appearing in the given expression.
+        """
         return self.walk(expression)
 
     @walkers.handles(OperatorKind)

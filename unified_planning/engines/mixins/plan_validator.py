@@ -18,17 +18,32 @@ import unified_planning as up
 
 
 class PlanValidatorMixin:
+    """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `PlanValidator`."""
+
     @staticmethod
     def is_plan_validator() -> bool:
         return True
 
     @staticmethod
     def supports_plan(plan_kind: "up.plans.PlanKind") -> bool:
+        """
+        :param plan_kind: The :func:`kind <unified_planning.plans.Plan.kind>` of the :class:`~unified_planning.plans.Plan` that must be supported.
+        :return: `True` if the given `kind` of `Plan` is supported, False otherwise.
+        """
         raise NotImplementedError
 
     def validate(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.ValidationResult":
+        """
+        This method takes an`AbstractProblem`, a `Plan` and returns a `ValidationResult`,
+        which contains information about the validity of the given `plan` for the given `problem`.
+
+        :param problem: The `AbstractProblem` on which the given `plan` is validated.
+        :param plan: The `Plan` that is validated on the given `problem`.
+        :return: the `ValidationResult` returned by the `PlanValidator`; a data structure containing the
+            :class:`ValidationResultStatus <unified_planning.engines.ValidationResultStatus>` and some additional information about it.
+        """
         assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self.supports(problem.kind):
             msg = f"{self.name} cannot validate this kind of problem!"
@@ -47,4 +62,5 @@ class PlanValidatorMixin:
     def _validate(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.ValidationResult":
+        """Method called by the PlanValidator.validate method."""
         raise NotImplementedError

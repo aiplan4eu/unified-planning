@@ -28,7 +28,7 @@ import unified_planning.model.operators as op
 
 
 class Variable:
-    """Represents a varible."""
+    """Represents a variable; a `Variable` has a name and a type."""
 
     def __init__(
         self,
@@ -61,17 +61,17 @@ class Variable:
 
     @property
     def name(self) -> str:
-        """Returns the variable name."""
+        """Returns the `Variable` name."""
         return self._name
 
     @property
     def type(self) -> "unified_planning.model.types.Type":
-        """Returns the variable type."""
+        """Returns the `Variable` `Type`."""
         return self._typename
 
     @property
     def environment(self) -> "Environment":
-        """Return the object environment"""
+        """Return the `Variable` `Environment`."""
         return self._env
 
     #

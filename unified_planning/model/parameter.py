@@ -23,8 +23,12 @@ import unified_planning as up
 
 
 class Parameter:
-    """Represents an action parameter or a fluent parameter.
-    A parameter has a name, and a type."""
+    """
+    Represents an :func:`action parameter <unified_planning.model.Action.parameters>` or a :func:`fluent parameter <unified_planning.model.Fluent.signature>`.
+    A `Parameter` has a :func:`name <unified_planning.model.Parameter.name>`, and a :func:`Type <unified_planning.model.Parameter.type>`.
+
+    The Parameter class is immutable.
+    """
 
     def __init__(
         self,
@@ -57,17 +61,17 @@ class Parameter:
 
     @property
     def name(self) -> str:
-        """Returns the parameter name."""
+        """Returns the `Parameter` `name`."""
         return self._name
 
     @property
     def type(self) -> "up.model.types.Type":
-        """Returns the parameter type."""
+        """Returns the `Parameter` `type`."""
         return self._typename
 
     @property
     def environment(self) -> "Environment":
-        """Return the object environment"""
+        """Return the `Parameter` `Environment`"""
         return self._env
 
     #

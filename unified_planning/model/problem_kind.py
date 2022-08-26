@@ -81,6 +81,14 @@ class ProblemKindMeta(type):
 
 @total_ordering
 class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
+    """
+    This class represents the main interesting feature that a :class:`planning Problem <unified_planning.model.AbstractProblem>` can have in order to understand
+    if an :class:`~unified_planning.engines.Engine` is capable of solving the `Problem` or not; some features might also help the `Engine`, allowing
+    some assumptions to be made.
+
+    The `ProblemKind` of a `Problem` is calculated by it's :func:`kind <unified_planning.model.Problem.kind>` property.
+    """
+
     def __init__(self, features: Set[str] = set()):
         self._features: Set[str] = set(features)
 
@@ -120,12 +128,27 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
 
     @property
     def features(self) -> Set[str]:
+        """Returns the features contained by this `ProblemKind`."""
         return self._features
 
     def union(self, oth: "ProblemKind") -> "ProblemKind":
+        """
+        Returns a new `ProblemKind` that is the union of this `ProblemKind` and
+        the `ProblemKind` given as parameter.
+
+        :param oth: the `ProblemKind` that must be united to this `ProblemKind`.
+        :return: a new `ProblemKind` that is the union of this `ProblemKind` and `oth`
+        """
         return ProblemKind(self.features.union(oth.features))
 
     def intersection(self, oth: "ProblemKind") -> "ProblemKind":
+        """
+        Returns a new `ProblemKind` that is the intersection of this `ProblemKind` and
+        the `ProblemKind` given as parameter.
+
+        :param oth: the `ProblemKind` that must be intersected with this `ProblemKind`.
+        :return: a new `ProblemKind` that is the intersection between this `ProblemKind` and `oth`
+        """
         return ProblemKind(self.features.intersection(oth.features))
 
 

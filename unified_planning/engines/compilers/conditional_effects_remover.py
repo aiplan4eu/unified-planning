@@ -36,14 +36,24 @@ from functools import partial
 
 
 class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
-    """Conditional effect remover class: this class offers the capability
-    to transform a conditional problem into an unconditional one.
+    """
+    Conditional effects remover class: this class offers the capability
+    to transform a :class:`~unified_planning.model.Problem` with conditional :class:`Effects <unified_planning.model.Effect>`
+    into a `Problem` without conditional `Effects`. This capability is offered by the :meth:`~unified_planning.engines.compilers.ConditionalEffectsRemover.compile`
+    method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
+    is the compiled Problem.
 
-    This is done by substituting every conditional action with different
+    This is done by substituting every conditional :class:`~unified_planning.model.Action` with different
     actions representing every possible branch of the original action.
 
-    Also the conditional timed_effects are removed maintaining the same
-    semanthics. When this is not possible, an exception is raised."""
+    Also the conditional :meth:`timed_effects <unified_planning.model.Problem.timed_effects>` are removed maintaining the same
+    semantics.
+
+    When it is not possible to remove a conditional Effect without changing the semantic of the resulting Problem,
+    an :exc:`~unified_planning.exceptions.UPProblemDefinitionError` is raised.
+
+    This `Compiler` supports only the the `CONDITIONAL_EFFECTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    """
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
@@ -105,8 +115,18 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
-        assert isinstance(problem, Problem)
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the wanted :class:`~unified_planning.engines.CompilationKind`
+        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>` field does not have conditional effects.
 
+        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without conditional effects.
+        :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
+            only :class:`~unified_planning.engines.CompilationKind.CONDITIONAL_EFFECTS_REMOVING` is supported by this compiler
+        :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
+        :raises: :exc:`~unified_planning.exceptions.UPProblemDefinitionError` when the :meth:`condition<unified_planning.model.Effect.condition>` of an
+            :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
+        """
+        assert isinstance(problem, Problem)
         env = problem.env
         simplifier = env.simplifier
 

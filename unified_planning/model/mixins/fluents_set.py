@@ -21,10 +21,10 @@ from typing import List, Dict, Union
 
 class FluentsSetMixin:
     """
-    This class is a mixin that contains a set of fluents with some related methods.
+    This class is a mixin that contains a `set` of `fluents` with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
-    of the attributes (e.g. env, add_user_type_method, has_name_method), it is required
+    of the attributes (e.g. `env`, `add_user_type_method`, `has_name_method`), it is required
     to pass the very same arguments to the mixins constructors.
     """
 
@@ -51,30 +51,46 @@ class FluentsSetMixin:
 
     @property
     def env(self) -> "up.environment.Environment":
-        """Returns the problem environment."""
+        """Returns the `problem` `Environment`."""
         return self._env
 
     @property
     def fluents(self) -> List["up.model.fluent.Fluent"]:
-        """Returns the fluents."""
+        """Returns the `fluents` currently in the `problem`."""
         return self._fluents
 
     def fluent(self, name: str) -> "up.model.fluent.Fluent":
-        """Returns the fluent with the given name."""
+        """
+        Returns the `fluent` with the given name.
+
+        :param name: The `name` of the target `fluent`:
+        :return: The `fluent` with the given `name`.
+        """
         for f in self._fluents:
             if f.name == name:
                 return f
         raise UPValueError(f"Fluent of name: {name} is not defined!")
 
     def has_fluent(self, name: str) -> bool:
-        """Returns true if the fluent with the given name is in the problem."""
+        """
+        Returns `True` if the `fluent` with the given `name` is in the `problem`,
+        `False` otherwise.
+
+        :param name: The `name` of the target `fluent`.
+        :return: `True` if the `fluent` with the given `name` is in the `problem`,
+            `False` otherwise.
+        """
         for f in self._fluents:
             if f.name == name:
                 return True
         return False
 
     def add_fluents(self, fluents: List["up.model.fluent.Fluent"]):
-        """Adds the given fluents."""
+        """
+        Adds the given `list` of `fluents` to the `problem`.
+
+        :param fluents: The `list` of `fluents` that must be added to the `problem`.
+        """
         for fluent in fluents:
             self.add_fluent(fluent)
 
@@ -86,16 +102,16 @@ class FluentsSetMixin:
         default_initial_value: "ConstantExpression" = None,
         **kwargs: "up.model.types.Type",
     ) -> "up.model.fluent.Fluent":
-        """Adds the given fluent to the problem.
+        """Adds the given `fluent` to the `problem`.
 
-        If the first parameter is not a Fluent, the parameters will be passed to the Fluent constructor to create it.
+        If the first parameter is not a `Fluent`, the parameters will be passed to the `Fluent` constructor to create it.
 
-        :param fluent_or_name: Fluent instance or name of the fluent to be constructed
-        :param typename: If only the name of the fluent is given, this is the fluent's type (passed to the Fluent constructor).
+        :param fluent_or_name: `Fluent` instance or `name` of the `fluent` to be constructed.
+        :param typename: If only the `name` of the `fluent` is given, this is the `fluent's type` (passed to the `Fluent` constructor).
         :param default_initial_value: If provided, defines the default value taken in initial state by
-                                      a state variable of this fluent that has no explicit value.
-        :param kwargs: If only the name of the fluent is given, these are the fluent's parameters (passed to the Fluent constructor).
-        :return: The fluent passed or constructed.
+                                      a state variable of this `fluent` that has no explicit value.
+        :param kwargs: If only the `name` of the `fluent` is given, these are the `fluent's parameters` (passed to the `Fluent` constructor).
+        :return: The `fluent` passed or constructed.
 
         Example
         --------
@@ -139,10 +155,10 @@ class FluentsSetMixin:
     def fluents_defaults(
         self,
     ) -> Dict["up.model.fluent.Fluent", "up.model.fnode.FNode"]:
-        """Returns the problem's fluents defaults."""
+        """Returns the `problem's fluents defaults`."""
         return self._fluents_defaults
 
     @property
     def initial_defaults(self) -> Dict["up.model.types.Type", "up.model.fnode.FNode"]:
-        """Returns the problem's fluents defaults."""
+        """Returns the `problem's fluents defaults` for each `type`."""
         return self._initial_defaults

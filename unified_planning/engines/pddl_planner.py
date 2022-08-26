@@ -60,7 +60,7 @@ if ENV_USE_ASYNCIO is not None:
 
 class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     """
-    This class is the interface of a generic PDDL planner
+    This class is the interface of a generic PDDL :class:`OneshotPlanner <unified_planning.engines.mixins.OneshotPlannerMixin>`
     that can be invocated through a subprocess call.
     """
 
@@ -72,9 +72,17 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     def _get_cmd(
         self, domain_filename: str, problem_filename: str, plan_filename: str
     ) -> List[str]:
-        """Takes in input two filenames where the problem's domain and problem are written, a
+        """
+        Takes in input two filenames where the problem's domain and problem are written, a
         filename where to write the plan and returns a list of command to run the engine on the
-        problem and write the plan on the file called plan_filename."""
+        problem and write the plan on the file called plan_filename.
+
+        :param domain_filename: The path of the PDDL domain file.
+        :param problem_filename: The path of the PDDl problem file.
+        :param plan_filename: The path where the generated plan will be written.
+        :return: The list of commands needed to execute the planner from command line using the given
+            paths.
+        """
         raise NotImplementedError
 
     def _plan_from_file(
@@ -93,7 +101,15 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             ],
         ],
     ) -> "up.plans.Plan":
-        """Takes a problem, a filename and a map of renamings and returns the plan parsed from the file."""
+        """
+        Takes a problem, a filename and a map of renaming and returns the plan parsed from the file.
+
+        :param problem: The up.model.problem.Problem instance for which the plan is generated.
+        :param plan_filename: The path of the file in which the plan is written.
+        :param get_item_named: A function that takes a name and returns the original up.model element instance
+            linked to that renaming.
+        :return: The up.plans.Plan corresponding to the parsed plan from the file
+        """
         actions: List = []
         with open(plan_filename) as plan:
             is_tt = False
@@ -230,8 +246,14 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         retval: int,
         log_messages: Optional[List[LogMessage]] = None,
     ) -> "up.engines.results.PlanGenerationResultStatus":
-        """Takes a problem and a plan and returns the status that represents this plan.
-        The possible status with their interpretation can be found in the up.engines.results file."""
+        """
+        Takes a problem and a plan and returns the status that represents this plan.
+        The possible status with their interpretation can be found in the up.engines.results file.
+
+        :param problem: The up.model.problem.Problem for which the plan was generated.
+        :param plan: The returned parsed plan by the planner; might be None
+        :return: The up.engines.results.PlanGenerationResultStatus corresponding to the given plan.
+            It mainly depends on the plan and on the planner capabilities."""
         raise NotImplementedError
 
 
