@@ -262,6 +262,8 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        print(problem)
+        print(grounded_problem)
         self.assertEqual(len(grounded_problem.actions), 2)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)

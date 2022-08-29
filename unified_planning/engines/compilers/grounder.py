@@ -34,6 +34,7 @@ from functools import partial
 
 class GroundingSupport:
     """
+    TODO check
     This class gives the capability of grounding a :class:`~unified_planning.model.Problem` by taking
     it at construction time.
 
@@ -50,27 +51,43 @@ class GroundingSupport:
         problem: Problem,
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
     ):
+        """
+        Creates an instance of the GroundingSupport.
+
+        :param problem: The `Problem` to ground.
+        :param grounding_actions_map: Optionally, a map from `Action` to a List of Tuples of expressions.
+            When this map is set, it represents the groundings that this class does.
+            So, for every key in the map, the `Action` is grounded with every `tuple of parameters` in the mapped value.
+            For example, if the map is `{a: [(o1, o2), (o2, o3)], b: [(o3), (o4)]}`, the resulting grounded actions will be:
+            - `a (o1, o2)`
+            - `a (o2, o3)`
+            - `b (o3)`
+            - `b (o4)`
+            If this map is `None`, the `unified_planning` grounding algorithm is applied.
+        """
         assert isinstance(problem, Problem)
         self._problem = problem
         self._grounding_actions_map = grounding_actions_map
         # grounded_actions is a map from an Action of the original problem and it's parameters
         # to the grounded instance of the Action with the given parameters.
+        # When the grounded instance of the Action is None, it means that the resulting grounding
+        # of that action is a meaningless Action.
+        # An Action is meaningless when:
+        # - it has no effects
+        # - his conditions create a contradiction
+        # - the action has conflicting effects
         self._grounded_actions: Dict[
             Tuple[Action, Tuple[FNode, ...]], Optional[Action]
         ] = {}
         env = problem.env
         self._substituter = Substituter(env)
         self._simplifier = Simplifier(env, problem)
-        self._grounding_result: Optional[CompilerResult] = None
-
-    @property
-    def name(self):
-        return "grounder"
 
     def ground_action(
         self, action: Action, parameters: Tuple[FNode, ...] = tuple()
     ) -> Optional[Action]:
         """
+        TODO check
         Grounds the given `action` with the given `parameters`.
         An `Action` is grounded when it has no :func:`parameters <unified_planning.model.Action.parameters>`.
 
@@ -92,90 +109,76 @@ class GroundingSupport:
         if key in self._grounded_actions:  # The action is already created
             return self._grounded_actions[key]
         else:
-            subs: Dict[Expression, Expression] = dict(
-                zip(action.parameters, list(parameters))
-            )
-            new_action = create_action_with_given_subs(
-                self._problem, action, self._simplifier, self._substituter, subs
-            )
+            # if the action does not have parameters, it does not need to be grounded.
+            if len(action.parameters) == 0:
+                if (
+                    self._grounding_actions_map is None
+                    or self._grounding_actions_map.get(action, None) is not None
+                ):
+                    new_action = action.clone()
+                else:
+                    new_action = None
+            else:
+                subs: Dict[Expression, Expression] = dict(
+                    zip(action.parameters, list(parameters))
+                )
+                new_action = create_action_with_given_subs(
+                    self._problem, action, self._simplifier, self._substituter, subs
+                )
             self._grounded_actions[key] = new_action
             return new_action
 
-    def ground_problem(self) -> CompilerResult:
+    def get_grounded_actions(
+        self,
+    ) -> Iterator[Tuple[Action, Tuple[FNode, ...], Optional[Action]]]:
         """
-        Grounds the :class:`~unified_planning.model.Problem` given at construction time and stores the result
-        inside this class, so if this method is called twice, the same `CompilerResult` is returned.
-
-        :return: The `CompilerResult` created; the same of a :func:`~unified_planning.engines.compilers.Grounder.compile` call
-            where the `Problem` is the one giv4en at construction time.
+        TODO
         """
-        if (
-            self._grounding_result is None
-        ):  # if the problem was never grounded before, ground it
-            trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
+        for old_action in self._problem.actions:
+            for grounded_params in self.get_possible_parameters(old_action):
+                assert isinstance(grounded_params, tuple)
+                new_action = self.ground_action(old_action, grounded_params)
+                yield (old_action, grounded_params, new_action)
 
-            new_problem = self._problem.clone()
-            new_problem.name = f"{self.name}_{self._problem.name}"
-            new_problem.clear_actions()
-            for old_action in self._problem.actions:
-                # contains the type of every parameter of the action
-                type_list: List[Type] = [param.type for param in old_action.parameters]
-                # if the action does not have parameters, it does not need to be grounded.
-                if len(type_list) == 0:
-                    if (
-                        self._grounding_actions_map is None
-                        or self._grounding_actions_map.get(old_action, None) is not None
-                    ):
-                        new_action = old_action.clone()
-                        new_problem.add_action(new_action)
-                        trace_back_map[new_action] = (old_action, [])
-                    continue
-                grounded_params_list: Optional[Iterator[Tuple[FNode, ...]]] = None
-                if self._grounding_actions_map is None:
-                    # a list containing the list of object in the self._problem of the given type.
-                    # So, if the self._problem has 2 Locations l1 and l2, and 2 Robots r1 and r2, and
-                    # the action move_to takes as parameters a Robot and a Location,
-                    # the variable state at this point will be the following:
-                    # type_list = [Robot, Location]
-                    # objects_list = [[r1, r2], [l1, l2]]
-                    # the product of *objects_list will be:
-                    # [(r1, l1), (r1, l2), (r2, l1), (r2,l2)]
-                    ground_size = 1
-                    domain_sizes = []
-                    for t in type_list:
-                        ds = domain_size(new_problem, t)
-                        domain_sizes.append(ds)
-                        ground_size *= ds
-                    items_list: List[List[FNode]] = []
-                    for size, type in zip(domain_sizes, type_list):
-                        items_list.append(
-                            [domain_item(new_problem, type, j) for j in range(size)]
-                        )
-                    grounded_params_list = product(*items_list)
-                else:
-                    # The grounding_actions_map is not None, therefore it must be used to ground
-                    grounded_params_list = iter(self._grounding_actions_map[old_action])
-                assert grounded_params_list is not None
-                for grounded_params in grounded_params_list:
-                    new_action = self.ground_action(old_action, grounded_params)
-                    # when the action is None it means it is not feasible,
-                    # it's conditions are in contradiction within one another.
-                    if new_action is not None:
-                        trace_back_map[new_action] = (
-                            old_action,
-                            self._problem.env.expression_manager.auto_promote(
-                                grounded_params
-                            ),
-                        )
-                        new_problem.add_action(new_action)
-
-            self._grounding_result = CompilerResult(
-                new_problem,
-                partial(lift_action_instance, map=trace_back_map),
-                self.name,
-            )
-
-        return self._grounding_result
+    def get_possible_parameters(self, action: Action) -> Iterator[Tuple[FNode, ...]]:
+        """
+        TODO
+        """
+        # if the action does not have parameters, it does not need to be grounded.
+        if len(action.parameters) == 0:
+            if (
+                self._grounding_actions_map is None
+                or self._grounding_actions_map.get(action, None) is not None
+            ):
+                return iter([tuple()])
+        else:
+            # contains the type of every parameter of the action
+            type_list: List[Type] = [param.type for param in action.parameters]
+            if self._grounding_actions_map is None:
+                # a list containing the list of object in the self._problem of the given type.
+                # So, if the self._problem has 2 Locations l1 and l2, and 2 Robots r1 and r2, and
+                # the action move_to takes as parameters a Robot and a Location,
+                # the variable state at this point will be the following:
+                # type_list = [Robot, Location]
+                # objects_list = [[r1, r2], [l1, l2]]
+                # the product of *objects_list will be:
+                # [(r1, l1), (r1, l2), (r2, l1), (r2,l2)]
+                ground_size = 1
+                domain_sizes = []
+                for t in type_list:
+                    ds = domain_size(self._problem, t)
+                    domain_sizes.append(ds)
+                    ground_size *= ds
+                items_list: List[List[FNode]] = []
+                for size, type in zip(domain_sizes, type_list):
+                    items_list.append(
+                        [domain_item(self._problem, type, j) for j in range(size)]
+                    )
+                grounded_params_iter: Iterator[Tuple[FNode, ...]] = product(*items_list)
+            else:
+                # The grounding_actions_map is not None, therefore it must be used to ground
+                grounded_params_iter = iter(self._grounding_actions_map.get(action, []))
+            return grounded_params_iter
 
 
 class Grounder(engines.engine.Engine, CompilerMixin):
@@ -268,4 +271,18 @@ class Grounder(engines.engine.Engine, CompilerMixin):
             problem, Problem
         ), "The given problem is not a class supported by the Grounder"
         gs = GroundingSupport(problem, self._grounding_actions_map)
-        return gs.ground_problem()
+        trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
+
+        new_problem = problem.clone()
+        new_problem.name = f"{self.name}_{problem.name}"
+        new_problem.clear_actions()
+        for old_action, parameters, new_action in gs.get_grounded_actions():
+            if new_action is not None:
+                new_problem.add_action(new_action)
+                trace_back_map[new_action] = (old_action, list(parameters))
+
+        return CompilerResult(
+            new_problem,
+            partial(lift_action_instance, map=trace_back_map),
+            self.name,
+        )
