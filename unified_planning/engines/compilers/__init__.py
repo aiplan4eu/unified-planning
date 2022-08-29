@@ -19,7 +19,7 @@ from unified_planning.engines.compilers.conditional_effects_remover import (
 from unified_planning.engines.compilers.disjunctive_conditions_remover import (
     DisjunctiveConditionsRemover,
 )
-from unified_planning.engines.compilers.grounder import Grounder
+from unified_planning.engines.compilers.grounder import Grounder, GroundingSupport
 from unified_planning.engines.compilers.quantifiers_remover import QuantifiersRemover
 from unified_planning.engines.compilers.negative_conditions_remover import (
     NegativeConditionsRemover,
