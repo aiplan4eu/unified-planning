@@ -32,9 +32,13 @@ class ActionInstance:
     """
 
     def __init__(
-        self, action: "up.model.Action", params: Tuple["up.model.FNode", ...] = tuple()
+        self,
+        action: "up.model.Action",
+        params: Tuple["up.model.FNode", ...] = tuple(),
+        agent: Optional["up.model.multi_agent.Agent"] = None,
     ):
         assert len(action.parameters) == len(params)
+        self._agent = agent
         self._action = action
         self._params = tuple(params)
 
@@ -49,7 +53,16 @@ class ActionInstance:
                 s.append(str(p))
                 first = False
             s.append(")")
-        return self._action.name + "".join(s)
+        if self._agent is None:
+            name = self._action.name
+        else:
+            name = f"{self._agent.name}.{self._action.name}"
+        return name + "".join(s)
+
+    @property
+    def agent(self) -> Optional["up.model.multi_agent.Agent"]:
+        """Returns the `Agent` of this `ActionInstance`."""
+        return self._agent
 
     @property
     def action(self) -> "up.model.Action":
@@ -70,7 +83,11 @@ class ActionInstance:
         :param oth: The `ActionInstance` that must be tested for semantical equivalence with `self`.
         :return: `True` if the given `ActionInstance` is semantically equivalent to self, `False` otherwise.
         """
-        return self.action == oth.action and self._params == oth._params
+        return (
+            self.agent == oth.agent
+            and self.action == oth.action
+            and self._params == oth._params
+        )
 
 
 class PlanKind(Enum):

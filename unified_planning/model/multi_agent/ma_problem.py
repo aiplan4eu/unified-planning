@@ -90,23 +90,62 @@ class MultiAgentProblem(
         s.append("]\n\n")
         return "".join(s)
 
+    def __eq__(self, oth: object) -> bool:
+        if not (isinstance(oth, MultiAgentProblem)) or self._env != oth._env:
+            return False
+        if self.kind != oth.kind or self._name != oth._name:
+            return False
+        if self.ma_environment != oth.ma_environment:
+            return False
+        if set(self._goals) != set(oth._goals):
+            return False
+        if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(
+            oth._objects
+        ):
+            return False
+        if set(self._agents) != set(oth._agents):
+            return False
+        oth_initial_values = oth.initial_values
+        for fluent, value in self.initial_values.items():
+            oth_value = oth_initial_values.get(fluent, None)
+            if oth_value is None:
+                return False
+            elif value != oth_value:
+                return False
+        return True
+
     def __hash__(self) -> int:
         res = hash(self._kind) + hash(self._name)
-        for ag in self.agents:
-            for f in ag._fluents:
-                res += hash(f)
-        for ag in self.agents:
-            for a in ag._actions:
-                res += hash(a)
+        res += hash(self.ma_environment)
+        for a in self._agents:
+            res += hash(a)
         for ut in self._user_types:
             res += hash(ut)
         for o in self._objects:
             res += hash(o)
-        for iv in self._initial_value.items():
+        for iv in self.initial_values.items():
             res += hash(iv)
-        for goals in self._goals:
-            res += hash(goals)
+        for g in self._goals:
+            res += hash(g)
         return res
+
+    def clone(self):
+        new_p = MultiAgentProblem(self._name, self._env)
+        for f in self.ma_environment.fluents:
+            new_p.ma_environment.add_fluent(f)
+        for ag in self.agents:
+            new_ag = up.model.multi_agent.Agent(ag.name, self)
+            for f in ag.fluents:
+                new_ag.add_fluent(f)
+            for a in ag.actions:
+                new_ag.add_action(a.clone())
+        new_p._user_types = self._user_types[:]
+        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
+        new_p._objects = self._objects[:]
+        new_p._initial_value = self._initial_value.copy()
+        new_p._goals = self._goals[:]
+        new_p._initial_defaults = self._initial_defaults.copy()
+        return new_p
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
@@ -116,13 +155,6 @@ class MultiAgentProblem(
     def ma_environment(self) -> "up.model.multi_agent.ma_environment.MAEnvironment":
         """Returns the MA-environment."""
         return self._env_ma
-
-    @ma_environment.setter
-    def ma_environment(
-        self, env_ma: "up.model.multi_agent.ma_environment.MAEnvironment"
-    ):
-        """Sets the MA-environment."""
-        self._env_ma = env_ma
 
     def set_initial_value(
         self,
@@ -148,7 +180,10 @@ class MultiAgentProblem(
     ) -> "up.model.fnode.FNode":
         """Gets the initial value of the given fluent."""
         (fluent_exp,) = self._env.expression_manager.auto_promote(fluent)
-        for a in fluent_exp.args:
+        fluent_args = (
+            fluent_exp.args if fluent_exp.is_fluent_exp() else fluent_exp.arg(0).args
+        )
+        for a in fluent_args:
             if not a.is_constant():
                 raise UPExpressionDefinitionError(
                     f"Impossible to return the initial value of a fluent expression with no constant arguments: {fluent_exp}."

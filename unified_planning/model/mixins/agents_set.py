@@ -62,7 +62,6 @@ class AgentsSetMixin:
     def has_agent(self, name: str) -> bool:
         """Returns True iff the agent 'name' is defined."""
         for agent in self._agents:
-            print(agent._name)
             if agent._name == name:
                 return True
         return False

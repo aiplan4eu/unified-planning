@@ -40,16 +40,12 @@ class Agent(
         ActionsSetMixin.__init__(
             self, ma_problem.env, ma_problem._add_user_type, self.has_name
         )
+        self._env = ma_problem.env
         self._name: str = name
-        self._ma_problem = ma_problem
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
-        return (
-            self.has_action(name)
-            or self.has_fluent(name)
-            or self._ma_problem.has_name(name)
-        )
+        return self.has_action(name) or self.has_fluent(name)
 
     @property
     def name(self) -> str:
@@ -59,16 +55,7 @@ class Agent(
     @property
     def env(self) -> "up.Environment":
         """Returns the Agent environment."""
-        return self._ma_problem.env
-
-    def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, Agent):
-            return self._name == oth._name and self._ma_problem == oth._ma_problem
-        else:
-            return False
-
-    def __hash__(self) -> int:
-        return hash(self._name)
+        return self._env
 
     def __repr__(self) -> str:
         s = []
@@ -82,3 +69,22 @@ class Agent(
             s.append(f" {str(a)}\n")
         s.append("]\n\n")
         return "".join(s)
+
+    def __eq__(self, oth: object) -> bool:
+        if not (isinstance(oth, Agent)) or self._env != oth._env:
+            return False
+        if self._name != oth._name:
+            return False
+        if set(self._fluents) != set(oth._fluents):
+            return False
+        if set(self._actions) != set(oth._actions):
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        res = hash(self._name)
+        for f in self._fluents:
+            res += hash(f)
+        for a in self._actions:
+            res += hash(a)
+        return res

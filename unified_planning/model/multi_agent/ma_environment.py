@@ -31,20 +31,20 @@ class MAEnvironment(
         FluentsSetMixin.__init__(
             self,
             ma_problem.env,
-            ma_problem._add_user_type_method,
+            ma_problem._add_user_type,
             self.has_name,
             ma_problem._initial_defaults,
         )
-        self._ma_problem = ma_problem
+        self._env = ma_problem.env
 
     @property
     def env(self) -> "up.Environment":
         """Returns the Agent environment."""
-        return self._ma_problem.env
+        return self._env
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
-        return self.has_fluent(name) or self._ma_problem.has_name(name)
+        return self.has_fluent(name)
 
     def __repr__(self) -> str:
         s = []
@@ -53,3 +53,16 @@ class MAEnvironment(
             s.append(f" {str(f)}\n")
         s.append("]\n\n")
         return "".join(s)
+
+    def __eq__(self, oth: object) -> bool:
+        if not (isinstance(oth, MAEnvironment)) or self._env != oth._env:
+            return False
+        if set(self._fluents) != set(oth._fluents):
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        res = 0
+        for f in self._fluents:
+            res += hash(f)
+        return res
