@@ -20,6 +20,7 @@ called without the need to specify an environment or a ExpressionManager.
 import sys
 import unified_planning as up
 import unified_planning.model.types
+import unified_planning.model.multi_agent
 from unified_planning.environment import get_env
 from unified_planning.model import *
 from unified_planning.engines import Engine, CompilationKind
@@ -327,8 +328,11 @@ def Equals(left: Expression, right: Expression) -> FNode:
     return get_env().expression_manager.Equals(left, right)
 
 
-def Dot(left: Agent, right: FNode) -> FNode:
-    return get_env().expression_manager.Dot(left, right)
+def Dot(
+    agent: "unified_planning.model.multi_agent.Agent",
+    fluent_exp: Union[FNode, "unified_planning.model.Fluent"],
+) -> FNode:
+    return get_env().expression_manager.Dot(agent, fluent_exp)
 
 
 def BoolType() -> unified_planning.model.types.Type:

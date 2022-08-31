@@ -74,11 +74,7 @@ class FNode(object):
         elif self.is_fluent_exp():
             return self.fluent().name + self.get_nary_expression_string(", ", self.args)
         elif self.is_dot():
-            return (
-                "%s.%s" % (self.agent().name, self.arg(0))
-                if type(self.arg(0)) is unified_planning.model.agent.Agent
-                else "%s.%s" % (self.ma_env().name, self.arg(0))
-            )
+            return f"{self.agent().name}.{self.arg(0)}"
         elif self.is_parameter_exp():
             return self.parameter().name
         elif self.is_variable_exp():
@@ -213,6 +209,11 @@ class FNode(object):
         assert self.is_timing_exp()
         return self._content.payload
 
+    def agent(self) -> "unified_planning.model.multi_agent.Agent":
+        """Return the agent of Dot operator."""
+        assert self.is_dot()
+        return self._content.payload
+
     def simplify(self) -> "FNode":
         """
         Returns the simplified version of this expression.
@@ -320,16 +321,6 @@ class FNode(object):
     def is_dot(self) -> bool:
         """Test whether the expression is the Dot operator."""
         return self.node_type == OperatorKind.DOT
-
-    def agent(self) -> "unified_planning.model.Agent":
-        """Return the agent of Dot operator."""
-        assert self.is_dot()
-        return self._content.payload
-
-    def ma_env(self) -> "unified_planning.model.MAEnvironment":
-        """Return the ma_env of Dot operator."""
-        assert self.is_dot()
-        return self._content.payload
 
     #
     # Infix operators

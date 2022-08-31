@@ -14,18 +14,6 @@
 #
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
-import unified_planning.model.operators as op
-from unified_planning.exceptions import (
-    UPProblemDefinitionError,
-    UPTypeError,
-    UPValueError,
-    UPExpressionDefinitionError,
-)
-from unified_planning.model.walkers import OperatorsExtractor
-from unified_planning.model.expression import ConstantExpression
-from fractions import Fraction
-from typing import List, Dict, Set, Union, Optional
 from unified_planning.model.mixins import (
     FluentsSetMixin,
 )
@@ -38,36 +26,28 @@ class MAEnvironment(
 
     def __init__(
         self,
-        ma_problem: "up.model.MultiAgentProblem",
+        ma_problem: "up.model.multi_agent.ma_problem.MultiAgentProblem",
     ):
-        self._name = "MA_Environment"
-        self._ma_problem = ma_problem
-        self._env = up.environment.get_env(self._ma_problem.env)
         FluentsSetMixin.__init__(
             self,
-            self.env,
-            self._ma_problem._add_user_type_method,
+            ma_problem.env,
+            ma_problem._add_user_type_method,
             self.has_name,
-            self._ma_problem._initial_defaults,
+            ma_problem._initial_defaults,
         )
+        self._ma_problem = ma_problem
+
+    @property
+    def env(self) -> "up.Environment":
+        """Returns the Agent environment."""
+        return self._ma_problem.env
 
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
         return self.has_fluent(name) or self._ma_problem.has_name(name)
 
-    @property
-    def name(self) -> str:
-        """Returns the MA-environment name."""
-        return self._name
-
-    @property
-    def environment(self) -> "Environment":
-        """Returns the MA-environment environment."""
-        return self._env
-
     def __repr__(self) -> str:
         s = []
-        s.append(f"{str(self._name)}\n\n")
         s.append("fluents = [\n")
         for f in self._fluents:
             s.append(f" {str(f)}\n")

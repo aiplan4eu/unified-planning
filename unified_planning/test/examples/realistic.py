@@ -1122,7 +1122,7 @@ def get_example_problems():
     problem.add_goal(on_s(crate1, pallet1))
     plan = None
     depot = Example(problem=problem, plan=plan)
-    problems["depot"] = depot
+    # problems["depot"] = depot
 
     ########################################depot_truck########################################
 
@@ -1268,7 +1268,7 @@ def get_example_problems():
     problem.add_goal(on_s(crate1, pallet1))
     plan = None
     depot_truck = Example(problem=problem, plan=plan)
-    problems["depot_truck"] = depot_truck
+    # problems["depot_truck"] = depot_truck
 
     ########################################depot_mix########################################
 
@@ -1491,6 +1491,6 @@ def get_example_problems():
     problem.add_goal(on_s(crate1, pallet1))
     plan = None
     depot = Example(problem=problem, plan=plan)
-    problems["depot_mix"] = depot
+    # problems["depot_mix"] = depot
 
     return problems

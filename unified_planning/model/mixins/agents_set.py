@@ -17,7 +17,6 @@ import unified_planning as up
 from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import List, Dict, Optional, cast
-from unified_planning.model.agent import Agent
 
 
 class AgentsSetMixin:
@@ -39,22 +38,21 @@ class AgentsSetMixin:
         """Returns the problem environment."""
         return self._env
 
-    def add_agent(self, agent: "Agent"):
+    def add_agent(self, agent: "up.model.multi_agent.Agent"):
         """This method adds an Agent"""
         if agent not in self._agents:
-            t = cast(Agent, agent)
-            if self._has_name_method(t.name):
+            if self._has_name_method(agent.name):
                 raise UPProblemDefinitionError(
-                    f"The agent name {t.name} is already used in the problem"
+                    f"The agent name {agent.name} is already used in the problem"
                 )
             self._agents.append(agent)
 
     @property
-    def agents(self) -> List["Agent"]:
+    def agents(self) -> List["up.model.multi_agent.Agent"]:
         """Returns the agents."""
         return self._agents
 
-    def agent(self, name: str) -> "Agent":
+    def agent(self, name: str) -> "up.model.multi_agent.Agent":
         """Returns the agent with the given name."""
         for agent in self._agents:
             if agent._name == name:

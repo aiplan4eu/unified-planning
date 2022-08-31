@@ -146,8 +146,7 @@ class ExpressionManager(object):
             "up.model.parameter.Parameter",
             "up.model.variable.Variable",
             "up.model.timing.Timing",
-            "up.model.Agent",
-            "up.model.MAEnvironment",
+            "up.model.multi_agent.Agent",
             bool,
             int,
             Fraction,
@@ -340,13 +339,14 @@ class ExpressionManager(object):
 
     def Dot(
         self,
-        agent: Union["up.model.Agent", "up.model.MAEnvironment"],
-        *fluent_exp: "up.model.fnode.FNode",
+        agent: "up.model.multi_agent.Agent",
+        fluent_exp: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
     ) -> "up.model.fnode.FNode":
         """Creates an expression for the given agent and fluent_exp."""
-        assert agent.environment == self.env
+        assert agent.env == self.env
+        (fluent_exp,) = self.auto_promote(fluent_exp)
         return self.create_node(
-            node_type=OperatorKind.DOT, args=tuple(fluent_exp), payload=agent
+            node_type=OperatorKind.DOT, args=(fluent_exp,), payload=agent
         )
 
     def ParameterExp(
