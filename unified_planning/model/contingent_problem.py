@@ -30,31 +30,46 @@ class ContingentProblem(Problem):
     ):
         Problem.__init__(self, name, env, initial_defaults=initial_defaults)
         self._hidden_fluents: Set["up.model.fnode.FNode"] = set()
-        self._initial_constraints: List["up.model.fnode.FNode"] = []
+        self._or_initial_constraints: List[List["up.model.fnode.FNode"]] = []
+        self._oneof_initial_constraints: List[List["up.model.fnode.FNode"]] = []
 
     def __repr__(self) -> str:
         s = []
         s.append(super().__repr__())
         s.append("initial constraints = [\n")
-        for c in self._initial_constraints:
-            s.append(f"  {str(c)}\n")
+        for c in self._or_initial_constraints:
+            s.append(f"  (or {' '.join(c)})\n")
+        for c in self._oneof_initial_constraints:
+            s.append(f"  (oneof {' '.join(c)})\n")
         s.append("]\n\n")
         return "".join(s)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, ContingentProblem):
-            return (
-                super().__eq__(oth)
-                and self._hidden_fluents == oth._hidden_fluents
-                and set(self._initial_constraints) == set(oth._initial_constraints)
-            )
-        else:
+        if not isinstance(oth, ContingentProblem):
             return False
+        elif not super().__eq__(oth):
+            return False
+        elif self._hidden_fluents != oth._hidden_fluents:
+            return False
+        elif set([set(c) for c in self._or_initial_constraints]) != set(
+            [set(c) for c in oth._or_initial_constraints]
+        ):
+            return False
+        elif set([set(c) for c in self._oneof_initial_constraints]) != set(
+            [set(c) for c in oth._oneof_initial_constraints]
+        ):
+            return False
+        else:
+            return True
 
     def __hash__(self) -> int:
         res = super().__hash__()
-        for c in self._initial_constraints:
-            res += hash(c)
+        for c in self._or_initial_constraints:
+            for f in c:
+                res += hash(f)
+        for c in self._oneof_initial_constraints:
+            for f in c:
+                res += hash(f)
         return res
 
     def clone(self):
@@ -80,35 +95,41 @@ class ContingentProblem(Problem):
         new_p._initial_defaults = self._initial_defaults.copy()
         new_p._fluents_defaults = self._fluents_defaults.copy()
         new_p._hidden_fluents = self._hidden_fluents.copy()
-        new_p._initial_constraints = self._initial_constraints.copy()
+        new_p._or_initial_constraints = self._or_initial_constraints.copy()
+        new_p._oneof_initial_constraints = self._oneof_initial_constraints.copy()
         return new_p
 
     def add_oneof_initial_constraint(
         self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
         em = self._env.expression_manager
+        c = []
         for f in fluents:
             (f_exp,) = em.auto_promote(f)
             self._hidden_fluents.add(f_exp)
-        c = self._env.expression_manager.XOr(fluents)
-        self._initial_constraints.append(c)
+            c.append(f_exp)
+        self._oneof_initial_constraints.append(c)
 
     def add_or_initial_constraint(
         self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
-        c = self._env.expression_manager.Or(fluents)
-        self._initial_constraints.append(c)
-        for a in c.args:
-            self._hidden_fluents.add(a)
+        em = self._env.expression_manager
+        c = []
+        for f in fluents:
+            (f_exp,) = em.auto_promote(f)
+            self._hidden_fluents.add(f_exp)
+            c.append(f_exp)
+        self._or_initial_constraints.append(c)
 
     def add_unknown_initial_constraint(
         self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
     ):
         em = self._env.expression_manager
         (fluent_exp,) = em.auto_promote(fluent)
-        c = em.Or(em.Not(fluent_exp), fluent_exp)
-        self._initial_constraints.append(c)
         self._hidden_fluents.add(fluent_exp)
+        self._hidden_fluents.add(em.Not(fluent_exp))
+        c = [em.Not(fluent_exp), fluent_exp]
+        self._or_initial_constraints.append(c)
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
@@ -145,8 +166,12 @@ class ContingentProblem(Problem):
         return self._kind
 
     @property
-    def constraints(self) -> List["up.model.fnode.FNode"]:
-        return self._initial_constraints
+    def or_constraints(self) -> List[List["up.model.fnode.FNode"]]:
+        return self._or_initial_constraints
+
+    @property
+    def oneof_constraints(self) -> List[List["up.model.fnode.FNode"]]:
+        return self._oneof_initial_constraints
 
     @property
     def hidden(self) -> Set["up.model.fnode.FNode"]:
