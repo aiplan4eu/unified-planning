@@ -228,11 +228,15 @@ class ExpressionManager(object):
     def XOr(
         self, *args: Union[BoolExpression, Iterable[BoolExpression]]
     ) -> "up.model.fnode.FNode":
-        """Returns an exclusive disjunction of terms.
+        """Returns an exclusive disjunction of terms in CNF form.
         This function has polimorphic n-arguments:
           - XOr(a,b,c)
           - XOr([a,b,c])
         Restriction: Arguments must be boolean
+
+        :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
+        of it, like `a, b, c`.
+        :return: The exclusive disjunction in CNF form.
         """
         tuple_args = tuple(self.auto_promote(*args))
 

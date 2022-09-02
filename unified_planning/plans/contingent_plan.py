@@ -19,6 +19,8 @@ from typing import Callable, Dict, Optional, List
 
 
 class ContingentPlanNode:
+    """This class represent a node in the tree contingent plan."""
+
     def __init__(
         self,
         action_instance: "plans.plan.ActionInstance",
@@ -31,6 +33,7 @@ class ContingentPlanNode:
         self.children: List["ContingentPlanNode"] = []
 
     def add_child(self, obj: "ContingentPlanNode"):
+        """Adds the given `ContingentPlanNode` as a new child."""
         self.children.append(obj)
 
     def replace_action_instances(
@@ -39,6 +42,16 @@ class ContingentPlanNode:
             ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> List["ContingentPlanNode"]:
+        """
+        This method takes a function from `ActionInstance` to `ActionInstance`.
+        If the returned `ActionInstance` is `None` it means that the `ActionInstance` should be removed.
+
+        This method applies the given function to all the `ActionInstance` of the node
+        and returns an equivalent list of new `ContingentPlanNode`s.
+
+        :param replace_function: The function from `ActionInstance` to `ActionInstance`.
+        :return: The new list of `ContingentPlanNode`s in which every `ActionInstance` is modified by the given `replace_function`.
+        """
         children: List["ContingentPlanNode"] = []
         for c in self.children:
             for child in c.replace_action_instances(replace_function):

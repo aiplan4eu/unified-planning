@@ -21,6 +21,8 @@ from typing import Dict, Sequence, Set, List, Union
 
 
 class ContingentProblem(Problem):
+    """This class represent a contingent planning problem."""
+
     def __init__(
         self,
         name: str = None,
@@ -102,6 +104,11 @@ class ContingentProblem(Problem):
     def add_oneof_initial_constraint(
         self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
+        """
+        Adds a oneof initial constraint on some hidden fluents.
+
+        :param fluents: a list of fluent expressions, exatly one of them must hold in the initial state.
+        """
         em = self._env.expression_manager
         c = []
         for f in fluents:
@@ -113,6 +120,11 @@ class ContingentProblem(Problem):
     def add_or_initial_constraint(
         self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
+        """
+        Adds a or initial constraint on some hidden fluents.
+
+        :param fluents: a list of fluent expressions, at least one of them must hold in the initial state.
+        """
         em = self._env.expression_manager
         c = []
         for f in fluents:
@@ -124,6 +136,11 @@ class ContingentProblem(Problem):
     def add_unknown_initial_constraint(
         self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
     ):
+        """
+        Adds an unknown initial constraint on a hidden fluent.
+
+        :param fluent: the unknown hidden fluent.
+        """
         em = self._env.expression_manager
         (fluent_exp,) = em.auto_promote(fluent)
         self._hidden_fluents.add(fluent_exp)
@@ -167,12 +184,15 @@ class ContingentProblem(Problem):
 
     @property
     def or_constraints(self) -> List[List["up.model.fnode.FNode"]]:
+        """Returns the `or` initial constraints on the hidden fluents."""
         return self._or_initial_constraints
 
     @property
     def oneof_constraints(self) -> List[List["up.model.fnode.FNode"]]:
+        """Returns the `oneof` initial constraints on the hidden fluents."""
         return self._oneof_initial_constraints
 
     @property
     def hidden(self) -> Set["up.model.fnode.FNode"]:
+        """Returns the hidden fluents."""
         return self._hidden_fluents

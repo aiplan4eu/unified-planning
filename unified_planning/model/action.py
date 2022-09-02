@@ -969,17 +969,25 @@ class SensingAction(InstantaneousAction):
         return new_sensing_action
 
     def add_observed_fluents(self, observed_fluents: List["up.model.fnode.FNode"]):
-        """Adds a list of observed fluents."""
+        """
+        Adds the given list of observed fluents.
+
+        :param observed_fluents: The list of observed fluents that must be added.
+        """
         for of in observed_fluents:
             self.add_observed_fluent(of)
 
     def add_observed_fluent(self, observed_fluent: "up.model.fnode.FNode"):
-        """Adds an observed fluent."""
+        """
+        Adds the given observed fluent.
+
+        :param observed_fluent: The observed fluent that must be added.
+        """
         self._observed_fluents.append(observed_fluent)
 
     @property
     def observed_fluents(self) -> List["up.model.fnode.FNode"]:
-        """Returns the observed fluents."""
+        """Returns the `list` observed fluents."""
         return self._observed_fluents
 
     def __repr__(self) -> str:
