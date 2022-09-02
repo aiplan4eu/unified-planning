@@ -38,9 +38,9 @@ class ContingentProblem(Problem):
         s.append(super().__repr__())
         s.append("initial constraints = [\n")
         for c in self._or_initial_constraints:
-            s.append(f"  (or {' '.join(c)})\n")
+            s.append(f"  (or {' '.join([str(f) for f in c])})\n")
         for c in self._oneof_initial_constraints:
-            s.append(f"  (oneof {' '.join(c)})\n")
+            s.append(f"  (oneof {' '.join([str(f) for f in c])})\n")
         s.append("]\n\n")
         return "".join(s)
 
