@@ -46,7 +46,7 @@ class Agent(
     def __getstate__(self):
         state = self.__dict__.copy()
         # Don't pickle _add_user_type_method
-        del state["_add_user_type_method"]
+        state["_add_user_type_method"] = None
         return state
 
     def has_name(self, name: str) -> bool:
