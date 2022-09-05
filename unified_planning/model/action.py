@@ -239,10 +239,14 @@ class InstantaneousAction(Action):
             bool,
         ],
     ):
-        """Adds the given action precondition."""
-        precondition_exp, = self._env.expression_manager.auto_promote(precondition)
+        """
+        Adds the given expression to `action's preconditions`.
+        :param precondition: The expression that must be added to the `action's preconditions`.
+        """
+        (precondition_exp,) = self._env.expression_manager.auto_promote(precondition)
+        assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         if precondition_exp.node_type in up.model.operators.TRAJECTORY_CONSTRAINTS:
-            raise UPTypeError(f'Not insert trajectory constraint {precondition_exp} in precondition.')
+            raise UPTypeError(f"Not insert trajectory constraint {precondition_exp} in precondition.")
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         if precondition_exp == self._env.expression_manager.TRUE():
             return

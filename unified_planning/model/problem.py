@@ -629,11 +629,16 @@ class Problem(
         self._goals = []
 
     def clear_trajectory_constraints(self):
-        '''Removes the trajectory_constraints.'''
+        """Removes the trajectory_constraints."""
         self._trajectory_constraints = []
 
     def add_quality_metric(self, metric: 'up.model.metrics.PlanQualityMetric'):
-        '''Adds a quality metric'''
+        """
+        Adds the given `quality metric` to the `Problem`; a `quality metric` defines extra requirements that a :class:`~unified_planning.plans.Plan`
+        must satisfy in order to be valid.
+        :param metric: The `quality metric` that a `Plan` of this `Problem` must satisfy in order to be valid.
+        """
+        self._metrics.append(metric)
         self._metrics.append(metric)
 
     @property
