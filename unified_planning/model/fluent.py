@@ -21,7 +21,7 @@ that defines the types of its parameters.
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
 from unified_planning.model.types import domain_size, domain_item
-from typing import List, OrderedDict, Optional, Union
+from typing import List, OrderedDict, Optional, Union, Iterator
 
 
 class Fluent:
@@ -258,11 +258,10 @@ def get_ith_fluent_exp(
 def get_all_fluent_exp(
     objects_set: "up.model.mixins.ObjectsSetMixin",
     fluent: "up.model.fluent.Fluent",
-) -> List["up.model.fnode.FNode"]:
+) -> Iterator["up.model.fnode.FNode"]:
     if fluent.arity == 0:
-        return [fluent.environment.expression_manager.FluentExp(fluent)]
+        yield fluent.environment.expression_manager.FluentExp(fluent)
     else:
-        res = []
         ground_size = 1
         domain_sizes = []
         for p in fluent.signature:
@@ -270,5 +269,4 @@ def get_all_fluent_exp(
             domain_sizes.append(ds)
             ground_size *= ds
         for i in range(ground_size):
-            res.append(get_ith_fluent_exp(objects_set, fluent, domain_sizes, i))
-        return res
+            yield get_ith_fluent_exp(objects_set, fluent, domain_sizes, i)
