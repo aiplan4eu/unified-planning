@@ -43,6 +43,12 @@ class Agent(
         self._env = ma_problem.env
         self._name: str = name
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Don't pickle _add_user_type_method
+        del state["_add_user_type_method"]
+        return state
+
     def has_name(self, name: str) -> bool:
         """Returns true if the name is in the problem."""
         return self.has_action(name) or self.has_fluent(name)

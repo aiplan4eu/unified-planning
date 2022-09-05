@@ -61,6 +61,11 @@ class MultiAgentProblem(
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
 
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        for a in self._agents:
+            a._add_user_type_method = self._add_user_type
+
     def __repr__(self) -> str:
         s = []
         if not self.name is None:
