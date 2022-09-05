@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.engine import Engine
@@ -21,6 +20,7 @@ from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
 from unified_planning.model.walkers import StateEvaluator
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
 
 class InstantaneousEvent(Event):
@@ -55,6 +55,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
     """
 
     def __init__(self, problem: "up.model.Problem"):
+        Engine.__init__(self)
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
         assert Grounder.supports(pk)
@@ -75,6 +76,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         for grounded_action in grounded_problem.actions:
             if isinstance(grounded_action, up.model.InstantaneousAction):
                 lifted_ai = lift_map(ActionInstance(grounded_action))
+                assert lifted_ai is not None
                 event_list = self._events.setdefault(
                     (lifted_ai.action, lifted_ai.actual_parameters), []
                 )
@@ -94,10 +96,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
     ) -> List["up.model.FNode"]:
         """
         Returns the list of unsatisfied event conditions evaluated in the given state.
-        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied condition.
-        :param state: The State in which the event conditions are evaluated.
+        If the flag `early_termination` is set, the method ends and returns at the first unsatisfied condition.
+
+        :param state: The `State` in which the event conditions are evaluated.
         :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
-        :return: The list of all the event conditions that evaluated to False or the list containing the first condition evaluated to False if the flag "early_termination" is set.
+        :return: The list of all the event conditions that evaluated to `False` or the list containing the first
+            condition evaluated to False if the flag `early_termination` is set.
         """
         # Evaluate every condition and if the condition is False or the condition is not simplified as a
         # boolean constant in the given state, return False. Return True otherwise
@@ -117,13 +121,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
         self, event: "Event", state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
         """
-        Returns None if the event is not applicable in the given state, otherwise returns a new COWState,
+        Returns `None` if the event is not applicable in the given state, otherwise returns a new COWState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
+
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions to check and the effects to apply.
         :return: None if the event is not applicable in the given state, a new COWState with some updated values
-         if the event is applicable.
+            if the event is applicable.
         """
         if not self.is_applicable(event, state):
             return None
@@ -137,6 +142,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
+
         :param state: the state where the event formulas are evaluated.
         :param event: the event that has the information about the effects to apply.
         :return: A new COWState with some updated values.
@@ -197,7 +203,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
         Returns a view over all the events that are applicable in the given State;
         an Event is considered applicable in a given State, when all the Event condition
         simplify as True when evaluated in the State.
-        :param state: the state where the formulas are evaluated.
+
+        :param state: The state where the formulas are evaluated.
         :return: an Iterator of applicable Events.
         """
         for events in self._events.values():
@@ -214,8 +221,9 @@ class SequentialSimulator(Engine, SimulatorMixin):
     ) -> List["Event"]:
         """
         Returns a list containing all the events derived from the given action, grounded with the given parameters.
-        :param action: the action containing the information to create the event.
-        :param parameters: the parameters needed to ground the action
+
+        :param action: The action containing the information to create the event.
+        :param parameters: The parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         """
         if action not in cast(up.model.Problem, self._problem).actions:
@@ -233,6 +241,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         """
         Returns the list of unsatisfied goals evaluated in the given state.
         If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+
         :param state: The State in which the problem goals are evaluated.
         :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
         :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
@@ -258,6 +267,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")

@@ -17,9 +17,9 @@ from functools import partial
 from typing import Tuple, Union, Optional
 import fractions
 from typing import OrderedDict
-from unified_planning.exceptions import UPException
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
+from unified_planning.exceptions import UPException
 from unified_planning import Environment
 from unified_planning import model
 from unified_planning.model import metrics
@@ -93,6 +93,11 @@ def op_to_node_type(op: str) -> OperatorKind:
 
 
 class ProtobufReader(Converter):
+    """
+    ProtobufReader: This class uses the convert method to take the protobuf representation of a
+    unified_planning Problem and return the equivalent unified_planning Problem instance.
+    """
+
     @handles(proto.Parameter)
     def _convert_parameter(
         self, msg: proto.Parameter, problem: Problem

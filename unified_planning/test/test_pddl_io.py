@@ -18,10 +18,13 @@ from typing import cast
 import pytest
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
+from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
+from unified_planning.model.problem_kind import full_numeric_kind
 from unified_planning.model.types import _UserType
+from unified_planning.engines import PlanGenerationResultStatus
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -532,6 +535,102 @@ class TestPddlIO(TestCase):
 """
         self.assertEqual(pddl_domain, expected_domain)
         self.assertEqual(pddl_problem, expected_problem)
+
+    def test_miconic_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 15)
+        self.assertEqual(len(problem.actions), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("passenger")))), 2)
+        self.assertEqual(len(list(problem.objects(problem.user_type("floor")))), 4)
+
+    def test_citycar_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 10)
+        self.assertEqual(len(problem.actions), 7)
+        self.assertEqual(len(list(problem.objects(problem.user_type("junction")))), 9)
+        self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
+        self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
+
+    def test_robot_fastener_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "robot_fastener", "domain.pddl"
+        )
+        problem_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "robot_fastener", "problem.pddl"
+        )
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 5)
+        self.assertEqual(len(problem.actions), 1)
+        self.assertEqual(len(list(problem.objects(problem.user_type("robot")))), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("fastener")))), 3)
+
+    def test_safe_road_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 1)
+        self.assertEqual(len(problem.actions), 2)
+        natural_disaster = problem.action("natural_disaster")
+        # 9 effects because the forall is expanded in 3 * 3 possible locations instantiations
+        self.assertEqual(len(natural_disaster.effects), 9)
+        self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
+
+    @skipIfNoOneshotPlannerForProblemKind(full_numeric_kind)
+    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
+        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+    )
+    def test_reading_domain_only(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
+        domain = reader.parse_problem(domain_filename)
+        counter_type = domain.user_type("counter")
+        domain.set_initial_value(domain.fluent("max_int"), 10)
+        value_fluent = domain.fluent("value")
+        expected_plan_length = 0
+        for i in range(5):
+            expected_plan_length += i
+            problem = (
+                domain.clone()
+            )  # Clone the parsed domain, then populate it and solve
+            for j in range(i + 1):
+                object_j = Object(f"c{str(j)}", counter_type)
+                problem.add_object(object_j)
+                problem.set_initial_value(value_fluent(object_j), 0)
+                if j > 0:
+                    previous_object = problem.object(f"c{str(j-1)}")
+                    problem.add_goal(
+                        LE(
+                            Plus(value_fluent(previous_object), 1),
+                            value_fluent(object_j),
+                        )
+                    )
+            with OneshotPlanner(
+                problem_kind=problem.kind, optimality_guarantee="SOLVED_OPTIMALLY"
+            ) as planner:
+                plan = planner.solve(problem).plan
+                self.assertEqual(len(plan.actions), expected_plan_length)
 
 
 def _have_same_user_types_considering_renamings(

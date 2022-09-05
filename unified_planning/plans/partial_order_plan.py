@@ -35,7 +35,8 @@ class PartialOrderPlan(plans.plan.Plan):
         environment: Optional["Environment"] = None,
         _graph: Optional[nx.DiGraph] = None,
     ):
-        """Constructs the PartialOrderPlan using the adjacency list representation.
+        """
+        Constructs the PartialOrderPlan using the adjacency list representation.
 
         :param adjacency_list: The Dictionary representing the adjacency list for this PartialOrderPlan.
         :param env: The environment in which the ActionInstances in the adjacency_list are created.
@@ -117,17 +118,30 @@ class PartialOrderPlan(plans.plan.Plan):
     def replace_action_instances(
         self,
         replace_function: Callable[
-            ["plans.plan.ActionInstance"], "plans.plan.ActionInstance"
+            ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
     ) -> "plans.plan.Plan":
+        """
+        Returns a new `PartialOrderPlan` where every `ActionInstance` of the current plan is replaced using the given `replace_function`.
+
+        :param replace_function: The function that applied to an `ActionInstance A` returns the `ActionInstance B`; `B`
+            replaces `A` in the resulting `Plan`.
+        :return: The `PartialOrderPlan` where every `ActionInstance` is replaced using the given `replace_function`.
+        """
         new_adj_list: Dict[
             "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
         ] = {}
         # Populate the new adjacency list with the replaced action instances
         for node in self._graph.nodes:
-            new_adj_list[replace_function(node)] = [
-                replace_function(successor) for successor in self._graph.neighbors(node)
-            ]
+            key = replace_function(node)
+            if key is not None:
+                replaced_neighbors = []
+                for successor in self._graph.neighbors(node):
+                    replaced_successor = replace_function(successor)
+                    if replaced_successor is not None:
+                        replaced_neighbors.append(replaced_successor)
+                if len(replaced_neighbors) > 0:
+                    new_adj_list[key] = replaced_neighbors
         new_env = self._environment
         for ai in new_adj_list.keys():
             new_env = ai.action.env
@@ -135,17 +149,23 @@ class PartialOrderPlan(plans.plan.Plan):
         return PartialOrderPlan(new_adj_list, new_env)
 
     def to_sequential_plan(self) -> SequentialPlan:
-        """Returns one between all possible SequentialPlans that respects the ordering constaints given by this PartialOrderPlan."""
+        """Returns one between all possible `SequentialPlans` that respects the ordering constraints given by this `PartialOrderPlan`."""
         return SequentialPlan(list(nx.topological_sort(self._graph)), self._environment)
 
     def all_sequential_plans(self) -> Iterator[SequentialPlan]:
-        """Returns all possible SequentialPlans that respects the ordering constaints given by this PartialOrderPlan."""
+        """Returns all possible `SequentialPlans` that respects the ordering constraints given by this `PartialOrderPlan`."""
         for sorted_plan in nx.all_topological_sorts(self._graph):
             yield SequentialPlan(list(sorted_plan), self._environment)
 
     def get_neighbors(
         self, action_instance: ActionInstance
     ) -> Iterator[ActionInstance]:
+        """
+        Returns an `Iterator` over all the neighbors of the given `ActionInstance`.
+
+        :param action_instance: The `ActionInstance` of which neighbors must be retrieved.
+        :return: The `Iterator` over all the neighbors of the given `action_instance`.
+        """
         try:
             retval = self._graph.neighbors(action_instance)
         except nx.NetworkXError:

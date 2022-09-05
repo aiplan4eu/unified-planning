@@ -20,16 +20,36 @@ import unified_planning as up
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
-    'PROBLEM_CLASS' : ['ACTION_BASED', 'HIERARCHICAL'],
-    'TIME' : ['CONTINUOUS_TIME', 'DISCRETE_TIME', 'INTERMEDIATE_CONDITIONS_AND_EFFECTS', 'TIMED_EFFECT', 'TIMED_GOALS', 'DURATION_INEQUALITIES'],
-    'NUMBERS' : ['CONTINUOUS_NUMBERS', 'DISCRETE_NUMBERS'],
-    'CONDITIONS_KIND' : ['NEGATIVE_CONDITIONS', 'DISJUNCTIVE_CONDITIONS', 'EQUALITY', 'EXISTENTIAL_CONDITIONS', 'UNIVERSAL_CONDITIONS'],
-    'EFFECTS_KIND' : ['CONDITIONAL_EFFECTS', 'INCREASE_EFFECTS', 'DECREASE_EFFECTS'],
-    'TYPING' : ['FLAT_TYPING', 'HIERARCHICAL_TYPING'],
-    'FLUENTS_TYPE' : ['NUMERIC_FLUENTS', 'OBJECT_FLUENTS'],
-    'QUALITY_METRICS' : ['ACTIONS_COST', 'FINAL_VALUE', 'MAKESPAN', 'PLAN_LENGTH'],
-    'SIMULATED_ENTITIES' : ['SIMULATED_EFFECTS'],
-    'CONSTRAINTS_KIND' : ['TRAJECTORY_CONSTRAINTS']
+    "PROBLEM_CLASS": ["ACTION_BASED", "HIERARCHICAL"],
+    "PROBLEM_TYPE": ["SIMPLE_NUMERIC_PLANNING", "GENERAL_NUMERIC_PLANNING"],
+    "TIME": [
+        "CONTINUOUS_TIME",
+        "DISCRETE_TIME",
+        "INTERMEDIATE_CONDITIONS_AND_EFFECTS",
+        "TIMED_EFFECT",
+        "TIMED_GOALS",
+        "DURATION_INEQUALITIES",
+    ],
+    "EXPRESSION_DURATION": ["STATIC_FLUENTS_IN_DURATION", "FLUENTS_IN_DURATION"],
+    "NUMBERS": ["CONTINUOUS_NUMBERS", "DISCRETE_NUMBERS"],
+    "CONDITIONS_KIND": [
+        "NEGATIVE_CONDITIONS",
+        "DISJUNCTIVE_CONDITIONS",
+        "EQUALITY",
+        "EXISTENTIAL_CONDITIONS",
+        "UNIVERSAL_CONDITIONS",
+    ],
+    "EFFECTS_KIND": ["CONDITIONAL_EFFECTS", "INCREASE_EFFECTS", "DECREASE_EFFECTS"],
+    "TYPING": ["FLAT_TYPING", "HIERARCHICAL_TYPING"],
+    "FLUENTS_TYPE": ["NUMERIC_FLUENTS", "OBJECT_FLUENTS"],
+    "QUALITY_METRICS": [
+        "ACTIONS_COST",
+        "FINAL_VALUE",
+        "MAKESPAN",
+        "PLAN_LENGTH",
+        "OVERSUBSCRIPTION",
+    ],
+    "SIMULATED_ENTITIES": ["SIMULATED_EFFECTS"],
 }
 
 
@@ -41,12 +61,19 @@ class ProblemKindMeta(type):
             assert feature in possible_features
             self._features.add(feature)
 
+        def _unset(self, feature, possible_features):
+            assert feature in possible_features
+            self._features.discard(feature)
+
         def _has(self, feature):
             return feature in self._features
 
         obj = type.__new__(cls, name, bases, dct)
         for m, l in FEATURES.items():
             setattr(obj, "set_" + m.lower(), partialmethod(_set, possible_features=l))
+            setattr(
+                obj, "unset_" + m.lower(), partialmethod(_unset, possible_features=l)
+            )
             for f in l:
                 setattr(obj, "has_" + f.lower(), partialmethod(_has, feature=f))
         return obj
@@ -54,6 +81,14 @@ class ProblemKindMeta(type):
 
 @total_ordering
 class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
+    """
+    This class represents the main interesting feature that a :class:`planning Problem <unified_planning.model.AbstractProblem>` can have in order to understand
+    if an :class:`~unified_planning.engines.Engine` is capable of solving the `Problem` or not; some features might also help the `Engine`, allowing
+    some assumptions to be made.
+
+    The `ProblemKind` of a `Problem` is calculated by it's :func:`kind <unified_planning.model.Problem.kind>` property.
+    """
+
     def __init__(self, features: Set[str] = set()):
         self._features: Set[str] = set(features)
 
@@ -93,12 +128,27 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
 
     @property
     def features(self) -> Set[str]:
+        """Returns the features contained by this `ProblemKind`."""
         return self._features
 
     def union(self, oth: "ProblemKind") -> "ProblemKind":
+        """
+        Returns a new `ProblemKind` that is the union of this `ProblemKind` and
+        the `ProblemKind` given as parameter.
+
+        :param oth: the `ProblemKind` that must be united to this `ProblemKind`.
+        :return: a new `ProblemKind` that is the union of this `ProblemKind` and `oth`
+        """
         return ProblemKind(self.features.union(oth.features))
 
     def intersection(self, oth: "ProblemKind") -> "ProblemKind":
+        """
+        Returns a new `ProblemKind` that is the intersection of this `ProblemKind` and
+        the `ProblemKind` given as parameter.
+
+        :param oth: the `ProblemKind` that must be intersected with this `ProblemKind`.
+        :return: a new `ProblemKind` that is the intersection between this `ProblemKind` and `oth`
+        """
         return ProblemKind(self.features.intersection(oth.features))
 
 

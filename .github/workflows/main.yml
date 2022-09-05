@@ -3,8 +3,8 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "39524cecbe154d288e786bdafaa1403159972ba4"
-  up_pyperplan_commit: "4dc20452a3f937bf6d547def5d2a579eda034f57"
+  up_tamer_commit: "5b6013aa3d56a8731147a442a831a81f73727d4d"
+  up_pyperplan_commit: "b4fb924320af9f1870db51d20a925aa913255527"
 
 jobs:
   basic-check:
@@ -169,7 +169,7 @@ jobs:
       - name: Install tarski
         run: |
           python3 -m pip install tarski[arithmetic]
-          brew install gringo
+#          brew install gringo -- Commented because not working on github actions
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2

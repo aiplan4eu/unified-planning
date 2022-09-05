@@ -37,13 +37,21 @@ class Parallel(
     engines.mixins.OneshotPlannerMixin,
     engines.mixins.PlanValidatorMixin,
 ):
-    """Create a parallel instance of multiple Engines."""
+    """
+    Create a parallel instance of multiple :class:`Engines <unified_planning.engines.Engine>`.
+
+    The `Engines` run the same command in parallel and the first definitive :class:`Result <unified_planning.engines.Result>` returned
+    by the `Engine` is returned to the user.
+    """
 
     def __init__(
         self,
         factory: "up.engines.factory.Factory",
         engines: List[Tuple[str, Dict[str, str]]],
     ):
+        up.engines.engine.Engine.__init__(self)
+        # Since the parallel is always called by name, the errors become warnings by default
+        self.error_on_failed_checks = False
         self.engines = engines
         self._factory = factory
 
@@ -52,8 +60,17 @@ class Parallel(
         return "Parallel"
 
     @staticmethod
+    def supported_kind() -> ProblemKind:
+        raise UPUsageError("The Parallel supported kind depends on its actual engines")
+
+    @staticmethod
     def supports(problem_kind: "ProblemKind") -> bool:
         # The supported features depends on its actual engines
+        return True
+
+    @staticmethod
+    def supports_plan(plan_kind: "up.plans.PlanKind") -> bool:
+        # The supported plan depends on its actual engines
         return True
 
     def _run_parallel(self, fname, *args) -> List[Result]:
@@ -69,6 +86,8 @@ class Parallel(
                     self._factory,
                     engine_name,
                     options,
+                    self.skip_checks,
+                    self.error_on_failed_checks,
                     signaling_queue,
                     fname,
                     *args,
@@ -112,10 +131,6 @@ class Parallel(
         for engine_name, _ in self.engines:
             engine = self._factory.engine(engine_name)
             assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
-            if not engine.supports(problem.kind):
-                raise UPUsageError(
-                    "Parallel engines cannot solve this kind of problem!"
-                )
         if callback is not None:
             warnings.warn(
                 "Parallel engines do not support the callback system.", UserWarning
@@ -190,12 +205,16 @@ def _run(
     factory: "up.engines.factory.Factory",
     engine_name: str,
     options: Dict[str, str],
+    skip_checks: bool,
+    error_on_failed_checks: bool,
     signaling_queue: Queue,
     fname: str,
     *args,
 ):
     EngineClass = factory.engine(engine_name)
     with EngineClass(**options) as s:
+        s.skip_checks = skip_checks
+        s.error_on_failed_checks = error_on_failed_checks
         try:
             local_res = getattr(s, fname)(*args)
         except Exception as ex:

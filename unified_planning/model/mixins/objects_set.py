@@ -21,10 +21,10 @@ from typing import Iterator, List, Union, Optional, cast
 
 class ObjectsSetMixin:
     """
-    This class is a mixin that contains a set of objects with some related methods.
+    This class is a mixin that contains a `set` of `objects` with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
-    of the attributes (e.g. env, add_user_type_method, has_name_method), it is required
+    of the attributes (e.g. `env`, `add_user_type_method`, `has_name_method`), it is required
     to pass the very same arguments to the mixins constructors.
     """
 
@@ -36,7 +36,7 @@ class ObjectsSetMixin:
 
     @property
     def env(self) -> "up.environment.Environment":
-        """Returns the problem environment."""
+        """Returns the `problem` `environment`."""
         return self._env
 
     def add_object(
@@ -44,12 +44,12 @@ class ObjectsSetMixin:
         obj_or_name: Union["up.model.object.Object", str],
         typename: Optional["up.model.types.Type"] = None,
     ) -> "up.model.object.Object":
-        """Add the given object to the problem, constructing it from the parameters if needed.
+        """Add the given `object` to the `problem`, constructing it from the `parameters` if needed.
 
-        :param obj_or_name: Either an Object instance or a string containing the name of the object.
-        :param typename: If the first argument contains only the name of the object, this parameter should contain
-                         its type, to allow creating the object.
-        :return: The Object that was passed or constructed.
+        :param obj_or_name: Either an `Object` instance or a `string` containing the `name` of the `object`.
+        :param typename: If the first argument contains only the `name` of the `object`, this parameter should contain
+                         its `type`, to allow creating the `object`.
+        :return: The `Object` that was passed or constructed.
 
         Examples
         --------
@@ -77,20 +77,35 @@ class ObjectsSetMixin:
             self._add_user_type_method(obj.type)
         return obj
 
-    def add_objects(self, objs: List["up.model.object.Object"]):
-        """Adds the given objects."""
-        for obj in objs:
+    def add_objects(self, objects: List["up.model.object.Object"]):
+        """
+        Adds the given `objects` to the `problem`.
+
+        :param objects: The `list` of `objects` that must be added to the `problem`.
+        """
+        for obj in objects:
             self.add_object(obj)
 
     def object(self, name: str) -> "up.model.object.Object":
-        """Returns the object with the given name."""
+        """
+        Returns the `object` with the given `name`.
+
+        :param name: The `name` of the target `object` in the `problem`.
+        """
         for o in self._objects:
             if o.name == name:
                 return o
         raise UPValueError(f"Object of name: {name} is not defined!")
 
     def has_object(self, name: str) -> bool:
-        """Returns true if the object with the given name is in the problem."""
+        """
+        Returns `True` if the `object` with the given `name` is in the `problem`,
+        `False` otherwise.
+
+        :param name: The `name` of the target `object` in the `problem`.
+        :return: `True` if an `object` with the given `name` is in the `problem`,
+                `False` otherwise.
+        """
         for o in self._objects:
             if o.name == name:
                 return True
@@ -99,12 +114,19 @@ class ObjectsSetMixin:
     def objects(
         self, typename: "up.model.types.Type"
     ) -> Iterator["up.model.object.Object"]:
-        """Returns the objects of the given user type and of its heirs."""
+        """
+        Returns the `objects` compatible with the given `Type`: this includes the given
+        `type` and its heirs.
+
+        :param typename: The target `type` of the `objects` that are retrieved.
+        :return: A generator of all the `objects` in the `problem` that are compatible with the
+            given `type`.
+        """
         for obj in self._objects:
             if cast(_UserType, obj.type).is_subtype(typename):
                 yield obj
 
     @property
     def all_objects(self) -> List["up.model.object.Object"]:
-        """Returns all the objects."""
+        """Returns the `list` containing all the `objects` in the `problem`."""
         return self._objects

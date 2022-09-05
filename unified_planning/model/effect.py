@@ -13,9 +13,9 @@
 # limitations under the License.
 #
 """
-This module defines the Effect class.
-A basic Effect has a fluent and an expression.
-A condition can be added to make it a conditional effect.
+This module defines the `Effect` class.
+A basic `Effect` has a `fluent` and an `expression`.
+A `condition` can be added to make it a `conditional effect`.
 """
 
 
@@ -25,12 +25,27 @@ from typing import List, Callable, Dict
 
 
 class EffectKind(Enum):
+    """
+    The `Enum` representing the possible `Effects` in the `unified_planning`.
+
+    The semantic is the following of an `effect` with fluent `F`, value `V` and condition `C`:
+    `ASSIGN`   => `if C then F <= V`
+    `INCREASE` => `if C then F <= F + V`
+    `DECREASE` => `if C then F <= F - V`
+    """
+
     ASSIGN = auto()
     INCREASE = auto()
     DECREASE = auto()
 
 
 class Effect:
+    """
+    This class represent an effect. It has a :class:`~unified_planning.model.Fluent`, modified by this effect, a value
+    that determines how the `Fluent` is modified, a `condition` that determines if the `Effect`
+    is actually applied or not and an `EffectKind` that determines the semantic of the `Effect`.
+    """
+
     def __init__(
         self,
         fluent: "up.model.fnode.FNode",
@@ -85,60 +100,72 @@ class Effect:
         return new_effect
 
     def is_conditional(self) -> bool:
-        """Returns True if the Effect condition is not True."""
+        """
+        Returns `True` if the `Effect` condition is not `True`; this means that the `Effect` might
+        not always be applied but depends on the runtime evaluation of it's :func:`condition <unified_planning.model.Effect.condition>`.
+        """
         return not self._condition.is_true()
 
     @property
     def fluent(self) -> "up.model.fnode.FNode":
-        """Returns the Fluent that is modified by this effect."""
+        """Returns the `Fluent` that is modified by this `Effect`."""
         return self._fluent
 
     @property
     def value(self) -> "up.model.fnode.FNode":
-        """Returns the value given to the Fluent by this Effect."""
+        """Returns the `value` given to the `Fluent` by this `Effect`."""
         return self._value
 
     def set_value(self, new_value: "up.model.fnode.FNode"):
-        """Sets the value given to the Fluent by this Effect."""
+        """
+        Sets the `value` given to the `Fluent` by this `Effect`.
+
+        :param new_value: The `value` that will be set as this `effect's value`.
+        """
         self._value = new_value
 
     @property
     def condition(self) -> "up.model.fnode.FNode":
-        """Returns the condition required for this Effect to be applied."""
+        """Returns the `condition` required for this `Effect` to be applied."""
         return self._condition
 
     def set_condition(self, new_condition: "up.model.fnode.FNode"):
-        """Sets the condition required for this Effect to be applied."""
+        """
+        Sets the `condition` required for this `Effect` to be applied.
+
+        :param new_condition: The expression set as this `effect's condition`.
+        """
         self._condition = new_condition
 
     @property
     def kind(self) -> EffectKind:
-        """Returns the kind of this Effect."""
+        """Returns the `kind` of this `Effect`."""
         return self._kind
 
     @property
     def environment(self) -> "up.environment.Environment":
+        """Returns this `Effect's Environment`."""
         return self._fluent.environment
 
     def is_assignment(self) -> bool:
-        """Returns True if the kind of this Effect is an assignment."""
+        """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is an `assignment`, `False` otherwise."""
         return self._kind == EffectKind.ASSIGN
 
     def is_increase(self) -> bool:
-        """Returns True if the kind of this Effect is an increase."""
+        """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is an `increase`, `False` otherwise."""
         return self._kind == EffectKind.INCREASE
 
     def is_decrease(self) -> bool:
-        """Returns True if the kind of this Effect is a decrease."""
+        """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `decrease`, `False` otherwise."""
         return self._kind == EffectKind.DECREASE
 
 
 class SimulatedEffect:
     """
-    This class represents a simulated effect over a list of fluent expressions.
-    The fluents parameters must be constants or action parameters.
-    The callable function must return the result of the simulated effects applied
-    in the given state for the specified fluent expressions.
+    This class represents a `simulated effect` over a list of :class:`~unified_planning.model.Fluent` expressions.
+    The `fluent's parameters` must be constants or :class:`~unified_planning.model.Action` `parameters`.
+    The callable function must return the result of the `simulated effects` applied
+    in the given :class:`~unified_planning.model.ROState` for the specified `fluent` expressions.
     """
 
     def __init__(
@@ -183,6 +210,7 @@ class SimulatedEffect:
 
     @property
     def fluents(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `list` of `Fluents Expressions` modified by this `SimulatedEffect`."""
         return self._fluents
 
     @property
@@ -196,4 +224,8 @@ class SimulatedEffect:
         ],
         List["up.model.fnode.FNode"],
     ]:
+        """
+        Return the function that contains the information on how the `fluents` of this `SimulatedEffect`
+        are modified when this `simulated effect` is applied.
+        """
         return self._function

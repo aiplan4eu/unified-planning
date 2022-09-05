@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the different remover classes."""
+"""This module defines different utility functions for the compilers."""
 
 
 import unified_planning as up
-from unified_planning.exceptions import UPConflictingEffectsException
+from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
 from unified_planning.model import (
     FNode,
     TimeInterval,
@@ -253,8 +253,16 @@ def lift_action_instance(
 
 
 def replace_action(
-    action_instance: ActionInstance, map: Dict["up.model.Action", "up.model.Action"]
-) -> ActionInstance:
-    return ActionInstance(
-        map[action_instance.action], action_instance.actual_parameters
-    )
+    action_instance: ActionInstance,
+    map: Dict["up.model.Action", Optional["up.model.Action"]],
+) -> Optional[ActionInstance]:
+    try:
+        replaced_action = map[action_instance.action]
+    except KeyError:
+        raise UPUsageError(
+            "The Action of the given ActionInstance does not have a valid replacement."
+        )
+    if replaced_action is not None:
+        return ActionInstance(replaced_action, action_instance.actual_parameters)
+    else:
+        return None

@@ -18,7 +18,7 @@ from itertools import product
 from typing import List
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
-from unified_planning import model, plans, engines
+from unified_planning import model
 import unified_planning.model.htn
 import unified_planning.model.walkers as walkers
 from unified_planning.model.types import domain_size, domain_item
@@ -238,6 +238,11 @@ def map_feature(feature: str) -> proto.Feature:
 
 
 class ProtobufWriter(Converter):
+    """
+    ProtoWriter: This class uses the convert method to take a unified_planning Problem instance
+    and return the equivalent protobuf representation.
+    """
+
     def __init__(self):
         super().__init__()
         self._fnode2proto = FNode2Protobuf(self)

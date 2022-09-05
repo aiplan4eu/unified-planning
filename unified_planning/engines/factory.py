@@ -27,6 +27,8 @@ from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
+from unified_planning.engines.mixins.replanner import ReplannerMixin
+from unified_planning.engines.mixins.simulator import SimulatorMixin
 from typing import IO, Dict, Tuple, Optional, List, Union, Type, cast
 from pathlib import PurePath
 
@@ -73,6 +75,10 @@ DEFAULT_META_ENGINES = {
     "oversubscription": (
         "unified_planning.engines.oversubscription_planner",
         "OversubscriptionPlanner",
+    ),
+    "replanner": (
+        "unified_planning.engines.replanner",
+        "Replanner",
     ),
 }
 
@@ -125,6 +131,11 @@ def get_possible_config_locations() -> List[str]:
 
 
 class Factory:
+    """
+    Class that manages all the different :class:`Engines <unified_planning.engines.Engine>` classes
+    and handles the operation modes available in the library.
+    """
+
     def __init__(self, env: "Environment"):
         self._env = env
         self._engines: Dict[str, Type["up.engines.engine.Engine"]] = {}
@@ -185,27 +196,45 @@ class Factory:
 
     @property
     def engines(self) -> List[str]:
+        """Returns the list of the available :class:`Engines <unified_planning.engines.Engine>` names."""
         return list(self._engines.keys())
 
     def engine(self, name: str) -> Type["up.engines.engine.Engine"]:
+        """
+        Returns a specific `Engine` class.
+
+        :param name: The name of the `engine` in the factory.
+        :return: The `engine` Class.
+        """
         return self._engines[name]
 
     @property
     def preference_list(self) -> List[str]:
+        """Returns the current list of preferences."""
         return self._preference_list
 
     @preference_list.setter
     def preference_list(self, preference_list: List[str]):
-        """Defines the order in which to pick the engines.
-        The list is not required to contain all the engines. It is
-        possible to define a subsets of the engines, or even just
-        one. The impact of this, is that the engine will never be
-        selected automatically. Note, however, that the engine can
-        still be selected by calling it by name.
+        """
+        Defines the order in which to pick the :class:`Engines <unified_planning.engines.Engine>`.
+        The list is not required to contain all the `Engines`. It is
+        possible to define a subsets of the `Engines`, or even just
+        one.
+
+        The impact of not including an `Engine`, is that it will never be
+        selected automatically. Note, however, that it can
+        still be selected by using it's name in the Operation modes.
         """
         self._preference_list = preference_list
 
     def add_engine(self, name: str, module_name: str, class_name: str):
+        """
+        Adds an :class:`Engine <unified_planning.engines.Engine>` Class to the factory, given the module and the class names.
+
+        :param name: The `name` of the added `engine Class` in the factory.
+        :param module_name: The `name` of the module in which the `engine Class` is defined.
+        :param class_name: The `name` of the `engine Class`.
+        """
         self._add_engine(name, module_name, class_name)
         self._preference_list.append(name)
         engine = self._engines[name]
@@ -216,6 +245,13 @@ class Factory:
                 self._preference_list.append(n)
 
     def add_meta_engine(self, name: str, module_name: str, class_name: str):
+        """
+        Adds a :class:`MetaEngine <unified_planning.engines.MetaEngine>` Class to the `Factory`, given the module and the class names.
+
+        :param name: The `name` of the added `meta engine Class` in the factory.
+        :param module_name: The `name` of the module in which the `meta engine Class` is defined.
+        :param class_name: The name of the `meta engine Class`.
+        """
         for engine_name, engine in self._engines.items():
             self._add_meta_engine(name, module_name, class_name, engine_name, engine)
             n = f"{name}[{engine_name}]"
@@ -240,6 +276,8 @@ class Factory:
         If not given, the configuration is read from the first `up.ini` or `.up.ini` file
         located in any of the parent directories from which this code was called  or,
         otherwise, from one of the following files: `~/up.ini`, `~/.up.ini`, `~/.uprc`.
+
+        :param config_filename: The path of the file containing the wanted configuration.
         """
         config = configparser.ConfigParser()
         if config_filename is None:
@@ -338,66 +376,54 @@ class Factory:
         for name in self._preference_list:
             EngineClass = self._engines[name]
             if getattr(EngineClass, "is_" + engine_kind)():
-                assert optimality_guarantee is None or issubclass(
-                    EngineClass, OneshotPlannerMixin
-                )
-                assert compilation_kind is None or issubclass(
-                    EngineClass, CompilerMixin
-                )
-                assert plan_kind is None or issubclass(EngineClass, PlanValidatorMixin)
-                if (
-                    EngineClass.supports(problem_kind)
-                    and (
-                        optimality_guarantee is None
-                        or cast(OneshotPlannerMixin, EngineClass).satisfies(
-                            optimality_guarantee
-                        )
+                if engine_kind == "oneshot_planner" or engine_kind == "replanner":
+                    assert issubclass(EngineClass, OneshotPlannerMixin) or issubclass(
+                        EngineClass, ReplannerMixin
                     )
-                    and (
-                        compilation_kind is None
-                        or cast(CompilerMixin, EngineClass).supports_compilation(
-                            compilation_kind
-                        )
-                    )
-                    and (
-                        plan_kind is None
-                        or cast(PlanValidatorMixin, EngineClass).supports_plan(
-                            plan_kind
-                        )
-                    )
-                ):
+                    assert compilation_kind is None
+                    assert plan_kind is None
+                    if optimality_guarantee is not None and not EngineClass.satisfies(
+                        optimality_guarantee
+                    ):
+                        continue
+                elif engine_kind == "plan_validator":
+                    assert issubclass(EngineClass, PlanValidatorMixin)
+                    assert optimality_guarantee is None
+                    assert compilation_kind is None
+                    if plan_kind is not None and not EngineClass.supports_plan(
+                        plan_kind
+                    ):
+                        continue
+                elif engine_kind == "compiler":
+                    assert issubclass(EngineClass, CompilerMixin)
+                    assert optimality_guarantee is None
+                    assert plan_kind is None
+                    if (
+                        compilation_kind is not None
+                        and not EngineClass.supports_compilation(compilation_kind)
+                    ):
+                        continue
+                else:
+                    assert optimality_guarantee is None
+                    assert compilation_kind is None
+                    assert plan_kind is None
+                if EngineClass.supports(problem_kind):
                     return EngineClass
-                elif (
-                    compilation_kind is None
-                    or cast(CompilerMixin, EngineClass).supports_compilation(
-                        compilation_kind
-                    )
-                ) and (
-                    plan_kind is None
-                    or cast(PlanValidatorMixin, EngineClass).supports_plan(plan_kind)
-                ):
+                else:
                     x = [name] + [
                         str(EngineClass.supports(ProblemKind({f})))
                         for f in problem_features
                     ]
-                    if optimality_guarantee is not None:
-                        x.append(
-                            str(
-                                cast(Type[OneshotPlannerMixin], EngineClass).satisfies(
-                                    optimality_guarantee
-                                )
-                            )
-                        )
                     planners_features.append(x)
         if len(planners_features) > 0:
             header = ["Engine"] + problem_features
-            if optimality_guarantee is not None:
-                header.append("OPTIMALITY_GUARANTEE")
             msg = f"No available engine supports all the problem features:\n{format_table(header, planners_features)}"
         elif compilation_kind is not None:
             msg = f"No available engine supports {compilation_kind}"
         elif plan_kind is not None:
             msg = f"No available engine supports {plan_kind}"
+        elif optimality_guarantee is not None:
+            msg = f"No available engine supports {optimality_guarantee}"
         else:
             msg = f"No available {engine_kind} engine"
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
@@ -460,10 +486,11 @@ class Factory:
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
+        compilation_kinds: Optional[List["CompilationKind"]] = None,
         plan_kind: Optional["PlanKind"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
     ) -> "up.engines.engine.Engine":
-        if names is not None:
+        if names is not None and engine_kind != "compiler":
             assert name is None
             assert problem is None, "Parallel simulation is not supported"
             if params is None:
@@ -478,7 +505,32 @@ class Factory:
             self._print_credits(all_credits)
             p_engine = up.engines.parallel.Parallel(self, engines)
             return p_engine
+        elif engine_kind == "compiler" and compilation_kinds is not None:
+            assert name is None
+            assert names is not None or problem_kind is not None
+            if names is None:
+                names = [None for i in range(len(compilation_kinds))]  # type: ignore
+            if params is None:
+                params = [{} for i in range(len(compilation_kinds))]
+            assert isinstance(params, List) and len(names) == len(params)
+            compilers: List["up.engines.engine.Engine"] = []
+            all_credits = []
+            for name, param, compilation_kind in zip(names, params, compilation_kinds):
+                EngineClass = self._get_engine_class(
+                    engine_kind, name, problem_kind, compilation_kind=compilation_kind
+                )
+                assert issubclass(EngineClass, CompilerMixin)
+                problem_kind = EngineClass.resulting_problem_kind(
+                    problem_kind, compilation_kind
+                )
+                all_credits.append(EngineClass.get_credits(**param))
+                compiler = EngineClass(**param)
+                compiler.default = compilation_kind
+                compilers.append(compiler)
+            self._print_credits(all_credits)
+            return up.engines.compilers.compilers_pipeline.CompilersPipeline(compilers)
         else:
+            assert names is None
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
@@ -492,16 +544,18 @@ class Factory:
             )
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
-            if problem is None:
-                assert engine_kind != "simulator"
-                return EngineClass(**params)
+            if engine_kind in ["simulator", "replanner"]:
+                assert problem is not None
+                res = EngineClass(problem=problem, **params)
+            elif engine_kind == "compiler":
+                res = EngineClass(**params)
+                assert isinstance(res, CompilerMixin)
+                res.default = compilation_kind
             else:
-                assert engine_kind == "simulator"
-                assert issubclass(EngineClass, up.engines.engine.Engine)
-                assert issubclass(
-                    EngineClass, up.engines.mixins.simulator.SimulatorMixin
-                )
-                return EngineClass(problem, **params)
+                res = EngineClass(**params)
+            if name is not None:
+                res.error_on_failed_checks = False
+            return res
 
     @property
     def environment(self) -> "Environment":
@@ -565,27 +619,53 @@ class Factory:
         self,
         *,
         name: Optional[str] = None,
-        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        names: Optional[List[str]] = None,
+        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         compilation_kind: Optional[Union["CompilationKind", str]] = None,
+        compilation_kinds: Optional[List[Union["CompilationKind", str]]] = None,
     ) -> "up.engines.engine.Engine":
         """
-        Returns a Compiler. There are two ways to call this method:
-        - using 'name' (the name of a specific grounder) and 'params'
-          (grounder dependent options).
+        Returns a Compiler or a pipeline of Compilers.
+
+        To get a Compiler there are two ways to call this method:
+        - using 'name' (the name of a specific compiler) and 'params'
+          (compiler dependent options).
           e.g. Compiler(name='tamer', params={'opt': 'val'})
         - using 'problem_kind' and 'compilation_kind' parameters.
-          e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDER)
+          e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)
+
+        To get a pipeline of Compilers there are two ways to call this method:
+        - using 'names' (the names of the specific compilers), 'params'
+          (compilers dependent options) and 'compilation_kinds'.
+          e.g. Compiler(names=['up_quantifiers_remover', 'up_grounder'],
+                        params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
+                        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
+        - using 'problem_kind' and 'compilation_kinds' parameters.
+          e.g. Compiler(problem_kind=problem.kind,
+                        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
         """
         if isinstance(compilation_kind, str):
             compilation_kind = CompilationKind[compilation_kind]
+
+        kinds: Optional[List[CompilationKind]] = None
+        if compilation_kinds is not None:
+            kinds = []
+            for kind in compilation_kinds:
+                if isinstance(kind, str):
+                    kinds.append(CompilationKind[kind])
+                else:
+                    assert isinstance(kind, CompilationKind)
+                    kinds.append(kind)
+
         return self._get_engine(
             "compiler",
             name,
-            None,
+            names,
             params,
             problem_kind,
             compilation_kind=compilation_kind,
+            compilation_kinds=kinds,
         )
 
     def Simulator(
@@ -605,6 +685,34 @@ class Factory:
         """
         return self._get_engine(
             "simulator", name, None, params, problem.kind, problem=problem
+        )
+
+    def Replanner(
+        self,
+        problem: "up.model.AbstractProblem",
+        *,
+        name: Optional[str] = None,
+        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a Replanner. There are two ways to call this method:
+        - using 'problem' (with its kind) and 'optimality_guarantee' parameters.
+          e.g. Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)
+        - using 'name' (the name of a specific replanner) and 'params'
+          (replanner dependent options).
+          e.g. Replanner(problem, name='replanner[tamer]')
+        """
+        if isinstance(optimality_guarantee, str):
+            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+        return self._get_engine(
+            "replanner",
+            name,
+            None,
+            params,
+            problem.kind,
+            optimality_guarantee,
+            problem=problem,
         )
 
     def print_engines_info(

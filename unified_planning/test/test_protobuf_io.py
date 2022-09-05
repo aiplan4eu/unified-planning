@@ -13,22 +13,27 @@
 # limitations under the License
 
 
-import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
-from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
-from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.engines import LogMessage, CompilationKind
 from unified_planning.engines.results import LogLevel
-from unified_planning.test import TestCase, skipIfEngineNotAvailable
+from unified_planning.test import (
+    TestCase,
+    skipIfEngineNotAvailable,
+    skipIfModuleNotInstalled,
+)
 from unified_planning.test.examples import get_example_problems
 from unified_planning.plans import ActionInstance
 
 
 class TestProtobufIO(TestCase):
+    @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
+        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
 
@@ -118,6 +123,8 @@ class TestProtobufIO(TestCase):
         self.assertEqual(obj, obj_up)
 
     def test_problem(self):
+        import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
+
         problem = self.problems["robot"].problem
 
         problem_pb = self.pb_writer.convert(problem)
@@ -271,9 +278,13 @@ class TestProtobufIO(TestCase):
 
 
 class TestProtobufProblems(TestCase):
+    @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
+        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
 

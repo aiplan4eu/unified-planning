@@ -521,6 +521,72 @@ class TestProblem(TestCase):
 
         self.assertEqual(2, len(problem.task_network.subtasks))
 
+    def test_simple_numeric_planning_kind(self):
+
+        problem = self.problems["robot"].problem
+        # False because the problem has an assignment instead of a decrease
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+        problem = self.problems["robot_decrease"].problem
+        # Fixes problem above
+        self.assertTrue(problem.kind.has_simple_numeric_planning())
+
+        problem = self.problems["travel"].problem
+        # False because the problem has a non-constant increase
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+        problem = self.problems["travel_with_consumptions"].problem
+        # False because the problem has a multiplication of 2 static fluents
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+        names_of_SNP_problems = [
+            "counter_to_50",
+            "robot_decrease",
+            "robot_locations_connected",
+            "robot_locations_visited",
+            "robot_with_durative_action",
+            "robot_fluent_of_user_type_with_int_id",
+        ]
+        for problem, _ in self.problems.values():
+            if problem.name in names_of_SNP_problems:
+                self.assertTrue(problem.kind.has_simple_numeric_planning())
+            else:
+                self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+    def test_simple_numeric_planning_ad_hoc_1(self):
+        problem = Problem("ad_hoc_1")
+        Location = UserType("Location")
+        is_at = Fluent("is_at", position=Location)
+        distance = Fluent("distance", IntType(), loc_1=Location, loc_2=Location)
+        total_distance = Fluent("total_distance", IntType())
+        move = InstantaneousAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+        move.add_precondition(is_at(l_from))
+        move.add_effect(is_at(l_from), False)
+        move.add_effect(is_at(l_to), True)
+        move.add_increase_effect(
+            total_distance, 2 * distance(l_from, l_to)
+        )  # Makes no sense, just for testing
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        problem.add_fluent(is_at, default_initial_value=False)
+        problem.add_fluent(distance, default_initial_value=100)
+        problem.add_fluent(total_distance, default_initial_value=0)
+        problem.set_initial_value(distance(l1, l2), 5)
+        problem.add_action(move)
+
+        # This problem is not SNP because of the increase of 2*distance(l_from, l_to)
+        # by grounding, this distance(l_from, l_to) becomes distance(l1, l2), so it can be seen as a constant.
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        with Compiler(
+            problem_kind=problem.kind, compilation_kind=CompilationKind.GROUNDING
+        ) as grounder:
+            grounded_problem = grounder.compile(
+                problem, CompilationKind.GROUNDING
+            ).problem
+            self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
+
 
 if __name__ == "__main__":
     main()

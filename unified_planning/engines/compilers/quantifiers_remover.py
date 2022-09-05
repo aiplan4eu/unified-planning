@@ -28,7 +28,7 @@ from unified_planning.model import (
 )
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from typing import Dict
+from typing import Dict, Optional
 from functools import partial
 
 
@@ -46,6 +46,10 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
     becomes:
         Or(is_green(s1), is_green(s2), is_green(s3))."""
 
+    def __init__(self):
+        engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.QUANTIFIERS_REMOVING)
+
     @property
     def name(self):
         return "qurm"
@@ -58,6 +62,8 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
@@ -85,11 +91,30 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.QUANTIFIERS_REMOVING
 
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
+    ) -> ProblemKind:
+        new_kind = ProblemKind(problem_kind.features)
+        new_kind.unset_conditions_kind("EXISTENTIAL_CONDITIONS")
+        new_kind.unset_conditions_kind("UNIVERSAL_CONDITIONS")
+        return new_kind
+
     def _compile(
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a up.model.Problem and the up.engines.CompilationKind.QUANTIFIERS_REMOVING
+        and returns a CompilerResult where the problem does not have universal or existential (Forall or Exists)
+        operands; The quantifiers are substituted with their grounded version by using the problem's objects.
+
+        :param problem: The instance of the up.model.Problem that must be returned without quantifiers.
+        :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
+        only QUANTIFIERS_REMOVING is supported by this compiler
+        :return: The resulting up.engines.results.CompilerResult data structure.
+        """
         assert isinstance(problem, Problem)
 
         env = problem.env

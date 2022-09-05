@@ -24,11 +24,13 @@ from itertools import product
 
 
 class Nnf:
-    """Class used to transform a logic expression into the equivalent
+    """
+    Class used to transform a logic expression into the equivalent
     Negation Normal Form expression.
 
     This is done first by removing all the Implications and Equalities,
-    then by pushing all the not to the leaves of the Tree representing the expression."""
+    then by pushing all the not to the leaves of the Tree representing the expression.
+    """
 
     def __init__(self, env: "unified_planning.environment.Environment"):
         self.env = env
@@ -42,7 +44,11 @@ class Nnf:
         and by pushing all the not to the leaves of the Tree representing the expression.
 
         For example, the form: !(a => (b && c)) becomes:
-        a && (!b || !c), therefore it is a NNF."""
+        a && (!b || !c), therefore it is a NNF.
+
+        :param expression: The expression that must be returned in NNF form.
+        :return: The expression semantically equivalent to the given expression, but in NNF form.
+        """
         stack: List[Tuple[bool, FNode, bool]] = []
         stack.append((True, expression, False))
         solved: List[FNode] = []

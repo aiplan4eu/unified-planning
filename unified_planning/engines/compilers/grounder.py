@@ -33,12 +33,28 @@ from functools import partial
 
 
 class Grounder(engines.engine.Engine, CompilerMixin):
-    """Performs action grounding."""
+    """
+    Grounder class: the `Grounder` takes a :class:`~unified_planning.model.Problem` where the :class:`Actions <unified_planning.model.Action>`
+    have :func:`Parameters <unified_planning.model.Action.parameters>` (meaning the `Actions` are lifted) and, through the :func:`~unified_planning.engines.mixins.CompilerMixin.compile`
+    method, returns a `Problem` where every `Action` does not have `Parameters` (meaning the `Actions` are grounded).
+
+    When an `Action` grounding creates an `Action` without :func:`Effects <unified_planning.model.InstantaneousAction.effects>`, or an `Action` with impossible
+    :func:`conditions <unified_planning.model.InstantaneousAction.preconditions>`, the `Action` is discarded and not added to the final `Problem`.
+
+    At construction time, the Grounder class can optionally take a map from `Action` to `List[Tuple[FNode, ...]]`. If this map is not None,
+    it will be used for grounding instead of the implemented algorithm; the use of this parameter is mainly created to easily support
+    the integration of external grounders inside the library. To see a practical example, checkout the :class:`~unified_planning.engines.compilers.TarskiGrounder` `_compile`
+    implementation.
+
+    This `Compiler` supports only the the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`.
+    """
 
     def __init__(
         self,
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
     ):
+        engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.GROUNDING)
         self._grounding_actions_map = grounding_actions_map
 
     @property
@@ -48,29 +64,30 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
-        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-        supported_kind.set_time('CONTINUOUS_TIME') # type: ignore
-        supported_kind.set_time('DISCRETE_TIME') # type: ignore
-        supported_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-        supported_kind.set_time('TIMED_EFFECT') # type: ignore
-        supported_kind.set_time('TIMED_GOALS') # type: ignore
-        supported_kind.set_time('DURATION_INEQUALITIES') # type: ignore
-        supported_kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
-        supported_kind.set_constraints_kind('TRAJECTORY_CONSTRAINTS') # type: ignore
+        supported_kind.set_problem_class("ACTION_BASED")
+        supported_kind.set_typing("FLAT_TYPING")
+        supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_numbers("CONTINUOUS_NUMBERS")
+        supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        supported_kind.set_fluents_type("NUMERIC_FLUENTS")
+        supported_kind.set_fluents_type("OBJECT_FLUENTS")
+        supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+        supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        supported_kind.set_effects_kind("INCREASE_EFFECTS")
+        supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_time("CONTINUOUS_TIME")
+        supported_kind.set_time("DISCRETE_TIME")
+        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECT")
+        supported_kind.set_time("TIMED_GOALS")
+        supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         return supported_kind
 
     @staticmethod
@@ -81,11 +98,26 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.GROUNDING
 
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
+    ) -> ProblemKind:
+        return ProblemKind(problem_kind.features)
+
     def _compile(
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`
+        and returns a `CompilerResult` where the problem does not have actions with parameters; so every action is grounded.
+
+        :param problem: The instance of the `Problem` that must be grounded.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
+            only `GROUNDING` is supported by this compiler
+        :return: The resulting `CompilerResult` data structure.
+        """
         assert isinstance(problem, Problem)
 
         env = problem.env

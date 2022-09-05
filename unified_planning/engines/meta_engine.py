@@ -42,22 +42,53 @@ class MetaEngineMeta(EngineMeta):
 
 
 class MetaEngine(Engine, metaclass=MetaEngineMeta):
-    """This class represents a meta engine.
-    A meta engine is an engine that can be instantiated over a generic engine.
-    e.g. OversubscriptionPlanner[Tamer] is an Engine class that use the MetaEngine
-    OversubscriptionPlanner over the Tamer Engine."""
+    """
+    This class represents a meta engine.
+    A meta engine is an `Engine` that can be instantiated over a generic `Engine`.
+
+    e.g. `OversubscriptionPlanner[Tamer]` is an `Engine class` that use the `MetaEngine`
+    `OversubscriptionPlanner` over the `Tamer Engine`.
+    """
 
     def __init__(self, *args, **kwargs):
+        Engine.__init__(self)
         self._engine = self._engine_class(*args, **kwargs)
 
     @property
     def engine(self) -> Engine:
-        """Returns the engine used by this MetaEngine class"""
+        """Returns the engine used by this `MetaEngine` class"""
         return self._engine
+
+    @property
+    def skip_checks(self) -> bool:
+        """Same as :func:`skip_checks <unified_planning.engines.Engine.skip_checks>`"""
+        return self._skip_checks
+
+    @skip_checks.setter
+    def skip_checks(self, new_value: bool):
+        """Same as :func:`skip_checks <unified_planning.engines.Engine.skip_checks>`"""
+        self._skip_checks = new_value
+        self._engine.skip_checks = new_value
+
+    @property
+    def error_on_failed_checks(self) -> bool:
+        """Same as :func:`error_on_failed_checks <unified_planning.engines.Engine.error_on_failed_checks>`"""
+        return self._error_on_failed_checks
+
+    @error_on_failed_checks.setter
+    def error_on_failed_checks(self, new_value: bool):
+        """Same as :func:`error_on_failed_checks <unified_planning.engines.Engine.error_on_failed_checks>`"""
+        self._error_on_failed_checks = new_value
+        self.engine.error_on_failed_checks = new_value
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
-        """Returns true iff the given engine is compatible with this meta engine"""
+        """
+        Returns `True` iff the given `engine` is compatible with this `MetaEngine`.
+
+        :param engine: The `Engine` Class tested for compatibility.
+        :return: `True` iff the given `engine` is compatible with this `MetaEngine`
+        """
         raise NotImplementedError
 
     @staticmethod

@@ -35,7 +35,7 @@ from unified_planning.exceptions import (
     UPExpressionDefinitionError,
     UPProblemDefinitionError,
 )
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from functools import partial
 
 
@@ -71,12 +71,24 @@ class NegativeFluentRemover(IdentityDagWalker):
 
 
 class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
-    """Negative conditions remover class: this class offers the capability
-    to transform a problem with negative conditions into one
-    without negative conditions.
+    """
+    Negative conditions remover class: this class offers the capability
+    to transform a :class:`~unified_planning.model.Problem` with `negative conditions` into one without `negative conditions`.
+    Negative conditions means that the `Not` operand appears in the `Problem`'s goal or
+    :class:`Actions <unified_planning.model.Action>` `conditions <unified_planning.model.InstantaneousAction.preconditions>`.
 
-    This is done by substituting every fluent that appears with a Not into the conditions
-    with different fluent representing  his negation."""
+    This is done by substituting every :class:`Fluent <unified_planning.model.Fluent>` that appears with a `Not` into the `conditions`
+    with a different `Fluent` representing  his `negation`.
+    Then, to every `Action` that modifies the original `Fluent`, is added an :class:`Effect <unified_planning.model.Effect>` that
+    modifies the `negation Fluent` with the `negation` of the :func:`value <unified_planning.model.Effect.value>` given to `Fluent`.
+    So, in every moment, the `negation Fluent` has the `inverse value` of the `original Fluent`.
+
+    This `Compiler` supports only the the `NEGATIVE_CONDITIONS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    """
+
+    def __init__(self):
+        engines.engine.Engine.__init__(self)
+        CompilerMixin.__init__(self, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
 
     @property
     def name(self):
@@ -90,6 +102,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
@@ -116,11 +130,28 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.NEGATIVE_CONDITIONS_REMOVING
 
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
+    ) -> ProblemKind:
+        new_kind = ProblemKind(problem_kind.features)
+        new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")
+        return new_kind
+
     def _compile(
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the `NEGATIVE_CONDITIONS_REMOVING` `CompilationKind`
+        and returns a `CompilerResult` where the `Problem` does not have the `Not` operator as a `condition` or in the `goals`.
+
+        :param problem: The instance of the `Problem` to compile.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given `problem`;
+            only `NEGATIVE_CONDITIONS_REMOVING` is supported by this compiler
+        :return: The resulting `CompilerResult`.
+        """
         assert isinstance(problem, Problem)
 
         env = problem.env

@@ -24,7 +24,11 @@ import unified_planning.model.operators as op
 
 
 class Simplifier(walkers.dag.DagWalker):
-    """Performs basic simplifications of the input expression."""
+    """Performs basic simplifications of the input expression.
+
+    Important NOTE:
+    After the initialization, the :class:`~unified_planning.model.Problem` given as input can not be modified
+    or the `Simplifier` behavior is undefined."""
 
     def __init__(
         self,
@@ -50,7 +54,12 @@ class Simplifier(walkers.dag.DagWalker):
     def simplify(self, expression: FNode) -> FNode:
         """Performs basic simplification of the given expression.
 
-        If a problem is given at the costructor, it also uses the static fluents of the problem for a better simplification."""
+        If a :class:`~unified_planning.model.Problem` is given at the constructor, it also uses the static `fluents` of the `Problem` for
+        a better simplification.
+
+        :param expression: The target expression that must be simplified with constant propagation.
+        :return: The simplified expression.
+        """
         return self.walk(expression)
 
     def walk_and(self, expression: FNode, args: List[FNode]) -> FNode:

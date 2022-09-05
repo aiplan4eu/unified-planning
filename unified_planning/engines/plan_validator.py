@@ -40,9 +40,10 @@ from unified_planning.plans import SequentialPlan, PlanKind
 
 
 class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
-    """Performs plan validation."""
+    """Performs :class:`~unified_planning.plans.Plan` validation."""
 
     def __init__(self, **options):
+        engines.engine.Engine.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
             unified_planning.environment.get_env(options.get("env", None))
         )
@@ -65,6 +66,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITY")
@@ -84,9 +87,16 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
     def _validate(
         self, problem: "AbstractProblem", plan: "unified_planning.plans.Plan"
     ) -> "up.engines.results.ValidationResult":
-        """Returns True if and only if the plan given in input is a valid plan for the problem given in input.
+        """
+        Returns True if and only if the plan given in input is a valid plan for the problem given in input.
         This means that from the initial state of the problem, by following the plan, you can reach the
-        problem goal. Otherwise False is returned."""
+        problem goal. Otherwise False is returned.
+
+        :param problem: The problem for which the plan to validate was generated.
+        :param plan: The plan that must be validated.
+        :return: The generated up.engines.results.ValidationResult; a data structure containing the information
+            about the plan validity and eventually some additional log messages for the user.
+        """
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         simulator = SequentialSimulator(problem)

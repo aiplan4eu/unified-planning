@@ -40,7 +40,16 @@ class Substituter(IdentityDagWalker):
     def substitute(
         self, expression: FNode, substitutions: Dict[Expression, Expression] = {}
     ) -> FNode:
-        """Performs substitution into the given expression.
+        """
+        Performs substitution into the given expression.
+
+        The substitutions are made top-down in the expression tree and the substitution is not
+        applied to the substituted expressions.
+
+        :param expression: The target expression for the substitution.
+        :param substitutions: The map containing the substitutions, every time a key is found,
+            it is substituted with it's value.
+        :return: The expression where every key expression is substituted with it's value.
 
         Lets consider the examples:
         f = a & b

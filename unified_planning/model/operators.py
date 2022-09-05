@@ -17,6 +17,11 @@ from enum import Enum, auto
 
 
 class OperatorKind(Enum):
+    """
+    Enum representing the type of an :class:`~unified_planning.model.FNode`. The :func:`Operator <unified_planning.model.FNode.node_type>` of an `FNode` defines the semantic for all the
+    other fields of the `FNode`.
+    """
+
     AND = auto()
     OR = auto()
     NOT = auto()

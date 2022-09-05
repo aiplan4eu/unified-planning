@@ -18,6 +18,15 @@ In particular we will go through the following steps:
 * read and write PDDL problems.
 
 
+## PDDL I/O
+
+[![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](PDDL_IO_Example.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/PDDL_IO_Example.ipynb)
+
+In this notebook we show how to parse a problem from PDDL in the unified_planning and how to write
+a unified_planning problem in PDDL.
+
+
 ## Temporal Planning
 
 [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Unified_Planning_Temporal.ipynb)
@@ -52,3 +61,10 @@ In this notebook we define an oversubscription planning problem and we solve it 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Planning_engine_demo.ipynb)
 
 In this notebook we create a new planning engine for the "Oneshot" operation mode, we register the new planner in the UP library and we test it on a simple problem.
+
+## Compilers
+
+[![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Compilers_example.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Compilers_example.ipynb)
+
+In this notebook we show the usage of the operation mode "Compiler", explaining how to use a compiler and how to take a plan written for the compiled problem and create the equivalent plan for the original problem.
