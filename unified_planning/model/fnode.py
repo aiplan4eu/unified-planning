@@ -26,7 +26,7 @@ FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "pay
 
 
 class FNode(object):
-    __slots__ = ["_content", "_node_id", "_env"]
+    __slots__ = ["_content", "_node_id", "_env", "_monitoring_atom_predicate"]
 
     def __init__(self, content: FNodeContent, node_id: int, environment: Environment):
         self._content = content

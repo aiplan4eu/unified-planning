@@ -26,7 +26,11 @@ from unified_planning.model.mixins import (
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPValueError, UPExpressionDefinitionError, UPUsageError
+from unified_planning.exceptions import (
+    UPProblemDefinitionError, 
+    UPTypeError, 
+    UPExpressionDefinitionError, 
+)
 from unified_planning.plans import ActionInstance
 from unified_planning.walkers import OperatorsExtractor, Simplifier
 from fractions import Fraction
