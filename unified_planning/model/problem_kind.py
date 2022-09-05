@@ -15,6 +15,7 @@
 
 from functools import partialmethod, total_ordering
 from typing import Dict, List, Set
+import unified_planning as up
 
 
 # TODO: This features map needs to be extended with all the problem characterizations.
@@ -33,7 +34,8 @@ FEATURES = {
 
 
 class ProblemKindMeta(type):
-    '''Meta class used to interpret the nodehandler decorator.'''
+    """Meta class used to interpret the nodehandler decorator."""
+
     def __new__(cls, name, bases, dct):
         def _set(self, feature, possible_features):
             assert feature in possible_features
@@ -49,8 +51,9 @@ class ProblemKindMeta(type):
                 setattr(obj, "has_" + f.lower(), partialmethod(_has, feature=f))
         return obj
 
+
 @total_ordering
-class ProblemKind(metaclass=ProblemKindMeta):
+class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
     def __init__(self, features: Set[str] = set()):
         self._features: Set[str] = set(features)
 
@@ -68,9 +71,8 @@ class ProblemKind(metaclass=ProblemKindMeta):
                         features_mapped[k] = [feature]
                     else:
                         feature_list.append(feature)
-        result_str: List[str] = [f'{k}: {fl}' for k, fl in features_mapped.items()]
-        return '\n'.join(result_str)
-
+        result_str: List[str] = [f"{k}: {fl}" for k, fl in features_mapped.items()]
+        return "\n".join(result_str)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ProblemKind):
@@ -93,67 +95,75 @@ class ProblemKind(metaclass=ProblemKindMeta):
     def features(self) -> Set[str]:
         return self._features
 
-    def union(self, oth: 'ProblemKind') -> 'ProblemKind':
+    def union(self, oth: "ProblemKind") -> "ProblemKind":
         return ProblemKind(self.features.union(oth.features))
+
+    def intersection(self, oth: "ProblemKind") -> "ProblemKind":
+        return ProblemKind(self.features.intersection(oth.features))
 
 
 basic_classical_kind = ProblemKind()
-basic_classical_kind.set_problem_class('ACTION_BASED') # type: ignore
-basic_classical_kind.set_typing('FLAT_TYPING') # type: ignore
+basic_classical_kind.set_problem_class("ACTION_BASED")
+basic_classical_kind.set_typing("FLAT_TYPING")
 
 hierarchical_kind = ProblemKind()
-hierarchical_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
+hierarchical_kind.set_typing("HIERARCHICAL_TYPING")
 
 classical_kind = ProblemKind()
-classical_kind.set_problem_class('ACTION_BASED') # type: ignore
-classical_kind.set_typing('FLAT_TYPING') # type: ignore
-classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-classical_kind.set_conditions_kind('EQUALITY') # type: ignore
+classical_kind.set_problem_class("ACTION_BASED")
+classical_kind.set_typing("FLAT_TYPING")
+classical_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+classical_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+classical_kind.set_conditions_kind("EQUALITY")
 
 full_classical_kind = ProblemKind()
-full_classical_kind.set_problem_class('ACTION_BASED') # type: ignore
-full_classical_kind.set_typing('FLAT_TYPING') # type: ignore
-full_classical_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-full_classical_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-full_classical_kind.set_conditions_kind('EQUALITY') # type: ignore
-full_classical_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-full_classical_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-full_classical_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+full_classical_kind.set_problem_class("ACTION_BASED")
+full_classical_kind.set_typing("FLAT_TYPING")
+full_classical_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+full_classical_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+full_classical_kind.set_conditions_kind("EQUALITY")
+full_classical_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+full_classical_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+full_classical_kind.set_effects_kind("CONDITIONAL_EFFECTS")
 
 object_fluent_kind = ProblemKind()
-object_fluent_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
+object_fluent_kind.set_fluents_type("OBJECT_FLUENTS")
 
 basic_numeric_kind = ProblemKind()
-basic_numeric_kind.set_problem_class('ACTION_BASED') # type: ignore
-basic_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
-basic_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-basic_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-basic_numeric_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+basic_numeric_kind.set_problem_class("ACTION_BASED")
+basic_numeric_kind.set_typing("FLAT_TYPING")
+basic_numeric_kind.set_numbers("DISCRETE_NUMBERS")
+basic_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
+basic_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
 
 full_numeric_kind = ProblemKind()
-full_numeric_kind.set_problem_class('ACTION_BASED') # type: ignore
-full_numeric_kind.set_typing('FLAT_TYPING') # type: ignore
-full_numeric_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-full_numeric_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-full_numeric_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-full_numeric_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-full_numeric_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+full_numeric_kind.set_problem_class("ACTION_BASED")
+full_numeric_kind.set_typing("FLAT_TYPING")
+full_numeric_kind.set_numbers("DISCRETE_NUMBERS")
+full_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
+full_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
+full_numeric_kind.set_effects_kind("INCREASE_EFFECTS")
+full_numeric_kind.set_effects_kind("DECREASE_EFFECTS")
 
 basic_temporal_kind = ProblemKind()
-basic_temporal_kind.set_problem_class('ACTION_BASED') # type: ignore
-basic_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
-basic_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
+basic_temporal_kind.set_problem_class("ACTION_BASED")
+basic_temporal_kind.set_typing("FLAT_TYPING")
+basic_temporal_kind.set_time("CONTINUOUS_TIME")
 
-full_temporal_kind = ProblemKind()
-full_temporal_kind.set_problem_class('ACTION_BASED') # type: ignore
-full_temporal_kind.set_typing('FLAT_TYPING') # type: ignore
-full_temporal_kind.set_time('CONTINUOUS_TIME') # type: ignore
-full_temporal_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-full_temporal_kind.set_time('TIMED_EFFECT') # type: ignore
-full_temporal_kind.set_time('TIMED_GOALS') # type: ignore
-full_temporal_kind.set_time('DURATION_INEQUALITIES') # type: ignore
+temporal_kind = ProblemKind()
+temporal_kind.set_problem_class("ACTION_BASED")
+temporal_kind.set_typing("FLAT_TYPING")
+temporal_kind.set_time("CONTINUOUS_TIME")
+temporal_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+temporal_kind.set_time("TIMED_EFFECT")
+temporal_kind.set_time("TIMED_GOALS")
+temporal_kind.set_time("DURATION_INEQUALITIES")
+temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
 
 quality_metrics_kind = ProblemKind()
-quality_metrics_kind.set_quality_metrics('ACTIONS_COST') # type: ignore
-quality_metrics_kind.set_quality_metrics('FINAL_VALUE') # type: ignore
+quality_metrics_kind.set_quality_metrics("PLAN_LENGTH")
+quality_metrics_kind.set_quality_metrics("ACTIONS_COST")
+quality_metrics_kind.set_quality_metrics("FINAL_VALUE")
+
+oversubscription_kind = ProblemKind()
+oversubscription_kind.set_quality_metrics("OVERSUBSCRIPTION")

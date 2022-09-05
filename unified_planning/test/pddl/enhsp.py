@@ -29,15 +29,30 @@ class ENHSP(up.engines.PDDLPlanner):
 
     @property
     def name(self) -> str:
-        return 'ENHSP'
+        return "ENHSP"
 
-    def _get_cmd(self, domanin_filename: str, problem_filename: str, plan_filename: str) -> List[str]:
-        return ['java', '-jar',
-                os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar'),
-                '-o', domanin_filename, '-f', problem_filename, '-sp', plan_filename,
-                '-planner', 'opt-hrmax']
+    def _get_cmd(
+        self, domanin_filename: str, problem_filename: str, plan_filename: str
+    ) -> List[str]:
+        return [
+            "java",
+            "-jar",
+            os.path.join(
+                FILE_PATH, "..", "..", "..", ".planners", "enhsp-20", "enhsp.jar"
+            ),
+            "-o",
+            domanin_filename,
+            "-f",
+            problem_filename,
+            "-sp",
+            plan_filename,
+            "-planner",
+            "opt-hrmax",
+        ]
 
-    def _result_status(self, problem: 'up.model.Problem', plan: Optional['up.plans.Plan']) -> 'up.engines.results.PlanGenerationResultStatus':
+    def _result_status(
+        self, problem: "up.model.Problem", plan: Optional["up.plans.Plan"]
+    ) -> "up.engines.results.PlanGenerationResultStatus":
         if plan is None:
             return up.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         else:
@@ -50,26 +65,27 @@ class ENHSP(up.engines.PDDLPlanner):
     @staticmethod
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
-        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_quality_metrics('ACTIONS_COST') # type: ignore
-        supported_kind.set_quality_metrics('FINAL_VALUE') # type: ignore
+        supported_kind.set_problem_class("ACTION_BASED")
+        supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_numbers("CONTINUOUS_NUMBERS")
+        supported_kind.set_typing("FLAT_TYPING")
+        supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+        supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        supported_kind.set_effects_kind("INCREASE_EFFECTS")
+        supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_fluents_type("NUMERIC_FLUENTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
         return supported_kind
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supports(problem_kind: "ProblemKind") -> bool:
         return problem_kind <= ENHSP.supported_kind()
 
     @staticmethod
@@ -78,5 +94,9 @@ class ENHSP(up.engines.PDDLPlanner):
 
 
 env = get_env()
-if os.path.isfile(os.path.join(FILE_PATH, '..', '..', '..', '.planners', 'enhsp-20', 'enhsp.jar')):
-    env.factory.add_engine('opt-pddl-planner', 'unified_planning.test.pddl.enhsp', 'ENHSP')
+if os.path.isfile(
+    os.path.join(FILE_PATH, "..", "..", "..", ".planners", "enhsp-20", "enhsp.jar")
+):
+    env.factory.add_engine(
+        "opt-pddl-planner", "unified_planning.test.pddl.enhsp", "ENHSP"
+    )

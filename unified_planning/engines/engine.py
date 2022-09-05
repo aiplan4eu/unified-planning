@@ -22,9 +22,13 @@ from typing import Optional
 class EngineMeta(type):
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
-        for om in ['oneshot_planner', 'plan_validator', 'compiler']:
-            if not hasattr(obj, 'is_'+om) and name != 'Engine':
-                setattr(obj, 'is_'+om, lambda : False)
+        for om in ["oneshot_planner", "plan_validator", "compiler", "simulator"]:
+            if (
+                not hasattr(obj, "is_" + om)
+                and name != "Engine"
+                and name != "MetaEngine"
+            ):
+                setattr(obj, "is_" + om, lambda: False)
         return obj
 
 
@@ -40,18 +44,18 @@ class Engine(metaclass=EngineMeta):
         raise NotImplementedError
 
     @staticmethod
-    def supports(problem_kind: 'ProblemKind') -> bool:
+    def supports(problem_kind: "ProblemKind") -> bool:
         raise NotImplementedError
 
     @staticmethod
     def get_credits(**kwargs) -> Optional[Credits]:
-        '''
+        """
         This method returns the credits for this engine, that will be printed when the engine is used.
         If this function returns None, it means no credits to print.
 
         The **kwargs parameters are the same used in this engine to communicate
          the specific options for this Engine instance.
-        '''
+        """
         return None
 
     def destroy(self):

@@ -16,19 +16,29 @@
 from fractions import Fraction
 from collections import OrderedDict
 from typing import List, Optional, Set, Union
-import unified_planning
+import unified_planning as up
 import unified_planning.environment
-import unified_planning.walkers as walkers
-from unified_planning.model import FNode, operators as op
+import unified_planning.model.walkers as walkers
+from unified_planning.model.fnode import FNode
+import unified_planning.model.operators as op
 
 
-class Simplifier(walkers.DagWalker):
+class Simplifier(walkers.dag.DagWalker):
     """Performs basic simplifications of the input expression."""
 
-    def __init__(self, env: 'unified_planning.environment.Environment'):
-        walkers.DagWalker.__init__(self)
+    def __init__(
+        self,
+        env: "unified_planning.environment.Environment",
+        problem: Optional["unified_planning.model.problem.Problem"] = None,
+    ):
+        walkers.dag.DagWalker.__init__(self)
         self.env = env
         self.manager = env.expression_manager
+        if problem is not None:
+            self.static_fluents = problem.get_static_fluents()
+        else:
+            self.static_fluents = set()
+        self.problem: Optional["unified_planning.model.problem.Problem"] = problem
 
     def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
         if isinstance(value, int):
@@ -37,17 +47,11 @@ class Simplifier(walkers.DagWalker):
             fnode = self.manager.Real(Fraction(value))
         return fnode
 
-    def simplify(self, expression: FNode, problem: Optional['unified_planning.model.Problem'] = None) -> FNode:
+    def simplify(self, expression: FNode) -> FNode:
         """Performs basic simplification of the given expression.
 
-        If a problem is given, it also uses the static fluents of the problem for a better simplification."""
-        if problem is not None:
-            self.static_fluents = problem.get_static_fluents()
-        else:
-            self.static_fluents = set()
-        self.problem: Optional['unified_planning.model.Problem'] = problem
+        If a problem is given at the costructor, it also uses the static fluents of the problem for a better simplification."""
         return self.walk(expression)
-
 
     def walk_and(self, expression: FNode, args: List[FNode]) -> FNode:
         if len(args) == 2 and args[0] == args[1]:
@@ -164,7 +168,9 @@ class Simplifier(walkers.DagWalker):
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set['unified_planning.model.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
+        free_vars: Set[
+            "up.model.variable.Variable"
+        ] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]
@@ -172,7 +178,9 @@ class Simplifier(walkers.DagWalker):
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set['unified_planning.model.Variable'] = self.env.free_vars_oracle.get_free_variables(args[0])
+        free_vars: Set[
+            "up.model.variable.Variable"
+        ] = self.env.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]
@@ -223,7 +231,7 @@ class Simplifier(walkers.DagWalker):
             l = sl.constant_value()
             r = sr.constant_value()
             return self.manager.Bool(l <= r)
-        return  self.manager.LE(sl, sr)
+        return self.manager.LE(sl, sr)
 
     def walk_lt(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
@@ -245,12 +253,14 @@ class Simplifier(walkers.DagWalker):
             for a in args:
                 if not a.is_constant():
                     return self.manager.FluentExp(expression.fluent(), tuple(args))
-            return self.problem.initial_value(self.manager.FluentExp(expression.fluent(), tuple(args)))
+            return self.problem.initial_value(
+                self.manager.FluentExp(expression.fluent(), tuple(args))
+            )
 
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()
         accumulator: Union[int, Fraction] = 0
-        #divide constant FNode and accumulate their value into accumulator
+        # divide constant FNode and accumulate their value into accumulator
         for a in args:
             if a.is_int_constant() or a.is_real_constant():
                 accumulator += a.constant_value()
@@ -262,10 +272,12 @@ class Simplifier(walkers.DagWalker):
                         new_args_plus.append(s)
             else:
                 new_args_plus.append(a)
-        #if accumulator != 0 create it as a constant FNode and then add all the non-constant FNodes found
-        #else return 0 or all the non-constant FNodes found
+        # if accumulator != 0 create it as a constant FNode and then add all the non-constant FNodes found
+        # else return 0 or all the non-constant FNodes found
         if accumulator != 0:
-            fnode_acc = self.manager.Plus(*new_args_plus,self._number_to_fnode(accumulator))
+            fnode_acc = self.manager.Plus(
+                *new_args_plus, self._number_to_fnode(accumulator)
+            )
             return fnode_acc
         else:
             if len(new_args_plus) == 0:
@@ -276,8 +288,10 @@ class Simplifier(walkers.DagWalker):
     def walk_minus(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
         left, right = args
-        value : Union[Fraction, int] = 0
-        if (left.is_int_constant() or left.is_real_constant()) and (right.is_int_constant() or right.is_real_constant()):
+        value: Union[Fraction, int] = 0
+        if (left.is_int_constant() or left.is_real_constant()) and (
+            right.is_int_constant() or right.is_real_constant()
+        ):
             value = left.constant_value() - right.constant_value()
             fnode_constant_values = self._number_to_fnode(value)
             return fnode_constant_values
@@ -294,7 +308,7 @@ class Simplifier(walkers.DagWalker):
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
         accumulator: Union[int, Fraction] = 1
-        #divide constant FNode and accumulate their value into accumulator
+        # divide constant FNode and accumulate their value into accumulator
         for a in args:
             if a.is_int_constant() or a.is_real_constant():
                 if a.constant_value() == 0:
@@ -312,8 +326,8 @@ class Simplifier(walkers.DagWalker):
                         new_args_times.append(s)
             else:
                 new_args_times.append(a)
-        #if accumulator != 1 create it as a constant FNode and then add all the non-constant FNodes found
-        #else return  or all the non-constant FNodes found
+        # if accumulator != 1 create it as a constant FNode and then add all the non-constant FNodes found
+        # else return  or all the non-constant FNodes found
         if accumulator != 1:
             fnode_acc = self._number_to_fnode(accumulator)
             return self.manager.Times(*new_args_times, fnode_acc)
@@ -326,21 +340,27 @@ class Simplifier(walkers.DagWalker):
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
         left, right = args
-        value : Union[Fraction, int, float] = 0
+        value: Union[Fraction, int, float] = 0
         if left.is_int_constant() and right.is_int_constant():
             if (left.constant_value() % right.constant_value()) == 0:
                 value = int(left.constant_value() / right.constant_value())
             else:
                 value = Fraction(left.constant_value(), right.constant_value())
-        elif (left.is_int_constant() or left.is_real_constant()) and (right.is_int_constant() or right.is_real_constant()):
-            assert(right.constant_value() != 0)
+        elif (left.is_int_constant() or left.is_real_constant()) and (
+            right.is_int_constant() or right.is_real_constant()
+        ):
+            assert right.constant_value() != 0
             value = Fraction(left.constant_value(), right.constant_value())
         else:
             return self.manager.Div(left, right)
         return self._number_to_fnode(value)
 
     @walkers.handles(op.CONSTANTS)
-    @walkers.handles(op.OperatorKind.PARAM_EXP, op.OperatorKind.VARIABLE_EXP,
-                     op.OperatorKind.OBJECT_EXP, op.OperatorKind.TIMING_EXP)
+    @walkers.handles(
+        op.OperatorKind.PARAM_EXP,
+        op.OperatorKind.VARIABLE_EXP,
+        op.OperatorKind.OBJECT_EXP,
+        op.OperatorKind.TIMING_EXP,
+    )
     def walk_identity(self, expression: FNode, args: List[FNode]) -> FNode:
         return expression

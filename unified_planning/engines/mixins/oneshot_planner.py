@@ -33,7 +33,6 @@ class OneshotPlannerMixin:
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
         return False
 
-    
     def solve(
         self,
         problem: "up.model.AbstractProblem",
@@ -45,6 +44,7 @@ class OneshotPlannerMixin:
     ) -> "up.engines.results.PlanGenerationResult":
         """This method takes a up.model.AbstractProblem and returns a up.engines.results.PlanGenerationResult,
         which contains information about the solution to the problem given by the planner.
+
         :param problem: is the up.model.AbstractProblem to solve.
         :param callback: is a function used by the planner to give reports to the user during the problem resolution, defaults to None.
         :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to None.
@@ -52,6 +52,7 @@ class OneshotPlannerMixin:
         output (and also errors) while the planner is solving the problem, defaults to None
         :return: the up.engines.results.PlanGenerationResult created by the planner; a data structure containing the up.plan.Plan found
         and some additional information about it.
+
         The only required parameter is "problem" but the planner should warn the user if callback, timeout or
         output_stream are not None and the planner ignores them."""
         assert isinstance(self, up.engines.engine.Engine)
@@ -60,3 +61,14 @@ class OneshotPlannerMixin:
                 f"{self.name} cannot solve this kind of problem!"
             )
         return self._solve(problem, callback, timeout, output_stream)
+
+    def _solve(
+        self,
+        problem: "up.model.AbstractProblem",
+        callback: Optional[
+            Callable[["up.engines.results.PlanGenerationResult"], None]
+        ] = None,
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+    ) -> "up.engines.results.PlanGenerationResult":
+        raise NotImplementedError

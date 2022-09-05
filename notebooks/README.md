@@ -38,6 +38,14 @@ In this notebook we show the simulated effects usage in the unified planning lib
 In particular, we exploit the use of a simulated effects to model the battery consumption of a robot during a movement defining a function in Python code.
 
 
+## Oversubscription Planning and MetaEngine Usage
+
+[![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Oversubscription_with_MetaEngine.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Oversubscription_with_MetaEngine.ipynb)
+
+In this notebook we define an oversubscription planning problem and we solve it using a `MetaEngine`.
+
+
 ## Planning Engine Integration
 
 [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Planning_engine_demo.ipynb)

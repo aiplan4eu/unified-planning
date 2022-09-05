@@ -1,5 +1,9 @@
 #!/bin/bash
 
+SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+cd ${SCRIPTS_DIR}/../
+
 boi="# begin of installation"
 eoi="# end of installation"
 for colab_file in ./notebooks/*.ipynb ; do

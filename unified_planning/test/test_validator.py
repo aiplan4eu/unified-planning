@@ -26,9 +26,9 @@ class TestPlanValidator(TestCase):
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_basic(self):
-        problem, plan = self.problems['basic']
+        problem, plan = self.problems["basic"]
 
-        with PlanValidator(problem_kind=problem.kind) as validator:
+        with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
@@ -40,9 +40,9 @@ class TestPlanValidator(TestCase):
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_numeric_kind))
     def test_robot(self):
-        problem, plan = self.problems['robot']
+        problem, plan = self.problems["robot"]
 
-        with PlanValidator(problem_kind=problem.kind) as validator:
+        with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
@@ -54,9 +54,9 @@ class TestPlanValidator(TestCase):
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader(self):
-        problem, plan = self.problems['robot_loader']
+        problem, plan = self.problems["robot_loader"]
 
-        with PlanValidator(problem_kind=problem.kind) as validator:
+        with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)
@@ -68,9 +68,9 @@ class TestPlanValidator(TestCase):
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader_adv(self):
-        problem, plan = self.problems['robot_loader_adv']
+        problem, plan = self.problems["robot_loader_adv"]
 
-        with PlanValidator(problem_kind=problem.kind) as validator:
+        with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
 
             res = validator.validate(problem, plan)

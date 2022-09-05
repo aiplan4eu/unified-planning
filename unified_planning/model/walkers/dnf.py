@@ -15,9 +15,10 @@
 
 
 import unified_planning.environment
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 from unified_planning.exceptions import UPUnreachableCodeError
-from unified_planning.model import FNode, OperatorKind
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
 from typing import List, Tuple
 from itertools import product
 
@@ -29,7 +30,7 @@ class Nnf:
     This is done first by removing all the Implications and Equalities,
     then by pushing all the not to the leaves of the Tree representing the expression."""
 
-    def __init__(self, env: 'unified_planning.environment.Environment'):
+    def __init__(self, env: "unified_planning.environment.Environment"):
         self.env = env
         self.manager = env.expression_manager
 
@@ -63,7 +64,9 @@ class Nnf:
                         new_e = self.manager.And(args)
                     solved.append(new_e)
                 else:
-                    raise UPUnreachableCodeError("This code branch should never be reached!")
+                    raise UPUnreachableCodeError(
+                        "This code branch should never be reached!"
+                    )
             else:
                 if e.is_not():
                     stack.append((not p, e.arg(0), False))
@@ -74,7 +77,7 @@ class Nnf:
                 elif e.is_implies():
                     na1 = self.manager.Not(e.arg(0))
                     new_e = self.manager.Or(na1, e.arg(1))
-                    #stack.append((p, new_e, False)) would be enough.
+                    # stack.append((p, new_e, False)) would be enough.
                     # but this requires more iterations on the stack
                     # while the arguments can be expanded in this
                     # iteration.
@@ -87,7 +90,7 @@ class Nnf:
                     e1 = self.manager.And(e.arg(0), e.arg(1))
                     e2 = self.manager.And(na1, na2)
                     new_e = self.manager.Or(e1, e2)
-                    #stack.append((p, new_e, False)) would be enough.
+                    # stack.append((p, new_e, False)) would be enough.
                     # but this requires more iterations on the stack
                     # while the arguments can be expanded in this
                     # iteration.
@@ -103,13 +106,11 @@ class Nnf:
                         solved.append(e)
                     else:
                         solved.append(self.manager.Not(e))
-        assert len(solved) == 1 #sanity check
+        assert len(solved) == 1  # sanity check
         return solved.pop()
 
 
-
-
-class Dnf(walkers.DagWalker):
+class Dnf(walkers.dag.DagWalker):
     """Class used to transform a logic expression into the equivalent
     Disjunctive Normal Form expression.
 
@@ -118,12 +119,13 @@ class Dnf(walkers.DagWalker):
     Ands or Atomic expressions, where 'atomic expressions' could also be a
     Not of an atomic expression.
     """
-    def __init__(self, env: 'unified_planning.environment.Environment'):
-        walkers.DagWalker.__init__(self, True)
+
+    def __init__(self, env: "unified_planning.environment.Environment"):
+        walkers.dag.DagWalker.__init__(self, True)
         self.env = env
         self.manager = env.expression_manager
         self._nnf = Nnf(self.env)
-        self._simplifier = walkers.Simplifier(self.env)
+        self._simplifier = walkers.simplifier.Simplifier(self.env)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
         """Function used to transform a logic expression into the equivalent
@@ -141,7 +143,9 @@ class Dnf(walkers.DagWalker):
         tuples = self.walk(nnf_exp)
         return self.manager.Or(self.manager.And(and_args) for and_args in tuples)
 
-    def walk_and(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
+    def walk_and(
+        self, expression: FNode, args: List[List[List[FNode]]], **kwargs
+    ) -> List[List[FNode]]:
         res: List[List[FNode]] = []
         tuples = product(*args)
         # tuples is an iterable of tuples, where each tuple
@@ -161,12 +165,16 @@ class Dnf(walkers.DagWalker):
             elif simp.is_and():
                 res.append(simp.args)
             else:
-               res.append([simp])
+                res.append([simp])
         return res
 
-    def walk_or(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
+    def walk_or(
+        self, expression: FNode, args: List[List[List[FNode]]], **kwargs
+    ) -> List[List[FNode]]:
         return [conjunction for disjunction in args for conjunction in disjunction]
 
     @walkers.handles(set(OperatorKind) - set({OperatorKind.AND, OperatorKind.OR}))
-    def walk_all(self, expression: FNode, args: List[List[List[FNode]]], **kwargs) -> List[List[FNode]]:
+    def walk_all(
+        self, expression: FNode, args: List[List[List[FNode]]], **kwargs
+    ) -> List[List[FNode]]:
         return [[expression]]

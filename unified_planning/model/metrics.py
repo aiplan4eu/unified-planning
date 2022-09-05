@@ -14,45 +14,63 @@
 #
 
 import unified_planning as up
-from typing import Dict, Optional
+from fractions import Fraction
+from typing import Dict, Optional, Union
 
 
-class PlanQualityMetric():
-    '''This is the base class of any metric for plan quality'''
+class PlanQualityMetric:
+    """This is the base class of any metric for plan quality"""
+
     pass
 
+
 class MinimizeActionCosts(PlanQualityMetric):
-    def __init__(self, costs: Dict['up.model.Action', 'up.model.FNode'],
-                 default: Optional['up.model.FNode'] = None):
+    def __init__(
+        self,
+        costs: Dict["up.model.Action", "up.model.FNode"],
+        default: Optional["up.model.FNode"] = None,
+    ):
         self.costs = costs
         self.default = default
 
     def __repr__(self):
         costs = {a.name: c for a, c in self.costs.items()}
-        costs['default'] = self.default
-        return f'minimize actions-cost: {costs}'
+        costs["default"] = self.default
+        return f"minimize actions-cost: {costs}"
 
-    def get_action_cost(self, action: 'up.model.Action') -> Optional['up.model.FNode']:
+    def get_action_cost(self, action: "up.model.Action") -> Optional["up.model.FNode"]:
         return self.costs.get(action, self.default)
+
 
 class MinimizeSequentialPlanLength(PlanQualityMetric):
     def __repr__(self):
-        return 'minimize sequential-plan-length'
+        return "minimize sequential-plan-length"
+
 
 class MinimizeMakespan(PlanQualityMetric):
     def __repr__(self):
-        return 'minimize makespan'
+        return "minimize makespan"
+
 
 class MinimizeExpressionOnFinalState(PlanQualityMetric):
-    def __init__(self, expression: 'up.model.FNode'):
+    def __init__(self, expression: "up.model.FNode"):
         self.expression = expression
 
     def __repr__(self):
-        return f'minimize {self.expression}'
+        return f"minimize {self.expression}"
+
 
 class MaximizeExpressionOnFinalState(PlanQualityMetric):
-    def __init__(self, expression: 'up.model.FNode'):
+    def __init__(self, expression: "up.model.FNode"):
         self.expression = expression
 
     def __repr__(self):
-        return f'maximize {self.expression}'
+        return f"maximize {self.expression}"
+
+
+class Oversubscription(PlanQualityMetric):
+    def __init__(self, goals: Dict["up.model.FNode", Union[Fraction, int]]):
+        self.goals = goals
+
+    def __repr__(self):
+        return f"oversubscription planning goals: {self.goals}"

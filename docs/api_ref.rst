@@ -11,41 +11,41 @@ Shortcuts
 =========
 .. automodule:: unified_planning.shortcuts
 
-Model
-=====
-.. automodule:: unified_planning.model
-
 Environment
 ===========
 .. automodule:: unified_planning.environment
-
-Transformers
-============
-.. automodule:: unified_planning.transformers
-
-Solvers
-=======
-.. automodule:: unified_planning.solvers
 
 Exceptions
 ==========
 .. automodule:: unified_planning.exceptions
 
-I/O
-===
-.. automodule:: unified_planning.io
-.. automodule:: unified_planning.io.pddl_reader
-.. automodule:: unified_planning.io.pddl_writer
-
-Plans
+Model
 =====
-.. automodule:: unified_planning.plan
+.. automodule:: unified_planning.model
+.. automodule:: unified_planning.model.mixins
+.. automodule:: unified_planning.model.htn
 
 Walkers
 =======
-.. automodule:: unified_planning.walkers
+.. automodule:: unified_planning.model.walkers
+
+Plans
+=====
+.. automodule:: unified_planning.plans
+
+Engines
+=======
+.. automodule:: unified_planning.engines
+.. automodule:: unified_planning.engines.mixins
+
+Compilers
+=========
+.. automodule:: unified_planning.engines.compilers
+
+I/O
+===
+.. automodule:: unified_planning.io
 
 Interoperability
 ================
 .. automodule:: unified_planning.interop
-.. automodule:: unified_planning.interop.tarski

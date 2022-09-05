@@ -1,0 +1,6 @@
+exclude: unified_planning/grpc/generated/
+repos:
+-   repo: https://github.com/ambv/black
+    rev: 22.6.0
+    hooks:
+    - id: black

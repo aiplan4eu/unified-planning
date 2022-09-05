@@ -33,10 +33,12 @@ class skipIfEngineNotAvailable(object):
     def __call__(self, test_fun):
         msg = "%s not available" % self.engine
         cond = self.engine not in get_env().factory.engines
+
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
             return test_fun(*args, **kwargs)
+
         return wrapper
 
 
@@ -50,34 +52,43 @@ class skipIfNoOneshotPlannerForProblemKind(object):
         msg = "no oneshot planner available for the given problem kind"
         cond = False
         try:
-            get_env().factory._get_engine_class('oneshot_planner', problem_kind=self.kind)
+            get_env().factory._get_engine_class(
+                "oneshot_planner", problem_kind=self.kind
+            )
         except:
             cond = True
+
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
             return test_fun(*args, **kwargs)
+
         return wrapper
 
 
 class skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(object):
     """Skip a test if there are no oneshot planner satisfies optimality guarantee."""
 
-    def __init__(self, optimality_guarantee: up.engines.results.PlanGenerationResultStatus):
+    def __init__(
+        self, optimality_guarantee: up.engines.results.PlanGenerationResultStatus
+    ):
         self.optimality_guarantee = optimality_guarantee
 
     def __call__(self, test_fun):
         msg = "no oneshot planner available for the given optimality guarantee"
         cond = False
         try:
-            get_env().factory._get_engine_class('oneshot_planner',
-                                                optimality_guarantee=self.optimality_guarantee)
+            get_env().factory._get_engine_class(
+                "oneshot_planner", optimality_guarantee=self.optimality_guarantee
+            )
         except:
             cond = True
+
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
             return test_fun(*args, **kwargs)
+
         return wrapper
 
 
@@ -91,14 +102,19 @@ class skipIfNoPlanValidatorForProblemKind(object):
         msg = "no plan validator available for the given problem kind"
         cond = False
         try:
-            get_env().factory._get_engine_class('plan_validator', problem_kind=self.kind)
+            get_env().factory._get_engine_class(
+                "plan_validator", problem_kind=self.kind
+            )
         except:
             cond = True
+
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
         def wrapper(*args, **kwargs):
             return test_fun(*args, **kwargs)
+
         return wrapper
+
 
 TestCase = unittest.TestCase
 main = unittest.main

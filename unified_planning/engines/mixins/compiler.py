@@ -26,7 +26,6 @@ class CompilationKind(Enum):
 
 
 class CompilerMixin:
-
     @staticmethod
     def is_compiler() -> bool:
         return True
@@ -35,6 +34,21 @@ class CompilerMixin:
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         raise NotImplementedError
 
-    def compile(self, problem: 'up.model.AbstractProblem',
-                compilation_kind: CompilationKind) -> 'up.engines.results.CompilerResult':
+    def compile(
+        self, problem: "up.model.AbstractProblem", compilation_kind: CompilationKind
+    ) -> "up.engines.results.CompilerResult":
+        assert isinstance(self, up.engines.engine.Engine)
+        if not self.supports(problem.kind):
+            raise up.exceptions.UPUsageError(
+                f"{self.name} cannot handle this kind of problem!"
+            )
+        if not self.supports_compilation(compilation_kind):
+            raise up.exceptions.UPUsageError(
+                f"{self.name} cannot handle this kind of compilation!"
+            )
+        return self._compile(problem, compilation_kind)
+
+    def _compile(
+        self, problem: "up.model.AbstractProblem", compilation_kind: CompilationKind
+    ) -> "up.engines.results.CompilerResult":
         raise NotImplementedError

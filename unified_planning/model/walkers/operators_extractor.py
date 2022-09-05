@@ -13,21 +13,24 @@
 # limitations under the License.
 #
 
-import unified_planning.walkers as walkers
-from unified_planning.model import FNode, OperatorKind
+import unified_planning.model.walkers as walkers
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
 from typing import List, Set
 
 
-class OperatorsExtractor(walkers.DagWalker):
+class OperatorsExtractor(walkers.dag.DagWalker):
     """This expression walker returns all the operators of a given expression."""
 
     def __init__(self):
-        walkers.DagWalker.__init__(self)
+        walkers.dag.DagWalker.__init__(self)
 
     def get(self, expression: FNode) -> Set[int]:
         """Returns all the operators of the given expression."""
         return self.walk(expression)
 
     @walkers.handles(OperatorKind)
-    def walk_all_types(self, expression: FNode, args: List[Set[OperatorKind]]) -> Set[OperatorKind]:
+    def walk_all_types(
+        self, expression: FNode, args: List[Set[OperatorKind]]
+    ) -> Set[OperatorKind]:
         return set(x for y in args for x in y) | {expression.node_type}

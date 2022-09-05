@@ -18,11 +18,23 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.model import Fluent, Problem, InstantaneousAction, DurativeAction, FNode, Action, Effect, Timing, ProblemKind
-from unified_planning.walkers import Simplifier
+from unified_planning.model import (
+    Fluent,
+    Problem,
+    InstantaneousAction,
+    DurativeAction,
+    FNode,
+    Action,
+    Effect,
+    Timing,
+    ProblemKind,
+)
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.exceptions import UPExpressionDefinitionError, UPProblemDefinitionError
+from unified_planning.exceptions import (
+    UPExpressionDefinitionError,
+    UPProblemDefinitionError,
+)
 from typing import List, Dict, Union
 from functools import partial
 
@@ -34,16 +46,20 @@ class NegativeFluentRemover(IdentityDagWalker):
         self._fluent_mapping: Dict[Fluent, Fluent] = {}
         self._problem = problem
 
-    def remove_negative_fluents(self, expression:FNode) -> FNode:
+    def remove_negative_fluents(self, expression: FNode) -> FNode:
         return self.walk(expression)
 
     def walk_not(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         assert len(args) == 1
         if not args[0].is_fluent_exp():
-            raise UPExpressionDefinitionError(f"Expression: {expression} is not in NNF.")
+            raise UPExpressionDefinitionError(
+                f"Expression: {expression} is not in NNF."
+            )
         neg_fluent = self._fluent_mapping.get(args[0].fluent(), None)
         if neg_fluent is not None:
-            return self._env.expression_manager.FluentExp(neg_fluent, tuple(args[0].args))
+            return self._env.expression_manager.FluentExp(
+                neg_fluent, tuple(args[0].args)
+            )
         f = args[0].fluent()
         nf = Fluent(get_fresh_name(self._problem, f.name), f.type, f.signature, f._env)
         self._fluent_mapping[f] = nf
@@ -55,41 +71,41 @@ class NegativeFluentRemover(IdentityDagWalker):
 
 
 class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
-    '''Negative conditions remover class: this class offers the capability
+    """Negative conditions remover class: this class offers the capability
     to transform a problem with negative conditions into one
     without negative conditions.
 
     This is done by substituting every fluent that appears with a Not into the conditions
-    with different fluent representing  his negation.'''
+    with different fluent representing  his negation."""
 
     @property
     def name(self):
-        return 'ncrm'
+        return "ncrm"
 
     @staticmethod
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
-        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-        supported_kind.set_time('CONTINUOUS_TIME') # type: ignore
-        supported_kind.set_time('DISCRETE_TIME') # type: ignore
-        supported_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-        supported_kind.set_time('TIMED_EFFECT') # type: ignore
-        supported_kind.set_time('TIMED_GOALS') # type: ignore
-        supported_kind.set_time('DURATION_INEQUALITIES') # type: ignore
+        supported_kind.set_problem_class("ACTION_BASED")
+        supported_kind.set_typing("FLAT_TYPING")
+        supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_numbers("CONTINUOUS_NUMBERS")
+        supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_fluents_type("NUMERIC_FLUENTS")
+        supported_kind.set_fluents_type("OBJECT_FLUENTS")
+        supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+        supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        supported_kind.set_effects_kind("INCREASE_EFFECTS")
+        supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_time("CONTINUOUS_TIME")
+        supported_kind.set_time("DISCRETE_TIME")
+        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECT")
+        supported_kind.set_time("TIMED_GOALS")
+        supported_kind.set_time("DURATION_INEQUALITIES")
         return supported_kind
 
     @staticmethod
@@ -100,22 +116,21 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.NEGATIVE_CONDITIONS_REMOVING
 
-    def compile(self, problem: 'up.model.AbstractProblem',
-                compilation_kind: 'up.engines.CompilationKind') -> CompilerResult:
-        if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of problem!')
+    def _compile(
+        self,
+        problem: "up.model.AbstractProblem",
+        compilation_kind: "up.engines.CompilationKind",
+    ) -> CompilerResult:
         assert isinstance(problem, Problem)
-        if not self.supports_compilation(compilation_kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of compilation!')
 
         env = problem.env
-        simplifier = Simplifier(env)
+        simplifier = env.simplifier
 
         fluent_remover = NegativeFluentRemover(problem, env)
 
         new_to_old: Dict[Action, Action] = {}
 
-        new_problem = Problem(f'{self.name}_{problem.name}', env)
+        new_problem = Problem(f"{self.name}_{problem.name}", env)
         for o in problem.all_objects:
             new_problem.add_object(o)
 
@@ -129,7 +144,9 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                     np = fluent_remover.remove_negative_fluents(p)
                     new_action.add_precondition(np)
                 for ce in new_action.conditional_effects:
-                    ce.set_condition(fluent_remover.remove_negative_fluents(ce.condition))
+                    ce.set_condition(
+                        fluent_remover.remove_negative_fluents(ce.condition)
+                    )
                 name_action_map[action.name] = new_action
             elif isinstance(action, DurativeAction):
                 new_durative_action = action.clone()
@@ -141,7 +158,9 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         new_durative_action.add_condition(i, nc)
                 for t, cel in new_durative_action.conditional_effects.items():
                     for ce in cel:
-                        ce.set_condition(fluent_remover.remove_negative_fluents(ce.condition))
+                        ce.set_condition(
+                            fluent_remover.remove_negative_fluents(ce.condition)
+                        )
                 name_action_map[action.name] = new_durative_action
             else:
                 raise NotImplementedError
@@ -164,7 +183,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             ng = fluent_remover.remove_negative_fluents(g)
             new_problem.add_goal(ng)
 
-        #fluent_mapping is the map between a fluent and it's negation, when the
+        # fluent_mapping is the map between a fluent and it's negation, when the
         # negation is None it means the fluent is never found in a negation into
         # every condititon analized before; therefore it does not need to exist.
         fluent_mapping = fluent_remover.fluent_mapping
@@ -179,11 +198,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem.set_initial_value(fl, v)
             if fneg is not None:
                 if v.bool_constant_value():
-                    new_problem.set_initial_value(env.expression_manager.FluentExp(fneg,
-                    tuple(fl.args)), env.expression_manager.FALSE())
+                    new_problem.set_initial_value(
+                        env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                        env.expression_manager.FALSE(),
+                    )
                 else:
-                    new_problem.set_initial_value(env.expression_manager.FluentExp(fneg,
-                    tuple(fl.args)), env.expression_manager.TRUE())
+                    new_problem.set_initial_value(
+                        env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                        env.expression_manager.TRUE(),
+                    )
 
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
@@ -195,9 +218,17 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         a=77
                     fneg = fluent_mapping.get(fl.fluent(), None)
                     if fneg is not None:
-                        simplified_not_v = simplifier.simplify(env.expression_manager.Not(v))
-                        new_effects.append(Effect(env.expression_manager.FluentExp(fneg, tuple(fl.args)),
-                                                  simplified_not_v, e.condition, e.kind))
+                        simplified_not_v = simplifier.simplify(
+                            env.expression_manager.Not(v)
+                        )
+                        new_effects.append(
+                            Effect(
+                                env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                                simplified_not_v,
+                                e.condition,
+                                e.kind,
+                            )
+                        )
                 for ne in new_effects:
                     new_action._add_effect_instance(ne)
                 new_problem.add_action(new_action)
@@ -211,9 +242,20 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         fl, v = e.fluent, e.value
                         fneg = fluent_mapping.get(fl.fluent(), None)
                         if fneg is not None:
-                            simplified_not_v = simplifier.simplify(env.expression_manager.Not(v))
-                            new_durative_action._add_effect_instance(t, Effect(env.expression_manager.FluentExp(fneg, tuple(fl.args)),
-                                                                               simplified_not_v, e.condition, e.kind))
+                            simplified_not_v = simplifier.simplify(
+                                env.expression_manager.Not(v)
+                            )
+                            new_durative_action._add_effect_instance(
+                                t,
+                                Effect(
+                                    env.expression_manager.FluentExp(
+                                        fneg, tuple(fl.args)
+                                    ),
+                                    simplified_not_v,
+                                    e.condition,
+                                    e.kind,
+                                ),
+                            )
                 new_problem.add_action(new_durative_action)
                 new_to_old[new_durative_action] = action
             else:
@@ -224,8 +266,19 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 fl, v = e.fluent, e.value
                 fneg = fluent_mapping.get(fl.fluent(), None)
                 if fneg is not None:
-                    simplified_not_v = simplifier.simplify(env.expression_manager.Not(v))
-                    new_problem._add_effect_instance(t, Effect(env.expression_manager.FluentExp(fneg, tuple(fl.args)),
-                                                               simplified_not_v, e.condition, e.kind))
+                    simplified_not_v = simplifier.simplify(
+                        env.expression_manager.Not(v)
+                    )
+                    new_problem._add_effect_instance(
+                        t,
+                        Effect(
+                            env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                            simplified_not_v,
+                            e.condition,
+                            e.kind,
+                        ),
+                    )
 
-        return CompilerResult(new_problem, partial(replace_action, map=new_to_old), self.name)
+        return CompilerResult(
+            new_problem, partial(replace_action, map=new_to_old), self.name
+        )

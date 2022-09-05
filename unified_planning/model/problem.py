@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-'''This module defines the problem class.'''
+"""This module defines the problem class."""
 
 
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
-from unified_planning.model.actions_set import ActionsSetMixin
-from unified_planning.model.fluents_set import FluentsSetMixin
-from unified_planning.model.objects_set import ObjectsSetMixin
-from unified_planning.model.user_types_set import UserTypesSetMixin
+from unified_planning.model.mixins import (
+    ActionsSetMixin,
+    FluentsSetMixin,
+    ObjectsSetMixin,
+    UserTypesSetMixin,
+)
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
@@ -28,16 +30,30 @@ from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, U
 from unified_planning.plans import ActionInstance
 from unified_planning.walkers import OperatorsExtractor, Simplifier
 from fractions import Fraction
-from typing import Iterator, List, Dict, Set, Union, Optional, cast
+from typing import List, Dict, Set, Union, cast
 
 
-class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMixin, ObjectsSetMixin):
-    '''Represents a, action based planning problem.'''
-    def __init__(self, name: str = None, env: 'up.environment.Environment' = None, *,
-                 initial_defaults: Dict['up.model.types.Type', 'ConstantExpression'] = {}):
+class Problem(
+    AbstractProblem,
+    UserTypesSetMixin,
+    FluentsSetMixin,
+    ActionsSetMixin,
+    ObjectsSetMixin,
+):
+    """Represents a, action based planning problem."""
+
+    def __init__(
+        self,
+        name: str = None,
+        env: "up.environment.Environment" = None,
+        *,
+        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+    ):
         AbstractProblem.__init__(self, name, env)
         UserTypesSetMixin.__init__(self, self.has_name)
-        FluentsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name, initial_defaults)
+        FluentsSetMixin.__init__(
+            self, self.env, self._add_user_type, self.has_name, initial_defaults
+        )
         ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         self._operators_extractor = OperatorsExtractor()
@@ -51,47 +67,47 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
     def __repr__(self) -> str:
         s = []
         if not self.name is None:
-            s.append(f'problem name = {str(self.name)}\n\n')
+            s.append(f"problem name = {str(self.name)}\n\n")
         if len(self.user_types) > 0:
-            s.append(f'types = {str(list(self.user_types))}\n\n')
-        s.append('fluents = [\n')
+            s.append(f"types = {str(list(self.user_types))}\n\n")
+        s.append("fluents = [\n")
         for f in self.fluents:
-            s.append(f'  {str(f)}\n')
-        s.append(']\n\n')
-        s.append('actions = [\n')
+            s.append(f"  {str(f)}\n")
+        s.append("]\n\n")
+        s.append("actions = [\n")
         for a in self.actions:
-            s.append(f'  {str(a)}\n')
-        s.append(']\n\n')
+            s.append(f"  {str(a)}\n")
+        s.append("]\n\n")
         if len(self.user_types) > 0:
-            s.append('objects = [\n')
+            s.append("objects = [\n")
             for ty in self.user_types:
-                s.append(f'  {str(ty)}: {str(list(self.objects(ty)))}\n')
-            s.append(']\n\n')
-        s.append('initial fluents default = [\n')
+                s.append(f"  {str(ty)}: {str(list(self.objects(ty)))}\n")
+            s.append("]\n\n")
+        s.append("initial fluents default = [\n")
         for f in self._fluents:
             if f in self._fluents_defaults:
                 v = self._fluents_defaults[f]
-                s.append(f'  {str(f)} := {str(v)}\n')
-        s.append(']\n\n')
-        s.append('initial values = [\n')
+                s.append(f"  {str(f)} := {str(v)}\n")
+        s.append("]\n\n")
+        s.append("initial values = [\n")
         for k, v in self._initial_value.items():
-            s.append(f'  {str(k)} := {str(v)}\n')
-        s.append(']\n\n')
+            s.append(f"  {str(k)} := {str(v)}\n")
+        s.append("]\n\n")
         if len(self.timed_effects) > 0:
-            s.append('timed effects = [\n')
+            s.append("timed effects = [\n")
             for t, el in self.timed_effects.items():
-                s.append(f'  {str(t)} :\n')
+                s.append(f"  {str(t)} :\n")
                 for e in el:
-                    s.append(f'    {str(e)}\n')
-            s.append(']\n\n')
+                    s.append(f"    {str(e)}\n")
+            s.append("]\n\n")
         if len(self.timed_goals) > 0:
-            s.append('timed goals = [\n')
+            s.append("timed goals = [\n")
             for i, gl in self.timed_goals.items():
-                s.append(f'  {str(i)} :\n')
+                s.append(f"  {str(i)} :\n")
                 for g in gl:
-                    s.append(f'    {str(g)}\n')
-            s.append(']\n\n')
-        s.append('goals = [\n')
+                    s.append(f"    {str(g)}\n")
+            s.append("]\n\n")
+        s.append("goals = [\n")
         for g in self.goals:
             s.append(f'  {str(g)}\n')
         s.append(']\n\n')
@@ -101,20 +117,24 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                 s.append(f'  {str(c)}\n')
             s.append(']\n\n')
         if len(self.quality_metrics) > 0:
-            s.append('quality metrics = [\n')
+            s.append("quality metrics = [\n")
             for qm in self.quality_metrics:
-                s.append(f'  {str(qm)}\n')
-            s.append(']\n\n')
-        return ''.join(s)
+                s.append(f"  {str(qm)}\n")
+            s.append("]\n\n")
+        return "".join(s)
 
     def __eq__(self, oth: object) -> bool:
         if not (isinstance(oth, Problem)) or self._env != oth._env:
             return False
         if self.kind != oth.kind or self._name != oth._name:
             return False
-        if set(self._fluents) != set(oth._fluents) or set(self._goals) != set(oth._goals):
+        if set(self._fluents) != set(oth._fluents) or set(self._goals) != set(
+            oth._goals
+        ):
             return False
-        if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(oth._objects):
+        if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(
+            oth._objects
+        ):
             return False
         if set(self._actions) != set(oth._actions):
             return False
@@ -130,7 +150,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             elif value != oth_value:
                 return False
         if len(self._timed_effects) != len(oth._timed_effects):
-                return False
+            return False
         for t, tel in self._timed_effects.items():
             oth_tel = oth._timed_effects.get(t, None)
             if oth_tel is None:
@@ -181,14 +201,16 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
         new_p._initial_value = self._initial_value.copy()
-        new_p._timed_effects = {t: [e.clone() for e in el] for t, el in self._timed_effects.items()}
+        new_p._timed_effects = {
+            t: [e.clone() for e in el] for t, el in self._timed_effects.items()
+        }
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
         new_p._metrics = []
         for m in self._metrics:
             if isinstance(m, up.model.metrics.MinimizeActionCosts):
-                costs = {new_p.action(a.name) : c for a, c in m.costs.items()}
+                costs = {new_p.action(a.name): c for a, c in m.costs.items()}
                 new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
             else:
                 new_p._metrics.append(m)
@@ -197,16 +219,21 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         return new_p
 
     def has_name(self, name: str) -> bool:
-        '''Returns true if the name is in the problem.'''
-        return self.has_action(name) or self.has_fluent(name) or self.has_object(name) or self.has_type(name)
+        """Returns true if the name is in the problem."""
+        return (
+            self.has_action(name)
+            or self.has_fluent(name)
+            or self.has_object(name)
+            or self.has_type(name)
+        )
 
-    def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
-        '''Normalizes the given plan updating the action and object instances.'''
+    def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
+        """Normalizes the given plan updating the action and object instances."""
         return plan.replace_action_instances(self._replace_action_instance)
 
-    def _replace_action_instance(self,
-                                action_instance: ActionInstance
-                                ) -> ActionInstance:
+    def _replace_action_instance(
+        self, action_instance: "up.plans.ActionInstance"
+    ) -> "up.plans.ActionInstance":
         em = self.env.expression_manager
         new_a = self.action(action_instance.action.name)
         params = []
@@ -222,25 +249,29 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                 params.append(em.Real(cast(Fraction, p.constant_value())))
             else:
                 raise NotImplementedError
-        return ActionInstance(new_a, tuple(params))
+        return up.plans.ActionInstance(new_a, tuple(params))
 
-    def get_static_fluents(self) -> Set['up.model.fluent.Fluent']:
-        '''Returns the set of the static fluents.
+    def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
+        """Returns the set of the static fluents.
 
         Static fluents are those who can't change their values because they never
         appear in the "fluent" field of an effect, therefore there are no Actions
-        in the Problem that can change their value.'''
-        static_fluents: Set['up.model.fluent.Fluent'] = set(self._fluents)
+        in the Problem that can change their value."""
+        static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 for e in a.effects:
-                    if e.fluent.fluent() in static_fluents:
-                        static_fluents.remove(e.fluent.fluent())
+                    static_fluents.discard(e.fluent.fluent())
+                if a.simulated_effect is not None:
+                    for f in a.simulated_effect.fluents:
+                        static_fluents.discard(f.fluent())
             elif isinstance(a, up.model.action.DurativeAction):
                 for el in a.effects.values():
                     for e in el:
-                        if e.fluent.fluent() in static_fluents:
-                            static_fluents.remove(e.fluent.fluent())
+                        static_fluents.discard(e.fluent.fluent())
+                for _, se in a.simulated_effects.items():
+                    for f in se.fluents:
+                        static_fluents.discard(f.fluent())
             else:
                 raise NotImplementedError
         for el in self._timed_effects.values():
@@ -249,35 +280,51 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                     static_fluents.remove(e.fluent.fluent())
         return static_fluents
 
-    def set_initial_value(self, fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
-                          value: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', 'up.model.object.Object', bool,
-                                       int, float, Fraction]):
-        '''Sets the initial value for the given fluent.'''
+    def set_initial_value(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: Union[
+            "up.model.fnode.FNode",
+            "up.model.fluent.Fluent",
+            "up.model.object.Object",
+            bool,
+            int,
+            float,
+            Fraction,
+        ],
+    ):
+        """Sets the initial value for the given fluent."""
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
-            raise UPTypeError('Initial value assignment has not compatible types!')
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError("Initial value assignment has not compatible types!")
         self._initial_value[fluent_exp] = value_exp
 
-    def initial_value(self, fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent']) -> 'up.model.fnode.FNode':
-        '''Gets the initial value of the given fluent.'''
-        fluent_exp, = self._env.expression_manager.auto_promote(fluent)
+    def initial_value(
+        self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
+    ) -> "up.model.fnode.FNode":
+        """Gets the initial value of the given fluent."""
+        (fluent_exp,) = self._env.expression_manager.auto_promote(fluent)
         for a in fluent_exp.args:
             if not a.is_constant():
-                raise UPExpressionDefinitionError(f'Impossible to return the initial value of a fluent expression with no constant arguments: {fluent_exp}.')
+                raise UPExpressionDefinitionError(
+                    f"Impossible to return the initial value of a fluent expression with no constant arguments: {fluent_exp}."
+                )
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
         elif fluent_exp.fluent() in self._fluents_defaults:
             return self._fluents_defaults[fluent_exp.fluent()]
         else:
-            raise UPProblemDefinitionError('Initial value not set!')
+            raise UPProblemDefinitionError("Initial value not set!")
 
-    def _get_ith_fluent_exp(self, fluent: 'up.model.fluent.Fluent', domain_sizes: List[int], idx: int) -> 'up.model.fnode.FNode':
-        '''Returns the ith ground fluent expression.'''
+    def _get_ith_fluent_exp(
+        self, fluent: "up.model.fluent.Fluent", domain_sizes: List[int], idx: int
+    ) -> "up.model.fnode.FNode":
+        """Returns the ith ground fluent expression."""
         quot = idx
         rem = 0
         actual_parameters = []
         for i, p in enumerate(fluent.signature):
-            ds = domain_sizes[i];
+            ds = domain_sizes[i]
             rem = quot % ds
             quot //= ds
             v = domain_item(self, p.type, rem)
@@ -285,11 +332,11 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         return fluent(*actual_parameters)
 
     @property
-    def initial_values(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
-        '''Gets the initial value of the fluents.
+    def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
+        """Gets the initial value of the fluents.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible.'''
+        seldom as possible."""
         res = self._initial_value
         for f in self._fluents:
             if f.arity == 0:
@@ -308,20 +355,31 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         return res
 
     @property
-    def explicit_initial_values(self) -> Dict['up.model.fnode.FNode', 'up.model.fnode.FNode']:
-        '''Returns the problem's defined initial values.
-        IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values.'''
+    def explicit_initial_values(
+        self,
+    ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
+        """Returns the problem's defined initial values.
+        IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values."""
         return self._initial_value
 
-    def add_timed_goal(self, interval: Union['up.model.timing.Timing', 'up.model.timing.TimeInterval'],
-                       goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
-        '''Adds a timed goal.'''
+    def add_timed_goal(
+        self,
+        interval: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
+        goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool],
+    ):
+        """Adds a timed goal."""
+        assert (
+            isinstance(goal, bool) or goal.environment == self._env
+        ), "timed_goal does not have the same environment of the problem"
         if isinstance(interval, up.model.Timing):
             interval = up.model.TimePointInterval(interval)
-        if ((interval.lower.is_from_end() and interval.lower.delay > 0) or
-            (interval.upper.is_from_end() and interval.upper.delay > 0)):
-            raise UPProblemDefinitionError('Problem timing can not be `end - k` with k > 0.')
-        goal_exp, = self._env.expression_manager.auto_promote(goal)
+        if (interval.lower.is_from_end() and interval.lower.delay > 0) or (
+            interval.upper.is_from_end() and interval.upper.delay > 0
+        ):
+            raise UPProblemDefinitionError(
+                "Problem timing can not be `end - k` with k > 0."
+            )
+        (goal_exp,) = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         if interval in self._timed_goals:
             if goal_exp not in self._timed_goals[interval]:
@@ -330,57 +388,104 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             self._timed_goals[interval] = [goal_exp]
 
     @property
-    def timed_goals(self) -> Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']]:
-        '''Returns the timed goals.'''
+    def timed_goals(
+        self,
+    ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
+        """Returns the timed goals."""
         return self._timed_goals
 
     def clear_timed_goals(self):
-        '''Removes the timed goals.'''
+        """Removes the timed goals."""
         self._timed_goals = {}
 
-    def add_timed_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
-                         value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
-        '''Adds the given timed effect.'''
+    def add_timed_effect(
+        self,
+        timing: "up.model.timing.Timing",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+    ):
+        """Adds the given timed effect."""
         if timing.is_from_end():
-            raise UPProblemDefinitionError(f'Timing used in timed effect cannot be EndTiming.')
-        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
-                                                                                         condition)
+            raise UPProblemDefinitionError(
+                f"Timing used in timed effect cannot be EndTiming."
+            )
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
-            raise UPTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
-            raise UPTypeError('Timed effect has not compatible types!')
-        self._add_effect_instance(timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp))
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError("Timed effect has not compatible types!")
+        self._add_effect_instance(
+            timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
+        )
 
-    def add_increase_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
-                            value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
-        '''Adds the given timed increase effect.'''
-        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
-                                                                                         condition)
+    def add_increase_effect(
+        self,
+        timing: "up.model.timing.Timing",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+    ):
+        """Adds the given timed increase effect."""
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
-            raise UPTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
-            raise UPTypeError('Timed effect has not compatible types!')
-        self._add_effect_instance(timing,
-                                  up.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = up.model.effect.EffectKind.INCREASE))
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError("Timed effect has not compatible types!")
+        self._add_effect_instance(
+            timing,
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.INCREASE,
+            ),
+        )
 
-    def add_decrease_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
-                            value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
-        '''Adds the given timed decrease effect.'''
-        fluent_exp, value_exp, condition_exp = self._env.expression_manager.auto_promote(fluent, value,
-                                                                                         condition)
+    def add_decrease_effect(
+        self,
+        timing: "up.model.timing.Timing",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+    ):
+        """Adds the given timed decrease effect."""
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
-            raise UPTypeError('Effect condition is not a Boolean condition!')
-        if not self._env.type_checker.is_compatible_exp(fluent_exp, value_exp):
-            raise UPTypeError('Timed effect has not compatible types!')
-        self._add_effect_instance(timing,
-                                  up.model.effect.Effect(fluent_exp, value_exp,
-                                         condition_exp, kind = up.model.effect.EffectKind.DECREASE))
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError("Timed effect has not compatible types!")
+        self._add_effect_instance(
+            timing,
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.DECREASE,
+            ),
+        )
 
-    def _add_effect_instance(self, timing: 'up.model.timing.Timing', effect: 'up.model.effect.Effect'):
+    def _add_effect_instance(
+        self, timing: "up.model.timing.Timing", effect: "up.model.effect.Effect"
+    ):
+        assert (
+            effect.environment == self._env
+        ), "effect does not have the same environment of the problem"
         if timing in self._timed_effects:
             if effect not in self._timed_effects[timing]:
                 self._timed_effects[timing].append(effect)
@@ -388,17 +493,24 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             self._timed_effects[timing] = [effect]
 
     @property
-    def timed_effects(self) -> Dict['up.model.timing.Timing', List['up.model.effect.Effect']]:
-        '''Returns the timed effects.'''
+    def timed_effects(
+        self,
+    ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
+        """Returns the timed effects."""
         return self._timed_effects
 
     def clear_timed_effects(self):
-        '''Removes the timed effects.'''
+        """Removes the timed effects."""
         self._timed_effects = {}
 
-    def add_goal(self, goal: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent', bool]):
-        '''Adds a goal.'''
-        goal_exp, = self._env.expression_manager.auto_promote(goal)
+    def add_goal(
+        self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
+    ):
+        """Adds a goal."""
+        assert (
+            isinstance(goal, bool) or goal.environment == self._env
+        ), "goal does not have the same environment of the problem"
+        (goal_exp,) = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
@@ -425,8 +537,8 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
                 self._trajectory_constraints = new_traj_list
 
     @property
-    def goals(self) -> List['up.model.fnode.FNode']:
-        '''Returns the goals.'''
+    def goals(self) -> List["up.model.fnode.FNode"]:
+        """Returns the goals."""
         return self._goals
 
     @property
@@ -435,7 +547,7 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         return self._trajectory_constraints
 
     def clear_goals(self):
-        '''Removes the goals.'''
+        """Removes the goals."""
         self._goals = []
 
     def clear_trajectory_constraints(self):
@@ -447,28 +559,32 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         self._metrics.append(metric)
 
     @property
-    def quality_metrics(self) -> List['up.model.metrics.PlanQualityMetric']:
-        '''Returns the quality metrics'''
+    def quality_metrics(self) -> List["up.model.metrics.PlanQualityMetric"]:
+        """Returns the quality metrics"""
         return self._metrics
 
+    def clear_quality_metrics(self):
+        """Removes the quality metrics"""
+        self._metrics = []
+
     @property
-    def kind(self) -> 'up.model.problem_kind.ProblemKind':
-        '''Returns the problem kind of this planning problem.
+    def kind(self) -> "up.model.problem_kind.ProblemKind":
+        """Returns the problem kind of this planning problem.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible.'''
+        seldom as possible."""
         self._kind = up.model.problem_kind.ProblemKind()
-        self._kind.set_problem_class('ACTION_BASED') # type: ignore
+        self._kind.set_problem_class("ACTION_BASED")
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
         for action in self._actions:
             self._update_problem_kind_action(action)
         if len(self._timed_effects) > 0:
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
-            self._kind.set_time('TIMED_EFFECT') # type: ignore
+            self._kind.set_time("CONTINUOUS_TIME")
+            self._kind.set_time("TIMED_EFFECT")
         for effect_list in self._timed_effects.values():
-                for effect in effect_list:
-                    self._update_problem_kind_effect(effect)
+            for effect in effect_list:
+                self._update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
             self._kind.set_time('TIMED_GOALS') # type: ignore
             self._kind.set_time('CONTINUOUS_TIME') # type: ignore
@@ -480,61 +596,64 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
         for goal in self._goals:
             self._update_problem_kind_condition(goal)
         for metric in self._metrics:
-            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState) or \
-               isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                self._kind.set_quality_metrics('FINAL_VALUE') # type: ignore
+            if isinstance(
+                metric, up.model.metrics.MinimizeExpressionOnFinalState
+            ) or isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+                self._kind.set_quality_metrics("FINAL_VALUE")
             elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                self._kind.set_quality_metrics('ACTIONS_COST') # type: ignore
+                self._kind.set_quality_metrics("ACTIONS_COST")
             elif isinstance(metric, up.model.metrics.MinimizeMakespan):
-                self._kind.set_quality_metrics('MAKESPAN') # type: ignore
+                self._kind.set_quality_metrics("MAKESPAN")
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
-                self._kind.set_quality_metrics('PLAN_LENGTH') # type: ignore
+                self._kind.set_quality_metrics("PLAN_LENGTH")
+            elif isinstance(metric, up.model.metrics.Oversubscription):
+                self._kind.set_quality_metrics("OVERSUBSCRIPTION")
             else:
-                assert False, 'Unknown quality metric'
+                assert False, "Unknown quality metric"
         return self._kind
 
-    def _update_problem_kind_effect(self, e: 'up.model.effect.Effect'):
+    def _update_problem_kind_effect(self, e: "up.model.effect.Effect"):
         if e.is_conditional():
             self._update_problem_kind_condition(e.condition)
-            self._kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
+            self._kind.set_effects_kind("CONDITIONAL_EFFECTS")
         if e.is_increase():
-            self._kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
+            self._kind.set_effects_kind("INCREASE_EFFECTS")
         elif e.is_decrease():
-            self._kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
+            self._kind.set_effects_kind("DECREASE_EFFECTS")
 
-    def _update_problem_kind_condition(self, exp: 'up.model.fnode.FNode'):
+    def _update_problem_kind_condition(self, exp: "up.model.fnode.FNode"):
         ops = self._operators_extractor.get(exp)
         if OperatorKind.EQUALS in ops:
-            self._kind.set_conditions_kind('EQUALITY') # type: ignore
+            self._kind.set_conditions_kind("EQUALITY")
         if OperatorKind.NOT in ops:
-            self._kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         if OperatorKind.OR in ops:
-            self._kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         if OperatorKind.EXISTS in ops:
-            self._kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         if OperatorKind.FORALL in ops:
-            self._kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
+            self._kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 
-    def _update_problem_kind_type(self, type: 'up.model.types.Type'):
+    def _update_problem_kind_type(self, type: "up.model.types.Type"):
         if type.is_user_type():
-            self._kind.set_typing('FLAT_TYPING') # type: ignore
-            if type.father is not None: # type: ignore
-               self._kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
+            self._kind.set_typing("FLAT_TYPING")
+            if cast(up.model.types._UserType, type).father is not None:
+                self._kind.set_typing("HIERARCHICAL_TYPING")
         elif type.is_int_type():
-            self._kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
+            self._kind.set_numbers("DISCRETE_NUMBERS")
         elif type.is_real_type():
-            self._kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
+            self._kind.set_numbers("CONTINUOUS_NUMBERS")
 
-    def _update_problem_kind_fluent(self, fluent: 'up.model.fluent.Fluent'):
+    def _update_problem_kind_fluent(self, fluent: "up.model.fluent.Fluent"):
         self._update_problem_kind_type(fluent.type)
         if fluent.type.is_int_type() or fluent.type.is_real_type():
-            self._kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
+            self._kind.set_fluents_type("NUMERIC_FLUENTS")
         elif fluent.type.is_user_type():
-            self._kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
+            self._kind.set_fluents_type("OBJECT_FLUENTS")
         for p in fluent.signature:
             self._update_problem_kind_type(p.type)
 
-    def _update_problem_kind_action(self, action: 'up.model.action.Action'):
+    def _update_problem_kind_action(self, action: "up.model.action.Action"):
         for p in action.parameters:
             self._update_problem_kind_type(p.type)
         if isinstance(action, up.model.action.InstantaneousAction):
@@ -543,23 +662,37 @@ class Problem(AbstractProblem, UserTypesSetMixin, FluentsSetMixin, ActionsSetMix
             for e in action.effects:
                 self._update_problem_kind_effect(e)
             if action.simulated_effect is not None:
-                self._kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
+                self._kind.set_simulated_entities("SIMULATED_EFFECTS")
         elif isinstance(action, up.model.action.DurativeAction):
             lower, upper = action.duration.lower, action.duration.upper
-            if lower.constant_value() != upper.constant_value():
-                self._kind.set_time('DURATION_INEQUALITIES') # type: ignore
+            if lower != upper:
+                self._kind.set_time("DURATION_INEQUALITIES")
+            free_vars = self.env.free_vars_extractor.get(
+                lower
+            ) | self.env.free_vars_extractor.get(upper)
+            if len(free_vars) > 0:
+                static_fluents = self.get_static_fluents()
+                only_static = True
+                for fv in free_vars:
+                    if fv.fluent() not in static_fluents:
+                        only_static = False
+                        break
+                if only_static:
+                    self._kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
+                else:
+                    self._kind.set_expression_duration("FLUENTS_IN_DURATION")
             for i, lc in action.conditions.items():
                 if i.lower.delay != 0 or i.upper.delay != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+                    self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
                 for c in lc:
                     self._update_problem_kind_condition(c)
             for t, le in action.effects.items():
                 if t.delay != 0:
-                    self._kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
+                    self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
                 for e in le:
                     self._update_problem_kind_effect(e)
             if len(action.simulated_effects) > 0:
-                self._kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+                self._kind.set_simulated_entities("SIMULATED_EFFECTS")
+            self._kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError

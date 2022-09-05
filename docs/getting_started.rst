@@ -12,128 +12,67 @@ In this guide we present the main functionalities offered by the Unified-Plannin
 Problem specification
 =====================
 
-The main functionality offered by the library concerns the specification of a planning problem. The API  provides classes and functions to populate a Problem object with the fluents, actions, initial states and goal specifications constituting the planning problem specification.
+The main functionality offered by the library concerns the specification of a planning problem. The API provides classes and functions to populate a Problem object with the fluents, actions, initial states and goal specifications constituting the planning problem specification.
 The functionalities for creating model objects and to manipulate them are collected in the unified_planning.model package of the library.
 
 Example
 -------
-The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery. The example shows the basic functionalities and objects needed to declare the problem specification.  A more detailed presentation of the different objects is available on the `Google Colab <https://colab.research.google.com/drive/1kbNu3k1SxO1CbTtqfLEUTmU1AuAyxuHG?usp=sharing>`_ Python notebook where we document and explain all the different classes and their semantics.
-::
-    # Declaring types
-    Location = UserType('Location')
+The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery. The example shows the basic functionalities and objects needed to declare the problem specification. A more detailed presentation of the different objects is available on the `Google Colab <https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Unified_Planning_Basics.ipynb>`_ Python notebook where we document and explain all the different classes and their semantics.
 
-    # Creating problem ‘variables’
-    robot_at = Fluent('robot_at', BoolType(), [Location])
-    battery_charge = Fluent('battery_charge', RealType(0, 100))
+.. literalinclude:: ./code_snippets/robot_battery.py
+    :lines: 3-38
 
-    # Creating actions
-    move = InstantaneousAction('move', l_from=Location, l_to=Location)
-    l_from = move.parameter('l_from')
-    l_to = move.parameter('l_to')
-    move.add_precondition(GE(battery_charge, 10))
-    move.add_precondition(Not(Equals(l_from, l_to)))
-    move.add_precondition(robot_at(l_from))
-    move.add_precondition(Not(robot_at(l_to)))
-    move.add_effect(robot_at(l_from), False)
-    move.add_effect(robot_at(l_to), True)
-    move.add_effect(battery_charge, Minus(battery_charge, 10))
 
-    # Declaring objects
-    l1 = Object('l1', Location)
-    l2 = Object('l2', Location)
+In the current version, the Unified-Planning library allows the specification of classical, numerical and temporal planning problems. In order to support the latitude expressiveness levels we have operators for arithmetic such as plus minus times and division and specific temporal operators to attach conditions and effects to specific timings within the duration of an action. The library :ref:`documentation <api-ref>` provides examples and describes the use of these functionalities.
 
-    # Populating the problem with initial state and goals
-    problem = Problem('robot')
-    problem.add_fluent(robot_at)
-    problem.add_fluent(battery_charge)
-    problem.add_action(move)
-    problem.add_object(l1)
-    problem.add_object(l2)
-    problem.set_initial_value(robot_at(l1), True)
-    problem.set_initial_value(robot_at(l2), False)
-    problem.set_initial_value(battery_charge, 100)
-    problem.add_goal(robot_at(l2))
 
-In the current version, the Unified-Planning library allows the specification of  classical, numerical and temporal planning problems. In order to support the latitude expressiveness levels we have operators for arithmetic such as plus minus times and division and specific temporal operators to attach conditions and effects to specific timings within the duration of an action. The library :ref:`documentation <api-ref>` provides examples and describes the use of these functionalities.
+Operation Modes
+===============
+The library offers primitives to invoke planning engines of different kinds on problem specifications. In particular, the library uses the concept of operation modes to account for different possible interactions that can be performed with the planning engine at hand. Such operation modes allow the standardization of APIs towards different planning engineers sharing the same interaction kind and primitives.
 
-Transformers
-============
+We currently support the following operation modes:
 
-Another very interesting functionality offered by the Unified-Planning concerns model-to-model transformation. The library implements several simplifications and compilations that can transform one problem into an equivalent one getting rid of some of the planning constructs. For example, we offer a functionality to remove conditional effects from the planning problem specification by transforming the input problem into an equivalent one that does not make use of conditional effects. Our transforming architecture is very general and offers functionalities to transform a plan for the target problem of the compilation into a plan for the input problem. This allows the creation of pipelines of transformations that can map an input planning problem into an equivalent one supported by a target planning engine and then transform back the plan generated by the engine into a valid plan for the overall input problem.
-All the available transformers are part of a class hierarchy rooted in the Transformer class and are contained in the ``unified_planning.transformers`` package.
+* OneshotPlanning: is the classical interaction mode for the planning community, it consists in posing the planning problem entirely and then waiting for the solution. This operation mode does not support incremental reuse of information and is limited to one planning problem at a time, but is the most common operation model among the different planners available.
+* PlanValidation: is an operation mode supporting the use case of checking the validity of a given plan against the problem specification. Essentially, the engine is required to analyse the given plan and report whether it is guaranteed to achieve the goal conditions or if instead it can fail due to an action not being applicable or a goal not being reached. For this operation mode, we also implemented a native engine that is part of the library itself.
+* Compiling: is an operation mode that transforms a given problem into an equivalent one that doesn't make use of action parameters or first order predicates. The library implements several simplifications and compilations that can transform one problem into an equivalent one getting rid of some of the planning constructs. For example, we offer a functionality to remove conditional effects from the planning problem specification by compiling the input problem into an equivalent one that does not make use of conditional effects. Our architecture is very general and offers functionalities to transform a plan for the target problem of the compilation into a plan for the input problem. This allows the creation of pipelines of compilers that can map an input planning problem into an equivalent one supported by a target planning engine and then transform back the plan generated by the engine into a valid plan for the overall input problem.
+* Simulation: is an operation mode that, given a problem, provides the functionalities to check if an action is applicable in a given state, to apply an action and generate the next state and to check if a given state is a goal state.
+
+The solving interface also features a powerful automatic filtering of planning engines. In fact, the input planning problem is automatically analysed in order to determine the features needed to tackle the problem itself. The planning engines available on the system where the library is executed are then filtered, and only the ones that are capable of tackling the problem are left for the user to select from. This mechanism simplifies the job of the user in the selection of the right planning engine to be used.
+All the functionalities of the solving interface are collected under the ``unified_planning.engines`` package.
 
 Example
 -------
-The following example shows how to create a transformer to compile away negative conditions from a problem and to retrieve the plan for the original problem from a plan of the transformed problem. If the planner does not support negative conditions, the original problem could not be solved, while the transformer allows us to solve the problem anyway.
-::
-    # Creating the negative conditions remover
-    neg_remover = NegativeConditionsRemover(problem)
+The following example shows how to create a compiler to remove negative conditions from a problem and to retrieve the plan for the original problem from a plan of the transformed problem. If the planner does not support negative conditions, the original problem could not be solved, while the compiler allows us to solve the problem anyway.
 
-    # Checking that the problem has negative conditions
-    assert problem.kind.has_negative_conditions()
-
-    # Asking the transformer to get the new problem
-    new_problem = neg_remover.get_rewritten_problem()
-
-    # Checking that the new problem does not have negative conditions
-    assert not new_problem.kind.has_negative_conditions()
-
-    #Solving the problem generated by the transformer
-    new_plan = planner.solve(new_problem)
-
-    #Getting the equivalent plan for the original problem
-    plan = neg_remover.rewrite_back_plan(new_plan)
-
-    #Checking that the generated plan is valid for the original problem
-    assert planner.validate(problem, plan)
-
-
-Solving Interface
-=================
-The library offers primitives to invoke planning engines of different kinds on problem specifications. In particular, the library uses the concept of operation modes to account for different possible interactions that can be performed with the planning engine at hand. Such operation modes allow the standardization of APIs towards different planning engineers sharing the same interaction kind and primitives.
-
-We currently support 3 operation modes:
-
-* OneshotPlanning:  is the classical interaction mode for the planning community, it consists in posing the planning problem entirely and then waiting for the solution. This operation mode does not support  incremental reuse of information and is limited to one planning problem at a time, but  is the most common operation model among the different planners available.
-* PlanValidation: is an operation mode supporting the use case of checking the validity of a given plan against the problem specification. Essentially, the engine is required to analyse the given plan and report whether it is guaranteed to achieve the goal conditions or if instead it can fail due to an action not being applicable or a goal not being reached. For this operation mode, we also implemented a native engine that is part of the library itself.
-* Grounding: Is an operation mode that transforms a given problem into an equivalent one that doesn't make use of action parameters or first order predicates. This is a very common operation to be done for solving a planning problem and it is needed to transform planning problems into state machines.  Also in this case, the library offers a native grounder and it also integrates grounders of different engines so that more powerful grounding algorithms can be accessed in an uniform and engine-independent way.
-
-The solving interface also features a powerful automatic filtering of planning engines. In fact, the input planning problem is automatically analysed in order to determine the features needed to tackle the problem itself. The planning engines available on the system where the library is executed are then filtered, and only the ones that are capable of tackling the problem are left for the user to select from. This mechanism simplifies the job of the user in the selection of the right planning engine to be used.
-All the functionalities of the solving interface are collected under the ``unified_planning.solvers`` package.
+.. literalinclude:: ./code_snippets/robot_battery.py
+    :lines: 42-76
 
 Example
 -------
 
 The following example shows how to get a planner and solve a problem.
-::
-    # Getting a oneshot planner that is able to handle the given problem kind
-    with OneshotPlanner(problem_kind=problem.kind) as planner:
-        # Asking the planner to solve the problem
-        plan = planner.solve(problem)
 
-        # Printing the plan
-        print(plan)
+.. literalinclude:: ./code_snippets/robot_battery.py
+    :lines: 80-86
+
+
+Engines
+=======
+The ``Engine`` class is the class interface that has to be implemented in order to define an engine that exposes one or more operative modes. It has some methods that implements that operation modes and other methods that can be called to know if the engine is suitable for a given problem kind.
+
+The ``MetaEngine`` class is a child class of ``Engine`` that is defined over a generic engine implementation. The implementation of a meta engine can be used with all the compatible engines available on the system.
+
 
 Input/Output and Interoperability
 =================================
 
-Finally, the Unified-Planning library offers  primitives and functions for the interoperability with external formal languages and libraries.  In particular, we offer a strong integration  with the Planning Domain Definition Language (PDDL) language: we implemented a parser that can read in a problem specified in PDDL and convert it into a Unified-Planning problem data structure, and we have a comprehensive emitter that yelds PDDL specifications from a Unified-Planning problem instance.
+Finally, the Unified-Planning library offers primitives and functions for the interoperability with external formal languages and libraries. In particular, we offer a strong integration with the Planning Domain Definition Language (PDDL) language: we implemented a parser that can read in a problem specified in PDDL and convert it into a Unified-Planning problem data structure, and we have a comprehensive emitter that yelds PDDL specifications from a Unified-Planning problem instance.
 We also have automatic interfacing with other planning libraries. In particular, we have a conversion from a ``tarski`` representation into a Unified-Planning problem allowing a user to import from this external data structure and simplify the interoperability between the two libraries.
 The input-output classes and functions can be found in the unified_planning.io package, while the interoperability with ``tarski`` (and in the future with other libraries) are in the ups.interop package.
 
 Example
 -------
 The following example shows how to read a PDDL problem from files and how to dump to files in PDDL format a Unified-Planning problem.
-::
-    # Creating a PDDL reader
-    reader = PDDLReader()
 
-    # Parsing a PDDL problem from file
-    problem = reader.parse_problem('domain.pddl', 'problem.pddl')
-
-    # Creating a PDDL writer
-    writer = PDDLWriter()
-
-    # Writing the PDDL domain and problem in new files
-    writer.write_domain('new_domain.pddl')
-    writer.write_problem('new_problem.pddl')
+.. literalinclude:: ./code_snippets/robot_battery.py
+    :lines: 90-104

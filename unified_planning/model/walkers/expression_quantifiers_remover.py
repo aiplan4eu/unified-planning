@@ -15,11 +15,12 @@
 """This module defines the quantifiers remover class."""
 
 
-import unified_planning.model
-import unified_planning.walkers as walkers
-from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.model import Object, FNode, OperatorKind
-from unified_planning.model.objects_set import ObjectsSetMixin
+import unified_planning.model.walkers as walkers
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.object import Object
+from unified_planning.model.mixins import ObjectsSetMixin
 from unified_planning.model.expression import Expression
 from typing import List, Dict
 from itertools import product
@@ -29,20 +30,24 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
     def __init__(self, env):
         self._env = env
         IdentityDagWalker.__init__(self, self._env, True)
-        self._substituter = walkers.Substituter(self._env)
+        self._substituter = walkers.substituter.Substituter(self._env)
 
-    def remove_quantifiers(self, expression: FNode, objects_set: 'ObjectsSetMixin'):
+    def remove_quantifiers(self, expression: FNode, objects_set: "ObjectsSetMixin"):
         self._objects_set = objects_set
         return self.walk(expression)
 
-    def _help_walk_quantifiers(self, expression: FNode, args: List[FNode]) -> List[FNode]:
+    def _help_walk_quantifiers(
+        self, expression: FNode, args: List[FNode]
+    ) -> List[FNode]:
         vars = expression.variables()
         type_list = [v.type for v in vars]
-        possible_objects: List[List[Object]] = [list(self._objects_set.objects(t)) for t in type_list]
-        #product of n iterables returns a generator of tuples where
+        possible_objects: List[List[Object]] = [
+            list(self._objects_set.objects(t)) for t in type_list
+        ]
+        # product of n iterables returns a generator of tuples where
         # every tuple has n elements and the tuples make every possible
         # combination of 1 item for each iterable. For example:
-        #product([1,2], [3,4], [5,6], [7]) =
+        # product([1,2], [3,4], [5,6], [7]) =
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         subs_results = []
         for o in product(*possible_objects):

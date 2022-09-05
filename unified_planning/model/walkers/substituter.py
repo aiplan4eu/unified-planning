@@ -14,19 +14,21 @@
 #
 
 
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
 
 import unified_planning.environment
-from unified_planning.walkers.identitydag import IdentityDagWalker
-from unified_planning.model import FNode, OperatorKind
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
+from unified_planning.model.fnode import FNode
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.expression import Expression
 from unified_planning.exceptions import UPTypeError
-from unified_planning.model import Expression
 from typing import List, Dict
 
 
 class Substituter(IdentityDagWalker):
-    """Performs substitution into an expression """
-    def __init__(self, env: 'unified_planning.environment.Environment'):
+    """Performs substitution into an expression"""
+
+    def __init__(self, env: "unified_planning.environment.Environment"):
         IdentityDagWalker.__init__(self, env, True)
         self.env = env
         self.manager = env.expression_manager
@@ -35,7 +37,9 @@ class Substituter(IdentityDagWalker):
     def _get_key(self, expression, **kwargs):
         return expression
 
-    def substitute(self, expression: FNode, substitutions: Dict[Expression, Expression] = {}) -> FNode:
+    def substitute(
+        self, expression: FNode, substitutions: Dict[Expression, Expression] = {}
+    ) -> FNode:
         """Performs substitution into the given expression.
 
         Lets consider the examples:
@@ -62,15 +66,22 @@ class Substituter(IdentityDagWalker):
         new_substitutions: Dict[FNode, FNode] = {}
         for k, v in substitutions.items():
             new_k, new_v = self.manager.auto_promote(k, v)
-            if self.type_checker.is_compatible_exp(new_v, new_k):
+            if new_v.type.is_compatible(new_k.type):
                 new_substitutions[new_k] = new_v
             else:
                 raise UPTypeError(
-                    f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}")
-        return self.walk(expression, subs = new_substitutions)
+                    f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}"
+                )
+        return self.walk(expression, subs=new_substitutions)
 
     @walkers.handles(OperatorKind)
-    def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: Dict[FNode, FNode] = {}, **kwargs) -> FNode:
+    def walk_replace_or_identity(
+        self,
+        expression: FNode,
+        args: List[FNode],
+        subs: Dict[FNode, FNode] = {},
+        **kwargs,
+    ) -> FNode:
         res = subs.get(expression, None)
         if res is not None:
             return res
