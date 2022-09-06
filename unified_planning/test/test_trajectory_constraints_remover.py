@@ -13,13 +13,12 @@
 # limitations under the License.
 
 
-import unified_planning
 from unified_planning.engines.compilers.trajectory_constraints_remover import TrajectoryConstraintsRemover
 from unified_planning.shortcuts import *
 from unified_planning.walkers import Simplifier
-from unified_planning.test import TestCase, main
+from unified_planning.test import TestCase
 
-class TestTrajectoryConstraintsRemover(TestCase):
+class TestTrajectoryConstraintsRemoverCase(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         problem, fluents, actions = self.get_problem()
@@ -27,8 +26,6 @@ class TestTrajectoryConstraintsRemover(TestCase):
         self.problem = problem 
         self.fluents = fluents
         self.actions = actions
-        with problem.env.factory.Compiler(problem_kind=problem.kind, compilation_kind=up.engines.CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING) as traj_remover:
-            self.traj_remover = traj_remover
 
     def get_problem (self):
         problem = Problem('test_traj_constr_remover')
@@ -63,46 +60,49 @@ class TestTrajectoryConstraintsRemover(TestCase):
         return problem, fluents, acts
 
     def test_regression_1(self):
+        traj_remover = TrajectoryConstraintsRemover()
         a_phi = FluentExp(self.fluents[0])
         b_phi = FluentExp(self.fluents[1])
         c_phi = FluentExp(self.fluents[2])
         d_phi = FluentExp(self.fluents[3])
         e_phi = FluentExp(self.fluents[4])
         act_1 = self.actions[0]
-        R_a = self.simplifier.simplify(self.traj_remover._regression(a_phi, act_1))
-        R_b = self.simplifier.simplify(self.traj_remover._regression(b_phi, act_1))
-        R_c = self.simplifier.simplify(self.traj_remover._regression(c_phi, act_1))
-        R_d = self.simplifier.simplify(self.traj_remover._regression(d_phi, act_1))
-        R_e = self.simplifier.simplify(self.traj_remover._regression(e_phi, act_1))
+        R_a = self.simplifier.simplify(traj_remover._regression(a_phi, act_1))
+        R_b = self.simplifier.simplify(traj_remover._regression(b_phi, act_1))
+        R_c = self.simplifier.simplify(traj_remover._regression(c_phi, act_1))
+        R_d = self.simplifier.simplify(traj_remover._regression(d_phi, act_1))
+        R_e = self.simplifier.simplify(traj_remover._regression(e_phi, act_1))
         self.assertTrue(R_a.is_true() and R_b == b_phi and R_c == c_phi 
              and R_d == d_phi and R_e == e_phi)
 
     def test_regression_2(self):
+        traj_remover = TrajectoryConstraintsRemover()
         a_phi = FluentExp(self.fluents[0])
         b_phi = FluentExp(self.fluents[1])
         c_phi = FluentExp(self.fluents[2])
         d_phi = FluentExp(self.fluents[3])
         e_phi = FluentExp(self.fluents[4])
         act_2 = self.actions[1]
-        R_a = self.simplifier.simplify(self.traj_remover._regression(a_phi, act_2))
-        R_b = self.simplifier.simplify(self.traj_remover._regression(b_phi, act_2))
-        R_c = self.simplifier.simplify(self.traj_remover._regression(c_phi, act_2))
-        R_d = self.simplifier.simplify(self.traj_remover._regression(d_phi, act_2))
-        R_e = self.simplifier.simplify(self.traj_remover._regression(e_phi, act_2))
-        self.assertTrue(R_a.is_true() and R_b == b_phi and R_c.is_true() 
+        R_a = self.simplifier.simplify(traj_remover._regression(a_phi, act_2))
+        R_b = self.simplifier.simplify(traj_remover._regression(b_phi, act_2))
+        R_c = self.simplifier.simplify(traj_remover._regression(c_phi, act_2))
+        R_d = self.simplifier.simplify(traj_remover._regression(d_phi, act_2))
+        R_e = self.simplifier.simplify(traj_remover._regression(e_phi, act_2))
+        self.assertTrue(R_a.is_true() and R_b != b_phi and R_c != c_phi 
              and R_d == d_phi and R_e == e_phi)
 
     def test_regression_3(self):
+        traj_remover = TrajectoryConstraintsRemover()
         a_phi = FluentExp(self.fluents[0])
         b_phi = FluentExp(self.fluents[1])
         c_phi = FluentExp(self.fluents[2])
         d_phi = FluentExp(self.fluents[3])
         e_phi = FluentExp(self.fluents[4])
         act_3 = self.actions[2]
-        R_a = self.simplifier.simplify(self.traj_remover._regression(a_phi, act_3))
-        R_b = self.simplifier.simplify(self.traj_remover._regression(b_phi, act_3))
-        R_c = self.simplifier.simplify(self.traj_remover._regression(c_phi, act_3))
-        R_d = self.simplifier.simplify(self.traj_remover._regression(d_phi, act_3))
-        R_e = self.simplifier.simplify(self.traj_remover._regression(e_phi, act_3))
+        R_a = self.simplifier.simplify(traj_remover._regression(a_phi, act_3))
+        R_b = self.simplifier.simplify(traj_remover._regression(b_phi, act_3))
+        R_c = self.simplifier.simplify(traj_remover._regression(c_phi, act_3))
+        R_d = self.simplifier.simplify(traj_remover._regression(d_phi, act_3))
+        R_e = self.simplifier.simplify(traj_remover._regression(e_phi, act_3))
         self.assertTrue(R_a == a_phi and R_b == b_phi and R_c == c_phi 
-             and R_d == d_phi and R_e == e_phi)
+             and R_d != d_phi and R_e != e_phi)

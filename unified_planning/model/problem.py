@@ -639,7 +639,6 @@ class Problem(
         :param metric: The `quality metric` that a `Plan` of this `Problem` must satisfy in order to be valid.
         """
         self._metrics.append(metric)
-        self._metrics.append(metric)
 
     @property
     def quality_metrics(self) -> List["up.model.metrics.PlanQualityMetric"]:

@@ -63,7 +63,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(always)
         problem.add_trajectory_constraint(always_not)
         self.assertTrue(str(problem.trajectory_constraints) == 
-                        '[Always(robot_at(l1)), Always((not robot_at(l2)))]')
+                        '[(Always(robot_at(l1)) and Always((not robot_at(l2))))]')
 
     def test_create_sometime_constraint(self):
         problem, fluents, objects= self.define_problem()
@@ -83,7 +83,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(sometime)
         problem.add_trajectory_constraint(sometime_not)
         self.assertTrue(str(problem.trajectory_constraints) == 
-                        '[Sometime(robot_at(l1)), Sometime((not robot_at(l2)))]')
+                        '[(Sometime(robot_at(l1)) and Sometime((not robot_at(l2))))]')
 
     def test_create_at_most_once_constraint(self):
         problem, fluents, objects= self.define_problem()
@@ -103,7 +103,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(at_most_once)
         problem.add_trajectory_constraint(at_most_once_not)
         self.assertTrue(str(problem.trajectory_constraints) == 
-                        '[At-Most-Once(robot_at(l1)), At-Most-Once((not robot_at(l2)))]')
+                        '[(At-Most-Once(robot_at(l1)) and At-Most-Once((not robot_at(l2))))]')
 
     def test_create_sometime_before_constraint(self):
         problem, fluents, objects= self.define_problem()
@@ -125,7 +125,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(sometime_before)
         problem.add_trajectory_constraint(sometime_before_not)
         self.assertTrue(str(problem.trajectory_constraints) == 
-                        '[Sometime-Before(robot_at(l1), robot_at(l2)), Sometime-Before((not robot_at(l1)), robot_at(l2))]')
+                        '[(Sometime-Before(robot_at(l1), robot_at(l2)) and Sometime-Before((not robot_at(l1)), robot_at(l2)))]')
 
     def test_create_sometime_after_constraint(self):
         problem, fluents, objects= self.define_problem()
@@ -147,4 +147,4 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(sometime_after)
         problem.add_trajectory_constraint(sometime_after_not)
         self.assertTrue(str(problem.trajectory_constraints) == 
-                        '[Sometime-After(robot_at(l1), robot_at(l2)), Sometime-After((not robot_at(l1)), robot_at(l2))]')
+                        '[(Sometime-After(robot_at(l1), robot_at(l2)) and Sometime-After((not robot_at(l1)), robot_at(l2)))]')

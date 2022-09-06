@@ -14,6 +14,7 @@
 
 
 import unified_planning
+from unified_planning.engines.compilers.trajectory_constraints_remover import TrajectoryConstraintsRemover
 from unified_planning.walkers import Simplifier, ExpressionQuantifiersRemover
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -25,10 +26,9 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
         problem = self.define_problem()
         self.simplifier = Simplifier(problem.env)
         self.problem = problem
-        with problem.env.factory.Compiler(problem_kind=problem.kind, compilation_kind=up.engines.CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING) as traj_remover:
-            self.traj_remover = traj_remover
-        traj_remover._expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
-        traj_remover._problem = self.problem
+        self.traj_remover = TrajectoryConstraintsRemover()
+        self.traj_remover._expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
+        self.traj_remover._problem = self.problem
 
     def get_all_variable_by_type(self, vars, type):
         vars_to_return = []

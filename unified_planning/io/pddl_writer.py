@@ -364,35 +364,41 @@ class PDDLWriter:
         out.write(f"(domain {name}-domain)\n")
 
         if self.needs_requirements:
-            out.write(' (:requirements :strips')
-            if problem_kind.has_flat_typing(): # type: ignore
-                out.write(' :typing')
-            if problem_kind.has_negative_conditions(): # type: ignore
-                out.write(' :negative-preconditions')
-            if problem_kind.has_disjunctive_conditions(): # type: ignore
-                out.write(' :disjunctive-preconditions')
-            if problem_kind.has_equality(): # type: ignore
-                out.write(' :equality')
-            if (problem_kind.has_continuous_numbers() or # type: ignore
-                problem_kind.has_discrete_numbers()): # type: ignore
-                out.write(' :numeric-fluents')
-            if problem_kind.has_conditional_effects(): # type: ignore
-                out.write(' :conditional-effects')
-            if problem_kind.has_existential_conditions(): # type: ignore
-                out.write(' :existential-preconditions')
-            if problem_kind.has_trajectory_constraints(): # type: ignore
-                out.write(' :constraints')
-            if problem_kind.has_universal_conditions(): # type: ignore
-                out.write(' :universal-preconditions')
-            if (problem_kind.has_continuous_time() or # type: ignore
-                problem_kind.has_discrete_time()): # type: ignore
-                out.write(' :durative-actions')
-            if problem_kind.has_duration_inequalities(): # type: ignore
-                out.write(' :duration-inequalities')
-            if (self.problem.kind.has_actions_cost() or # type: ignore
-                self.problem.kind.has_plan_length()): # type: ignore
-                out.write(' :action-costs')
-            out.write(')\n')
+            out.write(" (:requirements :strips")
+            if self.problem_kind.has_flat_typing():
+                out.write(" :typing")
+            if self.problem_kind.has_negative_conditions():
+                out.write(" :negative-preconditions")
+            if self.problem_kind.has_disjunctive_conditions():
+                out.write(" :disjunctive-preconditions")
+            if self.problem_kind.has_equality():
+                out.write(" :equality")
+            if (
+                self.problem_kind.has_continuous_numbers()
+                or self.problem_kind.has_discrete_numbers()
+            ):
+                out.write(" :numeric-fluents")
+            if self.problem_kind.has_conditional_effects():
+                out.write(" :conditional-effects")
+            if self.problem_kind.has_existential_conditions():
+                out.write(" :existential-preconditions")
+            if self.problem_kind.has_trajectory_constraints():
+                out.write(" :constraints")
+            if self.problem_kind.has_universal_conditions():
+                out.write(" :universal-preconditions")
+            if (
+                self.problem_kind.has_continuous_time()
+                or self.problem_kind.has_discrete_time()
+            ):
+                out.write(" :durative-actions")
+            if self.problem_kind.has_duration_inequalities():
+                out.write(" :duration-inequalities")
+            if (
+                self.problem_kind.has_actions_cost()
+                or self.problem_kind.has_plan_length()
+            ):
+                out.write(" :action-costs")
+            out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
             user_types_hierarchy = self.problem.user_types_hierarchy
@@ -658,7 +664,9 @@ class PDDLWriter:
         if self.problem.kind.has_actions_cost(): # type: ignore
             out.write(f' (= total-cost 0)')
         out.write(')\n')
-        out.write(f' (:goal {" ".join([converter.convert(p) for p in self.problem.goals])})\n')
+        out.write(
+            f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
+        )        
         if len(self.problem.trajectory_constraints) > 0:
             out.write(f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n')
         metrics = self.problem.quality_metrics

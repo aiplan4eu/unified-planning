@@ -15,11 +15,14 @@
 """This module defines the trajectory constraints remover class."""
 
 import unified_planning as up
+import unified_planning.environment
 import unified_planning.engines as engines
+import unified_planning.engines.compilers
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.walkers import Simplifier, ExpressionQuantifiersRemover
 from unified_planning.shortcuts import *
+from unified_planning.model import Problem, ProblemKind
 from unified_planning.model.operators import OperatorKind
 
 NUM = "num"
@@ -30,10 +33,11 @@ SEEN_PHI = "seen-phi"
 SEEN_PSI = "seen-psi"
 SEPARATOR = "-"
 
-class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
+class TrajectoryConstraintsRemover(CompilerMixin):
     """Translate problem in another problem with no trajectory constraints."""
 
     def __init__(self):
+        CompilerMixin.__init__(self, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING)
         self._simplifier = None
 
     @property
