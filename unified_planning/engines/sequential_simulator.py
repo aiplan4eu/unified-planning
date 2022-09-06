@@ -13,8 +13,9 @@
 # limitations under the License.
 #
 
+
 import unified_planning as up
-from unified_planning.engines.compilers import Grounder
+from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
@@ -60,36 +61,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
         pk = problem.kind
         assert Grounder.supports(pk)
         assert isinstance(self._problem, up.model.Problem)
-        grounder = Grounder()
-        self._grounding_result = grounder.compile(
-            self._problem, up.engines.CompilationKind.GROUNDING
-        )
-
-        grounded_problem: "up.model.Problem" = cast(
-            up.model.Problem, self._grounding_result.problem
-        )
-        lift_map = self._grounding_result.map_back_action_instance
-        assert lift_map is not None
+        self._grounder = GrounderHelper(problem)
         self._events: Dict[
             Tuple["up.model.Action", Tuple["up.model.FNode", ...]], List[Event]
         ] = {}
-        for grounded_action in grounded_problem.actions:
-            if isinstance(grounded_action, up.model.InstantaneousAction):
-                lifted_ai = lift_map(ActionInstance(grounded_action))
-                assert lifted_ai is not None
-                event_list = self._events.setdefault(
-                    (lifted_ai.action, lifted_ai.actual_parameters), []
-                )
-                event_list.append(
-                    InstantaneousEvent(
-                        grounded_action.preconditions,
-                        grounded_action.effects,
-                        grounded_action.simulated_effect,
-                    )
-                )
-            else:
-                raise NotImplementedError
         self._se = StateEvaluator(self._problem)
+        self._all_events_grounded: bool = False
 
     def _get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
@@ -207,10 +184,29 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param state: The state where the formulas are evaluated.
         :return: an Iterator of applicable Events.
         """
-        for events in self._events.values():
-            for event in events:
-                if self.is_applicable(event, state):
-                    yield event
+        # if the problem was never fully grounded before,
+        # ground it and save all the new events. For every event
+        # that is applicable, yield it.
+        # Otherwise just return all the applicable events
+        if not self._all_events_grounded:
+            # perform total grounding
+            self._all_events_grounded = True
+            # for every grounded action, translate it in an Event
+            for (
+                original_action,
+                params,
+                grounded_action,
+            ) in self._grounder.get_grounded_actions():
+                for event in self._get_or_create_events(
+                    original_action, params, grounded_action
+                ):
+                    if self.is_applicable(event, state):
+                        yield event
+        else:  # the problem has been fully grounded before, just check for event applicability
+            for events in self._events.values():
+                for event in events:
+                    if self.is_applicable(event, state):
+                        yield event
 
     def _get_events(
         self,
@@ -226,6 +222,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param parameters: The parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         """
+        # sanity checks
         if action not in cast(up.model.Problem, self._problem).actions:
             raise UPUsageError(
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."
@@ -233,7 +230,9 @@ class SequentialSimulator(Engine, SimulatorMixin):
         params_exp = tuple(
             self._problem.env.expression_manager.auto_promote(parameters)
         )
-        return self._events.get((action, tuple(params_exp)), [])
+        grounded_action = self._grounder.ground_action(action, params_exp)
+        event_list = self._get_or_create_events(action, params_exp, grounded_action)
+        return event_list
 
     def _get_unsatisfied_goals(
         self, state: "up.model.ROState", early_termination: bool = False
@@ -285,3 +284,46 @@ class SequentialSimulator(Engine, SimulatorMixin):
     @staticmethod
     def supports(problem_kind):
         return problem_kind <= SequentialSimulator.supported_kind()
+
+    def _get_or_create_events(
+        self,
+        original_action: "up.model.Action",
+        params: Tuple["up.model.FNode", ...],
+        grounded_action: Optional["up.model.Action"],
+    ) -> List[Event]:
+        """
+        Support function that takes the `original Action`, the `parameters` used to ground the `grounded Action` and
+        the `grounded Action` itself, and adds the corresponding `List of Events` to this `Simulator`. If the
+        corresponding `Events` were already created, the same value is returned and no new `Events` are created.
+
+        :param original_action: The `Action` of the :class:`~unified_planning.model.Problem` grounded with the given `params`.
+        :param params: The expressions used to ground the `original_action`.
+        :param grounded_action: The grounded action, result of the `original_action` grounded with the given `parameters`.
+        :return: The retrieved or created `List of Events` corresponding to the `grounded_action`.
+        """
+        if isinstance(original_action, up.model.InstantaneousAction):
+            # check if the event is already cached; if not: create it and cache it
+            key = (original_action, params)
+            event_list = self._events.get(key, None)
+            if event_list is None:
+                if (
+                    grounded_action is None
+                ):  # The grounded action is meaningless, no event associated
+                    event_list = []
+                else:
+                    assert isinstance(grounded_action, up.model.InstantaneousAction)
+                    event_list = [
+                        InstantaneousEvent(
+                            grounded_action.preconditions,
+                            grounded_action.effects,
+                            grounded_action.simulated_effect,
+                        )
+                    ]
+                self._events[key] = event_list
+            # sanity check
+            assert len(event_list) < 2
+            return event_list
+        else:
+            raise NotImplementedError(
+                "The SequentialSimulator currently supports only InstantaneousActions."
+            )
