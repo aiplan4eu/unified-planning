@@ -25,8 +25,9 @@ from typing import List, Dict
 
 
 class Substituter(IdentityDagWalker):
-    """Performs substitution into an expression """
-    def __init__(self, env: 'unified_planning.environment.Environment'):
+    """Performs substitution into an expression"""
+
+    def __init__(self, env: "unified_planning.environment.Environment"):
         IdentityDagWalker.__init__(self, env, True)
         self.env = env
         self.manager = env.expression_manager
@@ -35,7 +36,9 @@ class Substituter(IdentityDagWalker):
     def _get_key(self, expression, **kwargs):
         return expression
 
-    def substitute(self, expression: FNode, substitutions: Dict[Expression, Expression] = {}) -> FNode:
+    def substitute(
+        self, expression: FNode, substitutions: Dict[Expression, Expression] = {}
+    ) -> FNode:
         """Performs substitution into the given expression.
 
         Lets consider the examples:
@@ -66,11 +69,18 @@ class Substituter(IdentityDagWalker):
                 new_substitutions[new_k] = new_v
             else:
                 raise UPTypeError(
-                    f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}")
-        return self.walk(expression, subs = new_substitutions)
+                    f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}"
+                )
+        return self.walk(expression, subs=new_substitutions)
 
     @walkers.handles(OperatorKind)
-    def walk_replace_or_identity(self, expression: FNode, args: List[FNode], subs: Dict[FNode, FNode] = {}, **kwargs) -> FNode:
+    def walk_replace_or_identity(
+        self,
+        expression: FNode,
+        args: List[FNode],
+        subs: Dict[FNode, FNode] = {},
+        **kwargs,
+    ) -> FNode:
         res = subs.get(expression, None)
         if res is not None:
             return res

@@ -205,23 +205,23 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_always(self, expression, args):
         assert len(args) == 1
-        return f'(always {args[0]})'
+        return f"(always {args[0]})"
 
     def walk_at_most_once(self, expression, args):
         assert len(args) == 1
-        return f'(at-most-once {args[0]})'
-    
+        return f"(at-most-once {args[0]})"
+
     def walk_sometime(self, expression, args):
         assert len(args) == 1
-        return f'(sometime {args[0]})'
+        return f"(sometime {args[0]})"
 
     def walk_sometime_before(self, expression, args):
         assert len(args) == 2
-        return f'(sometime-before {args[0]} {args[1]})'
+        return f"(sometime-before {args[0]} {args[1]})"
 
     def walk_sometime_after(self, expression, args):
         assert len(args) == 2
-        return f'(sometime-after {args[0]} {args[1]})'
+        return f"(sometime-after {args[0]} {args[1]})"
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
@@ -511,7 +511,9 @@ class PDDLWriter:
                         raise UPTypeError("PDDL supports only user type parameters")
                 out.write(")")
                 if len(a.preconditions) > 0:
-                    out.write(f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions if(not p.is_true())])})')
+                    out.write(
+                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions if(not p.is_true())])})'
+                    )
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
@@ -660,15 +662,17 @@ class PDDLWriter:
             elif v.is_false():
                 pass
             else:
-                out.write(f' (= {converter.convert(f)} {converter.convert(v)})')
-        if self.problem.kind.has_actions_cost(): # type: ignore
-            out.write(f' (= total-cost 0)')
-        out.write(')\n')
+                out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
+        if self.problem.kind.has_actions_cost():  # type: ignore
+            out.write(f" (= total-cost 0)")
+        out.write(")\n")
         out.write(
             f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
-        )        
+        )
         if len(self.problem.trajectory_constraints) > 0:
-            out.write(f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n')
+            out.write(
+                f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
+            )
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]

@@ -45,19 +45,25 @@ class TypeChecker(walkers.dag.DagWalker):
             )
         return res
 
-    def is_compatible_type(self, t_left: 'unified_planning.model.types.Type', t_right: 'unified_planning.model.types.Type') -> bool:
+    def is_compatible_type(
+        self,
+        t_left: "unified_planning.model.types.Type",
+        t_right: "unified_planning.model.types.Type",
+    ) -> bool:
         if t_left == t_right:
             return True
         if t_left.is_user_type() and t_right.is_user_type():
             return t_right in self.env.type_manager.user_type_ancestors(t_left)
-        if not ((t_left.is_int_type() and t_right.is_int_type()) or
-                (t_left.is_real_type() and t_right.is_real_type()) or
-                (t_left.is_real_type() and t_right.is_int_type())):
+        if not (
+            (t_left.is_int_type() and t_right.is_int_type())
+            or (t_left.is_real_type() and t_right.is_real_type())
+            or (t_left.is_real_type() and t_right.is_int_type())
+        ):
             return False
-        left_lower = -float('inf') if t_left.lower_bound is None else t_left.lower_bound # type: ignore
-        left_upper = float('inf') if t_left.upper_bound is None else t_left.upper_bound # type: ignore
-        right_lower = -float('inf') if t_right.lower_bound is None else t_right.lower_bound # type: ignore
-        right_upper = float('inf') if t_right.upper_bound is None else t_right.upper_bound # type: ignore
+        left_lower = -float("inf") if t_left.lower_bound is None else t_left.lower_bound  # type: ignore
+        left_upper = float("inf") if t_left.upper_bound is None else t_left.upper_bound  # type: ignore
+        right_lower = -float("inf") if t_right.lower_bound is None else t_right.lower_bound  # type: ignore
+        right_upper = float("inf") if t_right.upper_bound is None else t_right.upper_bound  # type: ignore
         if right_upper < left_lower or right_lower > left_upper:
             return False
         else:
@@ -106,37 +112,49 @@ class TypeChecker(walkers.dag.DagWalker):
         assert len(args) == 0
         return expression.parameter().type
 
-    def walk_always(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_always(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert expression.is_always()
         assert len(expression.args) == 1
         return BOOL
 
-    def walk_sometime(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_sometime(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert expression.is_sometime()
         assert len(expression.args) == 1
         return BOOL
 
-    def walk_at_most_once(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_at_most_once(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert expression.is_at_most_once
         assert len(expression.args) == 1
         return BOOL
 
-    def walk_sometime_before(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_sometime_before(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert expression.is_sometime_before()
         assert len(expression.args) == 2
         return BOOL
 
-    def walk_sometime_after(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_sometime_after(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert expression.is_sometime_after()
         assert len(expression.args) == 2
         return BOOL
 
-    def walk_variable_exp(self, expression: FNode, args: List['unified_planning.model.types.Type']) -> 'unified_planning.model.types.Type':
+    def walk_variable_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
         assert expression is not None
         assert len(args) == 0
         return expression.variable().type

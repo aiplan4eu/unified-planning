@@ -194,7 +194,7 @@ class Simplifier(walkers.dag.DagWalker):
         if len(vars) == 0:
             return args[0]
         return self.manager.Forall(args[0], *vars)
-    
+
     def walk_always(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
         return self.manager.Always(args[0])

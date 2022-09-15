@@ -41,9 +41,16 @@ class PDDLGrammar:
         name = Word(alphas, alphanums + "_" + "-")
         variable = Suppress("?") + name
 
-        require_def = Suppress('(') + ':requirements' + \
-            OneOrMore(one_of(':strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :constraints :preferences')) \
-            + Suppress(')')
+        require_def = (
+            Suppress("(")
+            + ":requirements"
+            + OneOrMore(
+                one_of(
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :constraints :preferences"
+                )
+            )
+            + Suppress(")")
+        )
 
         types_def = (
             Suppress("(")
@@ -190,16 +197,39 @@ class PDDLGrammar:
             "optimization"
         ) + (name | nestedExpr()).setResultsName("metric")
 
-        problem = (Suppress('(') + 'define'
-                   + Suppress('(') + 'problem' + name.setResultsName('name') + Suppress(')')
-                   + Suppress('(') + ':domain' + name + Suppress(')') + Optional(require_def)
-                   + Optional(Suppress('(') + ':objects' + objects + Suppress(')'))
-                   + Optional(htn_def.setResultsName('htn'))
-                   + Suppress('(') + ':init' + ZeroOrMore(nestedExpr()).setResultsName('init') + Suppress(')')
-                   + Optional(Suppress('(') + ':goal' + nestedExpr().setResultsName('goal') + Suppress(')'))
-                   + Optional(Suppress('(') + ':constraints' + nestedExpr().setResultsName('constraints') + Suppress(')'))
-                   + Optional(Suppress('(') + ':metric' + metric + Suppress(')'))
-                   + Suppress(')'))
+        problem = (
+            Suppress("(")
+            + "define"
+            + Suppress("(")
+            + "problem"
+            + name.setResultsName("name")
+            + Suppress(")")
+            + Suppress("(")
+            + ":domain"
+            + name
+            + Suppress(")")
+            + Optional(require_def)
+            + Optional(Suppress("(") + ":objects" + objects + Suppress(")"))
+            + Optional(htn_def.setResultsName("htn"))
+            + Suppress("(")
+            + ":init"
+            + ZeroOrMore(nestedExpr()).setResultsName("init")
+            + Suppress(")")
+            + Optional(
+                Suppress("(")
+                + ":goal"
+                + nestedExpr().setResultsName("goal")
+                + Suppress(")")
+            )
+            + Optional(
+                Suppress("(")
+                + ":constraints"
+                + nestedExpr().setResultsName("constraints")
+                + Suppress(")")
+            )
+            + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
+            + Suppress(")")
+        )
 
         domain.ignore(";" + restOfLine)
         problem.ignore(";" + restOfLine)
@@ -246,11 +276,11 @@ class PDDLReader:
             "*": self._em.Times,
         }
         self._trajectory_constraints: Dict[str, Callable] = {
-            'always' : self._em.Always,
-            'sometime' : self._em.Sometime,
-            'sometime-before' : self._em.Sometime_Before,
-            'sometime-after' : self._em.Sometime_After,
-            'at-most-once' : self._em.At_Most_Once,
+            "always": self._em.Always,
+            "sometime": self._em.Sometime,
+            "sometime-before": self._em.Sometime_Before,
+            "sometime-after": self._em.Sometime_After,
+            "at-most-once": self._em.At_Most_Once,
         }
         grammar = PDDLGrammar()
         self._pp_domain = grammar.domain
@@ -283,10 +313,12 @@ class PDDLReader:
                         self._em.Exists if exp[0] == "exists" else self._em.Forall
                     )
                     solved.append(q_op(solved.pop(), *var.values()))
-                elif exp[0] in self._trajectory_constraints: #trajectory_constraints reference
+                elif (
+                    exp[0] in self._trajectory_constraints
+                ):  # trajectory_constraints reference
                     t_op: Callable = self._trajectory_constraints[exp[0]]
                     solved.append(t_op(*[solved.pop() for _ in exp[1:]]))
-                elif problem.has_fluent(exp[0]): # fluent reference
+                elif problem.has_fluent(exp[0]):  # fluent reference
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
                     solved.append(self._em.FluentExp(f, tuple(args)))
@@ -316,11 +348,13 @@ class PDDLReader:
                                 vars[o] = up.model.Variable(o, t, self._env)
                         stack.append((vars, exp, True))
                         stack.append((vars, exp[2], False))
-                    elif exp[0] in self._trajectory_constraints: #trajectory_constraints reference
+                    elif (
+                        exp[0] in self._trajectory_constraints
+                    ):  # trajectory_constraints reference
                         stack.append((var, exp, True))
                         for e in exp[1:]:
                             stack.append((var, e, False))
-                    elif problem.has_fluent(exp[0]): # fluent reference
+                    elif problem.has_fluent(exp[0]):  # fluent reference
                         stack.append((var, exp, True))
                         for e in exp[1:]:
                             stack.append((var, e, False))
@@ -953,12 +987,18 @@ class PDDLReader:
             elif not isinstance(problem, htn.HierarchicalProblem):
                 raise SyntaxError("Missing goal section in problem file.")
 
-            if 'constraints' in problem_res:
-                problem.add_trajectory_constraint(self._parse_exp(problem, None, types_map, {}, problem_res['constraints'][0]))
+            if "constraints" in problem_res:
+                problem.add_trajectory_constraint(
+                    self._parse_exp(
+                        problem, None, types_map, {}, problem_res["constraints"][0]
+                    )
+                )
 
-            has_actions_cost = has_actions_cost and self._problem_has_actions_cost(problem)
-            optimization = problem_res.get('optimization', None)
-            metric = problem_res.get('metric', None)
+            has_actions_cost = has_actions_cost and self._problem_has_actions_cost(
+                problem
+            )
+            optimization = problem_res.get("optimization", None)
+            metric = problem_res.get("metric", None)
 
             if metric is not None:
                 if (

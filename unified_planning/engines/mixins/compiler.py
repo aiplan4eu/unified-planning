@@ -19,6 +19,7 @@ from unified_planning.model import ProblemKind
 from enum import Enum, auto
 from typing import Optional
 
+
 class CompilationKind(Enum):
     """Enum representing the available compilation kinds currently in the library."""
 

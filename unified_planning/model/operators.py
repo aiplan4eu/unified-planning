@@ -75,4 +75,12 @@ IRA_OPERATORS = frozenset(
     [OperatorKind.PLUS, OperatorKind.MINUS, OperatorKind.TIMES, OperatorKind.DIV]
 )
 
-TRAJECTORY_CONSTRAINTS = frozenset([OperatorKind.ALWAYS, OperatorKind.SOMETIME, OperatorKind.SOMETIME_BEFORE, OperatorKind.SOMETIME_AFTER, OperatorKind.AT_MOST_ONCE])
+TRAJECTORY_CONSTRAINTS = frozenset(
+    [
+        OperatorKind.ALWAYS,
+        OperatorKind.SOMETIME,
+        OperatorKind.SOMETIME_BEFORE,
+        OperatorKind.SOMETIME_AFTER,
+        OperatorKind.AT_MOST_ONCE,
+    ]
+)

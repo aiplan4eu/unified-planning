@@ -16,7 +16,9 @@
 from unified_planning.walkers.dag import DagWalker
 from unified_planning.walkers.generic import handles
 from unified_planning.walkers.dnf import Dnf, Nnf
-from unified_planning.walkers.expression_quantifiers_remover import ExpressionQuantifiersRemover
+from unified_planning.walkers.expression_quantifiers_remover import (
+    ExpressionQuantifiersRemover,
+)
 from unified_planning.walkers.operators_extractor import OperatorsExtractor
 from unified_planning.walkers.simplifier import Simplifier
 from unified_planning.walkers.substituter import Substituter

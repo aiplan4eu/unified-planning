@@ -20,27 +20,30 @@ from typing import Iterator, List, Union, Optional, cast
 
 
 class ObjectsSetMixin:
-    '''
+    """
     This class is a mixin that contains a set of objects with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
     of the attributes (e.g. env, add_user_type_method, has_name_method), it is required
     to pass the very same arguments to the mixins constructors.
-    '''
+    """
 
     def __init__(self, env, add_user_type_method, has_name_method):
         self._env = env
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
-        self._objects: List['up.model.object.Object'] = []
+        self._objects: List["up.model.object.Object"] = []
 
     @property
-    def env(self) -> 'up.environment.Environment':
-        '''Returns the problem environment.'''
+    def env(self) -> "up.environment.Environment":
+        """Returns the problem environment."""
         return self._env
 
-    def add_object(self, obj_or_name: Union['up.model.object.Object', str],
-                   typename: Optional['up.model.types.Type'] = None) -> 'up.model.object.Object':
+    def add_object(
+        self,
+        obj_or_name: Union["up.model.object.Object", str],
+        typename: Optional["up.model.types.Type"] = None,
+    ) -> "up.model.object.Object":
         """Add the given object to the problem, constructing it from the parameters if needed.
 
         :param obj_or_name: Either an Object instance or a string containing the name of the object.
@@ -65,38 +68,40 @@ class ObjectsSetMixin:
             assert typename is not None, "Missing type of the object"
             obj = up.model.object.Object(obj_or_name, typename)
         if self._has_name_method(obj.name):
-            raise UPProblemDefinitionError('Name ' + obj.name + ' already defined!')
+            raise UPProblemDefinitionError("Name " + obj.name + " already defined!")
         self._objects.append(obj)
         if obj.type.is_user_type():
             self._add_user_type_method(obj.type)
         return obj
 
-    def add_objects(self, objs: List['up.model.object.Object']):
-        '''Adds the given objects.'''
+    def add_objects(self, objs: List["up.model.object.Object"]):
+        """Adds the given objects."""
         for obj in objs:
             self.add_object(obj)
 
-    def object(self, name: str) -> 'up.model.object.Object':
-        '''Returns the object with the given name.'''
+    def object(self, name: str) -> "up.model.object.Object":
+        """Returns the object with the given name."""
         for o in self._objects:
             if o.name == name:
                 return o
-        raise UPValueError(f'Object of name: {name} is not defined!')
+        raise UPValueError(f"Object of name: {name} is not defined!")
 
     def has_object(self, name: str) -> bool:
-        '''Returns true if the object with the given name is in the problem.'''
+        """Returns true if the object with the given name is in the problem."""
         for o in self._objects:
             if o.name == name:
                 return True
         return False
 
-    def objects(self, typename: 'up.model.types.Type') -> Iterator['up.model.object.Object']:
-        '''Returns the objects of the given user type and of its heirs.'''
+    def objects(
+        self, typename: "up.model.types.Type"
+    ) -> Iterator["up.model.object.Object"]:
+        """Returns the objects of the given user type and of its heirs."""
         for obj in self._objects:
             if cast(_UserType, obj.type).is_subtype(typename):
                 yield obj
 
     @property
-    def all_objects(self) -> List['up.model.object.Object']:
-        '''Returns all the objects.'''
+    def all_objects(self) -> List["up.model.object.Object"]:
+        """Returns all the objects."""
         return self._objects

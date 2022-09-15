@@ -33,8 +33,16 @@ SEEN_PHI = "seen-phi"
 SEEN_PSI = "seen-psi"
 SEPARATOR = "-"
 
+
 class TrajectoryConstraintsRemover(CompilerMixin):
-    """Translate problem in another problem with no trajectory constraints."""
+    """
+    TrajectoryConstraintsRemover class: the `TrajectoryConstraintsRemover` takes a :class:`~unified_planning.model.Problem`
+    that contains 'trajectory_constraints' and return a new grounded 'Problem' without that constraints.
+
+    The compiler, for each trajectory_constraints manage 'Action' (precondition and postcondition) and 'Goal'.
+
+    This `Compiler` supports only the the `TRAJECTORY_CONSTRAINTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    """
 
     def __init__(self):
         CompilerMixin.__init__(self, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING)
@@ -55,73 +63,110 @@ class TrajectoryConstraintsRemover(CompilerMixin):
     @staticmethod
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
-        supported_kind.set_problem_class('ACTION_BASED') # type: ignore
-        supported_kind.set_typing('FLAT_TYPING') # type: ignore
-        supported_kind.set_typing('HIERARCHICAL_TYPING') # type: ignore
-        supported_kind.set_numbers('CONTINUOUS_NUMBERS') # type: ignore
-        supported_kind.set_numbers('DISCRETE_NUMBERS') # type: ignore
-        supported_kind.set_fluents_type('NUMERIC_FLUENTS') # type: ignore
-        supported_kind.set_fluents_type('OBJECT_FLUENTS') # type: ignore
-        supported_kind.set_conditions_kind('NEGATIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('DISJUNCTIVE_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('EQUALITY') # type: ignore
-        supported_kind.set_conditions_kind('EXISTENTIAL_CONDITIONS') # type: ignore
-        supported_kind.set_conditions_kind('UNIVERSAL_CONDITIONS') # type: ignore
-        supported_kind.set_effects_kind('CONDITIONAL_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('INCREASE_EFFECTS') # type: ignore
-        supported_kind.set_effects_kind('DECREASE_EFFECTS') # type: ignore
-        supported_kind.set_time('CONTINUOUS_TIME') # type: ignore
-        supported_kind.set_time('DISCRETE_TIME') # type: ignore
-        supported_kind.set_time('INTERMEDIATE_CONDITIONS_AND_EFFECTS') # type: ignore
-        supported_kind.set_time('TIMED_EFFECT') # type: ignore
-        supported_kind.set_time('TIMED_GOALS') # type: ignore
-        supported_kind.set_time('DURATION_INEQUALITIES') # type: ignore
-        supported_kind.set_simulated_entities('SIMULATED_EFFECTS') # type: ignore
-        supported_kind.set_constraints_kind('TRAJECTORY_CONSTRAINTS') # type: ignore
+        supported_kind.set_problem_class("ACTION_BASED")  # type: ignore
+        supported_kind.set_typing("FLAT_TYPING")  # type: ignore
+        supported_kind.set_typing("HIERARCHICAL_TYPING")  # type: ignore
+        supported_kind.set_numbers("CONTINUOUS_NUMBERS")  # type: ignore
+        supported_kind.set_numbers("DISCRETE_NUMBERS")  # type: ignore
+        supported_kind.set_fluents_type("NUMERIC_FLUENTS")  # type: ignore
+        supported_kind.set_fluents_type("OBJECT_FLUENTS")  # type: ignore
+        supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")  # type: ignore
+        supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")  # type: ignore
+        supported_kind.set_conditions_kind("EQUALITY")  # type: ignore
+        supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")  # type: ignore
+        supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")  # type: ignore
+        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")  # type: ignore
+        supported_kind.set_effects_kind("INCREASE_EFFECTS")  # type: ignore
+        supported_kind.set_effects_kind("DECREASE_EFFECTS")  # type: ignore
+        supported_kind.set_time("CONTINUOUS_TIME")  # type: ignore
+        supported_kind.set_time("DISCRETE_TIME")  # type: ignore
+        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")  # type: ignore
+        supported_kind.set_time("TIMED_EFFECT")  # type: ignore
+        supported_kind.set_time("TIMED_GOALS")  # type: ignore
+        supported_kind.set_time("DURATION_INEQUALITIES")  # type: ignore
+        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")  # type: ignore
+        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")  # type: ignore
         return supported_kind
 
-    def compile(self, problem: 'up.model.AbstractProblem',
-                compilation_kind: 'up.engines.CompilationKind') -> CompilerResult:
+    def compile(
+        self,
+        problem: "up.model.AbstractProblem",
+        compilation_kind: "up.engines.CompilationKind",
+    ) -> CompilerResult:
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the `TRAJECTORY_CONSTRAINTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`
+        and returns a `CompilerResult` where the grounded problem whitout trajectory_constraints.
+
+        :param problem: The instance of the `Problem` that must be grounded.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
+            only `TRAJECTORY_CONSTRAINTS_REMOVING` is supported by this compiler
+        :return: The resulting `CompilerResult` data structure.
+        """
         if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of problem!')
+            raise up.exceptions.UPUsageError(
+                "This compiler cannot handle this kind of problem!"
+            )
         assert isinstance(problem, Problem)
         if not self.supports_compilation(compilation_kind):
-            raise up.exceptions.UPUsageError('This compiler cannot handle this kind of compilation!')
+            raise up.exceptions.UPUsageError(
+                "This compiler cannot handle this kind of compilation!"
+            )
         self._env = problem.env
         self._simplifier = Simplifier(self._env)
         self._expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
-        with self._env.factory.Compiler(problem_kind=problem.kind, compilation_kind=engines.CompilationKind.GROUNDING) as grounder:
-            grounding_result = grounder.compile(problem, engines.CompilationKind.GROUNDING)
+        with self._env.factory.Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=engines.CompilationKind.GROUNDING,
+        ) as grounder:
+            grounding_result = grounder.compile(
+                problem, engines.CompilationKind.GROUNDING
+            )
+        # create a grounded problem
         self._problem = grounding_result.problem
         A = grounding_result.problem.actions
         I_g = grounding_result.problem.initial_values
         I = self._ground_initial_state(A, I_g)
         C_temp = self._simplifier.simplify(And(problem.trajectory_constraints))
         C = self._build_constraint_list(C_temp)
+        # create a list that contains trajectory_constraints
+        # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(C)
         A_prime = []
         G_temp = []
         I_prime, F_prime = self._get_monitoring_atoms(C, I)
         for c in self._LTC(C):
-            monitoring_atom = FluentExp(Fluent(f'{c._monitoring_atom_predicate}', BoolType()))
+            monitoring_atom = FluentExp(
+                Fluent(f"{c._monitoring_atom_predicate}", BoolType())
+            )
             G_temp.append(monitoring_atom)
         G_prime = And(G_temp)
         for a in A:
-            E = list() # type: ignore
+            E = list()  # type: ignore
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
+                # manage the action for each trajectory_constraints that is relevant
                 if c.is_always():
                     precondition, to_add = self._manage_always_compilation(c.args[0], a)
                 elif c.is_at_most_once():
-                    precondition, to_add = self._manage_amo_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
+                    precondition, to_add = self._manage_amo_compilation(
+                        c.args[0], c._monitoring_atom_predicate, a, E
+                    )
                 elif c.is_sometime_before():
-                    precondition, to_add = self._manage_sb_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
+                    precondition, to_add = self._manage_sb_compilation(
+                        c.args[0], c.args[1], c._monitoring_atom_predicate, a, E
+                    )
                 elif c.is_sometime():
-                    self._manage_sometime_compilation(c.args[0], c._monitoring_atom_predicate, a, E)
+                    self._manage_sometime_compilation(
+                        c.args[0], c._monitoring_atom_predicate, a, E
+                    )
                 elif c.is_sometime_after():
-                    self._manage_sa_compilation(c.args[0], c.args[1], c._monitoring_atom_predicate, a, E)
+                    self._manage_sa_compilation(
+                        c.args[0], c.args[1], c._monitoring_atom_predicate, a, E
+                    )
                 else:
-                    raise Exception(f'ERROR This compiler cannot handle this constraint = {c}')
+                    raise Exception(
+                        f"ERROR This compiler cannot handle this constraint = {c}"
+                    )
                 if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
                     if to_add and not precondition.is_true():
                         a.preconditions.append(precondition)
@@ -129,6 +174,8 @@ class TrajectoryConstraintsRemover(CompilerMixin):
                 a.effects.append(eff)
             if FALSE() not in a.preconditions:
                 A_prime.append(a)
+        # create new problem to return
+        # adding new fluents, goal, initial values and actions
         G_new = self._simplifier.simplify(And(grounding_result.problem.goals, G_prime))
         grounding_result.problem.clear_goals()
         grounding_result.problem.add_goal(G_new)
@@ -139,7 +186,9 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         for action in A_prime:
             grounding_result.problem.add_action(action)
         for init_val in I_prime:
-            grounding_result.problem.set_initial_value(FluentExp(Fluent(f'{init_val}', BoolType())), TRUE())
+            grounding_result.problem.set_initial_value(
+                FluentExp(Fluent(f"{init_val}", BoolType())), TRUE()
+            )
         return grounding_result
 
     def _build_constraint_list(self, C_temp):
@@ -157,22 +206,28 @@ class TrajectoryConstraintsRemover(CompilerMixin):
             elif c.is_at_most_once():
                 new_C.append(At_Most_Once(self._get_constraints_condition(c.args[0])))
             elif c.is_sometime_before():
-                new_C.append(Sometime_Before(
-                             self._get_constraints_condition(c.args[0]),
-                             self._get_constraints_condition(c.args[1]))
-                            )
+                new_C.append(
+                    Sometime_Before(
+                        self._get_constraints_condition(c.args[0]),
+                        self._get_constraints_condition(c.args[1]),
+                    )
+                )
             elif c.is_sometime_after():
-                new_C.append(Sometime_After(
-                             self._get_constraints_condition(c.args[0]),
-                             self._get_constraints_condition(c.args[1]))
-                            )
+                new_C.append(
+                    Sometime_After(
+                        self._get_constraints_condition(c.args[0]),
+                        self._get_constraints_condition(c.args[1]),
+                    )
+                )
             else:
                 new_C.append(self._get_constraints_condition(c))
         return new_C
 
     def _get_constraints_condition(self, cond):
         if cond.is_forall() or cond.is_exists():
-            return self._expression_quantifier_remover.remove_quantifiers(cond, self._problem)
+            return self._expression_quantifier_remover.remove_quantifiers(
+                cond, self._problem
+            )
         elif cond.is_and():
             args = []
             for arg in cond.args:
@@ -184,14 +239,16 @@ class TrajectoryConstraintsRemover(CompilerMixin):
                 args.append(self._get_constraints_condition(arg))
             return self._simplifier.simplify(Or(args))
         elif cond.is_not():
-            return self._simplifier.simplify(Not(self._get_constraints_condition(cond.args[0])))
-        else :
+            return self._simplifier.simplify(
+                Not(self._get_constraints_condition(cond.args[0]))
+            )
+        else:
             return cond
 
     def _manage_sa_compilation(self, phi, psi, m_atom, a, E):
         R1 = self._simplifier.simplify(self._regression(phi, a))
         R2 = self._simplifier.simplify(self._regression(psi, a))
-        monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
+        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
         if phi != R1 or psi != R2:
             cond = self._simplifier.simplify(And([R1, Not(R2)]))
             self._add_cond_eff(E, cond, Not(monitoring_atom))
@@ -199,13 +256,13 @@ class TrajectoryConstraintsRemover(CompilerMixin):
             self._add_cond_eff(E, R2, monitoring_atom)
 
     def _manage_sometime_compilation(self, phi, m_atom, a, E):
-        monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
+        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
         R = self._simplifier.simplify(self._regression(phi, a))
         if R != phi:
             self._add_cond_eff(E, R, monitoring_atom)
 
     def _manage_sb_compilation(self, phi, psi, m_atom, a, E):
-        monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
+        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
         R_phi = self._simplifier.simplify(self._regression(phi, a))
         if R_phi == phi:
             added_precond = (None, False)
@@ -218,7 +275,7 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         return added_precond
 
     def _manage_amo_compilation(self, phi, m_atom, a, E):
-        monitoring_atom = FluentExp(Fluent(f'{m_atom}', BoolType()))
+        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
         R = self._simplifier.simplify(self._regression(phi, a))
         if R == phi:
             return None, False
@@ -235,7 +292,7 @@ class TrajectoryConstraintsRemover(CompilerMixin):
             return R, True
 
     def _add_cond_eff(self, E, cond, eff):
-        if (not self._simplifier.simplify(cond).is_false()):
+        if not self._simplifier.simplify(cond).is_false():
             if eff.is_not():
                 E.append(Effect(condition=cond, fluent=eff.args[0], value=FALSE()))
             else:
@@ -248,7 +305,7 @@ class TrajectoryConstraintsRemover(CompilerMixin):
             for c in constr:
                 if c not in relevant_constrains:
                     relevant_constrains.append(c)
-        return relevant_constrains        
+        return relevant_constrains
 
     def _ground_initial_state(self, A, I):
         grounding_init_state = {}
@@ -286,12 +343,18 @@ class TrajectoryConstraintsRemover(CompilerMixin):
                 else:
                     return FALSE()
         elif phi.is_or():
-            return Or(self._simple_substitution(set, component) for component in phi.args)
+            return Or(
+                self._simple_substitution(set, component) for component in phi.args
+            )
         else:
-            return And(self._simple_substitution(set, component) for component in phi.args)
+            return And(
+                self._simple_substitution(set, component) for component in phi.args
+            )
 
     def _true_init(self, state, phi):
-        logical_value_in_init = self._simplifier.simplify(self._simple_substitution(state, phi))
+        logical_value_in_init = self._simplifier.simplify(
+            self._simple_substitution(state, phi)
+        )
         if logical_value_in_init.is_true():
             return True
         elif logical_value_in_init.is_false():
@@ -303,7 +366,9 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         if constr.is_sometime():
             return HOLD, self._true_init(initial_state, constr.args[0])
         elif constr.is_sometime_after():
-            return HOLD, self._true_init(initial_state, constr.args[1]) or not self._true_init(initial_state, constr.args[0])
+            return HOLD, self._true_init(
+                initial_state, constr.args[1]
+            ) or not self._true_init(initial_state, constr.args[0])
         elif constr.is_sometime_before():
             return SEEN_PSI, self._true_init(initial_state, constr.args[1])
         elif constr.is_at_most_once():
@@ -314,11 +379,13 @@ class TrajectoryConstraintsRemover(CompilerMixin):
     def _get_monitoring_atoms(self, C, I):
         monitoring_atoms = []
         monitoring_atoms_counter = 0
-        initial_state_prime = []   
+        initial_state_prime = []
         for constr in C:
             if not constr.is_always():
                 type, init_state_value = self._evaluate_constraint(constr, I)
-                fluent = Fluent(f'{type}{SEPARATOR}{monitoring_atoms_counter}', BoolType())
+                fluent = Fluent(
+                    f"{type}{SEPARATOR}{monitoring_atoms_counter}", BoolType()
+                )
                 monitoring_atoms.append(fluent)
                 monitoring_atom = FluentExp(fluent)
                 constr.set_monitoring_atom_predicate(monitoring_atom)
@@ -326,12 +393,16 @@ class TrajectoryConstraintsRemover(CompilerMixin):
                     initial_state_prime.append(monitoring_atom)
                 if constr.is_sometime_before():
                     if self._true_init(I, constr.args[0]):
-                        raise Exception("PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state")
+                        raise Exception(
+                            "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
+                        )
                 monitoring_atoms_counter += 1
         for constr in C:
             if constr.is_always():
                 if not self._true_init(I, constr.args[0]):
-                    raise Exception("PROBLEM NOT SOLVABLE: an always is violated in the initial state")
+                    raise Exception(
+                        "PROBLEM NOT SOLVABLE: an always is violated in the initial state"
+                    )
         return initial_state_prime, monitoring_atoms
 
     def _build_relevancy_dict(self, C):
@@ -360,7 +431,11 @@ class TrajectoryConstraintsRemover(CompilerMixin):
 
     def _ITC(C):
         for constr in C:
-            if constr.kind in [OperatorKind.ALWAYS, OperatorKind.SOMETIME_BEFORE, OperatorKind.AT_MOST_ONCE]:
+            if constr.kind in [
+                OperatorKind.ALWAYS,
+                OperatorKind.SOMETIME_BEFORE,
+                OperatorKind.AT_MOST_ONCE,
+            ]:
                 yield constr
 
     def _LTC(self, C):
@@ -379,13 +454,13 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         disjunction = []
         for eff in action.effects:
             cond = eff.condition
-            if eff.value.is_false():  
+            if eff.value.is_false():
                 eff = Not(eff.fluent)
             else:
-                eff = eff.fluent         
+                eff = eff.fluent
             if literal == eff:
                 if cond.is_true():
-                    return TRUE() 
+                    return TRUE()
                 disjunction.append(cond)
         if not disjunction:
             return False
@@ -403,6 +478,6 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         elif phi.is_not():
             return Not(self._regression(phi.args[0], action))
         else:
-            raise up.exceptions.UPUsageError("This compiler cannot handle this expression")
- 
-
+            raise up.exceptions.UPUsageError(
+                "This compiler cannot handle this expression"
+            )

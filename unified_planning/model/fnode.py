@@ -99,10 +99,10 @@ class FNode(object):
         elif self.is_sometime():
             return f"Sometime({str(self.arg(0))})"
         elif self.is_sometime_before():
-            s = ', '.join(str(v) for v in self.args)
+            s = ", ".join(str(v) for v in self.args)
             return f"Sometime-Before({str(s)})"
         elif self.is_sometime_after():
-            s = ', '.join(str(v) for v in self.args)
+            s = ", ".join(str(v) for v in self.args)
             return f"Sometime-After({str(s)})"
         elif self.is_at_most_once():
             return f"At-Most-Once({str(self.arg(0))})"
@@ -200,11 +200,16 @@ class FNode(object):
         return self._content.payload
 
     def set_monitoring_atom_predicate(self, atom):
-        assert (self.is_always() or self.is_at_most_once or self.is_sometime
-            or self.is_sometime_after or self.is_sometime_before)
+        assert (
+            self.is_always()
+            or self.is_at_most_once
+            or self.is_sometime
+            or self.is_sometime_after
+            or self.is_sometime_before
+        )
         self._monitoring_atom_predicate = atom
 
-    def variable(self) -> 'unified_planning.model.variable.Variable':
+    def variable(self) -> "unified_planning.model.variable.Variable":
         """Return the variable of the VariableExp."""
         assert self.is_variable_exp()
         return self._content.payload

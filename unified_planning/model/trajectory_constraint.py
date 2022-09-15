@@ -18,35 +18,57 @@ This module defines the Trajectory Constraints base class and some of his extent
 
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
-from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError, UPProblemDefinitionError
+from unified_planning.exceptions import (
+    UPTypeError,
+    UPUnboundedVariablesError,
+    UPProblemDefinitionError,
+)
 from fractions import Fraction
 from typing import Dict, List, Union, Optional
 
 
 class TrajectoryConstraint:
     """This is the trajectory constraint interface."""
-    def __init__(self, _type: str, _parameters: 'List[up.model.fnode.FNode]' = None,
-                 _env: Environment = None, **kwargs: 'up.model.types.Type'):
+
+    def __init__(
+        self,
+        _type: str,
+        _parameters: "List[up.model.fnode.FNode]" = None,
+        _env: Environment = None,
+        **kwargs: "up.model.types.Type",
+    ):
         self._env = get_env(_env)
         self._type = _type
         match self._type:
-            case 'always':
-                assert len(_parameters) == 1, "Always constraint require only one fluent"
-                self._parameters = _parameters 
-            case 'sometime':
-                assert len(_parameters) == 1, "Sometime constraint require only one fluent"
+            case "always":
+                assert (
+                    len(_parameters) == 1
+                ), "Always constraint require only one fluent"
                 self._parameters = _parameters
-            case 'at-most-once':
-                assert len(_parameters) == 1, "Sometime constraint require only one fluent"
-                self._parameters = _parameters 
-            case 'sometime-after':
-                assert len(_parameters) == 2, "Sometime-after constraint require only one fluent"
+            case "sometime":
+                assert (
+                    len(_parameters) == 1
+                ), "Sometime constraint require only one fluent"
                 self._parameters = _parameters
-            case 'sometime-before':
-                assert len(_parameters) == 2, "Sometime-before constraint require only one fluent"
-                self._parameters = _parameters 
+            case "at-most-once":
+                assert (
+                    len(_parameters) == 1
+                ), "Sometime constraint require only one fluent"
+                self._parameters = _parameters
+            case "sometime-after":
+                assert (
+                    len(_parameters) == 2
+                ), "Sometime-after constraint require only one fluent"
+                self._parameters = _parameters
+            case "sometime-before":
+                assert (
+                    len(_parameters) == 2
+                ), "Sometime-before constraint require only one fluent"
+                self._parameters = _parameters
             case _:
-                raise Exception(f"Insert not correct trajectory constraint. Insert {self._type}")
+                raise Exception(
+                    f"Insert not correct trajectory constraint. Insert {self._type}"
+                )
 
     def __eq__(self, oth: object) -> bool:
         raise NotImplementedError
@@ -68,24 +90,24 @@ class TrajectoryConstraint:
         self._type = new_type
 
     @property
-    def parameters(self) -> List['up.model.fluent.Fluent']:
+    def parameters(self) -> List["up.model.fluent.Fluent"]:
         """Returns the list of the action parameters."""
         return list(self._parameters)
 
     def __repr__(self) -> str:
         s = []
-        s.append(f'{self.type} ')
+        s.append(f"{self.type} ")
         first = True
         for p in self.parameters:
             if first:
-                s.append('(')
+                s.append("(")
                 first = False
             else:
-                s.append(', ')
+                s.append(", ")
             s.append(str(p))
-        s.append(')')
-        return ''.join(s)
-    
+        s.append(")")
+        return "".join(s)
+
     def __hash__(self) -> int:
         res = hash(self._type)
         for par in self._parameters():

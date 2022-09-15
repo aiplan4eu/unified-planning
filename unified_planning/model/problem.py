@@ -27,9 +27,9 @@ from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import (
-    UPProblemDefinitionError, 
-    UPTypeError, 
-    UPExpressionDefinitionError, 
+    UPProblemDefinitionError,
+    UPTypeError,
+    UPExpressionDefinitionError,
 )
 from unified_planning.plans import ActionInstance
 from unified_planning.walkers import OperatorsExtractor, Simplifier
@@ -65,12 +65,16 @@ class Problem(
         ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         self._operators_extractor = OperatorsExtractor()
-        self._initial_value: Dict['up.model.fnode.FNode', 'up.model.fnode.FNode'] = {}
-        self._timed_effects: Dict['up.model.timing.Timing', List['up.model.effect.Effect']] = {}
-        self._timed_goals: Dict['up.model.timing.TimeInterval', List['up.model.fnode.FNode']] = {}
-        self._trajectory_constraints: List['up.model.fnode.FNode'] = list()
-        self._goals: List['up.model.fnode.FNode'] = list()
-        self._metrics: List['up.model.metrics.PlanQualityMetric'] = []
+        self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
+        self._timed_effects: Dict[
+            "up.model.timing.Timing", List["up.model.effect.Effect"]
+        ] = {}
+        self._timed_goals: Dict[
+            "up.model.timing.TimeInterval", List["up.model.fnode.FNode"]
+        ] = {}
+        self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
+        self._goals: List["up.model.fnode.FNode"] = list()
+        self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
 
     def __repr__(self) -> str:
         s = []
@@ -117,13 +121,13 @@ class Problem(
             s.append("]\n\n")
         s.append("goals = [\n")
         for g in self.goals:
-            s.append(f'  {str(g)}\n')
-        s.append(']\n\n')
+            s.append(f"  {str(g)}\n")
+        s.append("]\n\n")
         if self.trajectory_constraints:
-            s.append('trajectory constraints = [\n')
+            s.append("trajectory constraints = [\n")
             for c in self.trajectory_constraints:
-                s.append(f'  {str(c)}\n')
-            s.append(']\n\n')
+                s.append(f"  {str(c)}\n")
+            s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
             for qm in self.quality_metrics:
@@ -593,21 +597,38 @@ class Problem(
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
-    def add_trajectory_constraint(self, constraint: 'up.model.fnode.FNode'):
-        '''Adds a trajectory constraint.'''
+    def add_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
+        """
+        Adds the given `trajectory_constraint` to the `Problem`;
+        a trajectory_constraint is an expression defined as:
+            Always, Sometime, At-Most-Once, Sometime-Before, Sometime-After or
+            defined with quantifiers.
+
+        :param trajectory_constraint: The expression added to the `Problem`.
+        """
         new_traj_list = []
-        constraint_exp, = self._env.expression_manager.auto_promote(constraint)
-        new_traj_list.append(Simplifier(self._env).simplify(
-            self._env.expression_manager.And(self._trajectory_constraints, constraint_exp,)
-        ))
+        (constraint_exp,) = self._env.expression_manager.auto_promote(constraint)
+        new_traj_list.append(
+            Simplifier(self._env).simplify(
+                self._env.expression_manager.And(
+                    self._trajectory_constraints,
+                    constraint_exp,
+                )
+            )
+        )
         self._trajectory_constraints = new_traj_list
 
-    def del_trajectory_constraint(self, constraint: 'up.model.fnode.FNode'):
-        '''Delete a trajectory constraint'''
+    def del_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
+        """
+        Delete the given `trajectory_constraint` present in the `Problem`;
+
+        :param trajectory_constraint: The expression delete the trajectory_constraint
+        if is present in the `Problem`.
+        """
         if len(self._trajectory_constraints) > 0:
             new_traj_list = []
             traj_constrs = list(self._trajectory_constraints[0].args)
-            if constraint in traj_constrs: 
+            if constraint in traj_constrs:
                 traj_constrs.remove(constraint)
                 new_traj_list.append(self._env.expression_manager.And(traj_constrs))
                 self._trajectory_constraints = new_traj_list
@@ -620,8 +641,8 @@ class Problem(
         return self._goals
 
     @property
-    def trajectory_constraints(self) -> List['up.model.fnode.FNode']:
-        '''Returns the trajectory constraints.'''
+    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
+        """Returns the 'trajectory_constraints' in the 'Problem'."""
         return self._trajectory_constraints
 
     def clear_goals(self):
@@ -632,7 +653,7 @@ class Problem(
         """Removes the trajectory_constraints."""
         self._trajectory_constraints = []
 
-    def add_quality_metric(self, metric: 'up.model.metrics.PlanQualityMetric'):
+    def add_quality_metric(self, metric: "up.model.metrics.PlanQualityMetric"):
         """
         Adds the given `quality metric` to the `Problem`; a `quality metric` defines extra requirements that a :class:`~unified_planning.plans.Plan`
         must satisfy in order to be valid.
@@ -738,10 +759,10 @@ class Problem(
                     linear_checker,
                 )
         if len(self._timed_goals) > 0:
-            self._kind.set_time('TIMED_GOALS') # type: ignore
-            self._kind.set_time('CONTINUOUS_TIME') # type: ignore
+            self._kind.set_time("TIMED_GOALS")  # type: ignore
+            self._kind.set_time("CONTINUOUS_TIME")  # type: ignore
         if len(self._trajectory_constraints) > 0:
-            self._kind.set_constraints_kind('TRAJECTORY_CONSTRAINTS') # type: ignore
+            self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")  # type: ignore
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)

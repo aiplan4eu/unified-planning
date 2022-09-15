@@ -13,38 +13,43 @@
 # limitations under the License.
 
 
-from unified_planning.engines.compilers.trajectory_constraints_remover import TrajectoryConstraintsRemover
+from unified_planning.engines.compilers.trajectory_constraints_remover import (
+    TrajectoryConstraintsRemover,
+)
 from unified_planning.shortcuts import *
 from unified_planning.walkers import Simplifier
 from unified_planning.test import TestCase
+
 
 class TestTrajectoryConstraintsRemoverCase(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         problem, fluents, actions = self.get_problem()
         self.simplifier = Simplifier(problem.env)
-        self.problem = problem 
+        self.problem = problem
         self.fluents = fluents
         self.actions = actions
 
-    def get_problem (self):
-        problem = Problem('test_traj_constr_remover')
-        a = Fluent('a')
-        b = Fluent('b')
-        c = Fluent('c')
-        d = Fluent('d')
-        e = Fluent('e')
+    def get_problem(self):
+        problem = Problem("test_traj_constr_remover")
+        a = Fluent("a")
+        b = Fluent("b")
+        c = Fluent("c")
+        d = Fluent("d")
+        e = Fluent("e")
         fluents = [a, b, c, d, e]
         for f in fluents:
             problem.add_fluent(f)
-        act_1 = InstantaneousAction('act_1')
+        act_1 = InstantaneousAction("act_1")
         act_1.add_precondition(a)
-        act_2 = InstantaneousAction('act_2')
+        act_2 = InstantaneousAction("act_2")
         act_2.add_precondition(a)
-        act_3 = InstantaneousAction('act_3')
+        act_3 = InstantaneousAction("act_3")
         act_3.add_precondition(a)
         condition = Or(Or((And(b, Not(c))), d), Or(Not(a), And(e, Not(d))))
-        condition_2 = And(Not(e), Or(Or((And(b, Not(c))), d), Or(Not(a), And(e, Not(d)))))
+        condition_2 = And(
+            Not(e), Or(Or((And(b, Not(c))), d), Or(Not(a), And(e, Not(d))))
+        )
         act_1.add_effect(condition=condition, fluent=a, value=True)
         act_2.add_effect(condition=condition, fluent=a, value=True)
         act_2.add_effect(condition=condition, fluent=b, value=False)
@@ -72,8 +77,13 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         R_c = self.simplifier.simplify(traj_remover._regression(c_phi, act_1))
         R_d = self.simplifier.simplify(traj_remover._regression(d_phi, act_1))
         R_e = self.simplifier.simplify(traj_remover._regression(e_phi, act_1))
-        self.assertTrue(R_a.is_true() and R_b == b_phi and R_c == c_phi 
-             and R_d == d_phi and R_e == e_phi)
+        self.assertTrue(
+            R_a.is_true()
+            and R_b == b_phi
+            and R_c == c_phi
+            and R_d == d_phi
+            and R_e == e_phi
+        )
 
     def test_regression_2(self):
         traj_remover = TrajectoryConstraintsRemover()
@@ -88,8 +98,13 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         R_c = self.simplifier.simplify(traj_remover._regression(c_phi, act_2))
         R_d = self.simplifier.simplify(traj_remover._regression(d_phi, act_2))
         R_e = self.simplifier.simplify(traj_remover._regression(e_phi, act_2))
-        self.assertTrue(R_a.is_true() and R_b != b_phi and R_c != c_phi 
-             and R_d == d_phi and R_e == e_phi)
+        self.assertTrue(
+            R_a.is_true()
+            and R_b != b_phi
+            and R_c != c_phi
+            and R_d == d_phi
+            and R_e == e_phi
+        )
 
     def test_regression_3(self):
         traj_remover = TrajectoryConstraintsRemover()
@@ -104,5 +119,10 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         R_c = self.simplifier.simplify(traj_remover._regression(c_phi, act_3))
         R_d = self.simplifier.simplify(traj_remover._regression(d_phi, act_3))
         R_e = self.simplifier.simplify(traj_remover._regression(e_phi, act_3))
-        self.assertTrue(R_a == a_phi and R_b == b_phi and R_c == c_phi 
-             and R_d != d_phi and R_e != e_phi)
+        self.assertTrue(
+            R_a == a_phi
+            and R_b == b_phi
+            and R_c == c_phi
+            and R_d != d_phi
+            and R_e != e_phi
+        )

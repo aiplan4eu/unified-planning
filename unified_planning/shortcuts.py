@@ -143,22 +143,28 @@ def FluentExp(
     """
     return get_env().expression_manager.FluentExp(fluent, params)
 
+
 def Always(expression: BoolExpression) -> FNode:
     return get_env().expression_manager.Always(expression)
+
 
 def Sometime(expression: BoolExpression) -> FNode:
     return get_env().expression_manager.Sometime(expression)
 
+
 def Sometime_Before(*expression: BoolExpression) -> FNode:
     return get_env().expression_manager.Sometime_Before(*expression)
+
 
 def Sometime_After(*expression: BoolExpression) -> FNode:
     return get_env().expression_manager.Sometime_After(*expression)
 
+
 def At_Most_Once(expression: BoolExpression) -> FNode:
     return get_env().expression_manager.At_Most_Once(expression)
 
-def ParameterExp(param: 'unified_planning.model.Parameter') -> FNode:
+
+def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
     return get_env().expression_manager.ParameterExp(param)
 
 

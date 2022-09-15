@@ -20,56 +20,67 @@ from typing import List, Dict, Union
 
 
 class FluentsSetMixin:
-    '''
+    """
     This class is a mixin that contains a set of fluents with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
     of the attributes (e.g. env, add_user_type_method, has_name_method), it is required
     to pass the very same arguments to the mixins constructors.
-    '''
+    """
 
-    def __init__(self, env, add_user_type_method, has_name_method,
-                 initial_defaults: Dict['up.model.types.Type', 'ConstantExpression'] = {}):
+    def __init__(
+        self,
+        env,
+        add_user_type_method,
+        has_name_method,
+        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+    ):
         self._env = env
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
-        self._fluents: List['up.model.fluent.Fluent'] = []
-        self._fluents_defaults: Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode'] = {}
-        self._initial_defaults: Dict['up.model.types.Type', 'up.model.fnode.FNode'] = {}
+        self._fluents: List["up.model.fluent.Fluent"] = []
+        self._fluents_defaults: Dict[
+            "up.model.fluent.Fluent", "up.model.fnode.FNode"
+        ] = {}
+        self._initial_defaults: Dict["up.model.types.Type", "up.model.fnode.FNode"] = {}
         for k, v in initial_defaults.items():
-            v_exp, = self.env.expression_manager.auto_promote(v)
+            (v_exp,) = self.env.expression_manager.auto_promote(v)
             self._initial_defaults[k] = v_exp
         # The field initial default optionally associates a type to a default value. When a new fluent is
         # created with no explicit default, it will be associated with the initial-default of his type, if any.
 
     @property
-    def env(self) -> 'up.environment.Environment':
-        '''Returns the problem environment.'''
+    def env(self) -> "up.environment.Environment":
+        """Returns the problem environment."""
         return self._env
 
     @property
-    def fluents(self) -> List['up.model.fluent.Fluent']:
-        '''Returns the fluents.'''
+    def fluents(self) -> List["up.model.fluent.Fluent"]:
+        """Returns the fluents."""
         return self._fluents
 
-    def fluent(self, name: str) -> 'up.model.fluent.Fluent':
-        '''Returns the fluent with the given name.'''
+    def fluent(self, name: str) -> "up.model.fluent.Fluent":
+        """Returns the fluent with the given name."""
         for f in self._fluents:
             if f.name == name:
                 return f
-        raise UPValueError(f'Fluent of name: {name} is not defined!')
+        raise UPValueError(f"Fluent of name: {name} is not defined!")
 
     def has_fluent(self, name: str) -> bool:
-        '''Returns true if the fluent with the given name is in the problem.'''
+        """Returns true if the fluent with the given name is in the problem."""
         for f in self._fluents:
             if f.name == name:
                 return True
         return False
 
-    def add_fluent(self, fluent_or_name: Union['up.model.fluent.Fluent', str],
-                   typename: 'up.model.types.Type' = None, *,
-                   default_initial_value: 'ConstantExpression' = None,
-                   **kwargs: 'up.model.types.Type') -> 'up.model.fluent.Fluent':
+    def add_fluent(
+        self,
+        fluent_or_name: Union["up.model.fluent.Fluent", str],
+        typename: "up.model.types.Type" = None,
+        *,
+        default_initial_value: "ConstantExpression" = None,
+        **kwargs: "up.model.types.Type",
+    ) -> "up.model.fluent.Fluent":
         """Adds the given fluent to the problem.
 
         If the first parameter is not a Fluent, the parameters will be passed to the Fluent constructor to create it.
@@ -97,12 +108,14 @@ class FluentsSetMixin:
             assert len(kwargs) == 0 and typename is None
             fluent = fluent_or_name
         else:
-            fluent = up.model.fluent.Fluent(fluent_or_name, typename, None, env=self.env, **kwargs)
+            fluent = up.model.fluent.Fluent(
+                fluent_or_name, typename, None, env=self.env, **kwargs
+            )
         if self._has_name_method(fluent.name):
-            raise UPProblemDefinitionError('Name ' + fluent.name + ' already defined!')
+            raise UPProblemDefinitionError("Name " + fluent.name + " already defined!")
         self._fluents.append(fluent)
         if not default_initial_value is None:
-            v_exp, = self.env.expression_manager.auto_promote(default_initial_value)
+            (v_exp,) = self.env.expression_manager.auto_promote(default_initial_value)
             self._fluents_defaults[fluent] = v_exp
         elif fluent.type in self._initial_defaults:
             self._fluents_defaults[fluent] = self._initial_defaults[fluent.type]
@@ -114,11 +127,13 @@ class FluentsSetMixin:
         return fluent
 
     @property
-    def fluents_defaults(self) -> Dict['up.model.fluent.Fluent', 'up.model.fnode.FNode']:
-        '''Returns the problem's fluents defaults.'''
+    def fluents_defaults(
+        self,
+    ) -> Dict["up.model.fluent.Fluent", "up.model.fnode.FNode"]:
+        """Returns the problem's fluents defaults."""
         return self._fluents_defaults
 
     @property
-    def initial_defaults(self) -> Dict['up.model.types.Type', 'up.model.fnode.FNode']:
-        '''Returns the problem's fluents defaults.'''
+    def initial_defaults(self) -> Dict["up.model.types.Type", "up.model.fnode.FNode"]:
+        """Returns the problem's fluents defaults."""
         return self._initial_defaults

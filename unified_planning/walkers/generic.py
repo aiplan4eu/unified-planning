@@ -14,6 +14,7 @@
 from functools import partial
 
 import sys
+
 if sys.version_info >= (3, 3):
     from collections.abc import Iterable
 else:
@@ -25,7 +26,8 @@ from unified_planning.model import FNode, OperatorKind
 # NodeType to Function Name
 def nt_to_fun(o: OperatorKind) -> str:
     """Returns the name of the walk function for the given nodetype."""
-    return "walk_%s" % (str(o).replace('OperatorKind.', '')).lower()
+    return "walk_%s" % (str(o).replace("OperatorKind.", "")).lower()
+
 
 class handles(object):
     """Decorator for walker functions.
@@ -36,6 +38,7 @@ class handles(object):
       def walk_special(...):
          ...
     """
+
     def __init__(self, *nodetypes):
         if len(nodetypes) == 1 and isinstance(nodetypes[0], Iterable):
             nodetypes = nodetypes[0]
@@ -48,11 +51,13 @@ class handles(object):
         func.nodetypes = nodetypes
         return func
 
+
 class MetaNodeTypeHandler(type):
-    """Metaclass used to intepret the nodehandler decorator. """
+    """Metaclass used to intepret the nodehandler decorator."""
+
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
-        for k,v in dct.items():
+        for k, v in dct.items():
             if hasattr(v, "nodetypes"):
                 obj.set_handler(v, *v.nodetypes)
         return obj
@@ -78,8 +83,12 @@ class Walker(object, metaclass=MetaNodeTypeHandler):
         node_types with the given function
         """
         from warnings import warn
-        warn("Instance-based walkers (<=0.6.0) walkers are deprecated. "
-             "You should use new-style/class based walkers", stacklevel=2)
+
+        warn(
+            "Instance-based walkers (<=0.6.0) walkers are deprecated. "
+            "You should use new-style/class based walkers",
+            stacklevel=2,
+        )
         for nt in node_types:
             self.functions[nt] = function
 
@@ -98,5 +107,6 @@ class Walker(object, metaclass=MetaNodeTypeHandler):
     @handles(OperatorKind)
     def walk_error(self, expression: FNode, **kwargs):
         raise NotImplementedError
+
 
 # EOC Walker
