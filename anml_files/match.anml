@@ -9,25 +9,6 @@ fluent boolean light;
 instance Fuse f1, f2, f3;
 instance Match m1, m2, m3;
 
-[start] {
-   light := false;
-   handfree := true;
-
-   match_used(m1) := false;
-   match_used(m2) := false;
-   match_used(m3) := false;
-
-   fuse_mended(f1) := false;
-   fuse_mended(f2) := false;
-   fuse_mended(f3) := false;
-};
-
-goal [end] {
-   fuse_mended(f1);
-   fuse_mended(f2);
-   fuse_mended(f3);
-};
-
 action light_match(Match m) {
    duration := 6;
 
@@ -47,4 +28,23 @@ action mend_fuse(Fuse f) {
    [start] handfree := false;
    [end] fuse_mended(f) := true;
    [end] handfree := true;
+};
+
+[start] {
+   light := false;
+   handfree := true;
+
+   match_used(m1) := false;
+   match_used(m2) := false;
+   match_used(m3) := false;
+
+   fuse_mended(f1) := false;
+   fuse_mended(f2) := false;
+   fuse_mended(f3) := false;
+};
+
+goal [end] {
+   fuse_mended(f1);
+   fuse_mended(f2);
+   fuse_mended(f3);
 };
