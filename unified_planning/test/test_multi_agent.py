@@ -137,4 +137,4 @@ class TestProblem(TestCase):
         self.assertTrue(problem.initial_value(cargo_at(l2)) is not None)
         self.assertTrue(problem.initial_value(cargo_at(l3)) is not None)
         self.assertTrue(problem.initial_value(Dot(ag1, pos)) is not None)
-        self.assertEqual(len(problem.goals), 3)
+        self.assertEqual(len(problem.goals), 1)
