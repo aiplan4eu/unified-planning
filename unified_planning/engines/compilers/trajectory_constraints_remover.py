@@ -15,13 +15,10 @@
 """This module defines the trajectory constraints remover class."""
 
 import unified_planning as up
-import unified_planning.environment
 import unified_planning.engines as engines
-import unified_planning.engines.compilers
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.walkers import Simplifier, ExpressionQuantifiersRemover
-from unified_planning.shortcuts import *
+from unified_planning.model.walkers import Simplifier, ExpressionQuantifiersRemover
 from unified_planning.model import Problem, ProblemKind
 from unified_planning.model.operators import OperatorKind
 
@@ -34,7 +31,7 @@ SEEN_PSI = "seen-psi"
 SEPARATOR = "-"
 
 
-class TrajectoryConstraintsRemover(CompilerMixin):
+class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     """
     TrajectoryConstraintsRemover class: the `TrajectoryConstraintsRemover` takes a :class:`~unified_planning.model.Problem`
     that contains 'trajectory_constraints' and return a new grounded 'Problem' without that constraints.
@@ -45,6 +42,7 @@ class TrajectoryConstraintsRemover(CompilerMixin):
     """
 
     def __init__(self):
+        engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING)
         self._simplifier = None
 
@@ -88,7 +86,7 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")  # type: ignore
         return supported_kind
 
-    def compile(
+    def _compile(
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
@@ -114,19 +112,15 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         self._env = problem.env
         self._simplifier = Simplifier(self._env)
         self._expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
-        with self._env.factory.Compiler(
-            problem_kind=problem.kind,
-            compilation_kind=engines.CompilationKind.GROUNDING,
-        ) as grounder:
-            grounding_result = grounder.compile(
-                problem, engines.CompilationKind.GROUNDING
-            )
-        # create a grounded problem
+        grounder = engines.compilers.grounder.Grounder()
+        grounding_result = grounder.compile(problem, CompilationKind.GROUNDING)
         self._problem = grounding_result.problem
         A = grounding_result.problem.actions
         I_g = grounding_result.problem.initial_values
         I = self._ground_initial_state(A, I_g)
-        C_temp = self._simplifier.simplify(And(problem.trajectory_constraints))
+        C_temp = self._simplifier.simplify(
+            self._env.expression_manager.And(problem.trajectory_constraints)
+        )
         C = self._build_constraint_list(C_temp)
         # create a list that contains trajectory_constraints
         # trajectory_constraints can contain quantifiers and need to be remove
@@ -135,11 +129,13 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         G_temp = []
         I_prime, F_prime = self._get_monitoring_atoms(C, I)
         for c in self._LTC(C):
-            monitoring_atom = FluentExp(
-                Fluent(f"{c._monitoring_atom_predicate}", BoolType())
+            monitoring_atom = self._env.expression_manager.FluentExp(
+                up.model.Fluent(
+                    f"{c._monitoring_atom_predicate}", self._env.type_manager.BoolType()
+                )
             )
             G_temp.append(monitoring_atom)
-        G_prime = And(G_temp)
+        G_prime = self._env.expression_manager.And(G_temp)
         for a in A:
             E = list()  # type: ignore
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
@@ -172,11 +168,13 @@ class TrajectoryConstraintsRemover(CompilerMixin):
                         a.preconditions.append(precondition)
             for eff in E:
                 a.effects.append(eff)
-            if FALSE() not in a.preconditions:
+            if self._env.expression_manager.FALSE() not in a.preconditions:
                 A_prime.append(a)
         # create new problem to return
         # adding new fluents, goal, initial values and actions
-        G_new = self._simplifier.simplify(And(grounding_result.problem.goals, G_prime))
+        G_new = self._simplifier.simplify(
+            self._env.expression_manager.And(grounding_result.problem.goals, G_prime)
+        )
         grounding_result.problem.clear_goals()
         grounding_result.problem.add_goal(G_new)
         grounding_result.problem.clear_trajectory_constraints()
@@ -187,87 +185,67 @@ class TrajectoryConstraintsRemover(CompilerMixin):
             grounding_result.problem.add_action(action)
         for init_val in I_prime:
             grounding_result.problem.set_initial_value(
-                FluentExp(Fluent(f"{init_val}", BoolType())), TRUE()
+                self._env.expression_manager.FluentExp(
+                    up.model.Fluent(f"{init_val}", self._env.type_manager.BoolType())
+                ),
+                self._env.expression_manager.TRUE(),
             )
         return grounding_result
 
     def _build_constraint_list(self, C_temp):
         C_list = C_temp.args if C_temp.is_and() else [C_temp]
-        C_to_return = self._simplifier.simplify(And(self._remove_quantifire(C_list)))
+        C_to_return = self._simplifier.simplify(
+            self._env.expression_manager.And(self._remove_quantifire(C_list))
+        )
         return C_to_return.args if C_to_return.is_and() else [C_to_return]
 
     def _remove_quantifire(self, C):
         new_C = []
         for c in C:
-            if c.is_always():
-                new_C.append(Always(self._get_constraints_condition(c.args[0])))
-            elif c.is_sometime():
-                new_C.append(Sometime(self._get_constraints_condition(c.args[0])))
-            elif c.is_at_most_once():
-                new_C.append(At_Most_Once(self._get_constraints_condition(c.args[0])))
-            elif c.is_sometime_before():
-                new_C.append(
-                    Sometime_Before(
-                        self._get_constraints_condition(c.args[0]),
-                        self._get_constraints_condition(c.args[1]),
-                    )
-                )
-            elif c.is_sometime_after():
-                new_C.append(
-                    Sometime_After(
-                        self._get_constraints_condition(c.args[0]),
-                        self._get_constraints_condition(c.args[1]),
-                    )
-                )
-            else:
-                new_C.append(self._get_constraints_condition(c))
+            new_C.append(
+                self._expression_quantifier_remover.remove_quantifiers(c, self._problem)
+            )
         return new_C
-
-    def _get_constraints_condition(self, cond):
-        if cond.is_forall() or cond.is_exists():
-            return self._expression_quantifier_remover.remove_quantifiers(
-                cond, self._problem
-            )
-        elif cond.is_and():
-            args = []
-            for arg in cond.args:
-                args.append(self._get_constraints_condition(arg))
-            return self._simplifier.simplify(And(args))
-        elif cond.is_or():
-            args = []
-            for arg in cond.args:
-                args.append(self._get_constraints_condition(arg))
-            return self._simplifier.simplify(Or(args))
-        elif cond.is_not():
-            return self._simplifier.simplify(
-                Not(self._get_constraints_condition(cond.args[0]))
-            )
-        else:
-            return cond
 
     def _manage_sa_compilation(self, phi, psi, m_atom, a, E):
         R1 = self._simplifier.simplify(self._regression(phi, a))
         R2 = self._simplifier.simplify(self._regression(psi, a))
-        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
+        monitoring_atom = self._env.expression_manager.FluentExp(
+            up.model.Fluent(f"{m_atom}", self._env.type_manager.BoolType())
+        )
         if phi != R1 or psi != R2:
-            cond = self._simplifier.simplify(And([R1, Not(R2)]))
-            self._add_cond_eff(E, cond, Not(monitoring_atom))
+            cond = self._simplifier.simplify(
+                self._env.expression_manager.And(
+                    [R1, self._env.expression_manager.Not(R2)]
+                )
+            )
+            self._add_cond_eff(
+                E, cond, self._env.expression_manager.Not(monitoring_atom)
+            )
         if psi != R2:
             self._add_cond_eff(E, R2, monitoring_atom)
 
     def _manage_sometime_compilation(self, phi, m_atom, a, E):
-        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
+        monitoring_atom = self._env.expression_manager.FluentExp(
+            up.model.Fluent(f"{m_atom}", self._env.type_manager.BoolType())
+        )
         R = self._simplifier.simplify(self._regression(phi, a))
         if R != phi:
             self._add_cond_eff(E, R, monitoring_atom)
 
     def _manage_sb_compilation(self, phi, psi, m_atom, a, E):
-        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
+        monitoring_atom = self._env.expression_manager.FluentExp(
+            up.model.Fluent(f"{m_atom}", self._env.type_manager.BoolType())
+        )
         R_phi = self._simplifier.simplify(self._regression(phi, a))
         if R_phi == phi:
             added_precond = (None, False)
         else:
-            rho = self._simplifier.simplify(Or([Not(R_phi), monitoring_atom]))
+            rho = self._simplifier.simplify(
+                self._env.expression_manager.Or(
+                    [self._env.expression_manager.Not(R_phi), monitoring_atom]
+                )
+            )
             added_precond = (rho, True)
         R_psi = self._simplifier.simplify(self._regression(psi, a))
         if R_psi != psi:
@@ -275,12 +253,22 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         return added_precond
 
     def _manage_amo_compilation(self, phi, m_atom, a, E):
-        monitoring_atom = FluentExp(Fluent(f"{m_atom}", BoolType()))
+        monitoring_atom = self._env.expression_manager.FluentExp(
+            up.model.Fluent(f"{m_atom}", self._env.type_manager.BoolType())
+        )
         R = self._simplifier.simplify(self._regression(phi, a))
         if R == phi:
             return None, False
         else:
-            rho = self._simplifier.simplify(Or([Not(R), Not(monitoring_atom), phi]))
+            rho = self._simplifier.simplify(
+                self._env.expression_manager.Or(
+                    [
+                        self._env.expression_manager.Not(R),
+                        self._env.expression_manager.Not(monitoring_atom),
+                        phi,
+                    ]
+                )
+            )
             self._add_cond_eff(E, R, monitoring_atom)
             return rho, True
 
@@ -294,9 +282,21 @@ class TrajectoryConstraintsRemover(CompilerMixin):
     def _add_cond_eff(self, E, cond, eff):
         if not self._simplifier.simplify(cond).is_false():
             if eff.is_not():
-                E.append(Effect(condition=cond, fluent=eff.args[0], value=FALSE()))
+                E.append(
+                    up.model.Effect(
+                        condition=cond,
+                        fluent=eff.args[0],
+                        value=self._env.expression_manager.FALSE(),
+                    )
+                )
             else:
-                E.append(Effect(condition=cond, fluent=eff, value=TRUE()))
+                E.append(
+                    up.model.Effect(
+                        condition=cond,
+                        fluent=eff,
+                        value=self._env.expression_manager.TRUE(),
+                    )
+                )
 
     def _get_relevant_constraints(self, a, relevancy_dict):
         relevant_constrains = []
@@ -328,26 +328,26 @@ class TrajectoryConstraintsRemover(CompilerMixin):
 
     def _simple_substitution(self, set, phi):
         if phi.is_true():
-            return TRUE()
+            return self._env.expression_manager.TRUE()
         if phi.is_false():
-            return FALSE()
+            return self._env.expression_manager.FALSE()
         if phi.is_fluent_exp() or phi.is_not():
             if phi in set:
-                return TRUE()
-            phi_neg = Not(phi)
+                return self._env.expression_manager.TRUE()
+            phi_neg = self._env.expression_manager.Not(phi)
             if phi_neg in set:
-                return FALSE()
+                return self._env.expression_manager.FALSE()
             else:
                 if phi.is_not():
-                    return TRUE()
+                    return self._env.expression_manager.TRUE()
                 else:
-                    return FALSE()
+                    return self._env.expression_manager.FALSE()
         elif phi.is_or():
-            return Or(
+            return self._env.expression_manager.Or(
                 self._simple_substitution(set, component) for component in phi.args
             )
         else:
-            return And(
+            return self._env.expression_manager.And(
                 self._simple_substitution(set, component) for component in phi.args
             )
 
@@ -383,11 +383,12 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         for constr in C:
             if not constr.is_always():
                 type, init_state_value = self._evaluate_constraint(constr, I)
-                fluent = Fluent(
-                    f"{type}{SEPARATOR}{monitoring_atoms_counter}", BoolType()
+                fluent = up.model.Fluent(
+                    f"{type}{SEPARATOR}{monitoring_atoms_counter}",
+                    self._env.type_manager.BoolType(),
                 )
                 monitoring_atoms.append(fluent)
-                monitoring_atom = FluentExp(fluent)
+                monitoring_atom = self._env.expression_manager.FluentExp(fluent)
                 constr.set_monitoring_atom_predicate(monitoring_atom)
                 if init_state_value:
                     initial_state_prime.append(monitoring_atom)
@@ -444,27 +445,27 @@ class TrajectoryConstraintsRemover(CompilerMixin):
                 yield constr
 
     def _gamma_substitution(self, literal, action):
-        negated_literal = Not(expression=literal)
+        negated_literal = self._env.expression_manager.Not(expression=literal)
         gamma1 = self._gamma(literal, action)
-        gamma2 = Not(self._gamma(negated_literal, action))
-        conjunction = And([literal, gamma2])
-        return Or([gamma1, conjunction])
+        gamma2 = self._env.expression_manager.Not(self._gamma(negated_literal, action))
+        conjunction = self._env.expression_manager.And([literal, gamma2])
+        return self._env.expression_manager.Or([gamma1, conjunction])
 
     def _gamma(self, literal, action):
         disjunction = []
         for eff in action.effects:
             cond = eff.condition
             if eff.value.is_false():
-                eff = Not(eff.fluent)
+                eff = self._env.expression_manager.Not(eff.fluent)
             else:
                 eff = eff.fluent
             if literal == eff:
                 if cond.is_true():
-                    return TRUE()
+                    return self._env.expression_manager.TRUE()
                 disjunction.append(cond)
         if not disjunction:
             return False
-        return Or(disjunction)
+        return self._env.expression_manager.Or(disjunction)
 
     def _regression(self, phi, action):
         if phi.is_false() or phi.is_true():
@@ -472,11 +473,17 @@ class TrajectoryConstraintsRemover(CompilerMixin):
         elif phi.is_fluent_exp():
             return self._gamma_substitution(phi, action)
         elif phi.is_or():
-            return Or([self._regression(component, action) for component in phi.args])
+            return self._env.expression_manager.Or(
+                [self._regression(component, action) for component in phi.args]
+            )
         elif phi.is_and():
-            return And([self._regression(component, action) for component in phi.args])
+            return self._env.expression_manager.And(
+                [self._regression(component, action) for component in phi.args]
+            )
         elif phi.is_not():
-            return Not(self._regression(phi.args[0], action))
+            return self._env.expression_manager.Not(
+                self._regression(phi.args[0], action)
+            )
         else:
             raise up.exceptions.UPUsageError(
                 "This compiler cannot handle this expression"

@@ -245,8 +245,6 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_effects: List[Effect] = []
                 for e in new_action.effects:
                     fl, v = e.fluent, e.value
-                    if fl.is_not():
-                        a = 77
                     fneg = fluent_mapping.get(fl.fluent(), None)
                     if fneg is not None:
                         simplified_not_v = simplifier.simplify(

@@ -165,6 +165,12 @@ def At_Most_Once(expression: BoolExpression) -> FNode:
 
 
 def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
+    """
+    Returns an expression for the given :func:`Action parameter <unified_planning.model.Action.parameters>`.
+
+    :param param: The `Parameter` that must be promoted to `FNode`.
+    :return: The `FNode` containing the given `param` as his payload.
+    """
     return get_env().expression_manager.ParameterExp(param)
 
 

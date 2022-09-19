@@ -31,8 +31,6 @@ from unified_planning.exceptions import (
     UPTypeError,
     UPExpressionDefinitionError,
 )
-from unified_planning.plans import ActionInstance
-from unified_planning.walkers import OperatorsExtractor, Simplifier
 from fractions import Fraction
 from typing import List, Dict, Set, Tuple, Union, cast
 
@@ -64,7 +62,7 @@ class Problem(
         )
         ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
-        self._operators_extractor = OperatorsExtractor()
+        self._operators_extractor = up.model.walkers.OperatorsExtractor()
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
@@ -607,9 +605,10 @@ class Problem(
         :param trajectory_constraint: The expression added to the `Problem`.
         """
         new_traj_list = []
+        simplifier = up.model.walkers.simplifier.Simplifier(self._env, self)
         (constraint_exp,) = self._env.expression_manager.auto_promote(constraint)
         new_traj_list.append(
-            Simplifier(self._env).simplify(
+            simplifier.simplify(
                 self._env.expression_manager.And(
                     self._trajectory_constraints,
                     constraint_exp,
@@ -759,10 +758,10 @@ class Problem(
                     linear_checker,
                 )
         if len(self._timed_goals) > 0:
-            self._kind.set_time("TIMED_GOALS")  # type: ignore
-            self._kind.set_time("CONTINUOUS_TIME")  # type: ignore
+            self._kind.set_time("TIMED_GOALS")
+            self._kind.set_time("CONTINUOUS_TIME")
         if len(self._trajectory_constraints) > 0:
-            self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")  # type: ignore
+            self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)

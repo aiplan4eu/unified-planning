@@ -663,8 +663,8 @@ class PDDLWriter:
                 pass
             else:
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
-        if self.problem.kind.has_actions_cost():  # type: ignore
-            out.write(f" (= total-cost 0)")
+        if self.problem.kind.has_actions_cost():
+            out.write(f" (= (total-cost) 0)")
         out.write(")\n")
         out.write(
             f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'

@@ -17,10 +17,9 @@ import unified_planning
 from unified_planning.engines.compilers.trajectory_constraints_remover import (
     TrajectoryConstraintsRemover,
 )
-from unified_planning.walkers import Simplifier, ExpressionQuantifiersRemover
+from unified_planning.model.walkers import Simplifier, ExpressionQuantifiersRemover
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
-from unified_planning.walkers import Simplifier
 
 
 class TestRemoveQuantifierInTrajConstraint(TestCase):
