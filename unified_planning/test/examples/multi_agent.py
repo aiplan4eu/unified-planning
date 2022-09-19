@@ -133,7 +133,7 @@ def get_example_problems():
             up.plans.ActionInstance(unload, (ObjectExp(l2),), robot1),
             up.plans.ActionInstance(load, (ObjectExp(l2),), robot2),
             up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3)), robot2),
-            up.plans.ActionInstance(unload, (ObjectExp(l3),), robot2)
+            up.plans.ActionInstance(unload, (ObjectExp(l3),), robot2),
         ]
     )
     ma_loader = Example(problem=problem, plan=plan)

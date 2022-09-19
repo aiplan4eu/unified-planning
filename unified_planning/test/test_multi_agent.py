@@ -41,17 +41,17 @@ class TestProblem(TestCase):
         self.assertEqual(ag1.name, "robot1")
         self.assertEqual(ag2.name, "robot2")
 
-        Location = problem.user_type('Location')
+        Location = problem.user_type("Location")
         self.assertTrue(Location.is_user_type())
         self.assertEqual(Location.name, "Location")
         self.assertEqual(str(Location), "Location")
 
-        pos = ag1.fluent('pos')
+        pos = ag1.fluent("pos")
         self.assertEqual(str(pos), "Location pos")
         self.assertEqual(pos.arity, 0)
         self.assertTrue(pos.type.is_user_type())
 
-        cargo_at = problem.ma_environment.fluent('cargo_at')
+        cargo_at = problem.ma_environment.fluent("cargo_at")
         self.assertEqual(cargo_at.name, "cargo_at")
         self.assertEqual(cargo_at.arity, 1)
         self.assertEqual(
@@ -59,11 +59,15 @@ class TestProblem(TestCase):
         )
         self.assertTrue(cargo_at.type.is_bool_type())
 
-        is_connected = problem.ma_environment.fluent('is_connected')
+        is_connected = problem.ma_environment.fluent("is_connected")
         self.assertEqual(is_connected.name, "is_connected")
         self.assertEqual(is_connected.arity, 2)
         self.assertEqual(
-            is_connected.signature, [up.model.Parameter("l1", Location, problem.env), up.model.Parameter("l2", Location, problem.env)]
+            is_connected.signature,
+            [
+                up.model.Parameter("l1", Location, problem.env),
+                up.model.Parameter("l2", Location, problem.env),
+            ],
         )
         self.assertTrue(is_connected.type.is_bool_type())
 
@@ -72,7 +76,7 @@ class TestProblem(TestCase):
         self.assertEqual(cargo_mounted.arity, 0)
         self.assertTrue(cargo_mounted.type.is_bool_type())
 
-        move = ag1.action('move')
+        move = ag1.action("move")
         l_from = move.parameter("l_from")
         l_to = move.parameter("l_to")
         self.assertEqual(move.name, "move")
@@ -101,7 +105,6 @@ class TestProblem(TestCase):
         self.assertEqual(loc.type, Location)
         self.assertEqual(len(unload.preconditions), 3)
         self.assertEqual(len(unload.effects), 2)
-
 
         l1 = problem.object("l1")
         l2 = problem.object("l2")
