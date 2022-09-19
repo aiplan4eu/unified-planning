@@ -342,7 +342,14 @@ class ExpressionManager(object):
         agent: "up.model.multi_agent.Agent",
         fluent_exp: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
     ) -> "up.model.fnode.FNode":
-        """Creates an expression for the given agent and fluent_exp."""
+        """
+        Creates an expression for the given `agent` and `fluent_exp`.
+        Restriction: agent must be of `agent type` and fluent_exp must be of `fluentExp type`
+
+        :param agent: The `Agent` that will be set as the `payload` of this expression.
+        :param fluent_exp: The `Fluent_exp` that will be set as the `args` of this expression.
+        :return: The created `Dot` Expression.
+        """
         assert agent.env == self.env
         (fluent_exp,) = self.auto_promote(fluent_exp)
         return self.create_node(

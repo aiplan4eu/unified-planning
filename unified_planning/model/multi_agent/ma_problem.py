@@ -41,7 +41,9 @@ class MultiAgentProblem(
     ObjectsSetMixin,
     AgentsSetMixin,
 ):
-    """Represents a planning MultiAgentProblem."""
+    """
+    Represents the multi-agent planning problem, with :class:`Agent <unified_planning.model.multi_agent.agent>`, with :class:`MAEnvironment <unified_planning.model.multi_agent.ma_environment>`, :class:`Fluents <unified_planning.model.Fluent>`, :class:`Objects <unified_planning.model.Object>` and :class:`UserTypes <unified_planning.model.Type>`.
+    """
 
     def __init__(
         self,
@@ -153,12 +155,16 @@ class MultiAgentProblem(
         return new_p
 
     def has_name(self, name: str) -> bool:
-        """Returns true if the name is in the problem."""
+        """
+        Returns `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+
+        :param name: The target name to find in the `MultiAgentProblem`.
+        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise."""
         return self.has_object(name) or self.has_type(name) or self.has_agent(name)
 
     @property
     def ma_environment(self) -> "up.model.multi_agent.ma_environment.MAEnvironment":
-        """Returns the MA-environment."""
+        """Returns this `MultiAgentProblem` `MAEnvironment`."""
         return self._env_ma
 
     def set_initial_value(
@@ -174,7 +180,14 @@ class MultiAgentProblem(
             Fraction,
         ],
     ):
-        """Sets the initial value for the given fluent."""
+        """
+        Sets the initial value for the given `Fluent`. The given `Fluent` must be grounded, therefore if
+        it's :func:`arity <unified_planning.model.Fluent.arity>` is `> 0`, the `fluent` parameter must be
+        an `FNode` and the method :func:`~unified_planning.model.FNode.is_fluent_exp` must return `True`.
+
+        :param fluent: The grounded `Fluent` of which the initial value must be set.
+        :param value: The `value` assigned in the initial state to the given `fluent`.
+        """
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
@@ -183,7 +196,12 @@ class MultiAgentProblem(
     def initial_value(
         self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
     ) -> "up.model.fnode.FNode":
-        """Gets the initial value of the given fluent."""
+        """
+        Retrieves the initial value assigned to the given `fluent`.
+
+        :param fluent: The target `fluent` of which the `value` in the initial state must be retrieved.
+        :return: The `value` expression assigned to the given `fluent` in the initial state.
+        """
         (fluent_exp,) = self._env.expression_manager.auto_promote(fluent)
         fluent_args = (
             fluent_exp.args if fluent_exp.is_fluent_exp() else fluent_exp.arg(0).args
@@ -209,10 +227,12 @@ class MultiAgentProblem(
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """Gets the initial value of the fluents.
+        """
+        Gets the initial value of all the grounded fluents present in the `MultiAgentProblem`.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         res = self._initial_value
         for f in self.ma_environment.fluents:
             for f_exp in get_all_fluent_exp(self, f):
@@ -228,14 +248,23 @@ class MultiAgentProblem(
     def explicit_initial_values(
         self,
     ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """Returns the problem's defined initial values.
-        IMPORTANT NOTE: For all the initial values of hte problem use Problem.initial_values."""
+        """
+        Returns the problem's defined initial values; those are only the initial values set with the
+        :func:`~unified_planning.model.multi_agent.MultiAgentProblem.set_initial_value` method.
+
+        IMPORTANT NOTE: For all the initial values of the problem use :func:`initial_values <unified_planning.model.multi_agent.MultiAgentProblem.initial_values>`.
+        """
         return self._initial_value
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
-        """Adds a goal."""
+        """
+        Adds the given `goal` to the `MultiAgentProblem`; a goal is an expression that must be evaluated to `True` at the
+        end of the execution of a :class:`~unified_planning.plans.Plan`. If a `Plan` does not satisfy all the given `goals`, it is not valid.
+
+        :param goal: The expression added to the `MultiAgentProblem` :func:`goals <unified_planning.model.multi_agent.MultiAgentProblem.goals>`.
+        """
         assert (
             isinstance(goal, bool) or goal.environment == self._env
         ), "goal does not have the same environment of the problem"
@@ -247,25 +276,32 @@ class MultiAgentProblem(
     def add_goals(
         self, goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
     ):
-        """Sets the goals for the given agent."""
+        """
+        Adds the given `goal` to the `MultiAgentProblem`.
+
+        :param goals: The `list` of `goals` that must be added to the `MultiAgentProblem`.
+        """
         for goal in goals:
             self.add_goal(goal)
 
     @property
     def goals(self) -> List["up.model.fnode.FNode"]:
-        """Returns the goals."""
+        """Returns all the `goals` in the `MultiAgentProblem`."""
         return self._goals
 
     def clear_goals(self):
-        """Removes the goals."""
+        """Removes all the `goals` from the `MultiAgentProblem`."""
         self._goals = []
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
-        """Returns the problem kind of this planning problem.
+        """
+        Calculates and returns the `problem kind` of this `planning problem`.
+        If the `Problem` is modified, this method must be called again in order to be reliable.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible."""
+        seldom as possible.
+        """
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class("ACTION_BASED_MULTI_AGENT")
         for ag in self.agents:

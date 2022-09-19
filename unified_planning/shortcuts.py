@@ -332,6 +332,14 @@ def Dot(
     agent: "unified_planning.model.multi_agent.Agent",
     fluent_exp: Union[FNode, "unified_planning.model.Fluent"],
 ) -> FNode:
+    """
+    Creates an expression for the given `agent` and `fluent_exp`.
+    Restriction: agent must be of `agent type` and fluent_exp must be of `fluentExp type`
+
+    :param agent: The `Agent` that will be set as the `payload` of this expression.
+    :param fluent_exp: The `Fluent_exp` that will be set as the `args` of this expression.
+    :return: The created `Dot` Expression.
+    """
     return get_env().expression_manager.Dot(agent, fluent_exp)
 
 

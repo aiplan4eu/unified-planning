@@ -210,7 +210,7 @@ class FNode(object):
         return self._content.payload
 
     def agent(self) -> "unified_planning.model.multi_agent.Agent":
-        """Return the agent of Dot operator."""
+        """Return the `Agent` stored in this expression."""
         assert self.is_dot()
         return self._content.payload
 
@@ -319,7 +319,7 @@ class FNode(object):
         return self.node_type == OperatorKind.LT
 
     def is_dot(self) -> bool:
-        """Test whether the expression is the Dot operator."""
+        """Test whether the node is the `DOT` operator."""
         return self.node_type == OperatorKind.DOT
 
     #

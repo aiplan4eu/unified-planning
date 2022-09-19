@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+"""This module defines an agent class."""
 
 import unified_planning as up
 from unified_planning.model.mixins import (
@@ -23,7 +25,9 @@ class Agent(
     FluentsSetMixin,
     ActionsSetMixin,
 ):
-    """Represents an Agent."""
+    """
+    This is an agent class that represents a generic `agent`.
+    """
 
     def __init__(
         self,
@@ -50,17 +54,21 @@ class Agent(
         return state
 
     def has_name(self, name: str) -> bool:
-        """Returns true if the name is in the problem."""
+        """
+        Returns `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+
+        :param name: The target name to find in the `MultiAgentProblem`.
+        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise."""
         return self.has_action(name) or self.has_fluent(name)
 
     @property
     def name(self) -> str:
-        """Returns the Agent name."""
+        """Returns the `Agent` `name`."""
         return self._name
 
     @property
     def env(self) -> "up.Environment":
-        """Returns the Agent environment."""
+        """Returns this `Agent` `Environment`."""
         return self._env
 
     def __repr__(self) -> str:
