@@ -18,6 +18,7 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
+from unified_planning.model.action import InstantaneousAction
 from unified_planning.model.walkers import Simplifier, ExpressionQuantifiersRemover
 from unified_planning.model import Problem, ProblemKind
 from unified_planning.model.operators import OperatorKind
@@ -114,6 +115,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         self._expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
         grounder = engines.compilers.grounder.Grounder()
         grounding_result = grounder.compile(problem, CompilationKind.GROUNDING)
+        assert isinstance(grounding_result.problem, Problem)
         self._problem = grounding_result.problem
         A = grounding_result.problem.actions
         I_g = grounding_result.problem.initial_values
@@ -137,6 +139,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             G_temp.append(monitoring_atom)
         G_prime = self._env.expression_manager.And(G_temp)
         for a in A:
+            assert isinstance(a, InstantaneousAction)
             E = list()  # type: ignore
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
