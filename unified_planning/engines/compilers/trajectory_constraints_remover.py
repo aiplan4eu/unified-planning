@@ -205,6 +205,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     def _remove_quantifire(self, C):
         new_C = []
         for c in C:
+            assert c.node_type is not OperatorKind.EXISTS
             new_C.append(
                 self._expression_quantifier_remover.remove_quantifiers(c, self._problem)
             )
