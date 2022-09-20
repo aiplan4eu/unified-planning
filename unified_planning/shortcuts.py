@@ -20,6 +20,7 @@ called without the need to specify an environment or a ExpressionManager.
 import sys
 import unified_planning as up
 import unified_planning.model.types
+import unified_planning.model.multi_agent
 from unified_planning.environment import get_env
 from unified_planning.model import *
 from unified_planning.engines import Engine, CompilationKind
@@ -325,6 +326,21 @@ def Equals(left: Expression, right: Expression) -> FNode:
     :return: The created `Equals` expression.
     """
     return get_env().expression_manager.Equals(left, right)
+
+
+def Dot(
+    agent: "unified_planning.model.multi_agent.Agent",
+    fluent_exp: Union[FNode, "unified_planning.model.Fluent"],
+) -> FNode:
+    """
+    Creates an expression for the given `agent` and `fluent_exp`.
+    Restriction: agent must be of `agent type` and fluent_exp must be of `fluentExp type`
+
+    :param agent: The `Agent` that will be set as the `payload` of this expression.
+    :param fluent_exp: The `Fluent_exp` that will be set as the `args` of this expression.
+    :return: The created `Dot` Expression.
+    """
+    return get_env().expression_manager.Dot(agent, fluent_exp)
 
 
 def BoolType() -> unified_planning.model.types.Type:

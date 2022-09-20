@@ -20,7 +20,8 @@ that defines the types of its parameters.
 
 import unified_planning as up
 from unified_planning.environment import get_env, Environment
-from typing import List, OrderedDict, Optional, Union
+from unified_planning.model.types import domain_size, domain_item
+from typing import List, OrderedDict, Optional, Union, Iterator
 
 
 class Fluent:
@@ -233,3 +234,39 @@ class Fluent:
 
     def Iff(self, right):
         return self._env.expression_manager.Iff(self, right)
+
+
+def get_ith_fluent_exp(
+    objects_set: "up.model.mixins.ObjectsSetMixin",
+    fluent: "up.model.fluent.Fluent",
+    domain_sizes: List[int],
+    idx: int,
+) -> "up.model.fnode.FNode":
+    """Returns the ith ground fluent expression."""
+    quot = idx
+    rem = 0
+    actual_parameters = []
+    for i, p in enumerate(fluent.signature):
+        ds = domain_sizes[i]
+        rem = quot % ds
+        quot //= ds
+        v = domain_item(objects_set, p.type, rem)
+        actual_parameters.append(v)
+    return fluent(*actual_parameters)
+
+
+def get_all_fluent_exp(
+    objects_set: "up.model.mixins.ObjectsSetMixin",
+    fluent: "up.model.fluent.Fluent",
+) -> Iterator["up.model.fnode.FNode"]:
+    if fluent.arity == 0:
+        yield fluent.environment.expression_manager.FluentExp(fluent)
+    else:
+        ground_size = 1
+        domain_sizes = []
+        for p in fluent.signature:
+            ds = domain_size(objects_set, p.type)
+            domain_sizes.append(ds)
+            ground_size *= ds
+        for i in range(ground_size):
+            yield get_ith_fluent_exp(objects_set, fluent, domain_sizes, i)

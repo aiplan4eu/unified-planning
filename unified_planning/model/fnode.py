@@ -73,6 +73,8 @@ class FNode(object):
             return str(self.constant_value())
         elif self.is_fluent_exp():
             return self.fluent().name + self.get_nary_expression_string(", ", self.args)
+        elif self.is_dot():
+            return f"{self.agent().name}.{self.arg(0)}"
         elif self.is_parameter_exp():
             return self.parameter().name
         elif self.is_variable_exp():
@@ -207,6 +209,11 @@ class FNode(object):
         assert self.is_timing_exp()
         return self._content.payload
 
+    def agent(self) -> "unified_planning.model.multi_agent.Agent":
+        """Return the `Agent` stored in this expression."""
+        assert self.is_dot()
+        return self._content.payload
+
     def simplify(self) -> "FNode":
         """
         Returns the simplified version of this expression.
@@ -310,6 +317,10 @@ class FNode(object):
     def is_lt(self) -> bool:
         """Test whether the node is the `LT` operator."""
         return self.node_type == OperatorKind.LT
+
+    def is_dot(self) -> bool:
+        """Test whether the node is the `DOT` operator."""
+        return self.node_type == OperatorKind.DOT
 
     #
     # Infix operators

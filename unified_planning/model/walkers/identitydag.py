@@ -81,6 +81,9 @@ class IdentityDagWalker(walkers.dag.DagWalker):
     def walk_fluent_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.FluentExp(expression.fluent(), tuple(args))
 
+    def walk_dot(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        return self.manager.Dot(expression.agent(), args[0])
+
     def walk_bool_constant(
         self, expression: FNode, args: List[FNode], **kwargs
     ) -> FNode:
