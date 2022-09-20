@@ -114,6 +114,7 @@ def get_example_problems():
     problem.add_objects([l1, l2, l3])
 
     problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l2, l1), True)
     problem.set_initial_value(is_connected(l2, l3), True)
     problem.set_initial_value(Dot(robot1, pos), l2)
     problem.set_initial_value(Dot(robot2, pos), l2)
