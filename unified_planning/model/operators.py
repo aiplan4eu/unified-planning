@@ -49,6 +49,7 @@ class OperatorKind(Enum):
     SOMETIME_BEFORE = auto()
     SOMETIME_AFTER = auto()
     AT_MOST_ONCE = auto()
+    DOT = auto()
 
 
 BOOL_OPERATORS = frozenset(

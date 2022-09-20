@@ -266,6 +266,9 @@ class Simplifier(walkers.dag.DagWalker):
                 self.manager.FluentExp(expression.fluent(), tuple(args))
             )
 
+    def walk_dot(self, expression: FNode, args: List[FNode]) -> FNode:
+        return self.manager.Dot(expression.agent(), args[0])
+
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_plus: List[FNode] = list()
         accumulator: Union[int, Fraction] = 0

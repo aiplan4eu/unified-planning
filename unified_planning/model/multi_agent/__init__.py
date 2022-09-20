@@ -13,16 +13,13 @@
 # limitations under the License.
 #
 
-from unified_planning.model.mixins.actions_set import ActionsSetMixin
-from unified_planning.model.mixins.fluents_set import FluentsSetMixin
-from unified_planning.model.mixins.objects_set import ObjectsSetMixin
-from unified_planning.model.mixins.user_types_set import UserTypesSetMixin
-from unified_planning.model.mixins.agents_set import AgentsSetMixin
+
+from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
+from unified_planning.model.multi_agent.agent import Agent
+from unified_planning.model.multi_agent.ma_environment import MAEnvironment
 
 __all__ = [
-    "ActionsSetMixin",
-    "FluentsSetMixin",
-    "ObjectsSetMixin",
-    "UserTypesSetMixin",
-    "AgentsSetMixin",
+    "MultiAgentProblem",
+    "Agent",
+    "MAEnvironment",
 ]

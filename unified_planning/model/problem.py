@@ -25,7 +25,7 @@ from unified_planning.model.mixins import (
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
-from unified_planning.model.types import domain_size, domain_item
+from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
@@ -351,21 +351,6 @@ class Problem(
         else:
             raise UPProblemDefinitionError("Initial value not set!")
 
-    def _get_ith_fluent_exp(
-        self, fluent: "up.model.fluent.Fluent", domain_sizes: List[int], idx: int
-    ) -> "up.model.fnode.FNode":
-        """Returns the ith ground fluent expression."""
-        quot = idx
-        rem = 0
-        actual_parameters = []
-        for i, p in enumerate(fluent.signature):
-            ds = domain_sizes[i]
-            rem = quot % ds
-            quot //= ds
-            v = domain_item(self, p.type, rem)
-            actual_parameters.append(v)
-        return fluent(*actual_parameters)
-
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
         """
@@ -376,19 +361,8 @@ class Problem(
         """
         res = self._initial_value
         for f in self._fluents:
-            if f.arity == 0:
-                f_exp = self._env.expression_manager.FluentExp(f)
+            for f_exp in get_all_fluent_exp(self, f):
                 res[f_exp] = self.initial_value(f_exp)
-            else:
-                ground_size = 1
-                domain_sizes = []
-                for p in f.signature:
-                    ds = domain_size(self, p.type)
-                    domain_sizes.append(ds)
-                    ground_size *= ds
-                for i in range(ground_size):
-                    f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
-                    res[f_exp] = self.initial_value(f_exp)
         return res
 
     @property

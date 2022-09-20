@@ -53,6 +53,7 @@ class TypeChecker(walkers.dag.DagWalker):
         OperatorKind.IFF,
         OperatorKind.EXISTS,
         OperatorKind.FORALL,
+        OperatorKind.DOT,
     )
     def walk_bool_to_bool(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
@@ -316,3 +317,21 @@ class TypeChecker(walkers.dag.DagWalker):
             ):
                 return None
         return BOOL
+
+    @walkers.handles(OperatorKind.DOT)
+    def walk_dot(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression.is_dot()
+        a = expression.agent()
+        t = expression.args[0]
+        f = t.fluent().name
+        if args[0] is None:
+            return None
+        if len(args) != 1:
+            return None
+        if not t.is_fluent_exp():
+            return None
+        if not a.fluent(f):
+            return None
+        return args[0]
