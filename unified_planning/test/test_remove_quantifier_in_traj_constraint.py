@@ -105,25 +105,6 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
             self.assertTrue(new_constrs.args[0].args.count(const) == 1)
             self.assertTrue(const.is_fluent_exp())
 
-    def test_remove_external_exists(self):
-        problem = self.problem
-        Location = UserType("Location")
-        robot_at = unified_planning.model.Fluent("robot_at", BoolType(), l=Location)
-        s_loc = Variable("l", Location)
-        test_forall = Exists(At_Most_Once(FluentExp(robot_at, [s_loc])), s_loc)
-        problem.add_trajectory_constraint(test_forall)
-        new_constrs = self.simplifier.simplify(
-            And(self.traj_remover._remove_quantifire(problem.trajectory_constraints))
-        )
-        self.assertTrue(new_constrs.is_or())
-        self.assertTrue(
-            len(new_constrs.args)
-            == len(self.get_all_variable_by_type(problem.all_objects, s_loc.type))
-        )
-        for const in new_constrs.args:
-            self.assertTrue(new_constrs.args.count(const) == 1)
-            self.assertTrue(const.is_at_most_once())
-
     def test_remove_internal_exists(self):
         problem = self.problem
         Location = UserType("Location")
