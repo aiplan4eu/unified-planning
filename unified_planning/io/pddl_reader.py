@@ -46,7 +46,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions"
                 )
             )
             + Suppress(")")
@@ -155,6 +155,7 @@ class PDDLGrammar:
             + Suppress(")")
             + ":task"
             + nestedExpr().setResultsName("task")
+            + Optional(":precondition" + nestedExpr().setResultsName("precondition"))
             + Optional(
                 ":ordered-subtasks" + nestedExpr().setResultsName("ordered-subtasks")
             )
@@ -858,6 +859,10 @@ class PDDLReader:
                 subs = self._parse_subtasks(subs, method, problem, types_map)
                 for s in subs:
                     method.add_subtask(s)
+            for precondition in m.get("precondition", []):
+                method.add_precondition(
+                    self._parse_exp(problem, method, types_map, {}, precondition)
+                )
             problem.add_method(method)
 
         if problem_filename is not None:
