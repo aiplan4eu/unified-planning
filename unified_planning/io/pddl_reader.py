@@ -693,7 +693,7 @@ class PDDLReader:
             # if they have one.
             father: typing.Optional["up.model.Type"] = None
             if len(types_list) == 2:  # the types have a father
-                if types_list[1] != "object":  # the father is not object
+                if types_list[1].lower() != "object":  # the father is not object
                     father = types_map[types_list[1]]
                 elif object_type_needed:  # the father is object, and object is needed
                     object_type = types_map.get("object", None)
