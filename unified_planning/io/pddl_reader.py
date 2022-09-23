@@ -545,19 +545,32 @@ class PDDLReader:
         None if the expression cannot be interpreted as a subtask."""
         if len(e) == 0:
             return None
+
         task_name = e[0]
-        task: Union[htn.Task, up.model.Action]
-        if problem.has_task(task_name):
-            task = problem.get_task(task_name)
-        elif problem.has_action(task_name):
-            task = problem.action(task_name)
+        if problem.has_task(task_name) or problem.has_action(task_name):
+            # check the form '(task_name param1 param2...)'
+            task: Union[htn.Task, up.model.Action]
+            if problem.has_task(task_name):
+                task = problem.get_task(task_name)
+            else:
+                task = problem.action(task_name)
+            assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
+            parameters = [
+                self._parse_exp(problem, method, types_map, {}, param) for param in e[1:]
+            ]
+            return htn.Subtask(task, *parameters)
+        elif len(e) == 2:
+            # check the form "(task_id (task param1 param2...))"
+            task_id = e[0]
+            subtask = self._parse_subtask(e[1], method, problem, types_map)
+            if subtask is not None:
+                # the second element of the list is a valid subtask,
+                # return the subtask, with the given identifier
+                return htn.Subtask(subtask.task, subtask.parameters, ident=task_id)
+            else:
+                return None
         else:
             return None
-        assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
-        parameters = [
-            self._parse_exp(problem, method, types_map, {}, param) for param in e[1:]
-        ]
-        return htn.Subtask(task, *parameters)
 
     def _parse_subtasks(
         self,
