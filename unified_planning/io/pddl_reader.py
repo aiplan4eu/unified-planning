@@ -188,7 +188,8 @@ class PDDLGrammar:
         htn_def = Group(
             Suppress("(")
             + ":htn"
-            + Optional(":tasks" + nestedExpr().setResultsName("tasks"))
+            + Optional(":parameters" + "(" + ")")
+            + Optional(one_of(":tasks :subtasks") + nestedExpr().setResultsName("tasks"))
             + Optional(":ordering" + nestedExpr().setResultsName("ordering"))
             + Optional(":constraints" + nestedExpr().setResultsName("constraints"))
             + Suppress(")")
