@@ -36,9 +36,38 @@ else:
     from pyparsing import one_of
 
 
+class CaseInsensitiveToken:
+    def __init__(self, name: Union[str, pyparsing.ParseResults]):
+        if isinstance(name, pyparsing.ParseResults):
+            name = name[0]
+        assert(isinstance(name, str))
+        self._name = name
+        self._canonical = name.lower()
+
+    def __repr__(self):
+        return self._name
+
+    def __hash__(self):
+        return hash(self._canonical)
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return other.lower() == self._canonical
+        elif isinstance(other, CaseInsensitiveToken):
+            return self._canonical == other._canonical
+        else:
+            return False
+
+
+Object = CaseInsensitiveToken("object")
+TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
+
+
 class PDDLGrammar:
     def __init__(self):
         name = Word(alphas, alphanums + "_" + "-")
+        # Parser for types that convert the string into a token that is case-insensitive
+        tpe = name.copy().add_parse_action(lambda t: CaseInsensitiveToken(t))
         variable = Suppress("?") + name
 
         require_def = (
@@ -56,7 +85,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":types"
             + OneOrMore(
-                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+                Group(Group(OneOrMore(tpe)) + Optional(Suppress("-") + tpe))
             ).setResultsName("types")
             + Suppress(")")
         )
@@ -65,7 +94,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":constants"
             + OneOrMore(
-                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
             ).setResultsName("constants")
             + Suppress(")")
         )
@@ -77,7 +106,7 @@ class PDDLGrammar:
                 + Group(
                     ZeroOrMore(
                         Group(
-                            Group(OneOrMore(variable)) + Optional(Suppress("-") + name)
+                            Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe)
                         )
                     )
                 )
@@ -102,7 +131,7 @@ class PDDLGrammar:
         )
 
         parameters = ZeroOrMore(
-            Group(Group(OneOrMore(variable)) + Optional(Suppress("-") + name))
+            Group(Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe))
         ).setResultsName("params")
         action_def = Group(
             Suppress("(")
@@ -282,7 +311,7 @@ class PDDLReader:
         self,
         problem: up.model.Problem,
         act: typing.Optional[Union[up.model.Action, htn.Method]],
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
         var: Dict[str, up.model.Variable],
         exp: Union[ParseResults, str],
         assignments: Dict[str, "up.model.Object"] = {},
@@ -327,7 +356,7 @@ class PDDLReader:
                         vars_res = self._pp_parameters.parseString(vars_string)
                         vars = {}
                         for g in vars_res["params"]:
-                            t = types_map[g[1] if len(g) > 1 else "object"]
+                            t = types_map[g[1] if len(g) > 1 else Object]
                             for o in g[0]:
                                 vars[o] = up.model.Variable(o, t, self._env)
                         stack.append((vars, exp, True))
@@ -372,7 +401,7 @@ class PDDLReader:
         self,
         problem: up.model.Problem,
         act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
         universal_assignments: typing.Optional[
             Dict["up.model.Action", List[ParseResults]]
         ],
@@ -442,7 +471,7 @@ class PDDLReader:
         problem: up.model.Problem,
         act: up.model.DurativeAction,
         exp: Union[ParseResults, str],
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
         vars: typing.Optional[Dict[str, up.model.Variable]] = None,
     ):
         to_add = [(exp, vars)]
@@ -458,7 +487,7 @@ class PDDLReader:
                 if vars is None:
                     vars = {}
                 for g in vars_res["params"]:
-                    t = types_map[g[1] if len(g) > 1 else "object"]
+                    t = types_map[g[1] if len(g) > 1 else Object]
                     for o in g[0]:
                         vars[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], vars))
@@ -493,7 +522,7 @@ class PDDLReader:
         self,
         problem: up.model.Problem,
         act: up.model.DurativeAction,
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
         universal_assignments: typing.Optional[
             Dict["up.model.Action", List[ParseResults]]
         ],
@@ -539,7 +568,7 @@ class PDDLReader:
         e,
         method: typing.Optional[htn.Method],
         problem: htn.HierarchicalProblem,
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
     ) -> typing.Optional[htn.Subtask]:
         """Returns the Subtask corresponding to the given expression e or
         None if the expression cannot be interpreted as a subtask."""
@@ -577,7 +606,7 @@ class PDDLReader:
         e,
         method: typing.Optional[htn.Method],
         problem: htn.HierarchicalProblem,
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
     ) -> List[htn.Subtask]:
         """Returns the list of subtasks of the expression"""
         single_task = self._parse_subtask(e, method, problem, types_map)
@@ -597,19 +626,20 @@ class PDDLReader:
     def _check_if_object_type_is_needed(self, domain_res) -> bool:
         for p in domain_res.get("predicates", []):
             for g in p[1]:
-                if len(g) <= 1 or g[1] == "object":
+                if len(g) <= 1 or g[1] == Object:
                     return True
         for p in domain_res.get("functions", []):
             for g in p[1]:
-                if len(g) <= 1 or g[1] == "object":
+                if len(g) <= 1 or g[1] == Object:
                     return True
         for g in domain_res.get("constants", []):
-            if len(g) <= 1 or g[1] == "object":
+            if len(g) <= 1 or g[1] == Object:
                 return True
         for a in domain_res.get("actions", []):
             for g in a.get("params", []):
-                if len(g) <= 1 or g[1] == "object":
+                if len(g) <= 1 or g[1] == Object:
                     return True
+        # TODO probably missing spots there + is this something we really want
         return False
 
     def _durative_action_has_cost(self, dur_act: up.model.DurativeAction):
@@ -697,38 +727,54 @@ class PDDLReader:
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
             )
 
-        types_map: Dict[str, "up.model.Type"] = {}
+        types_map: TypesMap = {}
         object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
         universal_assignments: Dict["up.model.Action", List[ParseResults]] = {}
-        for types_list in domain_res.get("types", []):
-            # types_list is a List of 1 or 2 elements, where the first one
-            # is a List of types, and the second one can be their father,
-            # if they have one.
-            father: typing.Optional["up.model.Type"] = None
-            if len(types_list) == 2:  # the types have a father
-                if types_list[1].lower() != "object":  # the father is not object
-                    father = types_map[types_list[1]]
-                elif object_type_needed:  # the father is object, and object is needed
-                    object_type = types_map.get("object", None)
-                    if object_type is None:  # the type object is not defined
-                        father = self._env.type_manager.UserType("object", None)
-                        types_map["object"] = father
-                    else:
-                        father = object_type
-            else:
-                assert (
-                    len(types_list) == 1
-                ), "Malformed list of types, I was expecting either 1 or 2 elements"  # sanity check
-            for type_name in types_list[0]:
-                types_map[type_name] = self._env.type_manager.UserType(
-                    type_name, father
-                )
-        if (
-            object_type_needed and "object" not in types_map
-        ):  # The object type is needed, but has not been defined
-            types_map["object"] = self._env.type_manager.UserType(
-                "object", None
-            )  # We manually define it.
+
+        # extract all type declarations into a dictionary
+        type_declarations = {}
+        for type_line in domain_res.get("types", []):
+            father_name = None if len(type_line) <= 1 else CaseInsensitiveToken(str(type_line[1]))
+            if father_name is None and object_type_needed:
+                father_name = Object
+            for declared_type in type_line[0]:
+                declared_type = CaseInsensitiveToken(str(declared_type))
+                if declared_type in type_declarations:
+                    raise SyntaxError(f"Type {declared_type} is declared more than once")
+                type_declarations[declared_type] = father_name
+
+        # Processes a type and adds it to the `types_map`.
+        # If the father was not previously declared, it will be recursively declared as well.
+        def declare_type(type: CaseInsensitiveToken, father_name: CaseInsensitiveToken):
+            if type in types_map:
+                # type was already processed which might happen if if already appeared as the parent of another type
+                return
+            father: typing.Optional["up.model.Type"]
+            if father_name is None:
+                father = None
+            elif father_name in types_map:
+                father = types_map[father_name]
+            elif father_name in type_declarations:
+                # father exists but was not processed yet. Force processing immediately
+                declare_type(father_name, type_declarations[father_name])
+                father = types_map[father_name]
+            elif father_name == Object and object_type_needed:
+                father = self._env.type_manager.UserType("object", None)
+                types_map[Object] = father
+            elif father_name == Object:
+                father = None
+            else:  # not "object" and not explicitly declared
+                raise SyntaxError(f"Type {father_name} appears as a parent type but is not explicitly declared")
+            # we identified the father, declare the type
+            types_map[type] = self._env.type_manager.UserType(str(type), father)
+
+        # declare all types,
+        for type, father_name in type_declarations.items():
+            declare_type(type, father_name)
+
+        if object_type_needed and Object not in types_map:
+            # The object type is needed, but has not been defined explicitly. We manually define it
+            types_map[Object] = self._env.type_manager.UserType("object", None)
 
         has_actions_cost = False
 
@@ -736,7 +782,7 @@ class PDDLReader:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
-                param_type = types_map[g[1] if len(g) > 1 else "object"]
+                param_type = types_map[g[1] if len(g) > 1 else Object]
                 for param_name in g[0]:
                     params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
@@ -746,7 +792,7 @@ class PDDLReader:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
-                param_type = types_map[g[1] if len(g) > 1 else "object"]
+                param_type = types_map[g[1] if len(g) > 1 else Object]
                 for param_name in g[0]:
                     params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.RealType(), params, self._env)
@@ -756,7 +802,7 @@ class PDDLReader:
             problem.add_fluent(f)
 
         for g in domain_res.get("constants", []):
-            t = types_map[g[1] if len(g) > 1 else "object"]
+            t = types_map[g[1] if len(g) > 1 else Object]
             for o in g[0]:
                 problem.add_object(up.model.Object(o, t, problem.env))
 
@@ -765,7 +811,7 @@ class PDDLReader:
             name = task["name"]
             task_params = OrderedDict()
             for g in task.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for p in g[0]:
                     task_params[p] = t
             task = htn.Task(name, task_params)
@@ -775,7 +821,7 @@ class PDDLReader:
             n = a["name"]
             a_params = OrderedDict()
             for g in a.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for p in g[0]:
                     a_params[p] = t
             if "duration" in a:
@@ -847,7 +893,7 @@ class PDDLReader:
             name = m["name"]
             method_params = OrderedDict()
             for g in m.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for p in g[0]:
                     method_params[p] = t
 
@@ -885,7 +931,7 @@ class PDDLReader:
             problem.name = problem_res["name"]
 
             for g in problem_res.get("objects", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for o in g[0]:
                     problem.add_object(up.model.Object(o, t, problem.env))
 
@@ -898,7 +944,7 @@ class PDDLReader:
                     var_names: List[str] = []
                     var_types: List["up.model.Type"] = []
                     for g in vars_res["params"]:
-                        t = types_map[g[1] if len(g) > 1 else "object"]
+                        t = types_map[g[1] if len(g) > 1 else Object]
                         for o in g[0]:
                             var_names.append(f"?{o}")
                             var_types.append(t)
