@@ -334,7 +334,7 @@ class ExpressionManager(object):
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.SOMETIME, args=expressions)
 
-    def At_Most_Once(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+    def AtMostOnce(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
         if len(expression) != 1:
             raise UPExpressionDefinitionError(
                 f"At-Most-Once of expression: {str(expression)} must be created with exactly with one parameter."
@@ -342,7 +342,7 @@ class ExpressionManager(object):
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.AT_MOST_ONCE, args=expressions)
 
-    def Sometime_Before(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+    def SometimeBefore(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
         if len(expression) != 2:
             raise UPExpressionDefinitionError(
                 f"Sometime-Before of expression: {str(expression)} must be created with exactly with 2 parameters."
@@ -352,7 +352,7 @@ class ExpressionManager(object):
             node_type=OperatorKind.SOMETIME_BEFORE, args=expressions
         )
 
-    def Sometime_After(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+    def SometimeAfter(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
         if len(expression) != 2:
             raise UPExpressionDefinitionError(
                 f"Sometime-After of expression: {str(expression)} must be created with exactly with 2 parameters."

@@ -153,16 +153,16 @@ def Sometime(expression: BoolExpression) -> FNode:
     return get_env().expression_manager.Sometime(expression)
 
 
-def Sometime_Before(*expression: BoolExpression) -> FNode:
-    return get_env().expression_manager.Sometime_Before(*expression)
+def SometimeBefore(*expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.SometimeBefore(*expression)
 
 
-def Sometime_After(*expression: BoolExpression) -> FNode:
-    return get_env().expression_manager.Sometime_After(*expression)
+def SometimeAfter(*expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.SometimeAfter(*expression)
 
 
-def At_Most_Once(expression: BoolExpression) -> FNode:
-    return get_env().expression_manager.At_Most_Once(expression)
+def AtMostOnce(expression: BoolExpression) -> FNode:
+    return get_env().expression_manager.AtMostOnce(expression)
 
 
 def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:

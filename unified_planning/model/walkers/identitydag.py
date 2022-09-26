@@ -116,7 +116,7 @@ class IdentityDagWalker(walkers.dag.DagWalker):
     def walk_at_most_once(
         self, expression: FNode, args: List[FNode], **kwargs
     ) -> FNode:
-        return self.manager.At_Most_Once(args[0])
+        return self.manager.AtMostOnce(args[0])
 
     def walk_always(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.Always(args[0])
@@ -127,9 +127,9 @@ class IdentityDagWalker(walkers.dag.DagWalker):
     def walk_sometime_before(
         self, expression: FNode, args: List[FNode], **kwargs
     ) -> FNode:
-        return self.manager.Sometime_Before(args[0], args[1])
+        return self.manager.SometimeBefore(args[0], args[1])
 
     def walk_sometime_after(
         self, expression: FNode, args: List[FNode], **kwargs
     ) -> FNode:
-        return self.manager.Sometime_After(args[0], args[1])
+        return self.manager.SometimeAfter(args[0], args[1])

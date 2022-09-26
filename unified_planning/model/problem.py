@@ -591,7 +591,7 @@ class Problem(
         )
         self._trajectory_constraints = new_traj_list
 
-    def del_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
+    def remove_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
         """
         Delete the given `trajectory_constraint` present in the `Problem`;
 

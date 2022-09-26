@@ -247,7 +247,7 @@ class InstantaneousAction(Action):
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         if precondition_exp.node_type in up.model.operators.TRAJECTORY_CONSTRAINTS:
             raise UPTypeError(
-                f"Not insert trajectory constraint {precondition_exp} in precondition."
+                f"Trajectory constraint {precondition_exp} is not allowed in action preconditions."
             )
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         if precondition_exp == self._env.expression_manager.TRUE():

@@ -278,9 +278,9 @@ class PDDLReader:
         self._trajectory_constraints: Dict[str, Callable] = {
             "always": self._em.Always,
             "sometime": self._em.Sometime,
-            "sometime-before": self._em.Sometime_Before,
-            "sometime-after": self._em.Sometime_After,
-            "at-most-once": self._em.At_Most_Once,
+            "sometime-before": self._em.SometimeBefore,
+            "sometime-after": self._em.SometimeAfter,
+            "at-most-once": self._em.AtMostOnce,
         }
         grammar = PDDLGrammar()
         self._pp_domain = grammar.domain

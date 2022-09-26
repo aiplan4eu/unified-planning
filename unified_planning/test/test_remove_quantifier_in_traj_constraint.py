@@ -71,7 +71,7 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
         Location = UserType("Location")
         robot_at = unified_planning.model.Fluent("robot_at", BoolType(), l=Location)
         s_loc = Variable("l", Location)
-        test_forall = Forall(At_Most_Once(FluentExp(robot_at, [s_loc])), s_loc)
+        test_forall = Forall(AtMostOnce(FluentExp(robot_at, [s_loc])), s_loc)
         problem.add_trajectory_constraint(test_forall)
         new_constrs = self.simplifier.simplify(
             And(self.traj_remover._remove_quantifire(problem.trajectory_constraints))
@@ -90,7 +90,7 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
         Location = UserType("Location")
         robot_at = unified_planning.model.Fluent("robot_at", BoolType(), l=Location)
         s_loc = Variable("l", Location)
-        test_forall = At_Most_Once(Forall(FluentExp(robot_at, [s_loc]), s_loc))
+        test_forall = AtMostOnce(Forall(FluentExp(robot_at, [s_loc]), s_loc))
         problem.add_trajectory_constraint(test_forall)
         new_constrs = self.simplifier.simplify(
             And(self.traj_remover._remove_quantifire(problem.trajectory_constraints))
@@ -110,7 +110,7 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
         Location = UserType("Location")
         robot_at = unified_planning.model.Fluent("robot_at", BoolType(), l=Location)
         s_loc = Variable("l", Location)
-        test_forall = At_Most_Once(Exists(FluentExp(robot_at, [s_loc]), s_loc))
+        test_forall = AtMostOnce(Exists(FluentExp(robot_at, [s_loc]), s_loc))
         problem.add_trajectory_constraint(test_forall)
         new_constrs = self.simplifier.simplify(
             And(self.traj_remover._remove_quantifire(problem.trajectory_constraints))

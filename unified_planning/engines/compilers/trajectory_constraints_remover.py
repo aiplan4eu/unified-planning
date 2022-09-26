@@ -46,6 +46,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING)
         self._simplifier = None
+        self._monitoring_atom_dict = {}
 
     @property
     def name(self):
@@ -133,14 +134,15 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for c in self._LTC(C):
             monitoring_atom = self._env.expression_manager.FluentExp(
                 up.model.Fluent(
-                    f"{c._monitoring_atom_predicate}", self._env.type_manager.BoolType()
+                    f"{self._monitoring_atom_dict[c]}",
+                    self._env.type_manager.BoolType(),
                 )
             )
             G_temp.append(monitoring_atom)
         G_prime = self._env.expression_manager.And(G_temp)
         for a in A:
             assert isinstance(a, InstantaneousAction)
-            E = list()  # type: ignore
+            E = list()
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
                 # manage the action for each trajectory_constraints that is relevant
@@ -148,19 +150,19 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     precondition, to_add = self._manage_always_compilation(c.args[0], a)
                 elif c.is_at_most_once():
                     precondition, to_add = self._manage_amo_compilation(
-                        c.args[0], c._monitoring_atom_predicate, a, E
+                        c.args[0], self._monitoring_atom_dict[c], a, E
                     )
                 elif c.is_sometime_before():
                     precondition, to_add = self._manage_sb_compilation(
-                        c.args[0], c.args[1], c._monitoring_atom_predicate, a, E
+                        c.args[0], c.args[1], self._monitoring_atom_dict[c], a, E
                     )
                 elif c.is_sometime():
                     self._manage_sometime_compilation(
-                        c.args[0], c._monitoring_atom_predicate, a, E
+                        c.args[0], self._monitoring_atom_dict[c], a, E
                     )
                 elif c.is_sometime_after():
                     self._manage_sa_compilation(
-                        c.args[0], c.args[1], c._monitoring_atom_predicate, a, E
+                        c.args[0], c.args[1], self._monitoring_atom_dict[c], a, E
                     )
                 else:
                     raise Exception(
@@ -198,11 +200,11 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     def _build_constraint_list(self, C_temp):
         C_list = C_temp.args if C_temp.is_and() else [C_temp]
         C_to_return = self._simplifier.simplify(
-            self._env.expression_manager.And(self._remove_quantifire(C_list))
+            self._env.expression_manager.And(self._remove_quantifier(C_list))
         )
         return C_to_return.args if C_to_return.is_and() else [C_to_return]
 
-    def _remove_quantifire(self, C):
+    def _remove_quantifier(self, C):
         new_C = []
         for c in C:
             assert c.node_type is not OperatorKind.EXISTS
@@ -393,7 +395,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 )
                 monitoring_atoms.append(fluent)
                 monitoring_atom = self._env.expression_manager.FluentExp(fluent)
-                constr.set_monitoring_atom_predicate(monitoring_atom)
+                self._monitoring_atom_dict[constr] = monitoring_atom
                 if init_state_value:
                     initial_state_prime.append(monitoring_atom)
                 if constr.is_sometime_before():

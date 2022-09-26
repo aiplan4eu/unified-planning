@@ -37,7 +37,7 @@ class FNode(object):
     be instantiated or modified by the user.
     """
 
-    __slots__ = ["_content", "_node_id", "_env", "_monitoring_atom_predicate"]
+    __slots__ = ["_content", "_node_id", "_env"]
 
     def __init__(self, content: FNodeContent, node_id: int, environment: Environment):
         self._content = content
@@ -200,16 +200,6 @@ class FNode(object):
         """Return the `Parameter` stored in this expression."""
         assert self.is_parameter_exp()
         return self._content.payload
-
-    def set_monitoring_atom_predicate(self, atom):
-        assert (
-            self.is_always()
-            or self.is_at_most_once
-            or self.is_sometime
-            or self.is_sometime_after
-            or self.is_sometime_before
-        )
-        self._monitoring_atom_predicate = atom
 
     def variable(self) -> "unified_planning.model.variable.Variable":
         """Return the variable of the VariableExp."""

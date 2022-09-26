@@ -105,8 +105,8 @@ class TestTrajectoryConstraint(TestCase):
     def test_create_at_most_once_constraint(self):
         problem, fluents, objects = self.define_problem()
         robot_at = fluents[0]
-        at_most_once = At_Most_Once(robot_at(objects[0]))
-        at_most_once_not = At_Most_Once(Not(robot_at(objects[1])))
+        at_most_once = AtMostOnce(robot_at(objects[0]))
+        at_most_once_not = AtMostOnce(Not(robot_at(objects[1])))
         self.assertTrue(
             at_most_once.is_at_most_once() and at_most_once_not.is_at_most_once()
         )
@@ -134,8 +134,8 @@ class TestTrajectoryConstraint(TestCase):
     def test_create_sometime_before_constraint(self):
         problem, fluents, objects = self.define_problem()
         robot_at = fluents[0]
-        sometime_before = Sometime_Before(robot_at(objects[0]), robot_at(objects[1]))
-        sometime_before_not = Sometime_Before(
+        sometime_before = SometimeBefore(robot_at(objects[0]), robot_at(objects[1]))
+        sometime_before_not = SometimeBefore(
             Not(robot_at(objects[0])), robot_at(objects[1])
         )
         self.assertTrue(
@@ -168,8 +168,8 @@ class TestTrajectoryConstraint(TestCase):
     def test_create_sometime_after_constraint(self):
         problem, fluents, objects = self.define_problem()
         robot_at = fluents[0]
-        sometime_after = Sometime_After(robot_at(objects[0]), robot_at(objects[1]))
-        sometime_after_not = Sometime_After(
+        sometime_after = SometimeAfter(robot_at(objects[0]), robot_at(objects[1]))
+        sometime_after_not = SometimeAfter(
             Not(robot_at(objects[0])), robot_at(objects[1])
         )
         self.assertTrue(
