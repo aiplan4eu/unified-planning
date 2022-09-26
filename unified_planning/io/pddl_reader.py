@@ -189,6 +189,7 @@ class PDDLGrammar:
                 ":ordered-subtasks" + nestedExpr().setResultsName("ordered-subtasks")
             )
             + Optional(":subtasks" + nestedExpr().setResultsName("subtasks"))
+            + Optional(":ordering" + nestedExpr().setResultsName("ordering"))
             + Suppress(")")
         )
 
@@ -919,6 +920,20 @@ class PDDLReader:
                 subs = self._parse_subtasks(subs, method, problem, types_map)
                 for s in subs:
                     method.add_subtask(s)
+            orderings_queue = list(m.get("ordering", []))
+            while not len(orderings_queue) == 0:
+                ordering = orderings_queue.pop(0)
+                if ordering[0] == "and":
+                    # add the rest of the expression to the queue
+                    orderings_queue += ordering[1:]
+                elif ordering[0] == "<":
+                    if len(ordering) != 3:
+                        raise SyntaxError(f"Wrong number of parameters in ordering relation: {ordering}")
+                    left = method.get_subtask(ordering[1])
+                    right = method.get_subtask(ordering[2])
+                    method.set_strictly_before(left, right)
+                else:
+                    raise SyntaxError(f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}")
             for precondition in m.get("precondition", []):
                 method.add_precondition(
                     self._parse_exp(problem, method, types_map, {}, precondition)

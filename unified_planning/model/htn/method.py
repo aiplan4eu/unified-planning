@@ -269,6 +269,13 @@ class Method:
         self._subtasks.append(subtask)
         return subtask
 
+    def get_subtask(self, ident: str) -> Subtask:
+        """Returns the subtask with the given identifier."""
+        for st in self._subtasks:
+            if st.identifier == ident:
+                return st
+        raise ValueError(f"Method {self._name} has not subtask with identifier {ident}")
+
     def set_ordered(self, *subtasks: Subtask):
         """Imposes a sequential order between the given subtasks."""
         if len(subtasks) < 2:
