@@ -177,19 +177,20 @@ class PDDLGrammar:
         method_def = Group(
             Suppress("(")
             + ":method"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
-            + ":task"
+            - ":task"
             + nestedExpr().setResultsName("task")
-            + Optional(":precondition" + nestedExpr().setResultsName("precondition"))
+            + Optional(":precondition" - nestedExpr().setResultsName("precondition"))
             + Optional(
-                ":ordered-subtasks" + nestedExpr().setResultsName("ordered-subtasks")
+                one_of(":ordered-subtasks :ordered-tasks") - nestedExpr().setResultsName("ordered-subtasks")
             )
-            + Optional(":subtasks" + nestedExpr().setResultsName("subtasks"))
-            + Optional(":ordering" + nestedExpr().setResultsName("ordering"))
+            + Optional(one_of(":subtasks :tasks") - nestedExpr().setResultsName("subtasks"))
+            + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
+            + Optional(":constraints" - nestedExpr().setResultsName("constraints"))
             + Suppress(")")
         )
 
