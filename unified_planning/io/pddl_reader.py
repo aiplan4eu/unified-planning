@@ -84,7 +84,7 @@ class PDDLGrammar:
         types_def = (
             Suppress("(")
             + ":types"
-            + OneOrMore(
+            - OneOrMore(
                 Group(Group(OneOrMore(tpe)) + Optional(Suppress("-") + tpe))
             ).setResultsName("types")
             + Suppress(")")
@@ -93,7 +93,7 @@ class PDDLGrammar:
         constants_def = (
             Suppress("(")
             + ":constants"
-            + ZeroOrMore(
+            - ZeroOrMore(
                 Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
             ).setResultsName("constants")
             + Suppress(")")
@@ -117,14 +117,14 @@ class PDDLGrammar:
         predicates_def = (
             Suppress("(")
             + ":predicates"
-            + Group(OneOrMore(predicate)).setResultsName("predicates")
+            - Group(OneOrMore(predicate)).setResultsName("predicates")
             + Suppress(")")
         )
 
         functions_def = (
             Suppress("(")
             + ":functions"
-            + Group(
+            - Group(
                 OneOrMore(predicate + Optional(Suppress("- number")))
             ).setResultsName("functions")
             + Suppress(")")
@@ -136,39 +136,39 @@ class PDDLGrammar:
         action_def = Group(
             Suppress("(")
             + ":action"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
-            + Optional(":precondition" + nestedExpr().setResultsName("pre"))
-            + Optional(":effect" + nestedExpr().setResultsName("eff"))
+            + Optional(":precondition" - nestedExpr().setResultsName("pre"))
+            + Optional(":effect" - nestedExpr().setResultsName("eff"))
             + Suppress(")")
         )
 
         dur_action_def = Group(
             Suppress("(")
             + ":durative-action"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
             + ":duration"
-            + nestedExpr().setResultsName("duration")
+            - nestedExpr().setResultsName("duration")
             + ":condition"
-            + nestedExpr().setResultsName("cond")
+            - nestedExpr().setResultsName("cond")
             + ":effect"
-            + nestedExpr().setResultsName("eff")
+            - nestedExpr().setResultsName("eff")
             + Suppress(")")
         )
 
         task_def = Group(
             Suppress("(")
             + ":task"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
             + Suppress(")")
@@ -182,8 +182,8 @@ class PDDLGrammar:
             - Suppress("(")
             + parameters
             + Suppress(")")
-            - ":task"
-            + nestedExpr().setResultsName("task")
+            + ":task"
+            - nestedExpr().setResultsName("task")
             + Optional(":precondition" - nestedExpr().setResultsName("precondition"))
             + Optional(
                 one_of(":ordered-subtasks :ordered-tasks") - nestedExpr().setResultsName("ordered-subtasks")
