@@ -219,7 +219,7 @@ class PDDLGrammar:
         htn_def = Group(
             Suppress("(")
             + ":htn"
-            - Optional(":parameters" - Suppress("(") + Suppress(")"))
+            - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
             + Optional(one_of(":ordered-tasks :ordered-subtasks") - nestedExpr().setResultsName("ordered-tasks"))
             + Optional(one_of(":tasks :subtasks") - nestedExpr().setResultsName("tasks"))
             + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
@@ -569,7 +569,7 @@ class PDDLReader:
     def _parse_subtask(
         self,
         e,
-        method: typing.Optional[htn.Method],
+        method: typing.Optional[Union[htn.Method, htn.TaskNetwork]],
         problem: htn.HierarchicalProblem,
         types_map: TypesMap,
     ) -> typing.Optional[htn.Subtask]:
@@ -607,7 +607,7 @@ class PDDLReader:
     def _parse_subtasks(
         self,
         e,
-        method: typing.Optional[htn.Method],
+        method: typing.Optional[Union[htn.Method, htn.TaskNetwork]],
         problem: htn.HierarchicalProblem,
         types_map: TypesMap,
     ) -> List[htn.Subtask]:
@@ -997,6 +997,12 @@ class PDDLReader:
             tasknet = problem_res.get("htn", None)
             if tasknet is not None:
                 assert isinstance(problem, htn.HierarchicalProblem)
+
+                for params in tasknet.get("params", []):
+                    type = types_map[params[1] if len(params) > 1 else Object]
+                    for name in params[0]:
+                        problem.task_network.add_variable(name, type)
+
                 for subtasks_expr in tasknet.get("tasks", []):
                     subtasks = self._parse_subtasks(subtasks_expr, problem.task_network, problem, types_map)
                     for task in subtasks:
