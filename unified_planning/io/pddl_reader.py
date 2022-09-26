@@ -93,7 +93,7 @@ class PDDLGrammar:
         constants_def = (
             Suppress("(")
             + ":constants"
-            + OneOrMore(
+            + ZeroOrMore(
                 Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
             ).setResultsName("constants")
             + Suppress(")")
