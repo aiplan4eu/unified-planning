@@ -1,0 +1,615 @@
+(define (domain woodworking_legal_fewer_htn_groundings)
+	(:requirements :negative-preconditions
+	:hierarchy
+	:typing
+	:equality
+	:method-preconditions
+	)
+	(:types
+		aboardsize - object
+		acolour - object
+		apartsize - object
+		awood - object
+		board - woodobj
+		glazer - machine
+		grinder - machine
+		highspeed_saw - machine
+		immersion_varnisher - machine
+		machine - object
+		part - woodobj
+		planer - machine
+		saw - machine
+		spray_varnisher - machine
+		surface - object
+		treatmentstatus - object
+		woodobj - object
+	)
+	(:constants 
+		large - apartsize
+		medium - apartsize
+		small - apartsize
+		
+		natural - acolour
+		
+		verysmooth - surface
+		smooth - surface
+		rough - surface
+		
+		colourfragments - treatmentstatus
+		untreated - treatmentstatus
+		glazed - treatmentstatus
+		varnished - treatmentstatus
+	)
+	(:predicates
+		(available ?arg0 - woodobj)
+		(boardsize ?arg0 - board ?arg1 - aboardsize)
+		(boardsize_successor ?arg0 - aboardsize ?arg1 - aboardsize)
+		(colour ?arg0 - part ?arg1 - acolour)
+		(contains_part ?arg0 - board ?arg1 - part)
+		(empty ?arg0 - highspeed_saw)
+		(goalsize ?arg0 - part ?arg1 - apartsize)
+		(grind_treatment_change ?arg0 - treatmentstatus ?arg1 - treatmentstatus)
+		(has_colour ?arg0 - machine ?arg1 - acolour)
+		(in_highspeed_saw ?arg0 - board ?arg1 - highspeed_saw)
+		(is_smooth ?arg0 - surface)
+		(machine_present ?arg0 - machine)
+		(surface_condition ?arg0 - woodobj ?arg1 - surface)
+		(treatment ?arg0 - part ?arg1 - treatmentstatus)
+		(unused ?arg0 - part)
+		(wood ?arg0 - woodobj ?arg1 - awood)
+	)
+
+	(:task cut_and_saw
+		:parameters (?newObj_variable25 - board ?newObj_variable26 - part ?newObj_variable27 - awood ?newObj_variable28 - surface)
+	)
+
+	(:task cut_board
+		:parameters (?newObj_variable2 - board ?cut_board_variable1 - part ?cut_board_variable2 - highspeed_saw ?cut_board_variable3 - awood ?cut_board_variable4 - surface)
+	)
+
+	(:task do_colour
+		:parameters (?newObj_variable1 - part ?do_colour_variable1 - acolour ?do_colour_variable2 - machine ?ConstantVariable634079668 - treatmentstatus)
+	)
+
+	(:task do_saw
+		:parameters (?newObj_variable3 - board ?do_saw_variable1 - part ?do_saw_variable2 - awood ?do_saw_variable3 - surface)
+	)
+
+	(:task grindNplane
+		:parameters (?newObj_variable10 - part ?grindNplane_variable1 - surface ?grindNplane_variable2 - acolour ?grindNplane_variable3 - treatmentstatus ?grindNplane_variable4 - surface ?grindNplane_variable5 - acolour ?grindNplane_variable6 - treatmentstatus)
+	)
+
+	(:task process
+		:parameters (?process_partVar - part ?process_colourVar - acolour ?process_oldSurfaceVar - surface ?process_newSurfaceVar - surface)
+	)
+
+	(:method method0
+		:parameters (?ConstantVariable634079668 - treatmentstatus ?do_colour_variable1 - acolour ?do_colour_variable2 - immersion_varnisher ?do_immersion_varnish_instance_2_argument_1 - immersion_varnisher ?do_immersion_varnish_instance_2_argument_3 - surface ?newObj_variable1 - part)
+		:task (do_colour ?newObj_variable1 ?do_colour_variable1 ?do_colour_variable2 ?ConstantVariable634079668)
+		:precondition (and
+			(= ?ConstantVariable634079668 untreated)
+		)
+		:subtasks (and
+		 (task0 (do_immersion_varnish ?newObj_variable1 ?do_immersion_varnish_instance_2_argument_1 ?do_colour_variable1 ?do_immersion_varnish_instance_2_argument_3 untreated untreated varnished natural))
+		)
+	)
+
+	(:method method1
+		:parameters (?ConstantVariable634079668 - treatmentstatus ?do_colour_variable1 - acolour ?do_colour_variable2 - spray_varnisher ?do_spray_varnish_instance_2_argument_1 - spray_varnisher ?do_spray_varnish_instance_2_argument_3 - surface ?newObj_variable1 - part)
+		:task (do_colour ?newObj_variable1 ?do_colour_variable1 ?do_colour_variable2 ?ConstantVariable634079668)
+		:precondition (and
+			(= ?ConstantVariable634079668 untreated)
+		)
+		:subtasks (and
+		 (task0 (do_spray_varnish ?newObj_variable1 ?do_spray_varnish_instance_2_argument_1 ?do_colour_variable1 ?do_spray_varnish_instance_2_argument_3 untreated untreated varnished natural))
+		)
+	)
+
+	(:method method2
+		:parameters (?ConstantVariable634079668 - treatmentstatus ?do_colour_variable1 - acolour ?do_colour_variable2 - glazer ?do_glaze_instance_2_argument_1 - glazer ?newObj_variable1 - part)
+		:task (do_colour ?newObj_variable1 ?do_colour_variable1 ?do_colour_variable2 ?ConstantVariable634079668)
+		:precondition (and
+			(= ?ConstantVariable634079668 untreated)
+		)
+		:subtasks (and
+		 (task0 (do_glaze ?newObj_variable1 ?do_glaze_instance_2_argument_1 ?do_colour_variable1 untreated untreated glazed natural))
+		)
+	)
+
+	(:method method3
+		:parameters (?grindNplane_variable1 - surface ?grindNplane_variable2 - acolour ?grindNplane_variable3 - treatmentstatus ?grindNplane_variable4 - surface ?grindNplane_variable5 - acolour ?grindNplane_variable6 - treatmentstatus ?newObj_variable10 - part)
+		:task (grindNplane ?newObj_variable10 ?grindNplane_variable1 ?grindNplane_variable2 ?grindNplane_variable3 ?grindNplane_variable4 ?grindNplane_variable5 ?grindNplane_variable6)
+		:precondition (and
+			(= ?grindNplane_variable4 verysmooth)
+			(= ?grindNplane_variable5 natural)
+		)
+		:subtasks (and
+		 (task0 (do_grind ?newObj_variable10 ?grindNplane_variable1 ?grindNplane_variable2 ?grindNplane_variable3 ?grindNplane_variable6 verysmooth natural))
+		)
+	)
+
+	(:method method4
+		:parameters (?cut_board_small_instance_2_argument_0 - board ?cut_board_small_instance_2_argument_1 - part ?cut_board_small_instance_2_argument_2 - highspeed_saw ?cut_board_small_instance_2_argument_3 - awood ?cut_board_small_instance_2_argument_4 - surface ?cut_board_small_instance_2_argument_5 - aboardsize ?cut_board_small_instance_2_argument_6 - aboardsize)
+		:task (cut_board ?cut_board_small_instance_2_argument_0 ?cut_board_small_instance_2_argument_1 ?cut_board_small_instance_2_argument_2 ?cut_board_small_instance_2_argument_3 ?cut_board_small_instance_2_argument_4)
+		:subtasks (and
+		 (task0 (cut_board_small ?cut_board_small_instance_2_argument_0 ?cut_board_small_instance_2_argument_1 ?cut_board_small_instance_2_argument_2 ?cut_board_small_instance_2_argument_3 ?cut_board_small_instance_2_argument_4 ?cut_board_small_instance_2_argument_5 ?cut_board_small_instance_2_argument_6 small natural untreated))
+		)
+	)
+
+	(:method method4b
+		:parameters (?cut_board_small_instance_2_argument_0 - board ?cut_board_small_instance_2_argument_1 - part ?cut_board_small_instance_2_argument_2 - highspeed_saw ?cut_board_small_instance_2_argument_3 - awood ?cut_board_small_instance_2_argument_4 - surface ?cut_board_small_instance_2_argument_5 - aboardsize ?cut_board_small_instance_2_argument_6 - aboardsize ?cut_board_small_instance_2_argument_7 - aboardsize)
+		:task (cut_board ?cut_board_small_instance_2_argument_0 ?cut_board_small_instance_2_argument_1 ?cut_board_small_instance_2_argument_2 ?cut_board_small_instance_2_argument_3 ?cut_board_small_instance_2_argument_4)
+		:subtasks (and
+		 (task0 (cut_board_medium ?cut_board_small_instance_2_argument_0 ?cut_board_small_instance_2_argument_1 ?cut_board_small_instance_2_argument_2 ?cut_board_small_instance_2_argument_3 ?cut_board_small_instance_2_argument_4 ?cut_board_small_instance_2_argument_5 ?cut_board_small_instance_2_argument_6 ?cut_board_small_instance_2_argument_7 medium natural untreated))
+		)
+	)
+
+	(:method method4c
+		:parameters (?cut_board_small_instance_2_argument_0 - board ?cut_board_small_instance_2_argument_1 - part ?cut_board_small_instance_2_argument_2 - highspeed_saw ?cut_board_small_instance_2_argument_3 - awood ?cut_board_small_instance_2_argument_4 - surface ?cut_board_small_instance_2_argument_5 - aboardsize ?cut_board_small_instance_2_argument_6 - aboardsize ?cut_board_small_instance_2_argument_7 - aboardsize ?cut_board_small_instance_2_argument_8 - aboardsize)
+		:task (cut_board ?cut_board_small_instance_2_argument_0 ?cut_board_small_instance_2_argument_1 ?cut_board_small_instance_2_argument_2 ?cut_board_small_instance_2_argument_3 ?cut_board_small_instance_2_argument_4)
+		:subtasks (and
+		 (task0 (cut_board_large ?cut_board_small_instance_2_argument_0 ?cut_board_small_instance_2_argument_1 ?cut_board_small_instance_2_argument_2 ?cut_board_small_instance_2_argument_3 ?cut_board_small_instance_2_argument_4 ?cut_board_small_instance_2_argument_5 ?cut_board_small_instance_2_argument_6 ?cut_board_small_instance_2_argument_7 ?cut_board_small_instance_2_argument_8 large natural untreated))
+		)
+	)
+
+	(:method method5
+		:parameters (?do_saw_small_instance_2_argument_0 - board ?do_saw_small_instance_2_argument_1 - part ?do_saw_small_instance_2_argument_2 - awood ?do_saw_small_instance_2_argument_3 - surface ?do_saw_small_instance_2_argument_4 - aboardsize ?do_saw_small_instance_2_argument_5 - aboardsize)
+		:task (do_saw ?do_saw_small_instance_2_argument_0 ?do_saw_small_instance_2_argument_1 ?do_saw_small_instance_2_argument_2 ?do_saw_small_instance_2_argument_3)
+		:subtasks (and
+		 (task0 (do_saw_small ?do_saw_small_instance_2_argument_0 ?do_saw_small_instance_2_argument_1 ?do_saw_small_instance_2_argument_2 ?do_saw_small_instance_2_argument_3 ?do_saw_small_instance_2_argument_4 ?do_saw_small_instance_2_argument_5 small natural untreated))
+		)
+	)
+
+	(:method method6
+		:parameters (?cut_board_instance_2_argument_0 - board ?cut_board_instance_2_argument_1 - part ?cut_board_instance_2_argument_3 - awood ?cut_board_instance_2_argument_4 - surface ?load_highspeed_saw_instance_3_argument_6 - highspeed_saw)
+		:task (cut_and_saw ?cut_board_instance_2_argument_0 ?cut_board_instance_2_argument_1 ?cut_board_instance_2_argument_3 ?cut_board_instance_2_argument_4)
+		:subtasks (and
+		 (task0 (cut_board ?cut_board_instance_2_argument_0 ?cut_board_instance_2_argument_1 ?load_highspeed_saw_instance_3_argument_6 ?cut_board_instance_2_argument_3 ?cut_board_instance_2_argument_4))
+		 (task1 (load_highspeed_saw ?cut_board_instance_2_argument_0 ?load_highspeed_saw_instance_3_argument_6))
+		 (task2 (unload_highspeed_saw ?cut_board_instance_2_argument_0 ?load_highspeed_saw_instance_3_argument_6))
+		)
+		:ordering (and
+			(< task1 task0)
+			(< task0 task2)
+		)
+	)
+
+	(:method method7
+		:parameters (?do_plane_instance_2_argument_0 - part ?do_plane_instance_2_argument_1 - surface ?do_plane_instance_2_argument_2 - acolour ?do_plane_instance_2_argument_3 - treatmentstatus ?grindNplane_variable4 - surface ?grindNplane_variable5 - acolour ?grindNplane_variable6 - treatmentstatus)
+		:task (grindNplane ?do_plane_instance_2_argument_0 ?do_plane_instance_2_argument_1 ?do_plane_instance_2_argument_2 ?do_plane_instance_2_argument_3 ?grindNplane_variable4 ?grindNplane_variable5 ?grindNplane_variable6)
+		:precondition (and
+			(= ?grindNplane_variable4 smooth)
+			(= ?grindNplane_variable5 natural)
+			(= ?grindNplane_variable6 untreated)
+		)
+		:subtasks (and
+		 (task0 (do_plane ?do_plane_instance_2_argument_0 ?do_plane_instance_2_argument_1 ?do_plane_instance_2_argument_2 ?do_plane_instance_2_argument_3 smooth untreated natural))
+		)
+	)
+
+	(:method method8
+		:parameters (?do_saw_medium_instance_2_argument_0 - board ?do_saw_medium_instance_2_argument_1 - part ?do_saw_medium_instance_2_argument_2 - awood ?do_saw_medium_instance_2_argument_3 - surface ?do_saw_medium_instance_2_argument_4 - aboardsize ?do_saw_medium_instance_2_argument_5 - aboardsize ?do_saw_medium_instance_2_argument_6 - aboardsize)
+		:task (do_saw ?do_saw_medium_instance_2_argument_0 ?do_saw_medium_instance_2_argument_1 ?do_saw_medium_instance_2_argument_2 ?do_saw_medium_instance_2_argument_3)
+		:subtasks (and
+		 (task0 (do_saw_medium ?do_saw_medium_instance_2_argument_0 ?do_saw_medium_instance_2_argument_1 ?do_saw_medium_instance_2_argument_2 ?do_saw_medium_instance_2_argument_3 ?do_saw_medium_instance_2_argument_4 ?do_saw_medium_instance_2_argument_5 ?do_saw_medium_instance_2_argument_6 medium natural untreated))
+		)
+	)
+
+	(:method method9
+		:parameters (?do_saw_large_instance_2_argument_0 - board ?do_saw_large_instance_2_argument_1 - part ?do_saw_large_instance_2_argument_2 - awood ?do_saw_large_instance_2_argument_3 - surface ?do_saw_large_instance_2_argument_4 - aboardsize ?do_saw_large_instance_2_argument_5 - aboardsize ?do_saw_large_instance_2_argument_6 - aboardsize ?do_saw_large_instance_2_argument_7 - aboardsize)
+		:task (do_saw ?do_saw_large_instance_2_argument_0 ?do_saw_large_instance_2_argument_1 ?do_saw_large_instance_2_argument_2 ?do_saw_large_instance_2_argument_3)
+		:subtasks (and
+		 (task0 (do_saw_large ?do_saw_large_instance_2_argument_0 ?do_saw_large_instance_2_argument_1 ?do_saw_large_instance_2_argument_2 ?do_saw_large_instance_2_argument_3 ?do_saw_large_instance_2_argument_4 ?do_saw_large_instance_2_argument_5 ?do_saw_large_instance_2_argument_6 ?do_saw_large_instance_2_argument_7 large natural untreated))
+		)
+	)
+
+	(:method method10
+		:parameters (?do_saw_instance_2_argument_0 - board ?do_saw_instance_2_argument_1 - part ?do_saw_instance_2_argument_2 - awood ?do_saw_instance_2_argument_3 - surface)
+		:task (cut_and_saw ?do_saw_instance_2_argument_0 ?do_saw_instance_2_argument_1 ?do_saw_instance_2_argument_2 ?do_saw_instance_2_argument_3)
+		:subtasks (and
+		 (task0 (do_saw ?do_saw_instance_2_argument_0 ?do_saw_instance_2_argument_1 ?do_saw_instance_2_argument_2 ?do_saw_instance_2_argument_3))
+		)
+	)
+
+	(:method method11
+		:parameters (?cut_and_saw_instance_2_argument_0 - board ?cut_and_saw_instance_2_argument_2 - awood ?do_colour_instance_3_argument_4 - part ?do_colour_instance_3_argument_5 - acolour ?do_colour_instance_3_argument_6 - machine ?process_oldSurfaceVar - surface)
+		:task (process ?do_colour_instance_3_argument_4 ?do_colour_instance_3_argument_5 ?process_oldSurfaceVar ?process_oldSurfaceVar)
+		:subtasks (and
+		 (task0 (cut_and_saw ?cut_and_saw_instance_2_argument_0 ?do_colour_instance_3_argument_4 ?cut_and_saw_instance_2_argument_2 ?process_oldSurfaceVar))
+		 (task1 (do_colour ?do_colour_instance_3_argument_4 ?do_colour_instance_3_argument_5 ?do_colour_instance_3_argument_6 untreated))
+		)
+		:ordering (and
+			(< task0 task1)
+		)
+	)
+
+	(:method method12
+		:parameters (?do_colour_instance_3_argument_8 - acolour ?do_colour_instance_3_argument_9 - machine ?grindNplane_instance_2_argument_0 - part ?grindNplane_instance_2_argument_1 - surface ?grindNplane_instance_2_argument_2 - acolour ?grindNplane_instance_2_argument_3 - treatmentstatus ?grindNplane_instance_2_argument_4 - surface ?grindNplane_instance_2_argument_5 - acolour)
+		:task (process ?grindNplane_instance_2_argument_0 ?do_colour_instance_3_argument_8 ?grindNplane_instance_2_argument_1 ?grindNplane_instance_2_argument_4)
+		:subtasks (and
+		 (task0 (grindNplane ?grindNplane_instance_2_argument_0 ?grindNplane_instance_2_argument_1 ?grindNplane_instance_2_argument_2 ?grindNplane_instance_2_argument_3 ?grindNplane_instance_2_argument_4 ?grindNplane_instance_2_argument_5 untreated))
+		 (task1 (do_colour ?grindNplane_instance_2_argument_0 ?do_colour_instance_3_argument_8 ?do_colour_instance_3_argument_9 untreated))
+		)
+		:ordering (and
+			(< task0 task1)
+		)
+	)
+
+	(:method method13
+		:parameters (?do_grind_untreated_instance_2_argument_1 - grinder ?grindNplane_variable1 - surface ?grindNplane_variable2 - acolour ?grindNplane_variable3 - treatmentstatus ?grindNplane_variable4 - surface ?grindNplane_variable5 - acolour ?grindNplane_variable6 - treatmentstatus ?newObj_variable10 - part)
+		:task (grindNplane ?newObj_variable10 ?grindNplane_variable1 ?grindNplane_variable2 ?grindNplane_variable3 ?grindNplane_variable4 ?grindNplane_variable5 ?grindNplane_variable6)
+		:precondition (and
+			(= ?grindNplane_variable3 untreated)
+			(= ?grindNplane_variable4 verysmooth)
+			(= ?grindNplane_variable5 natural)
+			(= ?grindNplane_variable6 untreated)
+		)
+		:subtasks (and
+		 (task0 (do_grind_untreated ?newObj_variable10 ?do_grind_untreated_instance_2_argument_1 ?grindNplane_variable1 ?grindNplane_variable2 untreated untreated untreated untreated untreated verysmooth natural))
+		)
+	)
+
+	(:method method14
+		:parameters (?cut_and_saw_instance_2_argument_0 - board ?cut_and_saw_instance_2_argument_2 - awood ?do_colour_instance_4_argument_13 - machine ?grindNplane_instance_3_argument_5 - surface ?grindNplane_instance_3_argument_6 - acolour ?grindNplane_instance_3_argument_7 - treatmentstatus ?grindNplane_instance_3_argument_8 - surface ?grindNplane_instance_3_argument_9 - acolour ?process_colourVar - acolour ?process_partVar - part)
+		:task (process ?process_partVar ?process_colourVar ?grindNplane_instance_3_argument_5 ?grindNplane_instance_3_argument_8)
+		:subtasks (and
+		 (task0 (cut_and_saw ?cut_and_saw_instance_2_argument_0 ?process_partVar ?cut_and_saw_instance_2_argument_2 ?grindNplane_instance_3_argument_5))
+		 (task1 (grindNplane ?process_partVar ?grindNplane_instance_3_argument_5 ?grindNplane_instance_3_argument_6 ?grindNplane_instance_3_argument_7 ?grindNplane_instance_3_argument_8 ?grindNplane_instance_3_argument_9 untreated))
+		 (task2 (do_colour ?process_partVar ?process_colourVar ?do_colour_instance_4_argument_13 untreated))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+		)
+	)
+
+	(:method method15
+		:parameters (?do_plane_untreated_instance_2_argument_1 - planer ?grindNplane_variable1 - surface ?grindNplane_variable2 - acolour ?grindNplane_variable3 - treatmentstatus ?grindNplane_variable4 - surface ?grindNplane_variable5 - acolour ?grindNplane_variable6 - treatmentstatus ?newObj_variable10 - part)
+		:task (grindNplane ?newObj_variable10 ?grindNplane_variable1 ?grindNplane_variable2 ?grindNplane_variable3 ?grindNplane_variable4 ?grindNplane_variable5 ?grindNplane_variable6)
+		:precondition (and
+			(= ?grindNplane_variable3 untreated)
+			(= ?grindNplane_variable4 smooth)
+			(= ?grindNplane_variable5 natural)
+			(= ?grindNplane_variable6 untreated)
+		)
+		:subtasks (and
+		 (task0 (do_plane_untreated ?newObj_variable10 ?do_plane_untreated_instance_2_argument_1 ?grindNplane_variable1 ?grindNplane_variable2 untreated untreated untreated smooth natural))
+		)
+	)
+
+	(:method method16
+		:parameters (?do_colour_instance_3_argument_11 - part ?do_colour_instance_3_argument_13 - machine ?do_grind_untreated_instance_2_argument_0 - part ?do_grind_untreated_instance_2_argument_1 - grinder ?do_grind_untreated_instance_2_argument_2 - surface ?grindNplane_instance_4_argument_17 - acolour ?grindNplane_instance_4_argument_18 - treatmentstatus ?grindNplane_instance_4_argument_19 - surface ?grindNplane_instance_4_argument_20 - acolour ?process_colourVar - acolour ?process_newSurfaceVar - surface ?process_oldSurfaceVar - surface)
+		:task (process ?do_grind_untreated_instance_2_argument_0 ?process_colourVar ?process_oldSurfaceVar ?process_newSurfaceVar)
+		:precondition (and
+			(= ?process_newSurfaceVar verysmooth)
+		)
+		:subtasks (and
+		 (task0 (do_grind_untreated ?do_grind_untreated_instance_2_argument_0 ?do_grind_untreated_instance_2_argument_1 ?do_grind_untreated_instance_2_argument_2 natural untreated untreated untreated untreated untreated verysmooth natural))
+		 (task1 (do_colour ?do_colour_instance_3_argument_11 ?process_colourVar ?do_colour_instance_3_argument_13 untreated))
+		 (task2 (grindNplane ?do_grind_untreated_instance_2_argument_0 ?process_oldSurfaceVar ?grindNplane_instance_4_argument_17 ?grindNplane_instance_4_argument_18 ?grindNplane_instance_4_argument_19 ?grindNplane_instance_4_argument_20 untreated))
+		)
+		:ordering (and
+			(< task2 task0)
+			(< task0 task1)
+		)
+	)
+
+	(:action cut_board_large
+		:parameters (?cut_board_large_b - board ?cut_board_large_p - part ?cut_board_large_m - highspeed_saw ?cut_board_large_w - awood ?cut_board_large_surface - surface ?cut_board_large_size_before - aboardsize ?cut_board_large_s1 - aboardsize ?cut_board_large_s2 - aboardsize ?cut_board_large_size_after - aboardsize ?ConstantVariable1278363279 - apartsize ?ConstantVariable313024468 - acolour ?ConstantVariable971968717 - treatmentstatus)
+		:precondition 
+			(and
+				(unused ?cut_board_large_p)
+				(goalsize ?cut_board_large_p ?ConstantVariable1278363279)
+				(in_highspeed_saw ?cut_board_large_b ?cut_board_large_m)
+				(wood ?cut_board_large_b ?cut_board_large_w)
+				(surface_condition ?cut_board_large_b ?cut_board_large_surface)
+				(boardsize ?cut_board_large_b ?cut_board_large_size_before)
+				(boardsize_successor ?cut_board_large_size_after ?cut_board_large_s1)
+				(boardsize_successor ?cut_board_large_s1 ?cut_board_large_s2)
+				(boardsize_successor ?cut_board_large_s2 ?cut_board_large_size_before)
+			)
+		:effect
+			(and
+				(not (unused ?cut_board_large_p))
+				(available ?cut_board_large_p)
+				(wood ?cut_board_large_p ?cut_board_large_w)
+				(surface_condition ?cut_board_large_p ?cut_board_large_surface)
+				(colour ?cut_board_large_p ?ConstantVariable313024468)
+				(treatment ?cut_board_large_p ?ConstantVariable971968717)
+				(boardsize ?cut_board_large_b ?cut_board_large_size_after)
+			)
+	)
+
+	(:action cut_board_medium
+		:parameters (?cut_board_medium_b - board ?cut_board_medium_p - part ?cut_board_medium_m - highspeed_saw ?cut_board_medium_w - awood ?cut_board_medium_surface - surface ?cut_board_medium_size_before - aboardsize ?cut_board_medium_s1 - aboardsize ?cut_board_medium_size_after - aboardsize ?ConstantVariable212106237 - apartsize ?ConstantVariable1690083347 - acolour ?ConstantVariable1650815227 - treatmentstatus)
+		:precondition 
+			(and
+				(unused ?cut_board_medium_p)
+				(goalsize ?cut_board_medium_p ?ConstantVariable212106237)
+				(in_highspeed_saw ?cut_board_medium_b ?cut_board_medium_m)
+				(wood ?cut_board_medium_b ?cut_board_medium_w)
+				(surface_condition ?cut_board_medium_b ?cut_board_medium_surface)
+				(boardsize ?cut_board_medium_b ?cut_board_medium_size_before)
+				(boardsize_successor ?cut_board_medium_size_after ?cut_board_medium_s1)
+				(boardsize_successor ?cut_board_medium_s1 ?cut_board_medium_size_before)
+			)
+		:effect
+			(and
+				(not (unused ?cut_board_medium_p))
+				(available ?cut_board_medium_p)
+				(wood ?cut_board_medium_p ?cut_board_medium_w)
+				(surface_condition ?cut_board_medium_p ?cut_board_medium_surface)
+				(colour ?cut_board_medium_p ?ConstantVariable1690083347)
+				(treatment ?cut_board_medium_p ?ConstantVariable1650815227)
+				(boardsize ?cut_board_medium_b ?cut_board_medium_size_after)
+			)
+	)
+
+	(:action cut_board_small
+		:parameters (?cut_board_small_b - board ?cut_board_small_p - part ?cut_board_small_m - highspeed_saw ?cut_board_small_w - awood ?cut_board_small_surface - surface ?cut_board_small_size_before - aboardsize ?cut_board_small_size_after - aboardsize ?ConstantVariable719147384 - apartsize ?ConstantVariable2074871584 - acolour ?ConstantVariable1336658767 - treatmentstatus)
+		:precondition 
+			(and
+				(unused ?cut_board_small_p)
+				(goalsize ?cut_board_small_p ?ConstantVariable719147384)
+				(in_highspeed_saw ?cut_board_small_b ?cut_board_small_m)
+				(wood ?cut_board_small_b ?cut_board_small_w)
+				(surface_condition ?cut_board_small_b ?cut_board_small_surface)
+				(boardsize ?cut_board_small_b ?cut_board_small_size_before)
+				(boardsize_successor ?cut_board_small_size_after ?cut_board_small_size_before)
+			)
+		:effect
+			(and
+				(not (unused ?cut_board_small_p))
+				(available ?cut_board_small_p)
+				(wood ?cut_board_small_p ?cut_board_small_w)
+				(surface_condition ?cut_board_small_p ?cut_board_small_surface)
+				(colour ?cut_board_small_p ?ConstantVariable2074871584)
+				(treatment ?cut_board_small_p ?ConstantVariable1336658767)
+				(boardsize ?cut_board_small_b ?cut_board_small_size_after)
+			)
+	)
+
+	(:action do_glaze
+		:parameters (?do_glaze_x - part ?do_glaze_m - glazer ?do_glaze_newcolour - acolour ?ConstantVariable1086871163 - treatmentstatus ?ConstantVariable298245469 - treatmentstatus ?ConstantVariable1900545328 - treatmentstatus ?ConstantVariable422481684 - acolour)
+		:precondition 
+			(and
+				(available ?do_glaze_x)
+				(has_colour ?do_glaze_m ?do_glaze_newcolour)
+				(treatment ?do_glaze_x ?ConstantVariable1086871163)
+			)
+		:effect
+			(and
+				(not (treatment ?do_glaze_x ?ConstantVariable298245469))
+				(treatment ?do_glaze_x ?ConstantVariable1900545328)
+				(not (colour ?do_glaze_x ?ConstantVariable422481684))
+				(colour ?do_glaze_x ?do_glaze_newcolour)
+			)
+	)
+
+	(:action do_grind
+		:parameters (?do_grind_x - part ?do_grind_oldsurface - surface ?do_grind_oldcolour - acolour ?do_grind_oldtreatment - treatmentstatus ?do_grind_newtreatment - treatmentstatus ?ConstantVariable521350637 - surface ?ConstantVariable1995568423 - acolour)
+		:precondition 
+			(and
+				(available ?do_grind_x)
+				(surface_condition ?do_grind_x ?do_grind_oldsurface)
+				(is_smooth ?do_grind_oldsurface)
+				(colour ?do_grind_x ?do_grind_oldcolour)
+				(treatment ?do_grind_x ?do_grind_oldtreatment)
+				(grind_treatment_change ?do_grind_oldtreatment ?do_grind_newtreatment)
+			)
+		:effect
+			(and
+				(not (surface_condition ?do_grind_x ?do_grind_oldsurface))
+				(surface_condition ?do_grind_x ?ConstantVariable521350637)
+				(not (treatment ?do_grind_x ?do_grind_oldtreatment))
+				(treatment ?do_grind_x ?do_grind_newtreatment)
+				(not (colour ?do_grind_x ?do_grind_oldcolour))
+				(colour ?do_grind_x ?ConstantVariable1995568423)
+			)
+	)
+
+	(:action do_grind_untreated
+		:parameters (?newObj_variable57 - part ?newObj_variable64 - grinder ?newObj_variable65 - surface ?newObj_variable66 - acolour ?ConstantVariable702183411 - treatmentstatus ?ConstantVariable406992733 - treatmentstatus ?ConstantVariable506990077 - treatmentstatus ?ConstantVariable1738120144 - treatmentstatus ?ConstantVariable495324479 - treatmentstatus ?ConstantVariable343357709 - surface ?ConstantVariable1258199451 - acolour)
+		:precondition 
+			(and
+				(available ?newObj_variable57)
+				(surface_condition ?newObj_variable57 ?newObj_variable65)
+				(colour ?newObj_variable57 ?newObj_variable66)
+				(treatment ?newObj_variable57 ?ConstantVariable702183411)
+				(grind_treatment_change ?ConstantVariable406992733 ?ConstantVariable506990077)
+				(machine_present ?newObj_variable64)
+			)
+		:effect
+			(and
+				(not (treatment ?newObj_variable57 ?ConstantVariable1738120144))
+				(treatment ?newObj_variable57 ?ConstantVariable495324479)
+				(not (surface_condition ?newObj_variable57 ?newObj_variable65))
+				(surface_condition ?newObj_variable57 ?ConstantVariable343357709)
+				(colour ?newObj_variable57 ?ConstantVariable1258199451)
+				(not (colour ?newObj_variable57 ?newObj_variable66))
+			)
+	)
+
+	(:action do_immersion_varnish
+		:parameters (?do_immersion_varnish_x - part ?do_immersion_varnish_m - immersion_varnisher ?do_immersion_varnish_newcolour - acolour ?do_immersion_varnish_surface - surface ?ConstantVariable129458220 - treatmentstatus ?ConstantVariable286632942 - treatmentstatus ?ConstantVariable281362908 - treatmentstatus ?ConstantVariable319059067 - acolour)
+		:precondition 
+			(and
+				(available ?do_immersion_varnish_x)
+				(has_colour ?do_immersion_varnish_m ?do_immersion_varnish_newcolour)
+				(surface_condition ?do_immersion_varnish_x ?do_immersion_varnish_surface)
+				(is_smooth ?do_immersion_varnish_surface)
+				(treatment ?do_immersion_varnish_x ?ConstantVariable129458220)
+			)
+		:effect
+			(and
+				(not (treatment ?do_immersion_varnish_x ?ConstantVariable286632942))
+				(treatment ?do_immersion_varnish_x ?ConstantVariable281362908)
+				(not (colour ?do_immersion_varnish_x ?ConstantVariable319059067))
+				(colour ?do_immersion_varnish_x ?do_immersion_varnish_newcolour)
+			)
+	)
+
+	(:action do_plane
+		:parameters (?do_plane_x - part ?do_plane_oldsurface - surface ?do_plane_oldcolour - acolour ?do_plane_oldtreatment - treatmentstatus ?ConstantVariable1637010447 - surface ?ConstantVariable1288755959 - treatmentstatus ?ConstantVariable1631726897 - acolour)
+		:precondition 
+			(and
+				(available ?do_plane_x)
+				(surface_condition ?do_plane_x ?do_plane_oldsurface)
+				(treatment ?do_plane_x ?do_plane_oldtreatment)
+				(colour ?do_plane_x ?do_plane_oldcolour)
+			)
+		:effect
+			(and
+				(not (surface_condition ?do_plane_x ?do_plane_oldsurface))
+				(surface_condition ?do_plane_x ?ConstantVariable1637010447)
+				(not (treatment ?do_plane_x ?do_plane_oldtreatment))
+				(treatment ?do_plane_x ?ConstantVariable1288755959)
+				(not (colour ?do_plane_x ?do_plane_oldcolour))
+				(colour ?do_plane_x ?ConstantVariable1631726897)
+			)
+	)
+
+	(:action do_plane_untreated
+		:parameters (?newObj_variable75 - part ?newObj_variable76 - planer ?newObj_variable77 - surface ?newObj_variable79 - acolour ?ConstantVariable1607353027 - treatmentstatus ?ConstantVariable684396417 - treatmentstatus ?ConstantVariable1652981517 - treatmentstatus ?ConstantVariable308145609 - surface ?ConstantVariable1068002587 - acolour)
+		:precondition 
+			(and
+				(available ?newObj_variable75)
+				(machine_present ?newObj_variable76)
+				(surface_condition ?newObj_variable75 ?newObj_variable77)
+				(treatment ?newObj_variable75 ?ConstantVariable1607353027)
+				(colour ?newObj_variable75 ?newObj_variable79)
+			)
+		:effect
+			(and
+				(not (treatment ?newObj_variable75 ?ConstantVariable684396417))
+				(treatment ?newObj_variable75 ?ConstantVariable1652981517)
+				(surface_condition ?newObj_variable75 ?ConstantVariable308145609)
+				(not (surface_condition ?newObj_variable75 ?newObj_variable77))
+				(not (colour ?newObj_variable75 ?newObj_variable79))
+				(colour ?newObj_variable75 ?ConstantVariable1068002587)
+			)
+	)
+
+	(:action do_saw_large
+		:parameters (?do_saw_large_b - board ?do_saw_large_p - part ?do_saw_large_w - awood ?do_saw_large_surface - surface ?do_saw_large_size_before - aboardsize ?do_saw_large_s1 - aboardsize ?do_saw_large_s2 - aboardsize ?do_saw_large_size_after - aboardsize ?ConstantVariable2026575395 - apartsize ?ConstantVariable539566862 - acolour ?ConstantVariable583566864 - treatmentstatus)
+		:precondition 
+			(and
+				(unused ?do_saw_large_p)
+				(goalsize ?do_saw_large_p ?ConstantVariable2026575395)
+				(available ?do_saw_large_b)
+				(wood ?do_saw_large_b ?do_saw_large_w)
+				(surface_condition ?do_saw_large_b ?do_saw_large_surface)
+				(boardsize ?do_saw_large_b ?do_saw_large_size_before)
+				(boardsize_successor ?do_saw_large_size_after ?do_saw_large_s1)
+				(boardsize_successor ?do_saw_large_s1 ?do_saw_large_s2)
+				(boardsize_successor ?do_saw_large_s2 ?do_saw_large_size_before)
+			)
+		:effect
+			(and
+				(not (unused ?do_saw_large_p))
+				(available ?do_saw_large_p)
+				(wood ?do_saw_large_p ?do_saw_large_w)
+				(surface_condition ?do_saw_large_p ?do_saw_large_surface)
+				(colour ?do_saw_large_p ?ConstantVariable539566862)
+				(treatment ?do_saw_large_p ?ConstantVariable583566864)
+				(boardsize ?do_saw_large_b ?do_saw_large_size_after)
+			)
+	)
+
+	(:action do_saw_medium
+		:parameters (?do_saw_medium_b - board ?do_saw_medium_p - part ?do_saw_medium_w - awood ?do_saw_medium_surface - surface ?do_saw_medium_size_before - aboardsize ?do_saw_medium_s1 - aboardsize ?do_saw_medium_size_after - aboardsize ?ConstantVariable633833592 - apartsize ?ConstantVariable469443757 - acolour ?ConstantVariable1023882406 - treatmentstatus)
+		:precondition 
+			(and
+				(unused ?do_saw_medium_p)
+				(goalsize ?do_saw_medium_p ?ConstantVariable633833592)
+				(available ?do_saw_medium_b)
+				(wood ?do_saw_medium_b ?do_saw_medium_w)
+				(surface_condition ?do_saw_medium_b ?do_saw_medium_surface)
+				(boardsize ?do_saw_medium_b ?do_saw_medium_size_before)
+				(boardsize_successor ?do_saw_medium_size_after ?do_saw_medium_s1)
+				(boardsize_successor ?do_saw_medium_s1 ?do_saw_medium_size_before)
+			)
+		:effect
+			(and
+				(not (unused ?do_saw_medium_p))
+				(available ?do_saw_medium_p)
+				(wood ?do_saw_medium_p ?do_saw_medium_w)
+				(surface_condition ?do_saw_medium_p ?do_saw_medium_surface)
+				(colour ?do_saw_medium_p ?ConstantVariable469443757)
+				(treatment ?do_saw_medium_p ?ConstantVariable1023882406)
+				(boardsize ?do_saw_medium_b ?do_saw_medium_size_after)
+			)
+	)
+
+	(:action do_saw_small
+		:parameters (?do_saw_small_b - board ?do_saw_small_p - part ?do_saw_small_w - awood ?do_saw_small_surface - surface ?do_saw_small_size_before - aboardsize ?do_saw_small_size_after - aboardsize ?ConstantVariable1182850905 - apartsize ?ConstantVariable731116025 - acolour ?ConstantVariable2127388439 - treatmentstatus)
+		:precondition 
+			(and
+				(unused ?do_saw_small_p)
+				(goalsize ?do_saw_small_p ?ConstantVariable1182850905)
+				(available ?do_saw_small_b)
+				(wood ?do_saw_small_b ?do_saw_small_w)
+				(surface_condition ?do_saw_small_b ?do_saw_small_surface)
+				(boardsize ?do_saw_small_b ?do_saw_small_size_before)
+				(boardsize_successor ?do_saw_small_size_after ?do_saw_small_size_before)
+			)
+		:effect
+			(and
+				(not (unused ?do_saw_small_p))
+				(available ?do_saw_small_p)
+				(wood ?do_saw_small_p ?do_saw_small_w)
+				(surface_condition ?do_saw_small_p ?do_saw_small_surface)
+				(colour ?do_saw_small_p ?ConstantVariable731116025)
+				(treatment ?do_saw_small_p ?ConstantVariable2127388439)
+				(boardsize ?do_saw_small_b ?do_saw_small_size_after)
+			)
+	)
+
+	(:action do_spray_varnish
+		:parameters (?do_spray_varnish_x - part ?do_spray_varnish_m - spray_varnisher ?do_spray_varnish_newcolour - acolour ?do_spray_varnish_surface - surface ?ConstantVariable797888567 - treatmentstatus ?ConstantVariable335041779 - treatmentstatus ?ConstantVariable688467185 - treatmentstatus ?ConstantVariable421409287 - acolour)
+		:precondition 
+			(and
+				(available ?do_spray_varnish_x)
+				(has_colour ?do_spray_varnish_m ?do_spray_varnish_newcolour)
+				(surface_condition ?do_spray_varnish_x ?do_spray_varnish_surface)
+				(is_smooth ?do_spray_varnish_surface)
+				(treatment ?do_spray_varnish_x ?ConstantVariable797888567)
+			)
+		:effect
+			(and
+				(not (treatment ?do_spray_varnish_x ?ConstantVariable335041779))
+				(treatment ?do_spray_varnish_x ?ConstantVariable688467185)
+				(not (colour ?do_spray_varnish_x ?ConstantVariable421409287))
+				(colour ?do_spray_varnish_x ?do_spray_varnish_newcolour)
+			)
+	)
+
+	(:action load_highspeed_saw
+		:parameters (?load_highspeed_saw_b - board ?load_highspeed_saw_m - highspeed_saw)
+		:precondition 
+			(and
+				(empty ?load_highspeed_saw_m)
+				(available ?load_highspeed_saw_b)
+			)
+		:effect
+			(and
+				(not (available ?load_highspeed_saw_b))
+				(not (empty ?load_highspeed_saw_m))
+				(in_highspeed_saw ?load_highspeed_saw_b ?load_highspeed_saw_m)
+			)
+	)
+
+	(:action unload_highspeed_saw
+		:parameters (?unload_highspeed_saw_b - board ?unload_highspeed_saw_m - highspeed_saw)
+		:precondition 
+			(and
+				(in_highspeed_saw ?unload_highspeed_saw_b ?unload_highspeed_saw_m)
+			)
+		:effect
+			(and
+				(available ?unload_highspeed_saw_b)
+				(not (in_highspeed_saw ?unload_highspeed_saw_b ?unload_highspeed_saw_m))
+				(empty ?unload_highspeed_saw_m)
+			)
+	)
+)

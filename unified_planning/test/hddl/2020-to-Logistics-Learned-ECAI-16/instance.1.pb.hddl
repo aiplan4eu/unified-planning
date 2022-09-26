@@ -1,0 +1,50 @@
+(define (problem p)
+(:domain logistics)
+(:objects
+	TRU2 - TRUCK
+	TRU1 - TRUCK
+	APN1 - AIRPLANE
+	OBJ23 - PACKAGE
+	OBJ22 - PACKAGE
+	OBJ21 - PACKAGE
+	OBJ13 - PACKAGE
+	OBJ12 - PACKAGE
+	OBJ11 - PACKAGE
+	APT1 - AIRPORT
+	APT2 - AIRPORT
+	POS2 - LOCATION
+	POS1 - LOCATION
+	CIT2 - CITY
+	CIT1 - CITY
+)
+(:htn
+	:tasks (and
+	(task0 (ACHIEVE-AT OBJ11 APT1))
+	(task1 (ACHIEVE-AT OBJ23 POS1))
+	(task2 (ACHIEVE-AT OBJ13 APT1))
+	(task3 (ACHIEVE-AT OBJ21 POS1))
+	)
+:ordering (and
+	(< task3 task2)
+	(< task2 task1)
+	(< task1 task0)
+)
+:constraints ( )
+)
+(:init
+        (AT APN1 APT2)
+        (AT TRU1 POS1)
+        (AT OBJ11 POS1)
+        (AT OBJ12 POS1)
+        (AT OBJ13 POS1)
+        (AT TRU2 POS2)
+        (AT OBJ21 POS2)
+        (AT OBJ22 POS2)
+        (AT OBJ23 POS2)
+        (IN-CITY POS1 CIT1)
+        (IN-CITY APT1 CIT1)
+        (IN-CITY POS2 CIT2)
+        (IN-CITY APT2 CIT2)
+)
+)
+

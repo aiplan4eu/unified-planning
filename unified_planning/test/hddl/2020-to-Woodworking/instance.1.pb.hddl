@@ -1,0 +1,84 @@
+(define
+	(problem p00__p01_variant)
+	(:domain  woodworking_legal_fewer_htn_groundings)
+	(:objects
+		s0 - aboardsize
+		s1 - aboardsize
+		s2 - aboardsize
+		s3 - aboardsize
+		red - acolour
+		black - acolour
+		pine - awood
+		teak - awood
+		b0 - board
+		glazer0 - glazer
+		grinder0 - grinder
+		highspeed_saw0 - highspeed_saw
+		planer0 - planer
+		spray_varnisher0 - spray_varnisher
+		p0 - part
+		p1 - part
+		p2 - part
+	)
+	(:htn
+		:parameters (?planstep_2_argument_2_process_p1_process_oldSurfaceVar - surface ?planstep_3_argument_2_process_p2_process_oldSurfaceVar - surface ?planstep_3_argument_3_process_p2_process_newSurfaceVar - surface ?planstep_4_argument_2_process_p0_process_oldSurfaceVar - surface ?planstep_4_argument_3_process_p0_process_newSurfaceVar - surface)
+		:subtasks (and
+		 (task0 (process p1 red ?planstep_2_argument_2_process_p1_process_oldSurfaceVar smooth))
+		 (task1 (process p2 red ?planstep_3_argument_2_process_p2_process_oldSurfaceVar ?planstep_3_argument_3_process_p2_process_newSurfaceVar))
+		 (task2 (process p0 red ?planstep_4_argument_2_process_p0_process_oldSurfaceVar ?planstep_4_argument_3_process_p0_process_newSurfaceVar))
+		)
+		:ordering (and
+			(< task2 task1)
+			(< task0 task2)
+		)
+	)
+	(:init
+		(grind_treatment_change varnished colourfragments)
+		(grind_treatment_change glazed untreated)
+		(grind_treatment_change untreated untreated)
+		(grind_treatment_change colourfragments untreated)
+		(grind_treatment_change varnished untreated)
+		(machine_present grinder0)
+		(machine_present planer0)
+		(boardsize_successor s0 s1)
+		(boardsize_successor s1 s2)
+		(boardsize_successor s2 s3)
+		(is_smooth smooth)
+		(is_smooth verysmooth)
+		(has_colour glazer0 natural)
+		(has_colour glazer0 red)
+		(has_colour spray_varnisher0 red)
+		(empty highspeed_saw0)
+		(available p0)
+		(colour p0 red)
+		(wood p0 pine)
+		(surface_condition p0 smooth)
+		(treatment p0 varnished)
+		(goalsize p0 small)
+		(unused p1)
+		(goalsize p1 medium)
+		(boardsize b0 s3)
+		(wood b0 pine)
+		(surface_condition b0 rough)
+		(available b0)
+		(available p2)
+		(colour p2 natural)
+		(wood p2 teak)
+		(surface_condition p2 verysmooth)
+		(treatment p2 varnished)
+		(goalsize p2 large)
+	)
+	(:goal
+		(and
+		(available p0)
+		(colour p0 red)
+		(wood p0 pine)
+		(available p1)
+		(wood p1 pine)
+		(available p2)
+		(colour p2 red)
+		(wood p2 teak)
+		(wood p0 pine)
+		)
+	)
+)

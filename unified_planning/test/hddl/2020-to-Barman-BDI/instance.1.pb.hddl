@@ -1,0 +1,39 @@
+(define (problem p-1-2-2)
+(:domain barman_htn)
+(:objects
+	left right - hand
+	shaker1 - shaker
+	shot1 shot2 - shot
+	ingredient1 ingredient2 - ingredient
+	dispenser1 dispenser2 - dispenser
+	cocktail1 - cocktail
+	level1 level2 level3 - level
+)
+(:htn
+	:parameters ()
+	:ordered-subtasks (and
+		(AchieveContainsShotCocktail shot2 cocktail1)
+	)
+)
+(:init 
+	(ontable shaker1)
+	(ontable shot1)
+	(ontable shot2)
+	(clean shaker1)
+	(clean shot1)
+	(clean shot2)
+	(empty shaker1)
+	(empty shot1)
+	(empty shot2)
+	(dispenses dispenser1 ingredient1)
+	(dispenses dispenser2 ingredient2)
+	(handEmpty left)
+	(handEmpty right)
+	(shakerEmptyLevel shaker1 level1)
+	(shakerLevel shaker1 level1)
+	(next level1 level1)
+	(next level2 level2)
+	(cocktailPart1 cocktail1 ingredient2)
+	(cocktailPart2 cocktail1 ingredient1)
+)
+)
