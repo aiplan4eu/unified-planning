@@ -270,7 +270,7 @@ class TypeChecker(walkers.dag.DagWalker):
         for x in args:
             if x is None:
                 return None
-            elif t.is_user_type() and t != x:
+            elif t.is_user_type() and t != x and not t.is_compatible(x) and not x.is_compatible(t):
                 return None
             elif (t.is_int_type() or t.is_real_type()) and not (
                 x.is_int_type() or x.is_real_type()
