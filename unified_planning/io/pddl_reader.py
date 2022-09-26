@@ -759,13 +759,11 @@ class PDDLReader:
                 # father exists but was not processed yet. Force processing immediately
                 declare_type(father_name, type_declarations[father_name])
                 father = types_map[father_name]
-            elif father_name == Object and object_type_needed:
-                father = self._env.type_manager.UserType("object", None)
-                types_map[Object] = father
-            elif father_name == Object:
+            elif father_name == Object and not object_type_needed:
                 father = None
             else:  # not "object" and not explicitly declared
-                raise SyntaxError(f"Type {father_name} appears as a parent type but is not explicitly declared")
+                father = self._env.type_manager.UserType(str(father_name), None)
+                types_map[father_name] = father
             # we identified the father, declare the type
             types_map[type] = self._env.type_manager.UserType(str(type), father)
 
