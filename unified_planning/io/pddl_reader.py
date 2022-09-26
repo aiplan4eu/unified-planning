@@ -219,10 +219,11 @@ class PDDLGrammar:
         htn_def = Group(
             Suppress("(")
             + ":htn"
-            + Optional(":parameters" + "(" + ")")
-            + Optional(one_of(":tasks :subtasks") + nestedExpr().setResultsName("tasks"))
+            - Optional(":parameters" - Suppress("(") + Suppress(")"))
+            + Optional(one_of(":ordered-tasks :ordered-subtasks") - nestedExpr().setResultsName("ordered-tasks"))
+            + Optional(one_of(":tasks :subtasks") - nestedExpr().setResultsName("tasks"))
             + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
-            + Optional(":constraints" + nestedExpr().setResultsName("constraints"))
+            + Optional(":constraints" - nestedExpr().setResultsName("constraints"))
             + Suppress(")")
         )
 
@@ -590,7 +591,7 @@ class PDDLReader:
                 self._parse_exp(problem, method, types_map, {}, param) for param in e[1:]
             ]
             return htn.Subtask(task, *parameters)
-        elif len(e) == 2:
+        elif len(e) == 2 and e[0] != "and":
             # check the form "(task_id (task param1 param2...))"
             task_id = e[0]
             subtask = self._parse_subtask(e[1], method, problem, types_map)
@@ -922,7 +923,9 @@ class PDDLReader:
             orderings_queue = list(m.get("ordering", []))
             while not len(orderings_queue) == 0:
                 ordering = orderings_queue.pop(0)
-                if ordering[0] == "and":
+                if len(ordering) == 0:
+                    pass
+                elif ordering[0] == "and":
                     # add the rest of the expression to the queue
                     orderings_queue += ordering[1:]
                 elif ordering[0] == "<":
@@ -994,16 +997,25 @@ class PDDLReader:
             tasknet = problem_res.get("htn", None)
             if tasknet is not None:
                 assert isinstance(problem, htn.HierarchicalProblem)
-                tasks = self._parse_subtasks(
-                    tasknet["tasks"][0], None, problem, types_map
-                )
-                for task in tasks:
-                    problem.task_network.add_subtask(task)
+                for subtasks_expr in tasknet.get("tasks", []):
+                    subtasks = self._parse_subtasks(subtasks_expr, problem.task_network, problem, types_map)
+                    for task in subtasks:
+                        problem.task_network.add_subtask(task)
+                for subtasks_expr in tasknet.get("ordered-tasks", []):
+                    subtasks = self._parse_subtasks(subtasks_expr, problem.task_network, problem, types_map)
+                    prev = None
+                    for task in subtasks:
+                        cur = problem.task_network.add_subtask(task)
+                        if prev is not None:
+                            problem.task_network.set_strictly_before(prev, cur)
+                        prev = cur
 
-                orderings_queue = list(m.get("ordering", []))
+                orderings_queue = list(tasknet.get("ordering", []))
                 while not len(orderings_queue) == 0:
                     ordering = orderings_queue.pop(0)
-                    if ordering[0] == "and":
+                    if len(ordering) == 0:
+                        pass
+                    elif ordering[0] == "and":
                         # add the rest of the expression to the queue
                         orderings_queue += ordering[1:]
                     elif ordering[0] == "<":
@@ -1015,7 +1027,7 @@ class PDDLReader:
                     else:
                         raise SyntaxError(f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}")
 
-                for constraint in m.get("constraints", []):
+                for constraint in tasknet.get("constraints", []):
                     problem.task_network.add_constraint(self._parse_exp(problem, problem.task_network, types_map, {}, constraint))
 
             for i in problem_res.get("init", []):
