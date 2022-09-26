@@ -74,7 +74,7 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
         test_forall = Forall(AtMostOnce(FluentExp(robot_at, [s_loc])), s_loc)
         problem.add_trajectory_constraint(test_forall)
         new_constrs = self.simplifier.simplify(
-            And(self.traj_remover._remove_quantifire(problem.trajectory_constraints))
+            And(self.traj_remover._remove_quantifier(problem.trajectory_constraints))
         )
         self.assertTrue(new_constrs.is_and())
         self.assertTrue(
@@ -93,7 +93,7 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
         test_forall = AtMostOnce(Forall(FluentExp(robot_at, [s_loc]), s_loc))
         problem.add_trajectory_constraint(test_forall)
         new_constrs = self.simplifier.simplify(
-            And(self.traj_remover._remove_quantifire(problem.trajectory_constraints))
+            And(self.traj_remover._remove_quantifier(problem.trajectory_constraints))
         )
         self.assertTrue(new_constrs.is_at_most_once())
         self.assertTrue(new_constrs.args[0].is_and())
@@ -113,7 +113,7 @@ class TestRemoveQuantifierInTrajConstraint(TestCase):
         test_forall = AtMostOnce(Exists(FluentExp(robot_at, [s_loc]), s_loc))
         problem.add_trajectory_constraint(test_forall)
         new_constrs = self.simplifier.simplify(
-            And(self.traj_remover._remove_quantifire(problem.trajectory_constraints))
+            And(self.traj_remover._remove_quantifier(problem.trajectory_constraints))
         )
         self.assertTrue(new_constrs.is_at_most_once())
         self.assertTrue(new_constrs.args[0].is_or())

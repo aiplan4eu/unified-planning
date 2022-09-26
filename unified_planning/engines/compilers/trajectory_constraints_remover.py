@@ -146,7 +146,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         G_prime = self._env.expression_manager.And(G_temp)
         for a in A:
             assert isinstance(a, InstantaneousAction)
-            E: List["up.model.fnode.FNode"] = list()
+            E: List["up.model.effect.Effect"] = list()
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
                 # manage the action for each trajectory_constraints that is relevant
