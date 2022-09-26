@@ -403,7 +403,7 @@ class TestPddlIO(TestCase):
         for id, domain in enumerate(subfolders[:]):
             print(f"=== [{id}] {domain} ===")
             domain_filename = os.path.join(domain, "domain.hddl")
-            problem_filename = None # os.path.join(domain, "instance.1.pb.hddl")
+            problem_filename = os.path.join(domain, "instance.1.pb.hddl")
             reader = PDDLReader()
             problem = reader.parse_problem(domain_filename, problem_filename)
             # print(problem)

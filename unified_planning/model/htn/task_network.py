@@ -91,6 +91,10 @@ class TaskNetwork:
         self._variables[name] = param
         return param
 
+    def parameter(self, name: str) -> Parameter:
+        """Returns the variable with the given name."""
+        return self._variables[name]
+
     @property
     def subtasks(self) -> List["Subtask"]:
         """Returns the list of the subtasks."""
@@ -110,6 +114,13 @@ class TaskNetwork:
         assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
         self._subtasks.append(subtask)
         return subtask
+
+    def get_subtask(self, ident: str) -> Subtask:
+        """Returns the subtask with the given identifier."""
+        for st in self._subtasks:
+            if st.identifier == ident:
+                return st
+        raise ValueError(f"The task network has not subtask with identifier {ident}")
 
     @property
     def constraints(self) -> List[FNode]:

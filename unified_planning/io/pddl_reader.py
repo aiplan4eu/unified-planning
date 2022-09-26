@@ -213,7 +213,7 @@ class PDDLGrammar:
         )
 
         objects = OneOrMore(
-            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
         ).setResultsName("objects")
 
         htn_def = Group(
@@ -221,7 +221,7 @@ class PDDLGrammar:
             + ":htn"
             + Optional(":parameters" + "(" + ")")
             + Optional(one_of(":tasks :subtasks") + nestedExpr().setResultsName("tasks"))
-            + Optional(":ordering" + nestedExpr().setResultsName("ordering"))
+            + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
             + Optional(":constraints" + nestedExpr().setResultsName("constraints"))
             + Suppress(")")
         )
@@ -312,7 +312,7 @@ class PDDLReader:
     def _parse_exp(
         self,
         problem: up.model.Problem,
-        act: typing.Optional[Union[up.model.Action, htn.Method]],
+        act: typing.Optional[Union[up.model.Action, htn.Method, htn.TaskNetwork]],
         types_map: TypesMap,
         var: Dict[str, up.model.Variable],
         exp: Union[ParseResults, str],
@@ -999,14 +999,24 @@ class PDDLReader:
                 )
                 for task in tasks:
                     problem.task_network.add_subtask(task)
-                if len(tasknet["ordering"][0]) != 0:
-                    raise SyntaxError(
-                        "Ordering not supported in the initial task network"
-                    )
-                if len(tasknet["constraints"][0]) != 0:
-                    raise SyntaxError(
-                        "Constraints not supported in the initial task network"
-                    )
+
+                orderings_queue = list(m.get("ordering", []))
+                while not len(orderings_queue) == 0:
+                    ordering = orderings_queue.pop(0)
+                    if ordering[0] == "and":
+                        # add the rest of the expression to the queue
+                        orderings_queue += ordering[1:]
+                    elif ordering[0] == "<":
+                        if len(ordering) != 3:
+                            raise SyntaxError(f"Wrong number of parameters in ordering relation: {ordering}")
+                        left = problem.task_network.get_subtask(ordering[1])
+                        right = problem.task_network.get_subtask(ordering[2])
+                        problem.task_network.set_strictly_before(left, right)
+                    else:
+                        raise SyntaxError(f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}")
+
+                for constraint in m.get("constraints", []):
+                    problem.task_network.add_constraint(self._parse_exp(problem, problem.task_network, types_map, {}, constraint))
 
             for i in problem_res.get("init", []):
                 if i[0] == "=":
