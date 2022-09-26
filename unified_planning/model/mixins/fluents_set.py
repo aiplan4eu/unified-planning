@@ -135,8 +135,8 @@ class FluentsSetMixin:
             fluent = up.model.fluent.Fluent(
                 fluent_or_name, typename, None, env=self.env, **kwargs
             )
-        if self._has_name_method(fluent.name):
-            raise UPProblemDefinitionError("Name " + fluent.name + " already defined!")
+        if self.has_fluent(fluent.name):
+            raise UPProblemDefinitionError("Fluent with name " + fluent.name + " already defined!")
         self._fluents.append(fluent)
         if not default_initial_value is None:
             (v_exp,) = self.env.expression_manager.auto_promote(default_initial_value)
