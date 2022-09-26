@@ -41,10 +41,8 @@ class UserTypesSetMixin:
         assert type.is_user_type()
         if type not in self._user_types:
             t = cast(_UserType, type)
-            if self._has_name_method(t.name):
-                raise UPProblemDefinitionError(
-                    f"The type name {t.name} is already used in the problem"
-                )
+            if self.has_type(t.name):
+                raise UPProblemDefinitionError(f"The type name {t.name} is already used in the problem")
             if t.father is not None:
                 self._add_user_type(t.father)
             self._user_types.append(type)
