@@ -22,6 +22,8 @@ from unified_planning.model.action import InstantaneousAction
 from unified_planning.model.walkers import Simplifier, ExpressionQuantifiersRemover
 from unified_planning.model import Problem, ProblemKind
 from unified_planning.model.operators import OperatorKind
+from typing import List, Dict
+
 
 NUM = "num"
 CONSTRAINTS = "constraints"
@@ -46,7 +48,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING)
         self._simplifier = None
-        self._monitoring_atom_dict = {}
+        self._monitoring_atom_dict: Dict[
+            "up.model.fnode.FNode", "up.model.fnode.FNode"
+        ] = {}
 
     @property
     def name(self):
@@ -142,7 +146,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         G_prime = self._env.expression_manager.And(G_temp)
         for a in A:
             assert isinstance(a, InstantaneousAction)
-            E = list()
+            E: List["up.model.fnode.FNode"] = list()
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
                 # manage the action for each trajectory_constraints that is relevant
