@@ -37,6 +37,8 @@ else:
 
 
 class CaseInsensitiveToken:
+    """A case-insensitive representation of a string."""
+
     def __init__(self, name: Union[str, pyparsing.ParseResults]):
         if isinstance(name, pyparsing.ParseResults):
             name = name[0]
