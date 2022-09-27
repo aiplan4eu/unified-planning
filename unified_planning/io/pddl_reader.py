@@ -607,7 +607,7 @@ class PDDLReader:
             if subtask is not None:
                 # the second element of the list is a valid subtask,
                 # return the subtask, with the given identifier
-                return htn.Subtask(subtask.task, subtask.parameters, ident=task_id)
+                return htn.Subtask(subtask.task, *subtask.parameters, ident=task_id)
             else:
                 return None
         else:
@@ -744,7 +744,9 @@ class PDDLReader:
         universal_assignments: Dict["up.model.Action", List[ParseResults]] = {}
 
         # extract all type declarations into a dictionary
-        type_declarations = {}
+        type_declarations: Dict[
+            CaseInsensitiveToken, typing.Optional[CaseInsensitiveToken]
+        ] = {}
         for type_line in domain_res.get("types", []):
             father_name = (
                 None if len(type_line) <= 1 else CaseInsensitiveToken(str(type_line[1]))
@@ -761,7 +763,10 @@ class PDDLReader:
 
         # Processes a type and adds it to the `types_map`.
         # If the father was not previously declared, it will be recursively declared as well.
-        def declare_type(type: CaseInsensitiveToken, father_name: CaseInsensitiveToken):
+        def declare_type(
+            type: CaseInsensitiveToken,
+            father_name: typing.Optional[CaseInsensitiveToken],
+        ):
             if type in types_map:
                 # type was already processed which might happen if it already appeared as the parent of another type
                 return
@@ -1015,10 +1020,12 @@ class PDDLReader:
             if tasknet is not None:
                 assert isinstance(problem, htn.HierarchicalProblem)
 
-                for params in tasknet.get("params", []):
-                    type = types_map[params[1] if len(params) > 1 else Object]
-                    for name in params[0]:
-                        problem.task_network.add_variable(name, type)
+                for tn_variables in tasknet.get("params", []):
+                    tn_var_type = types_map[
+                        tn_variables[1] if len(tn_variables) > 1 else Object
+                    ]
+                    for tn_var_name in tn_variables[0]:
+                        problem.task_network.add_variable(tn_var_name, tn_var_type)
 
                 for subtasks_expr in tasknet.get("tasks", []):
                     subtasks = self._parse_subtasks(
