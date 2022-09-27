@@ -40,7 +40,7 @@ class CaseInsensitiveToken:
     def __init__(self, name: Union[str, pyparsing.ParseResults]):
         if isinstance(name, pyparsing.ParseResults):
             name = name[0]
-        assert(isinstance(name, str))
+        assert isinstance(name, str)
         self._name = name
         self._canonical = name.lower()
 
@@ -186,9 +186,12 @@ class PDDLGrammar:
             - nestedExpr().setResultsName("task")
             + Optional(":precondition" - nestedExpr().setResultsName("precondition"))
             + Optional(
-                one_of(":ordered-subtasks :ordered-tasks") - nestedExpr().setResultsName("ordered-subtasks")
+                one_of(":ordered-subtasks :ordered-tasks")
+                - nestedExpr().setResultsName("ordered-subtasks")
             )
-            + Optional(one_of(":subtasks :tasks") - nestedExpr().setResultsName("subtasks"))
+            + Optional(
+                one_of(":subtasks :tasks") - nestedExpr().setResultsName("subtasks")
+            )
             + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
             + Optional(":constraints" - nestedExpr().setResultsName("constraints"))
             + Suppress(")")
@@ -220,8 +223,13 @@ class PDDLGrammar:
             Suppress("(")
             + ":htn"
             - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
-            + Optional(one_of(":ordered-tasks :ordered-subtasks") - nestedExpr().setResultsName("ordered-tasks"))
-            + Optional(one_of(":tasks :subtasks") - nestedExpr().setResultsName("tasks"))
+            + Optional(
+                one_of(":ordered-tasks :ordered-subtasks")
+                - nestedExpr().setResultsName("ordered-tasks")
+            )
+            + Optional(
+                one_of(":tasks :subtasks") - nestedExpr().setResultsName("tasks")
+            )
             + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
             + Optional(":constraints" - nestedExpr().setResultsName("constraints"))
             + Suppress(")")
@@ -588,7 +596,8 @@ class PDDLReader:
                 task = problem.action(task_name)
             assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
             parameters = [
-                self._parse_exp(problem, method, types_map, {}, param) for param in e[1:]
+                self._parse_exp(problem, method, types_map, {}, param)
+                for param in e[1:]
             ]
             return htn.Subtask(task, *parameters)
         elif len(e) == 2 and e[0] != "and":
@@ -737,20 +746,24 @@ class PDDLReader:
         # extract all type declarations into a dictionary
         type_declarations = {}
         for type_line in domain_res.get("types", []):
-            father_name = None if len(type_line) <= 1 else CaseInsensitiveToken(str(type_line[1]))
+            father_name = (
+                None if len(type_line) <= 1 else CaseInsensitiveToken(str(type_line[1]))
+            )
             if father_name is None and object_type_needed:
                 father_name = Object
             for declared_type in type_line[0]:
                 declared_type = CaseInsensitiveToken(str(declared_type))
                 if declared_type in type_declarations:
-                    raise SyntaxError(f"Type {declared_type} is declared more than once")
+                    raise SyntaxError(
+                        f"Type {declared_type} is declared more than once"
+                    )
                 type_declarations[declared_type] = father_name
 
         # Processes a type and adds it to the `types_map`.
         # If the father was not previously declared, it will be recursively declared as well.
         def declare_type(type: CaseInsensitiveToken, father_name: CaseInsensitiveToken):
             if type in types_map:
-                # type was already processed which might happen if if already appeared as the parent of another type
+                # type was already processed which might happen if it already appeared as the parent of another type
                 return
             father: typing.Optional["up.model.Type"]
             if father_name is None:
@@ -930,12 +943,16 @@ class PDDLReader:
                     orderings_queue += ordering[1:]
                 elif ordering[0] == "<":
                     if len(ordering) != 3:
-                        raise SyntaxError(f"Wrong number of parameters in ordering relation: {ordering}")
+                        raise SyntaxError(
+                            f"Wrong number of parameters in ordering relation: {ordering}"
+                        )
                     left = method.get_subtask(ordering[1])
                     right = method.get_subtask(ordering[2])
                     method.set_strictly_before(left, right)
                 else:
-                    raise SyntaxError(f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}")
+                    raise SyntaxError(
+                        f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                    )
             for precondition in m.get("precondition", []):
                 method.add_precondition(
                     self._parse_exp(problem, method, types_map, {}, precondition)
@@ -1004,11 +1021,15 @@ class PDDLReader:
                         problem.task_network.add_variable(name, type)
 
                 for subtasks_expr in tasknet.get("tasks", []):
-                    subtasks = self._parse_subtasks(subtasks_expr, problem.task_network, problem, types_map)
+                    subtasks = self._parse_subtasks(
+                        subtasks_expr, problem.task_network, problem, types_map
+                    )
                     for task in subtasks:
                         problem.task_network.add_subtask(task)
                 for subtasks_expr in tasknet.get("ordered-tasks", []):
-                    subtasks = self._parse_subtasks(subtasks_expr, problem.task_network, problem, types_map)
+                    subtasks = self._parse_subtasks(
+                        subtasks_expr, problem.task_network, problem, types_map
+                    )
                     prev = None
                     for task in subtasks:
                         cur = problem.task_network.add_subtask(task)
@@ -1026,15 +1047,23 @@ class PDDLReader:
                         orderings_queue += ordering[1:]
                     elif ordering[0] == "<":
                         if len(ordering) != 3:
-                            raise SyntaxError(f"Wrong number of parameters in ordering relation: {ordering}")
+                            raise SyntaxError(
+                                f"Wrong number of parameters in ordering relation: {ordering}"
+                            )
                         left = problem.task_network.get_subtask(ordering[1])
                         right = problem.task_network.get_subtask(ordering[2])
                         problem.task_network.set_strictly_before(left, right)
                     else:
-                        raise SyntaxError(f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}")
+                        raise SyntaxError(
+                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                        )
 
                 for constraint in tasknet.get("constraints", []):
-                    problem.task_network.add_constraint(self._parse_exp(problem, problem.task_network, types_map, {}, constraint))
+                    problem.task_network.add_constraint(
+                        self._parse_exp(
+                            problem, problem.task_network, types_map, {}, constraint
+                        )
+                    )
 
             for i in problem_res.get("init", []):
                 if i[0] == "=":

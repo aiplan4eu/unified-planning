@@ -81,7 +81,7 @@ class _UserType(Type):
     """Represents the user type."""
 
     def __init__(self, name: str, father: Optional[Type] = None):
-        assert(isinstance(name, str))
+        assert isinstance(name, str)
         Type.__init__(self)
         self._name = name
         if father is not None and (not father.is_user_type()):
