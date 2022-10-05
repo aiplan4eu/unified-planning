@@ -34,6 +34,10 @@ from pyparsing import (
     restOfLine,
     Combine,
     Forward,
+    infixNotation,
+    opAssoc,
+    ParserElement,
+    Literal,
 )
 
 if pyparsing.__version__ < "3.0.0":
@@ -42,6 +46,65 @@ if pyparsing.__version__ < "3.0.0":
 else:
     from pyparsing.results import ParseResults
     from pyparsing import one_of
+
+# ANMl keywords definition as tokens
+TK_COMMA = ","
+TK_SEMI = ";"
+TK_COLON = ":"
+TK_ASSIGN = ":="
+TK_INCREASE = ":+="
+TK_DECREASE = ":-="
+TK_IN_ASSIGN = ":in"
+TK_ANNOTATION = "::"
+TK_L_BRACE = "{"
+TK_R_BRACE = "}"
+TK_L_BRACKET = "["
+TK_R_BRACKET = "]"
+TK_L_PARENTHESIS = "("
+TK_R_PARENTHESIS = ")"
+TK_MINUS = "-"
+TK_SQRT = "sqrt"
+TK_PLUS = "+"
+TK_TIMES = "*"
+TK_DIV = "/"
+TK_LE = "<="
+TK_GE = ">="
+TK_GT = ">"
+TK_LT = "<"
+TK_EQUALS = "=="
+TK_NOT_EQUALS = "!="
+TK_DOT = "."
+TK_FORALL = "forall"
+TK_IN = "in"
+TK_SUBSET = "subset"
+TK_UNION = "union"
+TK_INTERSECTION = "intersection"
+TK_DIFFERENCE = "\\"
+TK_ACTION = "action"
+TK_PROCESS = "process"
+TK_TYPE = "type"
+TK_INSTANCE = "instance"
+TK_FLUENT = "fluent"
+TK_CONSTANT = "constant"
+TK_WITH = "with"
+TK_GOAL = "goal"
+TK_CONTAINS = "contains"
+TK_BOOLEAN = "boolean"
+TK_INTEGER = "integer"
+TK_FLOAT = one_of(["float", "rational"])  # NOTE both are possible here
+TK_SET = "set"
+TK_ALL = "all"
+TK_START = "start"
+TK_END = "end"
+TK_DURATION = "duration"
+TK_TIME = "#t"
+TK_AND = "and"
+TK_OR = "or"
+TK_XOR = "xor"
+TK_IMPLIES = "implies"
+TK_NOT = "not"
+TK_TRUE = "true"
+TK_FALSE = "false"
 
 
 class ANMLGrammar:
@@ -52,141 +115,227 @@ class ANMLGrammar:
         self.fluents: List[ParseResults] = []
         self.actions: List[ParseResults] = []
         self.objects: List[ParseResults] = []
-        self.initial_values: List[ParseResults] = []
-        self.goals: List[ParseResults] = []
+        self.timed_assignments_or_goals: List[ParseResults] = []
+        self.timed_assignment_or_goal: List[ParseResults] = []
 
-        # supporting definitions
-        L_PARENTHESIS, R_PARENTHESIS = map(Suppress, "()")
-        L_BRACKET, R_BRACKET = map(Suppress, "[]")
-        L_BRACE, R_BRACE = map(Suppress, "{}")
-        SEMICOLON = Suppress(";")
-        COMMA = Suppress(",")
-        TK_ASSIGN = ":="
-        TK_GOAL = "goal"
-        name = Word(alphas + "_", alphanums + "_")
-        parameters_decl = (
-            L_PARENTHESIS
-            + Optional(
-                Group(Group(name + name) + ZeroOrMore(COMMA + Group(name + name)))
-            )
-            + R_PARENTHESIS
-        )
-        parameters_ref = Forward()
-
-        # numeric expressions (with fluents and booleans)
-        expr = Forward()
+        # Base Expression elements
+        identifier = Word(alphas + "_", alphanums + "_")
         integer = Word(nums)  # | Combine("-" + Word(nums))
         real = Combine(
             Word(nums) + "." + Word(nums)
         )  # | Combine("-" + Word(nums) + "." + Word(nums))
-        fluent_ref = name + Optional(parameters_ref)  # TODO missing some definitions
-        operand = real | integer | fluent_ref | "true" | "false"
-        factor = operand | Group(L_PARENTHESIS + expr + R_PARENTHESIS)
-        term = factor + ZeroOrMore(one_of("* /") + factor)
-        assignment_expression = (
-            fluent_ref + one_of([TK_ASSIGN, "increase", "decrease"]) + expr
+        float_const = integer | real
+        boolean_const = one_of([TK_TRUE, TK_FALSE])
+
+        # Expression definitions
+        interval = Forward()
+        boolean_expression = Forward()
+        forall_expression = Forward()
+
+        expression_list = Optional(Group(boolean_expression)) + ZeroOrMore(
+            Suppress(TK_COMMA) + Group(boolean_expression)
         )
-        expr <<= term + ZeroOrMore(one_of("+ -") + term) | assignment_expression
-        parameters_ref = (
-            L_PARENTHESIS + Group(ZeroOrMore(expr + Optional(COMMA))) + R_PARENTHESIS
+        fluent_ref = identifier + Group(
+            Optional(  # missing dot definitions
+                Suppress(TK_L_PARENTHESIS)
+                + expression_list
+                + Suppress(TK_R_PARENTHESIS)
+            )
         )
 
-        # definitions supporting action body
-        # duration_assignment = "duration :=" + Group(expr) + SEMICOLON #TODO Add interval assignment
-        # assignment = fluent_ref + ":=" + Group(expr) + SEMICOLON
-        # condition = (Group(expr) + "==" + Group(expr) | Group(fluent_ref)) + SEMICOLON
-        # interval = L_BRACKET + one_of("start end all") + R_BRACKET
-        # action_body = OneOrMore( # SHOULD be OneOrMore, just for testing is zero
-        #     duration_assignment |
-        #     Group(interval + Group(assignment)) |
-        #     Group(interval + Group(condition))
-        # )
+        arithmetic_expression = infixNotation(
+            boolean_const
+            | Literal(TK_START)
+            | Literal(TK_END)
+            | float_const
+            | fluent_ref,
+            [
+                (one_of([TK_PLUS, TK_MINUS]), 1, opAssoc.RIGHT),
+                (one_of([TK_TIMES, TK_DIV]), 2, opAssoc.LEFT),
+                (one_of([TK_PLUS, TK_MINUS]), 2, opAssoc.LEFT),
+            ],
+        )
+        relations_expression = infixNotation(
+            arithmetic_expression,
+            [
+                (
+                    one_of([TK_LT, TK_LE, TK_GT, TK_GE, TK_EQUALS, TK_NOT_EQUALS]),
+                    2,
+                    opAssoc.LEFT,
+                ),  # IN, SUBSET, UNION, INTERSECTION, DIFFERENCE missing #TODO check if they go there
+                (one_of([TK_ASSIGN, TK_INCREASE, TK_DECREASE]), 2, opAssoc.LEFT),
+            ],
+        )
+        boolean_expression <<= infixNotation(
+            relations_expression | boolean_const,
+            [
+                (TK_NOT, 1, opAssoc.RIGHT),
+                (one_of([TK_AND, TK_OR]), 2, opAssoc.LEFT),
+            ],
+        )
+        expression = boolean_expression | forall_expression
 
-        # type_def = Suppress("type") + name + SEMICOLON
-        # type_def.setParseAction(lambda x: self.types.append(x))
-        # fluent_def = SuppresALERT_DESCRIPTION_DECOMPRESSION_FAILURE= interval + L_BRACE + Group(OneOrMore(assignment)) + R_BRACE + SEMICOLON
-        # initial_values_def.setParseAction(lambda x: self.initial_values.append(x))
-        # goal_def = Suppress("goal") + interval + L_BRACE + Group(OneOrMore(condition)) + R_BRACE + SEMICOLON
-        # goal_def.setParseAction(lambda x: self.goals.append(x))
+        timed_expression = Group(Optional(interval)).setResultsName("interval") + Group(
+            expression
+        ).setResultsName("expression")
 
-        # element = (Group(type_def) |
-        #             Group(fluent_def) |
-        #             Group(action_def) |
-        #             Group(objects_def) |
-        #             Group(initial_values_def) |
-        #             Group(goal_def))
+        expression_block_body = OneOrMore(Group(expression) + Suppress(TK_SEMI))
+        expression_block = (
+            Group(interval).setResultsName("interval")
+            + TK_L_BRACE
+            + Group(expression_block_body).setResultsName("body")
+            + TK_R_BRACE
+        )
 
-        # problem = OneOrMore(element)
+        temporal_expression = arithmetic_expression
 
-        ## 1 on 1 copy with the tamer anml parser
-
-        interval = (
-            one_of(["[", "("])
-            + (Group(expr) | "all" | "start" | "end")
-            + Optional(COMMA + Group(expr))
-            + one_of(["]", ")"])
-        )  # TODO missing last 3 definitions
-        in_assignment_expression = ("duration :in" + interval) | ("duration :=" + expr)
-        timed_expression = Optional(interval) + Group(expr)
-        expression_block_body = ZeroOrMore(expr + SEMICOLON)
-        expression_block = interval + L_BRACE + Group(expression_block_body) + R_BRACE
+        in_assignment_expression = (
+            TK_DURATION
+            + TK_IN_ASSIGN
+            + TK_L_BRACKET
+            + Group(temporal_expression).setResultsName("left_bound")
+            + TK_COMMA
+            + Group(temporal_expression).setResultsName("right_bound")
+            + TK_R_BRACKET
+        )
         action_body = ZeroOrMore(
-            (expression_block | timed_expression | in_assignment_expression) + SEMICOLON
+            (expression_block | timed_expression | in_assignment_expression)
+            + Suppress(TK_SEMI)
         )
-        action_decl = Group(
-            Suppress("action")
-            + name
-            + parameters_decl
-            + L_BRACE
-            + action_body
-            + R_BRACE
-        )  # TODO: MISSING annotation and process
-        action_decl.setParseAction(lambda x: self.actions.append(x))
-        primitive_type = (
-            "boolean"
-            | "integer"
-            + Optional(Group(L_BRACKET + integer + COMMA + integer + R_BRACKET))
-            | one_of(["float", "rational"])
-            + Optional(Group(L_BRACKET + real + COMMA + real + R_BRACKET))
-        )
-        type_ref = (
-            primitive_type | name
-        )  # | "set" + "(" + type_ref + ")" -> TODO get the meaning of set()
-        fluent_decl = Group(
-            Suppress(one_of(["fluent", "constant"]))
-            + type_ref
-            + name
-            + Group(Optional(parameters_decl))
-            + Group(Optional(TK_ASSIGN + expr))
-        )
-        fluent_decl.setParseAction(lambda x: self.fluents.append(x))
-        instance_decl = Group(
-            Suppress("instance") + type_ref + Group(name + ZeroOrMore(COMMA + name))
-        )
-        instance_decl.setParseAction(lambda x: self.objects.append(x))
-        type_decl = Group(
-            Suppress("type") + name + ZeroOrMore(Group(Suppress("<") + name))
+
+        # missing class stmt and class body definitions
+        type_decl = Group(  # missing "TK_TYPE TK_IDENTIFIER opt_inheritance_list TK_WITH TK_L_BRACE class_body TK_R_BRACE"
+            Suppress(TK_TYPE)
+            + identifier.setResultsName("name")
+            + Group(ZeroOrMore(Suppress(TK_LT) + identifier)).setResultsName(
+                "supertypes"
+            )
         )
         type_decl.setParseAction(lambda x: self.types.append(x))
-        goal_body = OneOrMore(
-            expression_block + SEMICOLON | timed_expression + SEMICOLON
+        identifier_list = identifier + ZeroOrMore(Suppress(TK_COMMA) + identifier)
+        primitive_type = (
+            Literal(TK_BOOLEAN).setResultsName("type_name")
+            | (
+                Literal(TK_INTEGER).setResultsName("type_name")
+                + Optional(
+                    Group(
+                        TK_L_BRACKET
+                        + integer.setResultsName("left_bound")
+                        + TK_COMMA
+                        + integer.setResultsName("right_bound")
+                        + TK_R_BRACKET
+                    )
+                )
+            )
+            | (
+                TK_FLOAT.setResultsName("type_name")
+                + Optional(
+                    Group(
+                        TK_L_BRACKET
+                        + real.setResultsName("left_bound")
+                        + TK_COMMA
+                        + real.setResultsName("right_bound")
+                        + TK_R_BRACKET
+                    )
+                )
+            )
         )
-        goal_decl = TK_GOAL + (
-            timed_expression | expression_block | L_BRACE + goal_body + R_BRACE
+        type_ref = (
+            primitive_type | identifier
+        )  # | "set" + "(" + type_ref + ")" -> TODO get the meaning of set()
+        instance_decl = Group(Suppress(TK_INSTANCE) + type_ref + Group(identifier_list))
+        instance_decl.setParseAction(lambda x: self.objects.append(x))
+
+        parameter_list = Optional(Group(type_ref) + identifier) + ZeroOrMore(
+            Suppress(TK_COMMA) + Group(type_ref) + identifier
+        )
+        fluent_decl = Group(
+            Suppress(one_of([TK_FLUENT, TK_CONSTANT]))
+            + type_ref
+            + identifier
+            + Optional(
+                Suppress(TK_L_PARENTHESIS)
+                + Group(parameter_list)
+                + Suppress(TK_R_PARENTHESIS)
+            )
+            # + Optional(TK_ASSIGN + Group(expression))
+        )
+        fluent_decl.setParseAction(lambda x: self.fluents.append(x))
+        # annotation list... TODO
+        action_decl = Group(
+            Suppress("action")
+            + identifier
+            + Suppress(TK_L_PARENTHESIS)
+            + Group(parameter_list)
+            + Suppress(TK_R_PARENTHESIS)
+            + Suppress(TK_L_BRACE)
+            + Group(action_body)
+            + Suppress(TK_R_BRACE)
+        )  # TODO: MISSING annotation and process
+        action_decl.setParseAction(lambda x: self.actions.append(x))
+        interval <<= (
+            one_of([TK_L_BRACKET, TK_L_PARENTHESIS])
+            + (
+                (
+                    Group(temporal_expression)
+                    + Optional(TK_COMMA + Group(temporal_expression))
+                )
+                | TK_ALL
+            )
+            + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
+        )  # | (
+        #     interval
+        #     + (
+        #         (
+        #             TK_CONTAINS
+        #             + Optional(
+        #                 TK_L_BRACKET + Group(arithmetic_expression) + TK_R_BRACKET
+        #             )
+        #         )
+        #         | identifier + TK_COLON
+        #     )
+        # )
+        forall_expression <<= (
+            TK_FORALL
+            + TK_L_PARENTHESIS
+            + Group(parameter_list)
+            + TK_R_PARENTHESIS
+            + TK_L_BRACE
+            + action_body
+            + TK_R_BRACE
+        )
+        # Standalone expressions are defined to handle differently expressions
+        # defined inside an action from the expressions defined outside an action
+        standalone_timed_expression = timed_expression.copy()
+        standalone_timed_expression.setParseAction(
+            lambda x: self.timed_assignment_or_goal.append(x)
+        )
+        standalone_expression_block = expression_block.copy()
+        standalone_expression_block.setParseAction(
+            lambda x: self.timed_assignments_or_goals.append(x)
         )
 
+        goal_body = OneOrMore(
+            (standalone_expression_block | standalone_timed_expression)
+            + Suppress(TK_SEMI)
+        )
+        goal_decl = TK_GOAL + (
+            standalone_timed_expression
+            | standalone_expression_block
+            | TK_L_BRACE + goal_body + TK_R_BRACE
+        )
         anml_stmt = (
-            type_decl
+            instance_decl
+            | type_decl
             | fluent_decl
             | action_decl
-            | instance_decl
-            | timed_expression
-            | expression_block
+            | standalone_expression_block
             | goal_decl
+            | standalone_timed_expression
         )
         # annotation_decl)
 
-        anml_body = OneOrMore(Group(anml_stmt + SEMICOLON))
+        anml_body = OneOrMore(Group(anml_stmt + Suppress(TK_SEMI)))
 
         self._problem = anml_body
 
@@ -230,10 +379,13 @@ class ANMLReader:
 
         types_map: Dict[str, "up.model.Type"] = {}
 
-        print(self.grammar.types)
-        print(self.grammar.fluents)
-        print(self.grammar.actions)
-        print(self.grammar.objects)
-        print(self.grammar.initial_values)
-        print(self.grammar.goals)
+        # print(str(self.grammar.types).replace("ParseResults", ""))
+        # print(str(self.grammar.fluents).replace("ParseResults", ""))
+        # print(str(self.grammar.actions).replace("ParseResults", ""))
+        # print(str(self.grammar.objects).replace("ParseResults", ""))
+        print(str(self.grammar.timed_assignment_or_goal).replace("ParseResults", ""))
+        # print(str(self.grammar.timed_assignments_or_goals).replace("ParseResults", ""))
+        for pr in self.grammar.timed_assignment_or_goal:
+            print(pr["interval"])
+
         return problem

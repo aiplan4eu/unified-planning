@@ -2,12 +2,20 @@ type Match;
 type Fuse;
 
 fluent boolean handfree;
-fluent boolean match_used(Match m);
+fluent boolean match_used ( Match m ) ;
 fluent boolean fuse_mended(Fuse f);
 fluent boolean light;
+fluent boolean light_2;
 
-instance Fuse f1, f2, f3;
+action light_match_1(Match m) {
+   [start] -x := 3-2--5;
+   y == 3;
+};
+
+instance Fuse a;
+instance Fuse f1 , f2, f3;
 instance Match m1, m2, m3;
+
 
 action light_match(Match m) {
    duration := 6;
@@ -30,6 +38,9 @@ action mend_fuse(Fuse f) {
    [end] handfree := true;
 };
 
+[start] light(ciao(f), brr) := false;
+light := false;
+
 [start] {
    light := false;
    handfree := true;
@@ -48,3 +59,74 @@ goal [end] {
    fuse_mended(f2);
    fuse_mended(f3);
 };
+
+
+
+
+
+
+
+
+
+# batom_expression = Forward()
+        # arithmetic_atom_expression = Forward()
+        # times_expression = Forward()
+        # and_expression = Forward()
+        # or_expression = Forward()
+        # xor_expression = Forward()
+        # times_expression <<= Group(arithmetic_atom_expression) + Optional(
+        #    one_of([TK_TIMES, TK_DIV]) + Group(times_expression)
+        # )
+        # arithmetic_atom_expression <<= (
+        #     float_const
+        #     | boolean_const
+        #     | fluent_ref
+        #     | Group(TK_MINUS + fluent_ref)
+        #     | TK_START
+        #     | TK_END
+        #     | TK_DURATION
+        #     | TK_TIME
+        #     | Group(TK_L_PARENTHESIS + expression + TK_R_PARENTHESIS)
+        #     | Group(TK_L_BRACE + Optional(expression_list) + TK_R_BRACE)
+        #     | Group(
+        #         TK_SQRT
+        #         + TK_L_PARENTHESIS
+        #         + Group(arithmetic_expression)
+        #         + TK_COMMA
+        #         + Group(arithmetic_expression)
+        #         + TK_R_PARENTHESIS
+        #     )
+        # )
+
+        # arithmetic_expression <<= Group(times_expression) + Optional(
+        #     one_of([TK_PLUS, TK_MINUS]) + arithmetic_expression
+        # )
+        # batom_expression <<= Group((TK_NOT + batom_expression)) | Group(
+        #     arithmetic_expression
+        # ) + Optional(
+        #     one_of(
+        #         [
+        #             TK_LT,
+        #             TK_LE,
+        #             TK_GT,
+        #             TK_GE,
+        #             TK_EQUALS,
+        #             TK_NOT_EQUALS,
+        #             TK_IN,
+        #             TK_SUBSET,
+        #             TK_UNION,
+        #             TK_INTERSECTION,
+        #             TK_DIFFERENCE,
+        #         ]
+        #     )
+        #     + Group(arithmetic_expression)
+        # )
+        # and_expression <<= Group(batom_expression) + Optional(
+        #     TK_AND + Group(and_expression)
+        # )
+        # or_expression <<= Group(and_expression) + Optional(TK_OR + Group(or_expression))
+        # xor_expression <<= Group(or_expression) + Optional(TK_XOR + Group(xor_expression))
+        # boolean_expression <<= Group(xor_expression) + Optional(
+        #     TK_IMPLIES + Group(xor_expression)
+        # )
+        # expression <<= boolean_expression | assignment_expression | forall_expression
