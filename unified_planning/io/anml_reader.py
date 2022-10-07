@@ -14,17 +14,60 @@
 #
 
 from itertools import product
+from pprint import pprint
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 import pyparsing
 import typing
+from unified_planning.io.anml_grammar import (
+    TK_ALL,
+    TK_AND,
+    TK_ASSIGN,
+    TK_DECREASE,
+    TK_DIV,
+    TK_END,
+    TK_EQUALS,
+    TK_GE,
+    TK_GT,
+    TK_IMPLIES,
+    TK_INCREASE,
+    TK_L_BRACKET,
+    TK_L_PARENTHESIS,
+    TK_LE,
+    TK_LT,
+    TK_MINUS,
+    TK_NOT,
+    TK_OR,
+    TK_PLUS,
+    TK_R_BRACKET,
+    TK_R_PARENTHESIS,
+    TK_START,
+    TK_TIMES,
+    ANMLGrammar,
+    TK_BOOLEAN,
+    TK_INTEGER,
+    TK_FLOAT,
+)
 from unified_planning.environment import Environment, get_env
+from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode
-from collections import OrderedDict
+from unified_planning.model import (
+    Effect,
+    EffectKind,
+    FNode,
+    StartTiming,
+    GlobalStartTiming,
+    EndTiming,
+    GlobalEndTiming,
+    ClosedTimeInterval,
+    OpenTimeInterval,
+    LeftOpenTimeInterval,
+    RightOpenTimeInterval,
+)
+from collections import OrderedDict, deque
 from fractions import Fraction
-from typing import Dict, Union, Callable, List, cast
+from typing import Deque, Dict, Tuple, Union, Callable, List, cast
 from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore, Keyword
 from pyparsing import (
     Optional,
@@ -47,302 +90,6 @@ else:
     from pyparsing.results import ParseResults
     from pyparsing import one_of
 
-# ANMl keywords definition as tokens
-TK_COMMA = ","
-TK_SEMI = ";"
-TK_COLON = ":"
-TK_ASSIGN = ":="
-TK_INCREASE = ":+="
-TK_DECREASE = ":-="
-TK_IN_ASSIGN = ":in"
-TK_ANNOTATION = "::"
-TK_L_BRACE = "{"
-TK_R_BRACE = "}"
-TK_L_BRACKET = "["
-TK_R_BRACKET = "]"
-TK_L_PARENTHESIS = "("
-TK_R_PARENTHESIS = ")"
-TK_MINUS = "-"
-TK_SQRT = "sqrt"
-TK_PLUS = "+"
-TK_TIMES = "*"
-TK_DIV = "/"
-TK_LE = "<="
-TK_GE = ">="
-TK_GT = ">"
-TK_LT = "<"
-TK_EQUALS = "=="
-TK_NOT_EQUALS = "!="
-TK_DOT = "."
-TK_FORALL = "forall"
-TK_IN = "in"
-TK_SUBSET = "subset"
-TK_UNION = "union"
-TK_INTERSECTION = "intersection"
-TK_DIFFERENCE = "\\"
-TK_ACTION = "action"
-TK_PROCESS = "process"
-TK_TYPE = "type"
-TK_INSTANCE = "instance"
-TK_FLUENT = "fluent"
-TK_CONSTANT = "constant"
-TK_WITH = "with"
-TK_GOAL = "goal"
-TK_CONTAINS = "contains"
-TK_BOOLEAN = "boolean"
-TK_INTEGER = "integer"
-TK_FLOAT = one_of(["float", "rational"])  # NOTE both are possible here
-TK_SET = "set"
-TK_ALL = "all"
-TK_START = "start"
-TK_END = "end"
-TK_DURATION = "duration"
-TK_TIME = "#t"
-TK_AND = "and"
-TK_OR = "or"
-TK_XOR = "xor"
-TK_IMPLIES = "implies"
-TK_NOT = "not"
-TK_TRUE = "true"
-TK_FALSE = "false"
-
-
-class ANMLGrammar:
-    def __init__(self):
-
-        # Data structures to populate while parsing
-        self.types: List[ParseResults] = []
-        self.fluents: List[ParseResults] = []
-        self.actions: List[ParseResults] = []
-        self.objects: List[ParseResults] = []
-        self.timed_assignments_or_goals: List[ParseResults] = []
-        self.timed_assignment_or_goal: List[ParseResults] = []
-
-        # Base Expression elements
-        identifier = Word(alphas + "_", alphanums + "_")
-        integer = Word(nums)  # | Combine("-" + Word(nums))
-        real = Combine(
-            Word(nums) + "." + Word(nums)
-        )  # | Combine("-" + Word(nums) + "." + Word(nums))
-        float_const = integer | real
-        boolean_const = one_of([TK_TRUE, TK_FALSE])
-
-        # Expression definitions
-        interval = Forward()
-        boolean_expression = Forward()
-        forall_expression = Forward()
-
-        expression_list = Optional(Group(boolean_expression)) + ZeroOrMore(
-            Suppress(TK_COMMA) + Group(boolean_expression)
-        )
-        fluent_ref = identifier + Group(
-            Optional(  # missing dot definitions
-                Suppress(TK_L_PARENTHESIS)
-                + expression_list
-                + Suppress(TK_R_PARENTHESIS)
-            )
-        )
-
-        arithmetic_expression = infixNotation(
-            boolean_const
-            | Literal(TK_START)
-            | Literal(TK_END)
-            | float_const
-            | fluent_ref,
-            [
-                (one_of([TK_PLUS, TK_MINUS]), 1, opAssoc.RIGHT),
-                (one_of([TK_TIMES, TK_DIV]), 2, opAssoc.LEFT),
-                (one_of([TK_PLUS, TK_MINUS]), 2, opAssoc.LEFT),
-            ],
-        )
-        relations_expression = infixNotation(
-            arithmetic_expression,
-            [
-                (
-                    one_of([TK_LT, TK_LE, TK_GT, TK_GE, TK_EQUALS, TK_NOT_EQUALS]),
-                    2,
-                    opAssoc.LEFT,
-                ),  # IN, SUBSET, UNION, INTERSECTION, DIFFERENCE missing #TODO check if they go there
-                (one_of([TK_ASSIGN, TK_INCREASE, TK_DECREASE]), 2, opAssoc.LEFT),
-            ],
-        )
-        boolean_expression <<= infixNotation(
-            relations_expression | boolean_const,
-            [
-                (TK_NOT, 1, opAssoc.RIGHT),
-                (one_of([TK_AND, TK_OR]), 2, opAssoc.LEFT),
-            ],
-        )
-        expression = boolean_expression | forall_expression
-
-        timed_expression = Group(Optional(interval)).setResultsName("interval") + Group(
-            expression
-        ).setResultsName("expression")
-
-        expression_block_body = OneOrMore(Group(expression) + Suppress(TK_SEMI))
-        expression_block = (
-            Group(interval).setResultsName("interval")
-            + TK_L_BRACE
-            + Group(expression_block_body).setResultsName("body")
-            + TK_R_BRACE
-        )
-
-        temporal_expression = arithmetic_expression
-
-        in_assignment_expression = (
-            TK_DURATION
-            + TK_IN_ASSIGN
-            + TK_L_BRACKET
-            + Group(temporal_expression).setResultsName("left_bound")
-            + TK_COMMA
-            + Group(temporal_expression).setResultsName("right_bound")
-            + TK_R_BRACKET
-        )
-        action_body = ZeroOrMore(
-            (expression_block | timed_expression | in_assignment_expression)
-            + Suppress(TK_SEMI)
-        )
-
-        # missing class stmt and class body definitions
-        type_decl = Group(  # missing "TK_TYPE TK_IDENTIFIER opt_inheritance_list TK_WITH TK_L_BRACE class_body TK_R_BRACE"
-            Suppress(TK_TYPE)
-            + identifier.setResultsName("name")
-            + Group(ZeroOrMore(Suppress(TK_LT) + identifier)).setResultsName(
-                "supertypes"
-            )
-        )
-        type_decl.setParseAction(lambda x: self.types.append(x))
-        identifier_list = identifier + ZeroOrMore(Suppress(TK_COMMA) + identifier)
-        primitive_type = (
-            Literal(TK_BOOLEAN).setResultsName("type_name")
-            | (
-                Literal(TK_INTEGER).setResultsName("type_name")
-                + Optional(
-                    Group(
-                        TK_L_BRACKET
-                        + integer.setResultsName("left_bound")
-                        + TK_COMMA
-                        + integer.setResultsName("right_bound")
-                        + TK_R_BRACKET
-                    )
-                )
-            )
-            | (
-                TK_FLOAT.setResultsName("type_name")
-                + Optional(
-                    Group(
-                        TK_L_BRACKET
-                        + real.setResultsName("left_bound")
-                        + TK_COMMA
-                        + real.setResultsName("right_bound")
-                        + TK_R_BRACKET
-                    )
-                )
-            )
-        )
-        type_ref = (
-            primitive_type | identifier
-        )  # | "set" + "(" + type_ref + ")" -> TODO get the meaning of set()
-        instance_decl = Group(Suppress(TK_INSTANCE) + type_ref + Group(identifier_list))
-        instance_decl.setParseAction(lambda x: self.objects.append(x))
-
-        parameter_list = Optional(Group(type_ref) + identifier) + ZeroOrMore(
-            Suppress(TK_COMMA) + Group(type_ref) + identifier
-        )
-        fluent_decl = Group(
-            Suppress(one_of([TK_FLUENT, TK_CONSTANT]))
-            + type_ref
-            + identifier
-            + Optional(
-                Suppress(TK_L_PARENTHESIS)
-                + Group(parameter_list)
-                + Suppress(TK_R_PARENTHESIS)
-            )
-            # + Optional(TK_ASSIGN + Group(expression))
-        )
-        fluent_decl.setParseAction(lambda x: self.fluents.append(x))
-        # annotation list... TODO
-        action_decl = Group(
-            Suppress("action")
-            + identifier
-            + Suppress(TK_L_PARENTHESIS)
-            + Group(parameter_list)
-            + Suppress(TK_R_PARENTHESIS)
-            + Suppress(TK_L_BRACE)
-            + Group(action_body)
-            + Suppress(TK_R_BRACE)
-        )  # TODO: MISSING annotation and process
-        action_decl.setParseAction(lambda x: self.actions.append(x))
-        interval <<= (
-            one_of([TK_L_BRACKET, TK_L_PARENTHESIS])
-            + (
-                (
-                    Group(temporal_expression)
-                    + Optional(TK_COMMA + Group(temporal_expression))
-                )
-                | TK_ALL
-            )
-            + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
-        )  # | (
-        #     interval
-        #     + (
-        #         (
-        #             TK_CONTAINS
-        #             + Optional(
-        #                 TK_L_BRACKET + Group(arithmetic_expression) + TK_R_BRACKET
-        #             )
-        #         )
-        #         | identifier + TK_COLON
-        #     )
-        # )
-        forall_expression <<= (
-            TK_FORALL
-            + TK_L_PARENTHESIS
-            + Group(parameter_list)
-            + TK_R_PARENTHESIS
-            + TK_L_BRACE
-            + action_body
-            + TK_R_BRACE
-        )
-        # Standalone expressions are defined to handle differently expressions
-        # defined inside an action from the expressions defined outside an action
-        standalone_timed_expression = timed_expression.copy()
-        standalone_timed_expression.setParseAction(
-            lambda x: self.timed_assignment_or_goal.append(x)
-        )
-        standalone_expression_block = expression_block.copy()
-        standalone_expression_block.setParseAction(
-            lambda x: self.timed_assignments_or_goals.append(x)
-        )
-
-        goal_body = OneOrMore(
-            (standalone_expression_block | standalone_timed_expression)
-            + Suppress(TK_SEMI)
-        )
-        goal_decl = TK_GOAL + (
-            standalone_timed_expression
-            | standalone_expression_block
-            | TK_L_BRACE + goal_body + TK_R_BRACE
-        )
-        anml_stmt = (
-            instance_decl
-            | type_decl
-            | fluent_decl
-            | action_decl
-            | standalone_expression_block
-            | goal_decl
-            | standalone_timed_expression
-        )
-        # annotation_decl)
-
-        anml_body = OneOrMore(Group(anml_stmt + Suppress(TK_SEMI)))
-
-        self._problem = anml_body
-
-    @property
-    def problem(self):
-        return self._problem
-
 
 class ANMLReader:
     """
@@ -353,10 +100,25 @@ class ANMLReader:
         self._env = get_env(env)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
-        grammar = ANMLGrammar()
-        self.grammar = grammar
-        self._pp_problem = grammar.problem
+        self.grammar = ANMLGrammar()
+        self._pp_problem = self.grammar.problem
         self._fve = self._env.free_vars_extractor
+
+        self._operators: Dict[str, Callable] = {
+            TK_AND: self._em.And,
+            TK_OR: self._em.Or,
+            TK_NOT: self._em.Not,
+            TK_IMPLIES: self._em.Implies,
+            TK_GE: self._em.GE,
+            TK_LE: self._em.LE,
+            TK_GT: self._em.GT,
+            TK_LT: self._em.LT,
+            TK_EQUALS: self._em.Equals,
+            TK_PLUS: self._em.Plus,
+            TK_MINUS: self._em.Minus,
+            TK_DIV: self._em.Div,
+            TK_TIMES: self._em.Times,
+        }
 
     def parse_problem(self, problem_filename: str) -> "up.model.Problem":
         """
@@ -369,23 +131,242 @@ class ANMLReader:
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        problem_res = self._pp_problem.parseFile(problem_filename)
+        problem_res = self._pp_problem.parseFile(problem_filename, parse_all=True)
 
-        problem = up.model.Problem(
+        self._problem = up.model.Problem(
             problem_filename,
             self._env,
             initial_defaults={self._tm.BoolType(): self._em.FALSE()},
         )
 
-        types_map: Dict[str, "up.model.Type"] = {}
+        self._types_map: Dict[str, "up.model.Type"] = {}
+        for type_res in self.grammar.types:
+            up_type = self.parse_type_def(type_res)
+            assert up_type.is_user_type()
+            self._types_map[cast(UT, up_type).name] = up_type
+
+        for fluent_res in self.grammar.fluents:
+            up_fluent = self.parse_fluent(fluent_res)
+            self._problem.add_fluent(up_fluent)
+
+        for objects_res in self.grammar.objects:
+            up_objects = self.parse_objects(objects_res)
+            self._problem.add_objects(up_objects)
+
+        for action_res in self.grammar.actions:
+            up_action = self.parse_action(action_res)
+            self._problem.add_action(up_action)
 
         # print(str(self.grammar.types).replace("ParseResults", ""))
         # print(str(self.grammar.fluents).replace("ParseResults", ""))
         # print(str(self.grammar.actions).replace("ParseResults", ""))
         # print(str(self.grammar.objects).replace("ParseResults", ""))
-        print(str(self.grammar.timed_assignment_or_goal).replace("ParseResults", ""))
-        # print(str(self.grammar.timed_assignments_or_goals).replace("ParseResults", ""))
-        for pr in self.grammar.timed_assignment_or_goal:
-            print(pr["interval"])
+        # print(str(self.grammar.timed_assignment_or_goal).replace("ParseResults", ""))
+        # pprint([g.as_list() for g in self.grammar.timed_assignments_or_goals])
+        return self._problem
 
-        return problem
+    def parse_type_def(self, type_res: ParseResults) -> "up.model.Type":
+        # TODO: handle typing hierarchy
+        if len(type_res["supertypes"]) != 0:
+            raise NotImplementedError
+        return self._tm.UserType(type_res["name"])
+
+    def parse_type_ref(self, type_res: ParseResults) -> "up.model.Type":
+        # TODO handle integer and real
+        name = type_res[0]
+        assert isinstance(name, str)
+        if name == TK_BOOLEAN:
+            return self._tm.BoolType()
+        elif name in (TK_INTEGER, TK_FLOAT):
+            raise NotImplementedError
+        else:  # TODO handle keyError
+            return self._types_map[name]
+
+    def parse_fluent(self, fluent_res: ParseResults) -> "up.model.Fluent":
+        fluent_type = self.parse_type_ref(fluent_res["type"])
+        fluent_name = fluent_res["name"]
+        params: Dict[str, "up.model.Type"] = self.parse_parameters_def(
+            fluent_res["parameters"]
+        )
+        return up.model.Fluent(fluent_name, fluent_type, _signature=params)
+
+    def parse_objects(self, objects_res: ParseResults) -> List["up.model.Object"]:
+        objects_type = self.parse_type_ref(objects_res["type"])
+        up_objects: List["up.model.Object"] = []
+        for name in objects_res["names"]:
+            assert isinstance(name, str), "parsing error"
+            up_objects.append(up.model.Object(name, objects_type))
+        return up_objects
+
+    def parse_action(self, action_res: ParseResults) -> "up.model.Action":
+        name = action_res["name"]
+        assert isinstance(name, str), "parsing error"
+        params = self.parse_parameters_def(action_res["parameters"])
+        action = up.model.DurativeAction(name, _parameters=params)
+        action_parameters: Dict[str, "up.model.Parameters"] = {
+            n: action.parameter(n) for n in params
+        }
+        self.populate_parsed_action_body(action, action_res["body"], action_parameters)
+        return action
+
+    def populate_parsed_action_body(
+        self,
+        action: "up.model.DurativeAction",
+        action_body_res: ParseResults,
+        action_parameters: Dict[str, "up.model.Parameters"],
+    ) -> None:
+        for interval_and_exp in action_body_res:
+            up_interval = self.parse_interval(interval_and_exp[0])
+            exp_res = interval_and_exp[1][0]
+            if exp_res[1] in (TK_ASSIGN, TK_INCREASE, TK_DECREASE):
+                assert isinstance(
+                    up_interval, up.model.Timing
+                ), "Assignments can't have intervals"
+                effect = self.parse_assignment(
+                    exp_res[0], exp_res[2], exp_res[1], action_parameters
+                )
+                action._add_effect_instance(up_interval, effect)
+            else:
+                condition = self.parse_expression(exp_res, action_parameters)
+                action.add_condition(up_interval, condition)
+
+    def parse_parameters_def(
+        self, parameters_res: ParseResults
+    ) -> OrderedDict[str, "up.model.Type"]:
+        up_params: OrderedDict[str, "up.model.Type"] = OrderedDict()
+        for parameter_res in parameters_res:
+            param_type_res = parameter_res[0]
+            param_name_res = parameter_res[1]
+            assert isinstance(param_name_res, str)
+            up_params[param_name_res] = self.parse_type_ref(param_type_res)
+        return up_params
+
+    def parse_interval(
+        self, interval_res: ParseResults, is_global: bool = False
+    ) -> Union["up.model.Timing", "up.model.TimeInterval"]:
+        if len(interval_res) == 0:
+            if is_global:
+                return up.model.GlobalStartTiming()
+            else:
+                return up.model.StartTiming()
+
+        elif len(interval_res) == 3:
+            l_par = interval_res[0]
+            timing_and_exp = interval_res[1]
+            r_par = interval_res[2]
+            timing_type = timing_and_exp[0]
+
+            assert l_par in (TK_L_PARENTHESIS, TK_L_BRACKET) and r_par in (
+                TK_R_PARENTHESIS,
+                TK_R_BRACKET,
+            ), "parsing error"
+
+            if timing_type != TK_ALL:
+                assert (
+                    l_par == TK_L_BRACKET
+                ), "point intervals can't have '('; use '[' instead"
+                assert (
+                    r_par == TK_R_BRACKET
+                ), "point intervals can't have ')'; use ']' instead"
+                return self.parse_timing(timing_and_exp)
+            else:  # timing_type == TK_ALL, just define start and end
+                start, end = (
+                    (GlobalStartTiming(), GlobalEndTiming())
+                    if is_global
+                    else (StartTiming(), EndTiming())
+                )
+                assert (
+                    len(timing_and_exp) == 1
+                ), f"with the {TK_ALL} timing no expression is accepted"
+        else:
+            assert len(interval_res) == 4, "Parsing error, not able to handle"
+            l_par = interval_res[0]
+            start = self.parse_timing(interval_res[1])
+            end = self.parse_timing(interval_res[2])
+            r_par = interval_res[3]
+
+        if l_par == TK_L_BRACKET and r_par == TK_R_BRACKET:
+            return up.model.ClosedTimeInterval(start, end)
+        elif l_par == TK_L_BRACKET:
+            return up.model.RightOpenTimeInterval(start, end)
+        elif r_par == TK_R_BRACKET:
+            return up.model.LeftOpenTimeInterval(start, end)
+        return up.model.OpenTimeInterval(start, end)
+
+    def parse_timing(
+        self, timing_and_exp: ParseResults, is_global: bool = False
+    ) -> "up.model.Timing":
+        timing_type = timing_and_exp[0]
+        delay = 0
+        if len(timing_and_exp) > 1:  # There is a delay
+            assert len(timing_and_exp) == 2, "unexpected parsing error"
+            up_exp = self.parse_expression(timing_and_exp[1])
+            delay = up_exp.simplify()
+            assert (
+                delay.is_int_constant() or delay.is_real_constant()
+            ), "Timing delay must simplify as a numeric constant"
+
+        if timing_type == TK_START and is_global:
+            return up.model.GlobalStartTiming(delay)
+        elif timing_type == TK_START:
+            return up.model.StartTiming(delay)
+        elif timing_type == TK_END and is_global:
+            return up.model.GlobalEndTiming(delay)
+        elif timing_type == TK_END:
+            return up.model.EndTiming(delay)
+        else:
+            raise NotImplementedError(
+                f"Currently the unified planning does not support the timing {timing_type}"
+            )
+
+    def parse_assignment(
+        self,
+        fluent_ref: ParseResults,
+        assigned_expression: ParseResults,
+        assignment_operator: str,
+        parameters: Dict[str, "up.model.Parameters"],
+    ) -> "up.model.Effect":
+        up_fluent = self.parse_expression(fluent_ref, parameters)
+        assert (
+            up_fluent.is_fluent_exp()
+        ), "left side of the assignment is not a valid fluent"
+        up_value = self.parse_expression(assigned_expression, parameters)
+        if assignment_operator == TK_ASSIGN:
+            kind = EffectKind.ASSIGN
+        elif assignment_operator == TK_INCREASE:
+            kind = EffectKind.INCREASE
+        elif assignment_operator == TK_DECREASE:
+            kind = EffectKind.DECREASE
+        else:
+            raise NotImplementedError(
+                f"Currently the unified planning does not support the assignment operator {assignment_operator}"
+            )
+        return Effect(up_fluent, up_value, kind=kind)
+
+    def parse_expression(
+        self, expression: ParseResults, parameters: Dict[str, "up.model.Parameters"]
+    ) -> "up.model.FNode":
+        stack: Deque[Tuple[ParseResults, bool]] = deque()
+        solved: Deque[FNode] = deque()
+        print(expression)
+        print(len(expression))
+        stack.append(expression)
+        while 1:
+            try:
+                exp, solved = stack.pop()
+            except IndexError:
+                break
+            if solved:
+                pass
+            else:
+                if isinstance(exp, ParseResults):
+                    stack.append((exp, True))
+                    for e in exp:
+                        stack.append(e, False)
+                elif isinstance(exp, str):
+                    param = parameters.get(exp, None)
+                    if param is not None:
+                        solved.append(self._em.ParameterExp(param))
+
+                else:
+                    raise NotImplementedError
