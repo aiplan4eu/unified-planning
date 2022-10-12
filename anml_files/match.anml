@@ -1,23 +1,50 @@
 type Match;
 type Fuse;
 
-type FluentType;
-type UT1;
-type UT2;
-type UT3;
-fluent FluentType x(UT1 par1, UT2 par2, UT3 par3);
-
 fluent boolean handfree;
-fluent boolean match_used ( Match m ) ;
+fluent boolean match_used(Match m);
 fluent boolean fuse_mended(Fuse f);
 fluent boolean light;
-fluent boolean light_2;
+
 
 action light_match(Match m) {
-   5 + 2 - -3 := 5;
-   [start - 5 - 6] 1 := 4;
-   [end] {
-      1 := 3;
-      5 == 4 or 3;
-   };
+   duration := 6;
+
+   [start] match_used(m) == false;
+
+   [start] { match_used(m) := true; light := true; };
+   [end] light := false;
+};
+
+action mend_fuse(Fuse f) {
+   duration := 5;
+
+   [start] handfree == true;
+   [all] light == true;
+
+   [start] handfree := false;
+   [end] { fuse_mended(f) := true; handfree := true; };
+};
+
+
+instance Fuse f1, f2, f3;
+instance Match m1, m2, m3;
+
+[start] {
+   light := false;
+   handfree := true;
+
+   match_used(m1) := false;
+   match_used(m2) := false;
+   match_used(m3) := false;
+
+   fuse_mended(f1) := false;
+   fuse_mended(f2) := false;
+   fuse_mended(f3) := false;
+};
+
+goal [end] {
+   fuse_mended(f1);
+   fuse_mended(f2);
+   fuse_mended(f3);
 };

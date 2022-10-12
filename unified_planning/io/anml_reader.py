@@ -28,6 +28,7 @@ from unified_planning.io.anml_grammar import (
     TK_DIV,
     TK_END,
     TK_EQUALS,
+    TK_FALSE,
     TK_GE,
     TK_GT,
     TK_IMPLIES,
@@ -44,6 +45,7 @@ from unified_planning.io.anml_grammar import (
     TK_R_PARENTHESIS,
     TK_START,
     TK_TIMES,
+    TK_TRUE,
     ANMLGrammar,
     TK_BOOLEAN,
     TK_INTEGER,
@@ -64,6 +66,8 @@ from unified_planning.model import (
     OpenTimeInterval,
     LeftOpenTimeInterval,
     RightOpenTimeInterval,
+    FixedDuration,
+    Timing,
 )
 from collections import OrderedDict, deque
 from fractions import Fraction
@@ -157,12 +161,56 @@ class ANMLReader:
             up_action = self.parse_action(action_res)
             self._problem.add_action(up_action)
 
-        # print(str(self.grammar.types).replace("ParseResults", ""))
-        # print(str(self.grammar.fluents).replace("ParseResults", ""))
-        # print(str(self.grammar.actions).replace("ParseResults", ""))
-        # print(str(self.grammar.objects).replace("ParseResults", ""))
-        # print(str(self.grammar.timed_assignment_or_goal).replace("ParseResults", ""))
-        # pprint([g.as_list() for g in self.grammar.timed_assignments_or_goals])
+        # params is used in the expression parsing not to recreate an empty dict every time
+        params = {}
+        # global_start and global_end are used to check if the interval is at the beginning or at the end
+        global_start = up.model.GlobalStartTiming()
+        global_end = up.model.GlobalEndTiming()
+
+        for res in self.grammar.timed_assignment_or_goal:
+            pass  # TODO handle this
+
+        for block_res in self.grammar.timed_assignments_or_goals:
+            interval_and_expressions_res = block_res[0]
+            assert (
+                len(block_res) == 1 and len(interval_and_expressions_res) == 2
+            ), "parsing error"
+            up_interval = self.parse_interval(
+                interval_and_expressions_res[0], is_global=True
+            )
+            for expression_res_container in interval_and_expressions_res[1]:
+                # all expressions are incapsulated in the first (and only) element of a ParseResults
+                assert len(expression_res_container) == 1, "Parse error"
+                expression_res = expression_res_container[0]
+                if len(expression_res) == 3 and expression_res[1] in (
+                    TK_ASSIGN,
+                    TK_INCREASE,
+                    TK_DECREASE,
+                ):  # assignment
+                    if (
+                        up_interval == global_start
+                    ):  # TODO understand what to do with an increase/decrease at GlobalStartTiming
+                        up_fluent = self.parse_expression(expression_res[0], params)
+                        up_value = self.parse_expression(expression_res[2], params)
+                        self._problem.set_initial_value(up_fluent, up_value)
+                    else:
+                        up_effect = self.parse_assignment(
+                            expression_res[0],
+                            expression_res[2],
+                            expression_res[1],
+                            params,
+                        )
+                        assert isinstance(
+                            up_interval, Timing
+                        ), "can't have an interval for an assignment"
+                        self._problem._add_effect_instance(up_interval, up_effect)
+                else:  # condition
+                    goal = self.parse_expression(expression_res, params)
+                    if up_interval == global_end:
+                        self._problem.add_goal(goal)
+                    else:
+                        self._problem.add_timed_goal(up_interval, goal)
+
         return self._problem
 
     def parse_type_def(self, type_res: ParseResults) -> "up.model.Type":
@@ -222,10 +270,18 @@ class ANMLReader:
                 assert isinstance(
                     up_interval, up.model.Timing
                 ), "Assignments can't have intervals"
-                effect = self.parse_assignment(
-                    exp_res[0], exp_res[2], exp_res[1], action_parameters
-                )
-                action._add_effect_instance(up_interval, effect)
+                fluent = exp_res[0]
+                if fluent[0] != "duration":  # normal effect
+                    effect = self.parse_assignment(
+                        fluent, exp_res[2], exp_res[1], action_parameters
+                    )
+                    action._add_effect_instance(up_interval, effect)
+                else:  # duration assignment
+                    action.set_duration_constraint(
+                        FixedDuration(
+                            self.parse_expression(exp_res[2], action_parameters)
+                        )
+                    )
             else:
                 condition = self.parse_expression(exp_res, action_parameters)
                 action.add_condition(up_interval, condition)
@@ -268,7 +324,7 @@ class ANMLReader:
                 assert (
                     r_par == TK_R_BRACKET
                 ), "point intervals can't have ')'; use ']' instead"
-                return self.parse_timing(timing_and_exp)
+                return self.parse_timing(timing_and_exp, is_global)
             else:  # timing_type == TK_ALL, just define start and end
                 start, end = (
                     (GlobalStartTiming(), GlobalEndTiming())
@@ -281,8 +337,8 @@ class ANMLReader:
         else:
             assert len(interval_res) == 4, "Parsing error, not able to handle"
             l_par = interval_res[0]
-            start = self.parse_timing(interval_res[1])
-            end = self.parse_timing(interval_res[2])
+            start = self.parse_timing(interval_res[1], is_global)
+            end = self.parse_timing(interval_res[2], is_global)
             r_par = interval_res[3]
 
         if l_par == TK_L_BRACKET and r_par == TK_R_BRACKET:
@@ -341,32 +397,123 @@ class ANMLReader:
             raise NotImplementedError(
                 f"Currently the unified planning does not support the assignment operator {assignment_operator}"
             )
-        return Effect(up_fluent, up_value, kind=kind)
+        condition = self._em.TRUE()
+        return Effect(up_fluent, up_value, condition, kind=kind)
 
     def parse_expression(
-        self, expression: ParseResults, parameters: Dict[str, "up.model.Parameters"]
+        self,
+        expression: Union[ParseResults, List, str],
+        parameters: Dict[str, "up.model.Parameters"],
     ) -> "up.model.FNode":
-        stack: Deque[Tuple[ParseResults, bool]] = deque()
+        stack: Deque[Tuple[Union[ParseResults, List], bool]] = deque()
         solved: Deque[FNode] = deque()
-        print(expression)
-        print(len(expression))
-        stack.append(expression)
+        # print(expression)
+        # print(len(expression))
+        # A string here means it is a number or a boolean token. To avoid code duplication, just
+        # wrap it in a temporary list and let the stack management handle it.
+        if isinstance(expression, str):
+            expression = [expression]
+        stack.append((expression, False))
         while 1:
             try:
-                exp, solved = stack.pop()
+                exp, already_expanded = stack.pop()
             except IndexError:
                 break
-            if solved:
-                pass
-            else:
-                if isinstance(exp, ParseResults):
+            if already_expanded:
+                assert isinstance(exp, ParseResults) or isinstance(exp, List)
+                if len(exp) <= 1:
+                    assert (
+                        len(exp) == 1
+                    ), "parsing error if first iteration, algorithm error otherwise"
+                    pass
+                elif len(exp) == 2:
+                    first_elem = exp[0]
+                    if isinstance(first_elem, List):  # parameters list
+                        assert isinstance(exp[1], List)
+                        pass
+                    elif first_elem == TK_MINUS:  # unary minus
+                        solved.append(self._em.Times(-1, solved.pop()))
+                    elif first_elem == TK_PLUS:  # unary plus
+                        pass  # already ok, nothing to do -> 0+x = x
+                    elif first_elem == TK_NOT:  # negation
+                        solved.append(self._em.Not(solved.pop()))
+                    # TODO add variable code here
+                    elif first_elem in parameters:  # parameter exp
+                        solved.append(self._em.ParameterExp(parameters[first_elem]))
+                    elif self._problem.has_fluent(first_elem):  # fluent exp
+                        fluent = self._problem.fluent(first_elem)
+                        fluent_args = tuple(solved.pop() for _ in range(fluent.arity))
+                        solved.append(self._em.FluentExp(fluent, fluent_args))
+                    elif self._problem.has_object(first_elem):  # object exp
+                        solved.append(
+                            self._em.ObjectExp(self._problem.object(first_elem))
+                        )
+                    else:
+                        print(exp)
+                        print(len(exp))
+                        assert False
+                elif len(exp) == 3:  # binary operator or parameters list
+                    operator = exp[1]
+                    if isinstance(operator, List):  # parameters list
+                        assert isinstance(exp[0], List) and isinstance(exp[2], List)
+                        pass
+                    elif isinstance(operator, str):  # binary operator
+                        # '==' needs special care, because in ANML it can both mean '==' or 'Iff',
+                        # but in the UP those 2 cases are handled differently.
+                        if operator == TK_EQUALS:
+                            first_arg = solved.pop()
+                            second_arg = solved.pop()
+                            if first_arg.type.is_bool_type():
+                                solved.append(self._em.Iff(first_arg, second_arg))
+                            else:
+                                solved.append(self._em.Equals(first_arg, second_arg))
+                        else:
+                            func = self._operators.get(operator, None)
+                            if func is not None:
+                                first_arg = solved.pop()
+                                second_arg = solved.pop()
+                                solved.append(func(first_arg, second_arg))
+                            else:
+                                raise NotImplementedError(
+                                    f"Currently the UP does not support the parsing of the {operator} operator."
+                                )
+                    else:
+                        print(exp)
+                        print(len(exp))
+                        assert False
+                else:
+                    print(exp)
+                    print(len(exp))
+                    assert False
+            else:  # not solved
+                if isinstance(exp, ParseResults) or isinstance(exp, List):
                     stack.append((exp, True))
                     for e in exp:
-                        stack.append(e, False)
+                        if not isinstance(e, str):  # nested structure
+                            if len(e) > 0:
+                                stack.append((e, False))
+                        elif e.isnumeric():  # int
+                            solved.append(self._em.Int(int(e)))
+                        elif is_float(e):  # float
+                            solved.append(self._em.Real(Fraction(float(e))))
+                        elif e == TK_TRUE:  # true
+                            solved.append(self._em.TRUE())
+                        elif e == TK_FALSE:  # false
+                            solved.append(self._em.FALSE())
                 elif isinstance(exp, str):
-                    param = parameters.get(exp, None)
-                    if param is not None:
-                        solved.append(self._em.ParameterExp(param))
-
+                    assert False, "problem, should not have strings here"
                 else:
                     raise NotImplementedError
+        assert len(stack) == 0
+        assert len(solved) == 1
+        res = solved.pop()
+        # print(res)
+        return res
+
+
+def is_float(string: str) -> bool:
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
