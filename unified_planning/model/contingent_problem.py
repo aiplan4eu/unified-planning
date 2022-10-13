@@ -16,6 +16,7 @@
 import unified_planning as up
 from unified_planning.model.problem import Problem
 from unified_planning.model.expression import ConstantExpression
+from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.types import domain_size
 from typing import Dict, Sequence, Set, List, Union
 
@@ -156,20 +157,8 @@ class ContingentProblem(Problem):
         seldom as possible."""
         res = self._initial_value
         for f in self._fluents:
-            if f.arity == 0:
-                f_exp = self._env.expression_manager.FluentExp(f)
+            for f_exp in get_all_fluent_exp(self, f):
                 res[f_exp] = self.initial_value(f_exp)
-            else:
-                ground_size = 1
-                domain_sizes = []
-                for p in f.signature:
-                    ds = domain_size(self, p.type)
-                    domain_sizes.append(ds)
-                    ground_size *= ds
-                for i in range(ground_size):
-                    f_exp = self._get_ith_fluent_exp(f, domain_sizes, i)
-                    if f_exp not in self._hidden_fluents:
-                        res[f_exp] = self.initial_value(f_exp)
         return res
 
     @property
