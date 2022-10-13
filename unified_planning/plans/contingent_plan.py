@@ -15,64 +15,63 @@
 
 import unified_planning as up
 import unified_planning.plans as plans
-from typing import Callable, Dict, Optional, List
+from typing import Callable, Dict, Optional, List, Tuple
 
 
 class ContingentPlanNode:
     """This class represent a node in the tree contingent plan."""
 
-    def __init__(
-        self,
-        action_instance: "plans.plan.ActionInstance",
-        observation: Optional[
-            Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]
-        ] = None,
-    ):
+    def __init__(self, action_instance: "plans.plan.ActionInstance"):
         self.action_instance = action_instance
-        self.observation = observation
-        self.children: List["ContingentPlanNode"] = []
+        self.children: List[
+            Tuple[Dict["up.model.FNode", "up.model.FNode"], "ContingentPlanNode"]
+        ] = []
 
-    def add_child(self, obj: "ContingentPlanNode"):
-        """Adds the given `ContingentPlanNode` as a new child."""
-        self.children.append(obj)
+    def add_child(
+        self,
+        observation: Dict["up.model.FNode", "up.model.FNode"],
+        node: "ContingentPlanNode",
+    ):
+        """Adds the given `ContingentPlanNode` as a new child for the given observation."""
+        self.children.append((observation, node))
 
     def replace_action_instances(
         self,
         replace_function: Callable[
             ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
         ],
-    ) -> List["ContingentPlanNode"]:
+    ) -> "ContingentPlanNode":
         """
         This method takes a function from `ActionInstance` to `ActionInstance`.
         If the returned `ActionInstance` is `None` it means that the `ActionInstance` should be removed.
 
         This method applies the given function to all the `ActionInstance` of the node
-        and returns an equivalent list of new `ContingentPlanNode`s.
+        and returns an equivalent `ContingentPlanNode`.
 
         :param replace_function: The function from `ActionInstance` to `ActionInstance`.
-        :return: The new list of `ContingentPlanNode`s in which every `ActionInstance` is modified by the given `replace_function`.
+        :return: The `ContingentPlanNode` in which every `ActionInstance` is modified by the given `replace_function`.
         """
-        children: List["ContingentPlanNode"] = []
-        for c in self.children:
-            for child in c.replace_action_instances(replace_function):
-                children.append(child)
         ai = replace_function(self.action_instance)
         if ai is not None:
-            res = ContingentPlanNode(ai, self.observation)
-            for child in children:
-                res.add_child(child)
-            return [res]
+            res = ContingentPlanNode(ai)
+            for o, c in self.children:
+                res.add_child(o, c.replace_action_instances(replace_function))
+            return res
         else:
-            return children
+            assert len(self.children) == 1
+            o, c = self.children[0]
+            assert len(o) == 0
+            return c.replace_action_instances(replace_function)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ContingentPlanNode):
             if not self.action_instance.is_semantically_equivalent(oth.action_instance):
                 return False
-            if not self.observation == oth.observation:
+            if not len(self.children) == len(oth.children):
                 return False
-            if not self.children == oth.children:
-                return False
+            for c in self.children:
+                if c not in oth.children:
+                    return False
             return True
         else:
             return False
@@ -82,18 +81,17 @@ class ContingentPlanNode:
         count += hash(self.action_instance.action) + hash(
             self.action_instance.actual_parameters
         )
-        if self.observation is not None:
-            for k, v in self.observation.items():
-                count += hash(k) + hash(v)
-        for c in self.children:
+        for o, c in self.children:
             count += hash(c)
+            for k, v in o.items():
+                count += hash(k) + hash(v)
         return count
 
     def __contains__(self, item: object) -> bool:
         if isinstance(item, plans.plan.ActionInstance):
             if item.is_semantically_equivalent(self.action_instance):
                 return True
-            for c in self.children:
+            for _, c in self.children:
                 if item in c:
                     return True
             return False
@@ -150,8 +148,6 @@ class ContingentPlan(plans.plan.Plan):
     ) -> "up.plans.plan.Plan":
         if self.root_node is None:
             return ContingentPlan(None, self._environment)
-        new_nodes = self.root_node.replace_action_instances(replace_function)
-        assert len(new_nodes) == 1
-        new_root = new_nodes[0]
+        new_root = self.root_node.replace_action_instances(replace_function)
         new_env = new_root.action_instance.action.env
         return ContingentPlan(new_root, new_env)
