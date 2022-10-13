@@ -629,6 +629,10 @@ class ProtobufReader(Converter):
             status = (
                 unified_planning.engines.results.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
             )
+        elif result.status == proto.PlanGenerationResult.Status.Value("INTERMEDIATE"):
+            status = (
+                unified_planning.engines.results.PlanGenerationResultStatus.INTERMEDIATE
+            )
         else:
             raise UPException(f"Unknown Planner Status: {result.status}")
 
