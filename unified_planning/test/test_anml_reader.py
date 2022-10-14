@@ -411,7 +411,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-    def test_a_hierarchical_blocks_world_reader(self):
+    def test_hierarchical_blocks_world_reader(self):
         reader = ANMLReader()
 
         problem_filename = os.path.join(
