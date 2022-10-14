@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from typing import cast
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
@@ -407,5 +408,38 @@ class TestANMLReader(TestCase):
         for timing, effect_list in a.effects.items():
             if timing == self.end_timing:
                 self.assertEqual(len(effect_list), 1)
+            else:
+                self.assertTrue(False)
+
+    def test_a_hierarchical_blocks_world_reader(self):
+        reader = ANMLReader()
+
+        problem_filename = os.path.join(
+            ANML_FILES_PATH, "hierarchical_blocks_world.anml"
+        )
+        problem = reader.parse_problem(problem_filename)
+        em = problem.env.expression_manager
+
+        self.assertIsNotNone(problem)
+        self.assertEqual(len(problem.fluents), 2)
+        self.assertEqual(len(problem.actions), 1)
+        self.assertEqual(len(problem.goals), 3)
+        self.assertEqual(len(problem.timed_goals), 0)
+        self.assertEqual(len(problem.timed_effects), 0)
+        types_with_6_objects = ("Entity", "Location")
+        for ut in problem.user_types:
+            if cast(up.model.types._UserType, ut).name in types_with_6_objects:
+                self.assertEqual(len(list(problem.objects(ut))), 6)
+            else:
+                self.assertEqual(len(list(problem.objects(ut))), 3)
+
+        move = problem.action("move")
+        self.assertEqual(move.duration, FixedDuration(em.Int(0)))
+        for interval, cond_list in move.conditions.items():
+            self.assertEqual(interval, self.start_interval)
+            self.assertEqual(len(cond_list), 3)
+        for timing, effect_list in move.effects.items():
+            if timing == self.start_timing:
+                self.assertEqual(len(effect_list), 4)
             else:
                 self.assertTrue(False)

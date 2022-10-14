@@ -17,6 +17,7 @@ from collections import OrderedDict
 import unified_planning as up
 import pyparsing
 import typing
+import networkx as nx
 from unified_planning.io.anml_grammar import (
     TK_ALL,
     TK_AND,
@@ -67,7 +68,7 @@ from unified_planning.model import (
     Parameter,
 )
 from fractions import Fraction
-from typing import Dict, Tuple, Union, Callable, List, cast, Optional
+from typing import Dict, Set, Tuple, Union, Callable, List, cast, Optional
 
 if pyparsing.__version__ < "3.0.0":
     from pyparsing import oneOf as one_of
@@ -124,11 +125,7 @@ class ANMLReader:
             initial_defaults={self._tm.BoolType(): self._em.FALSE()},
         )
 
-        types_map: Dict[str, "up.model.Type"] = {}
-        for type_res in grammar.types:
-            up_type = self._parse_type_def(type_res)
-            assert up_type.is_user_type()
-            types_map[cast(UT, up_type).name] = up_type
+        types_map: Dict[str, "up.model.Type"] = self._create_types_map(grammar.types)
 
         for fluent_res in grammar.fluents:
             (up_fluent, initial_default) = self._parse_fluent(fluent_res, types_map)
@@ -180,6 +177,47 @@ class ANMLReader:
 
         return self._problem
 
+    def _create_types_map(self, types_res) -> Dict[str, "up.model.Type"]:
+        # defined types stores the types explicitly defined.
+        # Every type needs to be defined explicitly
+        defined_types: Set[str] = set()
+        # types_graph is used to compute a topological sorting of the type hierarchy,
+        # needed to make sure a type is created (in the UP code) before being used as
+        # a father of another type; this ordering is not granted by the ANML grammar
+        types_graph = nx.DiGraph()
+        for type_res in types_res:
+            type_name = type_res["name"]
+            defined_types.add(type_name)
+            previous_element = type_name
+            types_graph.add_node(type_name)
+            for supertype in type_res["supertypes"]:
+                assert isinstance(
+                    supertype, str
+                ), f"parsing error, type {type_res} is not valid"
+                types_graph.add_node(supertype)
+                types_graph.add_edge(supertype, previous_element)
+                previous_element = supertype
+
+        types_map: Dict[str, "up.model.Type"] = {}
+
+        for type_name in nx.topological_sort(types_graph):
+            assert (
+                type_name in defined_types
+            ), f"The type {type_name} is used in the type hierarchy but is never defined"
+            fathers = list(types_graph.predecessors(type_name))
+            len_fathers = len(fathers)
+            if len_fathers == 0:
+                father = None
+            elif len_fathers == 1:
+                father = types_map[fathers[0]]
+            else:
+                raise NotImplementedError(
+                    f"The type {type_name} has more than one father. Currently this is not supported in the UP."
+                )
+            types_map[type_name] = self._tm.UserType(type_name, father)
+
+        return types_map
+
     def _add_goal_or_condition_to_problem(
         self,
         up_interval: Union["Timing", "TimeInterval"],
@@ -220,11 +258,12 @@ class ANMLReader:
             else:
                 self._problem.add_timed_goal(up_interval, goal)
 
-    def _parse_type_def(self, type_res: ParseResults) -> "up.model.Type":
-        # TODO: handle typing hierarchy
-        if len(type_res["supertypes"]) != 0:
-            raise NotImplementedError
-        return self._tm.UserType(type_res["name"])
+    # def _parse_type_def(self, type_res: ParseResults) -> "up.model.Type":
+
+    #     print(type_res["supertypes"])
+    #     if len(type_res["supertypes"]) != 0:
+    #         raise NotImplementedError
+    #     return self._tm.UserType(type_res["name"])
 
     def _parse_type_reference(
         self, type_res: ParseResults, types_map: Dict[str, "up.model.Type"]
@@ -489,9 +528,7 @@ class ANMLReader:
             if already_expanded:
                 assert isinstance(exp, ParseResults) or isinstance(exp, List)
                 if len(exp) <= 1:
-                    assert (
-                        len(exp) == 1
-                    ), "parsing error if first iteration, algorithm error otherwise"
+                    assert len(exp) == 1, "algorithm error"
                     pass
                 elif len(exp) == 2:
                     first_elem = exp[0]
