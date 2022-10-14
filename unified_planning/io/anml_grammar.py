@@ -137,7 +137,7 @@ class ANMLGrammar:
         fluent_ref = Group(
             identifier
             + Group(
-                Optional(  # missing dot definitions
+                Optional(
                     Suppress(TK_L_PARENTHESIS)
                     + expression_list
                     + Suppress(TK_R_PARENTHESIS)
@@ -374,6 +374,22 @@ def group_binary(parse_res: ParseResults):
 
 
 def parse_exp_block_as_exp_sequence(parse_res: ParseResults):
+    """
+    This function parses a block in the form:
+        [start] {
+            exp1;
+            exp2;
+            exp3
+        }
+    as:
+        {
+            [start] exp1;
+            [start] exp2;
+            [start] exp3;
+        }
+    and tags it in the first element. Tag is removed by the restore_tagged_exp_block
+    utility function.
+    """
     exp_block_res = parse_res[0]
     interval = exp_block_res[0]
     exps = exp_block_res[1]
@@ -385,6 +401,19 @@ def parse_exp_block_as_exp_sequence(parse_res: ParseResults):
 
 
 def restore_tagged_exp_block(parse_res: ParseResults):
+    """
+    Removes the tag from an expression block and removes the elements inside it,
+    readding them as different exp and not as a whole block, for example:
+    we have:
+        [start] {exp1; exp2; exp3}
+        [end] exp4;
+    it is parsed like: (thanks to the parse_exp_block_as_exp_sequence method)
+        {{tagged block: {[start] exp1; [start] exp2; [start] exp3;}}, [end] exp4;}
+    This method returns:
+        {[start] exp1;[start] exp2;[start] exp3;[end]exp4;}
+    So, in the resulting ParseResults, there is no difference in temporal expressions
+    parsed in a block or outside the block.
+    """
     to_add: List[ParseResults] = []
     for i, res in enumerate(parse_res):
         if res[0] == "tag_expression_block":

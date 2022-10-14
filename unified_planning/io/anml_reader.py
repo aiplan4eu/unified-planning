@@ -51,7 +51,6 @@ from unified_planning.io.anml_grammar import (
     TK_FLOAT,
 )
 from unified_planning.environment import Environment, get_env
-from unified_planning.model.types import _UserType as UT
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
     Effect,
@@ -68,14 +67,12 @@ from unified_planning.model import (
     Parameter,
 )
 from fractions import Fraction
-from typing import Dict, Set, Tuple, Union, Callable, List, cast, Optional
+from typing import Dict, Set, Tuple, Union, Callable, List, Optional
 
 if pyparsing.__version__ < "3.0.0":
-    from pyparsing import oneOf as one_of
     from pyparsing import ParseResults
 else:
     from pyparsing.results import ParseResults
-    from pyparsing import one_of
 
 
 class ANMLReader:
@@ -84,11 +81,10 @@ class ANMLReader:
     `ANML` file.
     """
 
-    def __init__(self, env: typing.Optional[Environment] = None):
+    def __init__(self, env: Optional[Environment] = None):
         self._env = get_env(env)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
-        self._fve = self._env.free_vars_extractor
 
         self._operators: Dict[str, Callable] = {
             TK_AND: self._em.And,
@@ -154,7 +150,7 @@ class ANMLReader:
             up_interval = self._parse_interval(
                 interval_and_expression[0], is_global=True
             )
-            self._add_goal_or_condition_to_problem(
+            self._add_goal_or_effect_to_problem(
                 up_interval,
                 interval_and_expression[1],
                 params,
@@ -171,7 +167,7 @@ class ANMLReader:
                 interval_and_expressions_res[0], is_global=True
             )
             for expression in interval_and_expressions_res[1]:
-                self._add_goal_or_condition_to_problem(
+                self._add_goal_or_effect_to_problem(
                     up_interval, expression, params, global_start, global_end
                 )
 
@@ -218,7 +214,7 @@ class ANMLReader:
 
         return types_map
 
-    def _add_goal_or_condition_to_problem(
+    def _add_goal_or_effect_to_problem(
         self,
         up_interval: Union["Timing", "TimeInterval"],
         expression: ParseResults,
@@ -233,10 +229,10 @@ class ANMLReader:
             TK_ASSIGN,
             TK_INCREASE,
             TK_DECREASE,
-        ):  # assignment
-            if (
-                up_interval == global_start
-            ):  # TODO understand what to do with an increase/decrease at GlobalStartTiming
+        ):  # effect
+            if (up_interval == global_start) and expression_res[
+                1
+            ] == TK_ASSIGN:  # assign at start_timing is seen as an initial value
                 up_fluent = self._parse_expression(expression_res[0], parameters)
                 up_value = self._parse_expression(expression_res[2], parameters)
                 self._problem.set_initial_value(up_fluent, up_value)
@@ -257,13 +253,6 @@ class ANMLReader:
                 self._problem.add_goal(goal)
             else:
                 self._problem.add_timed_goal(up_interval, goal)
-
-    # def _parse_type_def(self, type_res: ParseResults) -> "up.model.Type":
-
-    #     print(type_res["supertypes"])
-    #     if len(type_res["supertypes"]) != 0:
-    #         raise NotImplementedError
-    #     return self._tm.UserType(type_res["name"])
 
     def _parse_type_reference(
         self, type_res: ParseResults, types_map: Dict[str, "up.model.Type"]
