@@ -397,7 +397,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.all_objects), 0)
         self.assertEqual(len(problem.goals), 1)
         self.assertEqual(len(problem.timed_goals), 0)
-        self.assertEqual(len(problem.timed_effects), 1)
+        self.assertEqual(len(problem.timed_effects), 2)
 
         a = problem.action("a")
         self.assertEqual(a.duration, FixedDuration(em.Int(1)))

@@ -13,23 +13,14 @@
 # limitations under the License.
 #
 
-from itertools import product
+
 import unified_planning as up
-import unified_planning.model.htn as htn
-import unified_planning.model.walkers
 import pyparsing
-import typing
-from unified_planning.environment import Environment, get_env
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode
-from collections import OrderedDict
-from fractions import Fraction
-from typing import Dict, Union, Callable, List, cast
-from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore, Keyword
+from typing import List
+from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
 from pyparsing import (
     Optional,
     Suppress,
-    nestedExpr,
     Group,
     restOfLine,
     Combine,
@@ -111,6 +102,11 @@ TK_COMMENT = "//"
 
 
 class ANMLGrammar:
+    """
+    This class defines the grammar used from the :class:`~unified_planning.io.ANMLReader`
+    to parse a :class:`~unified_planning.model.Problem` from an ANML file.
+    """
+
     def __init__(self):
 
         # Data structures to populate while parsing
@@ -123,10 +119,10 @@ class ANMLGrammar:
 
         # Base Expression elements
         identifier = Word(alphas + "_", alphanums + "_")
-        integer = Word(nums)  # | Combine("-" + Word(nums))
-        real = Combine(
-            Word(nums) + "." + Word(nums)
-        )  # | Combine("-" + Word(nums) + "." + Word(nums))
+
+        # Negative numbers are defined with the unary minus operator
+        integer = Word(nums)
+        real = Combine(Word(nums) + "." + Word(nums))
         float_const = integer | real
         boolean_const = one_of([TK_TRUE, TK_FALSE])
 
@@ -165,7 +161,7 @@ class ANMLGrammar:
                     2,
                     opAssoc.LEFT,
                     group_binary,
-                ),  # IN, SUBSET, UNION, INTERSECTION, DIFFERENCE missing #TODO check if they go there
+                ),
             ],
         )
         boolean_expression <<= infixNotation(
@@ -218,7 +214,6 @@ class ANMLGrammar:
         )
         action_body.setParseAction(restore_tagged_exp_block)
 
-        # missing class stmt and class body definitions
         type_decl = (
             Suppress(TK_TYPE)
             + identifier.setResultsName("name")
@@ -255,9 +250,7 @@ class ANMLGrammar:
                 )
             )
         )
-        type_ref = (
-            primitive_type | identifier
-        )  # | "set" + "(" + type_ref + ")" -> TODO get the meaning of set()
+        type_ref = primitive_type | identifier
         instance_decl = (
             Suppress(TK_INSTANCE)
             + type_ref.setResultsName("type")
@@ -282,7 +275,6 @@ class ANMLGrammar:
             + Optional(Suppress(TK_ASSIGN) + Group(expression)).setResultsName("init")
         )
         fluent_decl.setParseAction(self.fluents.append)
-        # annotation list... TODO
         action_decl = (
             Suppress("action")
             + identifier.setResultsName("name")
@@ -292,7 +284,7 @@ class ANMLGrammar:
             + Suppress(TK_L_BRACE)
             + Group(action_body).setResultsName("body")
             + Suppress(TK_R_BRACE)
-        )  # TODO: MISSING annotation and process
+        )
         action_decl.setParseAction(self.actions.append)
         interval <<= (
             one_of([TK_L_BRACKET, TK_L_PARENTHESIS])
@@ -303,18 +295,7 @@ class ANMLGrammar:
                 )
             )
             + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
-        )  # | (
-        #     interval
-        #     + (
-        #         (
-        #             TK_CONTAINS
-        #             + Optional(
-        #                 TK_L_BRACKET + Group(arithmetic_expression) + TK_R_BRACKET
-        #             )
-        #         )
-        #         | identifier + TK_COLON
-        #     )
-        # )
+        )
         forall_expression <<= (
             TK_FORALL
             + Suppress(TK_L_PARENTHESIS)
@@ -324,6 +305,7 @@ class ANMLGrammar:
             + action_body.setResultsName("forall_body")
             + Suppress(TK_R_BRACE)
         )
+
         # Standalone expressions are defined to handle differently expressions
         # defined inside an action from the expressions defined outside an action
         standalone_timed_expression = timed_expression.copy()
@@ -351,7 +333,6 @@ class ANMLGrammar:
             | goal_decl
             | standalone_timed_expression
         )
-        # annotation_decl)
 
         anml_body = OneOrMore(Group(anml_stmt + Suppress(TK_SEMI)))
         anml_body.ignore(TK_COMMENT + restOfLine)
