@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import unified_planning_pb2 as unified__planning__pb2
+import unified_planning.grpc.generated.unified_planning_pb2 as unified__planning__pb2
 
 
 class UnifiedPlanningStub(object):
