@@ -63,6 +63,7 @@ from unified_planning.model import (
     FixedDuration,
     Timing,
     TimeInterval,
+    Type,
     Parameter,
 )
 from fractions import Fraction
@@ -344,9 +345,9 @@ class ANMLReader:
                 action.add_condition(up_interval, condition)
 
     def _parse_parameters_def(
-        self, parameters_res: ParseResults, types_map: Dict[str, "up.model.Type"]
-    ) -> OrderedDict[str, "up.model.Type"]:
-        up_params: OrderedDict[str, "up.model.Type"] = OrderedDict()
+        self, parameters_res: ParseResults, types_map: Dict[str, "Type"]
+    ) -> OrderedDict[str, "Type"]:
+        up_params: OrderedDict[str, "Type"] = OrderedDict()
         for parameter_res in parameters_res:
             param_type_res = parameter_res[0]
             param_name_res = parameter_res[1]
