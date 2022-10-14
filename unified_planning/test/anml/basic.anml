@@ -1,0 +1,9 @@
+fluent boolean x := false;
+
+action a() {
+   duration := 6;
+
+   [end] x := true;
+};
+
+[end] x == true;

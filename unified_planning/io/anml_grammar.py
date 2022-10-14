@@ -47,6 +47,8 @@ else:
     from pyparsing.results import ParseResults
     from pyparsing import one_of
 
+ParserElement.enable_packrat()
+
 # ANMl keywords definition as tokens
 TK_COMMA = ","
 TK_SEMI = ";"
@@ -194,9 +196,10 @@ class ANMLGrammar:
         )
         expression_block.setParseAction(parse_exp_block_as_exp_sequence)
 
-        temporal_expression = one_of((TK_START, TK_END, TK_ALL)) + Optional(
+        temporal_expression = Optional(one_of((TK_START, TK_END, TK_ALL))) + Optional(
             arithmetic_expression
         )
+        # TODO check if having an element made of 2 optionals is possible
         # TODO revise temporal_expression to handle the case where we have [5, end]; semantically meaning
         # only [GlobalStartTiming(5), GlobalEndTiming(-3)]
 
@@ -231,11 +234,11 @@ class ANMLGrammar:
                 Literal(TK_INTEGER).setResultsName("name")
                 + Optional(
                     Group(
-                        TK_L_BRACKET
+                        Suppress(TK_L_BRACKET)
                         + integer.setResultsName("left_bound")
-                        + TK_COMMA
+                        + Suppress(TK_COMMA)
                         + integer.setResultsName("right_bound")
-                        + TK_R_BRACKET
+                        + Suppress(TK_R_BRACKET)
                     )
                 )
             )
@@ -243,11 +246,11 @@ class ANMLGrammar:
                 TK_FLOAT.setResultsName("name")
                 + Optional(
                     Group(
-                        TK_L_BRACKET
+                        Suppress(TK_L_BRACKET)
                         + real.setResultsName("left_bound")
-                        + TK_COMMA
+                        + Suppress(TK_COMMA)
                         + real.setResultsName("right_bound")
-                        + TK_R_BRACKET
+                        + Suppress(TK_R_BRACKET)
                     )
                 )
             )
@@ -276,7 +279,7 @@ class ANMLGrammar:
                     + Suppress(TK_R_PARENTHESIS)
                 )
             ).setResultsName("parameters")
-            # + Optional(TK_ASSIGN + Group(expression))
+            + Optional(Suppress(TK_ASSIGN) + Group(expression)).setResultsName("init")
         )
         fluent_decl.setParseAction(self.fluents.append)
         # annotation list... TODO

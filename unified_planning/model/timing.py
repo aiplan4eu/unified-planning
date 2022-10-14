@@ -108,8 +108,10 @@ class Timing:
     def __repr__(self):
         if self._delay == 0:
             return f"{self._timepoint}"
-        else:
+        elif self._delay > 0:
             return f"{self._timepoint} + {self._delay}"
+        else:
+            return f"{self._timepoint} {self._delay}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Timing):

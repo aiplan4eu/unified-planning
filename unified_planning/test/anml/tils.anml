@@ -1,0 +1,16 @@
+fluent boolean x;
+fluent boolean y;
+
+action a() {
+   duration := 1;
+   [all] x;
+   [end] y := true;
+};
+
+[0] x := false;
+[0] y := false;
+
+[15] x := true;
+[20] x := false;
+
+[end] y;

@@ -1,0 +1,57 @@
+type Location;
+constant boolean reachable(Location a, Location b);
+constant float speed;
+
+fluent Location position;
+fluent boolean moving;
+
+action move(Location destination) {
+   duration := 4;
+   [start] destination != position;
+   [start] reachable(position, destination);
+   [end] position := destination;
+
+   [start] not moving;
+   [start] moving := true;
+   [end] moving := false;
+};
+
+
+instance Location a, b, c, d, e;
+
+[start] position := a;
+[start] moving := false;
+[end] position == e;
+
+speed := 2;
+
+
+reachable(a, a) := false;
+reachable(a, b) := true;
+reachable(a, c) := false;
+reachable(a, d) := false;
+reachable(a, e) := false;
+
+reachable(b, a) := false;
+reachable(b, b) := false;
+reachable(b, c) := true;
+reachable(b, d) := false;
+reachable(b, e) := false;
+
+reachable(c, a) := false;
+reachable(c, b) := false;
+reachable(c, c) := false;
+reachable(c, d) := true;
+reachable(c, e) := false;
+
+reachable(d, a) := false;
+reachable(d, b) := false;
+reachable(d, c) := false;
+reachable(d, d) := false;
+reachable(d, e) := true;
+
+reachable(e, a) := false;
+reachable(e, b) := false;
+reachable(e, c) := false;
+reachable(e, d) := false;
+reachable(e, e) := false;

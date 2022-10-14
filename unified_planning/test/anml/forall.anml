@@ -1,0 +1,84 @@
+type Door;
+type Button;
+type Location;
+
+fluent boolean open(Door d);
+fluent Location position;
+fluent boolean busy;
+
+constant Location button_location(Button b);
+constant boolean connected(Button b, Door d);
+constant boolean reachable(Location l1, Location l2);
+constant Door door_connection(Location l1, Location l2);
+
+action toggle(Button b) {
+   duration := 1;
+   [start] not busy;
+   [start] busy := true;
+   [end] busy := false;
+   [start] position == button_location(b);
+   [end] forall(Door d) { open(d) := (open(d) xor connected(b, d)); };
+};
+
+action travel_to(Location from, Location to) {
+   duration := 1;
+   [start] not busy;
+   [start] busy := true;
+   [end] busy := false;
+   [start] position == from;
+   [start] reachable(from, to) or (door_connection(from, to) != NONE and open(door_connection(from, to)));
+   [end] position := to;
+};
+
+instance Button b0, b1, b2, b3;
+instance Door d1, d2, dT, NONE;
+
+instance Location l_b0, l_b1, l_b2, l_b3, l_T;
+instance Location l_d1_a, l_d1_b;
+instance Location l_d2_a, l_d2_b;
+instance Location l_dT_a, l_dT_b;
+
+button_location(b0) := l_b0;
+button_location(b1) := l_b1;
+button_location(b2) := l_b2;
+button_location(b3) := l_b3;
+
+connected(b1, d1) := true;
+connected(b2, d1) := true;
+connected(b2, d2) := true;
+connected(b3, dT) := true;
+connected(*) := false;
+
+reachable(l_b0, l_b1) := true;
+reachable(l_b1, l_b0) := true;
+reachable(l_b0, l_d1_a) := true;
+reachable(l_d1_a, l_b0) := true;
+reachable(l_b0, l_dT_a) := true;
+reachable(l_dT_a, l_b0) := true;
+reachable(l_b1, l_dT_a) := true;
+reachable(l_dT_a, l_b1) := true;
+reachable(l_dT_a, l_d1_a) := true;
+reachable(l_d1_a, l_dT_a) := true;
+reachable(l_b2, l_d1_b) := true;
+reachable(l_d1_b, l_b2) := true;
+reachable(l_d2_a, l_d1_b) := true;
+reachable(l_d1_b, l_d2_a) := true;
+reachable(l_b3, l_d2_b) := true;
+reachable(l_d2_b, l_b3) := true;
+reachable(l_T, l_dT_b) := true;
+reachable(l_dT_b, l_T) := true;
+reachable(*) := false;
+
+door_connection(l_d1_a, l_d1_b) := d1;
+door_connection(l_d1_b, l_d1_a) := d1;
+door_connection(l_d2_a, l_d2_b) := d2;
+door_connection(l_d2_b, l_d2_a) := d2;
+door_connection(l_dT_a, l_dT_b) := dT;
+door_connection(l_dT_b, l_dT_a) := dT;
+door_connection(*) := NONE;
+
+[start] busy := false;
+[start] position := l_b0;
+[start] forall(Door d) { open(d) := false; };
+
+[end] position == l_T;

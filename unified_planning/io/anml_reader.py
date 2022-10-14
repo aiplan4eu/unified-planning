@@ -39,6 +39,7 @@ from unified_planning.io.anml_grammar import (
     TK_LT,
     TK_MINUS,
     TK_NOT,
+    TK_NOT_EQUALS,
     TK_OR,
     TK_PLUS,
     TK_R_BRACKET,
@@ -53,7 +54,7 @@ from unified_planning.io.anml_grammar import (
 )
 from unified_planning.environment import Environment, get_env
 from unified_planning.model.types import _UserType as UT
-from unified_planning.exceptions import UPUsageError
+from unified_planning.exceptions import UPUsageError, UPProblemDefinitionError
 from unified_planning.model import (
     Effect,
     EffectKind,
@@ -68,24 +69,12 @@ from unified_planning.model import (
     RightOpenTimeInterval,
     FixedDuration,
     Timing,
+    TimeInterval,
+    Parameter,
 )
 from collections import OrderedDict, deque
 from fractions import Fraction
-from typing import Deque, Dict, Tuple, Union, Callable, List, cast
-from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import (
-    Optional,
-    Suppress,
-    nestedExpr,
-    Group,
-    restOfLine,
-    Combine,
-    Forward,
-    infixNotation,
-    opAssoc,
-    ParserElement,
-    Literal,
-)
+from typing import Deque, Dict, Tuple, Union, Callable, List, cast, Optional
 
 if pyparsing.__version__ < "3.0.0":
     from pyparsing import oneOf as one_of
@@ -97,15 +86,13 @@ else:
 
 class ANMLReader:
     """
-    Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
+    TODO
     """
 
     def __init__(self, env: typing.Optional[Environment] = None):
         self._env = get_env(env)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
-        self.grammar = ANMLGrammar()
-        self._pp_problem = self.grammar.problem
         self._fve = self._env.free_vars_extractor
 
         self._operators: Dict[str, Callable] = {
@@ -118,6 +105,7 @@ class ANMLReader:
             TK_GT: self._em.GT,
             TK_LT: self._em.LT,
             TK_EQUALS: self._em.Equals,
+            TK_NOT_EQUALS: (lambda x, y: self._em.Not(self._em.Equals(x, y))),
             TK_PLUS: self._em.Plus,
             TK_MINUS: self._em.Minus,
             TK_DIV: self._em.Div,
@@ -135,7 +123,10 @@ class ANMLReader:
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        problem_res = self._pp_problem.parseFile(problem_filename, parse_all=True)
+
+        # create the grammar and populate it's data structures
+        grammar = ANMLGrammar()
+        grammar.problem.parseFile(problem_filename, parse_all=True)
 
         self._problem = up.model.Problem(
             problem_filename,
@@ -143,34 +134,48 @@ class ANMLReader:
             initial_defaults={self._tm.BoolType(): self._em.FALSE()},
         )
 
-        self._types_map: Dict[str, "up.model.Type"] = {}
-        for type_res in self.grammar.types:
+        types_map: Dict[str, "up.model.Type"] = {}
+        for type_res in grammar.types:
             up_type = self.parse_type_def(type_res)
             assert up_type.is_user_type()
-            self._types_map[cast(UT, up_type).name] = up_type
+            types_map[cast(UT, up_type).name] = up_type
 
-        for fluent_res in self.grammar.fluents:
-            up_fluent = self.parse_fluent(fluent_res)
-            self._problem.add_fluent(up_fluent)
+        for fluent_res in grammar.fluents:
+            (up_fluent, initial_default) = self.parse_fluent(fluent_res, types_map)
+            if initial_default is not None:
+                self._problem.add_fluent(
+                    up_fluent, default_initial_value=initial_default
+                )
+            else:
+                self._problem.add_fluent(up_fluent)
 
-        for objects_res in self.grammar.objects:
-            up_objects = self.parse_objects(objects_res)
+        for objects_res in grammar.objects:
+            up_objects = self.parse_objects(objects_res, types_map)
             self._problem.add_objects(up_objects)
 
-        for action_res in self.grammar.actions:
-            up_action = self.parse_action(action_res)
+        for action_res in grammar.actions:
+            up_action = self.parse_action(action_res, types_map)
             self._problem.add_action(up_action)
 
         # params is used in the expression parsing not to recreate an empty dict every time
-        params = {}
+        params: Dict[str, "Parameter"] = {}
         # global_start and global_end are used to check if the interval is at the beginning or at the end
-        global_start = up.model.GlobalStartTiming()
-        global_end = up.model.GlobalEndTiming()
+        global_start = GlobalStartTiming()
+        global_end = GlobalEndTiming()
 
-        for res in self.grammar.timed_assignment_or_goal:
-            pass  # TODO handle this
+        for interval_and_expression in grammar.timed_assignment_or_goal:
+            up_interval = self.parse_interval(
+                interval_and_expression[0], is_global=True
+            )
+            self.add_goal_or_condition_to_problem(
+                up_interval,
+                interval_and_expression[1],
+                params,
+                global_start,
+                global_end,
+            )
 
-        for block_res in self.grammar.timed_assignments_or_goals:
+        for block_res in grammar.timed_assignments_or_goals:
             interval_and_expressions_res = block_res[0]
             assert (
                 len(block_res) == 1 and len(interval_and_expressions_res) == 2
@@ -178,40 +183,52 @@ class ANMLReader:
             up_interval = self.parse_interval(
                 interval_and_expressions_res[0], is_global=True
             )
-            for expression_res_container in interval_and_expressions_res[1]:
-                # all expressions are incapsulated in the first (and only) element of a ParseResults
-                assert len(expression_res_container) == 1, "Parse error"
-                expression_res = expression_res_container[0]
-                if len(expression_res) == 3 and expression_res[1] in (
-                    TK_ASSIGN,
-                    TK_INCREASE,
-                    TK_DECREASE,
-                ):  # assignment
-                    if (
-                        up_interval == global_start
-                    ):  # TODO understand what to do with an increase/decrease at GlobalStartTiming
-                        up_fluent = self.parse_expression(expression_res[0], params)
-                        up_value = self.parse_expression(expression_res[2], params)
-                        self._problem.set_initial_value(up_fluent, up_value)
-                    else:
-                        up_effect = self.parse_assignment(
-                            expression_res[0],
-                            expression_res[2],
-                            expression_res[1],
-                            params,
-                        )
-                        assert isinstance(
-                            up_interval, Timing
-                        ), "can't have an interval for an assignment"
-                        self._problem._add_effect_instance(up_interval, up_effect)
-                else:  # condition
-                    goal = self.parse_expression(expression_res, params)
-                    if up_interval == global_end:
-                        self._problem.add_goal(goal)
-                    else:
-                        self._problem.add_timed_goal(up_interval, goal)
+            for expression in interval_and_expressions_res[1]:
+                self.add_goal_or_condition_to_problem(
+                    up_interval, expression, params, global_start, global_end
+                )
 
         return self._problem
+
+    def add_goal_or_condition_to_problem(
+        self,
+        up_interval: Union["Timing", "TimeInterval"],
+        expression: ParseResults,
+        parameters: Dict[str, "Parameter"],
+        global_start: "Timing",
+        global_end: "Timing",
+    ):
+        # all expressions are incapsulated in the first (and only) element of a ParseResults
+        assert len(expression) == 1, "Parse error"
+        expression_res = expression[0]
+        if len(expression_res) == 3 and expression_res[1] in (
+            TK_ASSIGN,
+            TK_INCREASE,
+            TK_DECREASE,
+        ):  # assignment
+            if (
+                up_interval == global_start
+            ):  # TODO understand what to do with an increase/decrease at GlobalStartTiming
+                up_fluent = self.parse_expression(expression_res[0], parameters)
+                up_value = self.parse_expression(expression_res[2], parameters)
+                self._problem.set_initial_value(up_fluent, up_value)
+            else:
+                up_effect = self.parse_assignment(
+                    expression_res[0],
+                    expression_res[2],
+                    expression_res[1],
+                    parameters,
+                )
+                assert isinstance(
+                    up_interval, Timing
+                ), "can't have an interval for an assignment"
+                self._problem._add_effect_instance(up_interval, up_effect)
+        else:  # condition
+            goal = self.parse_expression(expression_res, parameters)
+            if up_interval == global_end:
+                self._problem.add_goal(goal)
+            else:
+                self._problem.add_timed_goal(up_interval, goal)
 
     def parse_type_def(self, type_res: ParseResults) -> "up.model.Type":
         # TODO: handle typing hierarchy
@@ -219,39 +236,80 @@ class ANMLReader:
             raise NotImplementedError
         return self._tm.UserType(type_res["name"])
 
-    def parse_type_ref(self, type_res: ParseResults) -> "up.model.Type":
+    def parse_type_reference(
+        self, type_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+    ) -> "up.model.Type":
         # TODO handle integer and real
         name = type_res[0]
         assert isinstance(name, str)
         if name == TK_BOOLEAN:
             return self._tm.BoolType()
         elif name in (TK_INTEGER, TK_FLOAT):
-            raise NotImplementedError
-        else:  # TODO handle keyError
-            return self._types_map[name]
+            lower_bound, upper_bound = None, None
+            if len(type_res) == 2:
+                _p = {}
+                interval = type_res[1]
+                lower_bound = self.parse_expression(interval[0], parameters=_p)
+                upper_bound = self.parse_expression(interval[1], parameters=_p)
+                if (
+                    lower_bound.is_int_constant() or lower_bound.is_real_constant()
+                ) and (upper_bound.is_int_constant() or upper_bound.is_real_constant()):
+                    lower_bound = lower_bound.constant_value()
+                    upper_bound = upper_bound.constant_value()
+                else:
+                    raise UPProblemDefinitionError(
+                        f"bounds of type {type_res} must be integer of real constants"
+                    )
+            else:
+                assert len(type_res) == 1, "Parse error"
+            if name == TK_INTEGER:
+                return self._tm.IntType(lower_bound, upper_bound)
+            else:
+                return self._tm.RealType(lower_bound, upper_bound)
+        else:
+            ret_type = types_map.get(name, None)
+            if ret_type is not None:
+                return ret_type
+            else:
+                raise UPProblemDefinitionError(
+                    f"UserType {name} is referenced but never defined."
+                )
 
-    def parse_fluent(self, fluent_res: ParseResults) -> "up.model.Fluent":
-        fluent_type = self.parse_type_ref(fluent_res["type"])
+    def parse_fluent(
+        self, fluent_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+    ) -> Tuple["up.model.Fluent", Optional["FNode"]]:
+        fluent_type = self.parse_type_reference(fluent_res["type"], types_map)
         fluent_name = fluent_res["name"]
-        params: Dict[str, "up.model.Type"] = self.parse_parameters_def(
-            fluent_res["parameters"]
+        params: OrderedDict[str, "up.model.Type"] = self.parse_parameters_def(
+            fluent_res["parameters"], types_map
         )
-        return up.model.Fluent(fluent_name, fluent_type, _signature=params)
+        if "init" in fluent_res:
+            initial_default = self.parse_expression(fluent_res["init"], {})
+        else:
+            initial_default = None
+        return (
+            up.model.Fluent(fluent_name, fluent_type, _signature=params),
+            initial_default,
+        )
 
-    def parse_objects(self, objects_res: ParseResults) -> List["up.model.Object"]:
-        objects_type = self.parse_type_ref(objects_res["type"])
+    def parse_objects(
+        self, objects_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+    ) -> List["up.model.Object"]:
+        objects_type = self.parse_type_reference(objects_res["type"], types_map)
         up_objects: List["up.model.Object"] = []
         for name in objects_res["names"]:
             assert isinstance(name, str), "parsing error"
             up_objects.append(up.model.Object(name, objects_type))
         return up_objects
 
-    def parse_action(self, action_res: ParseResults) -> "up.model.Action":
+    def parse_action(
+        self, action_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+    ) -> "up.model.Action":
         name = action_res["name"]
         assert isinstance(name, str), "parsing error"
-        params = self.parse_parameters_def(action_res["parameters"])
+        params = self.parse_parameters_def(action_res["parameters"], types_map)
         action = up.model.DurativeAction(name, _parameters=params)
-        action_parameters: Dict[str, "up.model.Parameters"] = {
+        action_parameters: Dict[str, "up.model.Parameter"] = {
             n: action.parameter(n) for n in params
         }
         self.populate_parsed_action_body(action, action_res["body"], action_parameters)
@@ -261,7 +319,7 @@ class ANMLReader:
         self,
         action: "up.model.DurativeAction",
         action_body_res: ParseResults,
-        action_parameters: Dict[str, "up.model.Parameters"],
+        action_parameters: Dict[str, "up.model.Parameter"],
     ) -> None:
         for interval_and_exp in action_body_res:
             up_interval = self.parse_interval(interval_and_exp[0])
@@ -287,24 +345,26 @@ class ANMLReader:
                 action.add_condition(up_interval, condition)
 
     def parse_parameters_def(
-        self, parameters_res: ParseResults
+        self, parameters_res: ParseResults, types_map: Dict[str, "up.model.Type"]
     ) -> OrderedDict[str, "up.model.Type"]:
         up_params: OrderedDict[str, "up.model.Type"] = OrderedDict()
         for parameter_res in parameters_res:
             param_type_res = parameter_res[0]
             param_name_res = parameter_res[1]
             assert isinstance(param_name_res, str)
-            up_params[param_name_res] = self.parse_type_ref(param_type_res)
+            up_params[param_name_res] = self.parse_type_reference(
+                param_type_res, types_map
+            )
         return up_params
 
     def parse_interval(
         self, interval_res: ParseResults, is_global: bool = False
-    ) -> Union["up.model.Timing", "up.model.TimeInterval"]:
+    ) -> Union["Timing", "TimeInterval"]:
         if len(interval_res) == 0:
             if is_global:
-                return up.model.GlobalStartTiming()
+                return GlobalStartTiming()
             else:
-                return up.model.StartTiming()
+                return StartTiming()
 
         elif len(interval_res) == 3:
             l_par = interval_res[0]
@@ -352,24 +412,34 @@ class ANMLReader:
     def parse_timing(
         self, timing_and_exp: ParseResults, is_global: bool = False
     ) -> "up.model.Timing":
+        delay_position = None
         timing_type = timing_and_exp[0]
-        delay = 0
+        delay = self._em.Int(0)
         if len(timing_and_exp) > 1:  # There is a delay
             assert len(timing_and_exp) == 2, "unexpected parsing error"
-            up_exp = self.parse_expression(timing_and_exp[1])
+            delay_position = 1
+        else:
+            assert len(timing_and_exp) == 1, "parsing error"
+            if timing_type not in (TK_START, TK_END):  # interval of the form [10]
+                delay_position = 0
+                timing_type = TK_START
+        if delay_position is not None:
+            up_exp = self.parse_expression(
+                timing_and_exp[delay_position], parameters={}
+            )
             delay = up_exp.simplify()
             assert (
                 delay.is_int_constant() or delay.is_real_constant()
             ), "Timing delay must simplify as a numeric constant"
 
         if timing_type == TK_START and is_global:
-            return up.model.GlobalStartTiming(delay)
+            return up.model.GlobalStartTiming(delay.constant_value())
         elif timing_type == TK_START:
-            return up.model.StartTiming(delay)
+            return up.model.StartTiming(delay.constant_value())
         elif timing_type == TK_END and is_global:
-            return up.model.GlobalEndTiming(delay)
+            return up.model.GlobalEndTiming(delay.constant_value())
         elif timing_type == TK_END:
-            return up.model.EndTiming(delay)
+            return up.model.EndTiming(delay.constant_value())
         else:
             raise NotImplementedError(
                 f"Currently the unified planning does not support the timing {timing_type}"
@@ -380,7 +450,7 @@ class ANMLReader:
         fluent_ref: ParseResults,
         assigned_expression: ParseResults,
         assignment_operator: str,
-        parameters: Dict[str, "up.model.Parameters"],
+        parameters: Dict[str, "up.model.Parameter"],
     ) -> "up.model.Effect":
         up_fluent = self.parse_expression(fluent_ref, parameters)
         assert (
@@ -403,7 +473,7 @@ class ANMLReader:
     def parse_expression(
         self,
         expression: Union[ParseResults, List, str],
-        parameters: Dict[str, "up.model.Parameters"],
+        parameters: Dict[str, "up.model.Parameter"],
     ) -> "up.model.FNode":
         stack: Deque[Tuple[Union[ParseResults, List], bool]] = deque()
         solved: Deque[FNode] = deque()
@@ -428,8 +498,13 @@ class ANMLReader:
                     pass
                 elif len(exp) == 2:
                     first_elem = exp[0]
-                    if isinstance(first_elem, List):  # parameters list
-                        assert isinstance(exp[1], List)
+                    if isinstance(first_elem, List) or isinstance(
+                        first_elem, ParseResults
+                    ):  # parameters list
+                        second_elem = exp[1]
+                        assert isinstance(second_elem, List) or isinstance(
+                            second_elem, ParseResults
+                        )
                         pass
                     elif first_elem == TK_MINUS:  # unary minus
                         solved.append(self._em.Times(-1, solved.pop()))
@@ -481,7 +556,7 @@ class ANMLReader:
                         print(exp)
                         print(len(exp))
                         assert False
-                else:
+                else:  # TODO parameters list longer than 3
                     print(exp)
                     print(len(exp))
                     assert False
@@ -508,7 +583,7 @@ class ANMLReader:
         assert len(solved) == 1
         res = solved.pop()
         # print(res)
-        return res
+        return res.simplify()
 
 
 def is_float(string: str) -> bool:
