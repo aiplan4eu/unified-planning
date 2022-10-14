@@ -280,7 +280,7 @@ class ANMLReader:
     ) -> Tuple["up.model.Fluent", Optional["FNode"]]:
         fluent_type = self._parse_type_reference(fluent_res["type"], types_map)
         fluent_name = fluent_res["name"]
-        params: OrderedDict[str, "up.model.Type"] = self._parse_parameters_def(
+        params: "OrderedDict[str, up.model.Type]" = self._parse_parameters_def(
             fluent_res["parameters"], types_map
         )
         if "init" in fluent_res:
@@ -346,8 +346,8 @@ class ANMLReader:
 
     def _parse_parameters_def(
         self, parameters_res: ParseResults, types_map: Dict[str, "Type"]
-    ) -> OrderedDict[str, "Type"]:
-        up_params: OrderedDict[str, "Type"] = OrderedDict()
+    ) -> "OrderedDict[str, Type]":
+        up_params: "OrderedDict[str, Type]" = OrderedDict()
         for parameter_res in parameters_res:
             param_type_res = parameter_res[0]
             param_name_res = parameter_res[1]
