@@ -343,6 +343,7 @@ class PDDLReader:
                     q_op: Callable = (
                         self._em.Exists if exp[0] == "exists" else self._em.Forall
                     )
+                    assert isinstance(exp, ParseResults)
                     vars = self._create_quantifier_variables_map(exp, types_map, {})
                     solved.append(q_op(solved.pop(), *vars.values()))
                 elif problem.has_fluent(exp[0]):  # fluent reference
