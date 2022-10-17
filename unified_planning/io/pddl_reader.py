@@ -344,7 +344,9 @@ class PDDLReader:
                         self._em.Exists if exp[0] == "exists" else self._em.Forall
                     )
                     assert isinstance(exp, ParseResults)
-                    vars = self._create_quantifier_variables_map(exp, types_map, {})
+                    vars = self._create_quantifier_variables_map(
+                        exp, types_map, already_defined_variables={}
+                    )
                     solved.append(q_op(solved.pop(), *vars.values()))
                 elif problem.has_fluent(exp[0]):  # fluent reference
                     f = problem.fluent(exp[0])
@@ -368,7 +370,7 @@ class PDDLReader:
                             stack.append((var, e, False))
                     elif exp[0] in ["exists", "forall"]:  # quantifier operators
                         vars = self._create_quantifier_variables_map(
-                            exp, types_map, var
+                            exp, types_map, already_defined_variables=var
                         )
                         stack.append((vars, exp, True))
                         stack.append((vars, exp[2], False))
@@ -412,11 +414,11 @@ class PDDLReader:
         self,
         exp: ParseResults,
         types_map: Dict[str, up.model.Type],
-        var: Dict[str, up.model.Variable],
+        already_defined_variables: Dict[str, up.model.Variable],
     ) -> Dict[str, up.model.Variable]:
         vars_string = " ".join(exp[1])
         vars_res = self._pp_parameters.parseString(vars_string)
-        vars = var.copy()
+        vars = already_defined_variables.copy()
         for g in vars_res["params"]:
             t = types_map[g[1] if len(g) > 1 else Object]
             for o in g[0]:
