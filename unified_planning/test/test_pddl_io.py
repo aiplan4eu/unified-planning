@@ -578,6 +578,29 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
         self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
 
+    def test_operator_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "operator", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "operator", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 2)
+        self.assertEqual(len(problem.actions), 1)
+        obj_type = problem.user_type("object")
+        self.assertEqual(len(list(problem.objects(obj_type))), 3)
+        self.assertEqual(len(problem.all_objects), 3)
+        self.assertEqual(len(problem.goals), 1)
+        em = problem.env.expression_manager
+        at = problem.fluent("at")
+        connected = problem.fluent("connected")
+        x = Variable("x", obj_type)
+        y = Variable("y", obj_type)
+        test_goal = em.Forall(em.And(at(x), em.Forall(connected(x, y), y)), x)
+        for g in problem.goals:
+            self.assertEqual(test_goal, g)
+
     def test_robot_fastener_reader(self):
         reader = PDDLReader()
 

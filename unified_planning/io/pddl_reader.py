@@ -343,7 +343,8 @@ class PDDLReader:
                     q_op: Callable = (
                         self._em.Exists if exp[0] == "exists" else self._em.Forall
                     )
-                    solved.append(q_op(solved.pop(), *var.values()))
+                    vars = self._create_quantifier_variables_map(exp, types_map, {})
+                    solved.append(q_op(solved.pop(), *vars.values()))
                 elif problem.has_fluent(exp[0]):  # fluent reference
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
@@ -365,13 +366,9 @@ class PDDLReader:
                         for e in exp[1:]:
                             stack.append((var, e, False))
                     elif exp[0] in ["exists", "forall"]:  # quantifier operators
-                        vars_string = " ".join(exp[1])
-                        vars_res = self._pp_parameters.parseString(vars_string)
-                        vars = {}
-                        for g in vars_res["params"]:
-                            t = types_map[g[1] if len(g) > 1 else Object]
-                            for o in g[0]:
-                                vars[o] = up.model.Variable(o, t, self._env)
+                        vars = self._create_quantifier_variables_map(
+                            exp, types_map, var
+                        )
                         stack.append((vars, exp, True))
                         stack.append((vars, exp[2], False))
                     elif problem.has_fluent(exp[0]):  # fluent reference
@@ -409,6 +406,21 @@ class PDDLReader:
                     raise SyntaxError(f"Not able to handle: {exp}")
         assert len(solved) == 1  # sanity check
         return solved.pop()
+
+    def _create_quantifier_variables_map(
+        self,
+        exp: ParseResults,
+        types_map: Dict[str, up.model.Type],
+        var: Dict[str, up.model.Variable],
+    ) -> Dict[str, up.model.Variable]:
+        vars_string = " ".join(exp[1])
+        vars_res = self._pp_parameters.parseString(vars_string)
+        vars = var.copy()
+        for g in vars_res["params"]:
+            t = types_map[g[1] if len(g) > 1 else Object]
+            for o in g[0]:
+                vars[o] = up.model.Variable(o, t, self._env)
+        return vars
 
     def _add_effect(
         self,
