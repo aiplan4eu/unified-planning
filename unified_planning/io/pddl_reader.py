@@ -343,11 +343,7 @@ class PDDLReader:
                     q_op: Callable = (
                         self._em.Exists if exp[0] == "exists" else self._em.Forall
                     )
-                    assert isinstance(exp, ParseResults)
-                    vars = self._create_quantifier_variables_map(
-                        exp, types_map, already_defined_variables={}
-                    )
-                    solved.append(q_op(solved.pop(), *vars.values()))
+                    solved.append(q_op(solved.pop(), *var.values()))
                 elif problem.has_fluent(exp[0]):  # fluent reference
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
@@ -369,11 +365,19 @@ class PDDLReader:
                         for e in exp[1:]:
                             stack.append((var, e, False))
                     elif exp[0] in ["exists", "forall"]:  # quantifier operators
-                        vars = self._create_quantifier_variables_map(
-                            exp, types_map, already_defined_variables=var
-                        )
-                        stack.append((vars, exp, True))
-                        stack.append((vars, exp[2], False))
+                        vars_string = " ".join(exp[1])
+                        vars_res = self._pp_parameters.parseString(vars_string)
+                        new_vars = {}
+                        for g in vars_res["params"]:
+                            t = types_map[g[1] if len(g) > 1 else Object]
+                            for o in g[0]:
+                                new_vars[o] = up.model.Variable(o, t, self._env)
+                        # new_vars are the variables defined by the quantifier currently being solved
+                        # all_vars are the variables defined by all the quantifiers around this expression
+                        stack.append((new_vars, exp, True))
+                        all_vars = var.copy()
+                        all_vars.update(new_vars)
+                        stack.append((all_vars, exp[2], False))
                     elif problem.has_fluent(exp[0]):  # fluent reference
                         stack.append((var, exp, True))
                         for e in exp[1:]:
@@ -409,21 +413,6 @@ class PDDLReader:
                     raise SyntaxError(f"Not able to handle: {exp}")
         assert len(solved) == 1  # sanity check
         return solved.pop()
-
-    def _create_quantifier_variables_map(
-        self,
-        exp: ParseResults,
-        types_map: Dict[str, up.model.Type],
-        already_defined_variables: Dict[str, up.model.Variable],
-    ) -> Dict[str, up.model.Variable]:
-        vars_string = " ".join(exp[1])
-        vars_res = self._pp_parameters.parseString(vars_string)
-        vars = already_defined_variables.copy()
-        for g in vars_res["params"]:
-            t = types_map[g[1] if len(g) > 1 else Object]
-            for o in g[0]:
-                vars[o] = up.model.Variable(o, t, self._env)
-        return vars
 
     def _add_effect(
         self,
