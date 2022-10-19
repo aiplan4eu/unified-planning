@@ -793,10 +793,13 @@ class PDDLReader:
             else:  # not "object" and not explicitly declared
                 father = self._env.type_manager.UserType(str(father_name), None)
                 types_map[father_name] = father
-            # we identified the father, declare the type
+            # we identified the father, add the type to our map
+            # note that the type_map allows retrieving the `Type` object in a case-insensitive way
             types_map[type] = self._env.type_manager.UserType(str(type), father)
+            # Force declaration of the type in the `Problem`, even if it is not explicitly used yet
+            problem._add_user_type(types_map[type])
 
-        # declare all types,
+        # declare all types
         for type, father_name in type_declarations.items():
             declare_type(type, father_name)
 
