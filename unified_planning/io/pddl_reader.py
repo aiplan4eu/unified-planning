@@ -653,7 +653,14 @@ class PDDLReader:
             for g in a.get("params", []):
                 if len(g) <= 1 or g[1] == Object:
                     return True
-        # TODO probably missing spots there + is this something we really want
+        for a in domain_res.get("tasks", []):
+            for g in a.get("params", []):
+                if len(g) <= 1 or g[1] == Object:
+                    return True
+        for a in domain_res.get("methods", []):
+            for g in a.get("params", []):
+                if len(g) <= 1 or g[1] == Object:
+                    return True
         return False
 
     def _durative_action_has_cost(self, dur_act: up.model.DurativeAction):
