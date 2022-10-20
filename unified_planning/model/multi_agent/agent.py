@@ -46,6 +46,7 @@ class Agent(
         )
         self._env = ma_problem.env
         self._name: str = name
+        self._goals: List["up.model.fnode.FNode"] = list()
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -70,6 +71,43 @@ class Agent(
     def env(self) -> "up.Environment":
         """Returns this `Agent` `Environment`."""
         return self._env
+
+    def add_goal(
+            self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
+    ):
+        """
+        Adds the given `goal` to the `MultiAgentProblem`; a goal is an expression that must be evaluated to `True` at the
+        end of the execution of a :class:`~unified_planning.plans.Plan`. If a `Plan` does not satisfy all the given `goals`, it is not valid.
+
+        :param goal: The expression added to the `MultiAgentProblem` :func:`goals <unified_planning.model.multi_agent.MultiAgentProblem.goals>`.
+        """
+        assert (
+                isinstance(goal, bool) or goal.environment == self._env
+        ), "goal does not have the same environment of the problem"
+        (goal_exp,) = self._env.expression_manager.auto_promote(goal)
+        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        if goal_exp != self._env.expression_manager.TRUE():
+            self._goals.append(goal_exp)
+
+    def add_goals(
+            self, goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
+    ):
+        """
+        Adds the given `goal` to the `MultiAgentProblem`.
+
+        :param goals: The `list` of `goals` that must be added to the `MultiAgentProblem`.
+        """
+        for goal in goals:
+            self.add_goal(goal)
+
+    @property
+    def goals(self) -> List["up.model.fnode.FNode"]:
+        """Returns all the `goals` in the `MultiAgentProblem`."""
+        return self._goals
+
+    def clear_goals(self):
+        """Removes all the `goals` from the `MultiAgentProblem`."""
+        self._goals = []
 
     def __repr__(self) -> str:
         s = []
