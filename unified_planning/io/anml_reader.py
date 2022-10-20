@@ -24,6 +24,7 @@ from unified_planning.io.anml_grammar import (
     TK_ASSIGN,
     TK_DECREASE,
     TK_DIV,
+    TK_DURATION,
     TK_END,
     TK_EQUALS,
     TK_FALSE,
@@ -45,6 +46,7 @@ from unified_planning.io.anml_grammar import (
     TK_START,
     TK_TIMES,
     TK_TRUE,
+    TK_WHEN,
     ANMLGrammar,
     TK_BOOLEAN,
     TK_INTEGER,
@@ -53,6 +55,7 @@ from unified_planning.io.anml_grammar import (
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
+    DurationInterval,
     Effect,
     EffectKind,
     FNode,
@@ -350,25 +353,83 @@ class ANMLReader:
         action_parameters: Dict[str, "up.model.Parameter"],
     ) -> None:
         for interval_and_exp in action_body_res:
-            up_interval = self._parse_interval(interval_and_exp[0])
-            exp_res = interval_and_exp[1][0]
-            if exp_res[1] in (TK_ASSIGN, TK_INCREASE, TK_DECREASE):
+            relevant_words = {TK_DURATION, TK_ASSIGN, TK_INCREASE, TK_DECREASE, TK_WHEN}
+            contained_words = contains(interval_and_exp, relevant_words)
+            c_duration = contained_words[TK_DURATION]
+            c_when = contained_words[TK_WHEN]
+            c_assign = contained_words[TK_ASSIGN]
+            c_increase = contained_words[TK_INCREASE]
+            c_decrease = contained_words[TK_DECREASE]
+
+            if c_duration > 0:  # handle duration
+                assert c_when == 0
+                assert c_increase == 0
+                assert c_decrease == 0
+                duration_exp = interval_and_exp[1][0]
+                if c_assign > 0:  # duration assignment
+                    print(interval_and_exp)
+                    assert duration_exp[0][0] == TK_DURATION
+                    assert duration_exp[1] == TK_ASSIGN
+                    action.set_duration_constraint(
+                        FixedDuration(
+                            self._parse_expression(duration_exp[2], action_parameters)
+                        )
+                    )
+                else:
+                    if duration_exp[1] == TK_EQUALS:  # duration == exp
+                        assert duration_exp[0][0] == TK_DURATION
+                        action.set_duration_constraint(
+                            FixedDuration(
+                                self._parse_expression(
+                                    duration_exp[2], action_parameters
+                                )
+                            )
+                        )
+                    else:
+                        assert duration_exp[1] == TK_AND
+                        left_bound = duration_exp[0]
+                        right_bound = duration_exp[2]
+                        assert left_bound[0][0] == TK_DURATION
+                        assert right_bound[0][0] == TK_DURATION
+                        if left_bound[1] not in (TK_GT, TK_GE):
+                            left_bound, right_bound = right_bound, left_bound
+                        assert left_bound[1] in (TK_GT, TK_GE)
+                        assert right_bound[1] in (TK_LT, TK_LE)
+                        is_left_open = left_bound[1] == TK_GT
+                        is_right_open = right_bound[1] == TK_LT
+                        l_bound_exp = self._parse_expression(
+                            left_bound[2], action_parameters
+                        )
+                        r_bound_exp = self._parse_expression(
+                            right_bound[2], action_parameters
+                        )
+                        action.set_duration_constraint(
+                            DurationInterval(
+                                l_bound_exp, r_bound_exp, is_left_open, is_right_open
+                            )
+                        )
+            # end handle duration
+            elif c_assign + c_increase + c_decrease > 0:  # handle effects
+                # TODO handle conditional and universally quantified effects
+                if c_when > 0:
+                    raise NotImplementedError(
+                        "Conditional effects are not supported yet"
+                    )
+                up_interval = self._parse_interval(interval_and_exp[0])
+                exp_res = interval_and_exp[1][0]
                 assert isinstance(
                     up_interval, up.model.Timing
                 ), "Assignments can't have intervals"
                 fluent = exp_res[0]
-                if fluent[0] != "duration":  # normal effect
-                    effect = self._parse_assignment(
-                        fluent, exp_res[2], exp_res[1], action_parameters
-                    )
-                    action._add_effect_instance(up_interval, effect)
-                else:  # duration assignment
-                    action.set_duration_constraint(
-                        FixedDuration(
-                            self._parse_expression(exp_res[2], action_parameters)
-                        )
-                    )
-            else:
+                effect = self._parse_assignment(
+                    fluent, exp_res[2], exp_res[1], action_parameters
+                )
+                action._add_effect_instance(up_interval, effect)
+            # end handle effects
+            else:  # handle condition
+                assert c_when == 0
+                up_interval = self._parse_interval(interval_and_exp[0])
+                exp_res = interval_and_exp[1][0]
                 condition = self._parse_expression(exp_res, action_parameters)
                 action.add_condition(up_interval, condition)
 
@@ -451,6 +512,9 @@ class ANMLReader:
             if timing_type not in (TK_START, TK_END):  # interval of the form [10]
                 delay_position = 0
                 timing_type = TK_START
+                assert (
+                    is_global
+                ), "interval [x] is not valid in an action, try [start + x]"
         if delay_position is not None:
             up_exp = self._parse_expression(
                 timing_and_exp[delay_position], parameters={}
@@ -460,14 +524,25 @@ class ANMLReader:
                 delay.is_int_constant() or delay.is_real_constant()
             ), "Timing delay must simplify as a numeric constant"
 
-        if timing_type == TK_START and is_global:
-            return up.model.GlobalStartTiming(delay.constant_value())
-        elif timing_type == TK_START:
-            return up.model.StartTiming(delay.constant_value())
-        elif timing_type == TK_END and is_global:
-            return up.model.GlobalEndTiming(delay.constant_value())
+        if timing_type == TK_START:
+            d = delay.constant_value()
+            assert (
+                d >= 0
+            ), "A negative delay on a start Timing is not supported in the UP"
+            if is_global:
+                return up.model.GlobalStartTiming(d)
+            else:
+                return up.model.StartTiming(d)
         elif timing_type == TK_END:
-            return up.model.EndTiming(delay.constant_value())
+            d = delay.constant_value()
+            d = d * -1
+            assert (
+                d >= 0
+            ), "An ANML positive delay on an end Timing is not supported in the UP"
+            if is_global:
+                return up.model.GlobalEndTiming(delay.constant_value())
+            else:
+                return up.model.EndTiming(delay.constant_value())
         else:
             raise NotImplementedError(
                 f"Currently the unified planning does not support the timing {timing_type}"
@@ -616,3 +691,23 @@ def is_float(string: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def contains(result: Union[ParseResults, List], strings: Set[str]) -> Dict[str, int]:
+    # NOTE i feel like "contains" is not the perfect name
+    stack: List[Union[ParseResults, List]] = [result]
+    counters: Dict[str, int] = {s: 0 for s in strings}
+    while 1:
+        try:
+            res = stack.pop()
+        except IndexError:
+            break
+        for word in res:
+            if isinstance(word, ParseResults) or isinstance(word, List):
+                stack.append(word)
+            else:
+                assert isinstance(word, str)
+                count_s = counters.get(word, None)
+                if count_s is not None:
+                    counters[word] = count_s + 1
+    return counters

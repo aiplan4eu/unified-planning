@@ -99,6 +99,7 @@ TK_NOT = "not"
 TK_TRUE = "true"
 TK_FALSE = "false"
 TK_COMMENT = "//"
+TK_WHEN = "when"
 
 
 class ANMLGrammar:
@@ -183,6 +184,16 @@ class ANMLGrammar:
             expression
         ).setResultsName("expression")
 
+        conditional_expression = (
+            TK_WHEN
+            + Group(timed_expression).set_results_name("condition")
+            + Suppress(TK_L_BRACE)
+            + Group(OneOrMore(timed_expression + Suppress(TK_SEMI))).set_results_name(
+                "assignments"
+            )
+            + Suppress(TK_R_BRACE)
+        )
+
         expression_block_body = OneOrMore(Group(expression) + Suppress(TK_SEMI))
         expression_block = Group(
             Group(interval).setResultsName("interval")
@@ -195,9 +206,6 @@ class ANMLGrammar:
         temporal_expression = Optional(one_of((TK_START, TK_END, TK_ALL))) + Optional(
             arithmetic_expression
         )
-        # TODO check if having an element made of 2 optionals is possible
-        # TODO revise temporal_expression to handle the case where we have [5, end]; semantically meaning
-        # only [GlobalStartTiming(5), GlobalEndTiming(-3)]
 
         in_assignment_expression = (
             one_of((TK_DURATION,))

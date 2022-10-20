@@ -238,7 +238,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_effects), 0)
 
         light_match = problem.action("light_match")
-        self.assertEqual(light_match.duration, FixedDuration(em.Int(6)))
+        self.assertEqual(light_match.duration, FixedDuration(em.Int(5)))
         for interval, cond_list in light_match.conditions.items():
             self.assertEqual(interval, self.start_interval)
             self.assertEqual(len(cond_list), 1)
@@ -251,7 +251,9 @@ class TestANMLReader(TestCase):
                 self.assertTrue(False)
 
         mend_fuse = problem.action("mend_fuse")
-        self.assertEqual(mend_fuse.duration, FixedDuration(em.Int(5)))
+        self.assertEqual(
+            mend_fuse.duration, RightOpenDurationInterval(em.Int(3), em.Int(5))
+        )
         for interval, cond_list in mend_fuse.conditions.items():
             if interval in (self.start_interval, self.all_interval):
                 self.assertEqual(len(cond_list), 1)

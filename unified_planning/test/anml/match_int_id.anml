@@ -5,7 +5,8 @@ fluent boolean light;
 
 
 action light_match(integer[1,3] m) {
-   duration := 6;
+
+   duration == 5;
 
    [start] match_used(m) == false;
 
@@ -15,7 +16,7 @@ action light_match(integer[1,3] m) {
 };
 
 action mend_fuse(integer[1,3] f) {
-   duration := 5;
+   duration < 5 and duration >= 3;
 
    [start] handfree == true;
    [all] light == true;
