@@ -49,6 +49,7 @@ from unified_planning.io.anml_grammar import (
     TK_TIMES,
     TK_TRUE,
     TK_WHEN,
+    TK_XOR,
     ANMLGrammar,
     TK_BOOLEAN,
     TK_INTEGER,
@@ -107,6 +108,11 @@ class ANMLReader:
             TK_AND: self._em.And,
             TK_OR: self._em.Or,
             TK_NOT: self._em.Not,
+            TK_XOR: (
+                lambda x, y: self._em.And(
+                    self._em.Or(x, y), self._em.Or(self._em.Not(x), self._em.Not(y))
+                )
+            ),
             TK_IMPLIES: self._em.Implies,
             TK_GE: self._em.GE,
             TK_LE: self._em.LE,
@@ -472,6 +478,7 @@ class ANMLReader:
     ) -> Union["Timing", "TimeInterval"]:
         if len(interval_res) == 0:
             if is_global:
+                # TODO: decide/understand if an undefined interval outside of an action really means GlobalStartTiming or not
                 return GlobalStartTiming()
             else:
                 return StartTiming()
