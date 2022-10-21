@@ -186,7 +186,82 @@ class TestANMLReader(TestCase):
         reader = ANMLReader()
 
         problem_filename = os.path.join(ANML_FILES_PATH, "forall.anml")
-        pass  # TODO
+        problem = reader.parse_problem(problem_filename)
+        em = problem.env.expression_manager
+
+        self.assertIsNotNone(problem)
+        self.assertEqual(len(problem.fluents), 2)
+        self.assertEqual(len(problem.actions), 1)
+        self.assertEqual(len(list(problem.objects(problem.user_type("Location")))), 3)
+        self.assertEqual(len(problem.goals), 1)
+        self.assertEqual(len(problem.timed_goals), 0)
+        self.assertEqual(len(problem.timed_effects), 0)
+
+        visit = problem.action("visit")
+        to_visit = visit.parameter("to_visit")
+        Location = problem.user_type("Location")
+        precedes = problem.fluent("precedes")
+        visited = problem.fluent("visited")
+        p = Variable("p", Location, problem.env)
+        cond_test = em.Forall(
+            em.And(
+                em.Or(em.Not(precedes(p, to_visit)), visited(p)),
+                em.Not(visited(to_visit)),
+            ),
+            p,
+        )
+        l = Variable("l", Location, problem.env)
+        l2 = Variable("l2", Location, problem.env)
+        goal_test = em.Forall(
+            em.And(
+                visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)
+            ),
+            l,
+        )
+        self.assertEqual(
+            visit.duration,
+            FixedDuration(em.Int(3)),
+        )
+        for interval, cond_list in visit.conditions.items():
+            self.assertEqual(interval, self.start_interval)
+            self.assertEqual(len(cond_list), 1)
+            self.assertEqual(cond_test, cond_list[0])
+        for timing, effect_list in visit.effects.items():
+            if timing == self.end_timing:
+                self.assertEqual(len(effect_list), 1)
+            else:
+                self.assertTrue(False)
+        for g in problem.goals:
+            self.assertEqual(g, goal_test)
+
+    def test_basic_conditional_reader(self):
+        reader = ANMLReader()
+
+        problem_filename = os.path.join(ANML_FILES_PATH, "basic_conditional.anml")
+        problem = reader.parse_problem(problem_filename)
+        em = problem.env.expression_manager
+
+        self.assertIsNotNone(problem)
+        self.assertEqual(len(problem.fluents), 2)
+        self.assertEqual(len(problem.actions), 1)
+        self.assertEqual(len(problem.all_objects), 0)
+        self.assertEqual(len(problem.goals), 2)
+        self.assertEqual(len(problem.timed_goals), 0)
+        self.assertEqual(len(problem.timed_effects), 1)
+
+        a = problem.action("a")
+        self.assertEqual(
+            a.duration,
+            FixedDuration(em.Int(6)),
+        )
+        self.assertEqual(len(a.conditions), 0)
+        for timing, effect_list in a.effects.items():
+            if timing == self.end_timing:
+                self.assertEqual(len(effect_list), 1)
+                for e in effect_list:
+                    self.assertTrue(e.is_conditional())
+            else:
+                self.assertTrue(False)
 
     def test_hydrone_reader(self):
         reader = ANMLReader()

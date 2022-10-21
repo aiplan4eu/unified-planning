@@ -68,6 +68,7 @@ TK_EQUALS = "=="
 TK_NOT_EQUALS = "!="
 TK_DOT = "."
 TK_FORALL = "forall"
+TK_EXISTS = "exists"
 TK_IN = "in"
 TK_SUBSET = "subset"
 TK_UNION = "union"
@@ -130,7 +131,7 @@ class ANMLGrammar:
         # Expression definitions
         interval = Forward()
         boolean_expression = Forward()
-        forall_expression = Forward()
+        quantified_expression = Forward()
 
         expression_list = Optional(Group(boolean_expression)) + ZeroOrMore(
             Suppress(TK_COMMA) + Group(boolean_expression)
@@ -166,10 +167,10 @@ class ANMLGrammar:
             ],
         )
         boolean_expression <<= infixNotation(
-            relations_expression | boolean_const,
+            quantified_expression | relations_expression | boolean_const,
             [
                 (TK_NOT, 1, opAssoc.RIGHT),
-                (one_of([TK_AND, TK_OR]), 2, opAssoc.LEFT, group_binary),
+                (one_of([TK_AND, TK_OR, TK_XOR]), 2, opAssoc.LEFT, group_binary),
                 (
                     one_of([TK_ASSIGN, TK_INCREASE, TK_DECREASE]),
                     2,
@@ -178,13 +179,14 @@ class ANMLGrammar:
                 ),
             ],
         )
-        expression = boolean_expression | forall_expression
+        conditional_expression = Forward()
+        expression = conditional_expression | boolean_expression
 
         timed_expression = Group(Optional(interval)).setResultsName("interval") + Group(
             expression
         ).setResultsName("expression")
 
-        conditional_expression = (
+        conditional_expression <<= (
             TK_WHEN
             + Group(timed_expression).set_results_name("condition")
             + Suppress(TK_L_BRACE)
@@ -304,13 +306,15 @@ class ANMLGrammar:
             )
             + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
         )
-        forall_expression <<= (
-            TK_FORALL
+        quantified_expression <<= Group(
+            one_of([TK_FORALL, TK_EXISTS])
             + Suppress(TK_L_PARENTHESIS)
-            + Group(parameter_list).setResultsName("forall_parameters")
+            + Group(parameter_list).setResultsName("quantifier_variables")
             + Suppress(TK_R_PARENTHESIS)
             + Suppress(TK_L_BRACE)
-            + action_body.setResultsName("forall_body")
+            + Group(OneOrMore(boolean_expression + Suppress(TK_SEMI))).setResultsName(
+                "quantifier_body"
+            )
             + Suppress(TK_R_BRACE)
         )
 
