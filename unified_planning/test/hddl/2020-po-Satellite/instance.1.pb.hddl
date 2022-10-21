@@ -1,0 +1,25 @@
+(define
+	(problem p1obs_1sat_1mod)
+	(:domain  satellite2)
+	(:objects
+		instrument0 - instrument
+		satellite0 - satellite
+		thermograph0 - mode
+		GroundStation2 - calib_direction
+		Phenomenon4 - image_direction
+		Phenomenon6 - image_direction
+	)
+	(:htn
+		:parameters ()
+		:subtasks (and
+		 (task0 (do_observation Phenomenon4 thermograph0))
+		)
+	)
+	(:init
+		(on_board instrument0 satellite0)
+		(supports instrument0 thermograph0)
+		(calibration_target instrument0 GroundStation2)
+		(power_avail satellite0)
+		(pointing satellite0 Phenomenon6)
+	)
+)

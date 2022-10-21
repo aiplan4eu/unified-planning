@@ -132,6 +132,9 @@ class HierarchicalProblem(up.model.problem.Problem):
             task.name not in self._abstract_tasks
         ), f"A task with name '{task.name}' already exists."
         self._abstract_tasks[task.name] = task
+        for param in task.parameters:
+            if param.type.is_user_type():
+                self._add_user_type(param.type)
         return task
 
     @property
@@ -152,6 +155,9 @@ class HierarchicalProblem(up.model.problem.Problem):
             method.achieved_task.task.name in self._abstract_tasks
         ), f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
         self._methods[method.name] = method
+        for param in method.parameters:
+            if param.type.is_user_type():
+                self._add_user_type(param.type)
 
     @property
     def task_network(self):

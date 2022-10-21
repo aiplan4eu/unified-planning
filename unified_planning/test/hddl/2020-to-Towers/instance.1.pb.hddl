@@ -1,0 +1,23 @@
+(define
+ (problem tower_problem_1)
+
+ (:domain towers)
+
+ (:objects t1 t2 t3 - TOWER r1 - RING)
+ (:htn
+  :ordered-tasks (and
+    (task0 (shiftTower t1 t2 t3))
+  )
+ )
+(:init
+  (smallerThan r1 t1)
+  (smallerThan r1 t2)
+  (smallerThan r1 t3)
+  (on r1 t1)
+  (towerTop r1 t1)
+  (towerTop t2 t2)
+  (towerTop t3 t3)
+(goal_on r1 t3))
+
+ (:goal (and (on r1 t3) ))
+)

@@ -1,0 +1,167 @@
+(define (domain hiking)
+
+(:requirements :negative-preconditions
+	:hierarchy
+	:typing
+	:equality
+	:method-preconditions
+)
+
+(:types car tent person couple place)
+
+(:predicates (at_tent ?t - tent ?pos - place) (at_person ?p - person ?pos - place) (at_car ?car - car ?pos - place) (partners ?cpl - couple ?p1 - person ?p2 - person) (up ?t - tent) (down ?t - tent) (walked ?cpl - couple ?pos - place) (next ?from - place ?to - place))
+
+(:task trip_to1
+  :parameters (?cpl - couple ?to - place) )
+
+(:task trip_to2
+  :parameters (?cpl - couple ?from - place ?to - place) )
+
+(:task walk_everyone
+  :parameters (?t - tent ?to - place ?from - place) )
+
+(:task prepare_trip
+  :parameters (?start - place) )
+
+(:task bring_tent
+  :parameters (?start - place) )
+
+(:task bring_cars
+  :parameters (?start - place) )
+
+(:task go_hiking
+  :parameters (?cpl - couple ?to - place) )
+
+(:task everyone_go_hiking
+  :parameters (?to - place) )
+
+(:method m0_trip_to1
+  :parameters ( ?cpl - couple  ?to - place ?from - place ?p1 - person ?p2 - person )
+  :task (trip_to1 ?cpl ?to)
+  :precondition (and (partners ?cpl ?p1 ?p2) (at_person ?p1 ?from) (at_person ?p2 ?from))
+  :ordered-subtasks(and (t1 (trip_to2 ?cpl ?from ?to))) ) 
+
+(:method m1_trip_to2
+  :parameters ( ?cpl - couple  ?from - place  ?to - place )
+  :task (trip_to2 ?cpl ?from ?to)
+  :precondition (and (= ?from ?to))
+  :ordered-subtasks(and (t1 (nop))) ) 
+
+(:method m2_trip_to2
+  :parameters ( ?cpl - couple  ?from - place  ?to - place ?mid - place )
+  :task (trip_to2 ?cpl ?from ?to)
+  :precondition (and (next ?from ?mid))
+  :ordered-subtasks(and (t1 (trip_to2 ?cpl ?from ?mid)) (t2 (trip_to2 ?cpl ?mid ?to))) ) 
+
+(:method m3_trip_to2
+  :parameters ( ?cpl - couple  ?from - place  ?to - place ?p1 - person ?car1 - car ?p2 - person ?car2 - car ?t - tent )
+  :task (trip_to2 ?cpl ?from ?to)
+  :precondition (and (next ?from ?to) (partners ?cpl ?p1 ?p2) (at_person ?p1 ?from) (at_person ?p2 ?from) (at_car ?car1 ?from) (at_car ?car2 ?from) (at_tent ?t ?from))
+  :ordered-subtasks(and (t1 (drive_tent ?p1 ?from ?to ?car1 ?t)) (t2 (drive ?p2 ?from ?to ?car2)) (t3 (put_up ?p1 ?to ?t)) (t4 (drive_passenger ?p2 ?to ?from ?car2 ?p1)) (t5 (walk_everyone ?t ?to ?from)) (t6 (put_down ?p2 ?to ?t)) (t7 (drive_passenger ?p1 ?to ?from ?car1 ?p2)) (t8 (drive ?p1 ?from ?to ?car1)) (t9 (drive ?p2 ?from ?to ?car2))) ) 
+
+(:method m4_walk_everyone
+  :parameters ( ?t - tent  ?to - place  ?from - place )
+  :task (walk_everyone ?t ?to ?from)
+  :precondition ()
+  :ordered-subtasks(and (t1 (nop))) ) 
+
+(:method m5_walk_everyone
+  :parameters ( ?t - tent  ?to - place  ?from - place ?p1 - person ?p2 - person ?cpl - couple )
+  :task (walk_everyone ?t ?to ?from)
+  :precondition (and (next ?from ?to) (partners ?cpl ?p1 ?p2) (at_person ?p1 ?from) (at_person ?p2 ?from))
+  :ordered-subtasks(and (t1 (walk_together ?t ?to ?p1 ?from ?p2 ?cpl)) (t2 (walk_everyone ?t ?to ?from))) ) 
+
+(:method m6_prepare_trip
+  :parameters ( ?start - place )
+  :task (prepare_trip ?start)
+  :precondition ()
+  :ordered-subtasks(and (t1 (bring_tent ?start)) (t2 (bring_cars ?start))) ) 
+
+(:method m7_bring_tent
+  :parameters ( ?start - place ?p - person ?loc - place ?car - car ?t - tent )
+  :task (bring_tent ?start)
+  :precondition (and (at_tent ?t ?loc) (at_person ?p ?loc) (at_car ?car ?loc) (not (= ?loc ?start)) (down ?t))
+  :ordered-subtasks(and (t1 (drive_tent ?p ?loc ?start ?car ?t))) ) 
+
+(:method m8_bring_tent
+  :parameters ( ?start - place ?p - person ?loc - place ?car - car ?t - tent )
+  :task (bring_tent ?start)
+  :precondition (and (at_tent ?t ?loc) (at_person ?p ?loc) (at_car ?car ?loc) (not (= ?loc ?start)) (up ?t))
+  :ordered-subtasks(and (t1 (put_down ?p ?loc ?t)) (t2 (drive_tent ?p ?loc ?start ?car ?t))) ) 
+
+(:method m9_bring_tent
+  :parameters ( ?start - place ?t - tent )
+  :task (bring_tent ?start)
+  :precondition (and (at_tent ?t ?start) (down ?t))
+  :ordered-subtasks(and (t1 (nop))) ) 
+
+(:method m10_bring_tent
+  :parameters ( ?start - place ?p - person ?t - tent )
+  :task (bring_tent ?start)
+  :precondition (and (at_tent ?t ?start) (at_person ?p ?start) (up ?t))
+  :ordered-subtasks(and (t1 (put_down ?p ?start ?t))) ) 
+
+(:method m11_bring_cars
+  :parameters ( ?start - place ?car1 - car ?car2 - car )
+  :task (bring_cars ?start)
+  :precondition (and (at_car ?car1 ?start) (at_car ?car2 ?start) (not (= ?car1 ?car2)))
+  :ordered-subtasks(and (t1 (nop))) ) 
+
+(:method m12_bring_cars
+  :parameters ( ?start - place ?p2 - person ?loc2 - place ?car2 - car )
+  :task (bring_cars ?start)
+  :precondition (and (at_car ?car2 ?loc2) (at_person ?p2 ?loc2) (not (= ?start ?loc2)))
+  :ordered-subtasks(and (t1 (drive ?p2 ?loc2 ?start ?car2)) (t2 (bring_cars ?start))) ) 
+
+(:method m13_go_hiking
+  :parameters ( ?cpl - couple  ?to - place ?from - place ?p1 - person ?p2 - person )
+  :task (go_hiking ?cpl ?to)
+  :precondition (and (partners ?cpl ?p1 ?p2) (at_person ?p1 ?from) (at_person ?p2 ?from) (not (= ?p1 ?p2)))
+  :ordered-subtasks(and (t1 (prepare_trip ?from)) (t2 (trip_to1 ?cpl ?to))) ) 
+
+(:method m14_everyone_go_hiking
+  :parameters ( ?to - place ?from - place ?cpl - couple ?p1 - person ?p2 - person )
+  :task (everyone_go_hiking ?to)
+  :precondition (and (partners ?cpl ?p1 ?p2) (at_person ?p1 ?from) (at_person ?p2 ?from) (not (= ?p1 ?p2)))
+  :ordered-subtasks(and (t1 (prepare_trip ?from)) (t2 (trip_to1 ?cpl ?to))) ) 
+
+(:action put_down
+  :parameters (?p - person ?pos - place ?t - tent)
+  :precondition (and (at_person ?p ?pos) (at_tent ?t ?pos) (up ?t))
+  :effect (and (down ?t) (not (up ?t))))
+
+(:action put_up
+  :parameters (?p - person ?pos - place ?t - tent)
+  :precondition (and (at_person ?p ?pos) (at_tent ?t ?pos) (down ?t))
+  :effect (and (up ?t) (not (down ?t))))
+
+(:action drive_passenger
+  :parameters (?p - person ?from - place ?to - place ?car - car ?pas - person)
+  :precondition (and (at_person ?p ?from) (at_car ?car ?from) (at_person ?pas ?from) (not (= ?p ?pas)))
+  :effect (and (at_person ?p ?to) (not (at_person ?p ?from)) (at_car ?car ?to) (not (at_car ?car ?from)) (at_person ?pas ?to) (not (at_person ?pas ?from))))
+
+(:action drive
+  :parameters (?p - person ?from - place ?to - place ?car - car)
+  :precondition (and (at_person ?p ?from) (at_car ?car ?from))
+  :effect (and (at_person ?p ?to) (not (at_person ?p ?from)) (at_car ?car ?to) (not (at_car ?car ?from))))
+
+(:action drive_tent
+  :parameters (?p - person ?from - place ?to - place ?car - car ?t - tent)
+  :precondition (and (at_person ?p ?from) (at_car ?car ?from) (at_tent ?t ?from) (down ?t))
+  :effect (and (at_person ?p ?to) (not (at_person ?p ?from)) (at_car ?car ?to) (not (at_car ?car ?from)) (at_tent ?t ?to) (not (at_tent ?t ?from))))
+
+(:action drive_tent_passenger
+  :parameters (?p - person ?from - place ?to - place ?car - car ?t - tent ?pas - person)
+  :precondition (and (at_person ?p ?from) (at_car ?car ?from) (at_tent ?t ?from) (down ?t) (at_person ?pas ?from) (not (= ?p ?pas)))
+  :effect (and (at_person ?p ?to) (not (at_person ?p ?from)) (at_car ?car ?to) (not (at_car ?car ?from)) (at_tent ?t ?to) (not (at_tent ?t ?from)) (at_person ?pas ?to) (not (at_person ?pas ?from))))
+
+(:action walk_together
+  :parameters (?t - tent ?to - place ?p1 - person ?from - place ?p2 - person ?cpl - couple)
+  :precondition (and (at_tent ?t ?to) (up ?t) (at_person ?p1 ?from) (next ?from ?to) (at_person ?p2 ?from) (not (= ?p1 ?p2)) (walked ?cpl ?from) (partners ?cpl ?p1 ?p2))
+  :effect (and (at_person ?p1 ?to) (not (at_person ?p1 ?from)) (at_person ?p2 ?to) (not (at_person ?p2 ?from)) (walked ?cpl ?to) (not (walked ?cpl ?from))))
+
+(:action nop
+  :parameters ()
+  :precondition ()
+  :effect ())
+)

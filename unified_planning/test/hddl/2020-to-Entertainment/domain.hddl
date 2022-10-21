@@ -1,0 +1,541 @@
+(define (domain d)
+  (:requirements :negative-preconditions 
+  	:hierarchy
+	:typing
+	:equality
+	:method-preconditions
+  )
+
+  (:types
+    connector - master_sort
+    equipment - master_sort
+    artificial_sort_for_dvdMINUS_1 - equipment
+    artificial_sort_for_simpleMINUS_tvMINUS_1 - equipment
+  )
+
+  (:predicates
+    (audio_connected ?var0 - equipment ?var1 - equipment)
+    (audio_connector ?var0 - connector)
+    (compatible ?var0 - connector ?var1 - connector)
+    (conn_of ?var0 - equipment ?var1 - connector)
+    (in_connector ?var0 - connector)
+    (out_connector ?var0 - connector)
+    (unused ?var0 - connector)
+    (video_connected ?var0 - equipment ?var1 - equipment)
+    (video_connector ?var0 - connector)
+    (multi_stage_execution_guard)
+    (doing_action_plugBAR_ce_base_action ?var0 - equipment ?var1 - connector ?var2 - equipment ?var3 - connector)
+    (do_apply___ce_check_0_plugBAR_ce_base_action ?var0 - equipment ?var1 - connector ?var2 - equipment ?var3 - connector)
+    (not_apply___ce_check_0_plugBAR_ce_base_action ?var0 - equipment ?var1 - connector ?var2 - equipment ?var3 - connector)
+    (do_apply___ce_check_1_plugBAR_ce_base_action ?var0 - equipment ?var1 - connector ?var2 - equipment ?var3 - connector)
+    (not_apply___ce_check_1_plugBAR_ce_base_action ?var0 - equipment ?var1 - connector ?var2 - equipment ?var3 - connector)
+  )
+
+
+  (:task US__ce_check_0_plugBAR_ce_base_action :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector))
+  (:task US__ce_apply_if_applicable_0_plugBAR_ce_base_action :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector))
+  (:task US__ce_check_1_plugBAR_ce_base_action :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector))
+  (:task US__ce_apply_if_applicable_1_plugBAR_ce_base_action :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector))
+  (:task plug :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector))
+  (:task a_connect :parameters (?e1 - equipment ?e2 - equipment))
+  (:task v_connect :parameters (?e1 - equipment ?e2 - equipment))
+  (:task av_connect :parameters (?e1 - equipment ?e2 - equipment))
+  (:task direct_a_connect :parameters (?e1 - equipment ?e2 - equipment))
+  (:task direct_v_connect :parameters (?e1 - equipment ?e2 - equipment))
+  (:task direct_av_connect :parameters (?e1 - equipment ?e2 - equipment))
+  (:task US__top :parameters ())
+
+  (:method US_method_for_ce_yes___ce_check_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_yes_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_no_0__ce_check_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_no_0_cond_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_no_1__ce_check_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_no_0_cond_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_do_apply___ce_apply_if_applicable_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_apply_if_applicable_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_apply_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_not_do_apply___ce_apply_if_applicable_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_apply_if_applicable_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_not_apply_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_yes___ce_check_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_yes_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_no_0__ce_check_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_no_1_cond_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_no_1__ce_check_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_no_1_cond_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_do_apply___ce_apply_if_applicable_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_apply_if_applicable_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_apply_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_ce_not_do_apply___ce_apply_if_applicable_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (US__ce_apply_if_applicable_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid0 (US__ce_not_apply_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:method US_method_for_multiple_expansions_of_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :task (plug ?e1 ?c1 ?e2 ?c2)
+    :subtasks (and
+      (xid_main (plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+      (xid_ce_prec_0 (US__ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+      (xid_ce_prec_1 (US__ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+      (xid_main_del (US_main_delete_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+      (xid_ce_eff_0 (US__ce_apply_if_applicable_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+      (xid_ce_eff_1 (US__ce_apply_if_applicable_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+      (xid_main_add (US_main_adds_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+    :ordering (and
+      (< xid_main xid_ce_prec_0)
+      (< xid_main xid_ce_prec_1)
+      (< xid_ce_prec_0 xid_ce_prec_1)
+      (< xid_main xid_main_del)
+      (< xid_ce_prec_0 xid_main_del)
+      (< xid_ce_prec_1 xid_main_del)
+      (< xid_main xid_ce_eff_0)
+      (< xid_ce_prec_0 xid_ce_eff_0)
+      (< xid_ce_prec_1 xid_ce_eff_0)
+      (< xid_main_del xid_ce_eff_0)
+      (< xid_main xid_ce_eff_1)
+      (< xid_ce_prec_0 xid_ce_eff_1)
+      (< xid_ce_prec_1 xid_ce_eff_1)
+      (< xid_main_del xid_ce_eff_1)
+      (< xid_ce_eff_0 xid_ce_eff_1)
+      (< xid_main xid_main_add)
+      (< xid_ce_prec_0 xid_main_add)
+      (< xid_ce_prec_1 xid_main_add)
+      (< xid_main_del xid_main_add)
+      (< xid_ce_eff_0 xid_main_add)
+      (< xid_ce_eff_1 xid_main_add)
+    )
+  )
+
+  (:method US__top_method
+    :parameters (?var_for_dvdMINUS_1_1 - artificial_sort_for_dvdMINUS_1 ?var_for_simpleMINUS_tvMINUS_1_2 - artificial_sort_for_simpleMINUS_tvMINUS_1)
+    :task (US__top)
+    :subtasks (and
+      (xUS__t_id_17 (av_connect ?var_for_dvdMINUS_1_1 ?var_for_simpleMINUS_tvMINUS_1_2))
+    )
+  )
+
+  (:method mMINUS_connectMINUS_directMINUS_a
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :task (a_connect ?e1 ?e2)
+    :subtasks (and
+      (xUS__t_id_8 (direct_a_connect ?e1 ?e2))
+    )
+  )
+
+  (:method mMINUS_connectMINUS_recMINUS_a
+    :parameters (?e1 - equipment ?e2 - equipment ?e3 - equipment)
+    :task (a_connect ?e1 ?e3)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (not (= ?e2 ?e3))
+    )
+    :subtasks (and
+      (xUS__t_id_9 (a_connect ?e1 ?e2))
+      (xUS__t_id_10 (direct_a_connect ?e2 ?e3))
+    )
+    :ordering (and
+      (< xUS__t_id_9 xUS__t_id_10)
+    )
+  )
+
+  (:method mMINUS_connectMINUS_directMINUS_av
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :task (av_connect ?e1 ?e2)
+    :subtasks (and
+      (xUS__t_id_0 (direct_av_connect ?e1 ?e2))
+    )
+  )
+
+  (:method mMINUS_connectMINUS_recMINUS_avMINUS_1
+    :parameters (?e1 - equipment ?e2 - equipment ?e3 - equipment)
+    :task (av_connect ?e1 ?e3)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (not (= ?e2 ?e3))
+    )
+    :subtasks (and
+      (xUS__t_id_1 (direct_av_connect ?e1 ?e2))
+      (xUS__t_id_2 (av_connect ?e2 ?e3))
+    )
+    :ordering (and
+      (< xUS__t_id_1 xUS__t_id_2)
+    )
+  )
+
+  (:method mMINUS_connectMINUS_splitMINUS_1
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :task (av_connect ?e1 ?e2)
+    :subtasks (and
+      (xUS__t_id_3 (v_connect ?e1 ?e2))
+      (xUS__t_id_4 (a_connect ?e1 ?e2))
+    )
+    :ordering (and
+      (< xUS__t_id_3 xUS__t_id_4)
+    )
+  )
+
+  (:method mMINUS_connectMINUS_splitMINUS_2
+    :parameters (?e1 - equipment ?e2 - equipment ?e3 - equipment)
+    :task (av_connect ?e1 ?e3)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (not (= ?e2 ?e3))
+    )
+    :subtasks (and
+      (xUS__t_id_5 (v_connect ?e1 ?e2))
+      (xUS__t_id_6 (a_connect ?e1 ?e2))
+      (xUS__t_id_7 (av_connect ?e2 ?e3))
+    )
+    :ordering (and
+      (< xUS__t_id_5 xUS__t_id_6)
+      (< xUS__t_id_6 xUS__t_id_7)
+    )
+  )
+
+  (:method mMINUS_dconnectMINUS_a
+    :parameters (?e1 - equipment ?e2 - equipment ?c1 - connector ?c2 - connector)
+    :task (direct_a_connect ?e1 ?e2)
+    :subtasks (and
+      (xUS__t_id_15 (plug ?e1 ?c1 ?e2 ?c2))
+      (xmprec (US__method_precondition_mMINUS_dconnectMINUS_a ?e1 ?e2 ?c1 ?c2))
+    )
+    :ordering (and
+      (< xmprec xUS__t_id_15)
+    )
+  )
+
+  (:method mMINUS_dconnectMINUS_aMINUS_empty
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :task (direct_a_connect ?e1 ?e2)
+    :subtasks (and
+      (xmprec (US__method_precondition_mMINUS_dconnectMINUS_aMINUS_empty ?e1 ?e2))
+    )
+  )
+
+  (:method mMINUS_dconnectMINUS_av
+    :parameters (?e1 - equipment ?e2 - equipment ?c1 - connector ?c2 - connector)
+    :task (direct_av_connect ?e1 ?e2)
+    :subtasks (and
+      (xUS__t_id_14 (plug ?e1 ?c1 ?e2 ?c2))
+      (xmprec (US__method_precondition_mMINUS_dconnectMINUS_av ?e1 ?e2 ?c1 ?c2))
+    )
+    :ordering (and
+      (< xmprec xUS__t_id_14)
+    )
+  )
+
+  (:method mMINUS_dconnectMINUS_avMINUS_empty
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :task (direct_av_connect ?e1 ?e2)
+    :subtasks (and
+      (xmprec (US__method_precondition_mMINUS_dconnectMINUS_avMINUS_empty ?e1 ?e2))
+    )
+  )
+
+  (:method mMINUS_dconnectMINUS_v
+    :parameters (?e1 - equipment ?e2 - equipment ?c1 - connector ?c2 - connector)
+    :task (direct_v_connect ?e1 ?e2)
+    :subtasks (and
+      (xUS__t_id_16 (plug ?e1 ?c1 ?e2 ?c2))
+      (xmprec (US__method_precondition_mMINUS_dconnectMINUS_v ?e1 ?e2 ?c1 ?c2))
+    )
+    :ordering (and
+      (< xmprec xUS__t_id_16)
+    )
+  )
+
+  (:method mMINUS_dconnectMINUS_vMINUS_empty
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :task (direct_v_connect ?e1 ?e2)
+    :subtasks (and
+      (xmprec (US__method_precondition_mMINUS_dconnectMINUS_vMINUS_empty ?e1 ?e2))
+    )
+  )
+
+  (:method mMINUS_connectMINUS_directMINUS_v
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :task (v_connect ?e1 ?e2)
+    :subtasks (and
+      (xUS__t_id_11 (direct_v_connect ?e1 ?e2))
+    )
+  )
+
+  (:method mMINUS_connectMINUS_recMINUS_v
+    :parameters (?e1 - equipment ?e2 - equipment ?e3 - equipment)
+    :task (v_connect ?e1 ?e3)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (not (= ?e2 ?e3))
+    )
+    :subtasks (and
+      (xUS__t_id_12 (v_connect ?e1 ?e2))
+      (xUS__t_id_13 (direct_v_connect ?e2 ?e3))
+    )
+    :ordering (and
+      (< xUS__t_id_12 xUS__t_id_13)
+    )
+  )
+
+  (:action US__ce_yes_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (audio_connector ?c1)
+      (audio_connector ?c2)
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (do_apply___ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+  )
+
+  (:action US__ce_no_0_cond_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (not (audio_connector ?c1))
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not_apply___ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+  )
+
+  (:action US__ce_no_0_cond_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (not (audio_connector ?c2))
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not_apply___ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+  )
+
+  (:action US__ce_apply_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (do_apply___ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (audio_connected ?e1 ?e2)
+      (not (do_apply___ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:action US__ce_not_apply_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (not_apply___ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not (not_apply___ce_check_0_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:action US__ce_yes_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (video_connector ?c1)
+      (video_connector ?c2)
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (do_apply___ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+  )
+
+  (:action US__ce_no_1_cond_0_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (not (video_connector ?c1))
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not_apply___ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+  )
+
+  (:action US__ce_no_1_cond_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (not (video_connector ?c2))
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not_apply___ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+  )
+
+  (:action US__ce_apply_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (do_apply___ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (video_connected ?e1 ?e2)
+      (not (do_apply___ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:action US__ce_not_apply_1_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (not_apply___ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not (not_apply___ce_check_1_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:action US_main_delete_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not (unused ?c1))
+      (not (unused ?c2))
+    )
+  )
+
+  (:action US_main_adds_plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+    )
+    :effect (and
+      (not (multi_stage_execution_guard))
+      (not (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2))
+    )
+  )
+
+  (:action plugBAR_ce_base_action
+    :parameters (?e1 - equipment ?c1 - connector ?e2 - equipment ?c2 - connector)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (unused ?c1)
+      (unused ?c2)
+      (conn_of ?e1 ?c1)
+      (conn_of ?e2 ?c2)
+      (compatible ?c1 ?c2)
+      (not (multi_stage_execution_guard))
+    )
+    :effect (and
+      (doing_action_plugBAR_ce_base_action ?e1 ?c1 ?e2 ?c2)
+      (multi_stage_execution_guard)
+    )
+  )
+
+  (:action US__method_precondition_mMINUS_dconnectMINUS_a
+    :parameters (?e1 - equipment ?e2 - equipment ?c1 - connector ?c2 - connector)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (audio_connector ?c1)
+      (audio_connector ?c2)
+      (out_connector ?c1)
+      (in_connector ?c2)
+    )
+  )
+
+  (:action US__method_precondition_mMINUS_dconnectMINUS_aMINUS_empty
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :precondition (and
+      (audio_connected ?e1 ?e2)
+    )
+  )
+
+  (:action US__method_precondition_mMINUS_dconnectMINUS_av
+    :parameters (?e1 - equipment ?e2 - equipment ?c1 - connector ?c2 - connector)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (audio_connector ?c1)
+      (audio_connector ?c2)
+      (video_connector ?c1)
+      (video_connector ?c2)
+      (out_connector ?c1)
+      (in_connector ?c2)
+    )
+  )
+
+  (:action US__method_precondition_mMINUS_dconnectMINUS_avMINUS_empty
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :precondition (and
+      (audio_connected ?e1 ?e2)
+      (video_connected ?e1 ?e2)
+    )
+  )
+
+  (:action US__method_precondition_mMINUS_dconnectMINUS_v
+    :parameters (?e1 - equipment ?e2 - equipment ?c1 - connector ?c2 - connector)
+    :precondition (and
+      (not (= ?e1 ?e2))
+      (video_connector ?c1)
+      (video_connector ?c2)
+      (out_connector ?c1)
+      (in_connector ?c2)
+    )
+  )
+
+  (:action US__method_precondition_mMINUS_dconnectMINUS_vMINUS_empty
+    :parameters (?e1 - equipment ?e2 - equipment)
+    :precondition (and
+      (video_connected ?e1 ?e2)
+    )
+  )
+
+)

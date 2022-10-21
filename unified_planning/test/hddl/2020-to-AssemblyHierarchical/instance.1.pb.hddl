@@ -1,0 +1,54 @@
+(define(problem generischesLinearesVerkabelungsproblemTiefe1)
+(:domain verkabelung)
+(:objects
+    ;; Available Types
+    plugType1 - PlugType
+    data - SignalType
+    ;; Cables
+    cableWithPlugType1 - Cable
+    ;; Devices
+    pc printer - Device
+    ;; Cable - Ports
+    cableWithPlugType1-a - Port
+    cableWithPlugType1-b - Port
+    ;; Device - Ports
+    printer-aPlugType1 pc-bPlugType1 - Port
+)
+
+(:htn
+    :tasks
+    (and
+           (ConnectDevices pc printer data)
+    )
+)
+
+(:init
+    ;; PC
+    (isPartOf pc-bPlugType1 pc)
+    (isPlugType pc-bPlugType1 plugType1)
+    (isPlugFace pc-bPlugType1 female)
+    (isPlugDirection pc-bPlugType1 out)
+    (isSignalSource pc-bPlugType1 data)
+    ;; Printer
+    (isPartOf printer-aPlugType1 printer)
+    (isPlugType printer-aPlugType1 plugType1)
+    (isPlugFace printer-aPlugType1 female)
+    (isPlugDirection printer-aPlugType1 in)
+    (isSignalDestination printer-aPlugType1 data)
+    ;; Cable 1
+    (isPartOf cableWithPlugType1-a cableWithPlugType1)
+    (isPartOf cableWithPlugType1-b cableWithPlugType1)
+    (isPlugType cableWithPlugType1-a plugType1)
+    (isPlugType cableWithPlugType1-b plugType1)
+    (isPlugFace cableWithPlugType1-a male)
+    (isPlugFace cableWithPlugType1-b male)
+    (isPlugDirection cableWithPlugType1-a both)
+    (isPlugDirection cableWithPlugType1-b both)
+    (isSignalRepeater cableWithPlugType1-a cableWithPlugType1-b data)
+    (isSignalRepeater cableWithPlugType1-b cableWithPlugType1-a data)
+)
+
+(:goal
+    (pAim)
+)
+)

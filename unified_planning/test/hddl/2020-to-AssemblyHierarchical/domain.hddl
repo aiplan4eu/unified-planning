@@ -1,0 +1,406 @@
+(define (domain verkabelung)
+(:requirements :negative-preconditions :typing :hierarchy :method-preconditions)
+(:types
+    Port AbstractDevice - Object
+    AbstractCable Device - AbstractDevice
+    Cable Adapter - AbstractCable
+    PlugType PlugFace PlugDirection SignalType - Enum
+)
+
+(:constants
+    male female - PlugFace
+    in out both - PlugDirection
+)
+
+(:predicates
+    (isPlugType ?p - Port ?t - PlugType)
+    (isPlugFace ?p - Port ?f - PlugFace)
+    (isPlugDirection ?p - Port ?d - PlugDirection)
+    (isSignalSource ?p - Port ?t - SignalType)
+    (isSignalDestination ?p - Port ?t - SignalType)
+    (isSignalRepeater ?p1 ?p2 - Port ?t - SignalType)
+    (isPartOf ?p - Port ?d - AbstractDevice)
+    (isConnected ?p1 ?p2 - Port)
+    (isOccupied ?p - Port)
+    (pGuard)
+    (pAim)
+)
+
+(:task ConnectDevices
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType)
+)
+
+(:task ValidateDeviceConnection
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType)
+)
+
+(:task ValidatePortConnection
+    :parameters (?p1 ?p2 - Port ?t - SignalType)
+)
+
+
+(:task connect
+    :parameters (?p1 ?p2 - Port)
+)
+
+(:method c1
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_1 ?p1 ?p2 ?t)
+    )
+)
+(:method c2
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_2 ?p1 ?p2 ?t)
+    )
+)
+(:method c3
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_3 ?p1 ?p2 ?t)
+    )
+)
+(:method c4
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_4 ?p1 ?p2 ?t)
+    )
+)
+(:method c5
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_5 ?p1 ?p2 ?t)
+    )
+)
+(:method c6
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_6 ?p1 ?p2 ?t)
+    )
+)
+(:method c7
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_7 ?p1 ?p2 ?t)
+    )
+)
+(:method c8
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_8 ?p1 ?p2 ?t)
+    )
+)
+
+
+
+
+
+
+(:method m1
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
+    :task (ConnectDevices ?d1 ?d2 ?t)
+    :subtasks (and 
+            (t1 (connect ?p1 ?p2))
+            (t2 (ConnectDevices ?d1 ?d2 ?t))
+    )
+    :ordering (and
+        (< t1 t2)
+    )
+)
+
+(:method m2
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
+    :task (ConnectDevices ?d1 ?d2 ?t)
+    :subtasks (and
+            (t1 (disconnect ?p1 ?p2))
+            (t2 (ConnectDevices ?d1 ?d2 ?t))
+    )
+    :ordering (and
+        (< t1 t2)
+    )
+)
+
+(:method m3
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType)
+    :task (ConnectDevices ?d1 ?d2 ?t)
+    :subtasks (and
+            (t1 (guard))
+            (t2 (ValidateDeviceConnection ?d1 ?d2 ?t))
+    )
+    :ordering (and
+        (< t1 t2)
+    )
+)
+
+(:method vDC_to_vPC_1
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
+    :task (ValidateDeviceConnection ?d1 ?d2 ?t)
+    :precondition (and
+            (isPartOf ?p1 ?d1)
+            (isPartOf ?p2 ?d2)
+            (isPlugDirection ?p1 out)
+            (isPlugDirection ?p2 in)
+            (isSignalSource ?p1 ?t)
+            (isSignalDestination ?p2 ?t)
+    )
+    :subtasks (and
+        (ValidatePortConnection ?p1 ?p2 ?t)
+    )
+)
+(:method vDC_to_vPC_2
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
+    :task (ValidateDeviceConnection ?d1 ?d2 ?t)
+    :precondition (and
+            (isPartOf ?p1 ?d1)
+            (isPartOf ?p2 ?d2)
+            (isPlugDirection ?p1 out)
+            (isPlugDirection ?p2 both)
+            (isSignalSource ?p1 ?t)
+            (isSignalDestination ?p2 ?t)
+    )
+    :subtasks (and
+        (ValidatePortConnection ?p1 ?p2 ?t)
+    )
+)
+(:method vDC_to_vPC_3
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
+    :task (ValidateDeviceConnection ?d1 ?d2 ?t)
+    :precondition (and
+            (isPartOf ?p1 ?d1)
+            (isPartOf ?p2 ?d2)
+            (isPlugDirection ?p1 both)
+            (isPlugDirection ?p2 in)
+            (isSignalSource ?p1 ?t)
+            (isSignalDestination ?p2 ?t)
+    )
+    :subtasks (and
+        (ValidatePortConnection ?p1 ?p2 ?t)
+    )
+)
+
+(:method vDC_to_vPC_4
+    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
+    :task (ValidateDeviceConnection ?d1 ?d2 ?t)
+    :precondition (and
+            (isPartOf ?p1 ?d1)
+            (isPartOf ?p2 ?d2)
+            (isPlugDirection ?p1 both)
+            (isPlugDirection ?p2 both)
+            (isSignalSource ?p1 ?t)
+            (isSignalDestination ?p2 ?t)
+    )
+    :subtasks (and
+        (ValidatePortConnection ?p1 ?p2 ?t)
+    )
+)
+
+(:method vPC_to_vPC
+    :parameters (?t - SignalType ?p1 ?p2 ?p3 ?p4 - Port)
+    :task (ValidatePortConnection ?p1 ?p2 ?t)
+    :precondition (and
+            (isConnected ?p1 ?p3)
+            (isSignalRepeater ?p3 ?p4 ?t)
+    )
+    :subtasks (and
+        (ValidatePortConnection ?p4 ?p2 ?t)
+    )
+)
+
+(:method finish
+    :parameters (?t - SignalType ?p1 ?p2 - Port)
+    :task (ValidatePortConnection ?p1 ?p2 ?t)
+    :precondition (isConnected ?p1 ?p2)
+    :subtasks (and
+        (ok)
+    )
+)
+
+(:action connect_1
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 male)
+            (isPlugFace ?p2 female)
+            (isPlugDirection ?p1 out)
+            (isPlugDirection ?p2 in)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+(:action connect_2
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 male)
+            (isPlugFace ?p2 female)
+            (isPlugDirection ?p1 in)
+            (isPlugDirection ?p2 out)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+(:action connect_3
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 male)
+            (isPlugFace ?p2 female)
+            (isPlugDirection ?p1 both)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+(:action connect_4
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 male)
+            (isPlugFace ?p2 female)
+            (isPlugDirection ?p2 both)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+(:action connect_5
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 female)
+            (isPlugFace ?p2 male)
+            (isPlugDirection ?p1 out)
+            (isPlugDirection ?p2 in)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+(:action connect_6
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 female)
+            (isPlugFace ?p2 male)
+            (isPlugDirection ?p1 in)
+            (isPlugDirection ?p2 out)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+(:action connect_7
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 female)
+            (isPlugFace ?p2 male)
+            (isPlugDirection ?p1 both)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+(:action connect_8
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 female)
+            (isPlugFace ?p2 male)
+            (isPlugDirection ?p2 both)
+        )
+    :effect (and
+            (isConnected ?p1 ?p2)
+            (isOccupied ?p1)
+            (isOccupied ?p2)
+    )
+)
+
+(:action disconnect
+    :parameters (?p1 ?p2 - Port)
+    :precondition (and
+            (not (pGuard))
+            (isConnected ?p1 ?p2)
+        )
+    :effect (and
+            (not (isConnected ?p1 ?p2))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+    )
+)
+
+(:action guard
+    :parameters ()
+    :precondition ()
+    :effect (and
+        (pGuard)
+    )
+)
+
+(:action ok
+    :parameters ()
+    :precondition (and
+        (pGuard)
+    )
+    :effect (and
+        (pAim)
+    )
+)
+)

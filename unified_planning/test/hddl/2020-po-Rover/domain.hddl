@@ -1,0 +1,367 @@
+(define (domain rover)
+  (:requirements :negative-preconditions
+	:hierarchy
+	:typing
+	:method-preconditions
+  )
+
+  (:types
+      rover waypoint objective camera mode lander store - object
+  )
+
+  (:predicates
+     (at ?rover - rover ?wp - waypoint)
+     (at_lander ?l - lander ?y - waypoint)
+     (at_rock_sample ?p - waypoint)
+     (at_soil_sample ?p - waypoint)
+     (available ?x - rover)
+     (calibrated ?i - camera ?r - rover)
+     (calibration_target ?camera - camera ?objective - objective)
+     (can_traverse ?rover - rover ?from ?to - waypoint)
+     (channel_free ?l - lander)
+     (communicated_image_data ?o - objective ?m - mode)
+     (communicated_rock_data ?p - waypoint)
+     (communicated_soil_data ?p - waypoint)
+     (empty ?s - store)
+     (equipped_for_imaging ?rover - rover)
+     (equipped_for_rock_analysis ?rover - rover)
+     (equipped_for_soil_analysis ?rover - rover)
+     (full ?s - store)
+     (have_image ?r - rover ?o - objective ?m - mode)
+     (have_rock_analysis ?x - rover ?p - waypoint)
+     (have_soil_analysis ?x - rover ?p - waypoint)
+     (on_board ?camera - camera ?rover - rover)
+     (store_of ?s - store ?rover - rover)
+     (supports ?camera - camera ?mode - mode)
+     (visible ?x ?y - waypoint)
+     (visible_from ?objective - objective ?waypoint - waypoint)
+     (visited ?mid - waypoint)
+  )
+
+  (:task calibrate_abs :parameters (?rover - rover ?camera - camera))
+  (:task empty-store :parameters (?s - store ?rover - rover))
+  (:task get_image_data :parameters (?objective - objective ?mode - mode))
+  (:task get_rock_data :parameters (?waypoint - waypoint))
+  (:task get_soil_data :parameters (?waypoint - waypoint))
+  (:task navigate_abs :parameters (?rover - rover ?to - waypoint))
+  (:task send_image_data :parameters (?rover - rover ?objective - objective ?mode - mode))
+  (:task send_rock_data :parameters (?rover - rover ?waypoint - waypoint))
+  (:task send_soil_data :parameters (?rover - rover ?waypoint - waypoint))
+  
+  (:method m-empty-store-1
+    :parameters (?s - store ?rover - rover)
+    :task (empty-store ?s ?rover)
+    :precondition (empty ?s)
+    :subtasks ()
+  )
+
+  (:method m-empty-store-2
+    :parameters (?s - store ?rover - rover)
+    :task (empty-store ?s ?rover)
+    :precondition (not (empty ?s))
+    :subtasks (drop ?rover ?s)
+  )
+
+  (:method m-navigate_abs-1
+    :parameters (?rover - rover ?from ?to - waypoint)
+    :task (navigate_abs ?rover ?to)
+    :precondition (at ?rover ?from)
+    :ordered-subtasks (and 
+        (visit ?from)
+        (navigate ?rover ?from ?to)
+        (unvisit ?from)
+      )
+  )
+
+  (:method m-navigate_abs-2
+    :parameters (?rover - rover ?to - waypoint)
+    :task (navigate_abs ?rover ?to)
+    :precondition (at ?rover ?to)
+    :ordered-subtasks ( )
+  )
+
+  (:method m-navigate_abs-3
+    :parameters (?rover - rover ?from ?to - waypoint)
+    :task (navigate_abs ?rover ?to)
+    :precondition (and 
+        (not (at ?rover ?to))
+        (can_traverse ?rover ?from ?to)
+      )
+    :ordered-subtasks (and 
+        (navigate ?rover ?from ?to)
+      )
+  )
+
+  (:method m-navigate_abs-4
+    :parameters (?rover - rover ?from ?to ?mid - waypoint)
+    :task (navigate_abs ?rover ?to)
+    :precondition (and 
+        (not (at ?rover ?to))
+        (not (can_traverse ?rover ?from ?to))
+        (can_traverse ?rover ?from ?mid)
+        (not (visited ?mid))
+      )
+    :ordered-subtasks (and 
+        (navigate ?rover ?from ?mid)
+        (visit ?mid)
+        (navigate ?rover ?mid ?to)
+        (unvisit ?mid)
+      )
+  )
+
+  (:method m-send_soil_data
+    :parameters (?rover - rover ?waypoint ?x ?y - waypoint ?l - lander)
+    :task (send_soil_data ?rover ?waypoint)
+    :precondition (and 
+        (at_lander ?l ?y)
+        (visible ?x ?y)
+      )
+    :ordered-subtasks (and 
+        (navigate_abs ?rover ?x)
+        (communicate_soil_data ?rover ?l ?waypoint ?x ?y)
+      )
+  )
+
+  (:method m-get_soil_data
+    :parameters (?waypoint - waypoint ?rover - rover ?s - store)
+    :task (get_soil_data ?waypoint)
+    :precondition (and 
+        (store_of ?s ?rover)
+        (equipped_for_soil_analysis ?rover)
+      )
+    :ordered-subtasks (and 
+        (navigate_abs ?rover ?waypoint)
+        (empty-store ?s ?rover)
+        (sample_soil ?rover ?s ?waypoint)
+        (send_soil_data ?rover ?waypoint)
+      )
+  )
+
+  (:method m-send_rock_data
+    :parameters (?rover - rover ?waypoint ?x ?y - waypoint ?l - lander)
+    :task (send_rock_data ?rover ?waypoint)
+    :precondition (and 
+        (at_lander ?l ?y)
+        (visible ?x ?y)
+      )
+    :ordered-subtasks (and 
+        (navigate_abs ?rover ?x)
+        (communicate_rock_data ?rover ?l ?waypoint ?x ?y)
+      )
+  )
+
+  (:method m-get_rock_data
+    :parameters (?waypoint - waypoint ?rover - rover ?s - store)
+    :task (get_rock_data ?waypoint)
+    :precondition (and 
+        (equipped_for_rock_analysis ?rover)
+        (store_of ?s ?rover)
+      )
+    :ordered-subtasks (and 
+        (navigate_abs ?rover ?waypoint)
+        (empty-store ?s ?rover)
+        (sample_rock ?rover ?s ?waypoint)
+        (send_rock_data ?rover ?waypoint)
+      )
+  )
+
+  (:method m-send_image_data
+    :parameters (?rover - rover ?objective - objective ?mode - mode ?x ?y - waypoint ?l - lander)
+    :task (send_image_data ?rover ?objective ?mode)
+    :precondition (and 
+        (at_lander ?l ?y)
+        (visible ?x ?y)
+      )
+    :ordered-subtasks (and 
+        (navigate_abs ?rover ?x)
+        (communicate_image_data ?rover ?l ?objective ?mode ?x ?y)
+      )
+  )
+
+  (:method m-get_image_data
+    :parameters (?objective - objective ?mode - mode ?camera - camera ?rover - rover ?waypoint - waypoint)
+    :task (get_image_data ?objective ?mode)
+    :precondition (and 
+        (equipped_for_imaging ?rover)
+        (on_board ?camera ?rover)
+        (supports ?camera ?mode)
+        (visible_from ?objective ?waypoint)
+      )
+    :ordered-subtasks (and 
+        (calibrate_abs ?rover ?camera)
+        (navigate_abs ?rover ?waypoint)
+        (take_image ?rover ?waypoint ?objective ?camera ?mode)
+        (send_image_data ?rover ?objective ?mode)
+      )
+  )
+
+  (:method m-calibrate_abs
+    :parameters (?rover - rover ?camera - camera ?objective - objective ?waypoint - waypoint)
+    :task (calibrate_abs ?rover ?camera)
+    :precondition (and 
+        (calibration_target ?camera ?objective)
+        (visible_from ?objective ?waypoint)
+      )
+    :ordered-subtasks (and 
+        (navigate_abs ?rover ?waypoint)
+        (calibrate ?rover ?camera ?objective ?waypoint)
+      )
+  )
+
+  (:action navigate
+    :parameters (?x - rover ?y ?z - waypoint)
+    :precondition (and
+        (can_traverse ?x ?y ?z)
+        (available ?x)
+        (at ?x ?y)
+        (visible ?y ?z)
+      )
+    :effect (and
+        (not (at ?x ?y))
+        (at ?x ?z)
+      )
+  )
+
+  (:action sample_soil
+    :parameters (?x - rover ?s - store ?p - waypoint)
+    :precondition (and
+        (at ?x ?p)
+        (at_soil_sample ?p)
+        (equipped_for_soil_analysis ?x)
+        (store_of ?s ?x)
+        (empty ?s)
+      )
+    :effect (and
+        (not (empty ?s))
+        (not (at_soil_sample ?p))
+        (full ?s)
+        (have_soil_analysis ?x ?p)
+      )
+  )
+
+  (:action sample_rock
+    :parameters (?x - rover ?s - store ?p - waypoint)
+    :precondition (and
+        (at_rock_sample ?p)
+        (equipped_for_rock_analysis ?x)
+        (store_of ?s ?x)
+        (empty ?s)
+      )
+    :effect (and
+        (not (empty ?s))
+        (not (at_rock_sample ?p))
+        (full ?s)
+        (have_rock_analysis ?x ?p)
+      )
+  )
+
+  (:action drop
+    :parameters (?x - rover ?y - store)
+    :precondition (and
+        (store_of ?y ?x)
+        (full ?y)
+      )
+    :effect (and
+        (not (full ?y))
+        (empty ?y)
+      )
+  )
+
+  (:action calibrate
+    :parameters (?r - rover ?i - camera ?t - objective ?w - waypoint)
+    :precondition (and
+        (equipped_for_imaging ?r)
+        (calibration_target ?i ?t)
+        (at ?r ?w)
+        (visible_from ?t ?w)
+        (on_board ?i ?r)
+      )
+    :effect (and
+        (calibrated ?i ?r)
+      )
+  )
+
+  (:action take_image
+    :parameters (?r - rover ?p - waypoint ?o - objective ?i - camera ?m - mode)
+    :precondition (and
+        (calibrated ?i ?r)
+        (on_board ?i ?r)
+        (equipped_for_imaging ?r)
+        (supports ?i ?m)
+        (visible_from ?o ?p)
+        (at ?r ?p)
+      )
+    :effect (and
+        (not (calibrated ?i ?r))
+        (have_image ?r ?o ?m)
+      )
+  )
+
+  (:action communicate_soil_data
+    :parameters (?r - rover ?l - lander ?p ?x ?y - waypoint)
+    :precondition (and
+        (at ?r ?x)
+        (at_lander ?l ?y)
+        (have_soil_analysis ?r ?p)
+        (visible ?x ?y)
+        (available ?r)
+        (channel_free ?l)
+      )
+    :effect (and
+        (channel_free ?l)
+        (communicated_soil_data ?p)
+        (available ?r)
+      )
+  )
+
+  (:action communicate_rock_data
+    :parameters (?r - rover ?l - lander ?p ?x ?y - waypoint)
+    :precondition (and
+        (at ?r ?x)
+        (at_lander ?l ?y)
+        (have_rock_analysis ?r ?p)
+        (visible ?x ?y)
+        (available ?r)
+        (channel_free ?l)
+      )
+    :effect (and
+        (channel_free ?l)
+        (communicated_rock_data ?p)
+        (available ?r)
+      )
+  )
+
+  (:action communicate_image_data
+    :parameters (?r - rover ?l - lander ?o - objective ?m - mode ?x ?y - waypoint)
+    :precondition (and
+        (at ?r ?x)
+        (at_lander ?l ?y)
+        (have_image ?r ?o ?m)
+        (visible ?x ?y)
+        (available ?r)
+        (channel_free ?l)
+      )
+    :effect (and
+        (channel_free ?l)
+        (communicated_image_data ?o ?m)
+        (available ?r)
+      )
+  )
+
+  (:action visit
+    :parameters (?waypoint - waypoint)
+    :precondition ( )
+    :effect (and
+        (visited ?waypoint)
+      )
+  )
+
+  (:action unvisit
+    :parameters (?waypoint - waypoint)
+    :precondition ( )
+    :effect (and
+        (not (visited ?waypoint))
+      )
+  )
+)
+
