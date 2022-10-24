@@ -50,6 +50,8 @@ class Parallel(
         engines: List[Tuple[str, Dict[str, str]]],
     ):
         up.engines.engine.Engine.__init__(self)
+        up.engines.mixins.OneshotPlannerMixin.__init__(self)
+        up.engines.mixins.PlanValidatorMixin.__init__(self)
         # Since the parallel is always called by name, the errors become warnings by default
         self.error_on_failed_checks = False
         self.engines = engines

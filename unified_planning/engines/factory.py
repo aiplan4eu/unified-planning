@@ -545,7 +545,16 @@ class Factory:
             )
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
-            if engine_kind in ["simulator", "replanner"]:
+            if engine_kind == "replanner":
+                assert problem is not None
+                if (
+                    problem.kind.has_quality_metrics()
+                    and optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY
+                ):
+                    msg = f"The problem has no quality metrics but the engine is required to be optimal!"
+                    raise up.exceptions.UPUsageError(msg)
+                res = EngineClass(problem=problem, **params)
+            elif engine_kind == "simulator":
                 assert problem is not None
                 res = EngineClass(problem=problem, **params)
             elif engine_kind == "compiler":
@@ -553,6 +562,11 @@ class Factory:
                 assert isinstance(res, CompilerMixin)
                 if compilation_kind is not None:
                     res.default = compilation_kind
+            elif engine_kind == "oneshot_planner":
+                res = EngineClass(**params)
+                assert isinstance(res, OneshotPlannerMixin)
+                if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
+                    res.optimality_required = True
             else:
                 res = EngineClass(**params)
             if name is not None:

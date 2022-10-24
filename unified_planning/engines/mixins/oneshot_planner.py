@@ -27,6 +27,9 @@ class OptimalityGuarantee(Enum):
 class OneshotPlannerMixin:
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `OneshotPlanner`."""
 
+    def __init__(self):
+        self.optimality_required = False
+
     @staticmethod
     def is_oneshot_planner() -> bool:
         return True
@@ -69,12 +72,16 @@ class OneshotPlannerMixin:
         `heuristic`, `timeout` or `output_stream` are not `None` and the planner ignores them.
         """
         assert isinstance(self, up.engines.engine.Engine)
-        if not self.skip_checks and not self.supports(problem.kind):
+        problem_kind = problem.kind
+        if not self.skip_checks and not self.supports(problem_kind):
             msg = f"{self.name} cannot solve this kind of problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
+        if problem_kind.has_quality_metrics() and self.optimality_required:
+            msg = f"The problem has no quality metrics but the engine is required to be optimal!"
+            raise up.exceptions.UPUsageError(msg)
         return self._solve(problem, callback, heuristic, timeout, output_stream)
 
     def _solve(
