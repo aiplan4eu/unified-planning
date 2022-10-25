@@ -23,6 +23,7 @@ from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuara
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import full_numeric_kind
+from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.model.types import _UserType
 from unified_planning.engines import PlanGenerationResultStatus
 
