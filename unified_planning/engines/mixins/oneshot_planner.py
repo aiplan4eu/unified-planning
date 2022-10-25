@@ -79,7 +79,7 @@ class OneshotPlannerMixin:
                 raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
-        if problem_kind.has_quality_metrics() and self.optimality_required:
+        if not problem_kind.has_quality_metrics() and self.optimality_required:
             msg = f"The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
         return self._solve(problem, callback, heuristic, timeout, output_stream)
