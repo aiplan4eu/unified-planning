@@ -738,6 +738,7 @@ class TestPddlIO(TestCase):
                             value_fluent(object_j),
                         )
                     )
+            problem.add_quality_metric(MinimizeSequentialPlanLength())
             with OneshotPlanner(
                 problem_kind=problem.kind, optimality_guarantee="SOLVED_OPTIMALLY"
             ) as planner:
