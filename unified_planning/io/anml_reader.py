@@ -56,7 +56,7 @@ from unified_planning.io.anml_grammar import (
     TK_FLOAT,
 )
 from unified_planning.environment import Environment, get_env
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import ANMLSyntaxError, UPUnsupportedProblemTypeError
 from unified_planning.model import (
     DurationInterval,
     Effect,
@@ -189,9 +189,10 @@ class ANMLReader:
                 len(block_res) == 1 and len(interval_and_expressions_res) == 2
             ), "parsing error"
             for expression in interval_and_expressions_res[1]:
-                assert (
-                    expression[0] != TK_WHEN
-                ), "Conditional effects inside an expression block are not supported"
+                if expression[0] == TK_WHEN:
+                    raise UPUnsupportedProblemTypeError(
+                        "Conditional effects inside an expression block are not supported"
+                    )
                 self._add_goal_or_effect_to_problem(
                     interval_and_expressions_res[0],
                     expression,
@@ -227,9 +228,10 @@ class ANMLReader:
         types_map: Dict[str, "up.model.Type"] = {}
 
         for type_name in nx.topological_sort(types_graph):
-            assert (
-                type_name in defined_types
-            ), f"The type {type_name} is used in the type hierarchy but is never defined"
+            if type_name not in defined_types:
+                raise ANMLSyntaxError(
+                    f"The type {type_name} is used in the type hierarchy but is never defined"
+                )
             fathers = list(types_graph.predecessors(type_name))
             len_fathers = len(fathers)
             if len_fathers == 0:
@@ -254,14 +256,15 @@ class ANMLReader:
         global_end: "Timing",
     ):
         relevant_words = {TK_DURATION, TK_ASSIGN, TK_INCREASE, TK_DECREASE, TK_WHEN}
-        contained_words = count_instances(expression, relevant_words)
-        c_duration = contained_words[TK_DURATION]
-        c_when = contained_words[TK_WHEN]
-        c_assign = contained_words[TK_ASSIGN]
-        c_increase = contained_words[TK_INCREASE]
-        c_decrease = contained_words[TK_DECREASE]
-        assert c_duration == 0, "duration keyword can't be used outside of an action"
-        if c_when > 0 or (c_assign + c_increase + c_decrease) > 0:  # effect
+        found_words = find_strings(expression, relevant_words)
+        f_duration = TK_DURATION in found_words
+        f_when = TK_WHEN in found_words
+        f_assign = TK_ASSIGN in found_words
+        f_increase = TK_INCREASE in found_words
+        f_decrease = TK_DECREASE in found_words
+        if f_duration:
+            raise ANMLSyntaxError("duration keyword can't be used outside of an action")
+        if f_when or f_assign or f_increase or f_decrease:  # effect
             interval_and_exp = ParseResults([interval, expression])
             up_timing, up_effect = self._parse_assignment(
                 interval_and_exp, parameters, types_map, is_global=True
@@ -286,7 +289,7 @@ class ANMLReader:
         self, type_res: ParseResults, types_map: Dict[str, "up.model.Type"]
     ) -> "up.model.Type":
         name = type_res[0]
-        assert isinstance(name, str)
+        assert isinstance(name, str), "parsing error"
         if name == TK_BOOLEAN:
             return self._tm.BoolType()
         elif name in (TK_INTEGER, TK_FLOAT):
@@ -310,15 +313,18 @@ class ANMLReader:
                     lower_bound = lower_bound_exp.constant_value()
                     upper_bound = upper_bound_exp.constant_value()
                 else:
-                    raise UPProblemDefinitionError(
+                    raise ANMLSyntaxError(
                         f"bounds of type {type_res} must be integer of real constants"
                     )
             else:
                 assert len(type_res) == 1, "Parse error"
             if name == TK_INTEGER:
-                assert not isinstance(lower_bound, Fraction) and not isinstance(
+                if isinstance(lower_bound, Fraction) or isinstance(
                     upper_bound, Fraction
-                ), f"Integer bounds of {type_res} must be int expressions"
+                ):
+                    raise ANMLSyntaxError(
+                        f"Integer bounds of {type_res} must be int expressions"
+                    )
                 return self._tm.IntType(lower_bound, upper_bound)
             else:
                 if isinstance(lower_bound, int):
@@ -331,7 +337,7 @@ class ANMLReader:
             if ret_type is not None:
                 return ret_type
             else:
-                raise UPProblemDefinitionError(
+                raise ANMLSyntaxError(
                     f"UserType {name} is referenced but never defined."
                 )
 
@@ -386,21 +392,36 @@ class ANMLReader:
     ) -> None:
         for interval_and_exp in action_body_res:
             relevant_words = {TK_DURATION, TK_ASSIGN, TK_INCREASE, TK_DECREASE, TK_WHEN}
-            contained_words = count_instances(interval_and_exp, relevant_words)
-            c_duration = contained_words[TK_DURATION]
-            c_when = contained_words[TK_WHEN]
-            c_assign = contained_words[TK_ASSIGN]
-            c_increase = contained_words[TK_INCREASE]
-            c_decrease = contained_words[TK_DECREASE]
+            found_words = find_strings(interval_and_exp, relevant_words)
+            f_duration = TK_DURATION in found_words
+            f_when = TK_WHEN in found_words
+            f_assign = TK_ASSIGN in found_words
+            f_increase = TK_INCREASE in found_words
+            f_decrease = TK_DECREASE in found_words
 
-            if c_duration > 0:  # handle duration
-                assert c_when == 0
-                assert c_increase == 0
-                assert c_decrease == 0
+            if f_duration:  # handle duration
+                if f_when:
+                    raise ANMLSyntaxError(
+                        "expressions containing the duration can't be conditional"
+                    )
+                if f_increase:
+                    raise ANMLSyntaxError(
+                        "expressions containing the duration can't be increase"
+                    )
+                if f_decrease:
+                    raise ANMLSyntaxError(
+                        "expressions containing the duration can't be decrease"
+                    )
                 duration_exp = interval_and_exp[1][0]
-                if c_assign > 0:  # duration assignment
-                    assert duration_exp[0][0] == TK_DURATION
-                    assert duration_exp[1] == TK_ASSIGN
+                if f_assign:  # duration assignment
+                    if (
+                        duration_exp[0][0] != TK_DURATION
+                        or duration_exp[1] != TK_ASSIGN
+                    ):
+                        raise UPUnsupportedProblemTypeError(
+                            "An expression contains the duration keyword and the assignment operand "
+                            + "but it's not in the supported form: 'duration := exp;'"
+                        )
                     action.set_duration_constraint(
                         FixedDuration(
                             self._parse_expression(
@@ -410,7 +431,11 @@ class ANMLReader:
                     )
                 else:
                     if duration_exp[1] == TK_EQUALS:  # duration == exp
-                        assert duration_exp[0][0] == TK_DURATION
+                        if duration_exp[0][0] != TK_DURATION:
+                            raise UPUnsupportedProblemTypeError(
+                                "An expression contains the duration keyword and the equals operand "
+                                + "but it's not in the supported form: 'duration == exp;'"
+                            )
                         action.set_duration_constraint(
                             FixedDuration(
                                 self._parse_expression(
@@ -419,15 +444,33 @@ class ANMLReader:
                             )
                         )
                     else:
-                        assert duration_exp[1] == TK_AND
+                        if duration_exp[1] != TK_AND:
+                            raise UPUnsupportedProblemTypeError(
+                                "An expression that contains the duration keyword and no equals or assignment operand "
+                                + "is supported only if the top level operand is an and. The supported form is: 'duration < exp and duration >= exp;'"
+                            )
                         left_bound = duration_exp[0]
                         right_bound = duration_exp[2]
-                        assert left_bound[0][0] == TK_DURATION
-                        assert right_bound[0][0] == TK_DURATION
+                        if (
+                            left_bound[0][0] != TK_DURATION
+                            or right_bound[0][0] != TK_DURATION
+                        ):
+                            raise UPUnsupportedProblemTypeError(
+                                "A duration expression in the form: 'duration < exp and duration >= exp;' is only "
+                                + "supported with the duration on the left side of the relational operator."
+                            )
                         if left_bound[1] not in (TK_GT, TK_GE):
                             left_bound, right_bound = right_bound, left_bound
-                        assert left_bound[1] in (TK_GT, TK_GE)
-                        assert right_bound[1] in (TK_LT, TK_LE)
+                        if left_bound[1] not in (TK_GT, TK_GE):
+                            raise UPUnsupportedProblemTypeError(
+                                "duration expression in the form: 'duration > exp and duration < exp;' detected, "
+                                + f"but was found {left_bound[1]} instead of '>/>='."
+                            )
+                        if right_bound[1] not in (TK_LT, TK_LE):
+                            raise UPUnsupportedProblemTypeError(
+                                "duration expression in the form: 'duration > exp and duration < exp;' detected, "
+                                + f"but was found {right_bound[1]} instead of '</<='."
+                            )
                         is_left_open = left_bound[1] == TK_GT
                         is_right_open = right_bound[1] == TK_LT
                         l_bound_exp = self._parse_expression(
@@ -442,14 +485,17 @@ class ANMLReader:
                             )
                         )
             # end handle duration
-            elif c_assign + c_increase + c_decrease > 0:  # handle effects
+            elif f_assign or f_increase or f_decrease:  # handle effects
                 up_timing, up_effect = self._parse_assignment(
                     interval_and_exp, action_parameters, types_map
                 )
                 action._add_effect_instance(up_timing, up_effect)
             # end handle effects
             else:  # handle condition
-                assert c_when == 0, "when keyword used in an action precondition"
+                if f_when:
+                    raise UPUnsupportedProblemTypeError(
+                        "when keyword used in an action precondition is not supported by the UP."
+                    )
                 up_interval = self._parse_interval(interval_and_exp[0], types_map)
                 exp_res = interval_and_exp[1][0]
                 condition = self._parse_expression(
@@ -478,8 +524,9 @@ class ANMLReader:
     ) -> Union["Timing", "TimeInterval"]:
         if len(interval_res) == 0:
             if is_global:
-                # TODO: decide/understand if an undefined interval outside of an action really means GlobalStartTiming or not
-                return GlobalStartTiming()
+                raise UPUnsupportedProblemTypeError(
+                    "ANML constant initialization is currently not supported."
+                )
             else:
                 return StartTiming()
 
@@ -495,12 +542,14 @@ class ANMLReader:
             ), "parsing error"
 
             if timing_type != TK_ALL:
-                assert (
-                    l_par == TK_L_BRACKET
-                ), "point intervals can't have '('; use '[' instead"
-                assert (
-                    r_par == TK_R_BRACKET
-                ), "point intervals can't have ')'; use ']' instead"
+                if l_par != TK_L_BRACKET:
+                    raise ANMLSyntaxError(
+                        "point intervals can't have '('; use '[' instead"
+                    )
+                if r_par != TK_R_BRACKET:
+                    raise ANMLSyntaxError(
+                        "point intervals can't have ')'; use ']' instead"
+                    )
                 return self._parse_timing(timing_and_exp, types_map, is_global)
             else:  # timing_type == TK_ALL, just define start and end
                 start, end = (
@@ -508,9 +557,10 @@ class ANMLReader:
                     if is_global
                     else (StartTiming(), EndTiming())
                 )
-                assert (
-                    len(timing_and_exp) == 1
-                ), f"with the {TK_ALL} timing no expression is accepted"
+                if len(timing_and_exp) != 1:
+                    raise UPUnsupportedProblemTypeError(
+                        f"with the {TK_ALL} timing no expression is accepted"
+                    )
         else:
             assert len(interval_res) == 4, "Parsing error, not able to handle"
             l_par = interval_res[0]
@@ -543,23 +593,26 @@ class ANMLReader:
             if timing_type not in (TK_START, TK_END):  # interval of the form [10]
                 delay_position = 0
                 timing_type = TK_START
-                assert (
-                    is_global
-                ), "interval [x] is not valid in an action, try [start + x]"
+                if not is_global:
+                    raise ANMLSyntaxError(
+                        "interval [x] is not valid in an action, try [start + x]"
+                    )
         if delay_position is not None:
             up_exp = self._parse_expression(
                 timing_and_exp[delay_position], parameters={}, types_map=types_map
             )
             delay = up_exp.simplify()
-            assert (
-                delay.is_int_constant() or delay.is_real_constant()
-            ), "Timing delay must simplify as a numeric constant"
+            if not delay.is_int_constant() and not delay.is_real_constant():
+                raise ANMLSyntaxError(
+                    "Timing delay must simplify as a numeric constant"
+                )
 
         if timing_type == TK_START:
             d = delay.constant_value()
-            assert (
-                d >= 0
-            ), "A negative delay on a start Timing is not supported in the UP"
+            if d < 0:
+                raise UPUnsupportedProblemTypeError(
+                    "A negative delay on a start Timing is not supported in the UP"
+                )
             if is_global:
                 return up.model.GlobalStartTiming(d)
             else:
@@ -567,9 +620,10 @@ class ANMLReader:
         elif timing_type == TK_END:
             d = delay.constant_value()
             d = d * -1
-            assert (
-                d >= 0
-            ), "An ANML positive delay on an end Timing is not supported in the UP"
+            if d < 0:
+                raise UPUnsupportedProblemTypeError(
+                    "An ANML positive delay on an end Timing is not supported in the UP"
+                )
             if is_global:
                 return up.model.GlobalEndTiming(delay.constant_value())
             else:
@@ -594,13 +648,13 @@ class ANMLReader:
             effect_interval = effect_res[2][0]
             effect_exp = effect_res[2][1][0]
             if str(condition_interval) != str(effect_interval):
-                raise UPProblemDefinitionError(
+                raise UPUnsupportedProblemTypeError(
                     "In conditional effect parsing the "
                     + "condition time interval and the effect time interval are different, "
                     + "this is not supported by the UP."
                 )
             if len(interval_res) > 0:
-                raise UPProblemDefinitionError(
+                raise ANMLSyntaxError(
                     "A conditional effect can not have an interval specified before the when keyword."
                 )
             condition = self._parse_expression(condition_exp_res, parameters, types_map)
@@ -613,9 +667,8 @@ class ANMLReader:
         assignment_operator = effect_exp[1]
         assigned_expression = effect_exp[2]
         up_fluent = self._parse_expression(fluent_ref, parameters, types_map)
-        assert (
-            up_fluent.is_fluent_exp()
-        ), "left side of the assignment is not a valid fluent"
+        if not up_fluent.is_fluent_exp():
+            raise ANMLSyntaxError("left side of the assignment is not a valid fluent")
         up_value = self._parse_expression(assigned_expression, parameters, types_map)
         if assignment_operator == TK_ASSIGN:
             kind = EffectKind.ASSIGN
@@ -627,9 +680,10 @@ class ANMLReader:
             raise NotImplementedError(
                 f"Currently the unified planning does not support the assignment operator {assignment_operator}"
             )
-        assert isinstance(
-            up_interval, Timing
-        ), "An effect with a durative interval is not supported"
+        if not isinstance(up_interval, Timing):
+            raise UPUnsupportedProblemTypeError(
+                "An effect with a durative interval is not supported"
+            )
         return (up_interval, Effect(up_fluent, up_value, condition, kind=kind))
 
     def _parse_expression(
@@ -646,11 +700,8 @@ class ANMLReader:
             (expression, False, {})
         ]
         solved: List[FNode] = []
-        while 1:
-            try:
-                exp, already_expanded, vars = stack.pop()
-            except IndexError:
-                break
+        while len(stack) > 0:
+            exp, already_expanded, vars = stack.pop()
             if already_expanded:
                 assert isinstance(exp, ParseResults) or isinstance(exp, List)
                 if len(exp) <= 1:
@@ -789,22 +840,18 @@ def is_float(string: str) -> bool:
         return False
 
 
-def count_instances(
-    result: Union[ParseResults, List], strings: Set[str]
-) -> Dict[str, int]:
+def find_strings(result: Union[ParseResults, List], strings: Set[str]) -> Set[str]:
     stack: List[Union[ParseResults, List]] = [result]
-    counters: Dict[str, int] = {s: 0 for s in strings}
-    while 1:
-        try:
-            res = stack.pop()
-        except IndexError:
-            break
+    container: Set[str] = set()
+    while len(stack) > 0:
+        res = stack.pop()
         for word in res:
             if isinstance(word, ParseResults) or isinstance(word, List):
                 stack.append(word)
             else:
                 assert isinstance(word, str)
-                count_s = counters.get(word, None)
-                if count_s is not None:
-                    counters[word] = count_s + 1
-    return counters
+                if word in strings:
+                    container.add(word)
+                    if container == strings:
+                        return container
+    return container

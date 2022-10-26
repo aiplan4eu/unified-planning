@@ -23,35 +23,35 @@ instance Location a, b, c, d, e;
 [start] moving := false;
 [end] position == e;
 
-speed := 2;
+[start] speed := 2;
 
 
-reachable(a, a) := false;
-reachable(a, b) := true;
-reachable(a, c) := false;
-reachable(a, d) := false;
-reachable(a, e) := false;
+[start] reachable(a, a) := false;
+[start] reachable(a, b) := true;
+[start] reachable(a, c) := false;
+[start] reachable(a, d) := false;
+[start] reachable(a, e) := false;
 
-reachable(b, a) := false;
-reachable(b, b) := false;
-reachable(b, c) := true;
-reachable(b, d) := false;
-reachable(b, e) := false;
+[start] reachable(b, a) := false;
+[start] reachable(b, b) := false;
+[start] reachable(b, c) := true;
+[start] reachable(b, d) := false;
+[start] reachable(b, e) := false;
 
-reachable(c, a) := false;
-reachable(c, b) := false;
-reachable(c, c) := false;
-reachable(c, d) := true;
-reachable(c, e) := false;
+[start] reachable(c, a) := false;
+[start] reachable(c, b) := false;
+[start] reachable(c, c) := false;
+[start] reachable(c, d) := true;
+[start] reachable(c, e) := false;
 
-reachable(d, a) := false;
-reachable(d, b) := false;
-reachable(d, c) := false;
-reachable(d, d) := false;
-reachable(d, e) := true;
+[start] reachable(d, a) := false;
+[start] reachable(d, b) := false;
+[start] reachable(d, c) := false;
+[start] reachable(d, d) := false;
+[start] reachable(d, e) := true;
 
-reachable(e, a) := false;
-reachable(e, b) := false;
-reachable(e, c) := false;
-reachable(e, d) := false;
-reachable(e, e) := false;
+[start] reachable(e, a) := false;
+[start] reachable(e, b) := false;
+[start] reachable(e, c) := false;
+[start] reachable(e, d) := false;
+[start] reachable(e, e) := false;
