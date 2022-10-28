@@ -15,6 +15,7 @@
 """This module defines an agent class."""
 
 import unified_planning as up
+from typing import List, Dict, Set, Union, cast
 from unified_planning.model.mixins import (
     ActionsSetMixin,
     FluentsSetMixin,
