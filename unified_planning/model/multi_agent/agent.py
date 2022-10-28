@@ -120,6 +120,10 @@ class Agent(
         for a in self._actions:
             s.append(f" {str(a)}\n")
         s.append("]\n\n")
+        s.append("goals = [\n")
+        for g in self.goals:
+            s.append(f"  {str(g)}\n")
+        s.append("]\n\n")
         return "".join(s)
 
     def __eq__(self, oth: object) -> bool:
@@ -131,6 +135,8 @@ class Agent(
             return False
         if set(self._actions) != set(oth._actions):
             return False
+        if set(self._goals) != set(oth._goals):
+            return False
         return True
 
     def __hash__(self) -> int:
@@ -139,4 +145,6 @@ class Agent(
             res += hash(f)
         for a in self._actions:
             res += hash(a)
+        for g in self._goals:
+            res += hash(g)
         return res
