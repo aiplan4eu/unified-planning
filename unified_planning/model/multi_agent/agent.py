@@ -73,7 +73,7 @@ class Agent(
         return self._env
 
     def add_goal(
-            self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
+        self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
         """
         Adds the given `goal` to the `Agent`; a goal is an expression that must be evaluated to `True` at the
@@ -82,7 +82,7 @@ class Agent(
         :param goal: The expression added to the `Agent` :func:`goals <unified_planning.model.multi_agent.agent.goals>`.
         """
         assert (
-                isinstance(goal, bool) or goal.environment == self._env
+            isinstance(goal, bool) or goal.environment == self._env
         ), "goal does not have the same environment of the problem"
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
@@ -90,7 +90,7 @@ class Agent(
             self._goals.append(goal_exp)
 
     def add_goals(
-            self, goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
+        self, goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
     ):
         """
         Adds the given `goal` to the `Agent`.
