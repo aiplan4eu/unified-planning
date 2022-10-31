@@ -128,7 +128,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             if timeout is not None:
                 timeout -= min(timeout, time.time() - start)
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
-                if incomplete:
+                if incomplete or res.status != PlanGenerationResultStatus.SOLVED_OPTIMALLY:
                     status = PlanGenerationResultStatus.SOLVED_SATISFICING
                 else:
                     status = PlanGenerationResultStatus.SOLVED_OPTIMALLY
