@@ -314,6 +314,9 @@ class MultiAgentProblem(
                 self._update_problem_kind_action(action)
         for goal in self._goals:
             self._update_problem_kind_condition(goal)
+        for ag in self.agents:
+            for goal in ag.goals:
+                self._update_problem_kind_condition(goal)
         return self._kind
 
     def _update_problem_kind_effect(self, e: "up.model.effect.Effect"):
