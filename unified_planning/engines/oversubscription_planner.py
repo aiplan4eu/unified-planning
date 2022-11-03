@@ -126,9 +126,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             for g in t[1]:
                 new_problem.add_goal(g)
             start = time.time()
-            res = self.engine.solve(
-                new_problem, heuristic, timeout, output_stream
-            )
+            res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
             if timeout is not None:
                 timeout -= min(timeout, time.time() - start)
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
