@@ -26,7 +26,7 @@ from unified_planning.engines.results import (
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.utils import powerset
-from typing import Type, IO, Optional, Union, List, Tuple
+from typing import Type, IO, Optional, Union, List, Tuple, Callable
 from fractions import Fraction
 
 
