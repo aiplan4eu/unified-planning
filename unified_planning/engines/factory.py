@@ -37,6 +37,7 @@ DEFAULT_ENGINES = {
     "fast-downward": ("up_fast_downward", "FastDownwardPDDLPlanner"),
     "fast-downward-opt": ("up_fast_downward", "FastDownwardOptimalPDDLPlanner"),
     "pyperplan": ("up_pyperplan.engine", "EngineImpl"),
+    "pyperplan-opt": ("up_pyperplan.engine", "OptEngineImpl"),
     "enhsp": ("up_enhsp.enhsp_planner", "ENHSPSatEngine"),
     "enhsp-opt": ("up_enhsp.enhsp_planner", "ENHSPOptEngine"),
     "tamer": ("up_tamer.engine", "EngineImpl"),
@@ -550,7 +551,8 @@ class Factory:
             elif engine_kind == "compiler":
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)
-                res.default = compilation_kind
+                if compilation_kind is not None:
+                    res.default = compilation_kind
             else:
                 res = EngineClass(**params)
             if name is not None:
