@@ -8,7 +8,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.e
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -17,8 +17,7 @@ import unified_planning as up
 from unified_planning.model.problem import Problem
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.types import domain_size
-from typing import Dict, Sequence, Set, List, Union
+from typing import Dict, Optional, Iterable, Set, List, Union
 
 
 class ContingentProblem(Problem):
@@ -26,8 +25,8 @@ class ContingentProblem(Problem):
 
     def __init__(
         self,
-        name: str = None,
-        env: "up.environment.Environment" = None,
+        name: Optional[str] = None,
+        env: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
@@ -54,12 +53,12 @@ class ContingentProblem(Problem):
             return False
         elif self._hidden_fluents != oth._hidden_fluents:
             return False
-        elif set([set(c) for c in self._or_initial_constraints]) != set(
-            [set(c) for c in oth._or_initial_constraints]
+        elif set(set(c) for c in self._or_initial_constraints) != set(
+            set(c) for c in oth._or_initial_constraints
         ):
             return False
-        elif set([set(c) for c in self._oneof_initial_constraints]) != set(
-            [set(c) for c in oth._oneof_initial_constraints]
+        elif set(set(c) for c in self._oneof_initial_constraints) != set(
+            set(c) for c in oth._oneof_initial_constraints
         ):
             return False
         else:
@@ -103,7 +102,7 @@ class ContingentProblem(Problem):
         return new_p
 
     def add_oneof_initial_constraint(
-        self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
+        self, fluents: Iterable[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
         """
         Adds a oneof initial constraint on some hidden fluents.
@@ -119,7 +118,7 @@ class ContingentProblem(Problem):
         self._oneof_initial_constraints.append(c)
 
     def add_or_initial_constraint(
-        self, fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
+        self, fluents: Iterable[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
     ):
         """
         Adds a or initial constraint on some hidden fluents.
@@ -182,6 +181,6 @@ class ContingentProblem(Problem):
         return self._oneof_initial_constraints
 
     @property
-    def hidden(self) -> Set["up.model.fnode.FNode"]:
+    def hidden_fluents(self) -> Set["up.model.fnode.FNode"]:
         """Returns the hidden fluents."""
         return self._hidden_fluents

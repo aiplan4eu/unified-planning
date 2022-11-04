@@ -27,7 +27,7 @@ from unified_planning.exceptions import (
     UPValueError,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Union, cast
+from typing import Optional, List, Dict, Union, cast
 from unified_planning.model.mixins import (
     ObjectsSetMixin,
     UserTypesSetMixin,
