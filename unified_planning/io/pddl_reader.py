@@ -367,13 +367,17 @@ class PDDLReader:
                     elif exp[0] in ["exists", "forall"]:  # quantifier operators
                         vars_string = " ".join(exp[1])
                         vars_res = self._pp_parameters.parseString(vars_string)
-                        vars = {}
+                        new_vars = {}
                         for g in vars_res["params"]:
                             t = types_map[g[1] if len(g) > 1 else Object]
                             for o in g[0]:
-                                vars[o] = up.model.Variable(o, t, self._env)
-                        stack.append((vars, exp, True))
-                        stack.append((vars, exp[2], False))
+                                new_vars[o] = up.model.Variable(o, t, self._env)
+                        # new_vars are the variables defined by the quantifier currently being solved
+                        # all_vars are the variables defined by all the quantifiers around this expression
+                        stack.append((new_vars, exp, True))
+                        all_vars = var.copy()
+                        all_vars.update(new_vars)
+                        stack.append((all_vars, exp[2], False))
                     elif problem.has_fluent(exp[0]):  # fluent reference
                         stack.append((var, exp, True))
                         for e in exp[1:]:
