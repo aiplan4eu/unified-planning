@@ -45,6 +45,7 @@ class Agent(
         ActionsSetMixin.__init__(
             self, ma_problem.env, ma_problem._add_user_type, self.has_name
         )
+        self._ma_problem = ma_problem
         self._env = ma_problem.env
         self._name: str = name
         self._goals: List["up.model.fnode.FNode"] = list()
@@ -149,3 +150,10 @@ class Agent(
         for g in self._goals:
             res += hash(g)
         return res
+
+    def clone(self):
+        new_a = Agent(self._name, self._ma_problem)
+        new_a._fluents = self._fluents[:]
+        new_a._actions = [a.clone() for a in self._actions]
+        new_a._goals = self._goals[:]
+        return new_a
