@@ -569,7 +569,9 @@ class Problem(
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
-    def add_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
+    def add_trajectory_constraint(
+        self, constraint: "up.model.expression.BoolExpression"
+    ):
         """
         Adds the given `trajectory_constraint` to the `Problem`;
         a trajectory_constraint is an expression defined as:
@@ -578,18 +580,11 @@ class Problem(
 
         :param trajectory_constraint: The expression added to the `Problem`.
         """
-        new_traj_list = []
-        simplifier = up.model.walkers.simplifier.Simplifier(self._env, self)
         (constraint_exp,) = self._env.expression_manager.auto_promote(constraint)
-        new_traj_list.append(
-            simplifier.simplify(
-                self._env.expression_manager.And(
-                    self._trajectory_constraints,
-                    constraint_exp,
-                )
-            )
-        )
-        self._trajectory_constraints = new_traj_list
+        all_constraints_simplified = self._env.expression_manager.And(
+            constraint_exp, *self._trajectory_constraints
+        ).simplify()
+        self._trajectory_constraints = [all_constraints_simplified]
 
     def remove_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
         """
@@ -630,6 +625,7 @@ class Problem(
         """
         Adds the given `quality metric` to the `Problem`; a `quality metric` defines extra requirements that a :class:`~unified_planning.plans.Plan`
         must satisfy in order to be valid.
+
         :param metric: The `quality metric` that a `Plan` of this `Problem` must satisfy in order to be valid.
         """
         self._metrics.append(metric)

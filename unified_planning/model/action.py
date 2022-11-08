@@ -241,6 +241,7 @@ class InstantaneousAction(Action):
     ):
         """
         Adds the given expression to `action's preconditions`.
+
         :param precondition: The expression that must be added to the `action's preconditions`.
         """
         (precondition_exp,) = self._env.expression_manager.auto_promote(precondition)
@@ -249,7 +250,6 @@ class InstantaneousAction(Action):
             raise UPTypeError(
                 f"Trajectory constraint {precondition_exp} is not allowed in action preconditions."
             )
-        assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
         if precondition_exp == self._env.expression_manager.TRUE():
             return
         free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)

@@ -319,6 +319,13 @@ class ExpressionManager(object):
         )
 
     def Always(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Always(a)`
+        Restriction: expression must be of `boolean type` and with only one arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Always` expression.
+        """
         if len(expression) != 1:
             raise UPExpressionDefinitionError(
                 f"Always of expression: {str(expression)} must be created with exactly one parameter."
@@ -327,6 +334,13 @@ class ExpressionManager(object):
         return self.create_node(node_type=OperatorKind.ALWAYS, args=expressions)
 
     def Sometime(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Sometime(a)`
+        Restriction: expression must be of `boolean type` and with only one arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Sometime` expression.
+        """
         if len(expression) != 1:
             raise UPExpressionDefinitionError(
                 f"Sometime of expression: {str(expression)} must be created with exactly with one parameter."
@@ -335,6 +349,13 @@ class ExpressionManager(object):
         return self.create_node(node_type=OperatorKind.SOMETIME, args=expressions)
 
     def AtMostOnce(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `At-Most-Once(a, b)`
+        Restriction: expression must be of `boolean type` and with only two arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `At-Most-Once(a, b)` expression.
+        """
         if len(expression) != 1:
             raise UPExpressionDefinitionError(
                 f"At-Most-Once of expression: {str(expression)} must be created with exactly with one parameter."
@@ -343,6 +364,13 @@ class ExpressionManager(object):
         return self.create_node(node_type=OperatorKind.AT_MOST_ONCE, args=expressions)
 
     def SometimeBefore(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Sometime-Before(a, b)`
+        Restriction: expression must be of `boolean type` and with only one args
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Sometime` expression.
+        """
         if len(expression) != 2:
             raise UPExpressionDefinitionError(
                 f"Sometime-Before of expression: {str(expression)} must be created with exactly with 2 parameters."
@@ -353,6 +381,13 @@ class ExpressionManager(object):
         )
 
     def SometimeAfter(self, *expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Sometime-After(a, b)`
+        Restriction: expression must be of `boolean type` and with only two arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Sometime-After(a, b)` expression.
+        """
         if len(expression) != 2:
             raise UPExpressionDefinitionError(
                 f"Sometime-After of expression: {str(expression)} must be created with exactly with 2 parameters."
@@ -366,6 +401,7 @@ class ExpressionManager(object):
         """
         Creates an expression for the given `fluent` and `parameters`.
         Restriction: `parameters type` must be compatible with the `Fluent` :func:`signature <unified_planning.model.Fluent.signature>`
+
         :param fluent: The `Fluent` that will be set as the `payload` of this expression.
         :param params: The expression acting as `parameters` for this `Fluent`; mainly the parameters will
             be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
