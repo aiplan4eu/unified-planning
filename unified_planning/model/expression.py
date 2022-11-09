@@ -24,7 +24,7 @@ import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
-from typing import Iterable, List, Union, Dict, Tuple
+from typing import Optional, Iterable, List, Union, Dict, Tuple
 
 Expression = Union[
     "up.model.fnode.FNode",
@@ -140,17 +140,19 @@ class ExpressionManager(object):
         self,
         node_type: OperatorKind,
         args: Iterable["up.model.fnode.FNode"],
-        payload: Union[
-            "up.model.fluent.Fluent",
-            "up.model.object.Object",
-            "up.model.parameter.Parameter",
-            "up.model.variable.Variable",
-            "up.model.timing.Timing",
-            "up.model.multi_agent.Agent",
-            bool,
-            int,
-            Fraction,
-            Tuple["up.model.variable.Variable", ...],
+        payload: Optional[
+            Union[
+                "up.model.fluent.Fluent",
+                "up.model.object.Object",
+                "up.model.parameter.Parameter",
+                "up.model.variable.Variable",
+                "up.model.timing.Timing",
+                "up.model.multi_agent.Agent",
+                bool,
+                int,
+                Fraction,
+                Tuple["up.model.variable.Variable", ...],
+            ]
         ] = None,
     ) -> "up.model.fnode.FNode":
         """

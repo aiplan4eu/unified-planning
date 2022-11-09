@@ -16,7 +16,7 @@
 import unified_planning as up
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import List, Dict, Union
+from typing import Optional, List, Dict, Union
 
 
 class FluentsSetMixin:
@@ -97,9 +97,9 @@ class FluentsSetMixin:
     def add_fluent(
         self,
         fluent_or_name: Union["up.model.fluent.Fluent", str],
-        typename: "up.model.types.Type" = None,
+        typename: Optional["up.model.types.Type"] = None,
         *,
-        default_initial_value: "ConstantExpression" = None,
+        default_initial_value: Optional["ConstantExpression"] = None,
         **kwargs: "up.model.types.Type",
     ) -> "up.model.fluent.Fluent":
         """Adds the given `fluent` to the `problem`.

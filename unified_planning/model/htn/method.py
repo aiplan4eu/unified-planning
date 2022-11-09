@@ -67,8 +67,10 @@ class Method:
     def __init__(
         self,
         _name: str,
-        _parameters: "Union[OrderedDict[str, up.model.types.Type], List[Parameter]]" = None,
-        _env: Environment = None,
+        _parameters: Optional[
+            "Union[OrderedDict[str, up.model.types.Type], List[Parameter]]"
+        ] = None,
+        _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
         self._env = get_env(_env)

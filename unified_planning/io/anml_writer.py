@@ -387,7 +387,7 @@ class ANMLWriter:
         self,
         effect: "up.model.Effect",
         converter: ConverterToANMLString,
-        timing: "up.model.Timing" = None,
+        timing: Optional["up.model.Timing"] = None,
         spaces_from_left: int = 0,
     ) -> str:
         results: List[str] = []

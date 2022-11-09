@@ -483,7 +483,7 @@ class Factory:
         engine_kind: str,
         name: Optional[str] = None,
         names: Optional[List[str]] = None,
-        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
@@ -569,7 +569,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         names: Optional[List[str]] = None,
-        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
@@ -595,7 +595,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         names: Optional[List[str]] = None,
-        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         plan_kind: Optional[Union["PlanKind", str]] = None,
     ) -> "up.engines.engine.Engine":
@@ -675,7 +675,7 @@ class Factory:
         problem: "up.model.AbstractProblem",
         *,
         name: Optional[str] = None,
-        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
     ) -> "up.engines.engine.Engine":
         """
         Returns a Simulator. There are two ways to call this method:
@@ -694,7 +694,7 @@ class Factory:
         problem: "up.model.AbstractProblem",
         *,
         name: Optional[str] = None,
-        params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
         """

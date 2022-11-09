@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# type: ignore[valid-type]
+# type: ignore
 import fractions
 from itertools import product
 from typing import List

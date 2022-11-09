@@ -115,7 +115,7 @@ class Environment:
 GLOBAL_ENVIRONMENT: Optional[Environment] = None
 
 
-def get_env(env: Environment = None) -> Environment:
+def get_env(env: Optional[Environment] = None) -> Environment:
     """
     Returns the given env if it is not `None`, returns the `GLOBAL_ENVIRONMENT` otherwise.
 
