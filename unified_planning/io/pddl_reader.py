@@ -17,7 +17,6 @@ from itertools import product
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
-import pyparsing
 import typing
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPUsageError
@@ -25,15 +24,17 @@ from unified_planning.model import FNode
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
-from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Optional, Suppress, nestedExpr, Group, restOfLine
 
-if pyparsing.__version__ < "3.0.0":
-    from pyparsing import oneOf as one_of
-    from pyparsing import ParseResults
-else:
-    from pyparsing.results import ParseResults
-    from pyparsing import one_of
+
+import pyparsing
+
+assert (
+    pyparsing.__version__ >= "3.0.0"
+), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
+from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
+from pyparsing import Suppress, nested_expr, Group, rest_of_line, Optional
+from pyparsing.results import ParseResults
+from pyparsing import one_of
 
 
 class CaseInsensitiveToken:
@@ -143,8 +144,8 @@ class PDDLGrammar:
             - Suppress("(")
             + parameters
             + Suppress(")")
-            + Optional(":precondition" - nestedExpr().setResultsName("pre"))
-            + Optional(":effect" - nestedExpr().setResultsName("eff"))
+            + Optional(":precondition" - nested_expr().setResultsName("pre"))
+            + Optional(":effect" - nested_expr().setResultsName("eff"))
             + Suppress(")")
         )
 
@@ -157,11 +158,11 @@ class PDDLGrammar:
             + parameters
             + Suppress(")")
             + ":duration"
-            - nestedExpr().setResultsName("duration")
+            - nested_expr().setResultsName("duration")
             + ":condition"
-            - nestedExpr().setResultsName("cond")
+            - nested_expr().setResultsName("cond")
             + ":effect"
-            - nestedExpr().setResultsName("eff")
+            - nested_expr().setResultsName("eff")
             + Suppress(")")
         )
 
@@ -185,17 +186,17 @@ class PDDLGrammar:
             + parameters
             + Suppress(")")
             + ":task"
-            - nestedExpr().setResultsName("task")
-            + Optional(":precondition" - nestedExpr().setResultsName("precondition"))
+            - nested_expr().setResultsName("task")
+            + Optional(":precondition" - nested_expr().setResultsName("precondition"))
             + Optional(
                 one_of(":ordered-subtasks :ordered-tasks")
-                - nestedExpr().setResultsName("ordered-subtasks")
+                - nested_expr().setResultsName("ordered-subtasks")
             )
             + Optional(
-                one_of(":subtasks :tasks") - nestedExpr().setResultsName("subtasks")
+                one_of(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
             )
-            + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
-            + Optional(":constraints" - nestedExpr().setResultsName("constraints"))
+            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
+            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
             + Suppress(")")
         )
 
@@ -227,19 +228,19 @@ class PDDLGrammar:
             - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
             + Optional(
                 one_of(":ordered-tasks :ordered-subtasks")
-                - nestedExpr().setResultsName("ordered-tasks")
+                - nested_expr().setResultsName("ordered-tasks")
             )
             + Optional(
-                one_of(":tasks :subtasks") - nestedExpr().setResultsName("tasks")
+                one_of(":tasks :subtasks") - nested_expr().setResultsName("tasks")
             )
-            + Optional(":ordering" - nestedExpr().setResultsName("ordering"))
-            + Optional(":constraints" - nestedExpr().setResultsName("constraints"))
+            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
+            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
             + Suppress(")")
         )
 
         metric = (Keyword("minimize") | Keyword("maximize")).setResultsName(
             "optimization"
-        ) + (name | nestedExpr()).setResultsName("metric")
+        ) + (name | nested_expr()).setResultsName("metric")
 
         problem = (
             Suppress("(")
@@ -257,20 +258,20 @@ class PDDLGrammar:
             + Optional(htn_def.setResultsName("htn"))
             + Suppress("(")
             + ":init"
-            + ZeroOrMore(nestedExpr()).setResultsName("init")
+            + ZeroOrMore(nested_expr()).setResultsName("init")
             + Suppress(")")
             + Optional(
                 Suppress("(")
                 + ":goal"
-                + nestedExpr().setResultsName("goal")
+                + nested_expr().setResultsName("goal")
                 + Suppress(")")
             )
             + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
             + Suppress(")")
         )
 
-        domain.ignore(";" + restOfLine)
-        problem.ignore(";" + restOfLine)
+        domain.ignore(";" + rest_of_line)
+        problem.ignore(";" + rest_of_line)
 
         self._domain = domain
         self._problem = problem
