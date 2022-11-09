@@ -15,18 +15,23 @@
 
 
 import unified_planning as up
-import pyparsing
 from typing import List
+
+import pyparsing
+
+assert (
+    pyparsing.__version__ >= "3.0.0"
+), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
 from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
 from pyparsing import (
     Optional,
     Suppress,
     Group,
-    restOfLine,
+    rest_of_line,
     Combine,
     Forward,
-    infixNotation,
-    opAssoc,
+    infix_notation,
+    OpAssoc,
     ParserElement,
     Literal,
 )
@@ -147,34 +152,34 @@ class ANMLGrammar:
             )
         )
 
-        arithmetic_expression = infixNotation(
+        arithmetic_expression = infix_notation(
             boolean_const | float_const | fluent_ref,
             [
-                (one_of([TK_PLUS, TK_MINUS]), 1, opAssoc.RIGHT),
-                (one_of([TK_TIMES, TK_DIV]), 2, opAssoc.LEFT, group_binary),
-                (one_of([TK_PLUS, TK_MINUS]), 2, opAssoc.LEFT, group_binary),
+                (one_of([TK_PLUS, TK_MINUS]), 1, OpAssoc.RIGHT),
+                (one_of([TK_TIMES, TK_DIV]), 2, OpAssoc.LEFT, group_binary),
+                (one_of([TK_PLUS, TK_MINUS]), 2, OpAssoc.LEFT, group_binary),
             ],
         )
-        relations_expression = infixNotation(
+        relations_expression = infix_notation(
             arithmetic_expression,
             [
                 (
                     one_of([TK_LT, TK_LE, TK_GT, TK_GE, TK_EQUALS, TK_NOT_EQUALS]),
                     2,
-                    opAssoc.LEFT,
+                    OpAssoc.LEFT,
                     group_binary,
                 ),
             ],
         )
-        boolean_expression <<= infixNotation(
+        boolean_expression <<= infix_notation(
             quantified_expression | relations_expression | boolean_const,
             [
-                (TK_NOT, 1, opAssoc.RIGHT),
-                (one_of([TK_AND, TK_OR, TK_XOR]), 2, opAssoc.LEFT, group_binary),
+                (TK_NOT, 1, OpAssoc.RIGHT),
+                (one_of([TK_AND, TK_OR, TK_XOR]), 2, OpAssoc.LEFT, group_binary),
                 (
                     one_of([TK_ASSIGN, TK_INCREASE, TK_DECREASE]),
                     2,
-                    opAssoc.LEFT,
+                    OpAssoc.LEFT,
                     group_binary,
                 ),
             ],
@@ -347,7 +352,7 @@ class ANMLGrammar:
         )
 
         anml_body = OneOrMore(Group(anml_stmt + Suppress(TK_SEMI)))
-        anml_body.ignore(TK_COMMENT + restOfLine)
+        anml_body.ignore(TK_COMMENT + rest_of_line)
 
         self._problem = anml_body
 
@@ -370,7 +375,7 @@ def operatorOperands(tokenlist):
 def group_binary(parse_res: ParseResults):
     """
     Helper function that organizes the parsed expression's flat tree, parsed by the
-    pyparsing.infixNotation, in a binary tree.
+    pyparsing.infix_notation, in a binary tree.
 
     ES: 3 + 2 - (5 - 4)
     is parsed as: [[[['3', '+', '2'], '-', ['5', '-', '4']]]

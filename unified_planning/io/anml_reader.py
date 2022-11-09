@@ -16,7 +16,6 @@
 
 from collections import OrderedDict
 import unified_planning as up
-import pyparsing
 import networkx as nx
 from unified_planning.io.anml_grammar import (
     TK_ALL,
@@ -76,10 +75,12 @@ from unified_planning.model import (
 from fractions import Fraction
 from typing import Dict, Set, Tuple, Union, Callable, List, Optional
 
-if pyparsing.__version__ < "3.0.0":
-    from pyparsing import ParseResults
-else:
-    from pyparsing.results import ParseResults
+import pyparsing
+
+assert (
+    pyparsing.__version__ >= "3.0.0"
+), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
+from pyparsing.results import ParseResults
 
 
 class ANMLReader:
