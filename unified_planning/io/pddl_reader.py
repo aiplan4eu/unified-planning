@@ -25,14 +25,14 @@ from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
 
-
 import pyparsing
 
 assert (
     pyparsing.__version__ >= "3.0.0"
 ), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, nested_expr, Group, rest_of_line, Optional
+from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
+from pyparsing import CharsNotIn, Empty
 from pyparsing.results import ParseResults
 from pyparsing import one_of
 
@@ -64,6 +64,16 @@ class CaseInsensitiveToken:
 
 Object = CaseInsensitiveToken("object")
 TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
+
+
+def nested_expr():
+    '''A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case'''
+    cnt = Empty() + CharsNotIn("() \n\t\r")
+    nested = Forward()
+    nested <<= Group(
+        Suppress("(") + ZeroOrMore(cnt | nested) + Suppress(")")
+    )
+    return nested
 
 
 class PDDLGrammar:
