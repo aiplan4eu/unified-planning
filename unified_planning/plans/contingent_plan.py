@@ -49,7 +49,9 @@ class ContingentPlanNode:
     ):
         """Adds the given `ContingentPlanNode` as a new child for the given observation."""
         for k, v in observation.items():
-            if not (k.environment == v.env == node.environment == self.environment):
+            if not (
+                k.environment == v.environment == node.environment == self.environment
+            ):
                 raise UPUsageError("Different environments can not be mixed.")
         self._children.append((observation, node))
 
