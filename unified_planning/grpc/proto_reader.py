@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# type: ignore[attr-defined]
+# type: ignore
 from functools import partial
 from typing import Tuple, Union, Optional
 import fractions

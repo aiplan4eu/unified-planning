@@ -31,7 +31,7 @@ from unified_planning.model.walkers import OperatorsExtractor
 class TaskNetwork:
     """Represents an initial task network."""
 
-    def __init__(self, _env: Environment = None):
+    def __init__(self, _env: Optional[Environment] = None):
         self._env = get_env(_env)
         self._variables: OrderedDict[str, Parameter] = OrderedDict()
         self._subtasks: List[Subtask] = []

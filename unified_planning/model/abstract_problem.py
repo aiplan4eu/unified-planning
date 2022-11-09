@@ -26,7 +26,11 @@ class AbstractProblem:
     functionalities of `planning problems`.
     """
 
-    def __init__(self, name: str = None, env: "up.environment.Environment" = None):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        env: Optional["up.environment.Environment"] = None,
+    ):
         self._env = up.environment.get_env(env)
         self._name = name
 

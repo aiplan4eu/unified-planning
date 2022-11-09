@@ -30,14 +30,14 @@ class Fluent:
     def __init__(
         self,
         name: str,
-        typename: "up.model.types.Type" = None,
+        typename: Optional["up.model.types.Type"] = None,
         _signature: Optional[
             Union[
                 OrderedDict[str, "up.model.types.Type"],
                 List["up.model.parameter.Parameter"],
             ]
         ] = None,
-        env: Environment = None,
+        env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
         self._env = get_env(env)

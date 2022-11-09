@@ -349,7 +349,7 @@ def BoolType() -> unified_planning.model.types.Type:
 
 
 def IntType(
-    lower_bound: int = None, upper_bound: int = None
+    lower_bound: Optional[int] = None, upper_bound: Optional[int] = None
 ) -> unified_planning.model.types.Type:
     """
     Returns the `integer` type defined in the global environment with the given `bounds`.
@@ -363,7 +363,7 @@ def IntType(
 
 
 def RealType(
-    lower_bound: Fraction = None, upper_bound: Fraction = None
+    lower_bound: Optional[Fraction] = None, upper_bound: Optional[Fraction] = None
 ) -> unified_planning.model.types.Type:
     """
     Returns the `real` type defined in the global environment with the given `bounds`.
@@ -394,7 +394,7 @@ def OneshotPlanner(
     *,
     name: Optional[str] = None,
     names: Optional[List[str]] = None,
-    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> Engine:
@@ -422,7 +422,7 @@ def PlanValidator(
     *,
     name: Optional[str] = None,
     names: Optional[List[str]] = None,
-    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     plan_kind: Optional[Union["up.plans.PlanKind", str]] = None,
 ) -> Engine:
@@ -451,7 +451,7 @@ def Compiler(
     *,
     name: Optional[str] = None,
     names: Optional[List[str]] = None,
-    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     compilation_kind: Optional[Union["up.engines.CompilationKind", str]] = None,
     compilation_kinds: Optional[List[Union["up.engines.CompilationKind", str]]] = None,
@@ -490,7 +490,7 @@ def Simulator(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
-    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a Simulator. There are two ways to call this method:
@@ -507,7 +507,7 @@ def Replanner(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
-    params: Union[Dict[str, str], List[Dict[str, str]]] = None,
+    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> "up.engines.engine.Engine":
     """

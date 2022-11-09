@@ -14,7 +14,7 @@
 #
 from collections import OrderedDict
 from fractions import Fraction
-from typing import List, Union, Dict
+from typing import Optional, List, Union, Dict
 
 import unified_planning as up
 from unified_planning.model.htn.method import Method
@@ -25,8 +25,8 @@ from unified_planning.model.htn.task_network import TaskNetwork
 class HierarchicalProblem(up.model.problem.Problem):
     def __init__(
         self,
-        name: str = None,
-        env: "up.environment.Environment" = None,
+        name: Optional[str] = None,
+        env: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict[
             "up.model.types.Type",
