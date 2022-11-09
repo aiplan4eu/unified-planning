@@ -934,8 +934,8 @@ class SensingAction(InstantaneousAction):
     def __init__(
         self,
         _name: str,
-        _parameters: "OrderedDict[str, up.model.types.Type]" = None,
-        _env: Environment = None,
+        _parameters: Optional["OrderedDict[str, up.model.types.Type]"] = None,
+        _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
         InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
