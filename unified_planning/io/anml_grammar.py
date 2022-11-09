@@ -34,14 +34,9 @@ from pyparsing import (
     OpAssoc,
     ParserElement,
     Literal,
+    one_of,
 )
-
-if pyparsing.__version__ < "3.0.0":
-    from pyparsing import oneOf as one_of
-    from pyparsing import ParseResults
-else:
-    from pyparsing.results import ParseResults
-    from pyparsing import one_of
+from pyparsing.results import ParseResults
 
 ParserElement.enable_packrat()
 
