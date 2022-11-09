@@ -125,7 +125,7 @@ class ANMLGrammar:
         # Negative numbers are defined with the unary minus operator
         integer = Word(nums)
         real = Combine(Word(nums) + "." + Word(nums))
-        float_const = integer | real
+        float_const = real | integer
         boolean_const = one_of([TK_TRUE, TK_FALSE])
 
         # Expression definitions

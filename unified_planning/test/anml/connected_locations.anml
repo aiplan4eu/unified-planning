@@ -4,13 +4,13 @@ fluent boolean is_at(Location l);
 fluent boolean is_connected(Location l1, Location l2);
 
 
-action move(Location from, Location to) {
+action move(Location from, Location to) { // test comment inside an action
     [start] is_at(from);
-    [start] is_at(from) := false;
+    [start] is_at(from) := false; // test comment inside an action
     [start] is_at(to) := true;
     [start] is_connected(from, to);
 };
-
+// test comment
 instance Location l1, l2, l3;
 
 [start] is_at(l1) := true;
