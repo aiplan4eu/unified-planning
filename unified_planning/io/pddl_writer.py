@@ -181,10 +181,11 @@ class ConverterToPDDLString(walkers.DagWalker):
     ):
         walkers.DagWalker.__init__(self)
         self.get_mangled_name = get_mangled_name
+        self.simplifier = env.simplifier
 
     def convert(self, expression):
         """Converts the given expression to a PDDL string."""
-        return self.walk(expression.simplify())
+        return self.walk(self.simplifier.simplify(expression))
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
