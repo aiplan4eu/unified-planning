@@ -113,6 +113,7 @@ PDDL_KEYWORDS = {
     "derived-predicates",
     "timed-initial-literals",
     "preferences",
+    "contingent",
 }
 
 # The following map is used to mangle the invalid names by their class.

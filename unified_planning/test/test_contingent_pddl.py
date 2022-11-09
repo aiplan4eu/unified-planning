@@ -28,7 +28,7 @@ from unified_planning.engines import PlanGenerationResultStatus
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
+CONTINGENT_PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "contingent_pddl")
 
 
 class TestPddlIO(TestCase):
@@ -36,23 +36,48 @@ class TestPddlIO(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def test_a_logistic_conf_reader(self):
+    def test_logistic_conf_reader(self):
         reader = PDDLReader()
 
         domain_filename = os.path.join(
-            PDDL_DOMAINS_PATH, "logistic_conf", "domain.pddl"
+            CONTINGENT_PDDL_DOMAINS_PATH, "logistic_conf", "domain.pddl"
         )
         problem_filename = os.path.join(
-            PDDL_DOMAINS_PATH, "logistic_conf", "problem.pddl"
+            CONTINGENT_PDDL_DOMAINS_PATH, "logistic_conf", "problem.pddl"
         )
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
         self.assertTrue(isinstance(problem, up.model.ContingentProblem))
-        self.assertEqual(len(problem.fluents), 9)
-        self.assertEqual(len([problem.sensing_actions]), 3)
-        self.assertEqual(len(problem.actions), 11)
-        natural_disaster = problem.action("natural_disaster")
-        # 9 effects because the forall is expanded in 3 * 3 possible locations instantiations
-        self.assertEqual(len(natural_disaster.effects), 9)
-        self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
+        self.assertEqual(len(problem.fluents), 10)
+        sensing_actions = [sa for sa in problem.sensing_actions]
+        self.assertEqual(len(sensing_actions), 3)
+        self.assertEqual(len(problem.actions), 12)
+
+        for sa in sensing_actions:
+            self.assertEqual(len(sa.parameters), 3)
+            self.assertEqual(len(sa.preconditions), 1)
+            self.assertEqual(len(sa.observed_fluents), 1)
+
+    def test_colorballs_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(
+            CONTINGENT_PDDL_DOMAINS_PATH, "colorballs", "domain.pddl"
+        )
+        problem_filename = os.path.join(
+            CONTINGENT_PDDL_DOMAINS_PATH, "colorballs", "problem.pddl"
+        )
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertTrue(isinstance(problem, up.model.ContingentProblem))
+        self.assertEqual(len(problem.fluents), 8)
+        sensing_actions = [sa for sa in problem.sensing_actions]
+        self.assertEqual(len(sensing_actions), 2)
+        self.assertEqual(len(problem.actions), 5)
+
+        for sa in sensing_actions:
+            self.assertEqual(len(sa.parameters), 2)
+            self.assertEqual(len(sa.preconditions), 1)
+            self.assertEqual(len(sa.observed_fluents), 1)
