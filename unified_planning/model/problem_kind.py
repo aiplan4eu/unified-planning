@@ -235,6 +235,7 @@ multi_agent_kind = ProblemKind()
 multi_agent_kind.set_problem_class("ACTION_BASED_MULTI_AGENT")
 multi_agent_kind.set_typing("FLAT_TYPING")
 
+
 multi_agent_kind.set_typing("HIERARCHICAL_TYPING")
 multi_agent_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
 multi_agent_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
@@ -244,3 +245,4 @@ multi_agent_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 multi_agent_kind.set_effects_kind("CONDITIONAL_EFFECTS")
 multi_agent_kind.set_fluents_type("NUMERIC_FLUENTS")
 multi_agent_kind.set_fluents_type("OBJECT_FLUENTS")
+
