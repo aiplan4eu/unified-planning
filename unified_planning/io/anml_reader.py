@@ -594,14 +594,14 @@ class ANMLReader:
 
     def _parse_timing(
         self,
-        timing_exp: ParseResults,
+        timing_exp_res: ParseResults,
         parameters: Dict[str, "Parameter"],
         types_map: Dict[str, "Type"],
         is_global: bool = False,
     ) -> "up.model.Timing":
-        assert len(timing_exp) == 1, "parsing error"
+        assert len(timing_exp_res) == 1, "parsing error"
         parsed_timing_exp = self._parse_expression(
-            timing_exp, parameters, types_map, is_global
+            timing_exp_res, parameters, types_map, is_global
         ).simplify()
         if parsed_timing_exp.is_timing_exp():
             return parsed_timing_exp.timing()
