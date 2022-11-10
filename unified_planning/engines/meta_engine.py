@@ -52,7 +52,7 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
 
     def __init__(self, *args, **kwargs):
         Engine.__init__(self)
-        self._engine = self._engine_class(*args, **kwargs)
+        self._engine = self._engine_class(*args, **kwargs)  # type: ignore
 
     @property
     def engine(self) -> Engine:

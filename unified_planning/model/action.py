@@ -177,9 +177,9 @@ class InstantaneousAction(Action):
         return res
 
     def clone(self):
-        new_params = {}
-        for param_name, param in self._parameters.items():
-            new_params[param_name] = param.type
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
         new_instantaneous_action = InstantaneousAction(
             self._name, new_params, self._env
         )
@@ -524,9 +524,9 @@ class DurativeAction(Action):
         return res
 
     def clone(self):
-        new_params = {
-            param_name: param.type for param_name, param in self._parameters.items()
-        }
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration
         new_durative_action._conditions = {

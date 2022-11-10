@@ -42,6 +42,7 @@ BoolExpression = Union[
     "up.model.fnode.FNode",
     "up.model.fluent.Fluent",
     "up.model.parameter.Parameter",
+    "up.model.variable.Variable",
     bool,
 ]
 ConstantExpression = Union[

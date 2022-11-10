@@ -75,9 +75,9 @@ class TaskNetwork:
 
     def clone(self):
         new = TaskNetwork(self._env)
-        new._variables: OrderedDict[str, Parameter] = self._variables.copy()
-        new._subtasks: List[Subtask] = self._subtasks[:]
-        new._constraints: List[FNode] = self._constraints[:]
+        new._variables = self._variables.copy()
+        new._subtasks = self._subtasks[:]
+        new._constraints = self._constraints[:]
         return new
 
     @property
