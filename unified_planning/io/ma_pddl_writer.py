@@ -32,6 +32,7 @@ from unified_planning.model import (
     Problem,
     Object,
 )
+from unified_planning.model.multi_agent.agent import Agent
 from unified_planning.exceptions import (
     UPTypeError,
     UPProblemDefinitionError,
@@ -43,17 +44,10 @@ from io import StringIO
 from functools import reduce
 from unified_planning.io.pddl_writer import (
     ObjectsExtractor,
-    _update_domain_objects,
     ConverterToPDDLString,
     PDDL_KEYWORDS,
     INITIAL_LETTER,
-    _get_pddl_name,
 )
-
-from unified_planning.model.walkers.simplifier import Simplifier
-from unified_planning.model.expression import ExpressionManager, Expression
-from unified_planning.model.walkers.substituter import Substituter
-import re
 
 
 class ConverterToMAPDDLString(ConverterToPDDLString):
@@ -88,7 +82,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
         if self.agent is not None and fluent in self.agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)} ?{self.get_mangled_name(self.agent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f'(a_{self.get_mangled_name(fluent)} ?{self.agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
@@ -911,6 +905,48 @@ class MAPDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+
+
+def _get_pddl_name(
+    item: Union[
+        "up.model.Type",
+        "up.model.Action",
+        "up.model.Fluent",
+        "up.model.Object",
+        "up.model.Parameter",
+        "up.model.Variable",
+        "up.model.Problem",
+        "up.model.multi_agent.MultiAgentProblem",
+        "up.model.multi_agent.Agent",
+    ]
+) -> str:
+    """This function returns a pddl name for the chosen item"""
+    name = item.name  # type: ignore
+    assert name is not None
+    name = name.lower()
+    regex = re.compile(r"^[a-zA-Z]+.*")
+    if (
+        re.match(regex, name) is None
+    ):  # If the name does not start with an alphabetic char, we make it start with one.
+        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
+
+    name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
+    while (
+        name in PDDL_KEYWORDS
+    ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
+        name = f"{name}_"
+    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
+        name = f"?{name}"
+    return name
+
+
+def _update_domain_objects(
+    dict_to_update: Dict[_UserType, Set[Object]], values: Dict[_UserType, Set[Object]]
+) -> None:
+    """Small utility method that updated a UserType -> Set[Object] dict with another dict of the same type."""
+    for ut, os in values.items():
+        os_to_update = dict_to_update.setdefault(ut, set())
+        os_to_update |= os
 
 
 def _update_domain_objects_ag(
