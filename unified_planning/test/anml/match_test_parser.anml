@@ -1,0 +1,44 @@
+fluent boolean handfree;
+fluent boolean handfree_sigma;
+fluent boolean light(match _param_match);
+fluent boolean mended(fuse _param_fuse);
+
+action action_LIGHT_MATCH(match _param_match) //comment
+ {
+(duration == 5.0);
+[start] unused(_param_match);
+[start] (unused(_param_match) := false);
+[start] (light(_param_match) := true);
+[end] (light(_param_match) := false); //comment
+};
+
+action action_MEND_FUSE(fuse _param_fuse, match _param_match) {//comment
+[start] handfree;
+[start] (handfree := false);
+[end] (handfree := true);
+(duration := 2.0);
+[start] handfree_sigma;
+(all) light(_param_match);
+[start] (handfree_sigma := false);
+[(1.0 + start)] (mended_sigma(_param_fuse) := true);
+[end] (mended(_param_fuse) := true);
+(start + 1.0, end] (mended_sigma(_param_fuse) == true);
+[start + 1.0] (handfree_sigma := true);
+(1 + start, end] (handfree_sigma == true);
+};
+
+instance fuse fuse0;
+instance match match0;
+[start] (handfree := true);
+[start] (unused(match0) := true);
+[end] mended(fuse0);
+[start] (mended(fuse0) := false);
+[start] (light(match0) := false);
+[start] (handfree_sigma := true);
+[end] mended_sigma(fuse0);
+[start] (mended_sigma(fuse0) := false);
+
+fluent boolean mended_sigma(fuse _param_fuse);
+fluent boolean unused(match _param_match);
+type fuse;
+type match;

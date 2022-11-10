@@ -205,9 +205,10 @@ class ANMLGrammar:
         )
         expression_block.setParseAction(parse_exp_block_as_exp_sequence)
 
-        temporal_expression = Optional(one_of((TK_START, TK_END, TK_ALL))) + Optional(
-            arithmetic_expression
-        )
+        # temporal_expression = Optional(one_of((TK_START, TK_END, TK_ALL))) + Optional(
+        #     arithmetic_expression
+        # ) #TODO Old code to remove
+        temporal_expression = Optional(arithmetic_expression)
 
         in_assignment_expression = (
             one_of((TK_DURATION,))

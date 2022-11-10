@@ -104,6 +104,13 @@ class ANMLReader:
         self._env = get_env(env)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
+        # map from timing name, globality flag to corresponding Timepoint
+        self._timings = {
+            (TK_START, True): GlobalStartTiming(),
+            (TK_START, False): StartTiming(),
+            (TK_END, True): GlobalEndTiming(),
+            (TK_END, False): EndTiming(),
+        }
 
         self._operators: Dict[str, Callable] = {
             TK_AND: self._em.And,
@@ -279,7 +286,9 @@ class ANMLReader:
             else:
                 self._problem._add_effect_instance(up_timing, up_effect)
         else:  # condition
-            up_interval = self._parse_interval(interval, types_map, is_global=True)
+            up_interval = self._parse_interval(
+                interval, parameters, types_map, is_global=True
+            )
             goal = self._parse_expression(expression, parameters, types_map)
             if up_interval == global_end:
                 self._problem.add_goal(goal)
@@ -497,7 +506,9 @@ class ANMLReader:
                     raise UPUnsupportedProblemTypeError(
                         "when keyword used in an action precondition is not supported by the UP."
                     )
-                up_interval = self._parse_interval(interval_and_exp[0], types_map)
+                up_interval = self._parse_interval(
+                    interval_and_exp[0], action_parameters, types_map
+                )
                 exp_res = interval_and_exp[1][0]
                 condition = self._parse_expression(
                     exp_res, action_parameters, types_map
@@ -520,6 +531,7 @@ class ANMLReader:
     def _parse_interval(
         self,
         interval_res: ParseResults,
+        parameters: Dict[str, "Parameter"],
         types_map: Dict[str, "Type"],
         is_global: bool = False,
     ) -> Union["Timing", "TimeInterval"]:
@@ -531,18 +543,28 @@ class ANMLReader:
             else:
                 return StartTiming()
 
-        elif len(interval_res) == 3:
+        contains_TK_ALL = TK_ALL in find_strings(interval_res, set((TK_ALL,)))
+        if len(interval_res) == 3:
             l_par = interval_res[0]
-            timing_and_exp = interval_res[1]
+            timing_exp = interval_res[1]
             r_par = interval_res[2]
-            timing_type = timing_and_exp[0]
 
             assert l_par in (TK_L_PARENTHESIS, TK_L_BRACKET) and r_par in (
                 TK_R_PARENTHESIS,
                 TK_R_BRACKET,
             ), "parsing error"
 
-            if timing_type != TK_ALL:
+            if contains_TK_ALL:  # prepare start and end, used later
+                start, end = (
+                    (GlobalStartTiming(), GlobalEndTiming())
+                    if is_global
+                    else (StartTiming(), EndTiming())
+                )
+                if len(timing_exp) != 1:  # TODO probably add additional check on all
+                    raise UPUnsupportedProblemTypeError(
+                        f"with the {TK_ALL} timing no expression is accepted"
+                    )
+            else:
                 if l_par != TK_L_BRACKET:
                     raise ANMLSyntaxError(
                         "point intervals can't have '('; use '[' instead"
@@ -551,22 +573,15 @@ class ANMLReader:
                     raise ANMLSyntaxError(
                         "point intervals can't have ')'; use ']' instead"
                     )
-                return self._parse_timing(timing_and_exp, types_map, is_global)
-            else:  # timing_type == TK_ALL, just define start and end
-                start, end = (
-                    (GlobalStartTiming(), GlobalEndTiming())
-                    if is_global
-                    else (StartTiming(), EndTiming())
-                )
-                if len(timing_and_exp) != 1:
-                    raise UPUnsupportedProblemTypeError(
-                        f"with the {TK_ALL} timing no expression is accepted"
-                    )
+                return self._parse_timing(timing_exp, parameters, types_map, is_global)
+
         else:
             assert len(interval_res) == 4, "Parsing error, not able to handle"
             l_par = interval_res[0]
-            start = self._parse_timing(interval_res[1], types_map, is_global)
-            end = self._parse_timing(interval_res[2], types_map, is_global)
+            start = self._parse_timing(
+                interval_res[1], parameters, types_map, is_global
+            )
+            end = self._parse_timing(interval_res[2], parameters, types_map, is_global)
             r_par = interval_res[3]
 
         if l_par == TK_L_BRACKET and r_par == TK_R_BRACKET:
@@ -579,59 +594,68 @@ class ANMLReader:
 
     def _parse_timing(
         self,
-        timing_and_exp: ParseResults,
+        timing_exp: ParseResults,
+        parameters: Dict[str, "Parameter"],
         types_map: Dict[str, "Type"],
         is_global: bool = False,
     ) -> "up.model.Timing":
-        delay_position = None
-        timing_type = timing_and_exp[0]
-        delay = self._em.Int(0)
-        if len(timing_and_exp) > 1:  # There is a delay
-            assert len(timing_and_exp) == 2, "unexpected parsing error"
-            delay_position = 1
-        else:
-            assert len(timing_and_exp) == 1, "parsing error"
-            if timing_type not in (TK_START, TK_END):  # interval of the form [10]
-                delay_position = 0
-                timing_type = TK_START
-                if not is_global:
-                    raise ANMLSyntaxError(
-                        "interval [x] is not valid in an action, try [start + x]"
-                    )
-        if delay_position is not None:
-            up_exp = self._parse_expression(
-                timing_and_exp[delay_position], parameters={}, types_map=types_map
-            )
-            delay = up_exp.simplify()
-            if not delay.is_int_constant() and not delay.is_real_constant():
-                raise ANMLSyntaxError(
-                    "Timing delay must simplify as a numeric constant"
-                )
+        assert len(timing_exp) == 1, "parsing error"
+        parsed_timing_exp = self._parse_expression(
+            timing_exp, parameters, types_map, is_global
+        ).simplify()
+        if parsed_timing_exp.is_timing_exp():
+            return parsed_timing_exp.timing()
 
-        if timing_type == TK_START:
-            d = delay.constant_value()
-            if d < 0:
-                raise UPUnsupportedProblemTypeError(
-                    "A negative delay on a start Timing is not supported in the UP"
+        elif (
+            parsed_timing_exp.is_int_constant() or parsed_timing_exp.is_real_constant()
+        ):
+            if not is_global:
+                raise ANMLSyntaxError(
+                    f"Interval without start or end outside of an action is not valid."
                 )
-            if is_global:
-                return up.model.GlobalStartTiming(d)
-            else:
-                return up.model.StartTiming(d)
-        elif timing_type == TK_END:
-            d = delay.constant_value()
-            d = d * -1
-            if d < 0:
+            delay = parsed_timing_exp.constant_value()
+            if delay < 0:
                 raise UPUnsupportedProblemTypeError(
-                    "An ANML positive delay on an end Timing is not supported in the UP"
+                    f"Implicit start interval has delay {delay}, which is negative. UP currently only supports positive delays."
                 )
-            if is_global:
-                return up.model.GlobalEndTiming(delay.constant_value())
-            else:
-                return up.model.EndTiming(delay.constant_value())
+            return GlobalStartTiming(delay)
+
+        elif parsed_timing_exp.is_plus() or parsed_timing_exp.is_minus():
+            if len(parsed_timing_exp.args) != 2:
+                raise UPUnsupportedProblemTypeError(
+                    f"Timing parsed: {parsed_timing_exp}. UP currently only supports",
+                    f" {TK_START} + constant, {TK_END} - constant or just a constant",
+                )
+            timing_exp = parsed_timing_exp.arg(0)
+            delay_exp = parsed_timing_exp.arg(1)
+            if parsed_timing_exp.is_plus() and not timing_exp.is_timing_exp():
+                timing_exp, delay_exp = delay_exp, timing_exp
+            if not timing_exp.is_timing_exp() or (
+                not delay_exp.is_int_constant() and not delay_exp.is_real_constant()
+            ):
+                raise UPUnsupportedProblemTypeError(
+                    f"Timing parsed: {parsed_timing_exp}. UP currently only supports",
+                    f" {TK_START} + constant, {TK_END} - constant or just a constant",
+                )
+            timing = timing_exp.timing()
+            delay = delay_exp.constant_value()
+            if (
+                parsed_timing_exp.is_plus()
+                and (delay < 0 or not timing.is_from_start())
+            ) or (
+                parsed_timing_exp.is_minus() and (delay < 0 or not timing.is_from_end())
+            ):
+                raise UPUnsupportedProblemTypeError(
+                    f"Timing parsed: {parsed_timing_exp}. UP currently only supports",
+                    f" {TK_START} + constant, {TK_END} - constant or just a constant",
+                )
+            if parsed_timing_exp.is_minus():
+                delay = -delay
+            return Timing(delay, timing.timepoint)
         else:
-            raise NotImplementedError(
-                f"Currently the unified planning does not support the timing {timing_type}"
+            raise UPUnsupportedProblemTypeError(
+                f"Timing parsed: {parsed_timing_exp}. UP currently only supports",
+                f" {TK_START} + constant, {TK_END} - constant or just a constant",
             )
 
     def _parse_assignment(
@@ -663,7 +687,9 @@ class ANMLReader:
         else:
             condition = self._em.TRUE()
             effect_exp = effect_res[0]
-        up_interval = self._parse_interval(interval_res, types_map, is_global)
+        up_interval = self._parse_interval(
+            interval_res, parameters, types_map, is_global
+        )
         fluent_ref = effect_exp[0]
         assignment_operator = effect_exp[1]
         assigned_expression = effect_exp[2]
@@ -692,6 +718,7 @@ class ANMLReader:
         expression: Union[ParseResults, List, str],
         parameters: Dict[str, "up.model.Parameter"],
         types_map: Dict[str, "Type"],
+        is_global: Optional[bool] = None,
     ) -> "up.model.FNode":
         # A string here means it is a number or a boolean token. To avoid code duplication, just
         # wrap it in a temporary list and let the stack management handle it.
@@ -724,6 +751,21 @@ class ANMLReader:
                         pass  # already ok, nothing to do -> 0+x = x
                     elif first_elem == TK_NOT:  # negation
                         solved.append(self._em.Not(solved.pop()))
+                    elif first_elem in (
+                        TK_START,
+                        TK_END,
+                        TK_ALL,
+                    ):  # start, end or all timing_exp
+                        if is_global is None:
+                            raise ANMLSyntaxError(
+                                f"{first_elem} is found outside of a timed expression."
+                            )
+                        assert (
+                            first_elem != TK_ALL
+                        ), "Error, this case should have been handled before."
+                        solved.append(
+                            self._em.TimingExp(self._timings[(first_elem, is_global)])
+                        )
                     elif first_elem in vars:  # quantifier variable
                         solved.append(self._em.VariableExp(vars[first_elem]))
                     elif first_elem in parameters:  # parameter exp

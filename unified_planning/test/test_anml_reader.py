@@ -342,6 +342,58 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
+    def test_match_test_parser_reader(self):
+        reader = ANMLReader()
+
+        problem_filename = os.path.join(ANML_FILES_PATH, "match_test_parser.anml")
+        problem = reader.parse_problem(problem_filename)
+        em = problem.env.expression_manager
+
+        self.assertIsNotNone(problem)
+        self.assertEqual(len(problem.fluents), 6)
+        self.assertEqual(len(problem.actions), 2)
+        self.assertEqual(len(problem.all_objects), 2)
+        self.assertEqual(len(problem.goals), 2)
+        self.assertEqual(len(problem.timed_goals), 0)
+        self.assertEqual(len(problem.timed_effects), 0)
+
+        light_match = problem.action("action_LIGHT_MATCH")
+        self.assertEqual(light_match.duration, FixedDuration(em.Real(Fraction(5))))
+        for interval, cond_list in light_match.conditions.items():
+            self.assertEqual(interval, self.start_interval)
+            self.assertEqual(len(cond_list), 1)
+        for timing, effect_list in light_match.effects.items():
+            if timing == self.start_timing:
+                self.assertEqual(len(effect_list), 2)
+            elif timing == self.end_timing:
+                self.assertEqual(len(effect_list), 1)
+            else:
+                self.assertTrue(False)
+
+        mend_fuse = problem.action("action_MEND_FUSE")
+        self.assertEqual(mend_fuse.duration, FixedDuration(em.Real(Fraction(2))))
+        start_plus_one = StartTiming(1)
+        for interval, cond_list in mend_fuse.conditions.items():
+            if interval == self.start_interval:
+                self.assertEqual(len(cond_list), 2)
+            elif interval == OpenTimeInterval(self.start_timing, self.end_timing):
+                self.assertEqual(len(cond_list), 1)
+            elif interval == TimePointInterval(start_plus_one):
+                self.assertEqual(len(cond_list), 1)
+            elif interval == LeftOpenTimeInterval(start_plus_one, self.end_timing):
+                self.assertEqual(len(cond_list), 2)
+            else:
+                self.assertTrue(False)
+        for timing, effect_list in mend_fuse.effects.items():
+            if timing == self.start_timing:
+                self.assertEqual(len(effect_list), 2)
+            elif timing == start_plus_one:
+                self.assertEqual(len(effect_list), 2)
+            elif timing == self.end_timing:
+                self.assertEqual(len(effect_list), 2)
+            else:
+                self.assertTrue(False)
+
     def test_simple_mais_reader(self):
         reader = ANMLReader()
 
