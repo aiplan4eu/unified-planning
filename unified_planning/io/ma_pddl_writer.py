@@ -528,8 +528,23 @@ class MAPDDLWriter:
                             f'\n  :precondition (and '
                         )
                         for p in a.preconditions:
-                            if p.fluent() in ag.fluents:
-                                out.write(f' ({self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})')
+                            if p.is_fluent_exp():
+                                if p.fluent() in ag.fluents:
+                                    out.write(f' ({self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})')
+                                else:
+                                    out.write(f' {converter.convert(p)}')
+                            elif p.args[0].is_fluent_exp():
+                                if p.args[0].fluent() in ag.fluents:
+                                    out.write(
+                                        f' ({self._get_mangled_name(p.args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args])})')
+                                else:
+                                    out.write(f' {converter.convert(p)}')
+                            elif p.args[0].args[0].is_fluent_exp():
+                                if p.args[0].args[0].fluent() in ag.fluents:
+                                    out.write(
+                                        f' ({self._get_mangled_name(p.args[0].args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args[0].args])})')
+                                else:
+                                    out.write(f' {converter.convert(p)}')
                             else:
                                 out.write(f' {converter.convert(p)}')
                         out.write(f')')
