@@ -512,8 +512,8 @@ class PDDLWriter:
                 out.write(")")
                 if len(a.preconditions) > 0:
                     out.write(
-                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions if(not p.is_true())])})'
-                    )
+                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions])})'
+                        )
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:

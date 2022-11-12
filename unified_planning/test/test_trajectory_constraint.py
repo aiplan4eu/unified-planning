@@ -19,7 +19,9 @@ from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.environment import get_env
-from unified_planning.model.walkers import Dnf, Nnf, Simplifier, Substituter
+from unified_planning.engines.compilers.trajectory_constraints_remover import (
+    TrajectoryConstraintsRemover,
+)
 
 
 class TestTrajectoryConstraint(TestCase):
@@ -27,32 +29,43 @@ class TestTrajectoryConstraint(TestCase):
         TestCase.setUp(self)
 
     def define_problem(self):
-        Location = UserType("Location")
-        robot_at = unified_planning.model.Fluent("robot_at", BoolType(), l=Location)
-        connected = unified_planning.model.Fluent(
-            "connected", BoolType(), l_from=Location, l_to=Location
-        )
-        problem = unified_planning.model.Problem("robot")
-        problem.add_fluent(robot_at, default_initial_value=False)
+        Location = UserType('Location')
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        connected = unified_planning.model.Fluent('connected', BoolType(), l_from=Location, l_to=Location)
+
+        move = unified_planning.model.InstantaneousAction('move', l_from=Location, l_to=Location)
+        l_from = move.parameter('l_from')
+        l_to = move.parameter('l_to')
+        move.add_precondition(connected(l_from, l_to))
+        move.add_precondition(robot_at(l_from))
+        move.add_effect(robot_at(l_from), False)
+        move.add_effect(robot_at(l_to), True)
+
+        problem = unified_planning.model.Problem('robot', 
+            initial_defaults={BoolType(): FALSE()}
+            )
+        problem.add_fluent(robot_at, default_initial_value=False) 
         problem.add_fluent(connected, default_initial_value=False)
+        problem.add_action(move)
 
-        l1 = unified_planning.model.Object("l1", Location)
-        l2 = unified_planning.model.Object("l2", Location)
-        l3 = unified_planning.model.Object("l3", Location)
-        l4 = unified_planning.model.Object("l4", Location)
-        problem.add_objects([l1, l2, l3, l4])
+        NLOC = 5
+        locations = [unified_planning.model.Object('l%s' % i, Location) for i in range(NLOC)]
+        problem.add_objects(locations)
+        problem.set_initial_value(robot_at(locations[0]), True)
+        for i in range(NLOC - 1):
+            problem.set_initial_value(connected(locations[i], locations[i+1]), True)
 
-        problem.set_initial_value(robot_at(l1), True)
-        problem.set_initial_value(connected(l1, l2), True)
-        problem.set_initial_value(connected(l2, l3), True)
-        problem.set_initial_value(connected(l3, l4), True)
-        return problem, [robot_at, connected], [l1, l2, l3, l4]
+        problem.add_goal(robot_at(locations[-1]))
+        return problem
 
     def test_create_always_constraint(self):
-        problem, fluents, objects = self.define_problem()
-        robot_at = fluents[0]
-        always = Always(robot_at(objects[0]))
-        always_not = Always(Not(robot_at(objects[1])))
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        always = Always(robot_at(l1))
+        always_not = Always(Not(robot_at(l2)))
         self.assertTrue(always.is_always() and always_not.is_always())
         self.assertTrue(
             always.node_type == OperatorKind.ALWAYS
@@ -76,10 +89,13 @@ class TestTrajectoryConstraint(TestCase):
         )
 
     def test_create_sometime_constraint(self):
-        problem, fluents, objects = self.define_problem()
-        robot_at = fluents[0]
-        sometime = Sometime(robot_at(objects[0]))
-        sometime_not = Sometime(Not(robot_at(objects[1])))
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        sometime = Sometime(robot_at(l1))
+        sometime_not = Sometime(Not(robot_at(l2)))
         self.assertTrue(sometime.is_sometime() and sometime_not.is_sometime())
         self.assertTrue(
             sometime.node_type == OperatorKind.SOMETIME
@@ -103,10 +119,13 @@ class TestTrajectoryConstraint(TestCase):
         )
 
     def test_create_at_most_once_constraint(self):
-        problem, fluents, objects = self.define_problem()
-        robot_at = fluents[0]
-        at_most_once = AtMostOnce(robot_at(objects[0]))
-        at_most_once_not = AtMostOnce(Not(robot_at(objects[1])))
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        at_most_once = AtMostOnce(robot_at(l1))
+        at_most_once_not = AtMostOnce(Not(robot_at(l2)))
         self.assertTrue(
             at_most_once.is_at_most_once() and at_most_once_not.is_at_most_once()
         )
@@ -132,11 +151,14 @@ class TestTrajectoryConstraint(TestCase):
         )
 
     def test_create_sometime_before_constraint(self):
-        problem, fluents, objects = self.define_problem()
-        robot_at = fluents[0]
-        sometime_before = SometimeBefore(robot_at(objects[0]), robot_at(objects[1]))
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        sometime_before = SometimeBefore(robot_at(l1), robot_at(l2))
         sometime_before_not = SometimeBefore(
-            Not(robot_at(objects[0])), robot_at(objects[1])
+            Not(robot_at(l1)), robot_at(l2)
         )
         self.assertTrue(
             sometime_before.is_sometime_before()
@@ -166,11 +188,14 @@ class TestTrajectoryConstraint(TestCase):
         )
 
     def test_create_sometime_after_constraint(self):
-        problem, fluents, objects = self.define_problem()
-        robot_at = fluents[0]
-        sometime_after = SometimeAfter(robot_at(objects[0]), robot_at(objects[1]))
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        sometime_after = SometimeAfter(robot_at(l1), robot_at(l2))
         sometime_after_not = SometimeAfter(
-            Not(robot_at(objects[0])), robot_at(objects[1])
+            Not(robot_at(l1)), robot_at(l2)
         )
         self.assertTrue(
             sometime_after.is_sometime_after()
@@ -198,3 +223,78 @@ class TestTrajectoryConstraint(TestCase):
             str(problem.trajectory_constraints)
             == "[(Sometime-After((not robot_at(l1)), robot_at(l2)) and Sometime-After(robot_at(l1), robot_at(l2)))]"
         )
+
+    def test_remove_external_forall(self):
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l0 = unified_planning.model.Object('l0', Location)
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        l3 = unified_planning.model.Object('l3', Location)
+        l4 = unified_planning.model.Object('l4', Location)
+        s_loc = Variable("l", Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        test_forall = Forall(AtMostOnce(FluentExp(robot_at, [s_loc])), s_loc)
+        problem_with_forall = problem.clone()
+        problem_with_forall.add_trajectory_constraint(test_forall)
+        problem_without_forall = problem.clone()
+        for loc in [l4, l3, l2, l1, l0]:
+            problem_without_forall.add_trajectory_constraint(AtMostOnce(robot_at(loc)))
+
+        problem_with_forall_comp = TrajectoryConstraintsRemover().compile(
+                problem_with_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
+                ).problem
+        problem_without_forall_comp = TrajectoryConstraintsRemover().compile(
+                problem_without_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
+        ).problem
+        self.assertTrue(problem_with_forall_comp == problem_without_forall_comp)
+
+    def test_remove_internal_forall(self):
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l0 = unified_planning.model.Object('l0', Location)
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        l3 = unified_planning.model.Object('l3', Location)
+        l4 = unified_planning.model.Object('l4', Location)
+        s_loc = Variable("l", Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        test_forall = AtMostOnce(Forall(FluentExp(robot_at, [s_loc]), s_loc))
+        problem_with_forall = problem.clone()
+        problem_with_forall.add_trajectory_constraint(test_forall)
+        problem_without_forall = problem.clone()
+        problem_without_forall.add_trajectory_constraint(AtMostOnce(
+                And(robot_at(l0), robot_at(l1), robot_at(l2), robot_at(l3), robot_at(l4)))
+                )
+        problem_with_forall_comp = TrajectoryConstraintsRemover().compile(
+                problem_with_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
+                ).problem
+        problem_without_forall_comp = TrajectoryConstraintsRemover().compile(
+                problem_without_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
+        ).problem
+        self.assertTrue(problem_with_forall_comp == problem_without_forall_comp)
+
+    def test_remove_internal_exists(self):
+        problem = self.define_problem()
+        Location = UserType('Location')
+        l0 = unified_planning.model.Object('l0', Location)
+        l1 = unified_planning.model.Object('l1', Location)
+        l2 = unified_planning.model.Object('l2', Location)
+        l3 = unified_planning.model.Object('l3', Location)
+        l4 = unified_planning.model.Object('l4', Location)
+        s_loc = Variable("l", Location)
+        robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
+        test_exixst = AtMostOnce(Exists(FluentExp(robot_at, [s_loc]), s_loc))
+        problem_with_forall = problem.clone()
+        problem_with_forall.add_trajectory_constraint(test_exixst)
+        problem_without_forall = problem.clone()
+        problem_without_forall.add_trajectory_constraint(AtMostOnce(
+                Or(robot_at(l0), robot_at(l1), robot_at(l2), robot_at(l3), robot_at(l4)))
+                )
+        problem_with_forall_comp = TrajectoryConstraintsRemover().compile(
+                problem_with_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
+                ).problem
+        problem_without_forall_comp = TrajectoryConstraintsRemover().compile(
+                problem_without_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
+        ).problem
+        self.assertTrue(problem_with_forall_comp == problem_without_forall_comp)

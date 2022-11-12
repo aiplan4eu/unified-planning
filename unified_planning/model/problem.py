@@ -586,23 +586,6 @@ class Problem(
         ).simplify()
         self._trajectory_constraints = [all_constraints_simplified]
 
-    def remove_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
-        """
-        Delete the given `trajectory_constraint` present in the `Problem`;
-
-        :param trajectory_constraint: The expression delete the trajectory_constraint
-        if is present in the `Problem`.
-        """
-        if len(self._trajectory_constraints) > 0:
-            new_traj_list = []
-            traj_constrs = list(self._trajectory_constraints[0].args)
-            if constraint in traj_constrs:
-                traj_constrs.remove(constraint)
-                new_traj_list.append(self._env.expression_manager.And(traj_constrs))
-                self._trajectory_constraints = new_traj_list
-            elif constraint == self._trajectory_constraints[0]:
-                self._trajectory_constraints = new_traj_list
-
     @property
     def goals(self) -> List["up.model.fnode.FNode"]:
         """Returns all the `goals` in the `Problem`."""

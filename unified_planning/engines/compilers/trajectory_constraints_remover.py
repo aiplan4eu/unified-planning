@@ -16,6 +16,7 @@
 
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model.action import InstantaneousAction
@@ -187,11 +188,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             self._problem.add_action(action)
         for init_val in I_prime:
             self._problem.set_initial_value(
-                env.expression_manager.FluentExp(
-                    up.model.Fluent(f"{init_val}", env.type_manager.BoolType())
-                ),
-                env.expression_manager.TRUE(),
-            )
+                up.model.Fluent(f"{init_val}", env.type_manager.BoolType()), True
+                )
         return CompilerResult(
             self._problem, partial(lift_action_instance, map=trace_back_map), self.name
         )
@@ -216,8 +214,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         return new_C
 
     def _manage_sa_compilation(self, env, phi, psi, m_atom, a, E):
-        R1 = (self._regression(phi, a)).simplify()
-        R2 = (self._regression(psi, a)).simplify()
+        R1 = (self._regression(env, phi, a)).simplify()
+        R2 = (self._regression(env, psi, a)).simplify()
         if phi != R1 or psi != R2:
             cond = (
                 env.expression_manager.And([R1, env.expression_manager.Not(R2)])
@@ -335,7 +333,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for constr in C:
             if constr.is_always():
                 if substituter.substitute(constr.args[0], I).simplify().is_false():
-                    raise Exception(
+                    raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: an always is violated in the initial state"
                     )
             else:
@@ -353,7 +351,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     initial_state_prime.append(monitoring_atom)
                 if constr.is_sometime_before():
                     if substituter.substitute(constr.args[0], I).simplify().is_true():
-                        raise Exception(
+                        raise UPProblemDefinitionError(
                             "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
                         )
                 monitoring_atoms_counter += 1
