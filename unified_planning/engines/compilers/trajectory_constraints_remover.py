@@ -135,7 +135,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         )
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
         assert isinstance(self._grounding_result.map_back_action_instance, partial)
-        map_grounded_action = self._grounding_result.map_back_action_instance.keywords['map']
+        map_grounded_action = self._grounding_result.map_back_action_instance.keywords[
+            "map"
+        ]
         for a in A:
             map_value = map_grounded_action[a]
             assert isinstance(a, InstantaneousAction)
