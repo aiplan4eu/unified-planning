@@ -14,7 +14,7 @@
 #
 from collections import OrderedDict
 from fractions import Fraction
-from typing import List, Union, Dict
+from typing import Optional, List, Union, Dict
 
 import unified_planning as up
 from unified_planning.model.htn.method import Method
@@ -25,8 +25,8 @@ from unified_planning.model.htn.task_network import TaskNetwork
 class HierarchicalProblem(up.model.problem.Problem):
     def __init__(
         self,
-        name: str = None,
-        env: "up.environment.Environment" = None,
+        name: Optional[str] = None,
+        env: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict[
             "up.model.types.Type",
@@ -132,6 +132,9 @@ class HierarchicalProblem(up.model.problem.Problem):
             task.name not in self._abstract_tasks
         ), f"A task with name '{task.name}' already exists."
         self._abstract_tasks[task.name] = task
+        for param in task.parameters:
+            if param.type.is_user_type():
+                self._add_user_type(param.type)
         return task
 
     @property
@@ -152,6 +155,9 @@ class HierarchicalProblem(up.model.problem.Problem):
             method.achieved_task.task.name in self._abstract_tasks
         ), f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
         self._methods[method.name] = method
+        for param in method.parameters:
+            if param.type.is_user_type():
+                self._add_user_type(param.type)
 
     @property
     def task_network(self):

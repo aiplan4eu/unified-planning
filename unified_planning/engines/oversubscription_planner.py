@@ -96,6 +96,9 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         self,
         problem: "up.model.AbstractProblem",
         callback: Optional[Callable[["PlanGenerationResult"], None]] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.ROState"], Optional[float]]
+        ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "PlanGenerationResult":
@@ -124,7 +127,9 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             for g in t[1]:
                 new_problem.add_goal(g)
             start = time.time()
-            res = self.engine.solve(new_problem, callback, timeout, output_stream)
+            res = self.engine.solve(
+                new_problem, callback, heuristic, timeout, output_stream
+            )
             if timeout is not None:
                 timeout -= min(timeout, time.time() - start)
             if res.status in up.engines.results.POSITIVE_OUTCOMES:

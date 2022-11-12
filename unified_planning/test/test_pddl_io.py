@@ -396,6 +396,20 @@ class TestPddlIO(TestCase):
         self.assertEqual(2, len(problem.method("m-drive-to-via").subtasks))
         self.assertEqual(2, len(problem.task_network.subtasks))
 
+    def test_hddl_parsing(self):
+        """Tests that all HDDL benchmarks are successfully parsed."""
+        hddl_dir = os.path.join(FILE_PATH, "hddl")
+        subfolders = [f.path for f in os.scandir(hddl_dir) if f.is_dir()]
+        for id, domain in enumerate(subfolders[:]):
+            print(f"=== [{id}] {domain} ===")
+            domain_filename = os.path.join(domain, "domain.hddl")
+            problem_filename = os.path.join(domain, "instance.1.pb.hddl")
+            reader = PDDLReader()
+            problem = reader.parse_problem(domain_filename, problem_filename)
+            # print(problem)
+
+            assert isinstance(problem, up.model.htn.HierarchicalProblem)
+
     def test_examples_io(self):
         for example in self.problems.values():
             problem = example.problem
@@ -563,6 +577,63 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
         self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
+
+    def test_visit_precedence_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "visit_precedence", "domain.pddl"
+        )
+        problem_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "visit_precedence", "problem.pddl"
+        )
+        problem = reader.parse_problem(domain_filename, problem_filename)
+        em = problem.env.expression_manager
+
+        self.assertIsNotNone(problem)
+        self.assertEqual(len(problem.fluents), 2)
+        self.assertEqual(len(problem.actions), 1)
+        self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
+        self.assertEqual(len(problem.goals), 1)
+        self.assertEqual(len(problem.timed_goals), 0)
+        self.assertEqual(len(problem.timed_effects), 0)
+
+        visit = problem.action("visit")
+        to_visit = visit.parameter("to_visit")
+        location = problem.user_type("location")
+        precedes = problem.fluent("precedes")
+        visited = problem.fluent("visited")
+        p = Variable("p", location, problem.env)
+        cond_test = em.Forall(
+            em.And(
+                em.Or(em.Not(precedes(p, to_visit)), visited(p)),
+                em.Not(visited(to_visit)),
+            ),
+            p,
+        )
+        l = Variable("l_0", location, problem.env)
+        l2 = Variable("l2", location, problem.env)
+        goal_test = em.Forall(
+            em.And(
+                visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)
+            ),
+            l,
+        )
+        self.assertEqual(
+            visit.duration,
+            FixedDuration(em.Int(3)),
+        )
+        for interval, cond_list in visit.conditions.items():
+            self.assertEqual(interval, TimePointInterval(StartTiming()))
+            self.assertEqual(len(cond_list), 1)
+            self.assertEqual(cond_test, cond_list[0])
+        for timing, effect_list in visit.effects.items():
+            if timing == EndTiming():
+                self.assertEqual(len(effect_list), 1)
+            else:
+                self.assertTrue(False)
+        for g in problem.goals:
+            self.assertEqual(g, goal_test)
 
     def test_robot_fastener_reader(self):
         reader = PDDLReader()

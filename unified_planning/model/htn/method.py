@@ -67,8 +67,10 @@ class Method:
     def __init__(
         self,
         _name: str,
-        _parameters: "Union[OrderedDict[str, up.model.types.Type], List[Parameter]]" = None,
-        _env: Environment = None,
+        _parameters: Optional[
+            "Union[OrderedDict[str, up.model.types.Type], List[Parameter]]"
+        ] = None,
+        _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
         self._env = get_env(_env)
@@ -268,6 +270,13 @@ class Method:
         assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
         self._subtasks.append(subtask)
         return subtask
+
+    def get_subtask(self, ident: str) -> Subtask:
+        """Returns the subtask with the given identifier."""
+        for st in self._subtasks:
+            if st.identifier == ident:
+                return st
+        raise ValueError(f"Method {self._name} has not subtask with identifier {ident}")
 
     def set_ordered(self, *subtasks: Subtask):
         """Imposes a sequential order between the given subtasks."""

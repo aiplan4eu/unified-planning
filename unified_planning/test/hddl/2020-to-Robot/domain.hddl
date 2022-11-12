@@ -1,0 +1,129 @@
+(define (domain robot)
+
+  (:requirements :negative-preconditions
+  	:hierarchy
+	:typing
+	:universal-preconditions
+	:method-preconditions
+  )
+
+  (:types PACKAGE ROOM ROOMDOOR)
+
+  (:predicates 
+    (armempty)
+    (rloc ?loc - ROOM) 
+    (in ?obj - PACKAGE ?loc - ROOM)
+    (holding ?obj - PACKAGE)
+    (closed ?d - ROOMDOOR)
+    (door ?loc1 - ROOM ?loc2 - ROOM ?d - ROOMDOOR)
+    
+    (goal_in ?obj - PACKAGE ?loc - ROOM))
+  (:task achieve-goals :parameters ())
+  (:task release :parameters ())
+  (:task pickup_abstract :parameters (?obj - PACKAGE))
+  (:task putdown_abstract :parameters ())
+  (:task move_abstract :parameters ())
+  (:task open_abstract :parameters ())
+
+
+
+(:method release-putdown_abstract 
+     :parameters (?loc - ROOM ?obj - PACKAGE)
+:task (release)
+ :precondition (and 
+        (rloc ?loc) 
+        (holding ?obj)
+        (goal_in ?obj ?loc))
+ :ordered-tasks (and (putdown_abstract) (achieve-goals)))
+
+
+(:method release-move
+     :parameters ()
+:task (release)
+ :ordered-tasks (and (move_abstract) (release)))
+
+
+(:method release-open
+     :parameters ()
+:task (release)
+ :ordered-tasks (and (open_abstract) (release)))
+
+
+
+(:method achieve-goals-pickup
+ :parameters (?loc - ROOM ?obj - PACKAGE)
+ :task (achieve-goals)
+ :precondition (and 
+        (rloc ?loc) 
+        (in ?obj ?loc) 
+        (not (goal_in ?obj ?loc)))
+ :ordered-tasks (and (pickup_abstract ?obj) (release)))
+
+
+(:method achieve-goals-move
+     :parameters ()
+:task (achieve-goals)
+ :ordered-tasks (and (move_abstract) (achieve-goals)))
+
+
+(:method achieve-goals-open
+     :parameters ()
+:task (achieve-goals)
+ :ordered-tasks (and (open_abstract) (achieve-goals)))
+
+
+
+(:method finished
+     :parameters ()
+:task (achieve-goals)
+:ordered-subtasks (and)
+)
+
+ (:method newMethod22
+  :parameters (?obj - PACKAGE ?loc - ROOM)
+  :task (pickup_abstract  ?obj)
+  :ordered-subtasks (pickup ?obj ?loc))
+
+ (:method newMethod23
+  :parameters (?obj - PACKAGE ?loc - ROOM)
+  :task (putdown_abstract )
+  :ordered-subtasks (putdown ?obj ?loc))
+
+ (:method newMethod24
+  :parameters (?loc1 - ROOM ?loc2 - ROOM ?d - ROOMDOOR)
+  :task (move_abstract )
+  :ordered-subtasks (move ?loc1 ?loc2 ?d))
+
+ (:method newMethod25
+  :parameters (?loc1 - ROOM ?loc2 - ROOM ?d - ROOMDOOR)
+  :task (open_abstract )
+  :ordered-subtasks (open ?loc1 ?loc2 ?d))
+
+
+(:action pickup
+ :parameters (?obj - PACKAGE ?loc - ROOM)
+ :precondition (and (armempty) (rloc ?loc) (in ?obj ?loc)) 
+ :effect (and (not (in ?obj ?loc)) (not (armempty)) (holding ?obj))
+)
+
+
+(:action putdown
+ :parameters (?obj - PACKAGE ?loc - ROOM)
+ :precondition (and (rloc ?loc) (holding ?obj) (goal_in ?obj ?loc))
+ :effect (and (not (holding ?obj)) (armempty) (in ?obj ?loc))
+)
+
+
+(:action move
+ :parameters (?loc1 - ROOM ?loc2 - ROOM ?d - ROOMDOOR)
+ :precondition (and (rloc ?loc1) (door ?loc1 ?loc2 ?d) (not (closed ?d)))
+ :effect (and (rloc ?loc2) (not (rloc ?loc1)))
+)
+
+
+(:action open
+ :parameters (?loc1 - ROOM ?loc2 - ROOM ?d - ROOMDOOR)
+ :precondition (and (rloc ?loc1) (door ?loc1 ?loc2 ?d) (closed ?d))
+ :effect (and (not (closed ?d)))
+)
+)

@@ -62,6 +62,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         assert Grounder.supports(pk)
         assert isinstance(self._problem, up.model.Problem)
         self._grounder = GrounderHelper(problem)
+        self._actions = set(self._problem.actions)
         self._events: Dict[
             Tuple["up.model.Action", Tuple["up.model.FNode", ...]], List[Event]
         ] = {}
@@ -223,7 +224,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :return: the List of Events derived from this action with these parameters.
         """
         # sanity checks
-        if action not in cast(up.model.Problem, self._problem).actions:
+        if action not in self._actions:
             raise UPUsageError(
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."
             )

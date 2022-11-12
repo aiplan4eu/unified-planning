@@ -24,7 +24,7 @@ import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
-from typing import Iterable, List, Union, Dict, Tuple
+from typing import Optional, Iterable, List, Union, Dict, Tuple
 
 Expression = Union[
     "up.model.fnode.FNode",
@@ -140,17 +140,19 @@ class ExpressionManager(object):
         self,
         node_type: OperatorKind,
         args: Iterable["up.model.fnode.FNode"],
-        payload: Union[
-            "up.model.fluent.Fluent",
-            "up.model.object.Object",
-            "up.model.parameter.Parameter",
-            "up.model.variable.Variable",
-            "up.model.timing.Timing",
-            "up.model.multi_agent.Agent",
-            bool,
-            int,
-            Fraction,
-            Tuple["up.model.variable.Variable", ...],
+        payload: Optional[
+            Union[
+                "up.model.fluent.Fluent",
+                "up.model.object.Object",
+                "up.model.parameter.Parameter",
+                "up.model.variable.Variable",
+                "up.model.timing.Timing",
+                "up.model.multi_agent.Agent",
+                bool,
+                int,
+                Fraction,
+                Tuple["up.model.variable.Variable", ...],
+            ]
         ] = None,
     ) -> "up.model.fnode.FNode":
         """
@@ -351,7 +353,9 @@ class ExpressionManager(object):
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.AT_MOST_ONCE, args=expressions)
 
-    def SometimeBefore(self, phi: BoolExpression, psi: BoolExpression) -> "up.model.fnode.FNode":
+    def SometimeBefore(
+        self, phi: BoolExpression, psi: BoolExpression
+    ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `Sometime-Before(a, b)`
         Restriction: expression must be of `boolean type` and with only one args
@@ -364,7 +368,9 @@ class ExpressionManager(object):
             node_type=OperatorKind.SOMETIME_BEFORE, args=expressions
         )
 
-    def SometimeAfter(self, phi: BoolExpression, psi: BoolExpression) -> "up.model.fnode.FNode":
+    def SometimeAfter(
+        self, phi: BoolExpression, psi: BoolExpression
+    ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `Sometime-After(a, b)`
         Restriction: expression must be of `boolean type` and with only two arg.

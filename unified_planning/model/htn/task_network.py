@@ -31,7 +31,7 @@ from unified_planning.model.walkers import OperatorsExtractor
 class TaskNetwork:
     """Represents an initial task network."""
 
-    def __init__(self, _env: Environment = None):
+    def __init__(self, _env: Optional[Environment] = None):
         self._env = get_env(_env)
         self._variables: OrderedDict[str, Parameter] = OrderedDict()
         self._subtasks: List[Subtask] = []
@@ -85,12 +85,15 @@ class TaskNetwork:
         return list(self._variables.values())
 
     def add_variable(self, name: str, typename: Type) -> Parameter:
-        assert (
-            name not in self._variables
-        ), f"A variable with name {name} already exists."
+        if name in self._variables:
+            raise ValueError(f"A variable with name {name} already exists.")
         param = Parameter(name, typename, self._env)
         self._variables[name] = param
         return param
+
+    def parameter(self, name: str) -> Parameter:
+        """Returns the variable with the given name."""
+        return self._variables[name]
 
     @property
     def subtasks(self) -> List["Subtask"]:
@@ -111,6 +114,13 @@ class TaskNetwork:
         assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
         self._subtasks.append(subtask)
         return subtask
+
+    def get_subtask(self, ident: str) -> Subtask:
+        """Returns the subtask with the given identifier."""
+        for st in self._subtasks:
+            if st.identifier == ident:
+                return st
+        raise ValueError(f"The task network has not subtask with identifier {ident}")
 
     @property
     def constraints(self) -> List[FNode]:

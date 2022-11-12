@@ -81,6 +81,7 @@ class _UserType(Type):
     """Represents the user type."""
 
     def __init__(self, name: str, father: Optional[Type] = None):
+        assert isinstance(name, str)
         Type.__init__(self)
         self._name = name
         if father is not None and (not father.is_user_type()):
@@ -136,7 +137,9 @@ class _UserType(Type):
 class _IntType(Type):
     """Represents an Integer type. The given bounds are not semantically bounding for the planners."""
 
-    def __init__(self, lower_bound: int = None, upper_bound: int = None):
+    def __init__(
+        self, lower_bound: Optional[int] = None, upper_bound: Optional[int] = None
+    ):
         Type.__init__(self)
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
@@ -168,7 +171,11 @@ class _IntType(Type):
 class _RealType(Type):
     """Represents a Real type. The given bounds are not semantically bounding for the planners."""
 
-    def __init__(self, lower_bound: Fraction = None, upper_bound: Fraction = None):
+    def __init__(
+        self,
+        lower_bound: Optional[Fraction] = None,
+        upper_bound: Optional[Fraction] = None,
+    ):
         Type.__init__(self)
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
@@ -237,7 +244,9 @@ class TypeManager:
         """Returns this `Environment's` boolean `Type`."""
         return self._bool
 
-    def IntType(self, lower_bound: int = None, upper_bound: int = None) -> Type:
+    def IntType(
+        self, lower_bound: Optional[int] = None, upper_bound: Optional[int] = None
+    ) -> Type:
         """
         Returns the `integer type` defined in this :class:`~unified_planning.Environment` with the given bounds.
         If the `Type` already exists, it is returned, otherwise it is created and returned.
@@ -255,7 +264,9 @@ class TypeManager:
             return it
 
     def RealType(
-        self, lower_bound: Fraction = None, upper_bound: Fraction = None
+        self,
+        lower_bound: Optional[Fraction] = None,
+        upper_bound: Optional[Fraction] = None,
     ) -> Type:
         """
         Returns the `real type` defined in this :class:`~unified_planning.Environment` with the given bounds.

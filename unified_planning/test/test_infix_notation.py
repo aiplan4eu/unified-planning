@@ -77,7 +77,7 @@ class TestInfixNotation(TestCase):
         for exp, tested_exp in expressions:
             self.assertEqual(exp, tested_exp)
 
-    def _test_helper_function(self, i_1, r_1, i_2, r_2, b_1, b_2, b_3):
+    def _test_helper_function(self, i_1, r_1, i_2, r_2, b_1, b_2, b_3) -> None:
         expressions: List[Tuple[FNode, FNode]] = [
             (Plus(i_1, i_2), i_1 + i_2),
             (Plus(i_1, 1), i_1 + 1),

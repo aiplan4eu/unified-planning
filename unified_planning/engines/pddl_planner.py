@@ -162,6 +162,9 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         callback: Optional[
             Callable[["up.engines.results.PlanGenerationResult"], None]
         ] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.ROState"], Optional[float]]
+        ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":

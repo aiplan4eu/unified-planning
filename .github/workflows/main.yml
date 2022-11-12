@@ -3,8 +3,8 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "5b6013aa3d56a8731147a442a831a81f73727d4d"
-  up_pyperplan_commit: "b4fb924320af9f1870db51d20a925aa913255527"
+  up_tamer_commit: "c94b73d7366ee481ed453749f0188e1767c3def6"
+  up_pyperplan_commit: "cf652b1f795d56259154b195ac5f0f3c246813b4"
 
 jobs:
   basic-check:
@@ -13,6 +13,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
@@ -44,6 +49,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
@@ -110,6 +120,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
 
@@ -159,6 +174,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
@@ -213,6 +233,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Protobuf compiler
         run: |

@@ -189,7 +189,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for init_val in I_prime:
             self._problem.set_initial_value(
                 up.model.Fluent(f"{init_val}", env.type_manager.BoolType()), True
-                )
+            )
         return CompilerResult(
             self._problem, partial(lift_action_instance, map=trace_back_map), self.name
         )

@@ -1,2 +1,2 @@
-pyparsing
+pyparsing >= 3
 networkx

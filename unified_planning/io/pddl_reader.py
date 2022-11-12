@@ -17,7 +17,6 @@ from itertools import product
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
-import pyparsing
 import typing
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPUsageError
@@ -25,20 +24,53 @@ from unified_planning.model import FNode
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
-from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Optional, Suppress, nestedExpr, Group, restOfLine
 
-if pyparsing.__version__ < "3.0.0":
-    from pyparsing import oneOf as one_of
-    from pyparsing import ParseResults
-else:
-    from pyparsing.results import ParseResults
-    from pyparsing import one_of
+
+import pyparsing
+
+assert (
+    pyparsing.__version__ >= "3.0.0"
+), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
+from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
+from pyparsing import Suppress, nested_expr, Group, rest_of_line, Optional
+from pyparsing.results import ParseResults
+from pyparsing import one_of
+
+
+class CaseInsensitiveToken:
+    """A case-insensitive representation of a string."""
+
+    def __init__(self, name: Union[str, pyparsing.ParseResults]):
+        if isinstance(name, pyparsing.ParseResults):
+            name = name[0]
+        assert isinstance(name, str)
+        self._name = name
+        self._canonical = name.lower()
+
+    def __repr__(self):
+        return self._name
+
+    def __hash__(self):
+        return hash(self._canonical)
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return other.lower() == self._canonical
+        elif isinstance(other, CaseInsensitiveToken):
+            return self._canonical == other._canonical
+        else:
+            return False
+
+
+Object = CaseInsensitiveToken("object")
+TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
 
 
 class PDDLGrammar:
     def __init__(self):
         name = Word(alphas, alphanums + "_" + "-")
+        # Parser for types that convert the string into a token that is case-insensitive
+        tpe = name.copy().add_parse_action(lambda t: CaseInsensitiveToken(t))
         variable = Suppress("?") + name
 
         require_def = (
@@ -46,7 +78,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :constraints :preferences"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions, :constraints"
                 )
             )
             + Suppress(")")
@@ -55,8 +87,8 @@ class PDDLGrammar:
         types_def = (
             Suppress("(")
             + ":types"
-            + OneOrMore(
-                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+            - OneOrMore(
+                Group(Group(OneOrMore(tpe)) + Optional(Suppress("-") + tpe))
             ).setResultsName("types")
             + Suppress(")")
         )
@@ -64,8 +96,8 @@ class PDDLGrammar:
         constants_def = (
             Suppress("(")
             + ":constants"
-            + OneOrMore(
-                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+            - ZeroOrMore(
+                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
             ).setResultsName("constants")
             + Suppress(")")
         )
@@ -77,7 +109,7 @@ class PDDLGrammar:
                 + Group(
                     ZeroOrMore(
                         Group(
-                            Group(OneOrMore(variable)) + Optional(Suppress("-") + name)
+                            Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe)
                         )
                     )
                 )
@@ -88,58 +120,58 @@ class PDDLGrammar:
         predicates_def = (
             Suppress("(")
             + ":predicates"
-            + Group(OneOrMore(predicate)).setResultsName("predicates")
+            - Group(OneOrMore(predicate)).setResultsName("predicates")
             + Suppress(")")
         )
 
         functions_def = (
             Suppress("(")
             + ":functions"
-            + Group(
+            - Group(
                 OneOrMore(predicate + Optional(Suppress("- number")))
             ).setResultsName("functions")
             + Suppress(")")
         )
 
         parameters = ZeroOrMore(
-            Group(Group(OneOrMore(variable)) + Optional(Suppress("-") + name))
+            Group(Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe))
         ).setResultsName("params")
         action_def = Group(
             Suppress("(")
             + ":action"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
-            + Optional(":precondition" + nestedExpr().setResultsName("pre"))
-            + Optional(":effect" + nestedExpr().setResultsName("eff"))
+            + Optional(":precondition" - nested_expr().setResultsName("pre"))
+            + Optional(":effect" - nested_expr().setResultsName("eff"))
             + Suppress(")")
         )
 
         dur_action_def = Group(
             Suppress("(")
             + ":durative-action"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
             + ":duration"
-            + nestedExpr().setResultsName("duration")
+            - nested_expr().setResultsName("duration")
             + ":condition"
-            + nestedExpr().setResultsName("cond")
+            - nested_expr().setResultsName("cond")
             + ":effect"
-            + nestedExpr().setResultsName("eff")
+            - nested_expr().setResultsName("eff")
             + Suppress(")")
         )
 
         task_def = Group(
             Suppress("(")
             + ":task"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
             + Suppress(")")
@@ -148,17 +180,23 @@ class PDDLGrammar:
         method_def = Group(
             Suppress("(")
             + ":method"
-            + name.setResultsName("name")
+            - name.setResultsName("name")
             + ":parameters"
-            + Suppress("(")
+            - Suppress("(")
             + parameters
             + Suppress(")")
             + ":task"
-            + nestedExpr().setResultsName("task")
+            - nested_expr().setResultsName("task")
+            + Optional(":precondition" - nested_expr().setResultsName("precondition"))
             + Optional(
-                ":ordered-subtasks" + nestedExpr().setResultsName("ordered-subtasks")
+                one_of(":ordered-subtasks :ordered-tasks")
+                - nested_expr().setResultsName("ordered-subtasks")
             )
-            + Optional(":subtasks" + nestedExpr().setResultsName("subtasks"))
+            + Optional(
+                one_of(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
+            )
+            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
+            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
             + Suppress(")")
         )
 
@@ -181,21 +219,28 @@ class PDDLGrammar:
         )
 
         objects = OneOrMore(
-            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
         ).setResultsName("objects")
 
         htn_def = Group(
             Suppress("(")
             + ":htn"
-            + Optional(":tasks" + nestedExpr().setResultsName("tasks"))
-            + Optional(":ordering" + nestedExpr().setResultsName("ordering"))
-            + Optional(":constraints" + nestedExpr().setResultsName("constraints"))
+            - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
+            + Optional(
+                one_of(":ordered-tasks :ordered-subtasks")
+                - nested_expr().setResultsName("ordered-tasks")
+            )
+            + Optional(
+                one_of(":tasks :subtasks") - nested_expr().setResultsName("tasks")
+            )
+            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
+            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
             + Suppress(")")
         )
 
         metric = (Keyword("minimize") | Keyword("maximize")).setResultsName(
             "optimization"
-        ) + (name | nestedExpr()).setResultsName("metric")
+        ) + (name | nested_expr()).setResultsName("metric")
 
         problem = (
             Suppress("(")
@@ -213,26 +258,26 @@ class PDDLGrammar:
             + Optional(htn_def.setResultsName("htn"))
             + Suppress("(")
             + ":init"
-            + ZeroOrMore(nestedExpr()).setResultsName("init")
+            + ZeroOrMore(nested_expr()).setResultsName("init")
             + Suppress(")")
             + Optional(
                 Suppress("(")
                 + ":goal"
-                + nestedExpr().setResultsName("goal")
+                + nested_expr().setResultsName("goal")
                 + Suppress(")")
             )
             + Optional(
                 Suppress("(")
                 + ":constraints"
-                + nestedExpr().setResultsName("constraints")
+                + nested_expr().setResultsName("constraints")
                 + Suppress(")")
             )
             + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
             + Suppress(")")
         )
 
-        domain.ignore(";" + restOfLine)
-        problem.ignore(";" + restOfLine)
+        domain.ignore(";" + rest_of_line)
+        problem.ignore(";" + rest_of_line)
 
         self._domain = domain
         self._problem = problem
@@ -292,8 +337,8 @@ class PDDLReader:
     def _parse_exp(
         self,
         problem: up.model.Problem,
-        act: typing.Optional[Union[up.model.Action, htn.Method]],
-        types_map: Dict[str, up.model.Type],
+        act: typing.Optional[Union[up.model.Action, htn.Method, htn.TaskNetwork]],
+        types_map: TypesMap,
         var: Dict[str, up.model.Variable],
         exp: Union[ParseResults, str],
         assignments: Dict[str, "up.model.Object"] = {},
@@ -341,13 +386,17 @@ class PDDLReader:
                     elif exp[0] in ["exists", "forall"]:  # quantifier operators
                         vars_string = " ".join(exp[1])
                         vars_res = self._pp_parameters.parseString(vars_string)
-                        vars = {}
+                        new_vars = {}
                         for g in vars_res["params"]:
-                            t = types_map[g[1] if len(g) > 1 else "object"]
+                            t = types_map[g[1] if len(g) > 1 else Object]
                             for o in g[0]:
-                                vars[o] = up.model.Variable(o, t, self._env)
-                        stack.append((vars, exp, True))
-                        stack.append((vars, exp[2], False))
+                                new_vars[o] = up.model.Variable(o, t, self._env)
+                        # new_vars are the variables defined by the quantifier currently being solved
+                        # all_vars are the variables defined by all the quantifiers around this expression
+                        stack.append((new_vars, exp, True))
+                        all_vars = var.copy()
+                        all_vars.update(new_vars)
+                        stack.append((all_vars, exp[2], False))
                     elif (
                         exp[0] in self._trajectory_constraints
                     ):  # trajectory_constraints reference
@@ -394,7 +443,7 @@ class PDDLReader:
         self,
         problem: up.model.Problem,
         act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
         universal_assignments: typing.Optional[
             Dict["up.model.Action", List[ParseResults]]
         ],
@@ -464,7 +513,7 @@ class PDDLReader:
         problem: up.model.Problem,
         act: up.model.DurativeAction,
         exp: Union[ParseResults, str],
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
         vars: typing.Optional[Dict[str, up.model.Variable]] = None,
     ):
         to_add = [(exp, vars)]
@@ -480,7 +529,7 @@ class PDDLReader:
                 if vars is None:
                     vars = {}
                 for g in vars_res["params"]:
-                    t = types_map[g[1] if len(g) > 1 else "object"]
+                    t = types_map[g[1] if len(g) > 1 else Object]
                     for o in g[0]:
                         vars[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], vars))
@@ -515,7 +564,7 @@ class PDDLReader:
         self,
         problem: up.model.Problem,
         act: up.model.DurativeAction,
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
         universal_assignments: typing.Optional[
             Dict["up.model.Action", List[ParseResults]]
         ],
@@ -559,34 +608,48 @@ class PDDLReader:
     def _parse_subtask(
         self,
         e,
-        method: typing.Optional[htn.Method],
+        method: typing.Optional[Union[htn.Method, htn.TaskNetwork]],
         problem: htn.HierarchicalProblem,
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
     ) -> typing.Optional[htn.Subtask]:
         """Returns the Subtask corresponding to the given expression e or
         None if the expression cannot be interpreted as a subtask."""
         if len(e) == 0:
             return None
+
         task_name = e[0]
-        task: Union[htn.Task, up.model.Action]
-        if problem.has_task(task_name):
-            task = problem.get_task(task_name)
-        elif problem.has_action(task_name):
-            task = problem.action(task_name)
+        if problem.has_task(task_name) or problem.has_action(task_name):
+            # check the form '(task_name param1 param2...)'
+            task: Union[htn.Task, up.model.Action]
+            if problem.has_task(task_name):
+                task = problem.get_task(task_name)
+            else:
+                task = problem.action(task_name)
+            assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
+            parameters = [
+                self._parse_exp(problem, method, types_map, {}, param)
+                for param in e[1:]
+            ]
+            return htn.Subtask(task, *parameters)
+        elif len(e) == 2 and e[0] != "and":
+            # check the form "(task_id (task param1 param2...))"
+            task_id = e[0]
+            subtask = self._parse_subtask(e[1], method, problem, types_map)
+            if subtask is not None:
+                # the second element of the list is a valid subtask,
+                # return the subtask, with the given identifier
+                return htn.Subtask(subtask.task, *subtask.parameters, ident=task_id)
+            else:
+                return None
         else:
             return None
-        assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
-        parameters = [
-            self._parse_exp(problem, method, types_map, {}, param) for param in e[1:]
-        ]
-        return htn.Subtask(task, *parameters)
 
     def _parse_subtasks(
         self,
         e,
-        method: typing.Optional[htn.Method],
+        method: typing.Optional[Union[htn.Method, htn.TaskNetwork]],
         problem: htn.HierarchicalProblem,
-        types_map: Dict[str, up.model.Type],
+        types_map: TypesMap,
     ) -> List[htn.Subtask]:
         """Returns the list of subtasks of the expression"""
         single_task = self._parse_subtask(e, method, problem, types_map)
@@ -606,18 +669,26 @@ class PDDLReader:
     def _check_if_object_type_is_needed(self, domain_res) -> bool:
         for p in domain_res.get("predicates", []):
             for g in p[1]:
-                if len(g) <= 1 or g[1] == "object":
+                if len(g) <= 1 or g[1] == Object:
                     return True
         for p in domain_res.get("functions", []):
             for g in p[1]:
-                if len(g) <= 1 or g[1] == "object":
+                if len(g) <= 1 or g[1] == Object:
                     return True
         for g in domain_res.get("constants", []):
-            if len(g) <= 1 or g[1] == "object":
+            if len(g) <= 1 or g[1] == Object:
                 return True
         for a in domain_res.get("actions", []):
             for g in a.get("params", []):
-                if len(g) <= 1 or g[1] == "object":
+                if len(g) <= 1 or g[1] == Object:
+                    return True
+        for a in domain_res.get("tasks", []):
+            for g in a.get("params", []):
+                if len(g) <= 1 or g[1] == Object:
+                    return True
+        for a in domain_res.get("methods", []):
+            for g in a.get("params", []):
+                if len(g) <= 1 or g[1] == Object:
                     return True
         return False
 
@@ -706,38 +777,64 @@ class PDDLReader:
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
             )
 
-        types_map: Dict[str, "up.model.Type"] = {}
+        types_map: TypesMap = {}
         object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
         universal_assignments: Dict["up.model.Action", List[ParseResults]] = {}
-        for types_list in domain_res.get("types", []):
-            # types_list is a List of 1 or 2 elements, where the first one
-            # is a List of types, and the second one can be their father,
-            # if they have one.
-            father: typing.Optional["up.model.Type"] = None
-            if len(types_list) == 2:  # the types have a father
-                if types_list[1] != "object":  # the father is not object
-                    father = types_map[types_list[1]]
-                elif object_type_needed:  # the father is object, and object is needed
-                    object_type = types_map.get("object", None)
-                    if object_type is None:  # the type object is not defined
-                        father = self._env.type_manager.UserType("object", None)
-                        types_map["object"] = father
-                    else:
-                        father = object_type
-            else:
-                assert (
-                    len(types_list) == 1
-                ), "Malformed list of types, I was expecting either 1 or 2 elements"  # sanity check
-            for type_name in types_list[0]:
-                types_map[type_name] = self._env.type_manager.UserType(
-                    type_name, father
-                )
-        if (
-            object_type_needed and "object" not in types_map
-        ):  # The object type is needed, but has not been defined
-            types_map["object"] = self._env.type_manager.UserType(
-                "object", None
-            )  # We manually define it.
+
+        # extract all type declarations into a dictionary
+        type_declarations: Dict[
+            CaseInsensitiveToken, typing.Optional[CaseInsensitiveToken]
+        ] = {}
+        for type_line in domain_res.get("types", []):
+            father_name = (
+                None if len(type_line) <= 1 else CaseInsensitiveToken(str(type_line[1]))
+            )
+            if father_name is None and object_type_needed:
+                father_name = Object
+            for declared_type in type_line[0]:
+                declared_type = CaseInsensitiveToken(str(declared_type))
+                if declared_type in type_declarations:
+                    raise SyntaxError(
+                        f"Type {declared_type} is declared more than once"
+                    )
+                type_declarations[declared_type] = father_name
+
+        # Processes a type and adds it to the `types_map`.
+        # If the father was not previously declared, it will be recursively declared as well.
+        def declare_type(
+            type: CaseInsensitiveToken,
+            father_name: typing.Optional[CaseInsensitiveToken],
+        ):
+            if type in types_map:
+                # type was already processed which might happen if it already appeared as the parent of another type
+                return
+            father: typing.Optional["up.model.Type"]
+            if father_name is None:
+                father = None
+            elif father_name in types_map:
+                father = types_map[father_name]
+            elif father_name in type_declarations:
+                # father exists but was not processed yet. Force processing immediately
+                declare_type(father_name, type_declarations[father_name])
+                father = types_map[father_name]
+            elif father_name == Object and not object_type_needed:
+                father = None
+            else:  # not "object" and not explicitly declared
+                father = self._env.type_manager.UserType(str(father_name), None)
+                types_map[father_name] = father
+            # we identified the father, add the type to our map
+            # note that the type_map allows retrieving the `Type` object in a case-insensitive way
+            types_map[type] = self._env.type_manager.UserType(str(type), father)
+            # Force declaration of the type in the `Problem`, even if it is not explicitly used yet
+            problem._add_user_type(types_map[type])
+
+        # declare all types
+        for type, father_name in type_declarations.items():
+            declare_type(type, father_name)
+
+        if object_type_needed and Object not in types_map:
+            # The object type is needed, but has not been defined explicitly. We manually define it
+            types_map[Object] = self._env.type_manager.UserType("object", None)
 
         has_actions_cost = False
 
@@ -745,7 +842,7 @@ class PDDLReader:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
-                param_type = types_map[g[1] if len(g) > 1 else "object"]
+                param_type = types_map[g[1] if len(g) > 1 else Object]
                 for param_name in g[0]:
                     params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
@@ -755,7 +852,7 @@ class PDDLReader:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
-                param_type = types_map[g[1] if len(g) > 1 else "object"]
+                param_type = types_map[g[1] if len(g) > 1 else Object]
                 for param_name in g[0]:
                     params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.RealType(), params, self._env)
@@ -765,7 +862,7 @@ class PDDLReader:
             problem.add_fluent(f)
 
         for g in domain_res.get("constants", []):
-            t = types_map[g[1] if len(g) > 1 else "object"]
+            t = types_map[g[1] if len(g) > 1 else Object]
             for o in g[0]:
                 problem.add_object(up.model.Object(o, t, problem.env))
 
@@ -774,7 +871,7 @@ class PDDLReader:
             name = task["name"]
             task_params = OrderedDict()
             for g in task.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for p in g[0]:
                     task_params[p] = t
             task = htn.Task(name, task_params)
@@ -784,7 +881,7 @@ class PDDLReader:
             n = a["name"]
             a_params = OrderedDict()
             for g in a.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for p in g[0]:
                     a_params[p] = t
             if "duration" in a:
@@ -856,7 +953,7 @@ class PDDLReader:
             name = m["name"]
             method_params = OrderedDict()
             for g in m.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for p in g[0]:
                     method_params[p] = t
 
@@ -882,6 +979,30 @@ class PDDLReader:
                 subs = self._parse_subtasks(subs, method, problem, types_map)
                 for s in subs:
                     method.add_subtask(s)
+            orderings_queue = list(m.get("ordering", []))
+            while not len(orderings_queue) == 0:
+                ordering = orderings_queue.pop(0)
+                if len(ordering) == 0:
+                    pass
+                elif ordering[0] == "and":
+                    # add the rest of the expression to the queue
+                    orderings_queue += ordering[1:]
+                elif ordering[0] == "<":
+                    if len(ordering) != 3:
+                        raise SyntaxError(
+                            f"Wrong number of parameters in ordering relation: {ordering}"
+                        )
+                    left = method.get_subtask(ordering[1])
+                    right = method.get_subtask(ordering[2])
+                    method.set_strictly_before(left, right)
+                else:
+                    raise SyntaxError(
+                        f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                    )
+            for precondition in m.get("precondition", []):
+                method.add_precondition(
+                    self._parse_exp(problem, method, types_map, {}, precondition)
+                )
             problem.add_method(method)
 
         if problem_filename is not None:
@@ -890,7 +1011,7 @@ class PDDLReader:
             problem.name = problem_res["name"]
 
             for g in problem_res.get("objects", []):
-                t = types_map[g[1] if len(g) > 1 else "object"]
+                t = types_map[g[1] if len(g) > 1 else Object]
                 for o in g[0]:
                     problem.add_object(up.model.Object(o, t, problem.env))
 
@@ -903,7 +1024,7 @@ class PDDLReader:
                     var_names: List[str] = []
                     var_types: List["up.model.Type"] = []
                     for g in vars_res["params"]:
-                        t = types_map[g[1] if len(g) > 1 else "object"]
+                        t = types_map[g[1] if len(g) > 1 else Object]
                         for o in g[0]:
                             var_names.append(f"?{o}")
                             var_types.append(t)
@@ -939,18 +1060,57 @@ class PDDLReader:
             tasknet = problem_res.get("htn", None)
             if tasknet is not None:
                 assert isinstance(problem, htn.HierarchicalProblem)
-                tasks = self._parse_subtasks(
-                    tasknet["tasks"][0], None, problem, types_map
-                )
-                for task in tasks:
-                    problem.task_network.add_subtask(task)
-                if len(tasknet["ordering"][0]) != 0:
-                    raise SyntaxError(
-                        "Ordering not supported in the initial task network"
+
+                for tn_variables in tasknet.get("params", []):
+                    tn_var_type = types_map[
+                        tn_variables[1] if len(tn_variables) > 1 else Object
+                    ]
+                    for tn_var_name in tn_variables[0]:
+                        problem.task_network.add_variable(tn_var_name, tn_var_type)
+
+                for subtasks_expr in tasknet.get("tasks", []):
+                    subtasks = self._parse_subtasks(
+                        subtasks_expr, problem.task_network, problem, types_map
                     )
-                if len(tasknet["constraints"][0]) != 0:
-                    raise SyntaxError(
-                        "Constraints not supported in the initial task network"
+                    for task in subtasks:
+                        problem.task_network.add_subtask(task)
+                for subtasks_expr in tasknet.get("ordered-tasks", []):
+                    subtasks = self._parse_subtasks(
+                        subtasks_expr, problem.task_network, problem, types_map
+                    )
+                    prev = None
+                    for task in subtasks:
+                        cur = problem.task_network.add_subtask(task)
+                        if prev is not None:
+                            problem.task_network.set_strictly_before(prev, cur)
+                        prev = cur
+
+                orderings_queue = list(tasknet.get("ordering", []))
+                while not len(orderings_queue) == 0:
+                    ordering = orderings_queue.pop(0)
+                    if len(ordering) == 0:
+                        pass
+                    elif ordering[0] == "and":
+                        # add the rest of the expression to the queue
+                        orderings_queue += ordering[1:]
+                    elif ordering[0] == "<":
+                        if len(ordering) != 3:
+                            raise SyntaxError(
+                                f"Wrong number of parameters in ordering relation: {ordering}"
+                            )
+                        left = problem.task_network.get_subtask(ordering[1])
+                        right = problem.task_network.get_subtask(ordering[2])
+                        problem.task_network.set_strictly_before(left, right)
+                    else:
+                        raise SyntaxError(
+                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                        )
+
+                for constraint in tasknet.get("constraints", []):
+                    problem.task_network.add_constraint(
+                        self._parse_exp(
+                            problem, problem.task_network, types_map, {}, constraint
+                        )
                     )
 
             for i in problem_res.get("init", []):

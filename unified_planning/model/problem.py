@@ -32,7 +32,7 @@ from unified_planning.exceptions import (
     UPExpressionDefinitionError,
 )
 from fractions import Fraction
-from typing import List, Dict, Set, Tuple, Union, cast
+from typing import Optional, List, Dict, Set, Tuple, Union, cast
 
 
 class Problem(
@@ -50,8 +50,8 @@ class Problem(
 
     def __init__(
         self,
-        name: str = None,
-        env: "up.environment.Environment" = None,
+        name: Optional[str] = None,
+        env: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):

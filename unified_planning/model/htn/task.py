@@ -35,7 +35,7 @@ class Task:
         self,
         name: str,
         _parameters: Optional[Union[OrderedDict[str, Type], List[Parameter]]] = None,
-        _env: Environment = None,
+        _env: Optional[Environment] = None,
         **kwargs: Type,
     ):
         self._env = get_env(_env)
@@ -103,7 +103,7 @@ class Subtask:
         _task: Union[Action, Task],
         *args: Expression,
         ident: Optional[str] = None,
-        _env: Environment = None,
+        _env: Optional[Environment] = None,
     ):
         self._env = get_env(_env)
         self._task = _task
