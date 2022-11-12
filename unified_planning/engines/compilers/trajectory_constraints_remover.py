@@ -19,7 +19,7 @@ import unified_planning.engines as engines
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.model.action import InstantaneousAction
+from unified_planning.model import InstantaneousAction, Action, FNode
 from unified_planning.model.walkers import Substituter, ExpressionQuantifiersRemover
 from unified_planning.model import Problem, ProblemKind
 from unified_planning.model.operators import OperatorKind
@@ -27,7 +27,7 @@ from functools import partial
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
 )
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 
 NUM = "num"
@@ -128,18 +128,18 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         # create a list that contains trajectory_constraints
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
-        A_prime = []
+        A_prime: List["up.model.effect.Effect"] = list()
         I_prime, F_prime = self._get_monitoring_atoms(env, substituter, C, I)
         G_prime = env.expression_manager.And(
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]
         )
-        trace_back_map = {}
+        trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
+        assert isinstance(self._grounding_result.map_back_action_instance, partial)
+        map_grounded_action = self._grounding_result.map_back_action_instance.keywords['map']
         for a in A:
-            map_value = self._grounding_result.map_back_action_instance.keywords["map"][
-                a
-            ]
+            map_value = map_grounded_action[a]
             assert isinstance(a, InstantaneousAction)
-            E: List["up.model.effect.Effect"] = list()
+            E: List["up.model.action.InstantaneousAction"] = list()
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
                 # manage the action for each trajectory_constraints that is relevant
