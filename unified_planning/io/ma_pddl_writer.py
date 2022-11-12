@@ -389,7 +389,7 @@ class MAPDDLWriter:
                 out.write(" )\n")
             else:
                 out.write(
-                    f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])})\n'
+                    f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])}{" " if len(self.problem.agents) > 0 else ""}{" ".join((self._get_mangled_name(ag) + "_type") for ag in self.problem.agents)})\n'
                     if len(self.problem.user_types) > 0
                     else ""
                 )
@@ -475,17 +475,18 @@ class MAPDDLWriter:
                     raise UPTypeError(
                         "PDDL supports only boolean and numerical fluents"
                     )
-
+            nl = '\n  '
             out.write(
-                f' (:predicates {" ".join(predicates)}\n' if len(predicates) > 0 else ""
+                f' (:predicates\n  {nl.join(predicates)}\n' if len(predicates) > 0 else ""
             )
-            out.write(f' (:private {" ".join(predicates_agent)})\n' if len(predicates_agent) > 0 else "")
-            out.write(f' )\n'if len(predicates) > 0 else "")
+            nl = '\n   '
+            out.write(f'  (:private\n   {nl.join(predicates_agent)})' if len(predicates_agent) > 0 else "")
+            out.write(f')\n'if len(predicates) > 0 else "")
 
             out.write(
                 f' (:functions {" ".join(functions)}\n' if len(functions) > 0 else ""
             )
-            out.write(f' (:functions {" ".join(functions_agent)})\n' if len(functions_agent) > 0 else "")
+            out.write(f'  (:private{" ".join(functions_agent)})\n' if len(functions_agent) > 0 else "")
             out.write(f' )\n' if len(functions) > 0 else "")
 
             converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
@@ -525,78 +526,78 @@ class MAPDDLWriter:
                             f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions]if p not in ag.fluents else "")})'
                         )'''
                         out.write(
-                            f'\n  :precondition (and '
+                            f'\n  :precondition (and \n'
                         )
                         for p in a.preconditions:
                             if p.is_fluent_exp():
                                 if p.fluent() in ag.fluents:
-                                    out.write(f' ({self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})')
+                                    out.write(f'   ({self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})\n')
                                 else:
-                                    out.write(f' {converter.convert(p)}')
+                                    out.write(f'   {converter.convert(p)}\n')
                             elif p.args[0].is_fluent_exp():
                                 if p.args[0].fluent() in ag.fluents:
                                     out.write(
-                                        f' ({self._get_mangled_name(p.args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args])})')
+                                        f'   ({self._get_mangled_name(p.args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args])})\n')
                                 else:
-                                    out.write(f' {converter.convert(p)}')
+                                    out.write(f'   {converter.convert(p)}\n')
                             elif p.args[0].args[0].is_fluent_exp():
                                 if p.args[0].args[0].fluent() in ag.fluents:
                                     out.write(
-                                        f' ({self._get_mangled_name(p.args[0].args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args[0].args])})')
+                                        f'   ({self._get_mangled_name(p.args[0].args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args[0].args])})\n')
                                 else:
-                                    out.write(f' {converter.convert(p)}')
+                                    out.write(f'   {converter.convert(p)}\n')
                             else:
-                                out.write(f' {converter.convert(p)}')
-                        out.write(f')')
+                                out.write(f'   {converter.convert(p)}\n')
+                        out.write(f'  )')
 
 
 
                     if len(a.effects) > 0:
-                        out.write("\n  :effect (and")
+                        out.write("\n  :effect (and\n")
                         for e in a.effects:
                             if e.is_conditional():
-                                out.write(f" (when {converter.convert(e.condition)}")
+                                out.write(f"   (when {converter.convert(e.condition)}")
                             if e.value.is_true():
                                 if e.fluent.fluent() in ag.fluents:
-                                    out.write(f' ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])})')
+                                    out.write(f'   ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])})\n')
                                 else:
-                                    out.write(f" {converter.convert(e.fluent)}")
+                                    out.write(f"   {converter.convert(e.fluent)}\n")
                             elif e.value.is_false():
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f' (not ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])}))')
+                                        f'   (not ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])}))\n')
                                 else:
-                                    out.write(f" (not {converter.convert(e.fluent)})")
+                                    out.write(f"   (not {converter.convert(e.fluent)})\n")
                             elif e.is_increase():
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f' (increase ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))')
+                                        f'   (increase ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n')
                                 else:
                                     out.write(
-                                        f" (increase {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                        f"   (increase {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
                                     )
                             elif e.is_decrease():
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f' (decrease ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))')
+                                        f'   (decrease ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n')
                                 else:
                                     out.write(
-                                        f" (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                        f"   (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
                                     )
                             else:
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f' (assign ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))')
+                                        f'   (assign ({self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n')
                                 else:
                                     out.write(
-                                        f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                        f"   (assign {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
                                     )
                             if e.is_conditional():
-                                out.write(f")")
+                                out.write(f")\n")
 
                         if a in costs:
                             out.write(
-                                f" (increase (total-cost) {converter.convert(costs[a])})"
+                                f"   (increase (total-cost) {converter.convert(costs[a])})"
                             )
                         out.write(")")
                     out.write(")\n")
@@ -728,19 +729,16 @@ class MAPDDLWriter:
                 if v.is_true():
                     if f.is_dot():
                         fluent = f.args[0].fluent() #Controllare!!!!!!!!
-                        '''print("\n\nwwwwwwwwwwwwwwwww", f.agent() is ag, fluent, f.agent().name)
-                        breakpoint()'''
                         if f.agent() is ag and fluent in ag.fluents:
-                            out.write(f" \n{converter.convert(f)}")
-                            #print("oooooooooooooooooooooo", f.agent().name, fluent, "weeeeeeeeeeeee")
+                            out.write(f"\n  {converter.convert(f)}")
                         else:
                             out.write(f"")
                     else:
-                        out.write(f" \n{converter.convert(f)}")
+                        out.write(f"\n  {converter.convert(f)}")
                 elif v.is_false():
                     pass
                 else:
-                    out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
+                    out.write(f"\n  (= {converter.convert(f)} {converter.convert(v)})")
 
                 '''if v.is_true():
                     out.write(f" \n{converter.convert(f)}")
