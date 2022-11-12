@@ -74,11 +74,21 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         d_phi = FluentExp(self.fluents[3])
         e_phi = FluentExp(self.fluents[4])
         act_1 = self.actions[0]
-        R_a = self.simplifier.simplify(self.traj_remover._regression(a_phi, act_1))
-        R_b = self.simplifier.simplify(self.traj_remover._regression(b_phi, act_1))
-        R_c = self.simplifier.simplify(self.traj_remover._regression(c_phi, act_1))
-        R_d = self.simplifier.simplify(self.traj_remover._regression(d_phi, act_1))
-        R_e = self.simplifier.simplify(self.traj_remover._regression(e_phi, act_1))
+        R_a = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, a_phi, act_1)
+        )
+        R_b = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, b_phi, act_1)
+        )
+        R_c = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, c_phi, act_1)
+        )
+        R_d = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, d_phi, act_1)
+        )
+        R_e = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, e_phi, act_1)
+        )
         self.assertTrue(
             R_a.is_true()
             and R_b == b_phi
@@ -95,11 +105,21 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         d_phi = FluentExp(self.fluents[3])
         e_phi = FluentExp(self.fluents[4])
         act_2 = self.actions[1]
-        R_a = self.simplifier.simplify(self.traj_remover._regression(a_phi, act_2))
-        R_b = self.simplifier.simplify(self.traj_remover._regression(b_phi, act_2))
-        R_c = self.simplifier.simplify(self.traj_remover._regression(c_phi, act_2))
-        R_d = self.simplifier.simplify(self.traj_remover._regression(d_phi, act_2))
-        R_e = self.simplifier.simplify(self.traj_remover._regression(e_phi, act_2))
+        R_a = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, a_phi, act_2)
+        )
+        R_b = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, b_phi, act_2)
+        )
+        R_c = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, c_phi, act_2)
+        )
+        R_d = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, d_phi, act_2)
+        )
+        R_e = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, e_phi, act_2)
+        )
         self.assertTrue(
             R_a.is_true()
             and R_b != b_phi
@@ -116,11 +136,21 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         d_phi = FluentExp(self.fluents[3])
         e_phi = FluentExp(self.fluents[4])
         act_3 = self.actions[2]
-        R_a = self.simplifier.simplify(self.traj_remover._regression(a_phi, act_3))
-        R_b = self.simplifier.simplify(self.traj_remover._regression(b_phi, act_3))
-        R_c = self.simplifier.simplify(self.traj_remover._regression(c_phi, act_3))
-        R_d = self.simplifier.simplify(self.traj_remover._regression(d_phi, act_3))
-        R_e = self.simplifier.simplify(self.traj_remover._regression(e_phi, act_3))
+        R_a = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, a_phi, act_3)
+        )
+        R_b = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, b_phi, act_3)
+        )
+        R_c = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, c_phi, act_3)
+        )
+        R_d = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, d_phi, act_3)
+        )
+        R_e = self.simplifier.simplify(
+            self.traj_remover._regression(self.traj_remover._env, e_phi, act_3)
+        )
         self.assertTrue(
             R_a == a_phi
             and R_b == b_phi
