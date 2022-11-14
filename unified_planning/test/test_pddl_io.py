@@ -323,6 +323,14 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.actions), 5)
         self.assertEqual(len(list(problem.objects(problem.user_type("object")))), 13)
 
+        with open(domain_filename, "r") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self.assertEqual(problem, problem_2)
+
     def test_counters_reader(self):
         reader = PDDLReader()
 
@@ -334,6 +342,14 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.fluents), 2)
         self.assertEqual(len(problem.actions), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("counter")))), 4)
+
+        with open(domain_filename, "r") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self.assertEqual(problem, problem_2)
 
     def test_sailing_reader(self):
         reader = PDDLReader()
@@ -347,6 +363,14 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.actions), 8)
         self.assertEqual(len(list(problem.objects(problem.user_type("boat")))), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("person")))), 2)
+
+        with open(domain_filename, "r") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self.assertEqual(problem, problem_2)
 
     def test_matchcellar_reader(self):
         reader = PDDLReader()
@@ -363,17 +387,15 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
         self.assertEqual(len(list(problem.objects(problem.user_type("fuse")))), 3)
 
-    def test_htn_transport_reader(self):
-        reader = PDDLReader()
+        with open(domain_filename, "r") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
 
-        domain_filename = os.path.join(
-            PDDL_DOMAINS_PATH, "htn-transport", "domain.hddl"
-        )
-        problem_filename = os.path.join(
-            PDDL_DOMAINS_PATH, "htn-transport", "problem.hddl"
-        )
-        problem = reader.parse_problem(domain_filename, problem_filename)
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self.assertEqual(problem, problem_2)
 
+    def _test_htn_transport_reader(self, problem):
         assert isinstance(problem, up.model.htn.HierarchicalProblem)
         self.assertEqual(5, len(problem.fluents))
         self.assertEqual(4, len(problem.actions))
@@ -396,6 +418,26 @@ class TestPddlIO(TestCase):
         self.assertEqual(2, len(problem.method("m-drive-to-via").subtasks))
         self.assertEqual(2, len(problem.task_network.subtasks))
 
+    def test_htn_transport_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "htn-transport", "domain.hddl"
+        )
+        problem_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "htn-transport", "problem.hddl"
+        )
+        problem = reader.parse_problem(domain_filename, problem_filename)
+        self._test_htn_transport_reader(problem)
+
+        with open(domain_filename, "r") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self._test_htn_transport_reader(problem_2)
+
     def test_hddl_parsing(self):
         """Tests that all HDDL benchmarks are successfully parsed."""
         hddl_dir = os.path.join(FILE_PATH, "hddl")
@@ -406,9 +448,16 @@ class TestPddlIO(TestCase):
             problem_filename = os.path.join(domain, "instance.1.pb.hddl")
             reader = PDDLReader()
             problem = reader.parse_problem(domain_filename, problem_filename)
-            # print(problem)
 
             assert isinstance(problem, up.model.htn.HierarchicalProblem)
+
+        with open(domain_filename, "r") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self.assertEqual(problem, problem_2)
 
     def test_examples_io(self):
         for example in self.problems.values():

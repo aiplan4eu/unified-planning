@@ -23,7 +23,7 @@ from unified_planning.exceptions import UPUsageError
 from unified_planning.model import FNode
 from collections import OrderedDict
 from fractions import Fraction
-from typing import Dict, Union, Callable, List, cast
+from typing import Dict, Tuple, Union, Callable, List, cast
 
 
 import pyparsing
@@ -724,21 +724,9 @@ class PDDLReader:
                 return False
         return True
 
-    def parse_problem(
-        self, domain_filename: str, problem_filename: typing.Optional[str] = None
+    def _parse_problem(
+        self, domain_res: ParseResults, problem_res: typing.Optional[ParseResults]
     ) -> "up.model.Problem":
-        """
-        Takes in input a filename containing the `PDDL` domain and optionally a filename
-        containing the `PDDL` problem and returns the parsed `Problem`.
-
-        Note that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
-
-        :param domain_filename: The path to the file containing the `PDDL` domain.
-        :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
-        :return: The `Problem` parsed from the given pddl domain + problem.
-        """
-        domain_res = self._pp_domain.parseFile(domain_filename)
-
         problem: up.model.Problem
         if ":hierarchy" in set(domain_res.get("features", [])):
             problem = htn.HierarchicalProblem(
@@ -981,9 +969,7 @@ class PDDLReader:
                 )
             problem.add_method(method)
 
-        if problem_filename is not None:
-            problem_res = self._pp_problem.parseFile(problem_filename)
-
+        if problem_res is not None:
             problem.name = problem_res["name"]
 
             for g in problem_res.get("objects", []):
@@ -1190,3 +1176,46 @@ class PDDLReader:
                     "The domain has quantified assignments. In the unified_planning library this is compatible only if the problem is given and not only the domain."
                 )
         return problem
+
+    def parse_problem(
+        self, domain_filename: str, problem_filename: typing.Optional[str] = None
+    ) -> "up.model.Problem":
+        """
+        Takes in input a filename containing the `PDDL` domain and optionally a filename
+        containing the `PDDL` problem and returns the parsed `Problem`.
+
+        Note that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
+
+        :param domain_filename: The path to the file containing the `PDDL` domain.
+        :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
+        :return: The `Problem` parsed from the given pddl domain + problem.
+        """
+        domain_res = self._pp_domain.parse_file(domain_filename)
+
+        if problem_filename is not None:
+            problem_res = self._pp_problem.parse_file(problem_filename)
+        else:
+            problem_res = None
+
+        return self._parse_problem(domain_res, problem_res)
+
+    def parse_problem_string(
+        self, domain_str: str, problem_str: typing.Optional[str] = None
+    ) -> "up.model.Problem":
+        """
+        Takes in input a str representing the `PDDL` domain and optionally a str
+        representing the `PDDL` problem and returns the parsed `Problem`.
+
+        Note that if the `problem_str` is `None`, an incomplete `Problem` will be returned.
+
+        :param domain_filename: The string representing the `PDDL` domain.
+        :param problem_filename: Optionally the string representing the `PDDL` problem.
+        :return: The `Problem` parsed from the given pddl domain + problem.
+        """
+        domain_res = self._pp_domain.parse_string(domain_str)
+        if problem_str is not None:
+            problem_res = self._pp_problem.parse_string(problem_str)
+        else:
+            problem_res = None
+
+        return self._parse_problem(domain_res, problem_res)
