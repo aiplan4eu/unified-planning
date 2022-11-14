@@ -58,6 +58,12 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
+
     def test_match_reader(self):
         reader = ANMLReader()
 
@@ -102,6 +108,12 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
+
     def test_connected_locations_reader(self):
         reader = ANMLReader()
 
@@ -125,6 +137,12 @@ class TestANMLReader(TestCase):
                 self.assertEqual(len(effect_list), 2)
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
 
     def test_constants_no_variable_duration_reader(self):
         reader = ANMLReader()
@@ -156,6 +174,12 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
+
     def test_durative_goals_reader(self):
         reader = ANMLReader()
 
@@ -181,6 +205,12 @@ class TestANMLReader(TestCase):
                 self.assertEqual(len(effect_list), 1)
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
 
     def test_forall_reader(self):
         reader = ANMLReader()
@@ -234,6 +264,12 @@ class TestANMLReader(TestCase):
         for g in problem.goals:
             self.assertEqual(g, goal_test)
 
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
+
     def test_basic_conditional_reader(self):
         reader = ANMLReader()
 
@@ -262,6 +298,12 @@ class TestANMLReader(TestCase):
                     self.assertTrue(e.is_conditional())
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
 
     def test_hydrone_reader(self):
         reader = ANMLReader()
@@ -296,6 +338,12 @@ class TestANMLReader(TestCase):
                 self.assertEqual(len(effect_list), 4)
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
 
     def test_match_int_id_reader(self):
         reader = ANMLReader()
@@ -341,6 +389,12 @@ class TestANMLReader(TestCase):
                 self.assertEqual(len(effect_list), 2)
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
 
     def test_match_test_parser_reader(self):
         reader = ANMLReader()
@@ -393,6 +447,12 @@ class TestANMLReader(TestCase):
                 self.assertEqual(len(effect_list), 2)
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
 
     def test_simple_mais_reader(self):
         reader = ANMLReader()
@@ -514,6 +574,12 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
+
     def test_tils_reader(self):
         reader = ANMLReader()
 
@@ -539,6 +605,12 @@ class TestANMLReader(TestCase):
                 self.assertEqual(len(effect_list), 1)
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
 
     def test_hierarchical_blocks_world_reader(self):
         reader = ANMLReader()
@@ -572,3 +644,9 @@ class TestANMLReader(TestCase):
                 self.assertEqual(len(effect_list), 4)
             else:
                 self.assertTrue(False)
+
+        with open(problem_filename, "r") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)

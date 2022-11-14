@@ -107,7 +107,7 @@ instance Location start_point, a1, a2, b1, b2, b3, b4, b5, b6;
 [start] distance(b5, b5) := -1;
 
 [start] distance(b6, start_point) := 200;
-[start] distance(b6, a2) := 20;
+[start] distance(b6, a1) := 20;
 [start] distance(b6, b1) := 1;
 [start] distance(b6, b2) := 4;
 [start] distance(b6, b5) := 3;

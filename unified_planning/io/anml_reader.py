@@ -136,22 +136,11 @@ class ANMLReader:
             TK_EXISTS: self._em.Exists,
         }
 
-    def parse_problem(self, problem_filename: str) -> "up.model.Problem":
-        """
-        Takes in input a filename containing an `ANML` problem and returns the parsed `Problem`.
-
-        Check the class documentation for the assumptions made for this parser to work.
-
-        :param problem_filename: The path to the file containing the `ANML` problem.
-        :return: The `Problem` parsed from the given anml file.
-        """
-
-        # create the grammar and populate it's data structures
-        grammar = ANMLGrammar()
-        grammar.problem.parseFile(problem_filename, parse_all=True)
-
+    def _parse_problem(
+        self, grammar: ANMLGrammar, problem_name: str
+    ) -> "up.model.Problem":
         self._problem = up.model.Problem(
-            problem_filename,
+            problem_name,
             self._env,
             initial_defaults={self._tm.BoolType(): self._em.FALSE()},
         )
@@ -209,7 +198,48 @@ class ANMLReader:
                     global_start,
                     global_end,
                 )
+        return self._problem
 
+    def parse_problem(
+        self, problem_filename: str, problem_name: Optional[str] = None
+    ) -> "up.model.Problem":
+        """
+        Takes in input a filename containing an `ANML` problem and returns the parsed `Problem`.
+
+        Check the class documentation for the assumptions made for this parser to work.
+
+        :param problem_filename: The path to the file containing the `ANML` problem.
+        :param problem_name: Optionally, the name to give to the created problem; if it is None,
+            `problem_filename` will be set as the problem name.
+        :return: The `Problem` parsed from the given anml file.
+        """
+
+        # create the grammar and populate it's data structures
+        grammar = ANMLGrammar()
+        grammar.problem.parse_file(problem_filename, parse_all=True)
+        if problem_name is None:
+            problem_name = problem_filename
+        self._problem = self._parse_problem(grammar, problem_name)
+        return self._problem
+
+    def parse_problem_string(
+        self, problem_str: str, problem_name: Optional[str] = None
+    ) -> "up.model.Problem":
+        """
+        Takes in input a string representing an `ANML` problem and returns the parsed `Problem`.
+
+        Check the class documentation for the assumptions made for this parser to work.
+
+        :param problem_str: The string representing the `ANML` problem.
+        :param problem_name: Optionally, the name to give to the created problem.
+        :return: The `Problem` parsed from the given anml file.
+        """
+
+        # create the grammar and populate it's data structures
+        grammar = ANMLGrammar()
+        grammar.problem.parse_string(problem_str, parse_all=True)
+
+        self._problem = self._parse_problem(grammar, problem_name)
         return self._problem
 
     def _create_types_map(self, types_res) -> Dict[str, "up.model.Type"]:
