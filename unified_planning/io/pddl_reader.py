@@ -1190,10 +1190,10 @@ class PDDLReader:
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        domain_res = self._pp_domain.parse_file(domain_filename)
+        domain_res = self._pp_domain.parse_file(domain_filename, parse_all=True)
 
         if problem_filename is not None:
-            problem_res = self._pp_problem.parse_file(problem_filename)
+            problem_res = self._pp_problem.parse_file(problem_filename, parse_all=True)
         else:
             problem_res = None
 
@@ -1212,9 +1212,9 @@ class PDDLReader:
         :param problem_filename: Optionally the string representing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        domain_res = self._pp_domain.parse_string(domain_str)
+        domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
         if problem_str is not None:
-            problem_res = self._pp_problem.parse_string(problem_str)
+            problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
         else:
             problem_res = None
 
