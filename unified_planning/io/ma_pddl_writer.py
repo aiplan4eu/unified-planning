@@ -45,7 +45,6 @@ from functools import reduce
 from unified_planning.io.pddl_writer import (
     ObjectsExtractor,
     _update_domain_objects,
-    _get_pddl_name,
 )
 
 PDDL_KEYWORDS = {
@@ -119,6 +118,7 @@ PDDL_KEYWORDS = {
     "derived-predicates",
     "timed-initial-literals",
     "preferences",
+    "agent",
 }
 
 # The following map is used to mangle the invalid names by their class.
@@ -277,7 +277,7 @@ class MAPDDLWriter:
 
     def __init__(
         self,
-        problem: "up.model.multi_agent.ma_problem",
+        problem: "up.model.multi_agent.MultiAgentProblem",
         needs_requirements: bool = True,
     ):
         self._env = problem.env
@@ -293,6 +293,7 @@ class MAPDDLWriter:
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
             str,
         ] = {}
@@ -306,6 +307,7 @@ class MAPDDLWriter:
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
         ] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
@@ -516,12 +518,12 @@ class MAPDDLWriter:
             out.write(f" )\n" if len(functions) > 0 else "")
 
             converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
-            costs = {}
+            costs: dict = {}
             """metrics = self.problem.quality_metrics
             if len(metrics) == 1:
                 metric = metrics[0]
                 if isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                    for a in self.problem.actions:
+               cd      for a in self.problem.actions:
                         cost_exp = metric.get_action_cost(a)
                         costs[a] = cost_exp
                         if cost_exp is not None:
@@ -722,10 +724,10 @@ class MAPDDLWriter:
                 else:
                     raise NotImplementedError
             out.write(")\n")
-            ag_domain = out.getvalue()
+            out.seek(0)
+            ag_domain = out.read()
             ag_domains[self._get_mangled_name(ag)] = ag_domain
             out.truncate(0)
-            out.seek(0)
         return ag_domains
 
     def _write_problem(self, out: IO[str]):
@@ -816,10 +818,10 @@ class MAPDDLWriter:
                     "Only one metric is supported!"
                 )"""
             out.write(")\n")
-            ag_problem = out.getvalue()
+            out.seek(0)
+            ag_problem = out.read()
             ag_problems[self._get_mangled_name(ag)] = ag_problem
             out.truncate(0)
-            out.seek(0)
         return ag_problems
 
     def print_ma_domain_agent(self, agent_name):
@@ -893,6 +895,7 @@ class MAPDDLWriter:
             "up.model.Object",
             "up.model.Parameter",
             "up.model.Variable",
+            "up.model.multi_agent.Agent",
         ],
     ) -> str:
         """This function returns a valid and unique MA-PDDL name."""
@@ -938,6 +941,7 @@ class MAPDDLWriter:
         "up.model.Object",
         "up.model.Parameter",
         "up.model.Variable",
+        "up.model.multi_agent.Agent",
     ]:
         """
         Since `MA-PDDL` has a stricter set of possible naming compared to the `unified_planning`, when writing
@@ -1009,3 +1013,35 @@ class MAPDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+
+
+def _get_pddl_name(
+    item: Union[
+        "up.model.Type",
+        "up.model.Action",
+        "up.model.Fluent",
+        "up.model.Object",
+        "up.model.Parameter",
+        "up.model.Variable",
+        "up.model.multi_agent.MultiAgentProblem",
+        "up.model.multi_agent.Agent",
+    ]
+) -> str:
+    """This function returns a pddl name for the chosen item"""
+    name = item.name  # type: ignore
+    assert name is not None
+    name = name.lower()
+    regex = re.compile(r"^[a-zA-Z]+.*")
+    if (
+        re.match(regex, name) is None
+    ):  # If the name does not start with an alphabetic char, we make it start with one.
+        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
+
+    name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
+    while (
+        name in PDDL_KEYWORDS
+    ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
+        name = f"{name}_"
+    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
+        name = f"?{name}"
+    return name
