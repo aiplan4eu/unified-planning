@@ -27,7 +27,6 @@ from unified_planning.exceptions import (
     UPValueError,
 )
 from fractions import Fraction
-
 from typing import Optional, List, Dict, Union, cast
 from unified_planning.model.mixins import (
     ObjectsSetMixin,
@@ -48,8 +47,8 @@ class MultiAgentProblem(
 
     def __init__(
         self,
-        name: str = None,
-        env: "up.environment.Environment" = None,
+        name: Optional[str] = None,
+        env: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
