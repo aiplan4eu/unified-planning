@@ -20,10 +20,9 @@ import unified_planning.model.walkers
 import typing
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode
 from collections import OrderedDict
 from fractions import Fraction
-from typing import Dict, Tuple, Union, Callable, List, cast
+from typing import Dict, Union, Callable, List, cast
 
 
 import pyparsing
@@ -1192,10 +1191,9 @@ class PDDLReader:
         """
         domain_res = self._pp_domain.parse_file(domain_filename, parse_all=True)
 
+        problem_res = None
         if problem_filename is not None:
             problem_res = self._pp_problem.parse_file(problem_filename, parse_all=True)
-        else:
-            problem_res = None
 
         return self._parse_problem(domain_res, problem_res)
 

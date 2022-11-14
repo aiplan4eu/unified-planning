@@ -323,9 +323,9 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.actions), 5)
         self.assertEqual(len(list(problem.objects(problem.user_type("object")))), 13)
 
-        with open(domain_filename, "r") as file:
+        with open(domain_filename, "r", encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r") as file:
+        with open(problem_filename, "r", encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -343,9 +343,9 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.actions), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("counter")))), 4)
 
-        with open(domain_filename, "r") as file:
+        with open(domain_filename, "r", encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r") as file:
+        with open(problem_filename, "r", encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -364,9 +364,9 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("boat")))), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("person")))), 2)
 
-        with open(domain_filename, "r") as file:
+        with open(domain_filename, "r", encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r") as file:
+        with open(problem_filename, "r", encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -387,9 +387,9 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
         self.assertEqual(len(list(problem.objects(problem.user_type("fuse")))), 3)
 
-        with open(domain_filename, "r") as file:
+        with open(domain_filename, "r", encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r") as file:
+        with open(problem_filename, "r", encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -430,9 +430,9 @@ class TestPddlIO(TestCase):
         problem = reader.parse_problem(domain_filename, problem_filename)
         self._test_htn_transport_reader(problem)
 
-        with open(domain_filename, "r") as file:
+        with open(domain_filename, "r", encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r") as file:
+        with open(problem_filename, "r", encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
