@@ -137,14 +137,13 @@ class ANMLReader:
         }
 
     def _parse_problem(
-        self, grammar: ANMLGrammar, problem_name: str
+        self, grammar: ANMLGrammar, problem_name: Optional[str]
     ) -> "up.model.Problem":
         self._problem = up.model.Problem(
             problem_name,
             self._env,
             initial_defaults={self._tm.BoolType(): self._em.FALSE()},
         )
-
         types_map: Dict[str, "up.model.Type"] = self._create_types_map(grammar.types)
 
         for fluent_res in grammar.fluents:
