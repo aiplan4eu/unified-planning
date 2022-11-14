@@ -451,14 +451,6 @@ class TestPddlIO(TestCase):
 
             assert isinstance(problem, up.model.htn.HierarchicalProblem)
 
-        with open(domain_filename, "r") as file:
-            domain_str = file.read()
-        with open(problem_filename, "r") as file:
-            problem_str = file.read()
-
-        problem_2 = reader.parse_problem_string(domain_str, problem_str)
-        self.assertEqual(problem, problem_2)
-
     def test_examples_io(self):
         for example in self.problems.values():
             problem = example.problem
