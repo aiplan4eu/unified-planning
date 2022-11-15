@@ -93,16 +93,6 @@ jobs:
             distribution: 'microsoft'
             java-version: '17'
 
-      - name: Checkout up-fast-downward
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-fast-downward
-          path: up-fast-downward
-          ref: ${{env.up_fast_downward_commit}}
-
-      - name: Install up-fast-downward
-        run: python3 -m pip install up-fast-downward/
-
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
@@ -296,6 +286,16 @@ jobs:
 
       - name: Install up-pyperplan
         run: python3 -m pip install up-pyperplan/
+
+      - name: Checkout up-fast-downward
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-fast-downward
+          path: up-fast-downward
+          ref: ${{env.up_fast_downward_commit}}
+
+      - name: Install up-fast-downward
+        run: python3 -m pip install up-fast-downward/
 
       - name: Install jupyter and ipython3
         run: sudo apt install jupyter; sudo apt install ipython3
