@@ -47,7 +47,7 @@ from unified_planning.io.pddl_writer import (
     _update_domain_objects,
 )
 
-PDDL_KEYWORDS = {
+MAPDDL_KEYWORDS = {
     "define",
     "domain",
     "requirements",
@@ -132,7 +132,7 @@ INITIAL_LETTER: Dict[type, str] = {
 }
 
 
-class ConverterToPDDLString(walkers.DagWalker):
+class ConverterToMAPDDLString(walkers.DagWalker):
     """Expression converter to a MA-PDDL string."""
 
     DECIMAL_PRECISION = 10  # Number of decimal places to print real constants
@@ -147,6 +147,7 @@ class ConverterToPDDLString(walkers.DagWalker):
                     "up.model.Action",
                     "up.model.Fluent",
                     "up.model.Object",
+                    "up.model.multi_agent.Agent",
                 ]
             ],
             str,
@@ -234,7 +235,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
             if Fraction(dec) != frac:
                 warn(
-                    "The PDDL printer cannot exactly represent the real constant '%s'"
+                    "The MA-PDDL printer cannot exactly represent the real constant '%s'"
                     % frac
                 )
             return str(dec)
@@ -332,7 +333,7 @@ class MAPDDLWriter:
             if self.problem.name is None:
                 name = "ma-pddl"
             else:
-                name = _get_pddl_name(self.problem)
+                name = _get_ma_pddl_name(self.problem)
             out.write(f"(domain {name}-domain)\n")
 
             if self.needs_requirements:
@@ -517,7 +518,9 @@ class MAPDDLWriter:
             )
             out.write(f" )\n" if len(functions) > 0 else "")
 
-            converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
+            converter = ConverterToMAPDDLString(
+                self.problem.env, self._get_mangled_name
+            )
             costs: dict = {}
             """metrics = self.problem.quality_metrics
             if len(metrics) == 1:
@@ -736,7 +739,7 @@ class MAPDDLWriter:
             if self.problem.name is None:
                 name = "ma-pddl"
             else:
-                name = _get_pddl_name(self.problem)
+                name = _get_ma_pddl_name(self.problem)
             out.write(f"(define (problem {name}-problem)\n")
             out.write(f" (:domain {name}-domain)\n")
             if self.domain_objects is None:
@@ -767,12 +770,14 @@ class MAPDDLWriter:
                 )
 
                 out.write("\n )\n")
-            converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
+            converter = ConverterToMAPDDLString(
+                self.problem.env, self._get_mangled_name
+            )
             out.write(" (:init")
             for f, v in self.problem.initial_values.items():
                 if v.is_true():
                     if f.is_dot():
-                        fluent = f.args[0].fluent()  # Controllare!!!!!!!!
+                        fluent = f.args[0].fluent()
                         if f.agent() is ag and fluent in ag.fluents:
                             out.write(f"\n  {converter.convert(f)}")
                         else:
@@ -783,13 +788,6 @@ class MAPDDLWriter:
                     pass
                 else:
                     out.write(f"\n  (= {converter.convert(f)} {converter.convert(v)})")
-
-                """if v.is_true():
-                    out.write(f" \n{converter.convert(f)}")
-                elif v.is_false():
-                    pass
-                else:
-                    out.write(f" (= {converter.convert(f)} {converter.convert(v)})")"""
             if self.problem.kind.has_actions_cost():
                 out.write(f" (= (total-cost) 0)")
             out.write(")\n")
@@ -907,14 +905,14 @@ class MAPDDLWriter:
         if isinstance(item, up.model.Type):
             assert item.is_user_type()
             original_name = cast(_UserType, item).name
-            tmp_name = _get_pddl_name(item)
+            tmp_name = _get_ma_pddl_name(item)
             # If the problem is hierarchical and the name is object, we want to change it
             if self.problem_kind.has_hierarchical_typing() and tmp_name == "object":
                 tmp_name = f"{tmp_name}_"
         else:
             original_name = item.name
-            tmp_name = _get_pddl_name(item)
-        # if the pddl valid name is the same of the original one and it does not create conflicts,
+            tmp_name = _get_ma_pddl_name(item)
+        # if the ma-pddl valid name is the same of the original one and it does not create conflicts,
         # it can be returned
         if tmp_name == original_name and tmp_name not in self.nto_renamings:
             new_name = tmp_name
@@ -960,7 +958,7 @@ class MAPDDLWriter:
         except KeyError:
             raise UPException(f"The name {name} does not correspond to any item.")
 
-    def get_pddl_name(
+    def get_ma_pddl_name(
         self,
         item: Union[
             "up.model.Type",
@@ -1015,7 +1013,7 @@ class MAPDDLWriter:
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
 
 
-def _get_pddl_name(
+def _get_ma_pddl_name(
     item: Union[
         "up.model.Type",
         "up.model.Action",
@@ -1027,7 +1025,7 @@ def _get_pddl_name(
         "up.model.multi_agent.Agent",
     ]
 ) -> str:
-    """This function returns a pddl name for the chosen item"""
+    """This function returns a ma-pddl name for the chosen item"""
     name = item.name  # type: ignore
     assert name is not None
     name = name.lower()
@@ -1039,7 +1037,7 @@ def _get_pddl_name(
 
     name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
     while (
-        name in PDDL_KEYWORDS
+        name in MAPDDL_KEYWORDS
     ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
         name = f"{name}_"
     if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
