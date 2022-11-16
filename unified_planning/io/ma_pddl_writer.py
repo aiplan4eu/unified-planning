@@ -779,7 +779,7 @@ class MAPDDLWriter:
                 if v.is_true():
                     if f.is_dot():
                         fluent = f.args[0].fluent()
-                        if f.agent() is ag and fluent in ag.fluents:
+                        if f.agent().name == ag.name and fluent in ag.fluents:
                             out.write(f"\n  {converter.convert(f)}")
                         else:
                             out.write(f"")
