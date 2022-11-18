@@ -322,7 +322,7 @@ class ExpressionManager(object):
         )
 
     def FluentExp(
-        self, fluent: "up.model.fluent.Fluent", params: Tuple[Expression, ...] = tuple()
+        self, fluent: "up.model.fluent.Fluent", params: Iterable[Expression] = tuple()
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression for the given `fluent` and `parameters`.
@@ -334,9 +334,12 @@ class ExpressionManager(object):
             :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
         :return: The created `Fluent` Expression.
         """
-        assert fluent.arity == len(params)
         assert fluent.environment == self.env
-        params_exp = self.auto_promote(*params)
+        params_exp = self.auto_promote(params)
+        if fluent.arity != len(params_exp):
+            raise UPExpressionDefinitionError(
+                f"In FluentExp, fluent has arity {fluent.arity} but {len(params_exp)} parameters were passed."
+            )
         return self.create_node(
             node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent
         )

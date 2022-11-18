@@ -131,7 +131,7 @@ def Forall(
 
 
 def FluentExp(
-    fluent: "unified_planning.model.Fluent", params: Tuple[Expression, ...] = tuple()
+    fluent: "unified_planning.model.Fluent", params: Iterable[Expression] = tuple()
 ) -> FNode:
     """
     Creates an expression for the given `fluent` and `parameters`.
