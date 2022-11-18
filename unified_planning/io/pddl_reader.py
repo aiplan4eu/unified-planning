@@ -66,21 +66,14 @@ Object = CaseInsensitiveToken("object")
 TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
 
 
-def nested_expr(max_nesting: typing.Optional[int] = None):
-    """A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case.
-
-    `max_nesting` specializes the function to parse at most the given number of nestings (useful to parse :init in particular)
+def nested_expr():
+    """
+    A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case.
     """
     cnt = Empty() + CharsNotIn("() \n\t\r")
-    if max_nesting:
-        res = Group(Suppress("(") + ZeroOrMore(cnt) + Suppress(")"))
-        for _ in range(max_nesting):
-            res = Group(Suppress("(") + ZeroOrMore(cnt | res) + Suppress(")"))
-        return res
-    else:
-        nested = Forward()
-        nested <<= Group(Suppress("(") + ZeroOrMore(cnt | nested) + Suppress(")"))
-        return nested
+    nested = Forward()
+    nested <<= Group(Suppress("(") + ZeroOrMore(cnt | nested) + Suppress(")"))
+    return nested
 
 
 class PDDLGrammar:
@@ -275,7 +268,7 @@ class PDDLGrammar:
             + Optional(htn_def.setResultsName("htn"))
             + Suppress("(")
             + ":init"
-            + ZeroOrMore(nested_expr(2)).setResultsName("init")
+            + ZeroOrMore(nested_expr()).setResultsName("init")
             + Suppress(")")
             + Optional(
                 Suppress("(")
