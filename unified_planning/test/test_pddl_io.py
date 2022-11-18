@@ -443,11 +443,14 @@ class TestPddlIO(TestCase):
                     self.assertEqual(a, w.get_item_named(parsed_a.name))
                     for param, parsed_param in zip(a.parameters, parsed_a.parameters):
                         self.assertEqual(
-                            param.type, w.get_item_named(parsed_param.type.name)
+                            param.type,
+                            w.get_item_named(cast(_UserType, parsed_param.type).name),
                         )
-                    if isinstance(a, unified_planning.model.InstantaneousAction):
+                    if isinstance(a, InstantaneousAction):
+                        assert isinstance(parsed_a, InstantaneousAction)
                         self.assertEqual(len(a.effects), len(parsed_a.effects))
-                    elif isinstance(a, unified_planning.model.DurativeAction):
+                    elif isinstance(a, DurativeAction):
+                        assert isinstance(parsed_a, DurativeAction)
                         self.assertEqual(str(a.duration), str(parsed_a.duration))
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
@@ -599,6 +602,7 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.timed_effects), 0)
 
         visit = problem.action("visit")
+        assert isinstance(visit, DurativeAction)
         to_visit = visit.parameter("to_visit")
         location = problem.user_type("location")
         precedes = problem.fluent("precedes")
@@ -663,13 +667,14 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.fluents), 1)
         self.assertEqual(len(problem.actions), 2)
         natural_disaster = problem.action("natural_disaster")
+        assert isinstance(natural_disaster, InstantaneousAction)
         # 9 effects because the forall is expanded in 3 * 3 possible locations instantiations
         self.assertEqual(len(natural_disaster.effects), 9)
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
     @skipIfNoOneshotPlannerForProblemKind(full_numeric_kind)
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_reading_domain_only(self):
         reader = PDDLReader()

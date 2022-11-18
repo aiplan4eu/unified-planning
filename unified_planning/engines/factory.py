@@ -29,7 +29,7 @@ from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.replanner import ReplannerMixin
 from unified_planning.engines.mixins.simulator import SimulatorMixin
-from typing import IO, Dict, Tuple, Optional, List, Union, Type, cast
+from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, cast
 from pathlib import PurePath
 
 
@@ -569,7 +569,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         names: Optional[List[str]] = None,
-        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+        params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":

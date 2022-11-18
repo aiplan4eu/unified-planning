@@ -330,7 +330,8 @@ class ExpressionManager(object):
 
         :param fluent: The `Fluent` that will be set as the `payload` of this expression.
         :param params: The expression acting as `parameters` for this `Fluent`; mainly the parameters will
-            be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
+            be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or
+            :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
         :return: The created `Fluent` Expression.
         """
         assert fluent.arity == len(params)

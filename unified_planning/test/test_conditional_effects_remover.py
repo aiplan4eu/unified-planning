@@ -119,6 +119,7 @@ class TestConditionalEffectsRemover(TestCase):
         cer = ConditionalEffectsRemover()
         res = cer.compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
         uncond_problem = res.problem
+        assert isinstance(uncond_problem, Problem)
         eff = uncond_problem.timed_effects[ct][0]
         self.assertFalse(eff.is_conditional())
         self.assertEqual(FluentExp(y), eff.fluent)

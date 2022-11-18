@@ -161,14 +161,14 @@ class TestPlanner(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_actions_cost(self):
         problem = self.problems["basic_with_costs"].problem
         opt_plan = self.problems["basic_with_costs"].plan
         with OneshotPlanner(
             problem_kind=problem.kind,
-            optimality_guarantee=PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+            optimality_guarantee=OptimalityGuarantee.SOLVED_OPTIMALLY,
         ) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -217,7 +217,7 @@ class TestPlanner(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
     @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_robot_loader_adv(self):
         problem = self.problems["robot_loader_adv"].problem.clone()

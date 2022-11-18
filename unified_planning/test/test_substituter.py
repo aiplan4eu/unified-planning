@@ -31,7 +31,7 @@ class TestSubstituter(TestCase):
         y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
         f = Bool(False)
-        subs = {y: 3}
+        subs: Dict[Expression, Expression] = {y: 3}
         # ((25/5)*30*2*2) - (20*5) (500) == (25*4*10) / 2 (500)
         e1 = Equals(
             Minus(Times([Div(25, 5), 30, 2, 2]), Times(20, 5)), Div(Times(25, 4, 10), 2)
@@ -51,7 +51,7 @@ class TestSubstituter(TestCase):
         s = Substituter(get_env())
         xfluent = Fluent("x", IntType())
         x = FluentExp(xfluent)
-        subst = {}
+        subst: Dict[Expression, Expression] = {}
         subst[x] = Int(5)
         e1 = Plus(x, 1)
         s1 = s.substitute(e1, subst)

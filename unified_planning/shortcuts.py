@@ -23,8 +23,8 @@ import unified_planning.model.types
 import unified_planning.model.multi_agent
 from unified_planning.environment import get_env
 from unified_planning.model import *
-from unified_planning.engines import Engine, CompilationKind
-from typing import IO, Iterable, List, Union, Dict, Tuple, Optional
+from unified_planning.engines import Engine, CompilationKind, OptimalityGuarantee
+from typing import IO, Any, Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
 
@@ -363,7 +363,8 @@ def IntType(
 
 
 def RealType(
-    lower_bound: Optional[Fraction] = None, upper_bound: Optional[Fraction] = None
+    lower_bound: Optional[Union[Fraction, int]] = None,
+    upper_bound: Optional[Union[Fraction, int]] = None,
 ) -> unified_planning.model.types.Type:
     """
     Returns the `real` type defined in the global environment with the given `bounds`.
@@ -394,7 +395,7 @@ def OneshotPlanner(
     *,
     name: Optional[str] = None,
     names: Optional[List[str]] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> Engine:

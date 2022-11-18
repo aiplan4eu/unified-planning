@@ -16,7 +16,7 @@
 
 import unified_planning
 from fractions import Fraction
-from typing import Iterator, Optional, Dict, Tuple, cast
+from typing import Iterator, Optional, Dict, Tuple, Union, cast
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
@@ -265,17 +265,21 @@ class TypeManager:
 
     def RealType(
         self,
-        lower_bound: Optional[Fraction] = None,
-        upper_bound: Optional[Fraction] = None,
+        lower_bound: Optional[Union[Fraction, int]] = None,
+        upper_bound: Optional[Union[Fraction, int]] = None,
     ) -> Type:
         """
         Returns the `real type` defined in this :class:`~unified_planning.Environment` with the given bounds.
         If the type already exists, it is returned, otherwise it is created and returned.
 
-        :param lower_bound: The Fraction used as this type's lower bound.
-        :param upper_bound: The Fraction used as this type's upper bound.
+        :param lower_bound: The Fraction or int used as this type's lower bound.
+        :param upper_bound: The Fraction or int used as this type's upper bound.
         :return: The retrieved or created `Type`.
         """
+        if isinstance(lower_bound, int):
+            lower_bound = Fraction(lower_bound)
+        if isinstance(upper_bound, int):
+            upper_bound = Fraction(upper_bound)
         k = (lower_bound, upper_bound)
         if k in self._reals:
             return self._reals[k]
