@@ -730,7 +730,7 @@ def get_example_problems():
                 Fraction(6, 1),
             ),
             (
-                Fraction(6, 1),
+                Fraction(601, 100),
                 up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l5))),
                 Fraction(6, 1),
             ),
@@ -861,21 +861,21 @@ def get_example_problems():
                 Fraction(10, 1),
             ),
             (
-                Fraction(10, 1),
+                Fraction(1001, 100),
                 up.plans.ActionInstance(
                     move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))
                 ),
                 Fraction(10, 1),
             ),
             (
-                Fraction(10, 1),
+                Fraction(2002, 100),
                 up.plans.ActionInstance(
                     move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))
                 ),
                 Fraction(10, 1),
             ),
             (
-                Fraction(10, 1),
+                Fraction(3003, 100),
                 up.plans.ActionInstance(
                     move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5))
                 ),
