@@ -31,6 +31,7 @@ Table of Contents
 
    api_ref
    getting_started
+   optimality
    engines
    dev_instructions
 
