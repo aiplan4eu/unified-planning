@@ -98,6 +98,7 @@ class PlanKind(Enum):
     SEQUENTIAL_PLAN = auto()
     TIME_TRIGGERED_PLAN = auto()
     PARTIAL_ORDER_PLAN = auto()
+    CONTINGENT_PLAN = auto()
 
 
 class Plan:

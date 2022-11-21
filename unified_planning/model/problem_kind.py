@@ -20,7 +20,7 @@ import unified_planning as up
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
-    "PROBLEM_CLASS": ["ACTION_BASED", "HIERARCHICAL"],
+    "PROBLEM_CLASS": ["ACTION_BASED", "HIERARCHICAL", "CONTINGENT"],
     "PROBLEM_TYPE": ["SIMPLE_NUMERIC_PLANNING", "GENERAL_NUMERIC_PLANNING"],
     "TIME": [
         "CONTINUOUS_TIME",

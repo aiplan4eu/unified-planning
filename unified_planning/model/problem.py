@@ -32,7 +32,7 @@ from unified_planning.exceptions import (
     UPExpressionDefinitionError,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Tuple, Union, cast
+from typing import Optional, List, Dict, Set, Union, cast
 
 
 class Problem(
@@ -143,9 +143,10 @@ class Problem(
         if set(self._actions) != set(oth._actions):
             return False
         oth_initial_values = oth.initial_values
-        if len(self.initial_values) != len(oth_initial_values):
+        initial_values = self.initial_values
+        if len(initial_values) != len(oth_initial_values):
             return False
-        for fluent, value in self.initial_values.items():
+        for fluent, value in initial_values.items():
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False
@@ -798,6 +799,8 @@ class Problem(
     ):
         for p in action.parameters:
             self._update_problem_kind_type(p.type)
+        if isinstance(action, up.model.action.SensingAction):
+            self._kind.set_problem_class("CONTINGENT")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self._update_problem_kind_condition(c, linear_checker)

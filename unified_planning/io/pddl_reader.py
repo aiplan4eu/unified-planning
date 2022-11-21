@@ -18,6 +18,7 @@ import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 import typing
+from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPUsageError
 from collections import OrderedDict
@@ -87,7 +88,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :contingent"
                 )
             )
             + Suppress(")")
@@ -155,6 +156,7 @@ class PDDLGrammar:
             + Suppress(")")
             + Optional(":precondition" - nested_expr().setResultsName("pre"))
             + Optional(":effect" - nested_expr().setResultsName("eff"))
+            + Optional(":observe" - nested_expr().setResultsName("obs"))
             + Suppress(")")
         )
 
@@ -743,6 +745,12 @@ class PDDLReader:
                 self._env,
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
             )
+        elif ":contingent" in set(domain_res.get("features", [])):
+            problem = up.model.ContingentProblem(
+                domain_res["name"],
+                self._env,
+                initial_defaults={self._tm.BoolType(): self._em.FALSE()},
+            )
         else:
             problem = up.model.Problem(
                 domain_res["name"],
@@ -907,7 +915,23 @@ class PDDLReader:
                     dur_act
                 )
             else:
-                act = up.model.InstantaneousAction(n, a_params, self._env)
+                act: typing.Optional[
+                    Union[up.model.SensingAction, up.model.InstantaneousAction]
+                ] = None
+                if "obs" in a:
+                    act = up.model.SensingAction(n, a_params, self._env)
+                    obs_fluent = a["obs"][0]
+                    if obs_fluent[0] == "and":  # more than 1 fluent
+                        for o in obs_fluent[1:]:
+                            act.add_observed_fluent(
+                                self._parse_exp(problem, act, types_map, {}, o)
+                            )
+                    else:
+                        act.add_observed_fluent(
+                            self._parse_exp(problem, act, types_map, {}, obs_fluent)
+                        )
+                else:
+                    act = up.model.InstantaneousAction(n, a_params, self._env)
                 if "pre" in a:
                     act.add_precondition(
                         self._parse_exp(problem, act, types_map, {}, a["pre"][0])
@@ -1084,14 +1108,20 @@ class PDDLReader:
                         )
                     )
 
-            for i in problem_res.get("init", []):
-                if i[0] == "=":
+            init_list = problem_res.get("init", [])
+            if len(init_list) == 1 and init_list[0][0] == "and":
+                init_list = init_list[0][1:]
+            for i in init_list:
+                operator = i[0]
+                if operator == "=":
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i[1]),
                         self._parse_exp(problem, None, types_map, {}, i[2]),
                     )
                 elif (
-                    len(i) == 3 and i[0] == "at" and i[1].replace(".", "", 1).isdigit()
+                    len(i) == 3
+                    and operator == "at"
+                    and i[1].replace(".", "", 1).isdigit()
                 ):
                     ti = up.model.StartTiming(Fraction(i[1]))
                     va = self._parse_exp(problem, None, types_map, {}, i[2])
@@ -1103,6 +1133,26 @@ class PDDLReader:
                         problem.add_timed_effect(ti, va.arg(0), va.arg(1))
                     else:
                         raise SyntaxError(f"Not able to handle this TIL {i}")
+                elif operator == "oneof":
+                    assert isinstance(problem, ContingentProblem)
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_oneof_initial_constraint(fluents)
+                elif operator == "or":
+                    assert isinstance(problem, ContingentProblem)
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_or_initial_constraint(fluents)
+                elif operator == "unknown":
+                    assert isinstance(problem, ContingentProblem)
+                    if len(i) != 2:
+                        raise SyntaxError(
+                            "`unknown` constraint requires exactly one argument."
+                        )
+                    arg = self._parse_exp(problem, None, types_map, {}, i[1])
+                    problem.add_unknown_initial_constraint(arg)
                 else:
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i),

@@ -58,6 +58,21 @@ def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     return get_env().expression_manager.Or(*args)
 
 
+def XOr(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    """
+    Returns an exclusive disjunction of terms in CNF form.
+    This function has polimorphic n-arguments:
+        - XOr(a,b,c)
+        - XOr([a,b,c])
+    Restriction: Arguments must be boolean
+
+    :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
+    of it, like `a, b, c`.
+    :return: The exclusive disjunction in CNF form.
+    """
+    return get_env().expression_manager.XOr(*args)
+
+
 def Not(expression: BoolExpression) -> FNode:
     """
     Creates an expression of the form:
