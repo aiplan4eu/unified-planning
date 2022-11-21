@@ -39,7 +39,7 @@ class MinimizeActionCosts(PlanQualityMetric):
 
     def __init__(
         self,
-        costs: Dict["up.model.Action", "up.model.FNode"],
+        costs: Dict["up.model.Action", Optional["up.model.FNode"]],
         default: Optional["up.model.FNode"] = None,
     ):
         self.costs = costs

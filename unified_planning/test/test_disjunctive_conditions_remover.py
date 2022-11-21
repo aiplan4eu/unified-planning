@@ -51,7 +51,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         ) as dnfr:
             res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
             dnf_problem = res.problem
-
+            assert isinstance(dnf_problem, Problem)
             res_2 = dnfr.compile(
                 problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
             )
@@ -89,6 +89,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
                     compiled_problem = dcr.compile(
                         p, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
                     ).problem
+                    assert isinstance(compiled_problem, Problem)
                     self.assertFalse(compiled_problem.kind.has_disjunctive_conditions())
 
     def test_ad_hoc_1(self):
@@ -124,14 +125,17 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
+        assert isinstance(dnf_problem, Problem)
 
         self.assertEqual(len(dnf_problem.actions), 4)
         # Cycle over all actions. For every new action assume that the precondition is equivalent
         # to one in the possible_preconditions and that no other action has the same precondition.
         for i, new_action in enumerate(dnf_problem.actions):
+            assert isinstance(new_action, InstantaneousAction)
             preconditions = set(new_action.preconditions)
             self.assertIn(preconditions, possible_conditions)
             for j, new_action_oth_acts in enumerate(dnf_problem.actions):
+                assert isinstance(new_action_oth_acts, InstantaneousAction)
                 preconditions_oth_acts = set(new_action_oth_acts.preconditions)
                 if i != j:
                     self.assertNotEqual(preconditions, preconditions_oth_acts)
@@ -153,6 +157,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
+        assert isinstance(dnf_problem, Problem)
 
         self.assertEqual(len(dnf_problem.actions), 1)
 
@@ -182,6 +187,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
+        assert isinstance(dnf_problem, Problem)
 
         self.assertEqual(len(dnf_problem.actions), 5)
         self.assertEqual(len(dnf_problem.goals), 1)
@@ -229,6 +235,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
+        assert isinstance(dnf_problem, Problem)
         self.assertEqual(len(dnf_problem.actions), 81)
 
     def test_temporal_mockup_2(self):
@@ -253,6 +260,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
+        assert isinstance(dnf_problem, Problem)
         self.assertEqual(len(dnf_problem.actions), 1)
 
     @skipIfNoOneshotPlannerForProblemKind(basic_temporal_kind)
@@ -292,6 +300,7 @@ class TestDisjunctiveConditionsRemover(TestCase):
         dnfr = DisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
+        assert isinstance(dnf_problem, Problem)
 
         self.assertEqual(len(dnf_problem.actions), 10)
         self.assertEqual(len(dnf_problem.goals), 1)

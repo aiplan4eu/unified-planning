@@ -355,8 +355,8 @@ class PythonWriter:
         for qm in self.problem.quality_metrics:  # adding metrics
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
                 out.write("costs = {}\n")
-                for a, c in qm.costs.items():
-                    out.write(f"costs[act_{a.name}] = {converter.convert(c)}\n")
+                for a, ac in qm.costs.items():
+                    out.write(f"costs[act_{a.name}] = {converter.convert(ac)}\n")
             elif isinstance(qm, up.model.metrics.Oversubscription):
                 out.write("goals = {}\n")
                 for goal, cost in qm.goals.items():

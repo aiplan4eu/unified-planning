@@ -45,6 +45,7 @@ class TestGrounder(TestCase):
 
         res = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = res.problem
+        assert isinstance(grounded_problem, Problem)
         res_2 = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem_2 = res_2.problem
 
@@ -60,6 +61,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         res = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = res.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 2)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -82,6 +84,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         res = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = res.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 28)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -105,6 +108,7 @@ class TestGrounder(TestCase):
             self.assertTrue(grounder.supports(problem.kind))
             res = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem = res.problem
+            assert isinstance(grounded_problem, Problem)
             self.assertEqual(len(grounded_problem.actions), 28)
             for a in grounded_problem.actions:
                 self.assertEqual(len(a.parameters), 0)
@@ -164,6 +168,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 90)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -188,6 +193,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 6)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -219,6 +225,7 @@ class TestGrounder(TestCase):
                 ground_result.problem,
                 ground_result.map_back_action_instance,
             )
+            assert isinstance(grounded_problem_try, Problem)
             self.assertEqual(grounded_problem_test, grounded_problem_try)
             with OneshotPlanner(problem_kind=grounded_problem_try.kind) as planner:
                 self.assertNotEqual(planner, None)
@@ -240,6 +247,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 20)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -262,6 +270,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 2)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)

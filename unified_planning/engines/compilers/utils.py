@@ -30,7 +30,7 @@ from unified_planning.model import (
     Parameter,
 )
 from unified_planning.plans import ActionInstance
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, cast
 
 
 def check_and_simplify_conditions(
@@ -136,12 +136,13 @@ def create_action_with_given_subs(
         assert isinstance(param, Parameter)
         assert isinstance(value, FNode)
         naming_list.append(str(value))
+    c_subs = cast(Dict[Parameter, FNode], subs)
     if isinstance(old_action, InstantaneousAction):
         new_action = InstantaneousAction(
             get_fresh_name(problem, old_action.name, naming_list)
         )
         for p in old_action.preconditions:
-            new_action.add_precondition(substituter.substitute(p, subs))
+            new_action.add_precondition(substituter.substitute(p, c_subs))
         for e in old_action.effects:
             new_effect = create_effect_with_given_subs(
                 problem, e, simplifier, substituter, subs
@@ -157,10 +158,11 @@ def create_action_with_given_subs(
         if se is not None:
             new_fluents = []
             for f in se.fluents:
-                new_fluents.append(substituter.substitute(f, subs))
+                new_fluents.append(substituter.substitute(f, c_subs))
 
             def fun(_problem, _state, _):
-                return se.function(_problem, _state, subs)
+                assert se is not None
+                return se.function(_problem, _state, c_subs)
 
             # We try to add the new simulated effect, but a compiler might generate conflicting effects,
             # so the action is just considered invalid
@@ -182,7 +184,7 @@ def create_action_with_given_subs(
         new_durative_action.set_duration_constraint(old_action.duration)
         for i, cl in old_action.conditions.items():
             for c in cl:
-                new_durative_action.add_condition(i, substituter.substitute(c, subs))
+                new_durative_action.add_condition(i, substituter.substitute(c, c_subs))
         for t, el in old_action.effects.items():
             for e in el:
                 new_effect = create_effect_with_given_subs(
@@ -198,10 +200,11 @@ def create_action_with_given_subs(
         for t, se in old_action.simulated_effects.items():
             new_fluents = []
             for f in se.fluents:
-                new_fluents.append(substituter.substitute(f, subs))
+                new_fluents.append(substituter.substitute(f, c_subs))
 
             def fun(_problem, _state, _):
-                return se.function(_problem, _state, subs)
+                assert se is not None
+                return se.function(_problem, _state, c_subs)
 
             # We try to add the new simulated effect, but a compiler might generate conflicting effects,
             # so the action is just considered invalid

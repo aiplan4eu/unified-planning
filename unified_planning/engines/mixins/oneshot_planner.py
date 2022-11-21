@@ -16,7 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from enum import Enum, auto
-from typing import IO, Optional, Callable, Union
+from typing import IO, Optional, Callable
 
 
 class OptimalityGuarantee(Enum):

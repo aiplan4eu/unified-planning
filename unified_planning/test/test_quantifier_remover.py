@@ -50,6 +50,7 @@ class TestQuantifiersRemover(TestCase):
             res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
             res_2 = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
+        assert isinstance(uq_problem, Problem)
         uq_problem_2 = res_2.problem
         self.assertEqual(uq_problem, uq_problem_2)
         self.assertTrue(problem.kind.has_existential_conditions())
@@ -72,6 +73,7 @@ class TestQuantifiersRemover(TestCase):
         qr = QuantifiersRemover()
         res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
+        assert isinstance(uq_problem, Problem)
         self.assertTrue(problem.kind.has_universal_conditions())
         self.assertFalse(uq_problem.kind.has_universal_conditions())
         self.assertEqual(len(problem.actions), len(uq_problem.actions))
@@ -92,6 +94,7 @@ class TestQuantifiersRemover(TestCase):
         qr = QuantifiersRemover()
         res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
+        assert isinstance(uq_problem, Problem)
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
         self.assertEqual(len(problem.actions), len(uq_problem.actions))
@@ -112,6 +115,7 @@ class TestQuantifiersRemover(TestCase):
         qr = QuantifiersRemover()
         res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
+        assert isinstance(uq_problem, Problem)
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
         self.assertTrue(problem.kind.has_universal_conditions())
@@ -132,6 +136,7 @@ class TestQuantifiersRemover(TestCase):
         qr = QuantifiersRemover()
         res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
+        assert isinstance(uq_problem, Problem)
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
         self.assertTrue(uq_problem.kind.has_disjunctive_conditions())
@@ -147,6 +152,7 @@ class TestQuantifiersRemover(TestCase):
         qr = QuantifiersRemover()
         res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         uq_problem = res.problem
+        assert isinstance(uq_problem, Problem)
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertFalse(uq_problem.kind.has_existential_conditions())
         self.assertEqual(len(problem.actions), len(uq_problem.actions))
@@ -171,9 +177,9 @@ class TestQuantifiersRemover(TestCase):
         o1 = Object("o1", Obj)
         o2 = Object("o2", Obj)
         o3 = Object("o3", Obj)
-        a.add_effect(x, True, Exists(FluentExp(y, [o]), o))
+        a.add_effect(x, True, Exists(FluentExp(y, (o,)), o))
         da = DurativeAction("da")
-        da.add_effect(StartTiming(), x, True, Forall(FluentExp(y, [o]), o))
+        da.add_effect(StartTiming(), x, True, Forall(FluentExp(y, (o,)), o))
         problem = Problem("ad_hoc")
         problem.add_fluent(x)
         problem.add_fluent(y)
@@ -185,8 +191,8 @@ class TestQuantifiersRemover(TestCase):
         problem.add_timed_effect(
             GlobalStartTiming(4),
             x,
-            Forall(FluentExp(y, [o]), o),
-            Exists(FluentExp(y, [o]), o),
+            Forall(FluentExp(y, (o,)), o),
+            Exists(FluentExp(y, (o,)), o),
         )
         problem.add_timed_goal(GlobalStartTiming(6), x)
         problem.add_timed_goal(
@@ -200,6 +206,7 @@ class TestQuantifiersRemover(TestCase):
         qr = QuantifiersRemover()
         res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         unq_problem = res.problem
+        assert unq_problem is not None
         self.assertTrue(problem.kind.has_existential_conditions())
         self.assertTrue(problem.kind.has_universal_conditions())
         self.assertFalse(unq_problem.kind.has_existential_conditions())

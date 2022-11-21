@@ -71,9 +71,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
 class skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(object):
     """Skip a test if there are no oneshot planner satisfies optimality guarantee."""
 
-    def __init__(
-        self, optimality_guarantee: up.engines.results.PlanGenerationResultStatus
-    ):
+    def __init__(self, optimality_guarantee: up.engines.OptimalityGuarantee):
         self.optimality_guarantee = optimality_guarantee
 
     def __call__(self, test_fun):

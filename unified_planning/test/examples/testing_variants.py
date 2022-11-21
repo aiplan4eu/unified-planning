@@ -53,8 +53,8 @@ def get_example_problems():
     plan = unified_planning.plans.SequentialPlan(
         [unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot = Example(problem=problem, plan=plan)
-    problems["robot_real_constants"] = robot
+    robot_example = Example(problem=problem, plan=plan)
+    problems["robot_real_constants"] = robot_example
 
     # robot_int_battery
     # this version of the problem robot has the battery charge fluent represented as an int instead of a real
@@ -86,8 +86,8 @@ def get_example_problems():
     plan = unified_planning.plans.SequentialPlan(
         [unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot = Example(problem=problem, plan=plan)
-    problems["robot_int_battery"] = robot
+    robot_example = Example(problem=problem, plan=plan)
+    problems["robot_int_battery"] = robot_example
 
     # robot fluent of user_type with int ID
     Int_t = IntType(0, 1)

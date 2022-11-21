@@ -14,6 +14,7 @@
 
 
 from collections import OrderedDict
+from typing import Mapping
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
@@ -29,7 +30,7 @@ class TestPythonWriter(TestCase):
         for p in self.problems.values():
             original_problem = p.problem
             pw = PythonWriter(original_problem)
-            _locals = {}
+            _locals: Mapping[str, object] = {}
             exec(pw.write_problem_code(), {}, _locals)
             self.assertEqual(original_problem, _locals["problem"])
             self.assertEqual(hash(original_problem), hash(_locals["problem"]))
@@ -57,7 +58,7 @@ class TestPythonWriter(TestCase):
         problem.add_goal(xe)
         problem.add_goal(nop)
         pw = PythonWriter(problem)
-        _locals = {}
+        _locals: Mapping[str, object] = {}
         exec(pw.write_problem_code(), {}, _locals)
         self.assertEqual(problem, _locals["problem"])
 
@@ -90,6 +91,6 @@ class TestPythonWriter(TestCase):
         problem.set_initial_value(battery_charge, 100)
         problem.add_goal(robot_at(l2))
         pw = PythonWriter(problem)
-        _locals = {}
+        _locals: Mapping[str, object] = {}
         exec(pw.write_problem_code(), {}, _locals)
         self.assertEqual(problem, _locals["problem"])
