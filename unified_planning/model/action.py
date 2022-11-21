@@ -956,7 +956,7 @@ class SensingAction(InstantaneousAction):
         return res
 
     def clone(self):
-        new_params = {}
+        new_params = OrderedDict()
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.type
         new_sensing_action = SensingAction(self._name, new_params, self._env)
