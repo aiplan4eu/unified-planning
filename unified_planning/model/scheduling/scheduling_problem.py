@@ -3,7 +3,7 @@ from fractions import Fraction
 from typing import Optional, List, Union, Dict
 
 import unified_planning as up
-from unified_planning.model import Type, Parameter, Timepoint, TimepointKind, Timing, Fluent, FNode
+from unified_planning.model import Type, Parameter, Timepoint, TimepointKind, Timing, Fluent, FNode, TimeInterval
 
 
 def todo():
@@ -36,6 +36,9 @@ class SchedulingProblem(up.model.problem.Problem):
     ):
         super().__init__(name=name, env=env, initial_defaults=initial_defaults)
         self._variables: OrderedDict[str, Parameter] = OrderedDict()
+        self._constraints: List[FNode] = []
+        self._conditions: List[Tuple[TimeInterval, FNode]] = []
+        self._effects: List[Tuple[Timing, "up.model.effect.Effect"]] = []
 
 
     def _name_exists(self, name: str) -> bool:
@@ -56,9 +59,12 @@ class SchedulingProblem(up.model.problem.Problem):
         type = self._env.type_manager.IntType(0, capacity)
         return self.add_fluent(name, type, default_initial_value=capacity)
 
-    def enforce(self, contraint: FNode):
+    def enforce(self, constraint: FNode):
         """Enforce a boolean expression to be true in any solution"""
-        todo()
+        self._constraints.append(constraint)
+
+    def add_condition(self, span: TimeInterval, condition: FNode):
+        self._conditions.append((span, condition))
 
     def add_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
                    value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
