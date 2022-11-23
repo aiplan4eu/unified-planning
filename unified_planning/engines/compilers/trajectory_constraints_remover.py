@@ -121,7 +121,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         self._problem = self._grounding_result.problem.clone()
         self._problem.name = f"{self.name}_{problem.name}"
         A = self._problem.actions
-        I = self._ground_initial_state(A, self._problem.initial_values)
+        I = self._problem.initial_values
         C = self._build_constraint_list(
             expression_quantifier_remover, env, self._problem.trajectory_constraints
         )
@@ -296,15 +296,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 if c not in relevant_constrains:
                     relevant_constrains.append(c)
         return relevant_constrains
-
-    def _ground_initial_state(self, actions, initial_values):
-        grounding_init_state = [eff.fluent for act in actions for eff in act.effects]
-        grounded_initial_state = {}
-        for key_gr in grounding_init_state:
-            initial_value = initial_values.get(key_gr, None)
-            if initial_value is not None and initial_value.is_true():
-                grounded_initial_state[key_gr] = initial_value
-        return grounded_initial_state
 
     def _evaluate_constraint(self, substituter, constr, init_values):
         if constr.is_sometime():
