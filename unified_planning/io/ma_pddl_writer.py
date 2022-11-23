@@ -349,14 +349,7 @@ class MAPDDLWriter:
                     if len(a.preconditions) > 0:
                         out.write(f"\n  :precondition (and \n")
                         for p in a.preconditions:
-                            if not p.args[0].is_fluent_exp():
-                                if p.is_fluent_exp() and p.fluent() in ag.fluents:
-                                    out.write(
-                                        f'   ({self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})\n'
-                                    )
-                                else:
-                                    out.write(f"   {converter.convert(p)}\n")
-                            elif p.is_fluent_exp():
+                            if p.is_fluent_exp():
                                 if p.fluent() in ag.fluents:
                                     out.write(
                                         f'   ({self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})\n'
@@ -367,13 +360,6 @@ class MAPDDLWriter:
                                 if p.args[0].fluent() in ag.fluents:
                                     out.write(
                                         f'   ({self._get_mangled_name(p.args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args])})\n'
-                                    )
-                                else:
-                                    out.write(f"   {converter.convert(p)}\n")
-                            elif p.args[0].args[0].is_fluent_exp():
-                                if p.args[0].args[0].fluent() in ag.fluents:
-                                    out.write(
-                                        f'   ({self._get_mangled_name(p.args[0].args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args[0].args])})\n'
                                     )
                                 else:
                                     out.write(f"   {converter.convert(p)}\n")
