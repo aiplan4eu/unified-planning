@@ -52,15 +52,17 @@ class COWState(ROState):
 class UPCOWState(COWState):
     """
     unified_planning implementation of the `COWState` interface.
-    This class has a field `MAX_ANCESTORS` set to 20.
+    This class has an optional field `MAX_ANCESTORS` set to 20.
 
     The higher this number is, the less memory the data structure will use.
     The lower this number is, the less time the data structure will need to retrieve a value.
 
     To set your own number just extend this class and re-define the `MAX_ANCESTORS` value. It must be `> 0`
+
+    If `MAX_ANCESTORS` is set to `None`, the data structure will always remain persistent with all the hierarchy created.
     """
 
-    MAX_ANCESTORS: int = 20
+    MAX_ANCESTORS: Optional[int] = 20
 
     def __init__(
         self,
@@ -71,7 +73,8 @@ class UPCOWState(COWState):
         Creates a new `UPCOWState` where the map values represents the get_value method. The parameter `_father`
         is for internal use only.
         """
-        if type(self).MAX_ANCESTORS < 1:
+        max_ancestors = type(self).MAX_ANCESTORS
+        if max_ancestors is not None and max_ancestors < 1:
             raise UPValueError(
                 f"The max_ancestor field of a class extending UPCOWState must be > 0: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}"
             )
@@ -129,8 +132,9 @@ class UPCOWState(COWState):
         :param updated_values: The dictionary that contains the `values` that need to be updated in the new `State`.
         :return: The new `State` created.
         """
-        # If the number of ancestors is less that the given threshold it just creates a new state with self set as the father.
-        if self._ancestors < type(self).MAX_ANCESTORS:
+        # If the number of ancestors is less that the given threshold (or it's None) it just creates a new state with self set as the father.
+        max_ancestors = type(self).MAX_ANCESTORS
+        if max_ancestors is None or self._ancestors < max_ancestors:
             return UPCOWState(updated_values, self)
         # Otherwise we retrieve every ancestor, and from the oldest to the newest we update the "complete_values" dict
         else:

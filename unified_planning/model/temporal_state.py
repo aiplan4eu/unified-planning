@@ -20,6 +20,7 @@ from fractions import Fraction
 from typing import Deque, Dict, List, Optional, Any, Set
 import unified_planning as up
 from unified_planning.model.state import UPCOWState
+from unified_planning.exceptions import UPUsageError
 
 
 @dataclass
@@ -49,7 +50,6 @@ class DeltaSimpleTemporalNetwork:
             self._distances.setdefault(x, Fraction(0))
             self._distances.setdefault(y, Fraction(0))
             x_constraints = self._constraints.setdefault(x, [])
-            y_constraints = self._constraints.setdefault(y, [])
             if not self._is_subsumed(x, y, b):
                 neighbor = DeltaNeighbors(y, b)
                 x_constraints.insert(0, neighbor)
@@ -85,20 +85,24 @@ class DeltaSimpleTemporalNetwork:
 
 
 class TemporalState(UPCOWState):
+    MAX_ANCESTORS: Optional[int] = None
+
     def __init__(
         self,
-        values: Dict["up.model.FNode", "up.model.FNode"],
+        values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         running_events: List[List["up.engines.mixins.simulator.Event"]],
         stn: "DeltaSimpleTemporalNetwork",
-        durative_conditions: List["up.engines.mixins.simulator.Event"],
-        last_event: "up.engines.mixins.simulator.Event",
+        durative_conditions: List["up.model.fnode.FNode"],
+        last_events: Set["up.engines.mixins.simulator.Event"],
         _father: Optional["TemporalState"] = None,
     ):
+        if type(self).MAX_ANCESTORS is not None:
+            raise UPUsageError("A Temporal State needs the MAX_ANCESTORS to be None.")
         UPCOWState.__init__(values, _father)
         self._running_events = running_events
         self._stn = stn
         self._durative_conditions = durative_conditions
-        self._last_event = last_event
+        self._last_events = last_events
 
     @property
     def running_events(self) -> List[List["up.engines.mixins.simulator.Event"]]:
@@ -113,22 +117,22 @@ class TemporalState(UPCOWState):
         return self._durative_conditions
 
     @property
-    def last_event(self) -> "up.engines.mixins.simulator.Event":
-        return self._last_event
+    def last_events(self) -> Set["up.engines.mixins.simulator.Event"]:
+        return self._last_events
 
     def make_child(
         self,
-        updated_values: Dict["up.model.FNode", "up.model.FNode"],
+        updated_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         updated_running_events: List[Set["up.engines.mixins.simulator.Event"]],
         updated_stn: "DeltaSimpleTemporalNetwork",
         updated_durative_conditions: List["up.engines.mixins.simulator.Event"],
-        updated_last_event: "up.engines.mixins.simulator.Event",
+        updated_last_events: Set["up.engines.mixins.simulator.Event"],
     ) -> "UPCOWState":
         return TemporalState(
             updated_values,
             updated_running_events,
             updated_stn,
             updated_durative_conditions,
-            updated_last_event,
+            updated_last_events,
             self,
         )
