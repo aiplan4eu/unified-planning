@@ -118,8 +118,8 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
                         self._plan.append(l.split(":")[1])
 
         def run():
-            writer = Writer(output_stream, q, self)
-            res = self._solve(problem, output_stream=(writer, output_stream))
+            writer: IO[str] = Writer(output_stream, q, self)
+            res = self._solve(problem, output_stream=writer)
             q.put(res)
 
         try:
@@ -142,6 +142,12 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
     @staticmethod
     def satisfies(optimality_guarantee: up.engines.OptimalityGuarantee) -> bool:
         return True
+
+    @staticmethod
+    def ensures(anytime_guarantee: up.engines.AnytimeGuarantee) -> bool:
+        if anytime_guarantee == up.engines.AnytimeGuarantee.INCREASING_QUALITY:
+            return True
+        return False
 
     @staticmethod
     def supported_kind() -> ProblemKind:

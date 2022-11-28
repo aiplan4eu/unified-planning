@@ -14,13 +14,31 @@
 #
 
 import unified_planning as up
+from enum import Enum, auto
 from typing import IO, Optional, Iterator
 
 
+class AnytimeGuarantee(Enum):
+    INCREASING_QUALITY = auto()
+    OPTIMAL_PLANS = auto()
+
+
 class AnytimePlannerMixin:
+    def __init__(self):
+        self.optimality_metric_required = False
+
     @staticmethod
     def is_anytime_planner() -> bool:
         return True
+
+    @staticmethod
+    def ensures(anytime_guarantee: AnytimeGuarantee) -> bool:
+        """
+        :param anytime_guarantee: The `anytime_guarantee` that must be satisfied.
+        :return: `True` if the `AnytimePlannerMixin` implementation ensures the given
+        `anytime_guarantee`, `False` otherwise.
+        """
+        return False
 
     def get_solutions(
         self,
@@ -41,10 +59,14 @@ class AnytimePlannerMixin:
         The only required parameter is `problem` but the planner should warn the user if `timeout` or
         `output_stream` are not `None` and the planner ignores them."""
         assert isinstance(self, up.engines.engine.Engine)
-        if not self.supports(problem.kind):
+        problem_kind = problem.kind
+        if not self.supports(problem_kind):
             raise up.exceptions.UPUsageError(
                 f"{self.name} cannot solve this kind of problem!"
             )
+        if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
+            msg = f"The problem has no quality metrics but the engine is required to satisfies some optimality guarantee!"
+            raise up.exceptions.UPUsageError(msg)
         for res in self._get_solutions(problem, timeout, output_stream):
             yield res
 

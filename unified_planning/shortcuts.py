@@ -437,18 +437,22 @@ def OneshotPlanner(
 def AnytimePlanner(
     *,
     name: Optional[str] = None,
-    params: Dict[str, str] = None,
+    params: Optional[Dict[str, str]] = None,
     problem_kind: ProblemKind = ProblemKind(),
+    anytime_guarantee: Optional[Union["up.engines.AnytimeGuarantee", str]] = None,
 ) -> Engine:
     """
     Returns a anytime planner. There are two ways to call this method:
     - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
       e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
-    - using 'problem_kind'.
-      e.g. AnytimePlanner(problem_kind=problem.kind)
+    - using 'problem_kind' and 'anytime_guarantee'.
+      e.g. AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)
     """
     return get_env().factory.AnytimePlanner(
-        name=name, params=params, problem_kind=problem_kind
+        name=name,
+        params=params,
+        problem_kind=problem_kind,
+        anytime_guarantee=anytime_guarantee,
     )
 
 
@@ -524,7 +528,7 @@ def Simulator(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    params: Optional[Dict[str, str]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a Simulator. There are two ways to call this method:
@@ -541,7 +545,7 @@ def Replanner(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    params: Optional[Dict[str, str]] = None,
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> "up.engines.engine.Engine":
     """

@@ -28,7 +28,7 @@ class OneshotPlannerMixin:
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `OneshotPlanner`."""
 
     def __init__(self):
-        self.optimality_required = False
+        self.optimality_metric_required = False
 
     @staticmethod
     def is_oneshot_planner() -> bool:
@@ -75,7 +75,7 @@ class OneshotPlannerMixin:
                 raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
-        if not problem_kind.has_quality_metrics() and self.optimality_required:
+        if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
             msg = f"The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
         return self._solve(problem, heuristic, timeout, output_stream)
