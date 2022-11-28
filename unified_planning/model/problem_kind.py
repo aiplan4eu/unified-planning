@@ -65,8 +65,8 @@ class ProblemKindMeta(type):
             assert feature in possible_features
             self._features.discard(feature)
 
-        def _has(self, feature):
-            return feature in self._features
+        def _has(self, features):
+            return len(self._features.intersection(features)) > 0
 
         obj = type.__new__(cls, name, bases, dct)
         for m, l in FEATURES.items():
@@ -74,8 +74,9 @@ class ProblemKindMeta(type):
             setattr(
                 obj, "unset_" + m.lower(), partialmethod(_unset, possible_features=l)
             )
+            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=l))
             for f in l:
-                setattr(obj, "has_" + f.lower(), partialmethod(_has, feature=f))
+                setattr(obj, "has_" + f.lower(), partialmethod(_has, features=[f]))
         return obj
 
 

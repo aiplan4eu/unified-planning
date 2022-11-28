@@ -25,8 +25,8 @@ setup(
         "dev": ["tarski[arithmetic]", "pytest", "pytest-cov", "mypy"],
         "grpc": ["grpcio", "grpcio-tools", "grpc-stubs"],
         "tarski": ["tarski[arithmetic]"],
-        "pyperplan": ["up-pyperplan==0.2.0.13.dev1"],
-        "tamer": ["up-tamer==0.2.0.26.dev1"],
+        "pyperplan": ["up-pyperplan==0.2.0.15.dev1"],
+        "tamer": ["up-tamer==0.2.0.28.dev1"],
         "enhsp": ["up-enhsp==0.0.7"],
         "fast-downward": ["up-fast-downward==0.0.4"],
         "engines": [

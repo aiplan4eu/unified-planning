@@ -105,7 +105,7 @@ class Oversubscription(PlanQualityMetric):
     """
     This metric means that only the plans maximizing the total gain of the achieved `goals` is valid.
 
-    The gained value for each fullfilled `goal` of the problem is stored in this quality metric.
+    The gained value for each fulfilled `goal` of the problem is stored in this quality metric.
     """
 
     def __init__(self, goals: Dict["up.model.FNode", Union[Fraction, int]]):
