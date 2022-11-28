@@ -13,10 +13,13 @@
 # limitations under the License.
 #
 
-from typing import Iterator, List, Optional, Tuple, Union
+from fractions import Fraction
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 from warnings import warn
 import unified_planning as up
-from unified_planning.exceptions import UPUsageError
+from unified_planning.model import FNode
+from unified_planning.model.walkers import StateEvaluator, FreeVarsExtractor
+from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 
 
 class Event:
@@ -66,6 +69,8 @@ class SimulatorMixin:
                 raise UPUsageError(msg)
             else:
                 warn(msg)
+        self._se = StateEvaluator(self._problem)
+        self._fve: FreeVarsExtractor = problem.env.free_vars_extractor
 
     def is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
         """
@@ -109,7 +114,7 @@ class SimulatorMixin:
         raise NotImplementedError
 
     def apply(
-        self, event: "Event", state: "up.model.COWState"
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
         """
         Returns `None` if the `event` is not applicable in the given `state`, otherwise returns a new `COWState`,
@@ -117,14 +122,17 @@ class SimulatorMixin:
         some `fluent values` are updated.
 
         :param state: the `state` where the event formulas are calculated.
-        :param event: the `event` that has the information about the `conditions` to check and the `effects` to apply.
-        :return: `None` if the `event` is not applicable in the given `state`, a new `COWState` with some updated `values`
-            if the `event` is applicable.
+        :param event: the `event` that has the information about the `conditions`
+            to check and the `effects` to apply. If the given event is an
+            iterator of events, all the given event's conditions are checked
+            before applying all the event's effects.
+        :return: `None` if the `event` is not applicable in the given `state`,
+            a new `COWState` with some updated `values` if the `event` is applicable.
         """
         return self._apply(event, state)
 
     def _apply(
-        self, event: "Event", state: "up.model.COWState"
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.apply.
@@ -132,7 +140,7 @@ class SimulatorMixin:
         raise NotImplementedError
 
     def apply_unsafe(
-        self, event: "Event", state: "up.model.COWState"
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
     ) -> "up.model.COWState":
         """
         Returns a new `COWState`, which is a copy of the given `state` but the applicable `effects` of the
@@ -140,31 +148,33 @@ class SimulatorMixin:
         IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
 
         :param state: the `state` where the `event formulas` are evaluated.
-        :param event: the `event` that has the information about the `effects` to apply.
+        :param event: the `event` that has the information about the `effects`
+            to apply; if an `Iterable` of `Event` is given, all the effects are
+            applied at the same time.
         :return: A new `COWState` with some updated values.
         """
         return self._apply_unsafe(event, state)
 
     def _apply_unsafe(
-        self, event: "Event", state: "up.model.COWState"
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
     ) -> "up.model.COWState":
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.apply_unsafe.
         """
         raise NotImplementedError
 
-    def get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
+    def get_applicable_events(self, state: "up.model.ROState") -> Iterable["Event"]:
         """
         Returns a view over all the `events` that are applicable in the given `State`;
         an `Event` is considered applicable in a given `State`, when all the `Event condition`
         simplify as `True` when evaluated in the `State`.
 
         :param state: the `state` where the formulas are evaluated.
-        :return: an `Iterator` of applicable `Events`.
+        :return: an `Iterable` of applicable `Events`.
         """
         return self._get_applicable_events(state)
 
-    def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
+    def _get_applicable_events(self, state: "up.model.ROState") -> Iterable["Event"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_applicable_events.
         """
@@ -176,13 +186,19 @@ class SimulatorMixin:
         parameters: Union[
             Tuple["up.model.Expression", ...], List["up.model.Expression"]
         ],
+        duration: Optional[Fraction] = None,
     ) -> List["Event"]:
         """
-        Returns a list containing all the `events` derived from the given `action`, grounded with the given `parameters`.
+        Returns a list containing all the `events` derived from the given
+        `action`, grounded with the given `parameters`.
 
-        :param action: the `action` containing the information to create the `event`.
+        :param action: the `action` containing the information to create the
+            `event`.
         :param parameters: the `parameters` needed to ground the `action`.
-        :return: the List of `Events` derived from this `action` with these `parameters`.
+        :param duration: optionally, the duration of the action.
+        :return: the `list` of `Events` derived from this `action` with these
+            `parameters`. In the Temporal case, if the `duration` is specified,
+            the returned `list` is guaranteed to be totally ordered .
         """
         if len(action.parameters) != len(parameters):
             raise UPUsageError(
@@ -241,3 +257,79 @@ class SimulatorMixin:
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_unsatisfied_goals.
         """
         raise NotImplementedError
+
+    def _get_updated_values_and_red_fluents(
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+    ) -> Tuple[Dict[FNode, FNode], Set[FNode]]:
+        """
+        Utility method to return what an Event, or an Iterable of Event, updates
+        (Dict updated_values) and which expressions it depends on (Set
+        red_fluents).
+        """
+        updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
+        assigned_fluent: Set["up.model.FNode"] = set()
+        red_fluents: Set["up.model.FNode"] = set()
+        em = self._problem.env.expression_manager
+        if isinstance(event, Event):
+            event = [event]
+        for ev in event:
+            map(lambda cond: red_fluents.update(self._fve.get(cond)), ev.conditions)
+            for e in ev.effects:
+                evaluated_args = tuple(
+                    self._se.evaluate(a, state) for a in e.fluent.args
+                )
+                fluent = em.FluentExp(e.fluent.fluent(), evaluated_args)
+                red_fluents.update(self._fve.get(e.condition))
+                if self._se.evaluate(e.condition, state).is_true():
+                    map(
+                        lambda fluent_arg: red_fluents.update(
+                            self._fve.get(fluent_arg)
+                        ),
+                        e.fluent.args,
+                    )
+                    red_fluents.update(self._fve.get(e.value))
+                    if e.is_assignment():
+                        if fluent in updated_values:
+                            raise UPConflictingEffectsException(
+                                f"The fluent {fluent} is modified by 2 assignments in the same event."
+                            )
+                        updated_values[fluent] = self._se.evaluate(e.value, state)
+                        assigned_fluent.add(fluent)
+                    else:
+                        red_fluents.add(
+                            fluent
+                        )  # increase or decrease read the written fluent.
+                        if fluent in assigned_fluent:
+                            raise UPConflictingEffectsException(
+                                f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same event."
+                            )
+                        # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
+                        # otherwisee we take it's evaluation in the state as it's value.
+                        f_eval = updated_values.get(
+                            fluent, self._se.evaluate(fluent, state)
+                        )
+                        v_eval = self._se.evaluate(e.value, state)
+                        if e.is_increase():
+                            updated_values[fluent] = em.auto_promote(
+                                f_eval.constant_value() + v_eval.constant_value()
+                            )[0]
+                        elif e.is_decrease():
+                            updated_values[fluent] = em.auto_promote(
+                                f_eval.constant_value() - v_eval.constant_value()
+                            )[0]
+                        else:
+                            raise NotImplementedError
+            if ev.simulated_effect is not None:
+                # TODO add to the red_fluents the whole state!
+                # NOTE return None might mean "The whole state", but is quite counterintuitive,
+                # Or the state needs an extra method that retrieves the whole state.
+                for f, v in zip(
+                    event.simulated_effect.fluents,
+                    event.simulated_effect.function(self._problem, state, {}),
+                ):
+                    if f in updated_values:
+                        raise UPConflictingEffectsException(
+                            f"The fluent {f} is modified twice in the same event."
+                        )
+                    updated_values[f] = v
+        return (updated_values, red_fluents)
