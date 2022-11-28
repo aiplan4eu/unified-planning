@@ -87,6 +87,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward",
     "fast-downward-opt",
     "pyperplan",
+    "pyperplan-opt",
     "enhsp",
     "enhsp-opt",
     "tamer",
