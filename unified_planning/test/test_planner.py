@@ -25,7 +25,6 @@ from unified_planning.model.problem_kind import (
 )
 from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
-from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
 from unified_planning.engines.results import POSITIVE_OUTCOMES
@@ -159,9 +158,8 @@ class TestPlanner(TestCase):
                 self.assertEqual((plan.timed_actions[0])[1].action, move)
                 self.assertEqual((plan.timed_actions[1])[1].action, move)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
-    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        OptimalityGuarantee.SOLVED_OPTIMALLY
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(quality_metrics_kind), OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_actions_cost(self):
         problem = self.problems["basic_with_costs"].problem
@@ -215,9 +213,8 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions[2].actual_parameters), 2)
             self.assertEqual(len(plan.actions[3].actual_parameters), 1)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
-    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        OptimalityGuarantee.SOLVED_OPTIMALLY
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(quality_metrics_kind), OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_robot_loader_adv(self):
         problem = self.problems["robot_loader_adv"].problem.clone()

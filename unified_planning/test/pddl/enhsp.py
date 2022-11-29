@@ -81,9 +81,10 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
             "-s",
             "gbfs",
             "-anytime",
-            "-timeout",
-            str(timeout),
         ]
+
+        if timeout is not None:
+            self._options.extend(["-timeout", str(timeout)])
 
         q: queue.Queue = queue.Queue()
 
