@@ -20,6 +20,8 @@ import os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# TODO: Remove the below configs one done with the docs
+nbsphinx_allow_errors = True
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -32,6 +34,7 @@ extensions = [
     "myst_parser",
     "sphinx_rtd_theme",
     "nbsphinx",
+    "IPython.sphinxext.ipython_console_highlighting",
     "nbsphinx_link",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
@@ -123,7 +126,9 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "sphinx_rtd_theme"
+# html_theme = "sphinx_rtd_theme"
+html_theme = "otc_tcs_sphinx_theme"
+html_theme_path = ["_themes"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
