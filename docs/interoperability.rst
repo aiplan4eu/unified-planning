@@ -1,4 +1,4 @@
-Input/Output and Interoperability
+I/O & Interoperability
 =================================
 
 Finally, the Unified-Planning library offers primitives and functions for the interoperability with external formal languages and libraries. In particular, we offer a strong integration with the Planning Domain Definition Language (PDDL) language: we implemented a parser that can read in a problem specified in PDDL and convert it into a Unified-Planning problem data structure, and we have a comprehensive emitter that yelds PDDL specifications from a Unified-Planning problem instance.

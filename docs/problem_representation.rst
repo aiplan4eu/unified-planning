@@ -1,5 +1,5 @@
 Problem Representation
-=====================
+======================
 
 The main functionality offered by the library concerns the specification of a planning problem. The API provides classes and functions to populate a Problem object with the fluents, actions, initial states and goal specifications constituting the planning problem specification.
 The functionalities for creating model objects and to manipulate them are collected in the unified_planning.model package of the library.

@@ -2,10 +2,10 @@ Examples
 ========
 
 .. toctree::
-    :maxdepth: 1
-    :numbered:
-    :glob:
-    :titlesonly:
-    :caption: Examples
+   :maxdepth: 1
+   :numbered:
+   :glob:
+   :titlesonly:
 
-    notebooks/*.ipynb
+   ./notebooks/README
+   ./notebooks/*

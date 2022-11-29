@@ -1,3 +1,9 @@
+# Planning Taxonomy
+
+``` {Note}
+This page will be eventually deleted.
+```
+
 This page presents a taxonomy of planning-related concepts that will be considered for the development of the Unified Planning Framework and to classify techniques and resources produced by the project.
 
 (Comment from A. Saffiotti: It may be useful to discuss the link of our work with the many emerging taxonomies and ontologies produced by the EC or by the member states in their attempts to define AI strategies.  For example:

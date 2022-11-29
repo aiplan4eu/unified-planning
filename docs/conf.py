@@ -50,10 +50,7 @@ extensions = [
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".md": "markdown",
-}
+source_suffix = [".rst", ".md"]
 
 
 # The encoding of source files.
@@ -95,7 +92,7 @@ except ImportError:
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md", "readme.rst"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -129,7 +126,7 @@ pygments_style = "sphinx"
 # html_theme = "sphinx_rtd_theme"
 html_theme = "otc_tcs_sphinx_theme"
 html_theme_path = ["_themes"]
-
+html_static_path = ["_static"]
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
@@ -148,11 +145,6 @@ html_theme_options = {
     "includehidden": True,
     "titles_only": False,
 }
-
-# Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = [
-    "_themes",
-]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -173,7 +165,6 @@ html_theme_path = [
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
