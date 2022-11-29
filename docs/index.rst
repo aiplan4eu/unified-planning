@@ -27,18 +27,16 @@ Table of Contents
 =================
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
 
-   api_ref
    getting_started
-   optimality
+   problem_representation
+   operation_modes
+   interoperability
    engines
-   dev_instructions
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   examples
+   getting_involved
+   contributions
+   issue_tracking
+   release_notes
