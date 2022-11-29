@@ -335,7 +335,7 @@ class TestPddlIO(TestCase):
         reader = PDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
-        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem1.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
