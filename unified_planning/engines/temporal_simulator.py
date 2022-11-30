@@ -107,10 +107,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert isinstance(self._problem, up.model.Problem)
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
-        self._events: Dict[
-            Tuple["up.model.Action", Tuple["up.model.FNode", ...]], List[Event]
-        ] = {}  # SHOULD BE USELESS TODO
         self._all_events_grounded: bool = False
+        self._em = problem.env.expression_manager
 
     def _is_applicable(
         self, event: Union["Event", Iterable["Event"]], state: "TemporalState"
@@ -122,16 +120,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
             return False
         if isinstance(event, Event):
             event = [event]
-        checked_events: Set[TemporalEvent] = set()
         for e in event:
-            # data validation
             assert isinstance(e, TemporalEvent)
-            if e in checked_events:
-                raise UPUsageError(
-                    f"TemporalEvent {e} is given twice in the same is_applicable call."
-                )
-            checked_events.add(e)
-
             if e.kind != TemporalEventKind.START_ACTION:
                 found = any(
                     running_events[0] == e for running_events in state.running_events
@@ -210,22 +200,28 @@ class TemporalSimulator(Engine, SimulatorMixin):
         updated_values, red_fluents = self._get_updated_values_and_red_fluents(
             event, state
         )
-        # TODO UPDATE STN
-        # (If AS, put in the STN all the events, set bound from last_event to AS, set bound from AS to AE, set bound for event from AS or AE)
-        # Else: bound from Last_event to this one (?) -> problem with duplicate events -> Idea, ID for events?
-        # Only after an event is added in the temporal state?
+        # New State variables
         stn = state.stn.copy_stn()
+        running_events = state.running_events[:]
+        durative_conditions = state.durative_conditions[:]
+
         events = iter(event)
         # save first event and add a zero distance between all events to apply in this call.
-        first_ev = next(events)  # TODO care about StopIteration
+        try:
+            first_ev = next(events)
+        except StopIteration:
+            raise UPUsageError("The given iterator of events is empty")
+        self._expand_event(first_ev, stn, running_events, durative_conditions)
         other_ev = next(events, None)
         while other_ev is not None:
+            self._expand_event(other_ev, stn, running_events, durative_conditions)
             insert_interval(stn, first_ev, other_ev, Fraction(0), Fraction(0))
         written_fluents: Set[FNode] = set(updated_values.keys())
         # red_fluents.difference_update(written_fluents) # Might be useful or pointless #TODO
         prev_state = state
         state_father = state._father
         while (red_fluents or written_fluents) and state_father is not None:
+            # setup loop variables
             (
                 oth_updated_values,
                 oth_red_fluents,
@@ -233,25 +229,37 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 prev_state.last_events, state_father
             )
             oth_written_fluents: Set[FNode] = set(oth_updated_values.keys())
+            last_event = next(
+                iter(prev_state.last_events)
+            )  # TODO check if use list instead of sets
+
+            # Case where at least 1 Event writes something, affecting the other Event
             if (
                 not red_fluents.isdisjoint(oth_written_fluents)
                 or not written_fluents.isdisjoint(oth_red_fluents)
                 or not written_fluents.isdisjoint(oth_written_fluents)
-            ):  # Case where at least 1 Event writes and the other reads
-                pass
+            ):
+                insert_interval(
+                    stn,
+                    last_event,
+                    first_ev,
+                    left_bound=Fraction(0) + type(self).EPSILON,
+                )
+            # Case where both read same fluents
+            elif not red_fluents.isdisjoint(oth_red_fluents):
+                insert_interval(stn, last_event, first_ev, left_bound=Fraction(0))
 
+            # Update loop variables for sentinel and next loop.
+            red_fluents.difference_update(oth_red_fluents)
+            red_fluents.difference_update(oth_written_fluents)
+            written_fluents.difference_update(oth_red_fluents)
+            written_fluents.difference_update(oth_written_fluents)
             prev_state = state_father
             state_father = state_father._father
-
-        # TODO UPDATE running events
-        # IF AS: add a new list to the running events map with all the events of the action
-        # else: Find the event in the running event list and remove it
-        # TODO UPDATE Durative conditions
-        # IF CS: add the condition in durative_conditions
-        # if CE: remove the condition in durative conditions
-        # TODO chain events as last_events also in the stn
-        # TODO check that the durative_conditions hold in the new state created.
-        return state.make_child(updated_values)
+        new_state = state.make_child(
+            updated_values, running_events, stn, durative_conditions, set(event)
+        )
+        return new_state
 
     def _extract_red_and_written_fluents(
         self, events: Iterator["Event"], state: "TemporalState"
@@ -423,6 +431,63 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 "The TemporalSimulator currently supports only InstantaneousActions and DurativeActions."
             )
 
+    def _expand_event(
+        self,
+        event: "TemporalEvent",
+        stn: DeltaSimpleTemporalNetwork,
+        running_events: List[List[Event]],
+        durative_conditions: List[FNode],
+    ) -> bool:
+        """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
+        if event.kind == TemporalEventKind.START_ACTION:
+            committed_events: List[Event] = []
+            for committed_event in event.committed_events:
+                if any(committed_event in el for el in running_events):
+                    raise UPUsageError(
+                        "START_ACTION event already submitted to ",
+                        "the timed_simulator! NOTE that TemporalEvents are unique and only usable once!",
+                    )
+                committed_events.append(committed_event)
+                bound = Fraction(committed_event.timing.delay)
+                if (
+                    committed_event.kind == TemporalEventKind.START_CONDITION
+                    and not committed_event.timing_included
+                ):
+                    bound += type(self).EPSILON
+                elif (
+                    committed_event.kind == TemporalEventKind.END_CONDITION
+                    and not committed_event.timing_included
+                ):
+                    bound -= type(self).EPSILON
+                insert_interval(
+                    stn, event, committed_event, left_bound=bound, right_bound=bound
+                )
+            running_events.append(committed_events)
+        else:
+            found = False
+            for el in running_events:
+                if el[0] == event:
+                    el.pop(0)
+                    found = True
+                    break
+            if not found:
+                raise UPUsageError(
+                    f"event: {event} not found in this state ",
+                    "! NOTE that TemporalEvents are unique, only usable once and ",
+                    "must be given to the simulator in the same order as they are given!",
+                )
+            if event.kind == TemporalEventKind.START_CONDITION:
+                durative_conditions.append(self._em.And(event.conditions))
+            elif event.kind == TemporalEventKind.END_CONDITION:
+                event_conditions = self._em.And(event.conditions)
+                index = None
+                for i, cond in enumerate(durative_conditions):
+                    if cond == event_conditions:
+                        index = i
+                        break
+                assert index is not None, "Error with start_condition and end_condition"
+                durative_conditions.pop(index)
+
 
 def break_durative_action_in_event_list(
     grounded_action: "DurativeAction",
@@ -559,6 +624,7 @@ def insert_interval(
     left_bound: Optional[Fraction] = None,
     right_bound: Optional[Fraction] = None,
 ):
+    """Important NOTE: This function modifies the given stn!"""
     if left_bound is not None:
         stn.add(left_event, right_event, -left_bound)
     if right_bound is not None:

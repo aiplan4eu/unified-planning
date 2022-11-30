@@ -113,7 +113,7 @@ class TemporalState(UPCOWState):
         return self._stn
 
     @property
-    def durative_conditions(self) -> List["up.engines.mixins.simulator.Event"]:
+    def durative_conditions(self) -> List["up.model.fnode.FNode"]:
         return self._durative_conditions
 
     @property
@@ -123,9 +123,9 @@ class TemporalState(UPCOWState):
     def make_child(
         self,
         updated_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
-        updated_running_events: List[Set["up.engines.mixins.simulator.Event"]],
+        updated_running_events: List[List["up.engines.mixins.simulator.Event"]],
         updated_stn: "DeltaSimpleTemporalNetwork",
-        updated_durative_conditions: List["up.engines.mixins.simulator.Event"],
+        updated_durative_conditions: List["up.model.fnode.FNode"],
         updated_last_events: Set["up.engines.mixins.simulator.Event"],
     ) -> "UPCOWState":
         return TemporalState(
