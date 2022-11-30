@@ -146,14 +146,14 @@ def Forall(
 
 
 def FluentExp(
-    fluent: "unified_planning.model.Fluent", params: Tuple[Expression, ...] = tuple()
+    fluent: "unified_planning.model.Fluent", params: Iterable[Expression] = tuple()
 ) -> FNode:
     """
     Creates an expression for the given `fluent` and `parameters`.
     Restriction: `parameters type` must be compatible with the `Fluent` :func:`signature <unified_planning.model.Fluent.signature>`
 
     :param fluent: The `Fluent` that will be set as the `payload` of this expression.
-    :param params: The expression acting as `parameters` for this `Fluent`; mainly the parameters will
+    :param params: The Iterable of expressions acting as `parameters` for this `Fluent`; mainly the parameters will
         be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
     :return: The created `Fluent` Expression.
     """
