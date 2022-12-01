@@ -14,7 +14,7 @@
 #
 
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Set
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
 
@@ -37,7 +37,16 @@ class COWState(ROState):
     """This is an abstract class representing a classical `Read/Copy-on-Write state`"""
 
     def make_child(
-        self, updated_values: Dict["up.model.FNode", "up.model.FNode"]
+        self,
+        updated_values: Dict["up.model.FNode", "up.model.FNode"],
+        updated_running_events: Optional[
+            List[List["up.engines.mixins.simulator.Event"]]
+        ] = None,
+        updated_stn: Optional[
+            "up.model.temporal_state.DeltaSimpleTemporalNetwork"
+        ] = None,
+        updated_durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
+        updated_last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "COWState":
         """
         Returns a different `COWState` in which every value in `updated_values.keys()` is evaluated as his mapping
@@ -123,15 +132,36 @@ class UPCOWState(COWState):
         )
 
     def make_child(
-        self, updated_values: Dict["up.model.FNode", "up.model.FNode"]
+        self,
+        updated_values: Dict["up.model.FNode", "up.model.FNode"],
+        running_events: Optional[
+            List[List["up.engines.mixins.simulator.Event"]]
+        ] = None,
+        stn: Optional["up.model.temporal_state.DeltaSimpleTemporalNetwork"] = None,
+        durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
+        last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "UPCOWState":
         """
         Returns a different `UPCOWState` in which every value in updated_values.keys() is evaluated as his mapping
         in new the `updated_values` dict and every other value is evaluated as in `self`.
 
         :param updated_values: The dictionary that contains the `values` that need to be updated in the new `State`.
+        :param running_events: Not supported; makes sense only for temporal states.
+        :param stn: Not supported; makes sense only for temporal states.
+        :param durative_conditions: Not supported; makes sense only for temporal states.
+        :param last_events: Not supported; makes sense only for temporal states.
         :return: The new `State` created.
         """
+        # input validation
+        if (
+            running_events is not None
+            or stn is not None
+            or durative_conditions is not None
+            or last_events is not None
+        ):
+            raise UPUsageError(
+                f"{type(self)} supports only the updated_values parameters!"
+            )
         # If the number of ancestors is less that the given threshold (or it's None) it just creates a new state with self set as the father.
         max_ancestors = type(self).MAX_ANCESTORS
         if max_ancestors is None or self._ancestors < max_ancestors:
