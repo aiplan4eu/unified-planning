@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Deque, Dict, List, Optional, Any, Set
 import unified_planning as up
-from unified_planning.model.state import UPCOWState
+from unified_planning.model.state import UPCOWState, COWState
 from unified_planning.exceptions import UPUsageError
 
 
@@ -98,7 +98,7 @@ class TemporalState(UPCOWState):
     ):
         if type(self).MAX_ANCESTORS is not None:
             raise UPUsageError("A Temporal State needs the MAX_ANCESTORS to be None.")
-        UPCOWState.__init__(values, _father)
+        UPCOWState.__init__(self, values, _father)
         self._running_events = running_events
         self._stn = stn
         self._durative_conditions = durative_conditions
@@ -122,17 +122,27 @@ class TemporalState(UPCOWState):
 
     def make_child(
         self,
-        updated_values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
-        updated_running_events: List[List["up.engines.mixins.simulator.Event"]],
-        updated_stn: "DeltaSimpleTemporalNetwork",
-        updated_durative_conditions: List["up.model.fnode.FNode"],
-        updated_last_events: Set["up.engines.mixins.simulator.Event"],
-    ) -> "UPCOWState":
+        updated_values: Dict["up.model.FNode", "up.model.FNode"],
+        running_events: Optional[
+            List[List["up.engines.mixins.simulator.Event"]]
+        ] = None,
+        stn: Optional["DeltaSimpleTemporalNetwork"] = None,
+        durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
+        last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
+    ) -> "TemporalState":
+        if running_events is None:
+            raise UPUsageError("running_events can't be None for TemporalStates!")
+        if stn is None:
+            raise UPUsageError("stn can't be None for TemporalStates!")
+        if durative_conditions is None:
+            raise UPUsageError("durative_conditions can't be None for TemporalStates!")
+        if last_events is None:
+            raise UPUsageError("last_events can't be None for TemporalStates!")
         return TemporalState(
             updated_values,
-            updated_running_events,
-            updated_stn,
-            updated_durative_conditions,
-            updated_last_events,
+            running_events,
+            stn,
+            durative_conditions,
+            last_events,
             self,
         )

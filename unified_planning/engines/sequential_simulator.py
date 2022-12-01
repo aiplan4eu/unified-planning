@@ -22,7 +22,7 @@ from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
 from unified_planning.model.walkers import StateEvaluator
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast
 
 
 class InstantaneousEvent(Event):
@@ -70,7 +70,20 @@ class SequentialSimulator(Engine, SimulatorMixin):
         self._events: Dict[
             Tuple["up.model.Action", Tuple["up.model.FNode", ...]], List[Event]
         ] = {}
+        self._se = StateEvaluator(self._problem)
         self._all_events_grounded: bool = False
+
+    def _is_applicable(
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+    ) -> bool:
+        if not isinstance(event, Event):
+            raise UPUsageError(
+                f"SequentialSimulator accepts only an Event but {type(event)} is given!"
+            )
+        return (
+            len(self.get_unsatisfied_conditions(event, state, early_termination=True))
+            == 0
+        )
 
     def _get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
@@ -89,6 +102,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         """
         # Evaluate every condition and if the condition is False or the condition is not simplified as a
         # boolean constant in the given state, return False. Return True otherwise
+        assert self._se is not None
         unsatisfied_conditions = []
         for c in event.conditions:
             evaluated_cond = self._se.evaluate(c, state)
@@ -102,7 +116,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         return unsatisfied_conditions
 
     def _apply(
-        self, event: Union["Event", Iterator["Event"]], state: "up.model.COWState"
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
         """
         Returns `None` if the event is not applicable in the given state,
@@ -112,7 +126,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
 
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions
-            to check and the effects to apply. An Iterator here is not accepted.
+            to check and the effects to apply. An Iterable here is not accepted.
         :return: None if the event is not applicable in the given state, a new
             COWState with some updated values if the event is applicable.
         """
@@ -128,7 +142,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
 
     # TODO change Interface of seq_simulator and simulator.
     def _apply_unsafe(
-        self, event: "Event", state: "up.model.COWState"
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
     ) -> "up.model.COWState":
         """
         Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
@@ -139,7 +153,13 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param event: the event that has the information about the effects to apply.
         :return: A new COWState with some updated values.
         """
-        updated_values, _ = self._get_updated_values_and_red_fluents(event, state)
+        if not isinstance(event, InstantaneousEvent):
+            raise UPUsageError(
+                f"SequentialSimulator accepts only ONE instance of InstantaneousEvent! {type(event)} was given"
+            )
+        updated_values, _ = self._get_updated_values_and_red_fluents(
+            event, state, self._se
+        )
         return state.make_child(updated_values)
 
     def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
@@ -227,6 +247,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
             containing the first goal evaluated to False if the flag
             "early_termination" is set.
         """
+        assert self._se is not None
         unsatisfied_goals = []
         for g in cast(up.model.Problem, self._problem).goals:
             g_eval = self._se.evaluate(g, state).bool_constant_value()

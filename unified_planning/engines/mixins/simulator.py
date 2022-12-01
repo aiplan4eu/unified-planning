@@ -17,7 +17,7 @@ from fractions import Fraction
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 from warnings import warn
 import unified_planning as up
-from unified_planning.model import FNode
+from unified_planning.model import FNode, Problem
 from unified_planning.model.walkers import StateEvaluator, FreeVarsExtractor
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 
@@ -69,10 +69,11 @@ class SimulatorMixin:
                 raise UPUsageError(msg)
             else:
                 warn(msg)
-        self._se = StateEvaluator(self._problem)
         self._fve: FreeVarsExtractor = problem.env.free_vars_extractor
 
-    def is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
+    def is_applicable(
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+    ) -> bool:
         """
         Returns `True` if the given `event conditions` are evaluated as `True` in the given `state`;
         returns `False` otherwise.
@@ -83,11 +84,10 @@ class SimulatorMixin:
         """
         return self._is_applicable(event, state)
 
-    def _is_applicable(self, event: "Event", state: "up.model.ROState") -> bool:
-        return (
-            len(self.get_unsatisfied_conditions(event, state, early_termination=True))
-            == 0
-        )
+    def _is_applicable(
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+    ) -> bool:
+        raise NotImplementedError
 
     def get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
@@ -259,7 +259,10 @@ class SimulatorMixin:
         raise NotImplementedError
 
     def _get_updated_values_and_red_fluents(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+        self,
+        event: Union["Event", Iterable["Event"]],
+        state: "up.model.ROState",
+        state_evaluator: StateEvaluator,
     ) -> Tuple[Dict[FNode, FNode], Set[FNode]]:
         """
         Utility method to return what an Event, or an Iterable of Event, updates
@@ -276,11 +279,11 @@ class SimulatorMixin:
             map(lambda cond: red_fluents.update(self._fve.get(cond)), ev.conditions)
             for e in ev.effects:
                 evaluated_args = tuple(
-                    self._se.evaluate(a, state) for a in e.fluent.args
+                    state_evaluator.evaluate(a, state) for a in e.fluent.args
                 )
                 fluent = em.FluentExp(e.fluent.fluent(), evaluated_args)
                 red_fluents.update(self._fve.get(e.condition))
-                if self._se.evaluate(e.condition, state).is_true():
+                if state_evaluator.evaluate(e.condition, state).is_true():
                     map(
                         lambda fluent_arg: red_fluents.update(
                             self._fve.get(fluent_arg)
@@ -293,7 +296,9 @@ class SimulatorMixin:
                             raise UPConflictingEffectsException(
                                 f"The fluent {fluent} is modified by 2 assignments in the same event."
                             )
-                        updated_values[fluent] = self._se.evaluate(e.value, state)
+                        updated_values[fluent] = state_evaluator.evaluate(
+                            e.value, state
+                        )
                         assigned_fluent.add(fluent)
                     else:
                         red_fluents.add(
@@ -306,9 +311,9 @@ class SimulatorMixin:
                         # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
                         # otherwisee we take it's evaluation in the state as it's value.
                         f_eval = updated_values.get(
-                            fluent, self._se.evaluate(fluent, state)
+                            fluent, state_evaluator.evaluate(fluent, state)
                         )
-                        v_eval = self._se.evaluate(e.value, state)
+                        v_eval = state_evaluator.evaluate(e.value, state)
                         if e.is_increase():
                             updated_values[fluent] = em.auto_promote(
                                 f_eval.constant_value() + v_eval.constant_value()
@@ -324,8 +329,8 @@ class SimulatorMixin:
                 # NOTE return None might mean "The whole state", but is quite counterintuitive,
                 # Or the state needs an extra method that retrieves the whole state.
                 for f, v in zip(
-                    event.simulated_effect.fluents,
-                    event.simulated_effect.function(self._problem, state, {}),
+                    ev.simulated_effect.fluents,
+                    ev.simulated_effect.function(self._problem, state, {}),
                 ):
                     if f in updated_values:
                         raise UPConflictingEffectsException(

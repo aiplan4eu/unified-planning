@@ -30,6 +30,8 @@ from unified_planning.model import (
     SimulatedEffect,
     TemporalState,
     DeltaSimpleTemporalNetwork,
+    COWState,
+    ROState,
 )
 from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
@@ -58,7 +60,7 @@ class TemporalEvent(InstantaneousEvent):
         kind: TemporalEventKind,
         timing: Timing,
         timing_included: bool,
-        committed_events: List["TemporalEvent"],
+        committed_events: Optional[List["TemporalEvent"]],
         conditions: List["up.model.FNode"],
         effects: List["up.model.Effect"],
         simulated_effect: Optional["up.model.SimulatedEffect"] = None,
@@ -67,6 +69,17 @@ class TemporalEvent(InstantaneousEvent):
         self._kind = kind
         self._timing = timing
         self._timing_included = timing_included
+        if (
+            committed_events is not None
+            and self._kind != TemporalEventKind.START_ACTION
+        ):
+            raise UPUsageError(
+                "Committed events make sense only for start action events."
+            )
+        elif committed_events is None and self._kind == TemporalEventKind.START_ACTION:
+            raise UPUsageError(
+                "Start action events must have a list for committed events."
+            )
         self._committed_events = committed_events
         self._id = TemporalEvent._class_id
         TemporalEvent._class_id += 1
@@ -84,8 +97,16 @@ class TemporalEvent(InstantaneousEvent):
         return self._timing_included
 
     @property
-    def committed_events(self) -> List["TemporalEvent"]:
+    def committed_events(self) -> Optional[List["TemporalEvent"]]:
         return self.committed_events
+
+    @property.setter
+    def committed_events(self, new_value: List["TemporalEvent"]):
+        if self._kind != TemporalEventKind.START_ACTION:
+            raise UPUsageError(
+                "Committed events make sense only for start action events."
+            )
+        self.committed_events = new_value
 
     @property
     def id(self) -> int:
@@ -107,21 +128,27 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert isinstance(self._problem, up.model.Problem)
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
+        self._se = StateEvaluator(self._problem)
         self._all_events_grounded: bool = False
         self._em = problem.env.expression_manager
 
     def _is_applicable(
-        self, event: Union["Event", Iterable["Event"]], state: "TemporalState"
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
     ) -> bool:
-        if (
-            len(self.get_unsatisfied_conditions(event, state, early_termination=True))
-            == 0
-        ):
-            return False
+        assert self._se is not None
+        if not isinstance(state, TemporalState):
+            raise UPUsageError(
+                f"Temporal Simulator needs a TemporalState instance, but {type(state)} is given!"
+            )
         if isinstance(event, Event):
             event = [event]
         for e in event:
             assert isinstance(e, TemporalEvent)
+            if (
+                len(self.get_unsatisfied_conditions(e, state, early_termination=True))
+                == 0
+            ):
+                return False
             if e.kind != TemporalEventKind.START_ACTION:
                 found = any(
                     running_events[0] == e for running_events in state.running_events
@@ -129,6 +156,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 if not found:
                     return False
         new_state = self.apply_unsafe(event, state)
+        assert isinstance(new_state, TemporalState)
         if not new_state.stn.check_stn():
             return False
         for condition in state.durative_conditions:
@@ -151,6 +179,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         """
         # Evaluate every condition and if the condition is False or the condition is not simplified as a
         # boolean constant in the given state, return False. Return True otherwise
+        assert self._se is not None
         unsatisfied_conditions = []
         for c in event.conditions:
             evaluated_cond = self._se.evaluate(c, state)
@@ -164,7 +193,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         return unsatisfied_conditions
 
     def _apply(
-        self, event: "Event", state: "up.model.COWState"
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
     ) -> Optional["up.model.COWState"]:
         """
         Returns `None` if the event is not applicable in the given state, otherwise returns a new COWState,
@@ -182,10 +211,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
             return self.apply_unsafe(event, state)
 
     def _apply_unsafe(
-        self,
-        event: Union["TemporalEvent", Iterable["TemporalEvent"]],
-        state: "TemporalState",
-    ) -> "TemporalState":
+        self, event: Union["Event", Iterable["Event"]], state: "COWState"
+    ) -> "COWState":
         """
         Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
@@ -195,10 +222,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
         :param event: the event that has the information about the effects to apply.
         :return: A new COWState with some updated values.
         """
+        if not isinstance(state, TemporalState):
+            raise UPUsageError("Timed Simulator needs a TemporalState!")
         if isinstance(event, Event):
             event = [event]
         updated_values, red_fluents = self._get_updated_values_and_red_fluents(
-            event, state
+            event, state, self._se
         )
         # New State variables
         stn = state.stn.copy_stn()
@@ -211,28 +240,45 @@ class TemporalSimulator(Engine, SimulatorMixin):
             first_ev = next(events)
         except StopIteration:
             raise UPUsageError("The given iterator of events is empty")
-        self._expand_event(first_ev, stn, running_events, durative_conditions)
+        if not isinstance(first_ev, TemporalEvent):
+            raise UPUsageError(
+                f"The timed simulator needs Temporal Events, {type(first_ev)} was given!"
+            )
+        if not self._expand_event(first_ev, stn, running_events, durative_conditions):
+            pass  # TODO, understand how to handle a failed event expansion
         other_ev = next(events, None)
         while other_ev is not None:
-            self._expand_event(other_ev, stn, running_events, durative_conditions)
-            insert_interval(stn, first_ev, other_ev, Fraction(0), Fraction(0))
+            if not isinstance(other_ev, TemporalEvent):
+                raise UPUsageError(
+                    f"The timed simulator needs Temporal Events, {type(other_ev)} was given!"
+                )
+            if not self._expand_event(
+                other_ev, stn, running_events, durative_conditions
+            ):
+                pass  # TODO, understand how to handle a failed event expansion
+            insert_interval(
+                stn, first_ev, other_ev, left_bound=Fraction(0), right_bound=Fraction(0)
+            )
+            other_ev = next(events, None)
         written_fluents: Set[FNode] = set(updated_values.keys())
         # red_fluents.difference_update(written_fluents) # Might be useful or pointless #TODO
         prev_state = state
         state_father = state._father
         while (red_fluents or written_fluents) and state_father is not None:
+            assert isinstance(prev_state, TemporalState)
+            assert isinstance(state_father, TemporalState)
             # setup loop variables
             (
                 oth_updated_values,
                 oth_red_fluents,
             ) = self._get_updated_values_and_red_fluents(
-                prev_state.last_events, state_father
+                prev_state.last_events, state_father, self._se
             )
             oth_written_fluents: Set[FNode] = set(oth_updated_values.keys())
             last_event = next(
                 iter(prev_state.last_events)
             )  # TODO check if use list instead of sets
-
+            assert isinstance(last_event, TemporalEvent)
             # Case where at least 1 Event writes something, affecting the other Event
             if (
                 not red_fluents.isdisjoint(oth_written_fluents)
@@ -256,14 +302,18 @@ class TemporalSimulator(Engine, SimulatorMixin):
             written_fluents.difference_update(oth_written_fluents)
             prev_state = state_father
             state_father = state_father._father
-        new_state = state.make_child(
-            updated_values, running_events, stn, durative_conditions, set(event)
+        new_state = cast(
+            TemporalState,
+            state.make_child(
+                updated_values, running_events, stn, durative_conditions, set(event)
+            ),
         )
         return new_state
 
     def _extract_red_and_written_fluents(
         self, events: Iterator["Event"], state: "TemporalState"
     ) -> Tuple[Set[FNode], Set[FNode]]:
+        assert self._se is not None
         red_fluents: Set[FNode] = set()
         written_fluents: Set[FNode] = set()
         for event in events:
@@ -278,6 +328,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     e.fluent.fluent(), evaluated_args
                 )
                 written_fluents.add(fluent)
+        return (red_fluents, written_fluents)
 
     def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
         """
@@ -288,29 +339,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         :param state: The state where the formulas are evaluated.
         :return: an Iterator of applicable Events.
         """
-        # if the problem was never fully grounded before,
-        # ground it and save all the new events. For every event
-        # that is applicable, yield it.
-        # Otherwise just return all the applicable events
-        if not self._all_events_grounded:
-            # perform total grounding
-            self._all_events_grounded = True
-            # for every grounded action, translate it in an Event
-            for (
-                original_action,
-                params,
-                grounded_action,
-            ) in self._grounder.get_grounded_actions():
-                for event in self._get_or_create_events(
-                    original_action, params, grounded_action
-                ):
-                    if self.is_applicable(event, state):
-                        yield event
-        else:  # the problem has been fully grounded before, just check for event applicability
-            for events in self._events.values():
-                for event in events:
-                    if self.is_applicable(event, state):
-                        yield event
+        raise NotImplementedError
 
     def _get_events(
         self,
@@ -357,6 +386,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
         """
         unsatisfied_goals = []
+        assert self._se is not None
         for g in cast(up.model.Problem, self._problem).goals:
             g_eval = self._se.evaluate(g, state).bool_constant_value()
             if not g_eval:
@@ -415,15 +445,16 @@ class TemporalSimulator(Engine, SimulatorMixin):
         """
         if isinstance(original_action, up.model.InstantaneousAction):
             assert False, "For now we support only durative actions"
+            # TODO here should be enough to call the SequentialSimulator code
         elif isinstance(original_action, up.model.DurativeAction):
             if (
                 grounded_action is None
             ):  # The grounded action is meaningless, no event associated
-                event_list = []
+                event_list: List["Event"] = []
             else:
                 assert isinstance(grounded_action, DurativeAction)
                 event_list = break_durative_action_in_event_list(
-                    grounded_action, original_action, params, duration
+                    grounded_action, duration
                 )
             return event_list
         else:
@@ -441,7 +472,11 @@ class TemporalSimulator(Engine, SimulatorMixin):
         """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
         if event.kind == TemporalEventKind.START_ACTION:
             committed_events: List[Event] = []
-            for committed_event in event.committed_events:
+            ce = event.committed_events
+            assert (
+                ce is not None
+            ), "Error, start Action event can't have None committed events"
+            for committed_event in ce:
                 if any(committed_event in el for el in running_events):
                     raise UPUsageError(
                         "START_ACTION event already submitted to ",
@@ -487,14 +522,13 @@ class TemporalSimulator(Engine, SimulatorMixin):
                         break
                 assert index is not None, "Error with start_condition and end_condition"
                 durative_conditions.pop(index)
+        return True
 
 
 def break_durative_action_in_event_list(
     grounded_action: "DurativeAction",
-    original_action: "DurativeAction",
-    parameters: "Tuple[FNode]",
     duration: Fraction,
-) -> List[TemporalEvent]:
+) -> List[Event]:
     point_events_map: Dict[Timing, Set[Union[Effect, FNode]]] = {}
     start_durative_conditions_map: Dict[Tuple[Timing, bool], List[FNode]] = {}
     end_durative_conditions_map: Dict[Tuple[Timing, bool], List[FNode]] = {}
@@ -527,60 +561,57 @@ def break_durative_action_in_event_list(
     # events is a mapping from each timing of the action to the corresponding list of events.
     # after it is populated, it must be ordered for key and it's values returned as a list
     events: Dict[Timing, List[TemporalEvent]] = {}
+    start_conditions = None
+    start_effects = None
     for t, ecs in point_events_map.items():
-        effects = [e for e in ecs if isinstance(e, Effect)]
         conditions = [c for c in ecs if isinstance(c, FNode)]
+        effects = [e for e in ecs if isinstance(e, Effect)]
         if t == t_start:
-            kind = TemporalEventKind.START_ACTION
+            assert (
+                start_conditions is None and start_effects is None
+            ), "Error, multiple StartTiming found."
+            start_conditions = conditions
+            start_effects = effects
+            continue
         elif t == t_end:
             kind = TemporalEventKind.END_ACTION
         else:
             kind = TemporalEventKind.INTERMEDIATE_CONDITION_EFFECT
         event = TemporalEvent(
             kind,
-            original_action,
             t,
             True,
-            parameters,
+            None,
             conditions,
             effects,
             grounded_action.simulated_effects[t],
         )
         events.setdefault(t, []).append(event)
 
-    if t_start not in events:
-        event = TemporalEvent(
-            TemporalEventKind.START_ACTION,
-            original_action,
-            t,
-            True,
-            parameters,
-            [],
-            [],
-            None,
-        )
-        events[t_start] = [event]
+    if start_conditions is None:
+        start_conditions = []
+        assert start_effects is None
+        start_effects = []
+    assert start_effects is not None
 
     if t_end not in events:
         event = TemporalEvent(
             TemporalEventKind.END_ACTION,
-            original_action,
-            t,
+            t_end,
             True,
-            parameters,
+            None,
             [],
             [],
             None,
         )
-        events[t_end] = event
+        events[t_end] = [event]
 
     for (t, timing_included), cl in start_durative_conditions_map.items():
         event = TemporalEvent(
             TemporalEventKind.START_CONDITION,
-            original_action,
             t,
             timing_included,
-            parameters,
+            [],
             cl,
             [],
             None,
@@ -590,17 +621,37 @@ def break_durative_action_in_event_list(
     for (t, timing_included), cl in end_durative_conditions_map.items():
         event = TemporalEvent(
             TemporalEventKind.END_CONDITION,
-            original_action,
             t,
             timing_included,
-            parameters,
+            [],
             cl,
             [],
             None,
         )
         events.setdefault(t, []).append(event)
+    # reverse t_end so that the END_ACTION event is the last of the list,
+    # if some durative conditions at end were included in the cycle above
+    events[t_end].reverse()
 
-    return [events[key] for key in sorted(events.keys(), key=lambda t: t.delay)]
+    ret_list: List[Event] = []
+    map(
+        ret_list.extend,
+        (events[key] for key in sorted(events.keys(), key=lambda t: t.delay)),
+    )
+
+    start_event = TemporalEvent(
+        TemporalEventKind.START_ACTION,
+        t_start,
+        True,
+        cast(List[TemporalEvent], ret_list)[:],
+        start_conditions,
+        start_effects,
+        grounded_action.simulated_effects[t_start],
+    )
+    ret_list.insert(0, start_event)
+    assert cast(TemporalEvent, ret_list[0]).kind == TemporalEventKind.START_ACTION
+    assert cast(TemporalEvent, ret_list[-1]).kind == TemporalEventKind.END_ACTION
+    return ret_list
 
 
 def get_timing_from_start(timing: Timing, action_duration: Fraction) -> Timing:
