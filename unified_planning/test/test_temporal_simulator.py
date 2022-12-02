@@ -14,13 +14,11 @@
 
 
 import unified_planning as up
-import pytest
 from unified_planning.shortcuts import *
-from unified_planning.engines import SequentialSimulator, SimulatorMixin
+from unified_planning.engines import SimulatorMixin, TemporalSimulator
 from unified_planning.model import UPCOWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
-from unified_planning.exceptions import UPUsageError
 from itertools import product
 from typing import cast
 
@@ -30,11 +28,11 @@ class TestSimulator(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def simulate_on_hierarchical_blocks_world(
+    def simulate_on_matchcellar(
         self, simulator: SimulatorMixin, problem: "up.model.Problem"
     ):
         # This test takes a simulator and the problem and makes some testing.
-        self.assertEqual(problem.name, "hierarchical_blocks_world")
+        self.assertEqual(problem.name, "MatchCellar")
         em = problem.env.expression_manager
         move = problem.action("move")
         clear = problem.fluent("clear")
@@ -145,20 +143,10 @@ class TestSimulator(TestCase):
         self.assertTrue(simulator.is_goal(state))
 
     def test_with_sequential_simulator_instance(self):
-        problem = self.problems["hierarchical_blocks_world"].problem
-        simulator = SequentialSimulator(problem)
-        self.simulate_on_hierarchical_blocks_world(simulator, problem)
-
-    def test_with_simulator_from_factory(self):
-        problem = self.problems["hierarchical_blocks_world"].problem
-        with Simulator(problem) as simulator:
-            self.simulate_on_hierarchical_blocks_world(simulator, problem)
-
-    @pytest.mark.filterwarnings("ignore:We cannot establish")
-    def test_check_disabling(self):
         problem = self.problems["matchcellar"].problem
-        with self.assertRaises(UPUsageError) as e:
-            SequentialSimulator(problem)
-        self.assertIn("cannot establish whether", str(e.exception))
-        with Simulator(problem, name="sequential_simulator") as simulator:
-            pass
+        simulator = TemporalSimulator(problem)
+
+    # def test_with_simulator_from_factory(self):
+    #     problem = self.problems["hierarchical_blocks_world"].problem
+    #     with Simulator(problem) as simulator:
+    #         self.simulate_on_hierarchical_blocks_world(simulator, problem)

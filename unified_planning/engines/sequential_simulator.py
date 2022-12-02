@@ -21,6 +21,7 @@ from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
+from unified_planning.model import COWState, ROState, UPCOWState, Problem
 from unified_planning.model.walkers import StateEvaluator
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast
 
@@ -74,7 +75,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         self._all_events_grounded: bool = False
 
     def _is_applicable(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
     ) -> bool:
         if not isinstance(event, Event):
             raise UPUsageError(
@@ -86,7 +87,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         )
 
     def _get_unsatisfied_conditions(
-        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+        self, event: "Event", state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Returns the list of unsatisfied event conditions evaluated in the
@@ -116,8 +117,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
         return unsatisfied_conditions
 
     def _apply(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
-    ) -> Optional["up.model.COWState"]:
+        self, event: Union["Event", Iterable["Event"]], state: "COWState"
+    ) -> Optional["COWState"]:
         """
         Returns `None` if the event is not applicable in the given state,
         otherwise returns a new COWState,which is a copy of the given state
@@ -142,8 +143,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
 
     # TODO change Interface of seq_simulator and simulator.
     def _apply_unsafe(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
-    ) -> "up.model.COWState":
+        self, event: Union["Event", Iterable["Event"]], state: "COWState"
+    ) -> "COWState":
         """
         Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
@@ -162,7 +163,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         )
         return state.make_child(updated_values)
 
-    def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
+    def _get_applicable_events(self, state: "ROState") -> Iterator["Event"]:
         """
         Returns a view over all the events that are applicable in the given State;
         an Event is considered applicable in a given State, when all the Event condition
@@ -233,7 +234,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         return event_list
 
     def _get_unsatisfied_goals(
-        self, state: "up.model.ROState", early_termination: bool = False
+        self, state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Returns the list of unsatisfied goals evaluated in the given state.
@@ -256,6 +257,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 if early_termination:
                     break
         return unsatisfied_goals
+
+    def _get_initial_state(self) -> "COWState":
+        """
+        Returns the :class:`~unified_planning.model.UPCOWState` instance that represents
+        the initial state of the given `problem`.
+        """
+        assert isinstance(self._problem, Problem)
+        return UPCOWState(self._problem.initial_values)
 
     @property
     def name(self) -> str:
