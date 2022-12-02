@@ -615,11 +615,13 @@ class MAPDDLWriter:
                 else:
                     raise NotImplementedError
             out.write(")\n")
+
             ag_domains[self._get_mangled_name(ag)] = out.getvalue()
             out.close()
             self.domain_objects = None
             self.domain_objects_agents = {}
             self.domain_fluents_agents = {}
+
         return ag_domains
 
     def _write_problem(self):
