@@ -512,6 +512,7 @@ class MAPDDLWriter:
             ag_domains[self._get_mangled_name(ag)] = ag_domain
             out.truncate(0)
             out.seek(0)
+            self.domain_objects = None
         return ag_domains
 
     def _write_problem(self, out: IO[str]):
@@ -581,6 +582,7 @@ class MAPDDLWriter:
             ag_problems[self._get_mangled_name(ag)] = ag_problem
             out.truncate(0)
             out.seek(0)
+            self.domain_objects = None
         return ag_problems
 
     def print_ma_domain_agent(self, agent_name):
