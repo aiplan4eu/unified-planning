@@ -287,6 +287,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
         assert isinstance(self._problem, Problem)
         return COWState(self._problem.initial_values)
 
+    def _get_initial_state(self) -> "COWState":
+        """
+        Returns the :class:`~unified_planning.model.UPCOWState` instance that represents
+        the initial state of the given `problem`.
+        """
+        assert isinstance(self._problem, Problem)
+        return UPCOWState(self._problem.initial_values)
+
     @property
     def name(self) -> str:
         return "sequential_simulator"

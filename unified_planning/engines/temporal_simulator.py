@@ -593,6 +593,31 @@ class TemporalSimulator(Engine, SimulatorMixin):
         )
         return self._initial_state
 
+    def _get_initial_state(self) -> "COWState":
+        """
+        Returns the :class:`~unified_planning.model.TemporalState` instance that represents
+        the initial state of the given `problem`.
+        """
+        # TODO Populate those data structures for initial state
+        running_events: List[
+            List[Event]
+        ] = []  # Add tils as if problem was an action(code refactoring needed)
+        stn = (
+            DeltaSimpleTemporalNetwork()
+        )  # Add all tils with right distance from plan_start!
+        durative_conditions: List[
+            List[FNode]
+        ] = []  # Add durative conditions added from start
+        last_events: Set[Event] = set()  # add the plan_start event
+        assert isinstance(self._problem, Problem)
+        return TemporalState(
+            self._problem.initial_values,
+            running_events,
+            stn,
+            durative_conditions,
+            last_events,
+        )
+
     @property
     def name(self) -> str:
         return "temporal_simulator"
