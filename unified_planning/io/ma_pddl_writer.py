@@ -620,6 +620,7 @@ class MAPDDLWriter:
             self.domain_objects = None
             self.domain_objects_agents = {}
             self.domain_fluents_agents = {}
+
         return ag_domains
 
     def _write_problem(self):
