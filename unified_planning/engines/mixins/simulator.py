@@ -17,7 +17,7 @@ from fractions import Fraction
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 from warnings import warn
 import unified_planning as up
-from unified_planning.model import FNode, Problem
+from unified_planning.model import FNode, COWState, ROState
 from unified_planning.model.walkers import StateEvaluator, FreeVarsExtractor
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 
@@ -72,7 +72,7 @@ class SimulatorMixin:
         self._fve: FreeVarsExtractor = problem.env.free_vars_extractor
 
     def is_applicable(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
     ) -> bool:
         """
         Returns `True` if the given `event conditions` are evaluated as `True` in the given `state`;
@@ -85,12 +85,12 @@ class SimulatorMixin:
         return self._is_applicable(event, state)
 
     def _is_applicable(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
     ) -> bool:
         raise NotImplementedError
 
     def get_unsatisfied_conditions(
-        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+        self, event: "Event", state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Returns the list of `unsatisfied event conditions` evaluated in the given `state`.
@@ -106,7 +106,7 @@ class SimulatorMixin:
         )
 
     def _get_unsatisfied_conditions(
-        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+        self, event: "Event", state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_unsatisfied_conditions.
@@ -114,8 +114,8 @@ class SimulatorMixin:
         raise NotImplementedError
 
     def apply(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
-    ) -> Optional["up.model.COWState"]:
+        self, event: Union["Event", Iterable["Event"]], state: "COWState"
+    ) -> Optional["COWState"]:
         """
         Returns `None` if the `event` is not applicable in the given `state`, otherwise returns a new `COWState`,
         which is a copy of the given `state` where the `applicable effects` of the `event` are applied; therefore
@@ -132,16 +132,16 @@ class SimulatorMixin:
         return self._apply(event, state)
 
     def _apply(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
-    ) -> Optional["up.model.COWState"]:
+        self, event: Union["Event", Iterable["Event"]], state: "COWState"
+    ) -> Optional["COWState"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.apply.
         """
         raise NotImplementedError
 
     def apply_unsafe(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
-    ) -> "up.model.COWState":
+        self, event: Union["Event", Iterable["Event"]], state: "COWState"
+    ) -> "COWState":
         """
         Returns a new `COWState`, which is a copy of the given `state` but the applicable `effects` of the
         `event` are applied; therefore some `fluent` values are updated.
@@ -156,14 +156,14 @@ class SimulatorMixin:
         return self._apply_unsafe(event, state)
 
     def _apply_unsafe(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
-    ) -> "up.model.COWState":
+        self, event: Union["Event", Iterable["Event"]], state: "COWState"
+    ) -> "COWState":
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.apply_unsafe.
         """
         raise NotImplementedError
 
-    def get_applicable_events(self, state: "up.model.ROState") -> Iterable["Event"]:
+    def get_applicable_events(self, state: "ROState") -> Iterable["Event"]:
         """
         Returns a view over all the `events` that are applicable in the given `State`;
         an `Event` is considered applicable in a given `State`, when all the `Event condition`
@@ -174,7 +174,7 @@ class SimulatorMixin:
         """
         return self._get_applicable_events(state)
 
-    def _get_applicable_events(self, state: "up.model.ROState") -> Iterable["Event"]:
+    def _get_applicable_events(self, state: "ROState") -> Iterable["Event"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_applicable_events.
         """
@@ -204,7 +204,7 @@ class SimulatorMixin:
             raise UPUsageError(
                 "The parameters given action do not have the same length of the given parameters."
             )
-        return self._get_events(action, parameters)
+        return self._get_events(action, parameters, duration)
 
     def _get_events(
         self,
@@ -212,6 +212,7 @@ class SimulatorMixin:
         parameters: Union[
             Tuple["up.model.Expression", ...], List["up.model.Expression"]
         ],
+        duration: Optional[Fraction] = None,
     ) -> List["Event"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_events.
@@ -222,7 +223,7 @@ class SimulatorMixin:
     def is_simulator():
         return True
 
-    def is_goal(self, state: "up.model.ROState") -> bool:
+    def is_goal(self, state: "ROState") -> bool:
         """
         Returns `True` if the given `state` satisfies the :class:`~unified_planning.model.AbstractProblem` :func:`goals <unified_planning.model.Problem.goals>`.
 
@@ -231,14 +232,14 @@ class SimulatorMixin:
         """
         return self._is_goal(state)
 
-    def _is_goal(self, state: "up.model.ROState") -> bool:
+    def _is_goal(self, state: "ROState") -> bool:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.is_goal.
         """
         return len(self.get_unsatisfied_goals(state, early_termination=True)) == 0
 
     def get_unsatisfied_goals(
-        self, state: "up.model.ROState", early_termination: bool = False
+        self, state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Returns the list of `unsatisfied goals` evaluated in the given `state`.
@@ -251,17 +252,31 @@ class SimulatorMixin:
         return self._get_unsatisfied_goals(state, early_termination)
 
     def _get_unsatisfied_goals(
-        self, state: "up.model.ROState", early_termination: bool = False
+        self, state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_unsatisfied_goals.
         """
         raise NotImplementedError
 
+    def get_initial_state(self) -> "COWState":
+        """
+        Returns the `COWState` representing the initial state of the `problem` given at construction time to the simulator.
+
+        :return: the `COWState` representing the `problem`'s initial state.
+        """
+        return self._get_initial_state()
+
+    def _get_initial_state(self) -> "COWState":
+        """
+        Method called by the up.engines.mixins.simulator.SimulatorMixin.get_initial_state.
+        """
+        raise NotImplementedError
+
     def _get_updated_values_and_red_fluents(
         self,
         event: Union["Event", Iterable["Event"]],
-        state: "up.model.ROState",
+        state: "ROState",
         state_evaluator: StateEvaluator,
     ) -> Tuple[Dict[FNode, FNode], Set[FNode]]:
         """

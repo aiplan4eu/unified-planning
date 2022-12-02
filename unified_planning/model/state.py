@@ -39,14 +39,12 @@ class COWState(ROState):
     def make_child(
         self,
         updated_values: Dict["up.model.FNode", "up.model.FNode"],
-        updated_running_events: Optional[
+        running_events: Optional[
             List[List["up.engines.mixins.simulator.Event"]]
         ] = None,
-        updated_stn: Optional[
-            "up.model.temporal_state.DeltaSimpleTemporalNetwork"
-        ] = None,
-        updated_durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
-        updated_last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
+        stn: Optional["up.model.temporal_state.DeltaSimpleTemporalNetwork"] = None,
+        durative_conditions: Optional[List[List["up.model.fnode.FNode"]]] = None,
+        events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "COWState":
         """
         Returns a different `COWState` in which every value in `updated_values.keys()` is evaluated as his mapping
@@ -138,7 +136,7 @@ class UPCOWState(COWState):
             List[List["up.engines.mixins.simulator.Event"]]
         ] = None,
         stn: Optional["up.model.temporal_state.DeltaSimpleTemporalNetwork"] = None,
-        durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
+        durative_conditions: Optional[List[List["up.model.fnode.FNode"]]] = None,
         last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "UPCOWState":
         """

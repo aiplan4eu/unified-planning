@@ -92,7 +92,7 @@ class TemporalState(UPCOWState):
         values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         running_events: List[List["up.engines.mixins.simulator.Event"]],
         stn: "DeltaSimpleTemporalNetwork",
-        durative_conditions: List["up.model.fnode.FNode"],
+        durative_conditions: List[List["up.model.fnode.FNode"]],
         last_events: Set["up.engines.mixins.simulator.Event"],
         _father: Optional["TemporalState"] = None,
     ):
@@ -113,7 +113,7 @@ class TemporalState(UPCOWState):
         return self._stn
 
     @property
-    def durative_conditions(self) -> List["up.model.fnode.FNode"]:
+    def durative_conditions(self) -> List[List["up.model.fnode.FNode"]]:
         return self._durative_conditions
 
     @property
@@ -127,7 +127,7 @@ class TemporalState(UPCOWState):
             List[List["up.engines.mixins.simulator.Event"]]
         ] = None,
         stn: Optional["DeltaSimpleTemporalNetwork"] = None,
-        durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
+        durative_conditions: Optional[List[List["up.model.fnode.FNode"]]] = None,
         last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "TemporalState":
         if running_events is None:

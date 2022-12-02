@@ -37,6 +37,10 @@ from unified_planning.engines.sequential_simulator import (
     SequentialSimulator,
     InstantaneousEvent,
 )
+from unified_planning.engines.temporal_simulator import (
+    TemporalSimulator,
+    TemporalEvent,
+)
 from unified_planning.engines.mixins.simulator import SimulatorMixin, Event
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
@@ -62,6 +66,8 @@ __all__ = [
     "PlanGenerationResult",
     "LogLevel",
     "PlanGenerationResultStatus",
+    "TemporalSimulator",
+    "TemporalEvent",
     "ValidationResult",
     "ValidationResultStatus",
     "CompilerResult",
