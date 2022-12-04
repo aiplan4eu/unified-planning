@@ -224,6 +224,8 @@ class MAPDDLWriter:
                 for k, v in self.domain_objects_agents.items():
                     if len(v) > 0:
                         out.write(f"\n   {self._get_mangled_name(k)} - {v}")
+
+            if len(self.domain_objects) > 0 or len(self.domain_objects_agents) > 0:
                 out.write("\n )\n")
 
             predicates = []
