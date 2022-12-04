@@ -408,7 +408,9 @@ class MAPDDLWriter:
                     if len(a.preconditions) > 0:
                         out.write(f"\n  :precondition (and \n")
                         for p in a.preconditions:
-                            if p.is_fluent_exp():
+                            if p.is_dot():
+                                out.write(f"   {converter.convert(p)}\n")
+                            elif p.is_fluent_exp():
                                 if p.fluent() in ag.fluents:
                                     out.write(
                                         f'   (a_{self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})\n'
@@ -572,6 +574,8 @@ class MAPDDLWriter:
             out.truncate(0)
             out.seek(0)
             self.domain_objects = None
+            self.domain_objects_agents = {}
+            self.domain_fluents_agents = {}
         return ag_domains
 
     def _write_problem(self, out: IO[str]):
@@ -625,7 +629,8 @@ class MAPDDLWriter:
                             out.write(
                                 f'\n  (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(ag)}{" " if len(args) > 0 else ""}{object})'
                             )
-                            # out.write(f"\n  {converter.convert(f)}")
+                        # elif f.agent().name != ag.name:
+                        #    out.write(f"\n  {converter.convert(f)}")
                         else:
                             out.write(f"")
                     else:
@@ -647,6 +652,8 @@ class MAPDDLWriter:
             out.truncate(0)
             out.seek(0)
             self.domain_objects = None
+            self.domain_objects_agents = {}
+            self.domain_fluents_agents = {}
         return ag_problems
 
     def print_ma_domain_agent(self, agent_name):
