@@ -254,7 +254,8 @@ class Factory:
         :param module_name: The `name` of the module in which the `meta engine Class` is defined.
         :param class_name: The name of the `meta engine Class`.
         """
-        for engine_name, engine in self._engines.items():
+        engines = dict(self._engines)
+        for engine_name, engine in engines.items():
             self._add_meta_engine(name, module_name, class_name, engine_name, engine)
             n = f"{name}[{engine_name}]"
             if n in self.engines:
