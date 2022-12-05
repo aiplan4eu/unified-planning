@@ -297,14 +297,14 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     relevant_constrains.append(c)
         return relevant_constrains
 
-    def _evaluate_constraint(self, substituter, constr, init_values):
+    def _evaluate_constraint(self, env, substituter, constr, init_values):
         if constr.is_sometime():
             return HOLD, substituter.substitute(constr.args[0], init_values).simplify()
         elif constr.is_sometime_after():
             return (
                 HOLD,
-                substituter.substitute(constr.args[1], init_values).simplify()
-                or not substituter.substitute(constr.args[0], init_values).simplify(),
+                env.expression_manager.Or(substituter.substitute(constr.args[1], init_values),
+                     env.expression_manager.Not(substituter.substitute(constr.args[0], init_values))).simplify()
             )
         elif constr.is_sometime_before():
             return (
@@ -331,7 +331,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     )
             else:
                 type, init_state_value = self._evaluate_constraint(
-                    substituter, constr, I
+                    env, substituter, constr, I
                 )
                 fluent = up.model.Fluent(
                     f"{type}{SEPARATOR}{monitoring_atoms_counter}",
