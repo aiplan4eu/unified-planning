@@ -271,6 +271,7 @@ class MAPDDLWriter:
 
             predicates_dot_agents = []
             functions_dot_agents = []
+            # I add the fluents of other agents specified with the DOT as public fluents
             if len(self.domain_fluents_agents) > 0:
                 for ag_dot, fleunt_list in self.domain_fluents_agents.items():
                     for f in fleunt_list:
@@ -614,7 +615,7 @@ class MAPDDLWriter:
                     f'\n   {self._get_mangled_name(ag)} - {(self._get_mangled_name(ag))+"_type"}'
                 )
 
-                out.write("\n )\n")
+            out.write("\n )\n")
             converter = ConverterToMAPDDLString(
                 self.problem.env, self._get_mangled_name
             )
@@ -629,8 +630,11 @@ class MAPDDLWriter:
                             out.write(
                                 f'\n  (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(ag)}{" " if len(args) > 0 else ""}{object})'
                             )
-                        # elif f.agent().name != ag.name:
-                        #    out.write(f"\n  {converter.convert(f)}")
+                        elif (
+                            f.agent().name != ag.name
+                            and fluent in self.domain_fluents_agents
+                        ):
+                            out.write(f"\n  {converter.convert(f)}")
                         else:
                             out.write(f"")
                     else:
