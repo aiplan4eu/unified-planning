@@ -27,6 +27,8 @@ from unified_planning.model import (
     TimeInterval,
     StartTiming,
     EndTiming,
+    GlobalStartTiming,
+    GlobalEndTiming,
     SimulatedEffect,
     Problem,
     TemporalState,
@@ -40,10 +42,13 @@ from unified_planning.engines.sequential_simulator import InstantaneousEvent
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.walkers import StateEvaluator
+from unified_planning.environment import Environment
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast
 
 
 class TemporalEventKind(Enum):
+    START_PLAN = auto()
+    END_PLAN = auto()
     START_ACTION = auto()
     END_ACTION = auto()
     START_CONDITION = auto()
@@ -70,9 +75,9 @@ class TemporalEvent(InstantaneousEvent):
         self._kind = kind
         self._timing = timing
         self._timing_included = timing_included
-        if (
-            committed_events is not None
-            and self._kind != TemporalEventKind.START_ACTION
+        if committed_events is not None and self._kind not in (
+            TemporalEventKind.START_ACTION,
+            TemporalEventKind.START_PLAN,
         ):
             raise UPUsageError(
                 "Committed events make sense only for start action events."
@@ -130,8 +135,63 @@ class TemporalSimulator(Engine, SimulatorMixin):
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
-        self._all_events_grounded: bool = False
         self._em = problem.env.expression_manager
+        problem_events: List[TemporalEvent] = cast(
+            List[TemporalEvent],
+            break_action_or_problem_in_event_list(
+                problem.timed_effects,
+                problem.timed_goals,
+                {},
+                None,
+                problem.env,
+                is_global=True,
+            ),
+        )
+        self._start_plan_event = problem_events[0]
+        self._end_plan_event = problem_events[-1]
+        assert self._start_plan_event.kind == TemporalEventKind.START_PLAN
+        assert self._end_plan_event == TemporalEventKind.END_PLAN
+
+        # creation of initial state, might be moved into a specific function # TODO decide
+        initial_stn = DeltaSimpleTemporalNetwork()
+        assert self._start_plan_event.committed_events is not None
+        initial_running_events: List[TemporalEvent] = cast(
+            List[TemporalEvent], self._start_plan_event.committed_events[:]
+        )
+        for ev in initial_running_events:
+            if ev.timing.is_from_start():
+                distance = Fraction(ev.timing.delay)
+                if (
+                    not ev.timing_included
+                    and ev.kind == TemporalEventKind.START_CONDITION
+                ):
+                    distance += TemporalSimulator.EPSILON
+                elif (
+                    not ev.timing_included
+                    and ev.kind == TemporalEventKind.END_CONDITION
+                ):
+                    distance -= TemporalSimulator.EPSILON
+                insert_interval(
+                    initial_stn,
+                    self._start_plan_event,
+                    ev,
+                    left_bound=distance,
+                    right_bound=distance,
+                )
+            else:
+                f0 = Fraction(0)
+                assert ev.timing.delay == f0
+                insert_interval(
+                    initial_stn, self._end_plan_event, ev, left_bound=f0, right_bound=f0
+                )
+
+        self._initial_state = TemporalState(
+            self._problem.initial_values,
+            cast(List[List[Event]], [initial_running_events]),
+            initial_stn,
+            [],
+            {self._start_plan_event},
+        )
 
     def _is_applicable(
         self, event: Union["Event", Iterable["Event"]], state: "ROState"
@@ -377,25 +437,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         Returns the :class:`~unified_planning.model.TemporalState` instance that represents
         the initial state of the given `problem`.
         """
-        # TODO Populate those data structures for initial state
-        running_events: List[
-            List[Event]
-        ] = []  # Add tils as if problem was an action(code refactoring needed)
-        stn = (
-            DeltaSimpleTemporalNetwork()
-        )  # Add all tils with right distance from plan_start!
-        durative_conditions: List[
-            List[FNode]
-        ] = []  # Add durative conditions added from start
-        last_events: Set[Event] = set()  # add the plan_start event
-        assert isinstance(self._problem, Problem)
-        return TemporalState(
-            self._problem.initial_values,
-            running_events,
-            stn,
-            durative_conditions,
-            last_events,
-        )
+        return self._initial_state
 
     @property
     def name(self) -> str:
@@ -455,8 +497,13 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 event_list: List["Event"] = []
             else:
                 assert isinstance(grounded_action, DurativeAction)
-                event_list = break_durative_action_in_event_list(
-                    grounded_action, duration
+                event_list = break_action_or_problem_in_event_list(
+                    grounded_action.effects,
+                    grounded_action.conditions,
+                    grounded_action.simulated_effects,
+                    duration,
+                    grounded_action.env,
+                    is_global=False,
                 )
             return event_list
         else:
@@ -534,21 +581,26 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 durative_conditions[:] = [x for x in filter(None, durative_conditions)]
 
 
-def break_durative_action_in_event_list(
-    grounded_action: "DurativeAction",
-    duration: Fraction,
+def break_action_or_problem_in_event_list(
+    effects: Dict[Timing, List[Effect]],
+    conditions: Dict[TimeInterval, List[FNode]],
+    simulated_effects: Dict[Timing, SimulatedEffect],
+    duration: Optional[Fraction],
+    env: Environment,
+    is_global: bool,
 ) -> List[Event]:
-    em = grounded_action.env.expression_manager
+    assert is_global != (duration is not None)  # equivalent to xor
+    em = env.expression_manager
     point_events_map: Dict[Timing, Set[Union[Effect, FNode]]] = {}
     start_durative_conditions_map: Dict[Tuple[Timing, bool], List[FNode]] = {}
     end_durative_conditions_map: Dict[Tuple[Timing, bool], List[FNode]] = {}
 
-    for t, el in grounded_action.effects.items():
+    for t, el in effects.items():
         point_events_map.setdefault(get_timing_from_start(t, duration), set()).update(
             el
         )
 
-    for i, cl in grounded_action.conditions.items():
+    for i, cl in conditions.items():
         assert isinstance(i, TimeInterval)
         lower = get_timing_from_start(i.lower, duration)
         upper = get_timing_from_start(i.upper, duration)
@@ -567,26 +619,33 @@ def break_durative_action_in_event_list(
                 (upper, i.is_right_open()), []
             ).append(cond)
 
-    t_start = StartTiming()
-    t_end = get_timing_from_start(EndTiming(), duration)
+    t_start = GlobalStartTiming() if is_global else StartTiming()
+    t_end = (
+        GlobalEndTiming() if is_global else get_timing_from_start(EndTiming(), duration)
+    )
 
-    # events is a mapping from each timing of the action to the corresponding list of events.
+    # events is a mapping from each timing to the corresponding list of events.
     # after it is populated, it must be ordered for key and it's values returned as a list
     events: Dict[Timing, List[TemporalEvent]] = {}
     start_conditions = None
     start_effects = None
     for t, ecs in point_events_map.items():
-        conditions = [c for c in ecs if isinstance(c, FNode)]
-        effects = [e for e in ecs if isinstance(e, Effect)]
+        assert t.is_global() == is_global
+        tmp_conditions = [c for c in ecs if isinstance(c, FNode)]
+        tmp_effects = [e for e in ecs if isinstance(e, Effect)]
         if t == t_start:
             assert (
                 start_conditions is None and start_effects is None
             ), "Error, multiple StartTiming found."
-            start_conditions = conditions
-            start_effects = effects
+            start_conditions = tmp_conditions
+            start_effects = tmp_effects
             continue
         elif t == t_end:
-            kind = TemporalEventKind.END_ACTION
+            kind = (
+                TemporalEventKind.END_PLAN
+                if is_global
+                else TemporalEventKind.END_ACTION
+            )
         else:
             kind = TemporalEventKind.INTERMEDIATE_CONDITION_EFFECT
         event = TemporalEvent(
@@ -594,9 +653,9 @@ def break_durative_action_in_event_list(
             t,
             True,
             None,
-            conditions,
-            effects,
-            grounded_action.simulated_effects[t],
+            tmp_conditions,
+            tmp_effects,
+            simulated_effects.get(t, None),
         )
         events.setdefault(t, []).append(event)
 
@@ -608,7 +667,7 @@ def break_durative_action_in_event_list(
 
     if t_end not in events:
         event = TemporalEvent(
-            TemporalEventKind.END_ACTION,
+            TemporalEventKind.END_PLAN if is_global else TemporalEventKind.END_ACTION,
             t_end,
             True,
             None,
@@ -641,7 +700,7 @@ def break_durative_action_in_event_list(
             None,
         )
         events.setdefault(t, []).append(event)
-    # reverse t_end so that the END_ACTION event is the last of the list,
+    # reverse t_end so that the END_ACTION/END_PLAN event is the last of the list,
     # if some durative conditions at end were included in the cycle above
     events[t_end].reverse()
 
@@ -652,21 +711,31 @@ def break_durative_action_in_event_list(
         ret_list.extend(ev_list)
 
     start_event = TemporalEvent(
-        TemporalEventKind.START_ACTION,
+        TemporalEventKind.START_PLAN if is_global else TemporalEventKind.START_ACTION,
         t_start,
         True,
         cast(List[TemporalEvent], ret_list)[:],
         start_conditions,
         start_effects,
-        grounded_action.simulated_effects[t_start],
+        simulated_effects.get(t_start, None),
     )
     ret_list.insert(0, start_event)
-    assert cast(TemporalEvent, ret_list[0]).kind == TemporalEventKind.START_ACTION
-    assert cast(TemporalEvent, ret_list[-1]).kind == TemporalEventKind.END_ACTION
+
+    assert cast(TemporalEvent, ret_list[0]).kind in (
+        TemporalEventKind.START_ACTION,
+        TemporalEventKind.START_PLAN,
+    )
+    assert cast(TemporalEvent, ret_list[-1]).kind in (
+        TemporalEventKind.END_ACTION,
+        TemporalEventKind.END_PLAN,
+    )
     return ret_list
 
 
-def get_timing_from_start(timing: Timing, action_duration: Fraction) -> Timing:
+def get_timing_from_start(
+    timing: Timing, action_duration: Optional[Fraction]
+) -> Timing:
+    assert action_duration is not None
     res = timing
     if timing.is_from_end():
         res = StartTiming(action_duration - timing.delay)
