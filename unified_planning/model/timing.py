@@ -16,6 +16,7 @@
 
 from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
+from unified_planning.exceptions import UPUsageError
 from enum import Enum, auto
 from fractions import Fraction
 from typing import Union, Optional
@@ -103,6 +104,8 @@ class Timing:
 
     def __init__(self, delay: Union[int, Fraction], timepoint: Timepoint):
         self._timepoint = timepoint
+        if delay < 0:
+            raise UPUsageError("UP library supports only delays >= 0.")
         self._delay = delay
 
     def __repr__(self):
