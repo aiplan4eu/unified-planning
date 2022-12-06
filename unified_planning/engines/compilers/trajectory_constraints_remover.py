@@ -303,8 +303,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         elif constr.is_sometime_after():
             return (
                 HOLD,
-                env.expression_manager.Or(substituter.substitute(constr.args[1], init_values),
-                     env.expression_manager.Not(substituter.substitute(constr.args[0], init_values))).simplify()
+                env.expression_manager.Or(
+                    substituter.substitute(constr.args[1], init_values),
+                    env.expression_manager.Not(
+                        substituter.substitute(constr.args[0], init_values)
+                    ),
+                ).simplify(),
             )
         elif constr.is_sometime_before():
             return (
