@@ -24,6 +24,8 @@ class AnytimeGuarantee(Enum):
 
 
 class AnytimePlannerMixin:
+    """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `AnytimePlanner`."""
+
     def __init__(self):
         self.optimality_metric_required = False
 
