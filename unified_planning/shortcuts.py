@@ -447,6 +447,15 @@ def AnytimePlanner(
       e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
     - using 'problem_kind' and 'anytime_guarantee'.
       e.g. AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)
+
+    An AnytimePlanner is a planner that returns an iterator of solutions.
+    Depending on the given anytime_guarantee parameter, every plan being generated is:
+    - strictly better in terms of quality than the previous one (INCREASING_QUALITY);
+    - optimal (OPTIMAL_PLANS);
+    - just a different plan, with no specific guarantee (None).
+
+    It raises an exception if the problem has no optimality metrics and anytime_guarantee
+    is equal to INCREASING_QUALITY or OPTIMAL_PLAN.
     """
     return get_env().factory.AnytimePlanner(
         name=name,
