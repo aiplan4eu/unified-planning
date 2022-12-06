@@ -19,7 +19,6 @@ import pytest
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
-from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import full_numeric_kind
@@ -714,9 +713,8 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(natural_disaster.effects), 9)
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
-    @skipIfNoOneshotPlannerForProblemKind(full_numeric_kind)
-    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        OptimalityGuarantee.SOLVED_OPTIMALLY
+    @skipIfNoOneshotPlannerForProblemKind(
+        full_numeric_kind, OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_reading_domain_only(self):
         reader = PDDLReader()

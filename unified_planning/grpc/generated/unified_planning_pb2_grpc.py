@@ -14,7 +14,12 @@ class UnifiedPlanningStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.planOneShot = channel.unary_stream(
+        self.planAnytime = channel.unary_stream(
+                '/UnifiedPlanning/planAnytime',
+                request_serializer=unified__planning__pb2.PlanRequest.SerializeToString,
+                response_deserializer=unified__planning__pb2.PlanGenerationResult.FromString,
+                )
+        self.planOneShot = channel.unary_unary(
                 '/UnifiedPlanning/planOneShot',
                 request_serializer=unified__planning__pb2.PlanRequest.SerializeToString,
                 response_deserializer=unified__planning__pb2.PlanGenerationResult.FromString,
@@ -34,11 +39,19 @@ class UnifiedPlanningStub(object):
 class UnifiedPlanningServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def planOneShot(self, request, context):
-        """A plan request to the engine.
+    def planAnytime(self, request, context):
+        """An anytime plan request to the engine.
         The engine replies with a stream of N `Answer` messages where:
         - the first (N-1) message are of type `IntermediateReport`
         - the last message is of type `FinalReport`
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def planOneShot(self, request, context):
+        """A oneshot plan request to the engine.
+        The engine replies with athe PlanGenerationResult
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -63,7 +76,12 @@ class UnifiedPlanningServicer(object):
 
 def add_UnifiedPlanningServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'planOneShot': grpc.unary_stream_rpc_method_handler(
+            'planAnytime': grpc.unary_stream_rpc_method_handler(
+                    servicer.planAnytime,
+                    request_deserializer=unified__planning__pb2.PlanRequest.FromString,
+                    response_serializer=unified__planning__pb2.PlanGenerationResult.SerializeToString,
+            ),
+            'planOneShot': grpc.unary_unary_rpc_method_handler(
                     servicer.planOneShot,
                     request_deserializer=unified__planning__pb2.PlanRequest.FromString,
                     response_serializer=unified__planning__pb2.PlanGenerationResult.SerializeToString,
@@ -89,6 +107,23 @@ class UnifiedPlanning(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
+    def planAnytime(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/UnifiedPlanning/planAnytime',
+            unified__planning__pb2.PlanRequest.SerializeToString,
+            unified__planning__pb2.PlanGenerationResult.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def planOneShot(request,
             target,
             options=(),
@@ -99,7 +134,7 @@ class UnifiedPlanning(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/UnifiedPlanning/planOneShot',
+        return grpc.experimental.unary_unary(request, target, '/UnifiedPlanning/planOneShot',
             unified__planning__pb2.PlanRequest.SerializeToString,
             unified__planning__pb2.PlanGenerationResult.FromString,
             options, channel_credentials,
