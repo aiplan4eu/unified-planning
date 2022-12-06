@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import basic_classical_kind
+from unified_planning.model.problem_kind import basic_classical_kind, hierarchical_kind
 from unified_planning.test import (
     TestCase,
     main,
@@ -45,7 +45,7 @@ class TestPartialOrderPlan(TestCase):
                             validation_result.status,
                         )
 
-    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(hierarchical_kind))
     def test_blocks_world(self):
         problem = self.problems["hierarchical_blocks_world"].problem
         with Compiler(
