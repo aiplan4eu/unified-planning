@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+
+from collections import deque
 from fractions import Fraction
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 from warnings import warn
@@ -109,7 +111,7 @@ class SimulatorMixin:
         self, event: "Event", state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
-        Method called by the up.engines.mixins.simulator.SimulatorMixin.get_unsatisfied_conditions.
+        Method called by the up.engines.mixins.simulator.SimulatorMixin.apply.
         """
         raise NotImplementedError
 
@@ -186,7 +188,7 @@ class SimulatorMixin:
         parameters: Union[
             Tuple["up.model.Expression", ...], List["up.model.Expression"]
         ],
-        duration: Optional[Fraction] = None,
+        duration: Optional[Union[Fraction, float, int]] = None,
     ) -> List["Event"]:
         """
         Returns a list containing all the `events` derived from the given
@@ -212,7 +214,7 @@ class SimulatorMixin:
         parameters: Union[
             Tuple["up.model.Expression", ...], List["up.model.Expression"]
         ],
-        duration: Optional[Fraction] = None,
+        duration: Optional[Union[Fraction, float, int]] = None,
     ) -> List["Event"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_events.
@@ -291,7 +293,8 @@ class SimulatorMixin:
         if isinstance(event, Event):
             event = [event]
         for ev in event:
-            map(lambda cond: red_fluents.update(self._fve.get(cond)), ev.conditions)
+            for cond in ev.conditions:
+                red_fluents.update(self._fve.get(cond))
             for e in ev.effects:
                 evaluated_args = tuple(
                     state_evaluator.evaluate(a, state) for a in e.fluent.args
@@ -299,12 +302,8 @@ class SimulatorMixin:
                 fluent = em.FluentExp(e.fluent.fluent(), evaluated_args)
                 red_fluents.update(self._fve.get(e.condition))
                 if state_evaluator.evaluate(e.condition, state).is_true():
-                    map(
-                        lambda fluent_arg: red_fluents.update(
-                            self._fve.get(fluent_arg)
-                        ),
-                        e.fluent.args,
-                    )
+                    for fluent_arg in e.fluent.args:
+                        red_fluents.update(self._fve.get(fluent_arg))
                     red_fluents.update(self._fve.get(e.value))
                     if e.is_assignment():
                         if fluent in updated_values:

@@ -51,6 +51,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.sequential_simulator",
         "SequentialSimulator",
     ),
+    "temporal_simulator": (
+        "unified_planning.engines.temporal_simulator",
+        "TemporalSimulator",
+    ),
     "up_conditional_effects_remover": (
         "unified_planning.engines.compilers.conditional_effects_remover",
         "ConditionalEffectsRemover",
@@ -95,6 +99,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "tamer",
     "sequential_plan_validator",
     "sequential_simulator",
+    "temporal_simulator",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
     "up_negative_conditions_remover",
