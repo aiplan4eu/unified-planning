@@ -106,7 +106,11 @@ class GrounderHelper:
         key = (action, tuple(parameters))
         value = self._grounded_actions.get(key, 0)
         if value != 0:  # The action is already created
-            assert isinstance(value, up.model.InstantaneousAction) or value is None
+            assert (
+                isinstance(value, up.model.InstantaneousAction)
+                or isinstance(value, up.model.DurativeAction)
+                or value is None
+            )
             return value
         else:
             # if the action does not have parameters, it does not need to be grounded.

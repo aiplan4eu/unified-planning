@@ -15,11 +15,15 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.engines import SimulatorMixin, TemporalSimulator
-from unified_planning.model import UPCOWState
+from unified_planning.engines import (
+    SimulatorMixin,
+    TemporalSimulator,
+    TemporalEvent,
+    TemporalEventKind,
+)
+from unified_planning.model import UPCOWState, TemporalState, COWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
-from itertools import product
 from typing import cast
 
 
@@ -28,125 +32,220 @@ class TestSimulator(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    def _check_applicability(
+        self,
+        state: TemporalState,
+        applicable: List[TemporalEvent],
+        inapplicable: List[TemporalEvent],
+        simulator: SimulatorMixin,
+        expected_events: int,
+    ):
+        self.assertEqual(expected_events, len(applicable) + len(inapplicable))
+        self.assertTrue(all(simulator.is_applicable(ev, state) for ev in applicable))
+        self.assertTrue(
+            all(not simulator.is_applicable(ev, state) for ev in inapplicable)
+        )
+
     def simulate_on_matchcellar(
         self, simulator: SimulatorMixin, problem: "up.model.Problem"
     ):
         # This test takes a simulator and the problem and makes some testing.
         self.assertEqual(problem.name, "MatchCellar")
-        em = problem.env.expression_manager
-        move = problem.action("move")
-        clear = problem.fluent("clear")
-        on = problem.fluent("on")
-        ts_1 = problem.object("ts_1")
-        ts_2 = problem.object("ts_2")
-        ts_3 = problem.object("ts_3")
-        block_1 = problem.object("block_1")
-        block_2 = problem.object("block_2")
-        block_3 = problem.object("block_3")
-        state = UPCOWState(problem.initial_values)
-        # The initial state is:
-        # ts_1, block_3, block_1, block_2
-        # ts_2
-        # ts_3, check clear fluent in the state.
-        Location = problem.user_type("Location")
-        clear_check = [block_2, ts_2, ts_3]
-        for o in problem.objects(Location):
-            if o in clear_check:
-                self.assertEqual(state.get_value(clear(o)), em.TRUE())
-            else:
-                self.assertEqual(state.get_value(clear(o)), em.FALSE())
-        # Then we want to reach a state like this:
-        # ts_1, block_1
-        # ts_2, block_2
-        # ts_3, block_3
-        # So the moves to simulate are:
-        # move(block_2, from block_1, to ts_2)
-        # move(block_1, from block_3, to block_2)
-        # move(block_3, from ts_1, to ts_3)
-        # move(block_1, from block_2, to ts_1)
-        events = simulator.get_events(move, (block_2, block_1, ts_2))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        light_match = problem.action("light_match")
+        mend_fuse = problem.action("mend_fuse")
+        handfree = problem.fluent("handfree")
+        light = problem.fluent("light")
+        match_used = problem.fluent("match_used")
+        fuse_mended = problem.fluent("fuse_mended")
+        f1 = problem.object("f1")
+        f2 = problem.object("f2")
+        f3 = problem.object("f3")
+        m1 = problem.object("m1")
+        m2 = problem.object("m2")
+        m3 = problem.object("m3")
+        Match = problem.user_type("Match")
+        Fuse = problem.user_type("Fuse")
+        state: TemporalState = cast(TemporalState, simulator.get_initial_state())
+        self.assertTrue(state.get_value(handfree()).bool_constant_value())
+        self.assertFalse(state.get_value(light()).bool_constant_value())
+        self.assertTrue(
+            all(
+                not state.get_value(match_used(o)).bool_constant_value()
+                for o in problem.objects(Match)
+            )
+        )
+        self.assertTrue(
+            all(
+                not state.get_value(fuse_mended(o)).bool_constant_value()
+                for o in problem.objects(Fuse)
+            )
+        )
 
-        events = simulator.get_events(move, (block_1, block_3, block_2))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        ev_light_m1 = cast(
+            List[TemporalEvent], simulator.get_events(light_match, [m1], 6)
+        )
+        self.assertEqual(2, len(ev_light_m1))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_light_m1[0].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_light_m1[1].kind)
+        ev_mend_f1 = cast(List[TemporalEvent], simulator.get_events(mend_fuse, [f1], 5))
+        self.assertEqual(4, len(ev_mend_f1))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_mend_f1[0].kind)
+        self.assertEqual(TemporalEventKind.START_CONDITION, ev_mend_f1[1].kind)
+        self.assertEqual(TemporalEventKind.END_CONDITION, ev_mend_f1[2].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_mend_f1[3].kind)
+        ev_light_m2 = cast(
+            List[TemporalEvent], simulator.get_events(light_match, [m2], 6)
+        )
+        self.assertEqual(2, len(ev_light_m2))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_light_m2[0].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_light_m2[1].kind)
+        ev_mend_f2 = cast(List[TemporalEvent], simulator.get_events(mend_fuse, [f2], 5))
+        self.assertEqual(4, len(ev_mend_f2))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_mend_f2[0].kind)
+        self.assertEqual(TemporalEventKind.START_CONDITION, ev_mend_f2[1].kind)
+        self.assertEqual(TemporalEventKind.END_CONDITION, ev_mend_f2[2].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_mend_f2[3].kind)
+        ev_light_m3 = cast(
+            List[TemporalEvent], simulator.get_events(light_match, [m3], 6)
+        )
+        self.assertEqual(2, len(ev_light_m3))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_light_m3[0].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_light_m3[1].kind)
+        ev_mend_f3 = cast(List[TemporalEvent], simulator.get_events(mend_fuse, [f3], 5))
+        self.assertEqual(4, len(ev_mend_f3))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_mend_f3[0].kind)
+        self.assertEqual(TemporalEventKind.START_CONDITION, ev_mend_f3[1].kind)
+        self.assertEqual(TemporalEventKind.END_CONDITION, ev_mend_f3[2].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_mend_f3[3].kind)
 
-        events = simulator.get_events(move, (block_3, ts_1, ts_3))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        total_events = (
+            3 * 2 + 3 * 4
+        )  # 2 events * 3 light_match + 4 events * 3 mend_fuse
+        applicable = [ev_light_m1[0], ev_light_m2[0], ev_light_m3[0]]
+        inapplicable = [
+            ev_light_m1[1],
+            ev_light_m2[1],
+            ev_light_m3[1],
+            *ev_mend_f1,
+            *ev_mend_f2,
+            *ev_mend_f3,
+        ]
+        self._check_applicability(
+            cast(TemporalState, state),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
 
-        events = simulator.get_events(move, (block_1, block_2, ts_1))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
-        # now we check that the state is what we desired
-        Movable = problem.user_type("Movable")
-        check_on = [(block_1, ts_1), (block_2, ts_2), (block_3, ts_3)]
-        for obj_tuple in product(problem.objects(Movable), problem.objects(Location)):
-            if obj_tuple in check_on:
-                self.assertEqual(state.get_value(on(*obj_tuple)), em.TRUE())
-            else:
-                self.assertEqual(state.get_value(on(*obj_tuple)), em.FALSE())
-        # Now we want to check if we can apply the action move (block_3, from ts_1, to ts_3),
-        # which we know is not because the block_3 is not on the table space 1 (ts_1)
-        event = simulator.get_events(move, (block_3, ts_1, ts_3))[0]
-        self.assertFalse(simulator.is_applicable(event, state))
-        # Now we check if we reached the goal
-        self.assertFalse(simulator.is_goal(state))
-        # To reach the goal, which is designed like this:
-        # ts_1
-        # ts_2
-        # ts_3, block_1, block_2, block_3
-        # We must:
-        # move(block_3, from ts_3, to block_2)
-        # move(block_1, from ts_1, to ts_3)
-        # move(block_3, from block_2, to ts_1)
-        # move(block_2, from ts_2, to block_1)
-        # move(block_3, from ts_1, to block_2)
-        # And then we check if we reached the goal.
-        event = simulator.get_events(move, (block_3, ts_3, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_1, ts_1, ts_3))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_3, block_2, ts_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_2, ts_2, block_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_3, ts_1, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
+        state_light_m1 = cast(COWState, simulator.apply(ev_light_m1[0], state))
+        assert state_light_m1 is not None
+        applicable = [
+            ev_light_m1[1],
+            ev_light_m2[0],
+            ev_light_m3[0],
+            ev_mend_f1[0],
+            ev_mend_f2[0],
+            ev_mend_f3[0],
+        ]
+        inapplicable = [
+            ev_light_m1[0],
+            ev_light_m2[1],
+            ev_light_m3[1],
+            *ev_mend_f1[1:],
+            *ev_mend_f2[1:],
+            *ev_mend_f3[1:],
+        ]
+        self._check_applicability(
+            cast(TemporalState, state_light_m1),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
 
-        self.assertTrue(simulator.is_goal(state))
+        # Apply all the sequence to mend f1 and end the action light m1
+        state_mended_f1 = cast(COWState, simulator.apply(ev_mend_f1[0], state_light_m1))
+        assert state_mended_f1 is not None
+        state_mended_f1 = cast(
+            COWState, simulator.apply(ev_mend_f1[1], state_mended_f1)
+        )
+        assert state_mended_f1 is not None
+        state_mended_f1 = cast(
+            COWState, simulator.apply(ev_mend_f1[2], state_mended_f1)
+        )
+        assert state_mended_f1 is not None
+        state_mended_f1 = cast(
+            COWState, simulator.apply(ev_mend_f1[3], state_mended_f1)
+        )
+        assert state_mended_f1 is not None
+        state_mended_f1 = cast(
+            COWState, simulator.apply(ev_light_m1[1], state_mended_f1)
+        )
+        assert state_mended_f1 is not None
 
-    def test_with_sequential_simulator_instance(self):
+        # check validity of the state
+        applicable = [ev_light_m2[0], ev_light_m3[0]]
+        inapplicable = [
+            *ev_light_m1,
+            ev_light_m2[1],
+            ev_light_m3[1],
+            *ev_mend_f1,
+            *ev_mend_f2,
+            *ev_mend_f3,
+        ]
+        self._check_applicability(
+            cast(TemporalState, state_mended_f1),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
+
+        self.assertTrue(state_mended_f1.get_value(match_used(m1)).bool_constant_value())
+        self.assertTrue(
+            state_mended_f1.get_value(fuse_mended(f1)).bool_constant_value()
+        )
+        self.assertFalse(
+            state_mended_f1.get_value(match_used(m2)).bool_constant_value()
+        )
+        self.assertFalse(
+            state_mended_f1.get_value(fuse_mended(f2)).bool_constant_value()
+        )
+        self.assertFalse(
+            state_mended_f1.get_value(match_used(m3)).bool_constant_value()
+        )
+        self.assertFalse(
+            state_mended_f1.get_value(fuse_mended(f3)).bool_constant_value()
+        )
+
+        self.assertFalse(simulator.is_goal(state_mended_f1))
+
+        # apply all the events in the right order to obtain the goal, but don't apply the ev_light_m3[1] event
+        chain_apply = [
+            ev_light_m2[0],
+            *ev_mend_f2,
+            ev_light_m2[1],
+            ev_light_m3[0],
+            *ev_mend_f3,
+        ]
+        not_goal: COWState = state_mended_f1
+        for ev in chain_apply:
+            not_goal = cast(COWState, simulator.apply(ev, not_goal))
+            assert not_goal is not None
+        self.assertFalse(simulator.is_goal(not_goal))
+        self.assertEqual(0, len(simulator.get_unsatisfied_goals(not_goal)))
+
+        goal: COWState = cast(COWState, simulator.apply(ev_light_m3[1], not_goal))
+        assert goal is not None
+        self.assertTrue(simulator.is_goal(goal))
+
+    def test_with_temporal_simulator_instance(self):
         problem = self.problems["matchcellar"].problem
         simulator = TemporalSimulator(problem)
+        self.simulate_on_matchcellar(simulator, problem)
 
-    # def test_with_simulator_from_factory(self):
-    #     problem = self.problems["hierarchical_blocks_world"].problem
-    #     with Simulator(problem) as simulator:
-    #         self.simulate_on_hierarchical_blocks_world(simulator, problem)
+    def test_with_simulator_from_factory(self):
+        problem = self.problems["matchcellar"].problem
+        with Simulator(problem) as simulator:
+            self.simulate_on_matchcellar(simulator, problem)

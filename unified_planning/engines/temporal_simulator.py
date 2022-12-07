@@ -18,19 +18,16 @@ from enum import Enum, auto
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.model import (
-    InstantaneousAction,
     DurativeAction,
     FNode,
     Effect,
     Timing,
-    Action,
     TimeInterval,
     StartTiming,
     EndTiming,
     GlobalStartTiming,
     GlobalEndTiming,
     SimulatedEffect,
-    Problem,
     TemporalState,
     DeltaSimpleTemporalNetwork,
     COWState,
@@ -38,12 +35,20 @@ from unified_planning.model import (
 )
 from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
-from unified_planning.engines.sequential_simulator import InstantaneousEvent
+from unified_planning.engines.sequential_simulator import (
+    InstantaneousEvent,
+    SequentialSimulator,
+    get_unsatisfied_goals,
+    get_unsatisfied_conditions,
+)
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.walkers import StateEvaluator
 from unified_planning.environment import Environment
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast
+
+
+EPSILON = Fraction(1, 1000)
 
 
 class TemporalEventKind(Enum):
@@ -80,7 +85,7 @@ class TemporalEvent(InstantaneousEvent):
             TemporalEventKind.START_PLAN,
         ):
             raise UPUsageError(
-                "Committed events make sense only for start action events."
+                "Committed events make sense only for start action or start plan events."
             )
         elif committed_events is None and self._kind == TemporalEventKind.START_ACTION:
             raise UPUsageError(
@@ -89,6 +94,17 @@ class TemporalEvent(InstantaneousEvent):
         self._committed_events = committed_events
         self._id = TemporalEvent._class_id
         TemporalEvent._class_id += 1
+
+    def __repr__(self) -> str:
+        res: List[str] = []
+        res.append(str(self._kind))
+        res.append(str(self._timing))
+        res.append(str(self._timing_included))
+        res.append(str(self._committed_events))
+        res.append(str(self._conditions))
+        res.append(str(self._effects))
+        res.append(str(self._simulated_effect))
+        return " ".join(res)
 
     @property
     def kind(self) -> TemporalEventKind:
@@ -121,10 +137,8 @@ class TemporalEvent(InstantaneousEvent):
 
 class TemporalSimulator(Engine, SimulatorMixin):
     """
-    Sequential SimulatorMixin implementation.
+    Implementation of the Temporal Simulator Mixin.
     """
-
-    EPSILON = Fraction(1, 1000)
 
     def __init__(self, problem: "up.model.Problem"):
         Engine.__init__(self)
@@ -132,6 +146,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         pk = problem.kind
         assert Grounder.supports(pk)
         assert isinstance(self._problem, up.model.Problem)
+        self._epsilon = EPSILON
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
@@ -150,7 +165,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         self._start_plan_event = problem_events[0]
         self._end_plan_event = problem_events[-1]
         assert self._start_plan_event.kind == TemporalEventKind.START_PLAN
-        assert self._end_plan_event == TemporalEventKind.END_PLAN
+        assert self._end_plan_event.kind == TemporalEventKind.END_PLAN
 
         # creation of initial state, might be moved into a specific function # TODO decide
         initial_stn = DeltaSimpleTemporalNetwork()
@@ -165,12 +180,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     not ev.timing_included
                     and ev.kind == TemporalEventKind.START_CONDITION
                 ):
-                    distance += TemporalSimulator.EPSILON
+                    distance += self._epsilon
                 elif (
                     not ev.timing_included
                     and ev.kind == TemporalEventKind.END_CONDITION
                 ):
-                    distance -= TemporalSimulator.EPSILON
+                    distance -= self._epsilon
                 insert_interval(
                     initial_stn,
                     self._start_plan_event,
@@ -193,6 +208,14 @@ class TemporalSimulator(Engine, SimulatorMixin):
             {self._start_plan_event},
         )
 
+    @property
+    def epsilon(self) -> Fraction:
+        return self._epsilon
+
+    @epsilon.setter
+    def epsilon(self, new_value: Union[Fraction, int, float]):
+        self._epsilon = Fraction(new_value)
+
     def _is_applicable(
         self, event: Union["Event", Iterable["Event"]], state: "ROState"
     ) -> bool:
@@ -205,7 +228,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             event = [event]
         for e in event:
             assert isinstance(e, TemporalEvent)
-            if (
+            if not (
                 len(self.get_unsatisfied_conditions(e, state, early_termination=True))
                 == 0
             ):
@@ -220,38 +243,31 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert isinstance(new_state, TemporalState)
         if not new_state.stn.check_stn():
             return False
-        for condition in state.durative_conditions:
-            assert isinstance(condition, FNode)
-            if not self._se.evaluate(condition, new_state).bool_constant_value():
-                return False
+        for cl in state.durative_conditions:
+            for condition in cl:
+                assert isinstance(condition, FNode)
+                if not self._se.evaluate(condition, new_state).bool_constant_value():
+                    return False
         return True
 
     def _get_unsatisfied_conditions(
-        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+        self, event: "Event", state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
-        Returns the list of unsatisfied event conditions evaluated in the given state.
-        If the flag `early_termination` is set, the method ends and returns at the first unsatisfied condition.
+        Returns the list of unsatisfied event conditions evaluated in the
+        given state. If the flag `early_termination` is set, the method ends
+        and returns at the first unsatisfied condition.
 
         :param state: The `State` in which the event conditions are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
-        :return: The list of all the event conditions that evaluated to `False` or the list containing the first
-            condition evaluated to False if the flag `early_termination` is set.
+        :param early_termination: Flag deciding if the method ends and returns
+            at the first unsatisfied condition.
+        :return: The list of all the event conditions that evaluated to `False`
+            or the list containing the first condition evaluated to False if the
+            flag `early_termination` is set.
         """
-        # Evaluate every condition and if the condition is False or the condition is not simplified as a
-        # boolean constant in the given state, return False. Return True otherwise
-        assert self._se is not None
-        unsatisfied_conditions = []
-        for c in event.conditions:
-            evaluated_cond = self._se.evaluate(c, state)
-            if (
-                not evaluated_cond.is_bool_constant()
-                or not evaluated_cond.bool_constant_value()
-            ):
-                unsatisfied_conditions.append(c)
-                if early_termination:
-                    break
-        return unsatisfied_conditions
+        return get_unsatisfied_conditions(
+            cast(SequentialSimulator, self), event, state, early_termination
+        )
 
     def _apply(
         self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
@@ -292,8 +308,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
         )
         # New State variables
         stn = state.stn.copy_stn()
-        running_events = state.running_events[:]
-        durative_conditions = state.durative_conditions[:]
+        running_events = [rel[:] for rel in state.running_events]
+        durative_conditions = [cl[:] for cl in state.durative_conditions]
 
         events = iter(event)
         # save first event and add a zero distance between all events to apply in this call.
@@ -346,7 +362,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     stn,
                     last_event,
                     first_ev,
-                    left_bound=Fraction(0) + type(self).EPSILON,
+                    left_bound=Fraction(0) + self._epsilon,
                 )
             # Case where both read same fluents
             elif not red_fluents.isdisjoint(oth_red_fluents):
@@ -384,7 +400,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         parameters: Union[
             Tuple["up.model.Expression", ...], List["up.model.Expression"]
         ],
-        duration: Optional[Fraction] = None,
+        duration: Optional[Union[Fraction, float, int]] = None,
     ) -> List["Event"]:
         """
         Returns a list containing all the events derived from the given action, grounded with the given parameters.
@@ -398,10 +414,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 "The TemporalSimulator needs a specified duration to give ordered action events."
             )
+        duration = Fraction(duration)
         if action not in self._actions:
             raise UPUsageError(
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."
             )
+        # TODO might be important to check that the given duration fits the action duration constraint
         params_exp = tuple(
             self._problem.env.expression_manager.auto_promote(parameters)
         )
@@ -412,25 +430,43 @@ class TemporalSimulator(Engine, SimulatorMixin):
         return event_list
 
     def _get_unsatisfied_goals(
-        self, state: "up.model.ROState", early_termination: bool = False
+        self, state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Returns the list of unsatisfied goals evaluated in the given state.
-        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+        If the flag "early_termination" is set, the method ends and returns at
+        the first unsatisfied goal.
 
         :param state: The State in which the problem goals are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
-        :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
+        :param early_termination: Flag deciding if the method ends and returns
+            at the first unsatisfied goal.
+        :return: The list of all the goals that evaluated to False or the list
+            containing the first goal evaluated to False if the flag
+            "early_termination" is set.
         """
-        unsatisfied_goals = []
-        assert self._se is not None
-        for g in cast(up.model.Problem, self._problem).goals:
-            g_eval = self._se.evaluate(g, state).bool_constant_value()
-            if not g_eval:
-                unsatisfied_goals.append(g)
-                if early_termination:
-                    break
-        return unsatisfied_goals
+        return get_unsatisfied_goals(
+            cast(SequentialSimulator, self), state, early_termination
+        )
+
+    def _is_goal(self, state: "ROState") -> bool:
+        """
+        Method called by the up.engines.mixins.simulator.SimulatorMixin.is_goal.
+        """
+        if not isinstance(state, TemporalState):
+            raise UPUsageError(
+                f"{type(self)}.is_goal expected TemporalState but {type(state)} was given!"
+            )
+        if not len(self.get_unsatisfied_goals(state, early_termination=True)) == 0:
+            return False
+        new_state = cast(TemporalState, self.apply(self._end_plan_event, state))
+        if (
+            new_state is None
+            or len(new_state.running_events) > 0
+            or len(new_state.durative_conditions) > 0
+            or not new_state.stn.check_stn()
+        ):
+            return False
+        return True
 
     def _get_initial_state(self) -> "COWState":
         """
@@ -463,6 +499,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_time("CONTINUOUS_TIME")
+        supported_kind.set_time("DISCRETE_TIME")
+        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECT")
+        supported_kind.set_time("TIMED_GOALS")
+        supported_kind.set_time("DURATION_INEQUALITIES")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         return supported_kind
 
@@ -537,12 +579,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     committed_event.kind == TemporalEventKind.START_CONDITION
                     and not committed_event.timing_included
                 ):
-                    bound += type(self).EPSILON
+                    bound += self._epsilon
                 elif (
                     committed_event.kind == TemporalEventKind.END_CONDITION
                     and not committed_event.timing_included
                 ):
-                    bound -= type(self).EPSILON
+                    bound -= self._epsilon
                 insert_interval(
                     stn, event, committed_event, left_bound=bound, right_bound=bound
                 )
@@ -604,19 +646,19 @@ def break_action_or_problem_in_event_list(
         assert isinstance(i, TimeInterval)
         lower = get_timing_from_start(i.lower, duration)
         upper = get_timing_from_start(i.upper, duration)
-        if lower == upper:  # point conditions
-            if not i.is_left_open() and not i.is_right_open():
-                point_events_map.setdefault(lower, set()).update(cl)
+        # valid point condition
+        if lower == upper and not i.is_left_open() and not i.is_right_open():
+            point_events_map.setdefault(lower, set()).update(cl)
+        # Meaningful interval condition (empty interval is True)
         elif lower.delay < upper.delay:
-            # Empty interval condition is always considered True
             cond = em.And(cl)
             # handle left side
             start_durative_conditions_map.setdefault(
-                (lower, i.is_left_open()), []
+                (lower, not i.is_left_open()), []
             ).append(cond)
             # handle right side
             end_durative_conditions_map.setdefault(
-                (upper, i.is_right_open()), []
+                (upper, not i.is_right_open()), []
             ).append(cond)
 
     t_start = GlobalStartTiming() if is_global else StartTiming()
@@ -682,19 +724,21 @@ def break_action_or_problem_in_event_list(
             TemporalEventKind.START_CONDITION,
             t,
             timing_included,
-            [],
+            None,
             cl,
             [],
             None,
         )
         events.setdefault(t, []).append(event)
+        if t == t_start and timing_included:
+            start_conditions.extend(cl)
 
     for (t, timing_included), cl in end_durative_conditions_map.items():
         event = TemporalEvent(
             TemporalEventKind.END_CONDITION,
             t,
             timing_included,
-            [],
+            None,
             cl,
             [],
             None,
