@@ -44,6 +44,7 @@ DEFAULT_ENGINES = {
     "pyperplan-opt": ("up_pyperplan.engine", "OptEngineImpl"),
     "enhsp": ("up_enhsp.enhsp_planner", "ENHSPSatEngine"),
     "enhsp-opt": ("up_enhsp.enhsp_planner", "ENHSPOptEngine"),
+    "fmap": ("up_fmap.fmap_planner", "FMAPsolver"),
     "tamer": ("up_tamer.engine", "EngineImpl"),
     "sequential_plan_validator": (
         "unified_planning.engines.plan_validator",
@@ -100,6 +101,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "enhsp",
     "enhsp-opt",
     "tamer",
+    "fmap",
     "sequential_plan_validator",
     "sequential_simulator",
     "up_conditional_effects_remover",
