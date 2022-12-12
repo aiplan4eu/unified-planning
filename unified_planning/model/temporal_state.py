@@ -40,10 +40,18 @@ class DeltaSimpleTemporalNetwork:
         self._distances: Dict[Any, Fraction] = distances
         self._is_sat = is_sat
 
+    def __repr__(self) -> str:
+        res = []
+        for k, v in self._constraints.items():
+            for el in v:
+                res.append(f"{k} - {el.dst} <= {el.bound}")
+        return "\n".join(res)
+
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
-        return DeltaSimpleTemporalNetwork(
-            self._constraints.copy(), self._distances.copy(), self._is_sat
-        )
+        d = {}
+        for k, v in self._constraints.items():
+            d[k] = v[:]
+        return DeltaSimpleTemporalNetwork(d, self._distances.copy(), self._is_sat)
 
     def add(self, x: Any, y: Any, b: Fraction):
         if self._is_sat:

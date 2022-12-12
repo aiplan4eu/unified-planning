@@ -42,6 +42,9 @@ class TestSimulator(TestCase):
     ):
         self.assertEqual(expected_events, len(applicable) + len(inapplicable))
         self.assertTrue(all(simulator.is_applicable(ev, state) for ev in applicable))
+        for i, inap_ev in enumerate(inapplicable):
+            if simulator.is_applicable(inap_ev, state):
+                print(i)
         self.assertTrue(
             all(not simulator.is_applicable(ev, state) for ev in inapplicable)
         )
@@ -137,7 +140,6 @@ class TestSimulator(TestCase):
             simulator,
             total_events,
         )
-
         state_light_m1 = cast(COWState, simulator.apply(ev_light_m1[0], state))
         assert state_light_m1 is not None
         applicable = [
@@ -164,13 +166,61 @@ class TestSimulator(TestCase):
             total_events,
         )
 
-        # Apply all the sequence to mend f1 and end the action light m1
+        # start mend_f1 action and check that light_m1 can be finished but after
+        # the mend_f1 durative condition starts (ev_mend_f1[1]) light_m1 can't be finished
+        # because it would violate the "light" constraint
         state_mended_f1 = cast(COWState, simulator.apply(ev_mend_f1[0], state_light_m1))
         assert state_mended_f1 is not None
+        applicable = [
+            ev_light_m1[1],
+            ev_light_m2[0],
+            ev_light_m3[0],
+            ev_mend_f1[1],
+        ]
+        inapplicable = [
+            ev_light_m1[0],
+            ev_light_m2[1],
+            ev_light_m3[1],
+            ev_mend_f1[0],
+            *ev_mend_f1[2:],
+            *ev_mend_f2,
+            *ev_mend_f3,
+        ]
+        self._check_applicability(
+            cast(TemporalState, state_mended_f1),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
         state_mended_f1 = cast(
             COWState, simulator.apply(ev_mend_f1[1], state_mended_f1)
         )
         assert state_mended_f1 is not None
+        applicable = [
+            ev_light_m2[0],
+            ev_light_m3[0],
+            ev_mend_f1[2],
+        ]
+        inapplicable = [
+            ev_light_m1[1],
+            ev_light_m1[0],
+            ev_light_m2[1],
+            ev_light_m3[1],
+            *ev_mend_f1[0:2],
+            ev_mend_f1[3],
+            *ev_mend_f2,
+            *ev_mend_f3,
+        ]
+        self._check_applicability(
+            cast(TemporalState, state_mended_f1),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
+
+        # Apply all the sequence to mend f1 and end the action light m1
         state_mended_f1 = cast(
             COWState, simulator.apply(ev_mend_f1[2], state_mended_f1)
         )
@@ -240,12 +290,115 @@ class TestSimulator(TestCase):
         assert goal is not None
         self.assertTrue(simulator.is_goal(goal))
 
+    def simulate_on_temporal_basic(
+        self, simulator: SimulatorMixin, problem: "up.model.Problem"
+    ):
+        # The aim of this test is the robustness of the time constraints in the problem.
+        self.assertEqual(problem.name, "temporal_basic")
+        a = problem.action("a")
+        b = problem.action("b")
+        x = problem.fluent("x")
+        y = problem.fluent("y")
+
+        state: TemporalState = cast(TemporalState, simulator.get_initial_state())
+        self.assertFalse(state.get_value(x()).bool_constant_value())
+        self.assertFalse(state.get_value(y()).bool_constant_value())
+
+        ev_a = cast(List[TemporalEvent], simulator.get_events(a, [], 2))
+        self.assertEqual(2, len(ev_a))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_a[0].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_a[1].kind)
+
+        ev_b = cast(List[TemporalEvent], simulator.get_events(b, [], 4))
+        self.assertEqual(2, len(ev_b))
+        self.assertEqual(TemporalEventKind.START_ACTION, ev_b[0].kind)
+        self.assertEqual(TemporalEventKind.END_ACTION, ev_b[1].kind)
+
+        print_dict = {
+            ev_a[0]: "Start A",
+            ev_a[1]: "End A",
+            ev_b[0]: "Start B",
+            ev_b[1]: "End B",
+        }
+
+        total_events = 2 * 2  # 2 events * 2 actions
+        applicable = [ev_a[0], ev_b[0]]
+        inapplicable = [ev_a[1], ev_b[1]]
+        # self._check_applicability(
+        #     cast(TemporalState, state),
+        #     applicable,
+        #     inapplicable,
+        #     simulator,
+        #     total_events,
+        # )
+
+        state = cast(COWState, simulator.apply(ev_a[0], state))
+        assert state is not None
+
+        applicable = [ev_a[1], ev_b[0]]
+        inapplicable = [ev_a[0], ev_b[1]]
+        # self._check_applicability(
+        #     cast(TemporalState, state),
+        #     applicable,
+        #     inapplicable,
+        #     simulator,
+        #     total_events,
+        # )
+
+        state = cast(COWState, simulator.apply(ev_b[0], state))
+        assert state is not None
+
+        applicable = [ev_a[1], ev_b[1]]
+        inapplicable = [ev_a[0], ev_b[0]]
+        # self._check_applicability(
+        #     cast(TemporalState, state),
+        #     applicable,
+        #     inapplicable,
+        #     simulator,
+        #     total_events,
+        # )
+
+        # Now, a is shorter (2) than b (4), so, if b_end (ev_b[1]) is applied,
+        # a_end (ev_a[1]) can't be applied.
+        false_state = cast(COWState, simulator.apply(ev_b[1], state))
+        assert false_state is not None
+
+        applicable = []
+        inapplicable = [*ev_a, *ev_b]
+        # self._check_applicability(
+        #     cast(TemporalState, false_state),
+        #     applicable,
+        #     inapplicable,
+        #     simulator,
+        #     total_events,
+        # )
+        # self.assertFalse(simulator.is_applicable(ev_a[1], false_state))
+
+        false_state = cast(COWState, simulator.apply(ev_a[1], false_state))
+
+        print(ev_a[1])
+        print(false_state.stn.get_stn_model(ev_a[1]))
+        to_print = str(false_state.stn)
+        for ev, repr in print_dict.items():
+            to_print = to_print.replace(str(ev), repr)
+        print(to_print)
+        print("------------------")
+
+        print(false_state.stn._is_sat)
+        assert False
+
     def test_with_temporal_simulator_instance(self):
-        problem = self.problems["matchcellar"].problem
+        # problem = self.problems["matchcellar"].problem
+        # simulator = TemporalSimulator(problem)
+        # self.simulate_on_matchcellar(simulator, problem)
+        problem = self.problems["temporal_basic"].problem
         simulator = TemporalSimulator(problem)
-        self.simulate_on_matchcellar(simulator, problem)
+        self.simulate_on_temporal_basic(simulator, problem)
 
     def test_with_simulator_from_factory(self):
-        problem = self.problems["matchcellar"].problem
+        # problem = self.problems["matchcellar"].problem
+        # with Simulator(problem) as simulator:
+        #     self.simulate_on_matchcellar(simulator, problem)
+        problem = self.problems["temporal_basic"].problem
         with Simulator(problem) as simulator:
-            self.simulate_on_matchcellar(simulator, problem)
+            self.simulate_on_temporal_basic(simulator, problem)

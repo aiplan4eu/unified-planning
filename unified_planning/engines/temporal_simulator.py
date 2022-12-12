@@ -173,7 +173,13 @@ class TemporalSimulator(Engine, SimulatorMixin):
         initial_running_events: List[TemporalEvent] = cast(
             List[TemporalEvent], self._start_plan_event.committed_events[:]
         )
-        for ev in initial_running_events:
+        insert_interval(
+            initial_stn,
+            self._start_plan_event,
+            self._end_plan_event,
+            left_bound=Fraction(0),
+        )
+        for ev in initial_running_events[:-1]:
             if ev.timing.is_from_start():
                 distance = Fraction(ev.timing.delay)
                 if (
@@ -243,6 +249,9 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert isinstance(new_state, TemporalState)
         if not new_state.stn.check_stn():
             return False
+        else:
+            print(event[0])
+            print(new_state.stn.get_stn_model(event[0]))
         for cl in state.durative_conditions:
             for condition in cl:
                 assert isinstance(condition, FNode)
@@ -321,14 +330,21 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 f"The timed simulator needs Temporal Events, {type(first_ev)} was given!"
             )
-        self._expand_event(first_ev, stn, running_events, durative_conditions)
+        last_event = next(
+            iter(state.last_events)
+        )  # TODO check if use list instead of sets
+        self._expand_event(
+            first_ev, stn, running_events, durative_conditions, last_event
+        )
         other_ev = next(events, None)
         while other_ev is not None:
             if not isinstance(other_ev, TemporalEvent):
                 raise UPUsageError(
                     f"The timed simulator needs Temporal Events, {type(other_ev)} was given!"
                 )
-            self._expand_event(other_ev, stn, running_events, durative_conditions)
+            self._expand_event(
+                other_ev, stn, running_events, durative_conditions, last_event
+            )
             insert_interval(
                 stn, first_ev, other_ev, left_bound=Fraction(0), right_bound=Fraction(0)
             )
@@ -375,6 +391,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             written_fluents.difference_update(oth_written_fluents)
             prev_state = state_father
             state_father = state_father._father
+
         new_state = cast(
             TemporalState,
             state.make_child(
@@ -559,8 +576,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
         stn: DeltaSimpleTemporalNetwork,
         running_events: List[List[Event]],
         durative_conditions: List[List[FNode]],
+        last_event: "TemporalEvent",
     ):
         """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
+        insert_interval(stn, last_event, event, left_bound=Fraction(0))
         if event.kind == TemporalEventKind.START_ACTION:
             committed_events: List[Event] = []
             ce = event.committed_events
