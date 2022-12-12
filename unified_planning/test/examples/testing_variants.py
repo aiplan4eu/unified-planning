@@ -23,6 +23,36 @@ Example = namedtuple("Example", ["problem", "plan"])
 def get_example_problems():
     problems = {}
 
+    # temporal basic
+    x = Fluent("x")
+    y = Fluent("y")
+    a = DurativeAction("a")
+    t_start = StartTiming()
+    a.add_condition(t_start, Not(x))
+    a.add_effect(t_start, x, True)
+    a.set_closed_duration_interval(1, 3)
+    b = DurativeAction("b")
+    b.add_condition(t_start, Not(y))
+    b.add_effect(t_start, y, True)
+    b.set_closed_duration_interval(4, 6)
+    problem = Problem("temporal_basic")
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(a)
+    problem.add_action(b)
+    problem.set_initial_value(x, False)
+    problem.set_initial_value(y, False)
+    problem.add_goal(x)
+    problem.add_goal(y)
+    plan = up.plans.TimeTriggeredPlan(
+        [
+            (Fraction(0), up.plans.ActionInstance(a), Fraction(1)),
+            (Fraction(0), up.plans.ActionInstance(b), Fraction(4)),
+        ]
+    )
+    temporal_basic = Example(problem=problem, plan=plan)
+    problems["temporal_basic"] = temporal_basic
+
     # robot_real_constants
     # this version of the problem robot has reals instead of integers as constants
     Location = UserType("Location")
