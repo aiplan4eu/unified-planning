@@ -433,11 +433,27 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."
             )
-        # TODO might be important to check that the given duration fits the action duration constraint
         params_exp = tuple(
             self._problem.env.expression_manager.auto_promote(parameters)
         )
         grounded_action = self._grounder.ground_action(action, params_exp)
+        # check duration constraints
+        em = self._problem.env.expression_manager
+        action_duration = grounded_action.duration
+        left_compare = em.GT if action_duration.is_left_open() else em.GE
+        right_compare = em.LT if action_duration.is_right_open() else em.LE
+        if not self._se.evaluate(
+            left_compare(duration, action_duration.lower)
+        ).bool_constant_value():
+            raise UPUsageError(
+                f"The duration: {duration} is lower than the lower bound of the action's {action.name} duration constraints."
+            )
+        if not self._se.evaluate(
+            right_compare(duration, action_duration.upper)
+        ).bool_constant_value():
+            raise UPUsageError(
+                f"The duration: {duration} is bigger than the upper bound of the action's {action.name} duration constraints."
+            )
         event_list = self._get_or_create_events(
             action, params_exp, grounded_action, duration
         )
