@@ -154,7 +154,7 @@ class PartialOrderPlan(plans.plan.Plan):
                 new_adj_list[replaced_ai] = replaced_neighbors
 
         new_env = self._environment
-        for ai in new_adj_list:
+        for ai in new_adj_list.keys():
             new_env = ai.action.env
             break
         return up.plans.PartialOrderPlan(new_adj_list, new_env)
