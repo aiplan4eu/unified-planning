@@ -15,8 +15,13 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import full_classical_kind, full_numeric_kind
-from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
+from unified_planning.model.problem_kind import basic_classical_kind, hierarchical_kind
+from unified_planning.test import (
+    TestCase,
+    main,
+    skipIfEngineNotAvailable,
+    skipIfNoOneshotPlannerForProblemKind,
+)
 from unified_planning.test.examples import get_example_problems
 
 
@@ -39,3 +44,33 @@ class TestPartialOrderPlan(TestCase):
                             up.engines.ValidationResultStatus.VALID,
                             validation_result.status,
                         )
+
+    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(hierarchical_kind))
+    def test_blocks_world(self):
+        problem = self.problems["hierarchical_blocks_world"].problem
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kinds=[
+                CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING,
+                CompilationKind.NEGATIVE_CONDITIONS_REMOVING,
+            ],
+        ) as compiler:
+            comp_res = compiler.compile(problem)
+        with OneshotPlanner(problem_kind=comp_res.problem.kind) as solver:
+            self.assertIsNotNone(solver)
+            comp_plan = solver.solve(comp_res.problem).plan
+            self.assertIsNotNone(comp_plan)
+            assert isinstance(comp_plan, up.plans.SequentialPlan)
+            pop_comp_plan = comp_plan.to_partial_order_plan(comp_res.problem)
+            pop_plan = pop_comp_plan.replace_action_instances(
+                comp_res.map_back_action_instance
+            )
+            assert isinstance(pop_plan, up.plans.PartialOrderPlan)
+        with PlanValidator(problem_kind=problem.kind) as validator:
+            for plan in pop_plan.all_sequential_plans():
+                validation_result = validator.validate(problem, plan)
+                print(plan)
+                self.assertEqual(
+                    up.engines.ValidationResultStatus.VALID,
+                    validation_result.status,
+                )
