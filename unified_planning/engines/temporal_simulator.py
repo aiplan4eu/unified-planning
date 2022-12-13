@@ -249,9 +249,6 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert isinstance(new_state, TemporalState)
         if not new_state.stn.check_stn():
             return False
-        else:
-            print(event[0])
-            print(new_state.stn.get_stn_model(event[0]))
         for cl in state.durative_conditions:
             for condition in cl:
                 assert isinstance(condition, FNode)

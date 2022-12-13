@@ -27,12 +27,13 @@ from unified_planning.exceptions import UPUsageError
 class DeltaNeighbors:
     dst: Any
     bound: Fraction
+    next: Optional["DeltaNeighbors"]
 
 
 class DeltaSimpleTemporalNetwork:
     def __init__(
         self,
-        constraints: Dict[Any, List[DeltaNeighbors]] = {},
+        constraints: Dict[Any, DeltaNeighbors] = {},
         distances: Dict[Any, Fraction] = {},
         is_sat=True,
     ):
@@ -43,24 +44,25 @@ class DeltaSimpleTemporalNetwork:
     def __repr__(self) -> str:
         res = []
         for k, v in self._constraints.items():
-            for el in v:
-                res.append(f"{k} - {el.dst} <= {el.bound}")
+            while v is not None:
+                res.append(f"{k} - {v.dst} <= {v.bound}")
+                v = v.next
         return "\n".join(res)
 
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
-        d = {}
-        for k, v in self._constraints.items():
-            d[k] = v[:]
-        return DeltaSimpleTemporalNetwork(d, self._distances.copy(), self._is_sat)
+        return DeltaSimpleTemporalNetwork(
+            self._constraints.copy(), self._distances.copy(), self._is_sat
+        )
 
     def add(self, x: Any, y: Any, b: Fraction):
         if self._is_sat:
             self._distances.setdefault(x, Fraction(0))
             self._distances.setdefault(y, Fraction(0))
-            x_constraints = self._constraints.setdefault(x, [])
+            x_constraints = self._constraints.get(x, None)
+            self._constraints.setdefault(y, None)
             if not self._is_subsumed(x, y, b):
-                neighbor = DeltaNeighbors(y, b)
-                x_constraints.insert(0, neighbor)
+                neighbor = DeltaNeighbors(y, b, x_constraints)
+                self._constraints[x] = neighbor
                 self._is_sat = self._inc_check(x, y, b)
 
     def check_stn(self) -> bool:
@@ -70,9 +72,11 @@ class DeltaSimpleTemporalNetwork:
         return -1 * self._distances[x]
 
     def _is_subsumed(self, x: Any, y: Any, b: Fraction) -> bool:
-        for neighbor in self._constraints[x]:
+        neighbor = self._constraints.get(x, None)
+        while neighbor is not None:
             if neighbor.dst == y:
                 return neighbor.bound <= b
+            neighbor = neighbor.next
         return False
 
     def _inc_check(self, x: Any, y: Any, b: Fraction) -> bool:
@@ -81,14 +85,17 @@ class DeltaSimpleTemporalNetwork:
         else:
             return True
         queue: Deque[Any] = deque()
+        queue.append(y)
         while queue:
             c = queue.popleft()
-            for n in self._constraints[c]:
+            n = self._constraints[c]
+            while n is not None:
                 if self._distances[c] + n.bound < self._distances[n.dst]:
                     if n.dst == y and n.bound == b:
                         return False
                     self._distances[n.dst] = self._distances[c] + n.bound
                     queue.append(n.dst)
+                n = n.next
         return True
 
 
