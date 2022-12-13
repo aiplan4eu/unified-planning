@@ -324,81 +324,79 @@ class TestSimulator(TestCase):
         total_events = 2 * 2  # 2 events * 2 actions
         applicable = [ev_a[0], ev_b[0]]
         inapplicable = [ev_a[1], ev_b[1]]
-        # self._check_applicability(
-        #     cast(TemporalState, state),
-        #     applicable,
-        #     inapplicable,
-        #     simulator,
-        #     total_events,
-        # )
+        self._check_applicability(
+            cast(TemporalState, state),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
 
         state = cast(COWState, simulator.apply(ev_a[0], state))
         assert state is not None
 
         applicable = [ev_a[1], ev_b[0]]
         inapplicable = [ev_a[0], ev_b[1]]
-        # self._check_applicability(
-        #     cast(TemporalState, state),
-        #     applicable,
-        #     inapplicable,
-        #     simulator,
-        #     total_events,
-        # )
+        self._check_applicability(
+            cast(TemporalState, state),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
 
         state = cast(COWState, simulator.apply(ev_b[0], state))
         assert state is not None
 
         applicable = [ev_a[1], ev_b[1]]
         inapplicable = [ev_a[0], ev_b[0]]
-        # self._check_applicability(
-        #     cast(TemporalState, state),
-        #     applicable,
-        #     inapplicable,
-        #     simulator,
-        #     total_events,
-        # )
+        self._check_applicability(
+            cast(TemporalState, state),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
 
         # Now, a is shorter (2) than b (4), so, if b_end (ev_b[1]) is applied,
         # a_end (ev_a[1]) can't be applied.
         false_state = cast(COWState, simulator.apply(ev_b[1], state))
         assert false_state is not None
 
+        # no events are applicable.
         applicable = []
         inapplicable = [*ev_a, *ev_b]
-        # self._check_applicability(
-        #     cast(TemporalState, false_state),
-        #     applicable,
-        #     inapplicable,
-        #     simulator,
-        #     total_events,
-        # )
-        # self.assertFalse(simulator.is_applicable(ev_a[1], false_state))
+        self._check_applicability(
+            cast(TemporalState, false_state),
+            applicable,
+            inapplicable,
+            simulator,
+            total_events,
+        )
 
-        false_state = cast(COWState, simulator.apply(ev_a[1], false_state))
+        state = cast(COWState, simulator.apply(ev_a[1], state))
+        assert state is not None
+        self.assertFalse(simulator.is_goal(state))
+        state = cast(COWState, simulator.apply(ev_b[1], state))
+        assert state is not None
 
-        print(ev_a[1])
-        print(false_state.stn.get_stn_model(ev_a[1]))
-        to_print = str(false_state.stn)
-        for ev, repr in print_dict.items():
-            to_print = to_print.replace(str(ev), repr)
-        print(to_print)
-        print("------------------")
-
-        print(false_state.stn._is_sat)
-        assert False
+        self.assertTrue(simulator.is_goal(state))
+        # to_print = str(false_state.stn)
+        # for ev, repr in print_dict.items():
+        #     to_print = to_print.replace(str(ev), repr)
 
     def test_with_temporal_simulator_instance(self):
-        # problem = self.problems["matchcellar"].problem
-        # simulator = TemporalSimulator(problem)
-        # self.simulate_on_matchcellar(simulator, problem)
+        problem = self.problems["matchcellar"].problem
+        simulator = TemporalSimulator(problem)
+        self.simulate_on_matchcellar(simulator, problem)
         problem = self.problems["temporal_basic"].problem
         simulator = TemporalSimulator(problem)
         self.simulate_on_temporal_basic(simulator, problem)
 
     def test_with_simulator_from_factory(self):
-        # problem = self.problems["matchcellar"].problem
-        # with Simulator(problem) as simulator:
-        #     self.simulate_on_matchcellar(simulator, problem)
+        problem = self.problems["matchcellar"].problem
+        with Simulator(problem) as simulator:
+            self.simulate_on_matchcellar(simulator, problem)
         problem = self.problems["temporal_basic"].problem
         with Simulator(problem) as simulator:
             self.simulate_on_temporal_basic(simulator, problem)
