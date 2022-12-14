@@ -114,6 +114,7 @@ PDDL_KEYWORDS = {
     "timed-initial-literals",
     "preferences",
     "agent",
+    "contingent",
 }
 
 # The following map is used to mangle the invalid names by their class.
