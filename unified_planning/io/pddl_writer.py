@@ -386,7 +386,7 @@ class PDDLWriter:
                 user_types_hierarchy[None] if None in user_types_hierarchy else []
             )
             out.write(
-                f'    {" ".join(self._get_mangled_name(t) for t in stack if t.name != "object")} - object\n'
+                f'    {" ".join(self._get_mangled_name(t) for t in stack)} - object\n'
             )
             while stack:
                 current_type = stack.pop()
@@ -403,7 +403,7 @@ class PDDLWriter:
             pddl_types = [
                 self._get_mangled_name(t)
                 for t in self.problem.user_types
-                if t.name != "object"
+                if cast(_UserType, t).name != "object"
             ]
             out.write(
                 f' (:types {" ".join(pddl_types)})\n' if len(pddl_types) > 0 else ""
