@@ -136,7 +136,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
 
         :param state: the state where the event formulas are evaluated.
-        :param event: the event that has the information about the effects to apply.
+        :param event: the event that has the information about the effects to apply; an Iterable here is not accepted.
         :return: A new COWState with some updated values.
         """
         if not isinstance(event, InstantaneousEvent):

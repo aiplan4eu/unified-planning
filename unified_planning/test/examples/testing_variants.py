@@ -44,13 +44,13 @@ def get_example_problems():
     problem.set_initial_value(y, False)
     problem.add_goal(x)
     problem.add_goal(y)
-    plan = up.plans.TimeTriggeredPlan(
+    tplan = up.plans.TimeTriggeredPlan(
         [
             (Fraction(0), up.plans.ActionInstance(a), Fraction(1)),
             (Fraction(0), up.plans.ActionInstance(b), Fraction(4)),
         ]
     )
-    temporal_basic = Example(problem=problem, plan=plan)
+    temporal_basic = Example(problem=problem, plan=tplan)
     problems["temporal_basic"] = temporal_basic
 
     # robot_real_constants

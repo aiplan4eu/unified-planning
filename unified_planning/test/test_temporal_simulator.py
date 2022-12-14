@@ -300,7 +300,7 @@ class TestSimulator(TestCase):
         x = problem.fluent("x")
         y = problem.fluent("y")
 
-        state: TemporalState = cast(TemporalState, simulator.get_initial_state())
+        state: COWState = cast(COWState, simulator.get_initial_state())
         self.assertFalse(state.get_value(x()).bool_constant_value())
         self.assertFalse(state.get_value(y()).bool_constant_value())
 
