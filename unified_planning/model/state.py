@@ -42,7 +42,7 @@ class COWState(ROState):
         running_events: Optional[
             List[List["up.engines.mixins.simulator.Event"]]
         ] = None,
-        stn: Optional["up.model.temporal_state.DeltaSimpleTemporalNetwork"] = None,
+        stn: Optional["up.model.delta_stn.DeltaSimpleTemporalNetwork"] = None,
         durative_conditions: Optional[List[List["up.model.fnode.FNode"]]] = None,
         events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "COWState":
@@ -135,7 +135,7 @@ class UPCOWState(COWState):
         running_events: Optional[
             List[List["up.engines.mixins.simulator.Event"]]
         ] = None,
-        stn: Optional["up.model.temporal_state.DeltaSimpleTemporalNetwork"] = None,
+        stn: Optional["up.model.delta_stn.DeltaSimpleTemporalNetwork"] = None,
         durative_conditions: Optional[List[List["up.model.fnode.FNode"]]] = None,
         last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "UPCOWState":

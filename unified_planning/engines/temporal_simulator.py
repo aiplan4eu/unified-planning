@@ -140,8 +140,9 @@ class TemporalSimulator(Engine, SimulatorMixin):
     Implementation of the Temporal Simulator Mixin.
     """
 
-    def __init__(self, problem: "up.model.Problem"):
+    def __init__(self, problem: "up.model.Problem", error_on_failed_checks: bool = True, **kwargs):
         Engine.__init__(self)
+        self.error_on_failed_checks = error_on_failed_checks
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
         assert Grounder.supports(pk)
@@ -168,7 +169,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert self._end_plan_event.kind == TemporalEventKind.END_PLAN
 
         # creation of initial state, might be moved into a specific function # TODO decide
-        initial_stn = DeltaSimpleTemporalNetwork()
+        initial_stn: DeltaSimpleTemporalNetwork[Fraction] = DeltaSimpleTemporalNetwork()
         assert self._start_plan_event.committed_events is not None
         initial_running_events: List[TemporalEvent] = cast(
             List[TemporalEvent], self._start_plan_event.committed_events[:]
@@ -327,8 +328,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 f"The timed simulator needs Temporal Events, {type(first_ev)} was given!"
             )
-        last_event = next(
-            iter(state.last_events)
+        last_event = cast(
+            TemporalEvent, next(iter(state.last_events))
         )  # TODO check if use list instead of sets
         self._expand_event(
             first_ev, stn, running_events, durative_conditions, last_event
@@ -361,8 +362,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 prev_state.last_events, state_father, self._se
             )
             oth_written_fluents: Set[FNode] = set(oth_updated_values.keys())
-            last_event = next(
-                iter(prev_state.last_events)
+            last_event = cast(
+                TemporalEvent, next(iter(prev_state.last_events))
             )  # TODO check if use list instead of sets
             assert isinstance(last_event, TemporalEvent)
             # Case where at least 1 Event writes something, affecting the other Event
@@ -437,23 +438,23 @@ class TemporalSimulator(Engine, SimulatorMixin):
             self._problem.env.expression_manager.auto_promote(parameters)
         )
         grounded_action = self._grounder.ground_action(action, params_exp)
-        # check duration constraints
-        em = self._problem.env.expression_manager
-        action_duration = grounded_action.duration
-        left_compare = em.GT if action_duration.is_left_open() else em.GE
-        right_compare = em.LT if action_duration.is_right_open() else em.LE
-        if not self._se.evaluate(
-            left_compare(duration, action_duration.lower)
-        ).bool_constant_value():
-            raise UPUsageError(
-                f"The duration: {duration} is lower than the lower bound of the action's {action.name} duration constraints."
-            )
-        if not self._se.evaluate(
-            right_compare(duration, action_duration.upper)
-        ).bool_constant_value():
-            raise UPUsageError(
-                f"The duration: {duration} is bigger than the upper bound of the action's {action.name} duration constraints."
-            )
+        # # check duration constraints
+        # em = self._problem.env.expression_manager
+        # action_duration = grounded_action.duration
+        # left_compare = em.GT if action_duration.is_left_open() else em.GE
+        # right_compare = em.LT if action_duration.is_right_open() else em.LE
+        # if not self._se.evaluate(
+        #     left_compare(duration, action_duration.lower)
+        # ).bool_constant_value():
+        #     raise UPUsageError(
+        #         f"The duration: {duration} is lower than the lower bound of the action's {action.name} duration constraints."
+        #     )
+        # if not self._se.evaluate(
+        #     right_compare(duration, action_duration.upper)
+        # ).bool_constant_value():
+        #     raise UPUsageError(
+        #         f"The duration: {duration} is bigger than the upper bound of the action's {action.name} duration constraints."
+        #     )
         event_list = self._get_or_create_events(
             action, params_exp, grounded_action, duration
         )
@@ -637,7 +638,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     "must be given to the simulator in the same order as they are given!",
                 )
             if event.kind == TemporalEventKind.START_CONDITION:
-                durative_conditions.append(event.conditions)
+                durative_conditions.append(event.conditions[:])
             elif event.kind == TemporalEventKind.END_CONDITION:
                 conditions_to_remove = event.conditions[:]
                 for cl in durative_conditions:
@@ -645,7 +646,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     for i, cond in enumerate(cl):
                         if cond in conditions_to_remove:
                             conditions_to_remove.remove(cond)
-                            cl_indexes_to_remove.insert(0, i)
+                            cl_indexes_to_remove.append(i)
+                    cl_indexes_to_remove.reverse()
                     for itr in cl_indexes_to_remove:
                         cl.pop(itr)
                 assert (

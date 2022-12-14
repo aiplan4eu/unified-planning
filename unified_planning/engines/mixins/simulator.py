@@ -81,7 +81,7 @@ class SimulatorMixin:
         returns `False` otherwise.
 
         :param state: the `state` where the `event conditions` are checked.
-        :param event: the `event` whose `conditions` are checked.
+        :param event: the `event` or `Iterable[Event]` whose `conditions` are checked.
         :return: Whether or not the `event` is applicable in the given `state`.
         """
         return self._is_applicable(event, state)

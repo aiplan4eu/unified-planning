@@ -14,89 +14,10 @@
 #
 
 
-from collections import deque
-from dataclasses import dataclass
-from fractions import Fraction
-from typing import Deque, Dict, List, Optional, Any, Set
+from typing import Dict, List, Optional, Set
 import unified_planning as up
-from unified_planning.model.state import UPCOWState, COWState
+from unified_planning.model.state import UPCOWState
 from unified_planning.exceptions import UPUsageError
-
-
-@dataclass
-class DeltaNeighbors:
-    dst: Any
-    bound: Fraction
-    next: Optional["DeltaNeighbors"]
-
-
-class DeltaSimpleTemporalNetwork:
-    def __init__(
-        self,
-        constraints: Dict[Any, DeltaNeighbors] = {},
-        distances: Dict[Any, Fraction] = {},
-        is_sat=True,
-    ):
-        self._constraints: Dict[Any, List[DeltaNeighbors]] = constraints
-        self._distances: Dict[Any, Fraction] = distances
-        self._is_sat = is_sat
-
-    def __repr__(self) -> str:
-        res = []
-        for k, v in self._constraints.items():
-            while v is not None:
-                res.append(f"{k} - {v.dst} <= {v.bound}")
-                v = v.next
-        return "\n".join(res)
-
-    def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
-        return DeltaSimpleTemporalNetwork(
-            self._constraints.copy(), self._distances.copy(), self._is_sat
-        )
-
-    def add(self, x: Any, y: Any, b: Fraction):
-        if self._is_sat:
-            self._distances.setdefault(x, Fraction(0))
-            self._distances.setdefault(y, Fraction(0))
-            x_constraints = self._constraints.get(x, None)
-            self._constraints.setdefault(y, None)
-            if not self._is_subsumed(x, y, b):
-                neighbor = DeltaNeighbors(y, b, x_constraints)
-                self._constraints[x] = neighbor
-                self._is_sat = self._inc_check(x, y, b)
-
-    def check_stn(self) -> bool:
-        return self._is_sat
-
-    def get_stn_model(self, x: Any) -> Fraction:
-        return -1 * self._distances[x]
-
-    def _is_subsumed(self, x: Any, y: Any, b: Fraction) -> bool:
-        neighbor = self._constraints.get(x, None)
-        while neighbor is not None:
-            if neighbor.dst == y:
-                return neighbor.bound <= b
-            neighbor = neighbor.next
-        return False
-
-    def _inc_check(self, x: Any, y: Any, b: Fraction) -> bool:
-        if self._distances[x] + b < self._distances[y]:
-            self._distances[y] = self._distances[x] + b
-        else:
-            return True
-        queue: Deque[Any] = deque()
-        queue.append(y)
-        while queue:
-            c = queue.popleft()
-            n = self._constraints[c]
-            while n is not None:
-                if self._distances[c] + n.bound < self._distances[n.dst]:
-                    if n.dst == y and n.bound == b:
-                        return False
-                    self._distances[n.dst] = self._distances[c] + n.bound
-                    queue.append(n.dst)
-                n = n.next
-        return True
 
 
 class TemporalState(UPCOWState):
@@ -106,7 +27,7 @@ class TemporalState(UPCOWState):
         self,
         values: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         running_events: List[List["up.engines.mixins.simulator.Event"]],
-        stn: "DeltaSimpleTemporalNetwork",
+        stn: "up.model.delta_stn.DeltaSimpleTemporalNetwork",
         durative_conditions: List[List["up.model.fnode.FNode"]],
         last_events: Set["up.engines.mixins.simulator.Event"],
         _father: Optional["TemporalState"] = None,
@@ -121,18 +42,57 @@ class TemporalState(UPCOWState):
 
     @property
     def running_events(self) -> List[List["up.engines.mixins.simulator.Event"]]:
+        """
+        Returns the running events of the `TemporalState`.
+
+        The running_events is a `List` of `Elements`, where each `Element` is a `List` containing
+        `Events` that, in the same order that they appear in the `List`, must be applied before
+        the end of the simulation.
+
+        For example, when an `ACTION_START` `Event` is applied to the `State`, the `List` containing
+        all the `Events` in which the given action is split, is added to the `running_events`.
+
+        Every time an `Event` that is not an `ACTION_START` `Event` is applied to the `State`, it must be
+        the first element of one of the `Lists` in the `running_events`; if it is, it is popped and
+        applied.
+        """
         return self._running_events
 
     @property
-    def stn(self) -> DeltaSimpleTemporalNetwork:
+    def stn(self) -> "up.model.delta_stn.DeltaSimpleTemporalNetwork":
+        """
+        Returns the DeltaSTN corresponding to this TemporalState.
+
+        A SimpleTemporalNetwork is a data structure that contains the time constraints between the
+        Events that are applied in the State. AN STN is said consistent if every Event applied does
+        not violate a time constraint, it is said inconsistent otherwise.
+
+        The DeltaSTN is a specific implementation of STN specifically engineered for planning purposes;
+        it's main point is the capability of creating a lot of different DeltaSTN, that have a small
+        difference one-another, without having to re-do all the calculations about the STN consistency.
+
+        Also, being a persistent data-structure, it also optimizes the memory usage.
+        """
         return self._stn
 
     @property
     def durative_conditions(self) -> List[List["up.model.fnode.FNode"]]:
+        """
+        Returns the `durative_conditions` of this `State`.
+
+        For a `State` to be valid, every `durative_condition` must be evaluated to `True`.
+
+        `durative_conditions` are added from the `START_CONDITION` `Event` and are removed
+        by the `END_CONDITION` `Event`.
+        """
         return self._durative_conditions
 
     @property
     def last_events(self) -> Set["up.engines.mixins.simulator.Event"]:
+        """
+        Returns the `Set` of `Events` that were applied to create this `State` from the `State`;
+        the one given to the `Simulator` `apply` -or `apply_unsafe`- method.
+        """
         return self._last_events
 
     def make_child(
@@ -141,10 +101,23 @@ class TemporalState(UPCOWState):
         running_events: Optional[
             List[List["up.engines.mixins.simulator.Event"]]
         ] = None,
-        stn: Optional["DeltaSimpleTemporalNetwork"] = None,
+        stn: Optional["up.model.delta_stn.DeltaSimpleTemporalNetwork"] = None,
         durative_conditions: Optional[List[List["up.model.fnode.FNode"]]] = None,
         last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
     ) -> "TemporalState":
+        """
+        Returns a different `TemporalState` in which every value in updated_values.keys() is evaluated as his mapping
+        in new the `updated_values` dict and every other value is evaluated as in `self`.
+        All the other parameters are the ones that will be set in the new `TemporalState`.
+
+        :param updated_values: The dictionary that contains the `values` that need to be updated in the new `State`.
+        :param running_events: The running_events of the created TemporalState.
+        :param stn: The `DeltaSimpleTemporalNetwork` representing the time constraints of the created `TemporalState`.
+        :param durative_conditions: The `List` of conditions that must evaluate to True in the created `TemporalState`.
+        :param last_events: The `Set` of events that are applied to this `TemporalState` in order to get the
+            `TemporalState` that is returned.
+        :return: The new `State` created.
+        """
         if running_events is None:
             raise UPUsageError("running_events can't be None for TemporalStates!")
         if stn is None:
