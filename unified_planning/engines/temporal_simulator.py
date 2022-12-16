@@ -18,6 +18,8 @@ from enum import Enum, auto
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.model import (
+    Action,
+    InstantaneousAction,
     DurativeAction,
     FNode,
     Effect,
@@ -54,6 +56,7 @@ EPSILON = Fraction(1, 1000)
 class TemporalEventKind(Enum):
     START_PLAN = auto()
     END_PLAN = auto()
+    INSTANTANEOUS_ACTION = auto()
     START_ACTION = auto()
     END_ACTION = auto()
     START_CONDITION = auto()
@@ -91,6 +94,12 @@ class TemporalEvent(InstantaneousEvent):
             raise UPUsageError(
                 "Start action events must have a list for committed events."
             )
+        elif (
+            not timing_included and self._kind == TemporalEventKind.INSTANTANEOUS_ACTION
+        ):
+            raise UPUsageError(
+                "Timing not included for an INSTANTANEOUS_ACTION TemporalEvent is not valid."
+            )
         self._committed_events = committed_events
         self._id = TemporalEvent._class_id
         TemporalEvent._class_id += 1
@@ -105,6 +114,9 @@ class TemporalEvent(InstantaneousEvent):
         res.append(str(self._effects))
         res.append(str(self._simulated_effect))
         return " ".join(res)
+
+    def __hash__(self) -> int:
+        return self._id
 
     @property
     def kind(self) -> TemporalEventKind:
@@ -152,6 +164,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
         self._em = problem.env.expression_manager
+        initial_values = self._problem.initial_values
+        self._all_possible_assignments: Set[FNode] = set(initial_values.keys())
         problem_events: List[TemporalEvent] = cast(
             List[TemporalEvent],
             break_action_or_problem_in_event_list(
@@ -168,7 +182,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert self._start_plan_event.kind == TemporalEventKind.START_PLAN
         assert self._end_plan_event.kind == TemporalEventKind.END_PLAN
 
-        # creation of initial state, might be moved into a specific function # TODO decide
+        # creation of initial state, might be moved into a specific function
         initial_stn: DeltaSimpleTemporalNetwork[Fraction] = DeltaSimpleTemporalNetwork()
         assert self._start_plan_event.committed_events is not None
         initial_running_events: List[TemporalEvent] = cast(
@@ -208,7 +222,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 )
 
         self._initial_state = TemporalState(
-            self._problem.initial_values,
+            initial_values,
             cast(List[List[Event]], [initial_running_events]),
             initial_stn,
             [],
@@ -311,7 +325,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         if isinstance(event, Event):
             event = [event]
         updated_values, red_fluents = self._get_updated_values_and_red_fluents(
-            event, state, self._se
+            event, state, self._se, self._all_possible_assignments
         )
         # New State variables
         stn = state.stn.copy_stn()
@@ -348,7 +362,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             )
             other_ev = next(events, None)
         written_fluents: Set[FNode] = set(updated_values.keys())
-        # red_fluents.difference_update(written_fluents) # Might be useful or pointless #TODO
+        red_fluents.difference_update(written_fluents)
         prev_state = state
         state_father = state._father
         while (red_fluents or written_fluents) and state_father is not None:
@@ -359,7 +373,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 oth_updated_values,
                 oth_red_fluents,
             ) = self._get_updated_values_and_red_fluents(
-                prev_state.last_events, state_father, self._se
+                prev_state.last_events,
+                state_father,
+                self._se,
+                self._all_possible_assignments,
             )
             oth_written_fluents: Set[FNode] = set(oth_updated_values.keys())
             last_event = cast(
@@ -398,16 +415,40 @@ class TemporalSimulator(Engine, SimulatorMixin):
         )
         return new_state
 
-    def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
+    def _get_applicable_events(
+        self,
+        state: "up.model.ROState",
+        durations_map: Optional[
+            Dict[Tuple[Action, Tuple[FNode]], Union[int, Fraction]]
+        ] = None,
+    ) -> Iterator["Event"]:
         """
         Returns a view over all the events that are applicable in the given State;
         an Event is considered applicable in a given State, when all the Event condition
         simplify as True when evaluated in the State.
 
         :param state: The state where the formulas are evaluated.
+        :param durations_map: the mapping from the Tuple[Action + grounding_parameters]
+            to the duration of said action; if an action with specific parameters is not
+            present in this mapping, it will not be proposed in the generated events.
         :return: an Iterator of applicable Events.
         """
-        raise NotImplementedError
+        if not isinstance(state, TemporalState):
+            raise UPUsageError(
+                f"{type(self)}.is_goal expected TemporalState but {type(state)} was given!"
+            )
+        if durations_map is None:
+            raise UPUsageError(
+                f"The duration map must bew specified to get all the applicable events of the {type(self)}"
+            )
+        for rel in state.running_events:
+            event = rel[0]
+            if self.is_applicable(event, state):
+                yield event
+        for (action, params), duration in durations_map.items():
+            event = self._get_events(action, params, duration)[0]
+            if self.is_applicable(event, state):
+                yield event
 
     def _get_events(
         self,
@@ -560,10 +601,20 @@ class TemporalSimulator(Engine, SimulatorMixin):
         :param grounded_action: The grounded action, result of the `original_action` grounded with the given `parameters`.
         :return: The retrieved or created `List of Events` corresponding to the `grounded_action`.
         """
-        if isinstance(original_action, up.model.InstantaneousAction):
-            assert False, "For now we support only durative actions"
-            # TODO here should be enough to call the SequentialSimulator code
-        elif isinstance(original_action, up.model.DurativeAction):
+        if isinstance(original_action, InstantaneousAction):
+            assert isinstance(grounded_action, InstantaneousAction)
+            return [
+                TemporalEvent(
+                    TemporalEventKind.INSTANTANEOUS_ACTION,
+                    StartTiming(),
+                    True,
+                    None,
+                    grounded_action.preconditions,
+                    grounded_action.effects,
+                    grounded_action.simulated_effect,
+                )
+            ]
+        elif isinstance(original_action, DurativeAction):
             if (
                 grounded_action is None
             ):  # The grounded action is meaningless, no event associated
@@ -593,6 +644,11 @@ class TemporalSimulator(Engine, SimulatorMixin):
         last_event: "TemporalEvent",
     ):
         """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
+        if event in stn:
+            raise UPUsageError(
+                "This event was already used in this State hierarchy; ",
+                "Events are usable only once for every branch of the simulation!",
+            )
         insert_interval(stn, last_event, event, left_bound=Fraction(0))
         if event.kind == TemporalEventKind.START_ACTION:
             committed_events: List[Event] = []
@@ -622,7 +678,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     stn, event, committed_event, left_bound=bound, right_bound=bound
                 )
             running_events.append(committed_events)
-        else:
+        elif not event.kind == TemporalEventKind.INSTANTANEOUS_ACTION:
             found = False
             for el in running_events:
                 if el[0] == event:

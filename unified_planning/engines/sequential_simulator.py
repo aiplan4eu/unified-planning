@@ -20,9 +20,9 @@ from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import COWState, ROState, UPCOWState, Problem
+from unified_planning.model import COWState, ROState, UPCOWState, Problem, Action, FNode
 from unified_planning.model.walkers import StateEvaluator
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Union, cast
+from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast
 
 
 class InstantaneousEvent(Event):
@@ -72,6 +72,10 @@ class SequentialSimulator(Engine, SimulatorMixin):
         ] = {}
         self._se = StateEvaluator(self._problem)
         self._all_events_grounded: bool = False
+        initial_values = self._problem.initial_values
+        self._all_possible_assignments: Set["up.model.FNode"] = set(
+            initial_values.keys()
+        )
 
     def _is_applicable(
         self, event: Union["Event", Iterable["Event"]], state: "ROState"
@@ -144,19 +148,28 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 f"SequentialSimulator accepts only ONE instance of InstantaneousEvent! {type(event)} was given"
             )
         updated_values, _ = self._get_updated_values_and_red_fluents(
-            event, state, self._se
+            event, state, self._se, self._all_possible_assignments
         )
         return state.make_child(updated_values)
 
-    def _get_applicable_events(self, state: "ROState") -> Iterator["Event"]:
+    def _get_applicable_events(
+        self,
+        state: "up.model.ROState",
+        durations_map: Optional[
+            Dict[Tuple[Action, Tuple[FNode]], Union[int, Fraction]]
+        ] = None,
+    ) -> Iterator["Event"]:
         """
         Returns a view over all the events that are applicable in the given State;
         an Event is considered applicable in a given State, when all the Event condition
         simplify as True when evaluated in the State.
 
         :param state: The state where the formulas are evaluated.
+        :param durations_map: Not supported; makes sense only for simulators that deal with time.
         :return: an Iterator of applicable Events.
         """
+        if durations_map is not None:
+            raise UPUsageError(f"{type(self)} does not support a durations_map!")
         # if the problem was never fully grounded before,
         # ground it and save all the new events. For every event
         # that is applicable, yield it.

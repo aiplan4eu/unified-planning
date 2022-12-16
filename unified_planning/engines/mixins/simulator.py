@@ -14,12 +14,11 @@
 #
 
 
-from collections import deque
 from fractions import Fraction
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union, Iterator
 from warnings import warn
 import unified_planning as up
-from unified_planning.model import FNode, COWState, ROState
+from unified_planning.model import FNode, COWState, ROState, Action
 from unified_planning.model.walkers import StateEvaluator, FreeVarsExtractor
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 
@@ -111,7 +110,7 @@ class SimulatorMixin:
         self, event: "Event", state: "ROState", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
-        Method called by the up.engines.mixins.simulator.SimulatorMixin.apply.
+        Method called by the up.engines.mixins.simulator.SimulatorMixin.get_unsatisfied_conditions.
         """
         raise NotImplementedError
 
@@ -126,7 +125,7 @@ class SimulatorMixin:
         :param state: the `state` where the event formulas are calculated.
         :param event: the `event` that has the information about the `conditions`
             to check and the `effects` to apply. If the given event is an
-            iterator of events, all the given event's conditions are checked
+            iterable of events, all the given event's conditions are checked
             before applying all the event's effects.
         :return: `None` if the `event` is not applicable in the given `state`,
             a new `COWState` with some updated `values` if the `event` is applicable.
@@ -165,18 +164,32 @@ class SimulatorMixin:
         """
         raise NotImplementedError
 
-    def get_applicable_events(self, state: "ROState") -> Iterable["Event"]:
+    def get_applicable_events(
+        self,
+        state: "up.model.ROState",
+        durations_map: Optional[
+            Dict[Tuple[Action, Tuple[FNode]], Union[int, Fraction]]
+        ] = None,
+    ) -> Iterator["Event"]:
         """
         Returns a view over all the `events` that are applicable in the given `State`;
         an `Event` is considered applicable in a given `State`, when all the `Event condition`
         simplify as `True` when evaluated in the `State`.
 
         :param state: the `state` where the formulas are evaluated.
+        :param durations_map: optionally, the mapping from the Tuple[Action + grounding_parameters]
+            to the duration of said action.
         :return: an `Iterable` of applicable `Events`.
         """
-        return self._get_applicable_events(state)
+        return self._get_applicable_events(state, durations_map)
 
-    def _get_applicable_events(self, state: "ROState") -> Iterable["Event"]:
+    def _get_applicable_events(
+        self,
+        state: "up.model.ROState",
+        durations_map: Optional[
+            Dict[Tuple[Action, Tuple[FNode]], Union[int, Fraction]]
+        ] = None,
+    ) -> Iterator["Event"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_applicable_events.
         """
@@ -280,6 +293,7 @@ class SimulatorMixin:
         event: Union["Event", Iterable["Event"]],
         state: "ROState",
         state_evaluator: StateEvaluator,
+        all_possible_assignments: Set[FNode],
     ) -> Tuple[Dict[FNode, FNode], Set[FNode]]:
         """
         Utility method to return what an Event, or an Iterable of Event, updates
@@ -339,9 +353,7 @@ class SimulatorMixin:
                         else:
                             raise NotImplementedError
             if ev.simulated_effect is not None:
-                # TODO add to the red_fluents the whole state!
-                # NOTE return None might mean "The whole state", but is quite counterintuitive,
-                # Or the state needs an extra method that retrieves the whole state.
+                red_fluents.update(all_possible_assignments)
                 for f, v in zip(
                     ev.simulated_effect.fluents,
                     ev.simulated_effect.function(self._problem, state, {}),

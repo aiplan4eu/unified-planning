@@ -53,6 +53,9 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
                 v = v.next
         return "\n".join(res)
 
+    def __contains__(self, key):
+        return key in self._constraints.keys()
+
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
         return DeltaSimpleTemporalNetwork(
             self._constraints.copy(),
