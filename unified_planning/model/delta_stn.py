@@ -16,8 +16,7 @@
 
 from collections import deque
 from dataclasses import dataclass
-from fractions import Fraction
-from numbers import Number, Real
+from numbers import Real
 from typing import Deque, Dict, Optional, Any, Generic, TypeVar, cast
 
 
