@@ -553,6 +553,7 @@ class Factory:
             return up.engines.compilers.compilers_pipeline.CompilersPipeline(compilers)
         else:
             assert names is None
+            error_failed_checks = name is None
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
@@ -578,7 +579,11 @@ class Factory:
                 res = EngineClass(problem=problem, **params)
             elif engine_kind == "simulator":
                 assert problem is not None
-                res = EngineClass(problem=problem, **params)
+                res = EngineClass(
+                    problem=problem,
+                    error_on_failed_checks=error_failed_checks,
+                    **params,
+                )
             elif engine_kind == "compiler":
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)
@@ -599,8 +604,7 @@ class Factory:
                     res.optimality_metric_required = True
             else:
                 res = EngineClass(**params)
-            if name is not None:
-                res.error_on_failed_checks = False
+            res.error_on_failed_checks = error_failed_checks
             return res
 
     @property

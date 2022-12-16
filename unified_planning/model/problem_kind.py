@@ -124,7 +124,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
 
     def __le__(self, oth: object):
         if not isinstance(oth, ProblemKind):
-            raise
+            raise ValueError(f"Unable to compare a ProblemKind with a {type(oth)}")
         return self._features.issubset(oth._features)
 
     @property
@@ -182,6 +182,7 @@ object_fluent_kind.set_fluents_type("OBJECT_FLUENTS")
 
 basic_numeric_kind = ProblemKind()
 basic_numeric_kind.set_problem_class("ACTION_BASED")
+basic_numeric_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
 basic_numeric_kind.set_typing("FLAT_TYPING")
 basic_numeric_kind.set_numbers("DISCRETE_NUMBERS")
 basic_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
@@ -189,6 +190,7 @@ basic_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
 
 full_numeric_kind = ProblemKind()
 full_numeric_kind.set_problem_class("ACTION_BASED")
+full_numeric_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
 full_numeric_kind.set_typing("FLAT_TYPING")
 full_numeric_kind.set_numbers("DISCRETE_NUMBERS")
 full_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")

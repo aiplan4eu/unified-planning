@@ -114,7 +114,7 @@ class FNode(object):
         elif self.is_equals():
             return self.get_nary_expression_string(" == ", self.args)
         else:
-            raise
+            raise ValueError("Unknown FNode type found")
 
     @property
     def node_id(self) -> int:
