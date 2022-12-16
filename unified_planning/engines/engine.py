@@ -26,6 +26,7 @@ class EngineMeta(type):
             "oneshot_planner",
             "anytime_planner",
             "plan_validator",
+            "portfolio_selector",
             "compiler",
             "simulator",
             "replanner",

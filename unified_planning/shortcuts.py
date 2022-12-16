@@ -23,7 +23,12 @@ import unified_planning.model.types
 import unified_planning.model.multi_agent
 from unified_planning.environment import get_env
 from unified_planning.model import *
-from unified_planning.engines import Engine, CompilationKind, OptimalityGuarantee
+from unified_planning.engines import (
+    Engine,
+    CompilationKind,
+    OptimalityGuarantee,
+    OperationMode,
+)
 from typing import IO, Any, Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
@@ -570,6 +575,29 @@ def Replanner(
         name=name,
         params=params,
         optimality_guarantee=optimality_guarantee,
+    )
+
+
+def PortfolioSelector(
+    *,
+    name: Optional[str] = None,
+    params: Optional[Dict[str, Any]] = None,
+    problem_kind: ProblemKind = ProblemKind(),
+    operation_mode: Optional[Union["OperationMode", str]] = None,
+) -> "up.engines.engine.Engine":
+    """
+    Returns a portfolio selector. There are two ways to call this method:
+    - using 'name' (the name of a specific portfolio) and eventually 'params'
+        (portfolio dependent options).
+        e.g. PortfolioSelector(name='ibacop')
+    - using 'problem_kind' and 'operation_mode'.
+        e.g. OneshotPlanner(problem_kind=problem.kind, operation_mode=OperationMode.ONESHOT_PLANNING)
+    """
+    return get_env().factory.PortfolioSelector(
+        name=name,
+        params=params,
+        problem_kind=problem_kind,
+        operation_mode=operation_mode,
     )
 
 
