@@ -41,6 +41,10 @@ from unified_planning.engines.mixins.simulator import SimulatorMixin, Event
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
+from unified_planning.engines.mixins.portfolio import (
+    PortfolioSelectorMixin,
+    OperationMode,
+)
 
 __all__ = [
     "Factory",
@@ -64,4 +68,6 @@ __all__ = [
     "ValidationResult",
     "ValidationResultStatus",
     "CompilerResult",
+    "PortfolioSelectorMixin",
+    "OperationMode",
 ]

@@ -29,6 +29,10 @@ from unified_planning.engines.mixins.anytime_planner import AnytimePlannerMixin
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
+from unified_planning.engines.mixins.portfolio import (
+    PortfolioSelectorMixin,
+    OperationMode,
+)
 from unified_planning.engines.mixins.replanner import ReplannerMixin
 from unified_planning.engines.mixins.simulator import SimulatorMixin
 from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, cast
@@ -369,6 +373,7 @@ class Factory:
         compilation_kind: Optional["CompilationKind"] = None,
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
+        operation_mode: Optional["OperationMode"] = None,
     ) -> Type["up.engines.engine.Engine"]:
         if name is not None:
             if name in self._engines:
@@ -421,6 +426,15 @@ class Factory:
                         anytime_guarantee
                     ):
                         continue
+                elif engine_kind == "portfolio_selector":
+                    assert issubclass(EngineClass, PortfolioSelectorMixin)
+                    assert optimality_guarantee is None
+                    assert compilation_kind is None
+                    assert plan_kind is None
+                    assert anytime_guarantee is None
+                    assert operation_mode is not None
+                    if not EngineClass.supports_operation_mode(operation_mode):
+                        continue
                 else:
                     assert optimality_guarantee is None
                     assert anytime_guarantee is None
@@ -445,6 +459,8 @@ class Factory:
             msg = f"No available engine supports {optimality_guarantee}"
         elif anytime_guarantee is not None:
             msg = f"No available engine supports {anytime_guarantee}"
+        elif operation_mode is not None:
+            msg = f"No available engine supports {operation_mode}"
         else:
             msg = f"No available {engine_kind} engine"
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
@@ -511,10 +527,14 @@ class Factory:
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
+        operation_mode: Optional[OperationMode] = None,
     ) -> "up.engines.engine.Engine":
         if names is not None and engine_kind != "compiler":
             assert name is None
             assert problem is None, "Parallel simulation is not supported"
+            assert (
+                operation_mode is None
+            ), "Parallel portfolio selection is not supported"
             if params is None:
                 params = [{} for i in range(len(names))]
             assert isinstance(params, List) and len(names) == len(params)
@@ -565,6 +585,7 @@ class Factory:
                 compilation_kind,
                 plan_kind,
                 anytime_guarantee,
+                operation_mode,
             )
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
@@ -798,6 +819,37 @@ class Factory:
             problem.kind,
             optimality_guarantee,
             problem=problem,
+        )
+
+    def PortfolioSelector(
+        self,
+        *,
+        name: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+        problem_kind: ProblemKind = ProblemKind(),
+        operation_mode: Optional[Union["OperationMode", str]] = None,
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a portfolio selector. There are two ways to call this method:
+        - using 'name' (the name of a specific portfolio) and eventually 'params'
+            (portfolio dependent options).
+          e.g. PortfolioSelector(name='ibacop')
+        - using 'problem_kind' and 'operation_mode'.
+          e.g. OneshotPlanner(problem_kind=problem.kind, operation_mode=OperationMode.ONESHOT_PLANNING)
+        """
+        if isinstance(operation_mode, str):
+            operation_mode = OperationMode[operation_mode]
+        if name is None and operation_mode is None:
+            raise up.exceptions.UPUsageError(
+                "For PortfolioSelector Operation Mode, at least one",
+                " of name and operation_mode kwargs must be set.",
+            )
+        return self._get_engine(
+            "portfolio_selector",
+            name=name,
+            params=params,
+            problem_kind=problem_kind,
+            operation_mode=operation_mode,
         )
 
     def print_engines_info(
