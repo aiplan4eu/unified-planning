@@ -56,10 +56,11 @@ class SequentialSimulator(Engine, SimulatorMixin):
     """
 
     def __init__(
-        self, problem: "up.model.Problem", error_on_failed_checks: bool = True
+        self, problem: "up.model.Problem", error_on_failed_checks: bool = True, **kwargs
     ):
         Engine.__init__(self)
-        SimulatorMixin.__init__(self, problem, error_on_failed_checks)
+        self.error_on_failed_checks = error_on_failed_checks
+        SimulatorMixin.__init__(self, problem)
         pk = problem.kind
         assert Grounder.supports(pk)
         assert isinstance(self._problem, up.model.Problem)

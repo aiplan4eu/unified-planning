@@ -47,16 +47,12 @@ class SimulatorMixin:
     Important NOTE: The `AbstractProblem` instance is given at the constructor.
     """
 
-    def __init__(
-        self, problem: "up.model.AbstractProblem", error_on_failed_checks: bool = True
-    ) -> None:
+    def __init__(self, problem: "up.model.AbstractProblem") -> None:
         """
         Takes an instance of a `problem` and eventually some parameters, that represent
         some specific settings of the `SimulatorMixin`.
 
         :param problem: the `problem` that defines the domain in which the simulation exists.
-        :param error_on_failed_checks: flag that determines whether a failed check on the
-            `problem.kind` should raise an Exception or just a warning.
         """
         self._problem = problem
         self_class = type(self)
@@ -66,7 +62,7 @@ class SimulatorMixin:
         assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"The problem named: {problem.name} is not supported by the {self_class}."
-            if error_on_failed_checks:
+            if self.error_on_failed_checks:
                 raise UPUsageError(msg)
             else:
                 warn(msg)
