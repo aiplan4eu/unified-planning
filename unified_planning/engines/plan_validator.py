@@ -100,7 +100,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         simulator = SequentialSimulator(problem)
-        current_state: "COWState" = UPCOWState(problem.initial_values)
+        current_state: "COWState" = simulator.get_initial_state()
         count = 0  # used for better error indexing
         for ai in plan.actions:
             action = ai.action

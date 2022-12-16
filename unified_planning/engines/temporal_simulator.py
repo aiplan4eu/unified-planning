@@ -644,11 +644,6 @@ class TemporalSimulator(Engine, SimulatorMixin):
         last_event: "TemporalEvent",
     ):
         """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
-        if event in stn:
-            raise UPUsageError(
-                "This event was already used in this State hierarchy; ",
-                "Events are usable only once for every branch of the simulation!",
-            )
         insert_interval(stn, last_event, event, left_bound=Fraction(0))
         if event.kind == TemporalEventKind.START_ACTION:
             committed_events: List[Event] = []
