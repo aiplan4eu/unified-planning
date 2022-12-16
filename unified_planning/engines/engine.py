@@ -14,30 +14,35 @@
 #
 """This module defines the engine interface."""
 
+from enum import Enum
 from unified_planning.model import ProblemKind
 from unified_planning.engines.credits import Credits
 from typing import Optional
 
 
+class OperationMode(Enum):
+    ONESHOT_PLANNER = "oneshot_planner"
+    ANYTIME_PLANNER = "anytime_planner"
+    PLAN_VALIDATOR = "plan_validator"
+    PORTFOLIO_SELECTOR = "portfolio_selector"
+    COMPILER = "compiler"
+    SIMULATOR = "simulator"
+    REPLANNER = "replanner"
+
+
 class EngineMeta(type):
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
-        oms = [
-            "oneshot_planner",
-            "anytime_planner",
-            "plan_validator",
-            "portfolio_selector",
-            "compiler",
-            "simulator",
-            "replanner",
-        ]
         for base in bases:
-            for om in oms:
-                if hasattr(base, "is_" + om) and getattr(base, "is_" + om)():
-                    setattr(obj, "is_" + om, staticmethod(lambda: True))
-        for om in oms:
-            if not hasattr(obj, "is_" + om):
-                setattr(obj, "is_" + om, staticmethod(lambda: False))
+            for om in OperationMode:
+                if (
+                    hasattr(base, "is_" + om.value)
+                    and getattr(base, "is_" + om.value)()
+                ):
+                    setattr(obj, "is_" + om.value, staticmethod(lambda: True))
+        for om in OperationMode:
+            if not hasattr(obj, "is_" + om.value):
+                setattr(obj, "is_" + om.value, staticmethod(lambda: False))
         return obj
 
 

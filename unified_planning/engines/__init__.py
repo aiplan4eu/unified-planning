@@ -14,7 +14,7 @@
 #
 
 
-from unified_planning.engines.engine import Engine
+from unified_planning.engines.engine import Engine, OperationMode
 from unified_planning.engines.meta_engine import MetaEngine
 from unified_planning.engines.credits import Credits
 from unified_planning.engines.factory import Factory
@@ -41,10 +41,7 @@ from unified_planning.engines.mixins.simulator import SimulatorMixin, Event
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
-from unified_planning.engines.mixins.portfolio import (
-    PortfolioSelectorMixin,
-    OperationMode,
-)
+from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
 
 __all__ = [
     "Factory",
@@ -70,4 +67,8 @@ __all__ = [
     "CompilerResult",
     "PortfolioSelectorMixin",
     "OperationMode",
+    "AnytimeGuarantee",
+    "MetaEngine",
+    "OversubscriptionPlanner",
+    "Replanner",
 ]

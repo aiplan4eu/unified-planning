@@ -15,13 +15,7 @@
 
 from warnings import warn
 import unified_planning as up
-from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Tuple
-
-
-class OperationMode(Enum):
-    ONESHOT_PLANNING = auto()
-    PLAN_VALIDATION = auto()
 
 
 class PortfolioSelectorMixin:
@@ -35,7 +29,9 @@ class PortfolioSelectorMixin:
         return True
 
     @staticmethod
-    def supports_operation_mode(operation_mode: OperationMode) -> bool:
+    def supports_operation_mode(
+        operation_mode: "up.engines.engine.OperationMode",
+    ) -> bool:
         """
         :param operation_mode: The `operation_mode` that must be supported.
         :return: `True` if the `PortfolioSelector` implementation supports the given
@@ -46,7 +42,7 @@ class PortfolioSelectorMixin:
     def get_best_engines(
         self,
         problem: "up.model.AbstractProblem",
-        operation_mode: OperationMode,
+        operation_mode: "up.engines.engine.OperationMode",
         max_engines: Optional[int] = None,
     ) -> Tuple[List[str], List[Dict[str, Any]]]:
         """
@@ -92,7 +88,7 @@ class PortfolioSelectorMixin:
     def _get_best_engines(
         self,
         problem: "up.model.AbstractProblem",
-        operation_mode: OperationMode,
+        operation_mode: "up.engines.engine.OperationMode",
         max_engines: Optional[int] = None,
     ) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Method called by the PortfolioSelectorMixin.get_best_engines method."""
