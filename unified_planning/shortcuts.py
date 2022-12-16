@@ -538,6 +538,26 @@ def Compiler(
     )
 
 
+def Configurator(
+    engine_name: str,
+    operation_mode: OperationMode,
+    *,
+    name: Optional[str] = None,
+    params: Optional[Dict[str, Any]] = None,
+    problem_kind: ProblemKind = ProblemKind(),
+) -> "up.engines.engine.Engine":
+    """
+    Returns a Configurator. There are two ways to call this method:
+    - using 'name' field and eventually some specific parameters (params field).
+        e.g. Configurator("tamer", OperationMode.ONESHOT_PLANNER, name="tamer_configurator")
+    - using the 'problem_kind'.
+        e.g. Configurator("tamer", OperationMode.ONESHOT_PLANNER, problem_kind=problem.kind)
+    """
+    return get_env().factory.Configurator(
+        engine_name, operation_mode, name=name, params=params, problem_kind=problem_kind
+    )
+
+
 def Simulator(
     problem: "up.model.AbstractProblem",
     *,

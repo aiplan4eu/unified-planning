@@ -14,6 +14,7 @@
 #
 
 from unified_planning.engines.mixins.compiler import CompilerMixin, CompilationKind
+from unified_planning.engines.mixins.configurator import ConfiguratorMixin
 from unified_planning.engines.mixins.oneshot_planner import (
     OneshotPlannerMixin,
     OptimalityGuarantee,

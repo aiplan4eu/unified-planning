@@ -41,6 +41,7 @@ from unified_planning.engines.mixins.simulator import SimulatorMixin, Event
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
+from unified_planning.engines.mixins.configurator import ConfiguratorMixin
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
 
 __all__ = [
@@ -71,4 +72,5 @@ __all__ = [
     "MetaEngine",
     "OversubscriptionPlanner",
     "Replanner",
+    "ConfiguratorMixin",
 ]

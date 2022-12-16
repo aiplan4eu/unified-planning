@@ -27,6 +27,7 @@ from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimePlannerMixin
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.mixins.configurator import ConfiguratorMixin
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
@@ -372,6 +373,7 @@ class Factory:
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         target_operation_mode: Optional["OperationMode"] = None,
+        configured_engine_name: Optional[str] = None,
     ) -> Type["up.engines.engine.Engine"]:
         if name is not None:
             if name in self._engines:
@@ -416,6 +418,23 @@ class Factory:
                     if (
                         compilation_kind is not None
                         and not EngineClass.supports_compilation(compilation_kind)
+                    ):
+                        continue
+                elif operation_mode == OperationMode.CONFIGURATOR:
+                    assert issubclass(EngineClass, ConfiguratorMixin)
+                    assert optimality_guarantee is None
+                    assert anytime_guarantee is None
+                    assert plan_kind is None
+                    assert target_operation_mode is not None
+                    assert configured_engine_name is not None
+                    if configured_engine_name in self._engines:
+                        ConfiguredEngineClass = self._engines[configured_engine_name]
+                    else:
+                        raise up.exceptions.UPNoRequestedEngineAvailableException(
+                            f"No engine named {configured_engine_name} found!"
+                        )
+                    if not EngineClass.supports_operation_mode_configuration(
+                        target_operation_mode, ConfiguredEngineClass
                     ):
                         continue
                 elif operation_mode == OperationMode.ANYTIME_PLANNER:
@@ -531,6 +550,7 @@ class Factory:
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
         target_operation_mode: Optional[OperationMode] = None,
+        configured_engine_name: Optional[str] = None,
     ) -> "up.engines.engine.Engine":
         if names is not None and operation_mode != OperationMode.COMPILER:
             assert name is None
@@ -612,6 +632,13 @@ class Factory:
                 assert isinstance(res, CompilerMixin)
                 if compilation_kind is not None:
                     res.default = compilation_kind
+            elif operation_mode == OperationMode.CONFIGURATOR:
+                assert target_operation_mode is not None
+                ConfiguredEngineClass = self._get_engine_class(
+                    engine_kind=target_operation_mode, name=configured_engine_name
+                )
+                res = EngineClass(EngineClass=ConfiguredEngineClass, **params)
+                assert isinstance(res, ConfiguratorMixin)
             elif operation_mode == OperationMode.ONESHOT_PLANNER:
                 res = EngineClass(**params)
                 assert isinstance(res, OneshotPlannerMixin)
@@ -785,6 +812,32 @@ class Factory:
             problem_kind,
             compilation_kind=compilation_kind,
             compilation_kinds=kinds,
+        )
+
+    def Configurator(
+        self,
+        engine_name: str,
+        operation_mode: OperationMode,
+        *,
+        name: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+        problem_kind: ProblemKind = ProblemKind(),
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a Configurator. There are two ways to call this method:
+        - using 'name' field and eventually some specific parameters (params field).
+          e.g. Configurator("tamer", OperationMode.ONESHOT_PLANNER, name="tamer_configurator")
+        - using the 'problem_kind'.
+          e.g. Configurator("tamer", OperationMode.ONESHOT_PLANNER, problem_kind=problem.kind)
+        """
+        return self._get_engine(
+            OperationMode.CONFIGURATOR,
+            name,
+            None,
+            params,
+            problem_kind,
+            operation_mode=operation_mode,
+            configured_engine_name=engine_name,
         )
 
     def Simulator(
