@@ -383,7 +383,7 @@ class MAPDDLWriter:
                 f" (:functions\n"
                 if len(functions) > 0
                 or len(functions_dot_agents) > 0
-                or len(functions_agent)
+                or len(functions_agent) > 0
                 else ""
             )
             out.write(f' {" ".join(functions)}\n' if len(functions) > 0 else "")
@@ -394,12 +394,16 @@ class MAPDDLWriter:
             )
             out.write(
                 f'  (:private{" ".join(functions_agent)})\n'
+                if len(functions_agent) > 0
+                else ""
+            )
+            out.write(
+                f" )\n"
                 if len(functions) > 0
                 or len(functions_dot_agents) > 0
                 or len(functions_agent)
                 else ""
             )
-            out.write(f" )\n" if len(functions) > 0 else "")
 
             converter = ConverterToMAPDDLString(
                 self.problem.env, self._get_mangled_name
