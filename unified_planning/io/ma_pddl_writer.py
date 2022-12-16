@@ -354,7 +354,9 @@ class MAPDDLWriter:
             nl = "\n  "
             out.write(
                 f" (:predicates\n  {nl.join(predicates)}\n"
-                if len(predicates) > 0 or len(predicates_agent) > 0 or len(predicates_dot_agents) > 0
+                if len(predicates) > 0
+                or len(predicates_agent) > 0
+                or len(predicates_dot_agents) > 0
                 else ""
             )
             out.write(
@@ -371,7 +373,11 @@ class MAPDDLWriter:
             out.write(f")\n" if len(predicates) > 0 else "")
 
             out.write(
-                f' (:functions {" ".join(functions)}\n' if len(functions) > 0 or len(functions_dot_agents) > 0 or len(functions_agent) else ""
+                f' (:functions {" ".join(functions)}\n'
+                if len(functions) > 0
+                or len(functions_dot_agents) > 0
+                or len(functions_agent)
+                else ""
             )
             out.write(
                 f' {" ".join(functions_dot_agents)}\n'
