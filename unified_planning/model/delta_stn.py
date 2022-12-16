@@ -17,10 +17,11 @@
 from collections import deque
 from dataclasses import dataclass
 from fractions import Fraction
+from numbers import Number, Real
 from typing import Deque, Dict, Optional, Any, Generic, TypeVar, cast
 
 
-T = TypeVar("T", int, float, Fraction)
+T = TypeVar("T", bound=Real)
 
 
 @dataclass
@@ -36,7 +37,7 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         constraints: Optional[Dict[Any, Optional[DeltaNeighbors[T]]]] = None,
         distances: Optional[Dict[Any, T]] = None,
         is_sat: bool = True,
-        epsilon: T = 0,  # type: ignore
+        epsilon: T = cast(T, 0),
     ):
         self._constraints: Dict[Any, Optional[DeltaNeighbors[T]]] = (
             constraints if constraints is not None else {}
@@ -66,8 +67,8 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
 
     def add(self, x: Any, y: Any, b: T):
         if self._is_sat:
-            self._distances.setdefault(x, 0)  # type: ignore
-            self._distances.setdefault(y, 0)  # type: ignore
+            self._distances.setdefault(x, cast(T, 0))
+            self._distances.setdefault(y, cast(T, 0))
             x_constraints = self._constraints.get(x, None)
             self._constraints.setdefault(y, None)
             if not self._is_subsumed(x, y, b):
@@ -79,7 +80,7 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         return self._is_sat
 
     def get_stn_model(self, x: Any) -> T:
-        return -1 * self._distances[x]
+        return cast(T, -1 * self._distances[x])
 
     def _is_subsumed(self, x: Any, y: Any, b: T) -> bool:
         neighbor = self._constraints.get(x, None)
