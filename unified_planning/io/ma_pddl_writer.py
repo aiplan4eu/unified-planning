@@ -666,10 +666,27 @@ class MAPDDLWriter:
             if self.problem.kind.has_actions_cost():
                 out.write(f" (= (total-cost) 0)")
             out.write(")\n")
-            out.write(
-                f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
-            )
-            out.write(")\n")
+            out.write(f" (:goal (and")
+            for p in self.problem.goals:
+                if p.is_dot():
+                    fluent = p.args[0].fluent()
+                    args = p.args
+                    object = p.args[0].args[0]
+                    if p.agent().name == ag.name and fluent in ag.fluents:
+                        out.write(
+                            f' (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(ag)}{" " if len(args) > 0 else ""}{object})'
+                        )
+                    elif (
+                        p.agent().name != ag.name
+                        and fluent in self.domain_fluents_agents
+                    ):
+                        out.write(f" {converter.convert(p)}")
+                    else:
+                        out.write(f"")
+                else:
+                    out.write(f" {converter.convert(p)}")
+            out.write(f"))")
+            out.write("\n)")
             out.seek(0)
             ag_problem = out.read()
             ag_problems[self._get_mangled_name(ag)] = ag_problem
