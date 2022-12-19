@@ -142,6 +142,8 @@ class PartialOrderPlan(plans.plan.Plan):
         new_adj_list: Dict[
             "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
         ] = {}
+
+        # Populate the new adjacency list with the replaced action instances
         for ai in self._graph.nodes:
             replaced_ai = original_to_replaced_ai.get(ai, None)
             if replaced_ai is not None:
@@ -208,6 +210,24 @@ class PartialOrderPlan(plans.plan.Plan):
                 f"The action instance {str(action_instance)} does not belong to this Partial Order Plan. \n Note that 2 Action Instances are equals if and only if they are the exact same object."
             )
         return retval
+
+    def create_graphviz_output(
+        self, adjacency_list: dict[ActionInstance, list[ActionInstance]]
+    ):
+        graphviz_out = ""
+        graphviz_out += "digraph {\n"
+        for start, end_list in adjacency_list.items():
+            for end in end_list:
+                graphviz_out += f'\t"{start}" -> "{end}"\n'
+        graphviz_out += "}"
+        return graphviz_out
+
+    def get_graph_file(self, file_name: str):
+        adjacency_list = self.get_adjacency_list
+        graphviz_out = self.create_graphviz_output(adjacency_list)
+        with open(f"{file_name}.dot", "w") as f:
+            f.write(graphviz_out)
+        return graphviz_out
 
 
 def _semantically_equivalent_action_instances(
