@@ -128,25 +128,37 @@ class PartialOrderPlan(plans.plan.Plan):
             replaces `A` in the resulting `Plan`.
         :return: The `PartialOrderPlan` where every `ActionInstance` is replaced using the given `replace_function`.
         """
+        # first replace all nodes and store the mapping, then use the mapping to
+        # recreate the adjacency list representing the new graph
+        # ai = action_instance
+        original_to_replaced_ai: Dict[
+            "plans.plan.ActionInstance", "plans.plan.ActionInstance"
+        ] = {}
+        for ai in self._graph.nodes:
+            replaced_ai = replace_function(ai)
+            if replaced_ai is not None:
+                original_to_replaced_ai[ai] = replaced_ai
+
         new_adj_list: Dict[
             "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
         ] = {}
         # Populate the new adjacency list with the replaced action instances
-        for node in self._graph.nodes:
-            key = replace_function(node)
-            if key is not None:
+        for ai in self._graph.nodes:
+            replaced_ai = original_to_replaced_ai.get(ai, None)
+            if replaced_ai is not None:
+                replaced_ai = original_to_replaced_ai[ai]
                 replaced_neighbors = []
-                for successor in self._graph.neighbors(node):
-                    replaced_successor = replace_function(successor)
+                for successor in self._graph.neighbors(ai):
+                    replaced_successor = original_to_replaced_ai.get(successor, None)
                     if replaced_successor is not None:
                         replaced_neighbors.append(replaced_successor)
-                if len(replaced_neighbors) > 0:
-                    new_adj_list[key] = replaced_neighbors
+                new_adj_list[replaced_ai] = replaced_neighbors
+
         new_env = self._environment
         for ai in new_adj_list.keys():
             new_env = ai.action.env
             break
-        return PartialOrderPlan(new_adj_list, new_env)
+        return up.plans.PartialOrderPlan(new_adj_list, new_env)
 
     def to_sequential_plan(self) -> SequentialPlan:
         """Returns one between all possible `SequentialPlans` that respects the ordering constraints given by this `PartialOrderPlan`."""
@@ -173,6 +185,24 @@ class PartialOrderPlan(plans.plan.Plan):
                 f"The action instance {str(action_instance)} does not belong to this Partial Order Plan. \n Note that 2 Action Instances are equals if and only if they are the exact same object."
             )
         return retval
+
+    def create_graphviz_output(
+        self, adjacency_list: dict[ActionInstance, list[ActionInstance]]
+    ):
+        graphviz_out = ""
+        graphviz_out += "digraph {\n"
+        for start, end_list in adjacency_list.items():
+            for end in end_list:
+                graphviz_out += f'\t"{start}" -> "{end}"\n'
+        graphviz_out += "}"
+        return graphviz_out
+
+    def get_graph_file(self, file_name: str):
+        adjacency_list = self.get_adjacency_list
+        graphviz_out = self.create_graphviz_output(adjacency_list)
+        with open(f"{file_name}.dot", "w") as f:
+            f.write(graphviz_out)
+        return graphviz_out
 
 
 def _semantically_equivalent_action_instances(
