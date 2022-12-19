@@ -119,6 +119,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         )
         assert isinstance(grounding_result.problem, Problem)
         problem = grounding_result.problem.clone()
+        assert isinstance(problem, Problem)
         problem.name = f"{self.name}_{problem.name}"
         A = problem.actions
         I = problem.initial_values
