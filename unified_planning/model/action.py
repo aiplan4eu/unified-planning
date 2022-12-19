@@ -246,7 +246,9 @@ class InstantaneousAction(Action):
         """
         (precondition_exp,) = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
-        if precondition_exp.node_type in up.model.operators.TRAJECTORY_CONSTRAINTS:
+        opex = up.model.walkers.OperatorsExtractor()
+        ops = opex.get(precondition_exp)
+        if ops & set(up.model.operators.TRAJECTORY_CONSTRAINTS):
             raise UPTypeError(
                 f"Trajectory constraint {precondition_exp} is not allowed in action preconditions."
             )

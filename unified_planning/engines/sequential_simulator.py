@@ -277,7 +277,6 @@ class SequentialSimulator(Engine, SimulatorMixin):
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
-        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")

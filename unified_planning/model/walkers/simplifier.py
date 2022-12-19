@@ -197,23 +197,44 @@ class Simplifier(walkers.dag.DagWalker):
 
     def walk_always(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        return self.manager.Always(expression.args[0])
+        if args[0].is_true():
+            return self.manager.TRUE()
+        if args[0].is_false():
+            return self.manager.FALSE()
+        return self.manager.Always(args[0])
 
     def walk_at_most_once(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        return self.manager.AtMostOnce(expression.args[0])
+        if args[0].is_true() or args[0].is_false():
+            return self.manager.TRUE()
+        return self.manager.AtMostOnce(args[0])
 
     def walk_sometime(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        return self.manager.Sometime(expression.args[0])
+        if args[0].is_true():
+            return self.manager.TRUE()
+        if args[0].is_false():
+            return self.manager.FALSE()
+        return self.manager.Sometime(args[0])
 
     def walk_sometime_before(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
-        return self.manager.SometimeBefore(expression.args[0], expression.args[1])
+        if args[0].is_false():
+            return self.manager.TRUE()
+        if args[0].is_true():
+            return self.manager.FALSE()
+        return self.manager.SometimeBefore(args[0], args[1])
 
     def walk_sometime_after(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
-        return self.manager.SometimeAfter(expression.args[0], expression.args[1])
+        if args[0].is_false():
+            return self.manager.TRUE()
+        if args[0].is_true():
+            if args[1].is_true():
+                return self.manager.TRUE()
+            if args[1].is_false():
+                return self.manager.FALSE()
+        return self.manager.SometimeAfter(args[0], args[1])
 
     def walk_equals(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2

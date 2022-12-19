@@ -89,6 +89,7 @@ class TypeChecker(walkers.dag.DagWalker):
         assert expression is not None
         assert expression.is_always()
         assert len(expression.args) == 1
+        assert expression.args[0].type.is_bool_type()
         return expression.args[0].type
 
     def walk_sometime(
@@ -97,6 +98,7 @@ class TypeChecker(walkers.dag.DagWalker):
         assert expression is not None
         assert expression.is_sometime()
         assert len(expression.args) == 1
+        assert expression.args[0].type.is_bool_type()
         return expression.args[0].type
 
     def walk_at_most_once(
@@ -105,6 +107,7 @@ class TypeChecker(walkers.dag.DagWalker):
         assert expression is not None
         assert expression.is_at_most_once()
         assert len(expression.args) == 1
+        assert expression.args[0].type.is_bool_type()
         return expression.args[0].type
 
     def walk_sometime_before(
@@ -113,8 +116,11 @@ class TypeChecker(walkers.dag.DagWalker):
         assert expression is not None
         assert expression.is_sometime_before()
         assert len(expression.args) == 2
-        assert expression.args[0].type == expression.args[1].type
-        return expression.args[0].type
+        if not (expression.args[0].type == expression.args[1].type):
+            return None
+        else:
+            assert expression.args[0].type.is_bool_type()
+            return expression.args[0].type
 
     def walk_sometime_after(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
@@ -123,7 +129,11 @@ class TypeChecker(walkers.dag.DagWalker):
         assert expression.is_sometime_after()
         assert len(expression.args) == 2
         assert expression.args[0].type == expression.args[1].type
-        return expression.args[0].type
+        if not (expression.args[0].type == expression.args[1].type):
+            return None
+        else:
+            assert expression.args[0].type.is_bool_type()
+            return expression.args[0].type
 
     def walk_variable_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]

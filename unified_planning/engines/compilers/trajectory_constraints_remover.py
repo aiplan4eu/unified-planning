@@ -114,16 +114,16 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         env = problem.env
         substituter = Substituter(env)
         expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
-        self._grounding_result = engines.compilers.grounder.Grounder().compile(
+        grounding_result = engines.compilers.grounder.Grounder().compile(
             problem, CompilationKind.GROUNDING
         )
-        assert isinstance(self._grounding_result.problem, Problem)
-        self._problem = self._grounding_result.problem.clone()
-        self._problem.name = f"{self.name}_{problem.name}"
-        A = self._problem.actions
-        I = self._problem.initial_values
+        assert isinstance(grounding_result.problem, Problem)
+        problem = grounding_result.problem.clone()
+        problem.name = f"{self.name}_{problem.name}"
+        A = problem.actions
+        I = problem.initial_values
         C = self._build_constraint_list(
-            expression_quantifier_remover, env, self._problem.trajectory_constraints
+            expression_quantifier_remover, env, problem.trajectory_constraints, problem
         )
         # create a list that contains trajectory_constraints
         # trajectory_constraints can contain quantifiers and need to be remove
@@ -134,14 +134,13 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]
         )
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
-        assert isinstance(self._grounding_result.map_back_action_instance, partial)
-        map_grounded_action = self._grounding_result.map_back_action_instance.keywords[
-            "map"
-        ]
+        assert isinstance(grounding_result.map_back_action_instance, partial)
+        map_grounded_action = grounding_result.map_back_action_instance.keywords["map"]
         for a in A:
             map_value = map_grounded_action[a]
             assert isinstance(a, InstantaneousAction)
-            E: List["up.model.action.InstantaneousAction"] = list()
+            E: List["up.model.effect.Effect"] = list()
+            # create an empty list to store the new effects for each trajectory constraints
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
                 # manage the action for each trajectory_constraints that is relevant
@@ -179,40 +178,40 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             trace_back_map[a] = map_value
         # create new problem to return
         # adding new fluents, goal, initial values and actions
-        G_new = (env.expression_manager.And(self._problem.goals, G_prime)).simplify()
-        self._problem.clear_goals()
-        self._problem.add_goal(G_new)
-        self._problem.clear_trajectory_constraints()
+        G_new = (env.expression_manager.And(problem.goals, G_prime)).simplify()
+        problem.clear_goals()
+        problem.add_goal(G_new)
+        problem.clear_trajectory_constraints()
         for fluent in F_prime:
-            self._problem.add_fluent(fluent)
-        self._problem.clear_actions()
+            problem.add_fluent(fluent)
+        problem.clear_actions()
         for action in A_prime:
-            self._problem.add_action(action)
+            problem.add_action(action)
         for init_val in I_prime:
-            self._problem.set_initial_value(
+            problem.set_initial_value(
                 up.model.Fluent(f"{init_val}", env.type_manager.BoolType()), True
             )
         return CompilerResult(
-            self._problem, partial(lift_action_instance, map=trace_back_map), self.name
+            problem, partial(lift_action_instance, map=trace_back_map), self.name
         )
 
-    def _build_constraint_list(self, expression_quantifier_remover, env, constraints):
+    def _build_constraint_list(
+        self, expression_quantifier_remover, env, constraints, problem
+    ):
         C_temp = (env.expression_manager.And(constraints)).simplify()
         C_list = C_temp.args if C_temp.is_and() else [C_temp]
         C_to_return = (
             env.expression_manager.And(
-                self._remove_quantifier(expression_quantifier_remover, C_list)
+                self._remove_quantifier(expression_quantifier_remover, C_list, problem)
             )
         ).simplify()
         return C_to_return.args if C_to_return.is_and() else [C_to_return]
 
-    def _remove_quantifier(self, expression_quantifier_remover, C):
+    def _remove_quantifier(self, expression_quantifier_remover, C, problem):
         new_C = []
         for c in C:
             assert c.node_type is not OperatorKind.EXISTS
-            new_C.append(
-                expression_quantifier_remover.remove_quantifiers(c, self._problem)
-            )
+            new_C.append(expression_quantifier_remover.remove_quantifiers(c, problem))
         return new_C
 
     def _manage_sa_compilation(self, env, phi, psi, m_atom, a, E):
@@ -237,7 +236,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             added_precond = (None, False)
         else:
             rho = (
-                env.expression_manager.Or([env.expression_manager.Not(R_phi), m_atom])
+                env.expression_manager.Or(env.expression_manager.Not(R_phi), m_atom)
             ).simplify()
             added_precond = (rho, True)
         R_psi = (self._regression(env, psi, a)).simplify()
@@ -252,11 +251,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         else:
             rho = (
                 env.expression_manager.Or(
-                    [
-                        env.expression_manager.Not(R),
-                        env.expression_manager.Not(m_atom),
-                        phi,
-                    ]
+                    env.expression_manager.Not(R),
+                    env.expression_manager.Not(m_atom),
+                    phi,
                 )
             ).simplify()
             self._add_cond_eff(env, E, R, m_atom)
@@ -320,6 +317,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 SEEN_PHI,
                 substituter.substitute(constr.args[0], init_values).simplify(),
             )
+        elif constr.is_bool_constant():
+            return None, substituter.substitute(constr)
         else:
             return None, substituter.substitute(constr.args[0], init_values).simplify()
 
@@ -382,8 +381,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         negated_literal = env.expression_manager.Not(expression=literal)
         gamma1 = self._gamma(env, literal, action)
         gamma2 = env.expression_manager.Not(self._gamma(env, negated_literal, action))
-        conjunction = env.expression_manager.And([literal, gamma2])
-        return env.expression_manager.Or([gamma1, conjunction])
+        conjunction = env.expression_manager.And(literal, gamma2)
+        return env.expression_manager.Or(gamma1, conjunction)
 
     def _gamma(self, env, literal, action):
         disjunction = []
@@ -398,7 +397,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     return env.expression_manager.TRUE()
                 disjunction.append(cond)
         if not disjunction:
-            return False
+            return env.expression_manager.FALSE()
         return env.expression_manager.Or(disjunction)
 
     def _regression(self, env, phi, action):
@@ -408,11 +407,11 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             return self._gamma_substitution(env, phi, action)
         elif phi.is_or():
             return env.expression_manager.Or(
-                [self._regression(env, component, action) for component in phi.args]
+                self._regression(env, component, action) for component in phi.args
             )
         elif phi.is_and():
             return env.expression_manager.And(
-                [self._regression(env, component, action) for component in phi.args]
+                self._regression(env, component, action) for component in phi.args
             )
         elif phi.is_not():
             return env.expression_manager.Not(self._regression(env, phi.arg(0), action))
