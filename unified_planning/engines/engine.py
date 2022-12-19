@@ -21,6 +21,10 @@ from typing import Optional
 
 
 class OperationMode(Enum):
+    """
+    This class represents all the operation modes that the library supports.
+    """
+
     ONESHOT_PLANNER = "oneshot_planner"
     ANYTIME_PLANNER = "anytime_planner"
     PLAN_VALIDATOR = "plan_validator"

@@ -364,14 +364,14 @@ class Factory:
 
     def _get_engine_class(
         self,
-        engine_kind: "OperationMode",
+        operation_mode: "OperationMode",
         name: Optional[str] = None,
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
-        operation_mode: Optional["OperationMode"] = None,
+        target_operation_mode: Optional["OperationMode"] = None,
     ) -> Type["up.engines.engine.Engine"]:
         if name is not None:
             if name in self._engines:
@@ -384,10 +384,10 @@ class Factory:
         assert optimality_guarantee is None or compilation_kind is None
         for name in self._preference_list:
             EngineClass = self._engines[name]
-            if getattr(EngineClass, "is_" + engine_kind.value)():
+            if getattr(EngineClass, "is_" + operation_mode.value)():
                 if (
-                    engine_kind == OperationMode.ONESHOT_PLANNER
-                    or engine_kind == OperationMode.REPLANNER
+                    operation_mode == OperationMode.ONESHOT_PLANNER
+                    or operation_mode == OperationMode.REPLANNER
                 ):
                     assert issubclass(EngineClass, OneshotPlannerMixin) or issubclass(
                         EngineClass, ReplannerMixin
@@ -399,7 +399,7 @@ class Factory:
                         optimality_guarantee
                     ):
                         continue
-                elif engine_kind == OperationMode.PLAN_VALIDATOR:
+                elif operation_mode == OperationMode.PLAN_VALIDATOR:
                     assert issubclass(EngineClass, PlanValidatorMixin)
                     assert optimality_guarantee is None
                     assert anytime_guarantee is None
@@ -408,7 +408,7 @@ class Factory:
                         plan_kind
                     ):
                         continue
-                elif engine_kind == OperationMode.COMPILER:
+                elif operation_mode == OperationMode.COMPILER:
                     assert issubclass(EngineClass, CompilerMixin)
                     assert optimality_guarantee is None
                     assert anytime_guarantee is None
@@ -418,7 +418,7 @@ class Factory:
                         and not EngineClass.supports_compilation(compilation_kind)
                     ):
                         continue
-                elif engine_kind == OperationMode.ANYTIME_PLANNER:
+                elif operation_mode == OperationMode.ANYTIME_PLANNER:
                     assert issubclass(EngineClass, AnytimePlannerMixin)
                     assert optimality_guarantee is None
                     assert compilation_kind is None
@@ -427,14 +427,14 @@ class Factory:
                         anytime_guarantee
                     ):
                         continue
-                elif engine_kind == OperationMode.PORTFOLIO_SELECTOR:
+                elif operation_mode == OperationMode.PORTFOLIO_SELECTOR:
                     assert issubclass(EngineClass, PortfolioSelectorMixin)
                     assert optimality_guarantee is None
                     assert compilation_kind is None
                     assert plan_kind is None
                     assert anytime_guarantee is None
-                    assert operation_mode is not None
-                    if not EngineClass.supports_operation_mode(operation_mode):
+                    assert target_operation_mode is not None
+                    if not EngineClass.supports_operation_mode(target_operation_mode):
                         continue
                 else:
                     assert optimality_guarantee is None
@@ -460,10 +460,10 @@ class Factory:
             msg = f"No available engine supports {optimality_guarantee}"
         elif anytime_guarantee is not None:
             msg = f"No available engine supports {anytime_guarantee}"
-        elif operation_mode is not None:
-            msg = f"No available engine supports {operation_mode}"
+        elif target_operation_mode is not None:
+            msg = f"No available engine supports {target_operation_mode}"
         else:
-            msg = f"No available {engine_kind} engine"
+            msg = f"No available {operation_mode} engine"
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
 
     def _print_credits(self, all_credits: List[Optional["up.engines.Credits"]]):
@@ -517,7 +517,7 @@ class Factory:
 
     def _get_engine(
         self,
-        engine_kind: "OperationMode",
+        operation_mode: "OperationMode",
         name: Optional[str] = None,
         names: Optional[List[str]] = None,
         params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
@@ -528,13 +528,13 @@ class Factory:
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
-        operation_mode: Optional[OperationMode] = None,
+        target_operation_mode: Optional[OperationMode] = None,
     ) -> "up.engines.engine.Engine":
-        if names is not None and engine_kind != OperationMode.COMPILER:
+        if names is not None and operation_mode != OperationMode.COMPILER:
             assert name is None
             assert problem is None, "Parallel simulation is not supported"
             assert (
-                operation_mode is None
+                target_operation_mode is None
             ), "Parallel portfolio selection is not supported"
             if params is None:
                 params = [{} for i in range(len(names))]
@@ -542,13 +542,13 @@ class Factory:
             engines = []
             all_credits = []
             for name, param in zip(names, params):
-                EngineClass = self._get_engine_class(engine_kind, name)
+                EngineClass = self._get_engine_class(operation_mode, name)
                 all_credits.append(EngineClass.get_credits(**param))
                 engines.append((name, param))
             self._print_credits(all_credits)
             p_engine = up.engines.parallel.Parallel(self, engines)
             return p_engine
-        elif engine_kind == OperationMode.COMPILER and compilation_kinds is not None:
+        elif operation_mode == OperationMode.COMPILER and compilation_kinds is not None:
             assert name is None
             assert names is not None or problem_kind is not None
             if names is None:
@@ -560,7 +560,10 @@ class Factory:
             all_credits = []
             for name, param, compilation_kind in zip(names, params, compilation_kinds):
                 EngineClass = self._get_engine_class(
-                    engine_kind, name, problem_kind, compilation_kind=compilation_kind
+                    operation_mode,
+                    name,
+                    problem_kind,
+                    compilation_kind=compilation_kind,
                 )
                 assert issubclass(EngineClass, CompilerMixin)
                 problem_kind = EngineClass.resulting_problem_kind(
@@ -579,18 +582,18 @@ class Factory:
                 params = {}
             assert isinstance(params, Dict)
             EngineClass = self._get_engine_class(
-                engine_kind,
+                operation_mode,
                 name,
                 problem_kind,
                 optimality_guarantee,
                 compilation_kind,
                 plan_kind,
                 anytime_guarantee,
-                operation_mode,
+                target_operation_mode,
             )
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
-            if engine_kind == OperationMode.REPLANNER:
+            if operation_mode == OperationMode.REPLANNER:
                 assert problem is not None
                 if (
                     problem.kind.has_quality_metrics()
@@ -599,7 +602,7 @@ class Factory:
                     msg = f"The problem has no quality metrics but the engine is required to be optimal!"
                     raise up.exceptions.UPUsageError(msg)
                 res = EngineClass(problem=problem, **params)
-            elif engine_kind == OperationMode.SIMULATOR:
+            elif operation_mode == OperationMode.SIMULATOR:
                 assert problem is not None
                 res = EngineClass(
                     problem=problem,
@@ -607,17 +610,17 @@ class Factory:
                     **params,
                 )
                 assert isinstance(res, SimulatorMixin)
-            elif engine_kind == OperationMode.COMPILER:
+            elif operation_mode == OperationMode.COMPILER:
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)
                 if compilation_kind is not None:
                     res.default = compilation_kind
-            elif engine_kind == OperationMode.ONESHOT_PLANNER:
+            elif operation_mode == OperationMode.ONESHOT_PLANNER:
                 res = EngineClass(**params)
                 assert isinstance(res, OneshotPlannerMixin)
                 if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
                     res.optimality_metric_required = True
-            elif engine_kind == OperationMode.ANYTIME_PLANNER:
+            elif operation_mode == OperationMode.ANYTIME_PLANNER:
                 res = EngineClass(**params)
                 assert isinstance(res, AnytimePlannerMixin)
                 if (
@@ -861,7 +864,7 @@ class Factory:
             name=name,
             params=params,
             problem_kind=problem_kind,
-            operation_mode=operation_mode,
+            target_operation_mode=operation_mode,
         )
 
     def print_engines_info(
