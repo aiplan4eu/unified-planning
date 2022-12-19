@@ -76,6 +76,10 @@ DEFAULT_ENGINES = {
         "TarskiGrounder",
     ),
     "up_grounder": ("unified_planning.engines.compilers.grounder", "Grounder"),
+    "temporal_plan_validator": (
+        "unified_planning.engines.temporal_plan_validator",
+        "TemporalPlanValidator",
+    ),
 }
 
 DEFAULT_META_ENGINES = {
@@ -99,6 +103,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "tamer",
     "sequential_plan_validator",
     "sequential_simulator",
+    "temporal_plan_validator",
     "temporal_simulator",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
