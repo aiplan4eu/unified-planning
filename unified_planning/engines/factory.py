@@ -373,7 +373,7 @@ class Factory:
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         target_operation_mode: Optional["OperationMode"] = None,
-        configured_engine_name: Optional[str] = None,
+        engine_to_configure: Optional[str] = None,
     ) -> Type["up.engines.engine.Engine"]:
         if name is not None:
             if name in self._engines:
@@ -426,14 +426,14 @@ class Factory:
                     assert anytime_guarantee is None
                     assert plan_kind is None
                     assert target_operation_mode is not None
-                    assert configured_engine_name is not None
-                    if configured_engine_name in self._engines:
-                        ConfiguredEngineClass = self._engines[configured_engine_name]
+                    assert engine_to_configure is not None
+                    if engine_to_configure in self._engines:
+                        ConfiguredEngineClass = self._engines[engine_to_configure]
                     else:
                         raise up.exceptions.UPNoRequestedEngineAvailableException(
-                            f"No engine named {configured_engine_name} found!"
+                            f"No engine named {engine_to_configure} found!"
                         )
-                    if not EngineClass.supports_operation_mode_configuration(
+                    if not EngineClass.supports_operation_mode_for_configuration(
                         target_operation_mode, ConfiguredEngineClass
                     ):
                         continue
@@ -635,7 +635,7 @@ class Factory:
             elif operation_mode == OperationMode.CONFIGURATOR:
                 assert target_operation_mode is not None
                 ConfiguredEngineClass = self._get_engine_class(
-                    engine_kind=target_operation_mode, name=configured_engine_name
+                    operation_mode=target_operation_mode, name=configured_engine_name
                 )
                 res = EngineClass(EngineClass=ConfiguredEngineClass, **params)
                 assert isinstance(res, ConfiguratorMixin)
@@ -836,7 +836,7 @@ class Factory:
             None,
             params,
             problem_kind,
-            operation_mode=operation_mode,
+            target_operation_mode=operation_mode,
             configured_engine_name=engine_name,
         )
 

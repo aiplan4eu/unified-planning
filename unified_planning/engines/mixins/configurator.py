@@ -33,7 +33,7 @@ class ConfiguratorMixin:
         return True
 
     @staticmethod
-    def supports_operation_mode_configuration(
+    def supports_operation_mode_for_configuration(
         operation_mode: "up.engines.engine.OperationMode", EngineClass: Type
     ) -> bool:
         """
@@ -68,7 +68,7 @@ class ConfiguratorMixin:
                 raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
-        if not self.skip_checks and not self.supports_operation_mode_configuration(
+        if not self.skip_checks and not self.supports_operation_mode_for_configuration(
             operation_mode, self._engine_class
         ):
             msg = f"{self.name} does not support the {operation_mode}!"
