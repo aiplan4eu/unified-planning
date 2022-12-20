@@ -69,6 +69,10 @@ class TemporalEvent(InstantaneousEvent):
 
     _class_id = 0
 
+    @property
+    def class_id(self) -> int:
+        return type(self)._class_id
+
     def __init__(
         self,
         kind: TemporalEventKind,
@@ -101,8 +105,8 @@ class TemporalEvent(InstantaneousEvent):
                 "Timing not included for an INSTANTANEOUS_ACTION TemporalEvent is not valid."
             )
         self._committed_events = committed_events
-        self._id = TemporalEvent._class_id
-        TemporalEvent._class_id += 1
+        self._id = type(self)._class_id
+        type(self)._class_id += 1
 
     def __repr__(self) -> str:
         res: List[str] = []
@@ -246,21 +250,24 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 f"Temporal Simulator needs a TemporalState instance, but {type(state)} is given!"
             )
         if isinstance(event, Event):
-            event = [event]
-        for e in event:
+            events: List[TemporalEvent] = [cast(TemporalEvent, event)]
+        else:
+            events = [cast(TemporalEvent, e) for e in event]
+        for e in events:
             assert isinstance(e, TemporalEvent)
             if not (
                 len(self.get_unsatisfied_conditions(e, state, early_termination=True))
                 == 0
             ):
                 return False
-            if e.kind != TemporalEventKind.START_ACTION:
-                found = any(
-                    running_events[0] == e for running_events in state.running_events
-                )
-                if not found:
-                    return False
-        new_state = self.apply_unsafe(event, state)
+        # control that the given events are compatible with the given running events
+        for oe in correct_order_events_to_apply(
+            cast(Iterable[TemporalEvent], events),
+            cast(List[List[TemporalEvent]], state.running_events),
+        ):
+            if oe is None:
+                return False
+        new_state = self.apply_unsafe(events, state)
         assert isinstance(new_state, TemporalState)
         if not new_state.stn.check_stn():
             return False
@@ -323,33 +330,27 @@ class TemporalSimulator(Engine, SimulatorMixin):
         if not isinstance(state, TemporalState):
             raise UPUsageError("Timed Simulator needs a TemporalState!")
         if isinstance(event, Event):
-            event = [event]
+            events: Set[TemporalEvent] = {cast(TemporalEvent, event)}
+        else:
+            events = cast(Set[TemporalEvent], set(event))
         updated_values, red_fluents = self._get_updated_values_and_red_fluents(
-            event, state, self._se, self._all_possible_assignments
+            events, state, self._se, self._all_possible_assignments
         )
         # New State variables
         stn = state.stn.copy_stn()
         running_events = [rel[:] for rel in state.running_events]
         durative_conditions = [cl[:] for cl in state.durative_conditions]
 
-        events = iter(event)
-        # save first event and add a zero distance between all events to apply in this call.
-        try:
-            first_ev = next(events)
-        except StopIteration:
+        if len(events) == 0:
             raise UPUsageError("The given iterator of events is empty")
-        if not isinstance(first_ev, TemporalEvent):
-            raise UPUsageError(
-                f"The timed simulator needs Temporal Events, {type(first_ev)} was given!"
-            )
         last_event = cast(
             TemporalEvent, next(iter(state.last_events))
         )  # TODO check if use list instead of sets
-        self._expand_event(
-            first_ev, stn, running_events, durative_conditions, last_event
-        )
-        other_ev = next(events, None)
-        while other_ev is not None:
+        first = True
+        for other_ev in correct_order_events_to_apply(
+            events, cast(List[List[TemporalEvent]], running_events)
+        ):
+            assert other_ev is not None
             if not isinstance(other_ev, TemporalEvent):
                 raise UPUsageError(
                     f"The timed simulator needs Temporal Events, {type(other_ev)} was given!"
@@ -357,10 +358,17 @@ class TemporalSimulator(Engine, SimulatorMixin):
             self._expand_event(
                 other_ev, stn, running_events, durative_conditions, last_event
             )
-            insert_interval(
-                stn, first_ev, other_ev, left_bound=Fraction(0), right_bound=Fraction(0)
-            )
-            other_ev = next(events, None)
+            if first:
+                first_ev = other_ev
+                first = False
+            else:
+                insert_interval(
+                    stn,
+                    first_ev,
+                    other_ev,
+                    left_bound=Fraction(0),
+                    right_bound=Fraction(0),
+                )
         written_fluents: Set[FNode] = set(updated_values.keys())
         red_fluents.difference_update(written_fluents)
         prev_state = state
@@ -410,7 +418,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         new_state = cast(
             TemporalState,
             state.make_child(
-                updated_values, running_events, stn, durative_conditions, set(event)
+                updated_values, running_events, stn, durative_conditions, set(events)
             ),
         )
         return new_state
@@ -890,3 +898,44 @@ def insert_interval(
         stn.add(left_event, right_event, -left_bound)
     if right_bound is not None:
         stn.add(right_event, left_event, right_bound)
+
+
+def correct_order_events_to_apply(
+    events: Iterable[TemporalEvent], running_events: List[List[TemporalEvent]]
+) -> Iterator[Optional[TemporalEvent]]:
+    # TODO find a significative name
+    """
+    This method yields the events in the correct order they must be applied. If a None element is
+    returned, it means the given events are not applicable.
+    """
+    events = set(events)
+    start_action_events = filter(
+        lambda ev: ev.kind
+        in (TemporalEventKind.START_ACTION, TemporalEventKind.INSTANTANEOUS_ACTION),
+        events.copy(),
+    )
+    # Copy the running events and simulate the events being popped and added from the state as they get applied.
+    running_events = [rel[:] for rel in running_events]
+    while events:
+        # other ev is or an event in the start_action_events (if there are any), if
+        # not, it's an event that is also a head of one of the running_events list.
+        ret_ev = next(start_action_events, None)
+        if ret_ev is None:
+            for ev in events:
+                found = False
+                for rel in running_events:
+                    if rel[0] == ev:
+                        ret_ev = rel.pop(0)
+                        if not rel:
+                            running_events.remove(rel)
+                        break
+                if found:
+                    break
+        yield ret_ev
+        if ret_ev is None:
+            break
+        assert ret_ev is not None
+        events.remove(ret_ev)
+        if ret_ev.kind == TemporalEventKind.START_ACTION:
+            assert ret_ev.committed_events is not None
+            running_events.append(ret_ev.committed_events[:])
