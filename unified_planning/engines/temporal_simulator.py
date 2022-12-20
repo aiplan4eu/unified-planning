@@ -925,6 +925,7 @@ def correct_order_events_to_apply(
                 found = False
                 for rel in running_events:
                     if rel[0] == ev:
+                        found = True
                         ret_ev = rel.pop(0)
                         if not rel:
                             running_events.remove(rel)
