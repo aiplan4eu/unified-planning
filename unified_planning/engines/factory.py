@@ -434,7 +434,9 @@ class Factory:
                     assert plan_kind is None
                     assert anytime_guarantee is None
                     assert target_operation_mode is not None
-                    if not EngineClass.supports_operation_mode(target_operation_mode):
+                    if not EngineClass.supports_operation_mode_for_selection(
+                        target_operation_mode
+                    ):
                         continue
                 else:
                     assert optimality_guarantee is None

@@ -29,7 +29,7 @@ class PortfolioSelectorMixin:
         return True
 
     @staticmethod
-    def supports_operation_mode(
+    def supports_operation_mode_for_selection(
         operation_mode: "up.engines.engine.OperationMode",
     ) -> bool:
         """
@@ -73,7 +73,9 @@ class PortfolioSelectorMixin:
                 raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
-        if not self.skip_checks and not self.supports_operation_mode(operation_mode):
+        if not self.skip_checks and not self.supports_operation_mode_for_selection(
+            operation_mode
+        ):
             msg = f"{self.name} does not support the {operation_mode}!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
