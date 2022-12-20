@@ -110,6 +110,7 @@ class TemporalEvent(InstantaneousEvent):
 
     def __repr__(self) -> str:
         res: List[str] = []
+        res.append(str(self._id))
         res.append(str(self._kind))
         res.append(str(self._timing))
         res.append(str(self._timing_included))

@@ -50,9 +50,6 @@ class TestPlanValidator(TestCase):
                 if validator.supports(problem.kind) and validator.supports_plan(
                     plan.kind
                 ):
-                    if not problem.name == "MatchCellar":
-                        continue
-                    print(problem.name)
                     res = validator.validate(problem, plan)
                     self.assertEqual(
                         res.status, up.engines.ValidationResultStatus.VALID

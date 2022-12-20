@@ -213,19 +213,13 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         valid_plan = True
         for _, set_events in sorted(time_events_map.items(), key=sort_time_events_map):
             next_state = simulator.apply(set_events, state)
-            print(set_events)
             if next_state is None:
                 valid_plan = False
-                print(set_events)
-                print(simulator.is_applicable(set_events, state))
-
                 break
             state = next_state
 
         if valid_plan:
-            print(valid_plan)
             valid_plan = simulator.is_goal(state)
-            print(valid_plan)
 
         status = (
             ValidationResultStatus.VALID
