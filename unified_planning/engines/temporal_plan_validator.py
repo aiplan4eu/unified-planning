@@ -223,7 +223,7 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             if next_state is None:
                 ev_info_report: List[
                     Tuple[int, ActionInstance, TemporalEventKind, Timing]
-                ] = [(e.kind, *error_report_map[e]) for e in set_events]
+                ] = [(*error_report_map[e], e.kind, e.timing) for e in set_events]
                 msgs: List[str] = [
                     f"Unapplicable events, applied at absolute time {abs_time[0]} in the plan.",
                     "The following list contains, for every event belonging to the unapplicable events,"
