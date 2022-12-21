@@ -16,6 +16,7 @@
 import unified_planning as up
 from fractions import Fraction
 from typing import IO, Optional, Union
+from warnings import warn
 
 
 class ReplannerMixin:
@@ -25,10 +26,11 @@ class ReplannerMixin:
         self._problem = problem.clone()
         self_class = type(self)
         assert issubclass(self_class, up.engines.engine.Engine)
+        assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
-                raise UPUsageError(msg)
+                raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
 
