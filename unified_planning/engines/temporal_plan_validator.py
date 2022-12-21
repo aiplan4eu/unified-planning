@@ -29,6 +29,7 @@ from unified_planning.model import (
     InstantaneousAction,
     DurativeAction,
     TemporalState,
+    Timing,
 )
 from unified_planning.engines.results import (
     ValidationResult,
@@ -41,7 +42,7 @@ from unified_planning.engines.temporal_simulator import (
     TemporalEvent,
     TemporalEventKind,
 )
-from unified_planning.plans import PlanKind, TimeTriggeredPlan
+from unified_planning.plans import PlanKind, TimeTriggeredPlan, ActionInstance
 
 
 def sort_time_events_map(item: Tuple[Tuple[Fraction, bool, bool], Set[TemporalEvent]]):
@@ -146,7 +147,8 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         # keys of time_events_map are Fraction (the time), the first bool (that represents if the timing is included),
         # if the timing is not included, then the second bool represents if the events in it are START_CONDITION.
         time_events_map: Dict[Tuple[Fraction, bool, bool], Set[TemporalEvent]] = {}
-        for start_time, ai, duration in plan.timed_actions:
+        error_report_map: Dict[TemporalEvent, Tuple[int, ActionInstance]] = {}
+        for i, (start_time, ai, duration) in enumerate(plan.timed_actions):
 
             action = ai.action
             assert (
@@ -161,8 +163,10 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 List[TemporalEvent],
                 simulator.get_events(action, ai.actual_parameters, duration),
             )
+            error_val = (i, ai)
             for ev in events:
                 assert ev.timing.is_from_start()
+                error_report_map[ev] = error_val
                 event_time: Fraction = start_time + ev.timing.delay
                 end_plan = max(end_plan, event_time)
                 specific_time_set_events: Set[
@@ -176,6 +180,8 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     set(),
                 )
                 specific_time_set_events.add(ev)
+
+        # Add events belonging to the problem (like TILS)
         assert len(current_state.running_events) == 1
         only_end_events: bool = False
         for ev in cast(List[TemporalEvent], current_state.running_events[0][:-1]):
@@ -207,19 +213,38 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 )
                 specific_time_set_events.add(ev)
 
-        # TODO add a way to return some logs when plan fails.
         logs: List[LogMessage] = []
         state = simulator.get_initial_state()
         valid_plan = True
-        for _, set_events in sorted(time_events_map.items(), key=sort_time_events_map):
+        for abs_time, set_events in sorted(
+            time_events_map.items(), key=sort_time_events_map
+        ):
             next_state = simulator.apply(set_events, state)
             if next_state is None:
+                ev_info_report: List[
+                    Tuple[int, ActionInstance, TemporalEventKind, Timing]
+                ] = [(e.kind, *error_report_map[e]) for e in set_events]
+                msgs: List[str] = [
+                    f"Unapplicable events, applied at absolute time {abs_time[0]} in the plan.",
+                    "The following list contains, for every event belonging to the unapplicable events,"
+                    "the number of the action in the plan, the ActionInstance that generated the event, ",
+                    "the event kind and the relative timing event inside the action.",
+                    f"\n{ev_info_report}",
+                ]
+                logs.append(LogMessage(LogLevel.INFO, " ".join(msgs)))
                 valid_plan = False
                 break
             state = next_state
 
         if valid_plan:
             valid_plan = simulator.is_goal(state)
+            if not valid_plan:
+                logs.append(
+                    LogMessage(
+                        LogLevel.INFO,
+                        "The final state reached by the plan is not identified as a goal!",
+                    )
+                )
 
         status = (
             ValidationResultStatus.VALID
