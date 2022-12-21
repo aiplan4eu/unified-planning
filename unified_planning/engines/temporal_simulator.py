@@ -423,7 +423,11 @@ class TemporalSimulator(Engine, SimulatorMixin):
         new_state = cast(
             TemporalState,
             state.make_child(
-                updated_values, running_events, stn, durative_conditions, events
+                updated_values,
+                running_events,
+                stn,
+                durative_conditions,
+                cast(Set[Event], events),
             ),
         )
         return new_state
