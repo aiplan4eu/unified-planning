@@ -246,7 +246,7 @@ class TestPlanner(TestCase):
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_check_flags(self):
         problem = self.problems["robot"].problem
-        error_msg = "We cannot establish whether sequential_simulator is able to handle this problem!"
+        error_msg = "We cannot establish whether ENHSP can solve this problem!"
         with OneshotPlanner(name="opt-pddl-planner") as planner:
 
             # By default, when getting an Engine by name, we get a warning if the problem is not
