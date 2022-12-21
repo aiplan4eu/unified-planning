@@ -76,12 +76,12 @@ class SimulatorMixin:
         self, event: Union["Event", Iterable["Event"]], state: "ROState"
     ) -> bool:
         """
-        Returns `True` if the given `event conditions` are evaluated as `True` in the given `state`;
+        Returns `True` if the given `events` are applicable in the given `state`;
         returns `False` otherwise.
 
-        :param state: the `state` where the `event conditions` are checked.
-        :param event: the `event` or `Iterable[Event]` whose `conditions` are checked.
-        :return: Whether or not the `event` is applicable in the given `state`.
+        :param state: the `state` where the `events` are checked.
+        :param event: the `event` or `Iterable[Event]` that are checked.
+        :return: Whether or not the `event` is/are applicable in the given `state`.
         """
         return self._is_applicable(event, state)
 
@@ -179,7 +179,7 @@ class SimulatorMixin:
         :param state: the `state` where the formulas are evaluated.
         :param durations_map: optionally, the mapping from the Tuple[Action + grounding_parameters]
             to the duration of said action.
-        :return: an `Iterable` of applicable `Events`.
+        :return: an `Iterator` of applicable `Events`.
         """
         return self._get_applicable_events(state, durations_map)
 
@@ -309,23 +309,23 @@ class SimulatorMixin:
         for ev in event:
             for cond in ev.conditions:
                 red_fluents.update(self._fve.get(cond))
-            for e in ev.effects:
+            for eff in ev.effects:
                 evaluated_args = tuple(
-                    state_evaluator.evaluate(a, state) for a in e.fluent.args
+                    state_evaluator.evaluate(a, state) for a in eff.fluent.args
                 )
-                fluent = em.FluentExp(e.fluent.fluent(), evaluated_args)
-                red_fluents.update(self._fve.get(e.condition))
-                if state_evaluator.evaluate(e.condition, state).is_true():
-                    for fluent_arg in e.fluent.args:
+                fluent = em.FluentExp(eff.fluent.fluent(), evaluated_args)
+                red_fluents.update(self._fve.get(eff.condition))
+                if state_evaluator.evaluate(eff.condition, state).is_true():
+                    for fluent_arg in eff.fluent.args:
                         red_fluents.update(self._fve.get(fluent_arg))
-                    red_fluents.update(self._fve.get(e.value))
-                    if e.is_assignment():
+                    red_fluents.update(self._fve.get(eff.value))
+                    if eff.is_assignment():
                         if fluent in updated_values:
                             raise UPConflictingEffectsException(
                                 f"The fluent {fluent} is modified by 2 assignments in the same event."
                             )
                         updated_values[fluent] = state_evaluator.evaluate(
-                            e.value, state
+                            eff.value, state
                         )
                         assigned_fluent.add(fluent)
                     else:
@@ -341,12 +341,12 @@ class SimulatorMixin:
                         f_eval = updated_values.get(
                             fluent, state_evaluator.evaluate(fluent, state)
                         )
-                        v_eval = state_evaluator.evaluate(e.value, state)
-                        if e.is_increase():
+                        v_eval = state_evaluator.evaluate(eff.value, state)
+                        if eff.is_increase():
                             updated_values[fluent] = em.auto_promote(
                                 f_eval.constant_value() + v_eval.constant_value()
                             )[0]
-                        elif e.is_decrease():
+                        elif eff.is_decrease():
                             updated_values[fluent] = em.auto_promote(
                                 f_eval.constant_value() - v_eval.constant_value()
                             )[0]

@@ -69,10 +69,6 @@ class TemporalEvent(InstantaneousEvent):
 
     _class_id = 0
 
-    @property
-    def class_id(self) -> int:
-        return type(self)._class_id
-
     def __init__(
         self,
         kind: TemporalEventKind,
@@ -137,14 +133,6 @@ class TemporalEvent(InstantaneousEvent):
     @property
     def committed_events(self) -> Optional[List["TemporalEvent"]]:
         return self._committed_events
-
-    @committed_events.setter
-    def committed_events(self, new_value: List["TemporalEvent"]):
-        if self._kind != TemporalEventKind.START_ACTION:
-            raise UPUsageError(
-                "Committed events make sense only for start action events."
-            )
-        self._committed_events = new_value
 
     @property
     def id(self) -> int:
@@ -244,7 +232,18 @@ class TemporalSimulator(Engine, SimulatorMixin):
     def _is_applicable(
         self, event: Union["Event", Iterable["Event"]], state: "ROState"
     ) -> bool:
-        assert self._se is not None
+        """
+        Returns `True` if the given `events` are applicable in the given `state`;
+        returns `False` otherwise; a `TemporalEvent` is applicable if it's conditions
+        are respected in the state, it's effects don't violate any durative condition,
+        the event does not violate any time constraint of events applied before and
+        the event is expected in this `state` (it is a `START_ACTION`, an `INSTANTANEOUS_ACTION`
+        or it's already in the `state.running_events`).
+
+        :param state: the `state` where the `events` are checked.
+        :param event: the `event` or `Iterable[Event]` that are checked.
+        :return: Whether or not the `event` is/are applicable in the given `state`.
+        """
         if not isinstance(state, TemporalState):
             raise UPUsageError(
                 f"Temporal Simulator needs a TemporalState instance, but {type(state)} is given!"
@@ -254,7 +253,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
         else:
             events = [cast(TemporalEvent, e) for e in event]
         for e in events:
-            assert isinstance(e, TemporalEvent)
+            if not isinstance(e, TemporalEvent):
+                raise UPUsageError(
+                    f"TemporalSimulator only accepts TemporalEvents but {type(e)} is given!"
+                )
             if not (
                 len(self.get_unsatisfied_conditions(e, state, early_termination=True))
                 == 0
@@ -262,7 +264,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 return False
         # control that the given events are compatible with the given running events
         for oe in correct_order_events_to_apply(
-            cast(Iterable[TemporalEvent], events),
+            events,
             cast(List[List[TemporalEvent]], state.running_events),
         ):
             if oe is None:
@@ -271,6 +273,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert isinstance(new_state, TemporalState)
         if not new_state.stn.check_stn():
             return False
+        assert self._se is not None
         for cl in state.durative_conditions:
             for condition in cl:
                 assert isinstance(condition, FNode)
@@ -328,7 +331,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         :return: A new COWState with some updated values.
         """
         if not isinstance(state, TemporalState):
-            raise UPUsageError("Timed Simulator needs a TemporalState!")
+            raise UPUsageError("Temporal Simulator needs a TemporalState!")
         if isinstance(event, Event):
             events: Set[TemporalEvent] = {cast(TemporalEvent, event)}
         else:
@@ -350,7 +353,9 @@ class TemporalSimulator(Engine, SimulatorMixin):
         for other_ev in correct_order_events_to_apply(
             events, cast(List[List[TemporalEvent]], running_events)
         ):
-            assert other_ev is not None
+            assert (
+                other_ev is not None
+            ), "Events given to apply_unsafe are supposed to be applicable"
             if not isinstance(other_ev, TemporalEvent):
                 raise UPUsageError(
                     f"The timed simulator needs Temporal Events, {type(other_ev)} was given!"
@@ -391,7 +396,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 TemporalEvent, next(iter(prev_state.last_events))
             )  # TODO check if use list instead of sets
             assert isinstance(last_event, TemporalEvent)
-            # Case where at least 1 Event writes something, affecting the other Event
+            # Case where at least 1 Event writes something, that affects the other Event
             if (
                 not red_fluents.isdisjoint(oth_written_fluents)
                 or not written_fluents.isdisjoint(oth_red_fluents)
@@ -418,7 +423,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         new_state = cast(
             TemporalState,
             state.make_child(
-                updated_values, running_events, stn, durative_conditions, set(events)
+                updated_values, running_events, stn, durative_conditions, events
             ),
         )
         return new_state
@@ -483,27 +488,11 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."
             )
+        # TODO we need a check that the duration belongs to the Action's duration interval
         params_exp = tuple(
             self._problem.env.expression_manager.auto_promote(parameters)
         )
         grounded_action = self._grounder.ground_action(action, params_exp)
-        # # check duration constraints
-        # em = self._problem.env.expression_manager
-        # action_duration = grounded_action.duration
-        # left_compare = em.GT if action_duration.is_left_open() else em.GE
-        # right_compare = em.LT if action_duration.is_right_open() else em.LE
-        # if not self._se.evaluate(
-        #     left_compare(duration, action_duration.lower)
-        # ).bool_constant_value():
-        #     raise UPUsageError(
-        #         f"The duration: {duration} is lower than the lower bound of the action's {action.name} duration constraints."
-        #     )
-        # if not self._se.evaluate(
-        #     right_compare(duration, action_duration.upper)
-        # ).bool_constant_value():
-        #     raise UPUsageError(
-        #         f"The duration: {duration} is bigger than the upper bound of the action's {action.name} duration constraints."
-        #     )
         event_list = self._get_or_create_events(
             action, params_exp, grounded_action, duration
         )
@@ -585,6 +574,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
+
+        # supported_kind.set_expression_duration('STATIC_FLUENTS_IN_DURATION')
+        # supported_kind.set_expression_duration('FLUENTS_IN_DURATION')
+        # TODO understand how to support those: it's a problem related to the TODO
+        # in the _get_events method
+
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         return supported_kind
 
@@ -601,8 +596,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
     ) -> List[Event]:
         """
         Support function that takes the `original Action`, the `parameters` used to ground the `grounded Action` and
-        the `grounded Action` itself, and adds the corresponding `List of Events` to this `Simulator`. If the
-        corresponding `Events` were already created, the same value is returned and no new `Events` are created.
+        the `grounded Action` itself, and returns the corresponding `List of Events`.
 
         :param original_action: The `Action` of the :class:`~unified_planning.model.Problem` grounded with the given `params`.
         :param params: The expressions used to ground the `original_action`.
