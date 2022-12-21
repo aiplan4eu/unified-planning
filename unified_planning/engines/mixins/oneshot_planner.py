@@ -70,7 +70,7 @@ class OneshotPlannerMixin:
         assert isinstance(self, up.engines.engine.Engine)
         problem_kind = problem.kind
         if not self.skip_checks and not self.supports(problem_kind):
-            msg = f"{self.name} cannot solve this kind of problem!"
+            msg = f"We cannot establish whether {self.name} can solve this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
             else:

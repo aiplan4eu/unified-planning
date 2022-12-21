@@ -46,7 +46,7 @@ class PlanValidatorMixin:
         """
         assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self.supports(problem.kind):
-            msg = f"{self.name} cannot validate this kind of problem!"
+            msg = f"We cannot establish whether {self.name} can validate this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
             else:
