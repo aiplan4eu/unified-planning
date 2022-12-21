@@ -17,7 +17,7 @@ import unified_planning as up
 import unified_planning.engines
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
-    full_numeric_kind,
+    simple_numeric_kind,
     quality_metrics_kind,
 )
 from unified_planning.io import PDDLReader
@@ -31,7 +31,7 @@ PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
 
 class TestAnytimePlanning(TestCase):
     @skipIfNoAnytimePlannerForProblemKind(
-        full_numeric_kind.union(quality_metrics_kind),
+        simple_numeric_kind.union(quality_metrics_kind),
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,
     )
     def test_counters(self):

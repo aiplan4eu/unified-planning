@@ -159,9 +159,6 @@ class TestSimulator(TestCase):
         problem = self.problems["matchcellar"].problem
         with self.assertRaises(UPUsageError) as e:
             SequentialSimulator(problem)
-        self.assertIn(
-            "The problem named: MatchCellar is not supported by the <class 'unified_planning.engines.sequential_simulator.SequentialSimulator'>.",
-            str(e.exception),
-        )
+        self.assertIn("cannot establish whether", str(e.exception))
         with Simulator(problem, name="sequential_simulator") as simulator:
             pass
