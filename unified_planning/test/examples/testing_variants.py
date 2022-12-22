@@ -492,4 +492,97 @@ def get_example_problems():
     travel_with_consumptions = Example(problem=problem, plan=plan)
     problems["travel_with_consumptions"] = travel_with_consumptions
 
+    # matchcellar with static duration
+    Match = UserType("Match")
+    Fuse = UserType("Fuse")
+    handfree = Fluent("handfree")
+    light = Fluent("light")
+    match_durability = Fluent("match_durability", RealType(), match=Match)
+    fuse_difficulty = Fluent("fuse_difficulty", RealType(), fuse=Fuse)
+    match_used = Fluent("match_used", BoolType(), match=Match)
+    fuse_mended = Fluent("fuse_mended", BoolType(), fuse=Fuse)
+    light_match = DurativeAction("light_match", m=Match)
+    m = light_match.parameter("m")
+    light_match.set_fixed_duration(match_durability(m))
+    light_match.add_condition(StartTiming(), Not(match_used(m)))
+    light_match.add_effect(StartTiming(), match_used(m), True)
+    light_match.add_effect(StartTiming(), light, True)
+    light_match.add_effect(EndTiming(), light, False)
+    mend_fuse = DurativeAction("mend_fuse", f=Fuse)
+    f = mend_fuse.parameter("f")
+    mend_fuse.set_fixed_duration(fuse_difficulty(f))
+    mend_fuse.add_condition(StartTiming(), handfree)
+    mend_fuse.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), light)
+    mend_fuse.add_effect(StartTiming(), handfree, False)
+    mend_fuse.add_effect(EndTiming(), fuse_mended(f), True)
+    mend_fuse.add_effect(EndTiming(), handfree, True)
+    f1 = Object("f1", Fuse)
+    f2 = Object("f2", Fuse)
+    f3 = Object("f3", Fuse)
+    m1 = Object("m1", Match)
+    m2 = Object("m2", Match)
+    m3 = Object("m3", Match)
+    problem = Problem("matchcellar_static_duration")
+    problem.add_fluent(handfree)
+    problem.add_fluent(light)
+    problem.add_fluent(match_durability)
+    problem.add_fluent(fuse_difficulty)
+    problem.add_fluent(match_used, default_initial_value=False)
+    problem.add_fluent(fuse_mended, default_initial_value=False)
+    problem.add_action(light_match)
+    problem.add_action(mend_fuse)
+    problem.add_object(f1)
+    problem.add_object(f2)
+    problem.add_object(f3)
+    problem.add_object(m1)
+    problem.add_object(m2)
+    problem.add_object(m3)
+    problem.set_initial_value(light, False)
+    problem.set_initial_value(handfree, True)
+    problem.set_initial_value(match_durability(m1), 2)
+    problem.set_initial_value(match_durability(m2), 3)
+    problem.set_initial_value(match_durability(m3), 4)
+    problem.set_initial_value(fuse_difficulty(f1), 1)
+    problem.set_initial_value(fuse_difficulty(f2), 2)
+    problem.set_initial_value(fuse_difficulty(f3), 3)
+    problem.add_goal(fuse_mended(f1))
+    problem.add_goal(fuse_mended(f2))
+    problem.add_goal(fuse_mended(f3))
+    t_plan = up.plans.TimeTriggeredPlan(
+        [
+            (
+                Fraction(0, 1),
+                up.plans.ActionInstance(light_match, (ObjectExp(m1),)),
+                Fraction(2, 1),
+            ),
+            (
+                Fraction(1, 100),
+                up.plans.ActionInstance(mend_fuse, (ObjectExp(f1),)),
+                Fraction(1, 1),
+            ),
+            (
+                Fraction(201, 100),
+                up.plans.ActionInstance(light_match, (ObjectExp(m2),)),
+                Fraction(3, 1),
+            ),
+            (
+                Fraction(202, 100),
+                up.plans.ActionInstance(mend_fuse, (ObjectExp(f2),)),
+                Fraction(2, 1),
+            ),
+            (
+                Fraction(502, 100),
+                up.plans.ActionInstance(light_match, (ObjectExp(m3),)),
+                Fraction(4, 1),
+            ),
+            (
+                Fraction(503, 100),
+                up.plans.ActionInstance(mend_fuse, (ObjectExp(f3),)),
+                Fraction(3, 1),
+            ),
+        ]
+    )
+    matchcellar_static_duration = Example(problem=problem, plan=t_plan)
+    problems["matchcellar_static_duration"] = matchcellar_static_duration
+
     return problems

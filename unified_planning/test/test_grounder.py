@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
@@ -252,6 +253,20 @@ class TestGrounder(TestCase):
         self.assertEqual(len(grounded_problem.actions), 20)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
+
+    def test_matchcellar_static_duration(self):
+        problem = self.problems["matchcellar_static_duration"].problem
+        fvo = problem.env.free_vars_oracle
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 6)
+        for a in grounded_problem.actions:
+            a = cast(DurativeAction, a)
+            self.assertEqual(len(a.parameters), 0)
+            self.assertEqual(len(fvo.get_free_variables(a.duration.lower)), 0)
+            self.assertEqual(len(fvo.get_free_variables(a.duration.upper)), 0)
 
     def test_ad_hoc_1(self):
         problem = Problem("ad_hoc")
