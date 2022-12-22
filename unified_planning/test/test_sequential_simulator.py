@@ -154,7 +154,7 @@ class TestSimulator(TestCase):
         with Simulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
-    @pytest.mark.filterwarnings("ignore:The problem named")
+    @pytest.mark.filterwarnings("ignore:We cannot establish")
     def test_check_disabling(self):
         problem = self.problems["matchcellar"].problem
         with self.assertRaises(UPUsageError) as e:
