@@ -96,7 +96,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.9.3; ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.9.5; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Test code-snippets
@@ -161,7 +161,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.9.3; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.9.5; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
@@ -221,7 +221,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.9.3; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.9.5; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
