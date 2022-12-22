@@ -28,6 +28,7 @@ from unified_planning.model import (
     Expression,
     SimulatedEffect,
     Parameter,
+    DurationInterval,
 )
 from unified_planning.plans import ActionInstance
 from typing import Dict, Iterable, List, Optional, Tuple, cast
@@ -181,7 +182,14 @@ def create_action_with_given_subs(
         new_durative_action = DurativeAction(
             get_fresh_name(problem, old_action.name, naming_list)
         )
-        new_durative_action.set_duration_constraint(old_action.duration)
+        old_duration = old_action.duration
+        new_duration = DurationInterval(
+            substituter.substitute(old_duration.lower, c_subs),
+            substituter.substitute(old_duration.upper, c_subs),
+            old_duration.is_left_open(),
+            old_duration.is_right_open(),
+        )
+        new_durative_action.set_duration_constraint(new_duration)
         for i, cl in old_action.conditions.items():
             for c in cl:
                 new_durative_action.add_condition(i, substituter.substitute(c, c_subs))
