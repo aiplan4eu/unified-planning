@@ -154,14 +154,11 @@ class TestSimulator(TestCase):
         with Simulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
-    @pytest.mark.filterwarnings("ignore:The problem named")
+    @pytest.mark.filterwarnings("ignore:We cannot establish")
     def test_check_disabling(self):
         problem = self.problems["matchcellar"].problem
         with self.assertRaises(UPUsageError) as e:
             SequentialSimulator(problem)
-        self.assertIn(
-            "The problem named: MatchCellar is not supported by the <class 'unified_planning.engines.sequential_simulator.SequentialSimulator'>.",
-            str(e.exception),
-        )
+        self.assertIn("cannot establish whether", str(e.exception))
         with Simulator(problem, name="sequential_simulator") as simulator:
             pass

@@ -61,7 +61,7 @@ class SimulatorMixin:
         ), "SimulatorMixin does not implement the up.engines.Engine class"
         assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self_class.supports(problem.kind):
-            msg = f"The problem named: {problem.name} is not supported by the {self_class}."
+            msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
             else:

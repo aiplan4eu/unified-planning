@@ -19,7 +19,7 @@ from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
-    basic_numeric_kind,
+    general_numeric_kind,
     quality_metrics_kind,
     oversubscription_kind,
 )
@@ -141,7 +141,7 @@ class TestPlanner(TestCase):
             planner.error_on_failed_checks = True
             with self.assertRaises(up.exceptions.UPUsageError) as e:
                 final_report = planner.solve(problem)
-            self.assertIn("cannot solve this kind of problem", str(e.exception))
+            self.assertIn("cannot establish whether", str(e.exception))
             with Compiler(name="up_quantifiers_remover") as quantifiers_remover:
                 res = quantifiers_remover.compile(
                     problem, CompilationKind.QUANTIFIERS_REMOVING
@@ -176,7 +176,7 @@ class TestPlanner(TestCase):
             )
             self.assertEqual(plan, opt_plan)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
     def test_robot(self):
         problem = self.problems["robot"].problem
         move = problem.action("move")
@@ -246,7 +246,7 @@ class TestPlanner(TestCase):
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_check_flags(self):
         problem = self.problems["robot"].problem
-        error_msg = "ENHSP cannot solve this kind of problem!"
+        error_msg = "We cannot establish whether ENHSP can solve this problem!"
         with OneshotPlanner(name="opt-pddl-planner") as planner:
 
             # By default, when getting an Engine by name, we get a warning if the problem is not

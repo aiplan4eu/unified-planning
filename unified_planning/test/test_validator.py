@@ -14,7 +14,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import classical_kind, basic_numeric_kind
+from unified_planning.model.problem_kind import classical_kind, general_numeric_kind
 from unified_planning.test import TestCase, main, skipIfNoPlanValidatorForProblemKind
 from unified_planning.test.examples import get_example_problems
 
@@ -38,7 +38,7 @@ class TestPlanValidator(TestCase):
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
 
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(basic_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(general_numeric_kind))
     def test_robot(self):
         problem, plan = self.problems["robot"]
 

@@ -16,6 +16,7 @@
 import unified_planning as up
 from enum import Enum, auto
 from typing import IO, Optional, Iterator
+from warnings import warn
 
 
 class AnytimeGuarantee(Enum):
@@ -62,10 +63,12 @@ class AnytimePlannerMixin:
         `output_stream` are not `None` and the planner ignores them."""
         assert isinstance(self, up.engines.engine.Engine)
         problem_kind = problem.kind
-        if not self.supports(problem_kind):
-            raise up.exceptions.UPUsageError(
-                f"{self.name} cannot solve this kind of problem!"
-            )
+        if not self.skip_checks and not self.supports(problem_kind):
+            msg = f"We cannot establish whether {self.name} can solve this problem!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warn(msg)
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
             msg = f"The problem has no quality metrics but the engine is required to satisfies some optimality guarantee!"
             raise up.exceptions.UPUsageError(msg)
