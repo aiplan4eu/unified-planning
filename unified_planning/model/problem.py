@@ -392,11 +392,9 @@ class Problem(
             )
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        if interval in self._timed_goals:
-            if goal_exp not in self._timed_goals[interval]:
-                self._timed_goals[interval].append(goal_exp)
-        else:
-            self._timed_goals[interval] = [goal_exp]
+        goals = self._timed_goals.setdefault(interval, [])
+        if goal_exp not in goals:
+            goals.append(goal_exp)
 
     @property
     def timed_goals(
@@ -525,11 +523,9 @@ class Problem(
         assert (
             effect.environment == self._env
         ), "effect does not have the same environment of the problem"
-        if timing in self._timed_effects:
-            if effect not in self._timed_effects[timing]:
-                self._timed_effects[timing].append(effect)
-        else:
-            self._timed_effects[timing] = [effect]
+        effects = self._timed_effects.setdefault(timing, [])
+        if effect not in effects:
+            effects.append(effect)
 
     @property
     def timed_effects(

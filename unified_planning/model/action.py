@@ -748,11 +748,9 @@ class DurativeAction(Action):
             interval = up.model.TimePointInterval(interval)
         (condition_exp,) = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
-        if interval in self._conditions:
-            if condition_exp not in self._conditions[interval]:
-                self._conditions[interval].append(condition_exp)
-        else:
-            self._conditions[interval] = [condition_exp]
+        conditions = self._conditions.setdefault(interval, [])
+        if condition_exp not in conditions:
+            conditions.append(condition_exp)
 
     def _set_conditions(
         self,
