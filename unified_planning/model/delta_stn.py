@@ -25,12 +25,36 @@ T = TypeVar("T", bound=Real)
 
 @dataclass
 class DeltaNeighbors(Generic[T]):
+    """
+    This data structure is used in the `DeltaSimpleTemporalNetwork` to
+    represent the constraints. Every Neighbor has a destination (dst),
+    a distance (bound) and optionally points to another Neighbor.
+    """
+
     dst: Any
     bound: T
     next: Optional["DeltaNeighbors"]
 
 
 class DeltaSimpleTemporalNetwork(Generic[T]):
+    """
+    This class represent a SimpleTemporalNetwork (STN). A STN is a data
+    structure that contains temporal constraints between elements (called
+    `Events` in this specific use-case).
+
+    If the STN is consistent, it means that the added temporal constraints
+    between the `Events` are feasible; in other words, for every `Event` in
+    the STN, it exists a temporal assignment that does not violate any
+    constraint. When the STN becomes inconsistent, it means that the added
+    constraints are too restraining, therefore an assignment that does not
+    violate any constraint does not exist.
+
+    This specific implementation, called DeltaSTN, is specifically engineered
+    to re-use previous calculations, using the incremental Bellman-Ford
+    algorithm. This fits very well the planning use-case, where a lot of STN
+    with small differences one-another are used.
+    """
+
     def __init__(
         self,
         constraints: Optional[Dict[Any, Optional[DeltaNeighbors[T]]]] = None,
@@ -53,10 +77,11 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
                 v = v.next
         return "\n".join(res)
 
-    def __contains__(self, key):
-        return key in self._constraints.keys()
-
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
+        """
+        Returns another STN with all the constraints already present
+        in self.
+        """
         return DeltaSimpleTemporalNetwork(
             self._constraints.copy(),
             self._distances.copy(),
@@ -65,6 +90,10 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         )
 
     def add(self, x: Any, y: Any, b: T):
+        """
+        Adds the constraint `x - y <= b`. This gives an upper bound
+        to the distance from `x` to `y`. TODO explain  this better!
+        """
         if self._is_sat:
             self._distances.setdefault(x, cast(T, 0))
             self._distances.setdefault(y, cast(T, 0))
@@ -76,6 +105,7 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
                 self._is_sat = self._inc_check(x, y, b)
 
     def check_stn(self) -> bool:
+        """Checks the consistency of this STN."""
         return self._is_sat
 
     def get_stn_model(self, x: Any) -> T:
