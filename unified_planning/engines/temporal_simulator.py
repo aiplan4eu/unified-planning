@@ -158,6 +158,9 @@ class TemporalSimulator(Engine, SimulatorMixin):
         self._em = problem.env.expression_manager
         initial_values = self._problem.initial_values
         self._all_possible_assignments: Set[FNode] = set(initial_values.keys())
+        self._events_to_action: Dict[
+            TemporalEvent, Tuple[DurativeAction, Tuple[FNode, ...]]
+        ] = {}
         problem_events: List[TemporalEvent] = cast(
             List[TemporalEvent],
             break_action_or_problem_in_event_list(
@@ -361,7 +364,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     f"The timed simulator needs Temporal Events, {type(other_ev)} was given!"
                 )
             self._expand_event(
-                other_ev, stn, running_events, durative_conditions, last_event
+                other_ev, stn, running_events, durative_conditions, last_event, state
             )
             if first:
                 first_ev = other_ev
@@ -635,6 +638,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     grounded_action.env,
                     is_global=False,
                 )
+            self._events_to_action[cast(TemporalEvent, event_list[0])] = (
+                original_action,
+                params,
+            )
             return event_list
         else:
             raise NotImplementedError(
@@ -648,10 +655,35 @@ class TemporalSimulator(Engine, SimulatorMixin):
         running_events: List[List[Event]],
         durative_conditions: List[List[FNode]],
         last_event: "TemporalEvent",
+        state: TemporalState,
     ):
         """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
         insert_interval(stn, last_event, event, left_bound=Fraction(0))
         if event.kind == TemporalEventKind.START_ACTION:
+            # check duration constraints
+            assert event.committed_events is not None
+            duration = event.committed_events[-1].timing.delay
+            em = self._problem.env.expression_manager
+            original_action, params = self._events_to_action[event]
+            grounded_action = self._grounder.ground_action(original_action, params)
+            assert grounded_action is not None
+            assert isinstance(grounded_action, DurativeAction)
+            action_duration = grounded_action.duration
+            left_compare = em.GT if action_duration.is_left_open() else em.GE
+            right_compare = em.LT if action_duration.is_right_open() else em.LE
+            if not self._se.evaluate(
+                left_compare(duration, action_duration.lower), state
+            ).bool_constant_value():
+                raise UPUsageError(
+                    f"The duration: {duration} is lower than the lower bound of the action's {original_action.name} duration constraints."
+                )
+            if not self._se.evaluate(
+                right_compare(duration, action_duration.upper), state
+            ).bool_constant_value():
+                raise UPUsageError(
+                    f"The duration: {duration} is bigger than the upper bound of the action's {original_action.name} duration constraints."
+                )
+
             committed_events: List[Event] = []
             ce = event.committed_events
             assert (
