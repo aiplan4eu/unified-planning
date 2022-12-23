@@ -144,7 +144,9 @@ class TemporalSimulator(Engine, SimulatorMixin):
     Implementation of the Temporal Simulator Mixin.
     """
 
-    def __init__(self, problem: "up.model.Problem", error_on_failed_checks: bool = True, **kwargs):
+    def __init__(
+        self, problem: "up.model.Problem", error_on_failed_checks: bool = True, **kwargs
+    ):
         Engine.__init__(self)
         self.error_on_failed_checks = error_on_failed_checks
         SimulatorMixin.__init__(self, problem)
