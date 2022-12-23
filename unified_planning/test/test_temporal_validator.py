@@ -14,7 +14,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import classical_kind, basic_numeric_kind
+from unified_planning.model.problem_kind import classical_kind
 from unified_planning.test import (
     TestCase,
     main,
