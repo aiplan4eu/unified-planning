@@ -99,11 +99,8 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
-
-        # supported_kind.set_expression_duration('STATIC_FLUENTS_IN_DURATION')
-        # supported_kind.set_expression_duration('FLUENTS_IN_DURATION')
-        # TODO understand how to support those
-
+        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
+        supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
