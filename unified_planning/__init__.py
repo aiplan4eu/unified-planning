@@ -26,7 +26,7 @@ else:
     AnyBaseClass = object
 
 
-VERSION: Tuple[Union[int, str], ...] = (0, 4, 2)
+VERSION: Tuple[Union[int, str], ...] = (0, 5, 0)
 __version__ = ".".join(str(x) for x in VERSION)
 
 # Try to provide human-readable version of latest commit for dev versions
