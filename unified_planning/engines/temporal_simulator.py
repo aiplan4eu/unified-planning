@@ -495,7 +495,6 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."
             )
-        # TODO we need a check that the duration belongs to the Action's duration interval
         params_exp = tuple(
             self._problem.env.expression_manager.auto_promote(parameters)
         )
@@ -581,12 +580,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
-
-        # supported_kind.set_expression_duration('STATIC_FLUENTS_IN_DURATION')
-        # supported_kind.set_expression_duration('FLUENTS_IN_DURATION')
-        # TODO understand how to support those: it's a problem related to the TODO
-        # in the _get_events method
-
+        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
+        supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         return supported_kind
 
