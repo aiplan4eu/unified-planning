@@ -351,12 +351,60 @@ class MAPDDLWriter:
                     raise UPTypeError(
                         "MA-PDDL supports only boolean and numerical fluents"
                     )
+
+            predicates_agent_goal = []
+            functions_agent_goal = []
+            for g in self.problem.goals:
+                if g.is_dot():
+                    f = g.args[0].fluent()
+                    agent = g.agent()
+                    args = g.args
+                    object = g.args[0].args[0]
+                    if f not in ag.fluents:
+                        if f.type.is_bool_type():
+                            params = []
+                            i = 0
+                            for param in f.signature:
+                                if param.type.is_user_type():
+                                    params.append(
+                                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
+                                    )
+                                    i += 1
+                                else:
+                                    raise UPTypeError(
+                                        "MA-PDDL supports only user type parameters"
+                                    )
+                            predicates_agent_goal.append(
+                                f'(a_{self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(agent)) + "_type"}{"".join(params)})'
+                            )
+                        elif f.type.is_int_type() or f.type.is_real_type():
+                            params = []
+                            i = 0
+                            for param in f.signature:
+                                if param.type.is_user_type():
+                                    params.append(
+                                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
+                                    )
+                                    i += 1
+                                else:
+                                    raise UPTypeError(
+                                        "MA-PDDL supports only user type parameters"
+                                    )
+                            functions_agent_goal.append(
+                                f'(a_{self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(agent)) + "_type"}{"".join(params)})'
+                            )
+                        else:
+                            raise UPTypeError(
+                                "MA-PDDL supports only boolean and numerical fluents"
+                            )
+
             nl = "\n  "
             out.write(
                 f" (:predicates\n "
                 if len(predicates) > 0
                 or len(predicates_agent) > 0
                 or len(predicates_dot_agents) > 0
+                or len(predicates_agent_goal) > 0
                 else ""
             )
             out.write(f"{nl.join(predicates)}\n" if len(predicates) > 0 else "")
@@ -365,6 +413,12 @@ class MAPDDLWriter:
                 if len(predicates_dot_agents) > 0
                 else ""
             )
+            out.write(
+                f"{nl.join(predicates_agent_goal)}\n"
+                if len(predicates_agent_goal) > 0
+                else ""
+            )
+
             nl = "\n   "
             out.write(
                 f"  (:private\n   {nl.join(predicates_agent)})"
@@ -376,6 +430,7 @@ class MAPDDLWriter:
                 if len(predicates) > 0
                 or len(predicates_agent) > 0
                 or len(predicates_dot_agents) > 0
+                or len(predicates_agent_goal) > 0
                 else ""
             )
 
@@ -384,12 +439,18 @@ class MAPDDLWriter:
                 if len(functions) > 0
                 or len(functions_dot_agents) > 0
                 or len(functions_agent) > 0
+                or len(functions_agent_goal) > 0
                 else ""
             )
             out.write(f' {" ".join(functions)}\n' if len(functions) > 0 else "")
             out.write(
                 f' {" ".join(functions_dot_agents)}\n'
                 if len(functions_dot_agents) > 0
+                else ""
+            )
+            out.write(
+                f' {" ".join(functions_agent_goal)}\n'
+                if len(functions_agent_goal) > 0
                 else ""
             )
             out.write(
@@ -401,7 +462,8 @@ class MAPDDLWriter:
                 f" )\n"
                 if len(functions) > 0
                 or len(functions_dot_agents) > 0
-                or len(functions_agent)
+                or len(functions_agent) > 0
+                or len(functions_agent_goal) > 0
                 else ""
             )
 
@@ -630,10 +692,16 @@ class MAPDDLWriter:
                         out.write(
                             f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}'
                         )
+
+            # If agents are not defined as "constant" in the domain, they are defined in the problem
             if len(self.problem.agents) > 0:
-                out.write(
-                    f'\n   {self._get_mangled_name(ag)} - {(self._get_mangled_name(ag))+"_type"}'
-                )
+                for agent in self.problem.agents:
+                    if agent not in self.domain_objects_agents.keys():
+                        out.write(
+                            f'\n   {self._get_mangled_name(agent)} - {(self._get_mangled_name(agent)) + "_type"}'
+                        )
+                    else:
+                        out.write(f"")
 
             out.write("\n )\n")
             converter = ConverterToMAPDDLString(
@@ -672,7 +740,11 @@ class MAPDDLWriter:
                     fluent = p.args[0].fluent()
                     args = p.args
                     object = p.args[0].args[0]
-                    if p.agent().name == ag.name and fluent in ag.fluents:
+                    agent = p.agent()
+                    out.write(
+                        f' (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(agent)}{" " if len(args) > 0 else ""}{object})'
+                    )
+                    """if p.agent().name == ag.name and fluent in ag.fluents:
                         out.write(
                             f' (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(ag)}{" " if len(args) > 0 else ""}{object})'
                         )
@@ -682,7 +754,7 @@ class MAPDDLWriter:
                     ):
                         out.write(f" {converter.convert(p)}")
                     else:
-                        out.write(f"")
+                        out.write(f"")"""
                 else:
                     out.write(f" {converter.convert(p)}")
             out.write(f"))")
