@@ -145,7 +145,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
     """
 
     def __init__(
-        self, problem: "up.model.Problem", error_on_failed_checks: bool = True, **kwargs
+        self,
+        problem: "up.model.Problem",
+        error_on_failed_checks: bool = True,
+        epsilon: Optional[Union[int, float, Fraction, str]] = None,
     ):
         Engine.__init__(self)
         self.error_on_failed_checks = error_on_failed_checks
@@ -153,7 +156,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
         pk = problem.kind
         assert Grounder.supports(pk)
         assert isinstance(self._problem, up.model.Problem)
-        self._epsilon = EPSILON
+        try:
+            self._epsilon = EPSILON if epsilon is None else Fraction(epsilon)
+        except ValueError:
+            raise UPUsageError(
+                "Invalid epsilon value. Must be a numeric value or a parsable string."
+            )
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
@@ -179,60 +187,18 @@ class TemporalSimulator(Engine, SimulatorMixin):
         assert self._start_plan_event.kind == TemporalEventKind.START_PLAN
         assert self._end_plan_event.kind == TemporalEventKind.END_PLAN
 
-        # creation of initial state, might be moved into a specific function
-        initial_stn: DeltaSimpleTemporalNetwork[Fraction] = DeltaSimpleTemporalNetwork()
-        assert self._start_plan_event.committed_events is not None
-        initial_running_events: List[TemporalEvent] = cast(
-            List[TemporalEvent], self._start_plan_event.committed_events[:]
-        )
-        insert_interval(
-            initial_stn,
-            self._start_plan_event,
-            self._end_plan_event,
-            left_bound=Fraction(0),
-        )
-        for ev in initial_running_events[:-1]:
-            if ev.timing.is_from_start():
-                distance = Fraction(ev.timing.delay)
-                if (
-                    not ev.timing_included
-                    and ev.kind == TemporalEventKind.START_CONDITION
-                ):
-                    distance += self._epsilon
-                elif (
-                    not ev.timing_included
-                    and ev.kind == TemporalEventKind.END_CONDITION
-                ):
-                    distance -= self._epsilon
-                insert_interval(
-                    initial_stn,
-                    self._start_plan_event,
-                    ev,
-                    left_bound=distance,
-                    right_bound=distance,
-                )
-            else:
-                f0 = Fraction(0)
-                assert ev.timing.delay == f0
-                insert_interval(
-                    initial_stn, self._end_plan_event, ev, left_bound=f0, right_bound=f0
-                )
-
-        self._initial_state = TemporalState(
-            initial_values,
-            cast(List[List[Event]], [initial_running_events]),
-            initial_stn,
-            [],
-            {self._start_plan_event},
-        )
-
     @property
     def epsilon(self) -> Fraction:
         return self._epsilon
 
     @epsilon.setter
-    def epsilon(self, new_value: Union[Fraction, int, float]):
-        self._epsilon = Fraction(new_value)
+    def epsilon(self, new_value: Union[int, float, Fraction, str]):
+        try:
+            self._epsilon = Fraction(new_value)
+        except ValueError:
+            raise UPUsageError(
+                "Invalid epsilon value. Must be a numeric value or a parsable string."
+            )
 
     def _is_applicable(
         self, event: Union["Event", Iterable["Event"]], state: "ROState"
@@ -550,6 +516,51 @@ class TemporalSimulator(Engine, SimulatorMixin):
         Returns the :class:`~unified_planning.model.TemporalState` instance that represents
         the initial state of the given `problem`.
         """
+        initial_stn: DeltaSimpleTemporalNetwork[Fraction] = DeltaSimpleTemporalNetwork()
+        assert self._start_plan_event.committed_events is not None
+        initial_running_events: List[TemporalEvent] = cast(
+            List[TemporalEvent], self._start_plan_event.committed_events[:]
+        )
+        insert_interval(
+            initial_stn,
+            self._start_plan_event,
+            self._end_plan_event,
+            left_bound=Fraction(0),
+        )
+        for ev in initial_running_events[:-1]:
+            if ev.timing.is_from_start():
+                distance = Fraction(ev.timing.delay)
+                if (
+                    not ev.timing_included
+                    and ev.kind == TemporalEventKind.START_CONDITION
+                ):
+                    distance += self._epsilon
+                elif (
+                    not ev.timing_included
+                    and ev.kind == TemporalEventKind.END_CONDITION
+                ):
+                    distance -= self._epsilon
+                insert_interval(
+                    initial_stn,
+                    self._start_plan_event,
+                    ev,
+                    left_bound=distance,
+                    right_bound=distance,
+                )
+            else:
+                f0 = Fraction(0)
+                assert ev.timing.delay == f0
+                insert_interval(
+                    initial_stn, self._end_plan_event, ev, left_bound=f0, right_bound=f0
+                )
+
+        self._initial_state = TemporalState(
+            cast(up.model.Problem, self._problem).initial_values,
+            cast(List[List[Event]], [initial_running_events]),
+            initial_stn,
+            [],
+            {self._start_plan_event},
+        )
         return self._initial_state
 
     @property
