@@ -148,11 +148,8 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         for i, (start_time, ai, duration) in enumerate(plan.timed_actions):
 
             action = ai.action
-            assert (
-                isinstance(action, InstantaneousAction)
-                and duration is None
-                or isinstance(action, DurativeAction)
-                and duration is not None
+            assert (isinstance(action, InstantaneousAction) and duration is None) or (
+                isinstance(action, DurativeAction) and duration is not None
             )
 
             # populate the time_events_map
@@ -178,7 +175,7 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 )
                 specific_time_set_events.add(ev)
 
-        # Add events belonging to the problem (like TILS)
+        # Add events belonging to the problem (like TILs)
         assert len(current_state.running_events) == 1
         only_end_events: bool = False
         for ev in cast(List[TemporalEvent], current_state.running_events[0][:-1]):
@@ -230,8 +227,6 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 ]
                 logs.append(LogMessage(LogLevel.INFO, " ".join(msgs)))
                 valid_plan = False
-                print(logs)
-                assert False
                 break
             state = next_state
 
