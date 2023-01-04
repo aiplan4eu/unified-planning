@@ -15,7 +15,7 @@
 
 
 from fractions import Fraction
-from typing import List, Tuple, Dict, Set, cast
+from typing import List, Optional, Tuple, Dict, Set, Union, cast
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
@@ -43,6 +43,7 @@ from unified_planning.engines.temporal_simulator import (
     TemporalEventKind,
 )
 from unified_planning.plans import PlanKind, TimeTriggeredPlan, ActionInstance
+from unified_planning.exceptions import UPUsageError
 
 
 def sort_time_events_map(item: Tuple[Tuple[Fraction, bool, bool], Set[TemporalEvent]]):
@@ -79,10 +80,24 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         )
         self.manager = self._env.expression_manager
         self._substituter = walkers.Substituter(self._env)
+        self.epsilon = options.get("epsilon", None)
 
     @property
     def name(self):
         return "temporal_plan_validator"
+
+    @property
+    def epsilon(self) -> Optional[Fraction]:
+        return self._epsilon
+
+    @epsilon.setter
+    def epsilon(self, new_value: Optional[Union[int, float, Fraction, str]]):
+        try:
+            self._epsilon = Fraction(new_value) if new_value is not None else None
+        except ValueError:
+            raise UPUsageError(
+                "Invalid epsilon value. Must be a numeric value or a parsable string."
+            )
 
     @staticmethod
     def supports_plan(plan_kind: "up.plans.PlanKind") -> bool:
@@ -134,10 +149,11 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         :return: The generated up.engines.results.ValidationResult; a data structure containing the information
             about the plan validity and eventually some additional log messages for the user.
         """
-        # TODO document and add epsilon modification possibility
         assert isinstance(plan, TimeTriggeredPlan)
         assert isinstance(problem, Problem)
-        simulator = TemporalSimulator(problem)
+        simulator = TemporalSimulator(
+            problem, self.error_on_failed_checks, self._epsilon
+        )
         current_state: "COWState" = simulator.get_initial_state()
         assert isinstance(current_state, TemporalState)
         end_plan: Fraction = Fraction(0)

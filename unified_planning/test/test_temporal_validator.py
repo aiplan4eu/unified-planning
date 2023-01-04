@@ -54,3 +54,27 @@ class TestPlanValidator(TestCase):
                     self.assertEqual(
                         res.status, up.engines.ValidationResultStatus.VALID
                     )
+
+    @skipIfEngineNotAvailable("temporal_plan_validator")
+    def test_exception(self):
+        wrong_params = {"epsilon": "not_a_number"}
+        with self.assertRaises(up.exceptions.UPUsageError) as e:
+            with PlanValidator(
+                name="temporal_plan_validator", params=wrong_params
+            ) as validator:
+                pass
+        self.assertEqual(
+            str(e.exception),
+            "Invalid epsilon value. Must be a numeric value or a parsable string.",
+        )
+
+    @skipIfEngineNotAvailable("temporal_plan_validator")
+    def test_epsilon(self):
+        problem, plan = self.problems["matchcellar"]
+        with PlanValidator(name="temporal_plan_validator") as validator:
+            validator.epsilon = 1
+            res = validator.validate(problem, plan)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
+            validator.epsilon = 0.5
+            res = validator.validate(problem, plan)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.VALID)
