@@ -13,12 +13,14 @@
 # limitations under the License.
 #
 
+from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
-    full_numeric_kind,
+    simple_numeric_kind,
+    general_numeric_kind,
     basic_temporal_kind,
     hierarchical_kind,
 )
@@ -45,6 +47,7 @@ class TestGrounder(TestCase):
 
         res = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = res.problem
+        assert isinstance(grounded_problem, Problem)
         res_2 = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem_2 = res_2.problem
 
@@ -52,14 +55,15 @@ class TestGrounder(TestCase):
         grounded_problem.name = problem.name
         self.assertEqual(grounded_problem, problem)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(general_numeric_kind))
     def test_robot(self):
         problem = self.problems["robot"].problem
 
         gro = Grounder()
         res = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = res.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 2)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -74,14 +78,15 @@ class TestGrounder(TestCase):
             with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(simple_numeric_kind))
     def test_robot_locations_connected(self):
         problem = self.problems["robot_locations_connected"].problem
 
         gro = Grounder()
         res = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = res.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 28)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -96,8 +101,8 @@ class TestGrounder(TestCase):
             with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(simple_numeric_kind))
     def test_robot_locations_connected_from_factory(self):
         problem = self.problems["robot_locations_connected"].problem
 
@@ -105,6 +110,7 @@ class TestGrounder(TestCase):
             self.assertTrue(grounder.supports(problem.kind))
             res = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem = res.problem
+            assert isinstance(grounded_problem, Problem)
             self.assertEqual(len(grounded_problem.actions), 28)
             for a in grounded_problem.actions:
                 self.assertEqual(len(a.parameters), 0)
@@ -123,8 +129,8 @@ class TestGrounder(TestCase):
                 ) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(full_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(full_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(simple_numeric_kind))
     def test_robot_locations_connected_from_factory_with_problem_kind(self):
         problem = self.problems["robot_locations_connected"].problem
         kind = problem.kind
@@ -164,6 +170,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 90)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -188,6 +195,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 6)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
@@ -219,6 +227,7 @@ class TestGrounder(TestCase):
                 ground_result.problem,
                 ground_result.map_back_action_instance,
             )
+            assert isinstance(grounded_problem_try, Problem)
             self.assertEqual(grounded_problem_test, grounded_problem_try)
             with OneshotPlanner(problem_kind=grounded_problem_try.kind) as planner:
                 self.assertNotEqual(planner, None)
@@ -240,9 +249,24 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 20)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
+
+    def test_matchcellar_static_duration(self):
+        problem = self.problems["matchcellar_static_duration"].problem
+        fvo = problem.env.free_vars_oracle
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 6)
+        for a in grounded_problem.actions:
+            a = cast(DurativeAction, a)
+            self.assertEqual(len(a.parameters), 0)
+            self.assertEqual(len(fvo.get_free_variables(a.duration.lower)), 0)
+            self.assertEqual(len(fvo.get_free_variables(a.duration.upper)), 0)
 
     def test_ad_hoc_1(self):
         problem = Problem("ad_hoc")
@@ -262,6 +286,7 @@ class TestGrounder(TestCase):
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 2)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)

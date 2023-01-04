@@ -113,6 +113,7 @@ PDDL_KEYWORDS = {
     "derived-predicates",
     "timed-initial-literals",
     "preferences",
+    "contingent",
 }
 
 # The following map is used to mangle the invalid names by their class.
@@ -421,10 +422,13 @@ class PDDLWriter:
                     )
             out.write(" )\n")
         else:
+            pddl_types = [
+                self._get_mangled_name(t)
+                for t in self.problem.user_types
+                if cast(_UserType, t).name != "object"
+            ]
             out.write(
-                f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])})\n'
-                if len(self.problem.user_types) > 0
-                else ""
+                f' (:types {" ".join(pddl_types)})\n' if len(pddl_types) > 0 else ""
             )
 
         if self.domain_objects is None:

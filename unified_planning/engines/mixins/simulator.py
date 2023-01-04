@@ -61,7 +61,7 @@ class SimulatorMixin:
         ), "SimulatorMixin does not implement the up.engines.Engine class"
         assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self_class.supports(problem.kind):
-            msg = f"The problem named: {problem.name} is not supported by the {self_class}."
+            msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
             else:
@@ -73,7 +73,7 @@ class SimulatorMixin:
         returns `False` otherwise.
 
         :param state: the `state` where the `event conditions` are checked.
-        :param event: the `even`t whose `conditions` are checked.
+        :param event: the `event` whose `conditions` are checked.
         :return: Whether or not the `event` is applicable in the given `state`.
         """
         return self._is_applicable(event, state)

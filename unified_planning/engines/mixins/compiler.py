@@ -70,7 +70,7 @@ class CompilerMixin:
         if compilation_kind is None:
             raise up.exceptions.UPUsageError(f"Compilation kind needs to be specified!")
         if not self.skip_checks and not self.supports(problem.kind):
-            msg = f"{self.name} cannot handle this kind of problem!"
+            msg = f"We cannot establish whether {self.name} can handle this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
             else:

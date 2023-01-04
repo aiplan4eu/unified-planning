@@ -56,7 +56,7 @@ class TarskiGrounder(Engine, CompilerMixin):
         Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.GROUNDING)
         if len(kwargs) > 0:
-            raise
+            raise ValueError(f"Unknown parameters passed to TarskiGrounder: {kwargs}")
 
     @property
     def name(self) -> str:

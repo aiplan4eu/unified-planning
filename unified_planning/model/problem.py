@@ -32,7 +32,7 @@ from unified_planning.exceptions import (
     UPExpressionDefinitionError,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Tuple, Union, cast
+from typing import Optional, List, Dict, Set, Union, cast
 
 
 class Problem(
@@ -151,9 +151,10 @@ class Problem(
         if set(self._trajectory_constraints) != set(oth._trajectory_constraints):
             return False
         oth_initial_values = oth.initial_values
-        if len(self.initial_values) != len(oth_initial_values):
+        initial_values = self.initial_values
+        if len(initial_values) != len(oth_initial_values):
             return False
-        for fluent, value in self.initial_values.items():
+        for fluent, value in initial_values.items():
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False
@@ -402,11 +403,9 @@ class Problem(
             )
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
-        if interval in self._timed_goals:
-            if goal_exp not in self._timed_goals[interval]:
-                self._timed_goals[interval].append(goal_exp)
-        else:
-            self._timed_goals[interval] = [goal_exp]
+        goals = self._timed_goals.setdefault(interval, [])
+        if goal_exp not in goals:
+            goals.append(goal_exp)
 
     @property
     def timed_goals(
@@ -535,11 +534,9 @@ class Problem(
         assert (
             effect.environment == self._env
         ), "effect does not have the same environment of the problem"
-        if timing in self._timed_effects:
-            if effect not in self._timed_effects[timing]:
-                self._timed_effects[timing].append(effect)
-        else:
-            self._timed_effects[timing] = [effect]
+        effects = self._timed_effects.setdefault(timing, [])
+        if effect not in effects:
+            effects.append(effect)
 
     @property
     def timed_effects(
@@ -837,6 +834,8 @@ class Problem(
     ):
         for p in action.parameters:
             self._update_problem_kind_type(p.type)
+        if isinstance(action, up.model.action.SensingAction):
+            self._kind.set_problem_class("CONTINGENT")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self._update_problem_kind_condition(c, linear_checker)

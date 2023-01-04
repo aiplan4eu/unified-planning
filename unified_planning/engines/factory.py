@@ -24,12 +24,14 @@ from unified_planning.environment import Environment
 from unified_planning.model import ProblemKind
 from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
+from unified_planning.engines.mixins.anytime_planner import AnytimePlannerMixin
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.replanner import ReplannerMixin
 from unified_planning.engines.mixins.simulator import SimulatorMixin
-from typing import IO, Dict, Tuple, Optional, List, Union, Type, cast
+from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, cast
 from pathlib import PurePath
 
 
@@ -87,6 +89,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward",
     "fast-downward-opt",
     "pyperplan",
+    "pyperplan-opt",
     "enhsp",
     "enhsp-opt",
     "tamer",
@@ -253,7 +256,8 @@ class Factory:
         :param module_name: The `name` of the module in which the `meta engine Class` is defined.
         :param class_name: The name of the `meta engine Class`.
         """
-        for engine_name, engine in self._engines.items():
+        engines = dict(self._engines)
+        for engine_name, engine in engines.items():
             self._add_meta_engine(name, module_name, class_name, engine_name, engine)
             n = f"{name}[{engine_name}]"
             if n in self.engines:
@@ -364,6 +368,7 @@ class Factory:
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
         plan_kind: Optional["PlanKind"] = None,
+        anytime_guarantee: Optional["AnytimeGuarantee"] = None,
     ) -> Type["up.engines.engine.Engine"]:
         if name is not None:
             if name in self._engines:
@@ -381,6 +386,7 @@ class Factory:
                     assert issubclass(EngineClass, OneshotPlannerMixin) or issubclass(
                         EngineClass, ReplannerMixin
                     )
+                    assert anytime_guarantee is None
                     assert compilation_kind is None
                     assert plan_kind is None
                     if optimality_guarantee is not None and not EngineClass.satisfies(
@@ -390,6 +396,7 @@ class Factory:
                 elif engine_kind == "plan_validator":
                     assert issubclass(EngineClass, PlanValidatorMixin)
                     assert optimality_guarantee is None
+                    assert anytime_guarantee is None
                     assert compilation_kind is None
                     if plan_kind is not None and not EngineClass.supports_plan(
                         plan_kind
@@ -398,14 +405,25 @@ class Factory:
                 elif engine_kind == "compiler":
                     assert issubclass(EngineClass, CompilerMixin)
                     assert optimality_guarantee is None
+                    assert anytime_guarantee is None
                     assert plan_kind is None
                     if (
                         compilation_kind is not None
                         and not EngineClass.supports_compilation(compilation_kind)
                     ):
                         continue
+                elif engine_kind == "anytime_planner":
+                    assert issubclass(EngineClass, AnytimePlannerMixin)
+                    assert optimality_guarantee is None
+                    assert compilation_kind is None
+                    assert plan_kind is None
+                    if anytime_guarantee is not None and not EngineClass.ensures(
+                        anytime_guarantee
+                    ):
+                        continue
                 else:
                     assert optimality_guarantee is None
+                    assert anytime_guarantee is None
                     assert compilation_kind is None
                     assert plan_kind is None
                 if EngineClass.supports(problem_kind):
@@ -425,6 +443,8 @@ class Factory:
             msg = f"No available engine supports {plan_kind}"
         elif optimality_guarantee is not None:
             msg = f"No available engine supports {optimality_guarantee}"
+        elif anytime_guarantee is not None:
+            msg = f"No available engine supports {anytime_guarantee}"
         else:
             msg = f"No available {engine_kind} engine"
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
@@ -489,6 +509,7 @@ class Factory:
         compilation_kind: Optional["CompilationKind"] = None,
         compilation_kinds: Optional[List["CompilationKind"]] = None,
         plan_kind: Optional["PlanKind"] = None,
+        anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
     ) -> "up.engines.engine.Engine":
         if names is not None and engine_kind != "compiler":
@@ -532,6 +553,7 @@ class Factory:
             return up.engines.compilers.compilers_pipeline.CompilersPipeline(compilers)
         else:
             assert names is None
+            error_failed_checks = name is None
             if params is None:
                 params = {}
             assert isinstance(params, Dict)
@@ -542,21 +564,47 @@ class Factory:
                 optimality_guarantee,
                 compilation_kind,
                 plan_kind,
+                anytime_guarantee,
             )
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
-            if engine_kind in ["simulator", "replanner"]:
+            if engine_kind == "replanner":
                 assert problem is not None
+                if (
+                    problem.kind.has_quality_metrics()
+                    and optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY
+                ):
+                    msg = f"The problem has no quality metrics but the engine is required to be optimal!"
+                    raise up.exceptions.UPUsageError(msg)
                 res = EngineClass(problem=problem, **params)
+            elif engine_kind == "simulator":
+                assert problem is not None
+                res = EngineClass(
+                    problem=problem,
+                    error_on_failed_checks=error_failed_checks,
+                    **params,
+                )
             elif engine_kind == "compiler":
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)
                 if compilation_kind is not None:
                     res.default = compilation_kind
+            elif engine_kind == "oneshot_planner":
+                res = EngineClass(**params)
+                assert isinstance(res, OneshotPlannerMixin)
+                if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
+                    res.optimality_metric_required = True
+            elif engine_kind == "anytime_planner":
+                res = EngineClass(**params)
+                assert isinstance(res, AnytimePlannerMixin)
+                if (
+                    anytime_guarantee == AnytimeGuarantee.INCREASING_QUALITY
+                    or anytime_guarantee == AnytimeGuarantee.OPTIMAL_PLANS
+                ):
+                    res.optimality_metric_required = True
             else:
                 res = EngineClass(**params)
-            if name is not None:
-                res.error_on_failed_checks = False
+            res.error_on_failed_checks = error_failed_checks
             return res
 
     @property
@@ -569,7 +617,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         names: Optional[List[str]] = None,
-        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+        params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
@@ -588,6 +636,41 @@ class Factory:
             optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
         return self._get_engine(
             "oneshot_planner", name, names, params, problem_kind, optimality_guarantee
+        )
+
+    def AnytimePlanner(
+        self,
+        *,
+        name: Optional[str] = None,
+        params: Optional[Dict[str, str]] = None,
+        problem_kind: ProblemKind = ProblemKind(),
+        anytime_guarantee: Optional[Union["AnytimeGuarantee", str]] = None,
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a anytime planner. There are two ways to call this method:
+        - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
+          e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
+        - using 'problem_kind' and 'anytime_guarantee'.
+          e.g. AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)
+
+        An AnytimePlanner is a planner that returns an iterator of solutions.
+        Depending on the given anytime_guarantee parameter, every plan being generated is:
+        - strictly better in terms of quality than the previous one (INCREASING_QUALITY);
+        - optimal (OPTIMAL_PLANS);
+        - just a different plan, with no specific guarantee (None).
+
+        It raises an exception if the problem has no optimality metrics and anytime_guarantee
+        is equal to INCREASING_QUALITY or OPTIMAL_PLAN.
+        """
+        if isinstance(anytime_guarantee, str):
+            anytime_guarantee = AnytimeGuarantee[anytime_guarantee]
+        return self._get_engine(
+            "anytime_planner",
+            name,
+            None,
+            params,
+            problem_kind,
+            anytime_guarantee=anytime_guarantee,
         )
 
     def PlanValidator(
@@ -675,7 +758,7 @@ class Factory:
         problem: "up.model.AbstractProblem",
         *,
         name: Optional[str] = None,
-        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+        params: Optional[Dict[str, str]] = None,
     ) -> "up.engines.engine.Engine":
         """
         Returns a Simulator. There are two ways to call this method:
@@ -694,7 +777,7 @@ class Factory:
         problem: "up.model.AbstractProblem",
         *,
         name: Optional[str] = None,
-        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+        params: Optional[Dict[str, str]] = None,
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
         """

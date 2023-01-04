@@ -68,3 +68,11 @@ In this notebook we create a new planning engine for the "Oneshot" operation mod
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Compilers_example.ipynb)
 
 In this notebook we show the usage of the operation mode "Compiler", explaining how to use a compiler and how to take a plan written for the compiled problem and create the equivalent plan for the original problem.
+
+## Optimal Planning
+
+[![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Optimal_Planning.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Optimal_Planning.ipynb)
+
+In this notebook we show how to define a problem with an Optimality metric and how to get a solver that
+gives the optimal solution regarding the given metric.

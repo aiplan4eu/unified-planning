@@ -22,19 +22,21 @@ from typing import Optional
 class EngineMeta(type):
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
-        for om in [
+        oms = [
             "oneshot_planner",
+            "anytime_planner",
             "plan_validator",
             "compiler",
             "simulator",
             "replanner",
-        ]:
-            if (
-                not hasattr(obj, "is_" + om)
-                and name != "Engine"
-                and name != "MetaEngine"
-            ):
-                setattr(obj, "is_" + om, lambda: False)
+        ]
+        for base in bases:
+            for om in oms:
+                if hasattr(base, "is_" + om) and getattr(base, "is_" + om)():
+                    setattr(obj, "is_" + om, staticmethod(lambda: True))
+        for om in oms:
+            if not hasattr(obj, "is_" + om):
+                setattr(obj, "is_" + om, staticmethod(lambda: False))
         return obj
 
 

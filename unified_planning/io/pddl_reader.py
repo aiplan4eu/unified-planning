@@ -18,13 +18,12 @@ import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 import typing
+from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
-
 
 import pyparsing
 
@@ -32,7 +31,8 @@ assert (
     pyparsing.__version__ >= "3.0.0"
 ), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, nested_expr, Group, rest_of_line, Optional
+from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
+from pyparsing import CharsNotIn, Empty
 from pyparsing.results import ParseResults
 from pyparsing import one_of
 
@@ -64,6 +64,16 @@ class CaseInsensitiveToken:
 
 Object = CaseInsensitiveToken("object")
 TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
+
+
+def nested_expr():
+    """
+    A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case.
+    """
+    cnt = Empty() + CharsNotIn("() \n\t\r")
+    nested = Forward()
+    nested <<= Group(Suppress("(") + ZeroOrMore(cnt | nested) + Suppress(")"))
+    return nested
 
 
 class PDDLGrammar:
@@ -146,6 +156,7 @@ class PDDLGrammar:
             + Suppress(")")
             + Optional(":precondition" - nested_expr().setResultsName("pre"))
             + Optional(":effect" - nested_expr().setResultsName("eff"))
+            + Optional(":observe" - nested_expr().setResultsName("obs"))
             + Suppress(")")
         )
 
@@ -748,24 +759,18 @@ class PDDLReader:
                 return False
         return True
 
-    def parse_problem(
-        self, domain_filename: str, problem_filename: typing.Optional[str] = None
+    def _parse_problem(
+        self, domain_res: ParseResults, problem_res: typing.Optional[ParseResults]
     ) -> "up.model.Problem":
-        """
-        Takes in input a filename containing the `PDDL` domain and optionally a filename
-        containing the `PDDL` problem and returns the parsed `Problem`.
-
-        Note that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
-
-        :param domain_filename: The path to the file containing the `PDDL` domain.
-        :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
-        :return: The `Problem` parsed from the given pddl domain + problem.
-        """
-        domain_res = self._pp_domain.parseFile(domain_filename)
-
         problem: up.model.Problem
         if ":hierarchy" in set(domain_res.get("features", [])):
             problem = htn.HierarchicalProblem(
+                domain_res["name"],
+                self._env,
+                initial_defaults={self._tm.BoolType(): self._em.FALSE()},
+            )
+        elif ":contingent" in set(domain_res.get("features", [])):
+            problem = up.model.ContingentProblem(
                 domain_res["name"],
                 self._env,
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
@@ -934,7 +939,23 @@ class PDDLReader:
                     dur_act
                 )
             else:
-                act = up.model.InstantaneousAction(n, a_params, self._env)
+                act: typing.Optional[
+                    Union[up.model.SensingAction, up.model.InstantaneousAction]
+                ] = None
+                if "obs" in a:
+                    act = up.model.SensingAction(n, a_params, self._env)
+                    obs_fluent = a["obs"][0]
+                    if obs_fluent[0] == "and":  # more than 1 fluent
+                        for o in obs_fluent[1:]:
+                            act.add_observed_fluent(
+                                self._parse_exp(problem, act, types_map, {}, o)
+                            )
+                    else:
+                        act.add_observed_fluent(
+                            self._parse_exp(problem, act, types_map, {}, obs_fluent)
+                        )
+                else:
+                    act = up.model.InstantaneousAction(n, a_params, self._env)
                 if "pre" in a:
                     act.add_precondition(
                         self._parse_exp(problem, act, types_map, {}, a["pre"][0])
@@ -1005,9 +1026,7 @@ class PDDLReader:
                 )
             problem.add_method(method)
 
-        if problem_filename is not None:
-            problem_res = self._pp_problem.parseFile(problem_filename)
-
+        if problem_res is not None:
             problem.name = problem_res["name"]
 
             for g in problem_res.get("objects", []):
@@ -1113,14 +1132,20 @@ class PDDLReader:
                         )
                     )
 
-            for i in problem_res.get("init", []):
-                if i[0] == "=":
+            init_list = problem_res.get("init", [])
+            if len(init_list) == 1 and init_list[0][0] == "and":
+                init_list = init_list[0][1:]
+            for i in init_list:
+                operator = i[0]
+                if operator == "=":
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i[1]),
                         self._parse_exp(problem, None, types_map, {}, i[2]),
                     )
                 elif (
-                    len(i) == 3 and i[0] == "at" and i[1].replace(".", "", 1).isdigit()
+                    len(i) == 3
+                    and operator == "at"
+                    and i[1].replace(".", "", 1).isdigit()
                 ):
                     ti = up.model.StartTiming(Fraction(i[1]))
                     va = self._parse_exp(problem, None, types_map, {}, i[2])
@@ -1132,6 +1157,26 @@ class PDDLReader:
                         problem.add_timed_effect(ti, va.arg(0), va.arg(1))
                     else:
                         raise SyntaxError(f"Not able to handle this TIL {i}")
+                elif operator == "oneof":
+                    assert isinstance(problem, ContingentProblem)
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_oneof_initial_constraint(fluents)
+                elif operator == "or":
+                    assert isinstance(problem, ContingentProblem)
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_or_initial_constraint(fluents)
+                elif operator == "unknown":
+                    assert isinstance(problem, ContingentProblem)
+                    if len(i) != 2:
+                        raise SyntaxError(
+                            "`unknown` constraint requires exactly one argument."
+                        )
+                    arg = self._parse_exp(problem, None, types_map, {}, i[1])
+                    problem.add_unknown_initial_constraint(arg)
                 else:
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i),
@@ -1220,3 +1265,45 @@ class PDDLReader:
                     "The domain has quantified assignments. In the unified_planning library this is compatible only if the problem is given and not only the domain."
                 )
         return problem
+
+    def parse_problem(
+        self, domain_filename: str, problem_filename: typing.Optional[str] = None
+    ) -> "up.model.Problem":
+        """
+        Takes in input a filename containing the `PDDL` domain and optionally a filename
+        containing the `PDDL` problem and returns the parsed `Problem`.
+
+        Note that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
+
+        :param domain_filename: The path to the file containing the `PDDL` domain.
+        :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
+        :return: The `Problem` parsed from the given pddl domain + problem.
+        """
+        domain_res = self._pp_domain.parse_file(domain_filename, parse_all=True)
+
+        problem_res = None
+        if problem_filename is not None:
+            problem_res = self._pp_problem.parse_file(problem_filename, parse_all=True)
+
+        return self._parse_problem(domain_res, problem_res)
+
+    def parse_problem_string(
+        self, domain_str: str, problem_str: typing.Optional[str] = None
+    ) -> "up.model.Problem":
+        """
+        Takes in input a str representing the `PDDL` domain and optionally a str
+        representing the `PDDL` problem and returns the parsed `Problem`.
+
+        Note that if the `problem_str` is `None`, an incomplete `Problem` will be returned.
+
+        :param domain_filename: The string representing the `PDDL` domain.
+        :param problem_filename: Optionally the string representing the `PDDL` problem.
+        :return: The `Problem` parsed from the given pddl domain + problem.
+        """
+        domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
+        if problem_str is not None:
+            problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
+        else:
+            problem_res = None
+
+        return self._parse_problem(domain_res, problem_res)

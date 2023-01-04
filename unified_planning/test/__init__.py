@@ -20,6 +20,7 @@ from importlib.util import find_spec
 from unified_planning.environment import get_env
 from unified_planning.model import ProblemKind
 from unified_planning.test.pddl import enhsp
+from typing import Optional
 
 
 skipIf = unittest.skipIf
@@ -47,15 +48,22 @@ class skipIfEngineNotAvailable(object):
 class skipIfNoOneshotPlannerForProblemKind(object):
     """Skip a test if there are no oneshot planner for the given problem kind."""
 
-    def __init__(self, kind: ProblemKind):
+    def __init__(
+        self,
+        kind: ProblemKind,
+        optimality_guarantee: Optional[up.engines.OptimalityGuarantee] = None,
+    ):
         self.kind = kind
+        self.optimality_guarantee = optimality_guarantee
 
     def __call__(self, test_fun):
         msg = "no oneshot planner available for the given problem kind"
         cond = False
         try:
             get_env().factory._get_engine_class(
-                "oneshot_planner", problem_kind=self.kind
+                "oneshot_planner",
+                problem_kind=self.kind,
+                optimality_guarantee=self.optimality_guarantee,
             )
         except:
             cond = True
@@ -68,20 +76,25 @@ class skipIfNoOneshotPlannerForProblemKind(object):
         return wrapper
 
 
-class skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(object):
-    """Skip a test if there are no oneshot planner satisfies optimality guarantee."""
+class skipIfNoAnytimePlannerForProblemKind(object):
+    """Skip a test if there are no anytime planner for the given problem kind."""
 
     def __init__(
-        self, optimality_guarantee: up.engines.results.PlanGenerationResultStatus
+        self,
+        kind: ProblemKind,
+        anytime_guarantee: Optional[up.engines.AnytimeGuarantee] = None,
     ):
-        self.optimality_guarantee = optimality_guarantee
+        self.kind = kind
+        self.anytime_guarantee = anytime_guarantee
 
     def __call__(self, test_fun):
-        msg = "no oneshot planner available for the given optimality guarantee"
+        msg = "no anytime planner available for the given problem kind"
         cond = False
         try:
             get_env().factory._get_engine_class(
-                "oneshot_planner", optimality_guarantee=self.optimality_guarantee
+                "anytime_planner",
+                problem_kind=self.kind,
+                anytime_guarantee=self.anytime_guarantee,
             )
         except:
             cond = True
@@ -119,15 +132,18 @@ class skipIfNoPlanValidatorForProblemKind(object):
 
 
 class skipIfModuleNotInstalled(object):
-    """Skip a test if there are no oneshot planner for the given problem kind."""
+    """Skip a test if the given module is not installed."""
 
     def __init__(self, module_name: str):
         self.module_name = module_name
 
     def __call__(self, test_fun):
         msg = f"no module named {self.module_name} installed"
-        test = find_spec(self.module_name)
-        cond = test is None
+        try:
+            test = find_spec(self.module_name)
+            cond = test is None
+        except ModuleNotFoundError:
+            cond = True
 
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)

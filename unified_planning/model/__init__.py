@@ -14,7 +14,12 @@
 #
 
 
-from unified_planning.model.action import Action, InstantaneousAction, DurativeAction
+from unified_planning.model.action import (
+    Action,
+    InstantaneousAction,
+    DurativeAction,
+    SensingAction,
+)
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
     BoolExpression,
@@ -28,6 +33,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.problem import Problem
+from unified_planning.model.contingent_problem import ContingentProblem
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.state import ROState, COWState, UPCOWState
 from unified_planning.model.timing import (

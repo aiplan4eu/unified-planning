@@ -39,6 +39,7 @@ from unified_planning.engines.sequential_simulator import (
 )
 from unified_planning.engines.mixins.simulator import SimulatorMixin, Event
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
 
 __all__ = [
