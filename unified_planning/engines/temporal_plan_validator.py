@@ -230,6 +230,8 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 ]
                 logs.append(LogMessage(LogLevel.INFO, " ".join(msgs)))
                 valid_plan = False
+                print(logs)
+                assert False
                 break
             state = next_state
 

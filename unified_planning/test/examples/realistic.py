@@ -861,21 +861,21 @@ def get_example_problems():
                 Fraction(10, 1),
             ),
             (
-                Fraction(10, 1),
+                Fraction(101, 10),
                 up.plans.ActionInstance(
                     dur_move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))
                 ),
                 Fraction(10, 1),
             ),
             (
-                Fraction(10, 1),
+                Fraction(202, 10),
                 up.plans.ActionInstance(
                     dur_move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))
                 ),
                 Fraction(10, 1),
             ),
             (
-                Fraction(10, 1),
+                Fraction(303, 10),
                 up.plans.ActionInstance(
                     dur_move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5))
                 ),
