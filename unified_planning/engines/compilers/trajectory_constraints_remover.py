@@ -19,7 +19,7 @@ import unified_planning.engines as engines
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.model import InstantaneousAction, Action, FNode
+from unified_planning.model import InstantaneousAction, Action, FNode, Fluent
 from unified_planning.model.walkers import Substituter, ExpressionQuantifiersRemover
 from unified_planning.model import Problem, ProblemKind
 from unified_planning.model.operators import OperatorKind
@@ -355,7 +355,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         return initial_state_prime, monitoring_atoms
 
     def _build_relevancy_dict(self, env, C):
-        relevancy_dict = {}
+        relevancy_dict: Dict[Fluent, List[FNode]] = {}
         for c in C:
             for atom in env.free_vars_extractor.get(c):
                 conditions_list = relevancy_dict.setdefault(atom, [])
