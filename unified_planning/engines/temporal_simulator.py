@@ -259,11 +259,11 @@ class TemporalSimulator(Engine, SimulatorMixin):
         if not new_state.stn.check_stn():
             return False
         assert self._se is not None
-        for cl in state.durative_conditions:
-            for condition in cl:
-                assert isinstance(condition, FNode)
-                if not self._se.evaluate(condition, new_state).bool_constant_value():
-                    return False
+        if not all(
+            self._se.evaluate(c, new_state).bool_constant_value()
+            for c in state.durative_conditions
+        ):
+            return False
         return True
 
     def _get_unsatisfied_conditions(
@@ -325,7 +325,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         # New State variables
         stn = state.stn.copy_stn()
         running_events = [rel[:] for rel in state.running_events]
-        durative_conditions = [cl[:] for cl in state.durative_conditions]
+        durative_conditions = state.durative_conditions[:]
 
         if len(events) == 0:
             raise UPUsageError("The given iterator of events is empty")
@@ -687,7 +687,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         event: "TemporalEvent",
         stn: DeltaSimpleTemporalNetwork,
         running_events: List[List[Event]],
-        durative_conditions: List[List[FNode]],
+        durative_conditions: List[FNode],
         last_event: "TemporalEvent",
         state: TemporalState,
     ):
@@ -764,23 +764,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     "must be given to the simulator in the same order as they are given!",
                 )
             if event.kind == TemporalEventKind.START_CONDITION:
-                durative_conditions.append(event.conditions[:])
+                durative_conditions.extend(event.conditions)
             elif event.kind == TemporalEventKind.END_CONDITION:
-                conditions_to_remove = event.conditions[:]
-                for cl in durative_conditions:
-                    cl_indexes_to_remove: List[int] = []
-                    for i, cond in enumerate(cl):
-                        if cond in conditions_to_remove:
-                            conditions_to_remove.remove(cond)
-                            cl_indexes_to_remove.append(i)
-                    cl_indexes_to_remove.reverse()
-                    for itr in cl_indexes_to_remove:
-                        cl.pop(itr)
-                assert (
-                    len(conditions_to_remove) == 0
-                ), "All conditions should have been added before being removed"
-                # Filter out empty lists
-                durative_conditions[:] = [x for x in filter(None, durative_conditions)]
+                for cond in event.conditions:
+                    durative_conditions.remove(cond)
         insert_interval(stn, last_event, event, left_bound=Fraction(0))
 
 
