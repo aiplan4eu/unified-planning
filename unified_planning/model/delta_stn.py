@@ -77,6 +77,9 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
                 v = v.next
         return "\n".join(res)
 
+    def __contains__(self, value: Any) -> bool:
+        return value in self._distances
+
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
         """
         Returns another STN with all the constraints already present

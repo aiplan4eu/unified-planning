@@ -42,9 +42,6 @@ class TestSimulator(TestCase):
     ):
         self.assertEqual(expected_events, len(applicable) + len(inapplicable))
         self.assertTrue(all(simulator.is_applicable(ev, state) for ev in applicable))
-        for i, inap_ev in enumerate(inapplicable):
-            if simulator.is_applicable(inap_ev, state):
-                print(i)
         self.assertTrue(
             all(not simulator.is_applicable(ev, state) for ev in inapplicable)
         )

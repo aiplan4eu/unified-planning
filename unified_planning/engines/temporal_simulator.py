@@ -171,10 +171,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 "Invalid epsilon value. Must be a numeric value or a parsable string."
             )
         self._grounder = GrounderHelper(problem)
-        self._actions = set(self._problem.actions)
-        self._se = StateEvaluator(self._problem)
-        self._em = problem.env.expression_manager
-        initial_values = self._problem.initial_values
+        self._actions = set(cast(up.model.Problem, self._problem).actions)
+        self._se = StateEvaluator(cast(up.model.Problem, self._problem))
+        self._em = cast(up.model.Problem, problem.env.expression_manager)
+        initial_values = cast(up.model.Problem, self._problem).initial_values
         self._all_possible_assignments: Set[FNode] = set(initial_values.keys())
         self._events_to_action: Dict[
             TemporalEvent, Tuple[DurativeAction, Tuple[FNode, ...]]
@@ -227,6 +227,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 f"Temporal Simulator needs a TemporalState instance, but {type(state)} is given!"
             )
+
         if isinstance(event, Event):
             events: List[TemporalEvent] = [cast(TemporalEvent, event)]
         else:
@@ -241,14 +242,19 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 == 0
             ):
                 return False
-        # control that the given events are compatible with the given running events
+        # check that the given events are compatible with the given running events
         for oe in correct_order_events_to_apply(
             events,
             cast(List[List[TemporalEvent]], state.running_events),
         ):
             if oe is None:
                 return False
-        new_state = self.apply_unsafe(events, state)
+        # apply the events and check if the result violates time constraints or
+        # the durative conditions
+        try:
+            new_state = self.apply_unsafe(events, state)
+        except UPUsageError:
+            return False
         assert isinstance(new_state, TemporalState)
         if not new_state.stn.check_stn():
             return False
@@ -324,6 +330,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
         if len(events) == 0:
             raise UPUsageError("The given iterator of events is empty")
         last_event = cast(TemporalEvent, next(iter(state.last_events)))
+
+        # expand every event (apply it's semantic to the New State variables)
+        # and set the stn constraints between the events applied together to
+        # have distance [0, 0]
         first = True
         for other_ev in correct_order_events_to_apply(
             events, cast(List[List[TemporalEvent]], running_events)
@@ -349,6 +359,15 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     left_bound=Fraction(0),
                     right_bound=Fraction(0),
                 )
+
+        # Check if time constraints are needed between the applied events and
+        # the events already in the STN; the logic behind the constraints is
+        # similar to Bernstein's conditions:
+        # - if at least 1 event writes a value that the other event reads/writes
+        #       the 2 events must have a distance > 0 (we use the epsilon value)
+        # - if both events read the same value they can have a distance >= 0
+        # - if the 2 events don't read/write any common value, they don't need
+        #       to be linked in with STN constraints.
         written_fluents: Set[FNode] = set(updated_values.keys())
         red_fluents.difference_update(written_fluents)
         prev_state = state
@@ -431,10 +450,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 f"The duration map must bew specified to get all the applicable events of the {type(self)}"
             )
+        # get events already in the running_events
         for rel in state.running_events:
             event = rel[0]
             if self.is_applicable(event, state):
                 yield event
+        # get events corresponding to a new action application
         for (action, params), duration in durations_map.items():
             event = self._get_events(action, params, duration)[0]
             if self.is_applicable(event, state):
@@ -501,6 +522,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             )
         if not len(self.get_unsatisfied_goals(state, early_termination=True)) == 0:
             return False
+        # apply end_plan event and check if there still is something unresolved
         new_state = cast(TemporalState, self.apply(self._end_plan_event, state))
         if (
             new_state is None
@@ -516,6 +538,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         Returns the :class:`~unified_planning.model.TemporalState` instance that represents
         the initial state of the given `problem`.
         """
+        f0 = Fraction(0)
         initial_stn: DeltaSimpleTemporalNetwork[Fraction] = DeltaSimpleTemporalNetwork()
         assert self._start_plan_event.committed_events is not None
         initial_running_events: List[TemporalEvent] = cast(
@@ -527,6 +550,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
             self._end_plan_event,
             left_bound=Fraction(0),
         )
+        # insert in the STN every problem event, with the right distance from
+        # the StartPlanEvent.
+        # left_open interval distance is delay + epsilon
+        # right_open interval distance is delay - epsilon
         for ev in initial_running_events[:-1]:
             if ev.timing.is_from_start():
                 distance = Fraction(ev.timing.delay)
@@ -548,7 +575,6 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     right_bound=distance,
                 )
             else:
-                f0 = Fraction(0)
                 assert ev.timing.delay == f0
                 insert_interval(
                     initial_stn, self._end_plan_event, ev, left_bound=f0, right_bound=f0
@@ -666,7 +692,6 @@ class TemporalSimulator(Engine, SimulatorMixin):
         state: TemporalState,
     ):
         """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
-        insert_interval(stn, last_event, event, left_bound=Fraction(0))
         if event.kind == TemporalEventKind.START_ACTION:
             # check duration constraints
             assert event.committed_events is not None
@@ -692,17 +717,20 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     f"The duration: {duration} is bigger than the upper bound of the action's {original_action.name} duration constraints."
                 )
 
+            # insert committed events in the STN with right distance from the
+            # StartAction event.
             committed_events: List[Event] = []
             ce = event.committed_events
             assert (
                 ce is not None
             ), "Error, start Action event can't have None committed events"
+            if event in stn:
+                raise UPUsageError(
+                    "START_ACTION event already submitted to ",
+                    "the timed_simulator! NOTE that TemporalEvents are unique and only usable once!",
+                )
             for committed_event in ce:
-                if any(committed_event in el for el in running_events):
-                    raise UPUsageError(
-                        "START_ACTION event already submitted to ",
-                        "the timed_simulator! NOTE that TemporalEvents are unique and only usable once!",
-                    )
+                assert committed_event not in stn
                 committed_events.append(committed_event)
                 bound = Fraction(committed_event.timing.delay)
                 if (
@@ -719,6 +747,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     stn, event, committed_event, left_bound=bound, right_bound=bound
                 )
             running_events.append(committed_events)
+        # InstantaneousAction Events modify only the STN, which is done at the end.
         elif not event.kind == TemporalEventKind.INSTANTANEOUS_ACTION:
             found = False
             for el in running_events:
@@ -752,6 +781,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 ), "All conditions should have been added before being removed"
                 # Filter out empty lists
                 durative_conditions[:] = [x for x in filter(None, durative_conditions)]
+        insert_interval(stn, last_event, event, left_bound=Fraction(0))
 
 
 def break_action_or_problem_in_event_list(
@@ -764,8 +794,13 @@ def break_action_or_problem_in_event_list(
 ) -> List[Event]:
     assert is_global != (duration is not None)  # equivalent to xor
     em = env.expression_manager
+    # map from timing to the Set of conditions and effect that happen in that timing
     point_events_map: Dict[Timing, Set[Union[Effect, FNode]]] = {}
+    # map of conditions that start at the key timing. The bool represents if the
+    # timing is included or not in the condition
     start_durative_conditions_map: Dict[Tuple[Timing, bool], List[FNode]] = {}
+    # map of conditions that end at the key timing. The bool represents if the
+    # timing is included or not in the condition
     end_durative_conditions_map: Dict[Tuple[Timing, bool], List[FNode]] = {}
 
     for t, el in effects.items():
@@ -780,7 +815,7 @@ def break_action_or_problem_in_event_list(
         # valid point condition
         if lower == upper and not i.is_left_open() and not i.is_right_open():
             point_events_map.setdefault(lower, set()).update(cl)
-        # Meaningful interval condition (empty interval is True)
+        # Meaningful interval condition (empty interval evaluates to True)
         elif lower.delay < upper.delay:
             cond = em.And(cl)
             # handle left side
@@ -812,7 +847,7 @@ def break_action_or_problem_in_event_list(
             ), "Error, multiple StartTiming found."
             start_conditions = tmp_conditions
             start_effects = tmp_effects
-            continue
+            continue  # START_ACTION/PLAN event is created in the end
         elif t == t_end:
             kind = (
                 TemporalEventKind.END_PLAN
@@ -837,7 +872,7 @@ def break_action_or_problem_in_event_list(
         assert start_effects is None
         start_effects = []
     assert start_effects is not None
-
+    # Create end event
     if t_end not in events:
         event = TemporalEvent(
             TemporalEventKind.END_PLAN if is_global else TemporalEventKind.END_ACTION,
