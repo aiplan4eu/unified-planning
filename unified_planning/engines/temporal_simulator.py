@@ -973,11 +973,12 @@ def correct_order_events_to_apply(
         in (TemporalEventKind.START_ACTION, TemporalEventKind.INSTANTANEOUS_ACTION),
         events.copy(),
     )
-    # Copy the running events and simulate the events being popped and added from the state as they get applied.
+    # Copy the running events and simulate the events being popped and added
+    # from the state as they get applied.
     running_events = [rel[:] for rel in running_events]
     while events:
-        # other ev is or an event in the start_action_events (if there are any), if
-        # not, it's an event that is also a head of one of the running_events list.
+        # other ev is an event in the start_action_events (if there are any). if
+        # not, it's an event that is the head of one of the running_events list.
         ret_ev = next(start_action_events, None)
         if ret_ev is None:
             for ev in events:
