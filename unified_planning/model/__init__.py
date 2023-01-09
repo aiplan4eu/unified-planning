@@ -63,7 +63,14 @@ from unified_planning.model.timing import (
 )
 from unified_planning.model.types import Type, TypeManager
 from unified_planning.model.variable import Variable, FreeVarsOracle
-import unified_planning.model.metrics
+from unified_planning.model.metrics import (
+    PlanQualityMetric,
+    MinimizeActionCosts,
+    MinimizeSequentialPlanLength,
+    MinimizeMakespan,
+    MinimizeExpressionOnFinalState,
+    MaximizeExpressionOnFinalState,
+)
 import unified_planning.model.multi_agent
 
 __all__ = [
@@ -110,4 +117,10 @@ __all__ = [
     "TypeManager",
     "Variable",
     "FreeVarsOracle",
+    "PlanQualityMetric",
+    "MinimizeActionCosts",
+    "MinimizeSequentialPlanLength",
+    "MinimizeMakespan",
+    "MinimizeExpressionOnFinalState",
+    "MaximizeExpressionOnFinalState",
 ]
