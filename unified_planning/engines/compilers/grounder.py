@@ -37,7 +37,7 @@ from unified_planning.engines.compilers.utils import (
     create_action_with_given_subs,
 )
 from unified_planning.exceptions import UPUsageError
-from typing import Dict, Iterable, List, Optional, Tuple, Iterator
+from typing import Dict, Iterable, List, Optional, Tuple, Iterator, cast
 from itertools import product
 from functools import partial
 
@@ -331,15 +331,18 @@ class Grounder(engines.engine.Engine, CompilerMixin):
                 simplifier = grounder_helper.simplifier
                 new_costs: Dict[Action, Optional[FNode]] = {}
                 for new_action, (old_action, params) in trace_back_map.items():
-                    subs = dict(zip(old_action.parameters, params))
-                    old_cost = qm[old_action]
+                    subs = cast(
+                        Dict[Expression, Expression],
+                        dict(zip(old_action.parameters, params)),
+                    )
+                    old_cost = qm.get_action_cost(old_action)
                     if old_cost is None:
                         new_costs[new_action] = None
                     else:
                         new_costs[new_action] = simplifier.simplify(
                             substituter.substitute(old_cost, subs)
                         )
-                new_problem.add_quality_metric(MinimizeActionCosts(qm))
+                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
             else:
                 new_problem.add_quality_metric(qm)
 
