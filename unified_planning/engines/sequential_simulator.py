@@ -18,7 +18,12 @@ from fractions import Fraction
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
-from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
+from unified_planning.engines.mixins.simulator import (
+    Event,
+    SimulatorMixin,
+    get_unsatisfied_conditions,
+    get_unsatisfied_goals,
+)
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import COWState, ROState, UPCOWState, Problem, Action, FNode
 from unified_planning.model.walkers import StateEvaluator
@@ -104,7 +109,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
             or the list containing the first condition evaluated to False if the
             flag `early_termination` is set.
         """
-        return get_unsatisfied_conditions(self, event, state, early_termination)
+        return get_unsatisfied_conditions(event, state, self._se, early_termination)
 
     def _apply(
         self, event: Union["Event", Iterable["Event"]], state: "COWState"
@@ -246,7 +251,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
             containing the first goal evaluated to False if the flag
             "early_termination" is set.
         """
-        return get_unsatisfied_goals(self, state, early_termination)
+        return get_unsatisfied_goals(self, state, self._se, early_termination)
 
     def _get_initial_state(self) -> "COWState":
         """
@@ -334,39 +339,3 @@ class SequentialSimulator(Engine, SimulatorMixin):
             raise NotImplementedError(
                 "The SequentialSimulator currently supports only InstantaneousActions."
             )
-
-
-def get_unsatisfied_goals(
-    simulator: SequentialSimulator, state: "ROState", early_termination: bool = False
-) -> List["up.model.FNode"]:
-    assert simulator._se is not None
-    unsatisfied_goals = []
-    for g in cast(up.model.Problem, simulator._problem).goals:
-        g_eval = simulator._se.evaluate(g, state).bool_constant_value()
-        if not g_eval:
-            unsatisfied_goals.append(g)
-            if early_termination:
-                break
-    return unsatisfied_goals
-
-
-def get_unsatisfied_conditions(
-    simulator: SequentialSimulator,
-    event: "Event",
-    state: "ROState",
-    early_termination: bool = False,
-) -> List["up.model.FNode"]:
-    # Evaluate every condition and if the condition is False or the condition is not simplified as a
-    # boolean constant in the given state, return False. Return True otherwise
-    assert simulator._se is not None
-    unsatisfied_conditions = []
-    for c in event.conditions:
-        evaluated_cond = simulator._se.evaluate(c, state)
-        if (
-            not evaluated_cond.is_bool_constant()
-            or not evaluated_cond.bool_constant_value()
-        ):
-            unsatisfied_conditions.append(c)
-            if early_termination:
-                break
-    return unsatisfied_conditions
