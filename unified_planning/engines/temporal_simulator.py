@@ -16,6 +16,7 @@
 
 from enum import Enum, auto
 from fractions import Fraction
+from warnings import warn
 import unified_planning as up
 from unified_planning.model import (
     Action,
@@ -40,10 +41,13 @@ from unified_planning.engines.engine import Engine
 from unified_planning.engines.sequential_simulator import (
     InstantaneousEvent,
     SequentialSimulator,
-    get_unsatisfied_goals,
-    get_unsatisfied_conditions,
 )
-from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
+from unified_planning.engines.mixins.simulator import (
+    Event,
+    SimulatorMixin,
+    get_unsatisfied_conditions,
+    get_unsatisfied_goals,
+)
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.walkers import StateEvaluator
 from unified_planning.environment import Environment
@@ -154,8 +158,12 @@ class TemporalSimulator(Engine, SimulatorMixin):
         self.error_on_failed_checks = error_on_failed_checks
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
-        assert Grounder.supports(pk)
-        assert isinstance(self._problem, up.model.Problem)
+        if not Grounder.supports(pk):
+            msg = f"The Grounder used in the {type(self)} does not support the given problem"
+            if self.error_on_failed_checks:
+                raise UPUsageError(msg)
+            else:
+                warn(msg)
         try:
             self._epsilon = EPSILON if epsilon is None else Fraction(epsilon)
         except ValueError:
@@ -267,9 +275,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             or the list containing the first condition evaluated to False if the
             flag `early_termination` is set.
         """
-        return get_unsatisfied_conditions(
-            cast(SequentialSimulator, self), event, state, early_termination
-        )
+        return get_unsatisfied_conditions(event, state, self._se, early_termination)
 
     def _apply(
         self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
@@ -317,9 +323,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
 
         if len(events) == 0:
             raise UPUsageError("The given iterator of events is empty")
-        last_event = cast(
-            TemporalEvent, next(iter(state.last_events))
-        )  # TODO check if use list instead of sets
+        last_event = cast(TemporalEvent, next(iter(state.last_events)))
         first = True
         for other_ev in correct_order_events_to_apply(
             events, cast(List[List[TemporalEvent]], running_events)
@@ -363,9 +367,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 self._all_possible_assignments,
             )
             oth_written_fluents: Set[FNode] = set(oth_updated_values.keys())
-            last_event = cast(
-                TemporalEvent, next(iter(prev_state.last_events))
-            )  # TODO check if use list instead of sets
+            last_event = cast(TemporalEvent, next(iter(prev_state.last_events)))
             assert isinstance(last_event, TemporalEvent)
             # Case where at least 1 Event writes something, that affects the other Event
             if (
@@ -487,9 +489,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             containing the first goal evaluated to False if the flag
             "early_termination" is set.
         """
-        return get_unsatisfied_goals(
-            cast(SequentialSimulator, self), state, early_termination
-        )
+        return get_unsatisfied_goals(self, state, self._se, early_termination)
 
     def _is_goal(self, state: "ROState") -> bool:
         """
@@ -941,7 +941,6 @@ def insert_interval(
 def correct_order_events_to_apply(
     events: Iterable[TemporalEvent], running_events: List[List[TemporalEvent]]
 ) -> Iterator[Optional[TemporalEvent]]:
-    # TODO find a significative name
     """
     This method yields the events in the correct order they must be applied. If a None element is
     returned, it means the given events are not applicable.

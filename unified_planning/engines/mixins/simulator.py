@@ -15,7 +15,7 @@
 
 
 from fractions import Fraction
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union, Iterator
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union, Iterator, cast
 from warnings import warn
 import unified_planning as up
 from unified_planning.model import FNode, COWState, ROState, Action
@@ -364,3 +364,49 @@ class SimulatorMixin:
                         )
                     updated_values[f] = v
         return (updated_values, red_fluents)
+
+
+def get_unsatisfied_goals(
+    simulator: SimulatorMixin,
+    state: "ROState",
+    state_evaluator: StateEvaluator,
+    early_termination: bool = False,
+) -> List["up.model.FNode"]:
+    unsatisfied_goals = []
+    assert isinstance(simulator, up.engines.engine.Engine)
+    if not simulator.skip_checks and not isinstance(
+        simulator._problem, up.model.Problem
+    ):
+        msg = "Given problem is not an up.model.Problem"
+        if simulator.error_on_failed_checks:
+            raise UPUsageError(msg)
+        else:
+            warn(msg)
+    for g in cast(up.model.Problem, simulator._problem).goals:
+        g_eval = state_evaluator.evaluate(g, state).bool_constant_value()
+        if not g_eval:
+            unsatisfied_goals.append(g)
+            if early_termination:
+                break
+    return unsatisfied_goals
+
+
+def get_unsatisfied_conditions(
+    event: "Event",
+    state: "ROState",
+    state_evaluator: StateEvaluator,
+    early_termination: bool = False,
+) -> List["up.model.FNode"]:
+    # Evaluate every condition and if the condition is False or the condition is not simplified as a
+    # boolean constant in the given state, return False. Return True otherwise
+    unsatisfied_conditions = []
+    for c in event.conditions:
+        evaluated_cond = state_evaluator.evaluate(c, state)
+        if (
+            not evaluated_cond.is_bool_constant()
+            or not evaluated_cond.bool_constant_value()
+        ):
+            unsatisfied_conditions.append(c)
+            if early_termination:
+                break
+    return unsatisfied_conditions
