@@ -14,6 +14,7 @@
 #
 
 
+from warnings import warn
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
@@ -62,7 +63,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
         self.error_on_failed_checks = error_on_failed_checks
         SimulatorMixin.__init__(self, problem)
         pk = problem.kind
-        assert Grounder.supports(pk)
+        if not Grounder.supports(pk):
+            msg = f"The Grounder used in the {type(self)} does not support the given problem"
+            if self.error_on_failed_checks:
+                raise UPUsageError(msg)
+            else:
+                warn(msg)
         assert isinstance(self._problem, up.model.Problem)
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
@@ -283,6 +289,11 @@ class SequentialSimulator(Engine, SimulatorMixin):
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod
