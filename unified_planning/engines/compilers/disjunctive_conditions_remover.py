@@ -29,6 +29,7 @@ from unified_planning.model import (
     Timing,
     Action,
     ProblemKind,
+    Oversubscription,
 )
 from unified_planning.model.walkers import Dnf
 from typing import List, Optional, Tuple, Dict, cast
@@ -84,6 +85,11 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod
@@ -178,16 +184,17 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         # just to remove the disjunction from goals
         meaningful_actions: List["up.model.Action"] = new_problem.actions[:]
 
-        self._remove_disjunctions_from_goals_adding_new_elements(
+        goal_to_add = self._goals_without_disjunctions_adding_new_elements(
             dnf,
             new_problem,
             new_to_old,
             new_fluents,
             problem.goals,
         )
+        new_problem.add_goal(goal_to_add)
 
         for t, gl in problem.timed_goals.items():
-            self._remove_disjunctions_from_goals_adding_new_elements(
+            goal_to_add = self._goals_without_disjunctions_adding_new_elements(
                 dnf,
                 new_problem,
                 new_to_old,
@@ -195,7 +202,20 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 gl,
                 t,
             )
+            new_problem.add_timed_goal(t, goal_to_add)
 
+        new_problem.clear_quality_metrics()
+        for qm in problem.quality_metrics:
+            if isinstance(qm, Oversubscription):
+                new_oversubscription = {}
+                for g, v in qm.goals.items():
+                    new_goal = self._goals_without_disjunctions_adding_new_elements(
+                        dnf, new_problem, new_to_old, new_fluents, g
+                    )
+                    new_oversubscription[new_goal] = v
+                new_problem.add_quality_metric(Oversubscription(new_oversubscription))
+            else:
+                new_problem.add_quality_metric(qm)
         # Every meaningful action must set to False every new fluent added.
         # For the DurativeActions this must happen every time the action modifies something
         em = env.expression_manager
@@ -221,7 +241,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
 
-    def _remove_disjunctions_from_goals_adding_new_elements(
+    def _goals_without_disjunctions_adding_new_elements(
         self,
         dnf: Dnf,
         new_problem: "up.model.Problem",
@@ -229,7 +249,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_fluents: List["up.model.Fluent"],
         goals: List["up.model.FNode"],
         timing: Optional["up.model.timing.TimeInterval"] = None,
-    ):
+    ) -> "up.model.FNode":
         env = new_problem.env
         new_goal = dnf.get_dnf_expression(env.expression_manager.And(goals))
         if new_goal.is_or():
@@ -248,15 +268,9 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                     new_problem.add_action(na)
             new_problem.add_fluent(fake_fluent, default_initial_value=False)
             new_fluents.append(fake_fluent)
-            if timing is None:
-                new_problem.add_goal(fake_fluent)
-            else:
-                new_problem.add_timed_goal(timing, fake_fluent)
+            return fake_fluent
         else:
-            if timing is None:
-                new_problem.add_goal(new_goal)
-            else:
-                new_problem.add_timed_goal(timing, new_goal)
+            return new_goal
 
     def _create_new_durative_action_with_given_conds_at_given_times(
         self,

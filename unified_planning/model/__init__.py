@@ -70,6 +70,7 @@ from unified_planning.model.metrics import (
     MinimizeMakespan,
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
+    Oversubscription,
 )
 import unified_planning.model.multi_agent
 
@@ -123,4 +124,5 @@ __all__ = [
     "MinimizeMakespan",
     "MinimizeExpressionOnFinalState",
     "MaximizeExpressionOnFinalState",
+    "Oversubscription",
 ]
