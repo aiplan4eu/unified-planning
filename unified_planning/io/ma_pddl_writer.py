@@ -50,6 +50,11 @@ from unified_planning.io.pddl_writer import (
     _get_pddl_name,
 )
 
+from unified_planning.model.walkers.simplifier import Simplifier
+from unified_planning.model.expression import ExpressionManager
+from unified_planning.model.walkers.substituter import Substituter
+import re
+
 
 class ConverterToMAPDDLString(ConverterToPDDLString):
     """Expression converter to a MA-PDDL string."""
@@ -75,9 +80,9 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
     def walk_dot(self, expression, args):
         agent = expression.agent()
         fluent = expression.args[0].fluent()
-        object = expression.args[0].args[0]
+        objects = expression.args[0].args
         # f.args[0].fluent(), f.agent().name, f.args[0].args[0]]
-        return f'({self.get_mangled_name(fluent)}{" "}{self.get_mangled_name(agent)}{" " if len(args) > 0 else ""}{object})'
+        return f'({self.get_mangled_name(fluent)}{" "}{self.get_mangled_name(agent)}{" " if len(args) > 0 else ""}{" ".join([self.convert(obj) for obj in objects])})'
 
 
 class MAPDDLWriter:
@@ -188,7 +193,7 @@ class MAPDDLWriter:
                     user_types_hierarchy[None] if None in user_types_hierarchy else []
                 )
                 out.write(
-                    f'    {" ".join(self._get_mangled_name(t) for t in stack)}{" " if len(self.problem.agents) > 0 else ""}{" ".join((self._get_mangled_name(ag) + "_type") for ag in self.problem.agents)} - object\n'
+                    f'    {" ".join(self._get_mangled_name(t) for t in stack)}{" " if len(self.problem.agents) > 0 else ""}{" ".join((ag.name + "_type") for ag in self.problem.agents)} - object\n'
                 )
                 while stack:
                     current_type = stack.pop()
@@ -203,7 +208,7 @@ class MAPDDLWriter:
                 out.write(" )\n")
             else:
                 out.write(
-                    f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])}{" " if len(self.problem.agents) > 0 else ""}{" ".join((self._get_mangled_name(ag) + "_type") for ag in self.problem.agents)})\n'
+                    f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])}{" " if len(self.problem.agents) > 0 else ""}{" ".join((ag.name + "_type") for ag in self.problem.agents)})\n'
                     if len(self.problem.user_types) > 0
                     else ""
                 )
@@ -289,7 +294,7 @@ class MAPDDLWriter:
                                         "MA-PDDL supports only user type parameters"
                                     )
                             predicates_dot_agents.append(
-                                f'({self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(ag_dot))+"_type"}{"".join(params)})'
+                                f'({self._get_mangled_name(f)} ?agent - {(ag_dot.name)+"_type"}{"".join(params)})'
                             )
                         elif f.type.is_int_type() or f.type.is_real_type():
                             params = []
@@ -305,7 +310,7 @@ class MAPDDLWriter:
                                         "MA-PDDL supports only user type parameters"
                                     )
                             functions_dot_agents.append(
-                                f'({self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(ag_dot))+"_type"}{"".join(params)})'
+                                f'({self._get_mangled_name(f)} ?agent - {(ag_dot.name)+"_type"}{"".join(params)})'
                             )
                         else:
                             raise UPTypeError(
@@ -329,7 +334,7 @@ class MAPDDLWriter:
                                 "MA-PDDL supports only user type parameters"
                             )
                     predicates_agent.append(
-                        f'(a_{self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(ag))+"_type"}{"".join(params)})'
+                        f'(a_{self._get_mangled_name(f)} ?agent - {(ag.name)+"_type"}{"".join(params)})'
                     )
                 elif f.type.is_int_type() or f.type.is_real_type():
                     params = []
@@ -345,7 +350,7 @@ class MAPDDLWriter:
                                 "MA-PDDL supports only user type parameters"
                             )
                     functions_agent.append(
-                        f'(a_{self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(ag))+"_type"}{"".join(params)})'
+                        f'(a_{self._get_mangled_name(f)} ?agent - {(ag.name)+"_type"}{"".join(params)})'
                     )
                 else:
                     raise UPTypeError(
@@ -358,8 +363,8 @@ class MAPDDLWriter:
                 if g.is_dot():
                     f = g.args[0].fluent()
                     agent = g.agent()
-                    args = g.args
-                    object = g.args[0].args[0]
+                    # args = g.args
+                    # objects = g.args[0].args
                     if f not in ag.fluents:
                         if f.type.is_bool_type():
                             params = []
@@ -375,7 +380,7 @@ class MAPDDLWriter:
                                         "MA-PDDL supports only user type parameters"
                                     )
                             predicates_agent_goal.append(
-                                f'(a_{self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(agent)) + "_type"}{"".join(params)})'
+                                f'(a_{self._get_mangled_name(f)} ?agent - {(agent.name) + "_type"}{"".join(params)})'
                             )
                         elif f.type.is_int_type() or f.type.is_real_type():
                             params = []
@@ -391,7 +396,7 @@ class MAPDDLWriter:
                                         "MA-PDDL supports only user type parameters"
                                     )
                             functions_agent_goal.append(
-                                f'(a_{self._get_mangled_name(f)} ?agent - {(self._get_mangled_name(agent)) + "_type"}{"".join(params)})'
+                                f'(a_{self._get_mangled_name(f)} ?agent - {(agent.name) + "_type"}{"".join(params)})'
                             )
                         else:
                             raise UPTypeError(
@@ -475,9 +480,7 @@ class MAPDDLWriter:
                 if isinstance(a, up.model.InstantaneousAction):
                     out.write(f" (:action {self._get_mangled_name(a)}")
                     out.write(f"\n  :parameters (")
-                    out.write(
-                        f' ?{self._get_mangled_name(ag)[0]} - {(self._get_mangled_name(ag))+"_type"}'
-                    )
+                    out.write(f' {self._get_mangled_name(ag)} - {(ag.name)+"_type"}')
                     for ap in a.parameters:
                         if ap.type.is_user_type():
                             out.write(
@@ -491,24 +494,14 @@ class MAPDDLWriter:
                     if len(a.preconditions) > 0:
                         out.write(f"\n  :precondition (and \n")
                         for p in a.preconditions:
+
                             if p.is_dot():
                                 out.write(f"   {converter.convert(p)}\n")
-                            elif p.is_fluent_exp():
-                                if p.fluent() in ag.fluents:
-                                    out.write(
-                                        f'   (a_{self._get_mangled_name(p.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args])})\n'
-                                    )
-                                else:
-                                    out.write(f"   {converter.convert(p)}\n")
-                            elif p.args[0].is_fluent_exp():
-                                if p.args[0].fluent() in ag.fluents:
-                                    out.write(
-                                        f'   (a_{self._get_mangled_name(p.args[0].fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in p.args[0].args])})\n'
-                                    )
-                                else:
-                                    out.write(f"   {converter.convert(p)}\n")
                             else:
-                                out.write(f"   {converter.convert(p)}\n")
+                                p = self.convert_to_dot_exp(p, ag)
+                                out.write(
+                                    f"   {self.add_agent_prefix(converter.convert(p), ag.fluents)}\n"
+                                )
                         out.write(f"  )")
 
                     if len(a.effects) > 0:
@@ -519,14 +512,14 @@ class MAPDDLWriter:
                             if e.value.is_true():
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f'   (a_{self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])})\n'
+                                        f'   (a_{self._get_mangled_name(e.fluent.fluent())} ?{ag.name} {" ".join([converter.convert(arg) for arg in e.fluent.args])})\n'
                                     )
                                 else:
                                     out.write(f"   {converter.convert(e.fluent)}\n")
                             elif e.value.is_false():
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f'   (not (a_{self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])}))\n'
+                                        f'   (not (a_{self._get_mangled_name(e.fluent.fluent())} ?{ag.name} {" ".join([converter.convert(arg) for arg in e.fluent.args])}))\n'
                                     )
                                 else:
                                     out.write(
@@ -535,7 +528,7 @@ class MAPDDLWriter:
                             elif e.is_increase():
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f'   (increase (a_{self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n'
+                                        f'   (increase (a_{self._get_mangled_name(e.fluent.fluent())} ?{ag.name} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n'
                                     )
                                 else:
                                     out.write(
@@ -544,7 +537,7 @@ class MAPDDLWriter:
                             elif e.is_decrease():
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f'   (decrease (a_{self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n'
+                                        f'   (decrease (a_{self._get_mangled_name(e.fluent.fluent())} ?{ag.name} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n'
                                     )
                                 else:
                                     out.write(
@@ -553,7 +546,7 @@ class MAPDDLWriter:
                             else:
                                 if e.fluent.fluent() in ag.fluents:
                                     out.write(
-                                        f'   (assign (a_{self._get_mangled_name(e.fluent.fluent())} ?{(self._get_mangled_name(ag))[0]} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n'
+                                        f'   (assign (a_{self._get_mangled_name(e.fluent.fluent())} ?{ag.name} {" ".join([converter.convert(arg) for arg in e.fluent.args])} {converter.convert(e.value)}))\n'
                                     )
                                 else:
                                     out.write(
@@ -653,7 +646,7 @@ class MAPDDLWriter:
             out.write(")\n")
             out.seek(0)
             ag_domain = out.read()
-            ag_domains[self._get_mangled_name(ag)] = ag_domain
+            ag_domains[ag.name] = ag_domain
             out.truncate(0)
             out.seek(0)
             self.domain_objects = None
@@ -697,9 +690,7 @@ class MAPDDLWriter:
             if len(self.problem.agents) > 0:
                 for agent in self.problem.agents:
                     if agent not in self.domain_objects_agents.keys():
-                        out.write(
-                            f'\n   {self._get_mangled_name(agent)} - {(self._get_mangled_name(agent)) + "_type"}'
-                        )
+                        out.write(f'\n   {agent.name} - {agent.name + "_type"}')
                     else:
                         out.write(f"")
 
@@ -713,10 +704,10 @@ class MAPDDLWriter:
                     if f.is_dot():
                         fluent = f.args[0].fluent()
                         args = f.args
-                        object = f.args[0].args[0]
+                        # objects = f.args[0].args
                         if f.agent().name == ag.name and fluent in ag.fluents:
                             out.write(
-                                f'\n  (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(ag)}{" " if len(args) > 0 else ""}{object})'
+                                f'\n  (a_{self._get_mangled_name(fluent)}{" "}{ag.name}{" " if len(args) > 0 else ""}{" ".join([converter.convert(obj) for obj in f.args[0].args])})'
                             )
                         elif (
                             f.agent().name != ag.name
@@ -739,29 +730,18 @@ class MAPDDLWriter:
                 if p.is_dot():
                     fluent = p.args[0].fluent()
                     args = p.args
-                    object = p.args[0].args[0]
+                    # objects = p.args[0].args
                     agent = p.agent()
                     out.write(
-                        f' (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(agent)}{" " if len(args) > 0 else ""}{object})'
+                        f' (a_{self._get_mangled_name(fluent)}{" "}{agent.name}{" " if len(args) > 0 else ""}{" ".join([converter.convert(obj) for obj in p.args[0].args])})'
                     )
-                    """if p.agent().name == ag.name and fluent in ag.fluents:
-                        out.write(
-                            f' (a_{self._get_mangled_name(fluent)}{" "}{self._get_mangled_name(ag)}{" " if len(args) > 0 else ""}{object})'
-                        )
-                    elif (
-                        p.agent().name != ag.name
-                        and fluent in self.domain_fluents_agents
-                    ):
-                        out.write(f" {converter.convert(p)}")
-                    else:
-                        out.write(f"")"""
                 else:
                     out.write(f" {converter.convert(p)}")
             out.write(f"))")
             out.write("\n)")
             out.seek(0)
             ag_problem = out.read()
-            ag_problems[self._get_mangled_name(ag)] = ag_problem
+            ag_problems[ag.name] = ag_problem
             out.truncate(0)
             out.seek(0)
             self.domain_objects = None
@@ -873,8 +853,14 @@ class MAPDDLWriter:
             new_name not in self.nto_renamings
             and new_name not in self.otn_renamings.values()
         )
+        if isinstance(item, up.model.multi_agent.Agent):
+            self.otn_renamings[item] = new_name
+            self.nto_renamings[new_name] = item
+            new_name = f"?{item.name}"
+
         self.otn_renamings[item] = new_name
         self.nto_renamings[new_name] = item
+
         return new_name
 
     def get_item_named(
@@ -976,6 +962,69 @@ class MAPDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+
+    def convert_to_dot_exp(self, node, agent):
+        # Initialize a simplifier object
+        o = Simplifier(self.problem.env)
+        # Define a helper function to simplify argument
+        def simplify_arg(arg):
+            # Simplify the argument
+            arg = o.simplify(arg)
+            if arg.is_not():
+                arg = self.problem.env.expression_manager.Not(arg)
+            return arg
+
+        # Initialize an empty list to store simplified arguments
+        args_list = []
+        # Iterate through all arguments of the node
+        for arg in node.args:
+            if node.is_fluent_exp():
+                # If the fluent is in the agent's fluents
+                if node.fluent() in agent.fluents:
+                    # Create a new dot expression
+                    new_dot_expression = self.problem.env.expression_manager.Dot(
+                        agent, node
+                    )
+                    return new_dot_expression
+            elif len(arg.args) > 1:
+                # Extend args_list with both sub-arguments simplified
+                args_list.extend([simplify_arg(arg.args[0]), simplify_arg(arg.args[1])])
+            else:
+                # Append arg to args_list after simplify
+                args_list.append(simplify_arg(arg))
+
+        # Create a new dot expression from the list of simplified args
+        new_dot_expression = self.sub_exp_dot(args_list, agent, node)
+        return new_dot_expression
+
+    def sub_exp(self, old_exp, new_exp, expression):
+        sub = Substituter(self.problem.env)
+        subs_map[old_exp] = new_exp
+        new_expresion = sub.substitute(expression, subs_map)
+        return new_expresion
+
+    def sub_exp_dot(self, list_old_exp, agent, expression):
+        subs_map = {}
+        sub = Substituter(self.problem.env)
+        for old_exp in list_old_exp:
+            if old_exp.fluent() in agent.fluents:
+                arg_dot = self.problem.env.expression_manager.Dot(agent, old_exp)
+                subs_map[old_exp] = arg_dot
+            else:
+                return old_exp
+        new_expresion = sub.substitute(expression, subs_map)
+        return new_expresion
+
+    def add_agent_prefix(self, string, objects_list):
+        match = re.search(r"\((\w+)\s\?", string)
+        if match:
+            found = match.group(1)
+        else:
+            return string
+        for obj in objects_list:
+            if obj.name == found:
+                return re.sub(r"\((\w+)\s\?", r"(a_\1 ?", string)
+        return string
 
 
 def _update_domain_objects_ag(
