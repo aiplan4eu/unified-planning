@@ -134,6 +134,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.clear_actions()
         new_problem.clear_goals()
         new_problem.clear_timed_goals()
+        new_problem.clear_quality_metrics()
 
         dnf = Dnf(env)
         for a in problem.actions:
@@ -204,7 +205,6 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             )
             new_problem.add_timed_goal(t, goal_to_add)
 
-        new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
             if isinstance(qm, Oversubscription):
                 new_oversubscription = {}
