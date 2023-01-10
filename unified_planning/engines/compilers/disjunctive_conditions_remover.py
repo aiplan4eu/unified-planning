@@ -210,7 +210,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_oversubscription = {}
                 for g, v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(
-                        dnf, new_problem, new_to_old, new_fluents, g
+                        dnf, new_problem, new_to_old, new_fluents, [g]
                     )
                     new_oversubscription[new_goal] = v
                 new_problem.add_quality_metric(Oversubscription(new_oversubscription))
@@ -268,7 +268,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                     new_problem.add_action(na)
             new_problem.add_fluent(fake_fluent, default_initial_value=False)
             new_fluents.append(fake_fluent)
-            return fake_fluent
+            return env.expression_manager.FluentExp(fake_fluent)
         else:
             return new_goal
 
