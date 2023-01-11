@@ -48,14 +48,16 @@ class MultiAgentProblem(
     def __init__(
         self,
         name: Optional[str] = None,
-        env: Optional["up.environment.Environment"] = None,
+        environment: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
-        AbstractProblem.__init__(self, name, env)
-        UserTypesSetMixin.__init__(self, self.env, self.has_name)
-        ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
-        AgentsSetMixin.__init__(self, self.env, self.has_name)
+        AbstractProblem.__init__(self, name, environment)
+        UserTypesSetMixin.__init__(self, self.environment, self.has_name)
+        ObjectsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name
+        )
+        AgentsSetMixin.__init__(self, self.environment, self.has_name)
 
         self._initial_defaults = initial_defaults
         self._env_ma = up.model.multi_agent.ma_environment.MAEnvironment(self)
@@ -263,7 +265,7 @@ class MultiAgentProblem(
         for a in self.agents:
             for f in a.fluents:
                 for f_exp in get_all_fluent_exp(self, f):
-                    d = self.env.expression_manager.Dot(a, f_exp)
+                    d = self.environment.expression_manager.Dot(a, f_exp)
                     res[d] = self.initial_value(d)
         return res
 

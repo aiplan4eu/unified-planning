@@ -51,17 +51,21 @@ class Problem(
     def __init__(
         self,
         name: Optional[str] = None,
-        env: Optional["up.environment.Environment"] = None,
+        environment: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
-        AbstractProblem.__init__(self, name, env)
-        UserTypesSetMixin.__init__(self, self.env, self.has_name)
+        AbstractProblem.__init__(self, name, environment)
+        UserTypesSetMixin.__init__(self, self.environment, self.has_name)
         FluentsSetMixin.__init__(
-            self, self.env, self._add_user_type, self.has_name, initial_defaults
+            self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
-        ActionsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
-        ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
+        ActionsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name
+        )
+        ObjectsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name
+        )
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._timed_effects: Dict[
@@ -256,7 +260,7 @@ class Problem(
     def _replace_action_instance(
         self, action_instance: "up.plans.ActionInstance"
     ) -> "up.plans.ActionInstance":
-        em = self.env.expression_manager
+        em = self.environment.expression_manager
         new_a = self.action(action_instance.action.name)
         params = []
         for p in action_instance.actual_parameters:
@@ -865,9 +869,9 @@ class Problem(
             lower, upper = action.duration.lower, action.duration.upper
             if lower != upper:
                 self._kind.set_time("DURATION_INEQUALITIES")
-            free_vars = self.env.free_vars_extractor.get(
+            free_vars = self.environment.free_vars_extractor.get(
                 lower
-            ) | self.env.free_vars_extractor.get(upper)
+            ) | self.environment.free_vars_extractor.get(upper)
             if len(free_vars) > 0:
                 only_static = True
                 for fv in free_vars:

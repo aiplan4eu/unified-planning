@@ -32,9 +32,9 @@ class Nnf:
     then by pushing all the not to the leaves of the Tree representing the expression.
     """
 
-    def __init__(self, env: "unified_planning.environment.Environment"):
-        self.env = env
-        self.manager = env.expression_manager
+    def __init__(self, environment: "unified_planning.environment.Environment"):
+        self.environment = environment
+        self.manager = environment.expression_manager
 
     def get_nnf_expression(self, expression: FNode) -> FNode:
         """Function used to transform a logic expression into the equivalent
@@ -126,12 +126,12 @@ class Dnf(walkers.dag.DagWalker):
     Not of an atomic expression.
     """
 
-    def __init__(self, env: "unified_planning.environment.Environment"):
+    def __init__(self, environment: "unified_planning.environment.Environment"):
         walkers.dag.DagWalker.__init__(self, True)
-        self.env = env
-        self.manager = env.expression_manager
-        self._nnf = Nnf(self.env)
-        self._simplifier = walkers.simplifier.Simplifier(self.env)
+        self.environment = environment
+        self.manager = environment.expression_manager
+        self._nnf = Nnf(self.environment)
+        self._simplifier = walkers.simplifier.Simplifier(self.environment)
 
     def get_dnf_expression(self, expression: FNode) -> FNode:
         """Function used to transform a logic expression into the equivalent

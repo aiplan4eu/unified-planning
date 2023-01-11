@@ -28,7 +28,7 @@ class HierarchicalProblem(up.model.problem.Problem):
     def __init__(
         self,
         name: Optional[str] = None,
-        env: Optional["up.environment.Environment"] = None,
+        environment: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict[
             "up.model.types.Type",
@@ -42,7 +42,9 @@ class HierarchicalProblem(up.model.problem.Problem):
             ],
         ] = {},
     ):
-        super().__init__(name=name, env=env, initial_defaults=initial_defaults)
+        super().__init__(
+            name=name, environment=environment, initial_defaults=initial_defaults
+        )
         self._abstract_tasks: OrderedDict[str, Task] = OrderedDict()
         self._methods: OrderedDict[str, Method] = OrderedDict()
         self._initial_task_network = TaskNetwork()

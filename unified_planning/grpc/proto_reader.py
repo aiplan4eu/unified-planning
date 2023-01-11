@@ -39,17 +39,17 @@ from unified_planning.model.operators import OperatorKind
 
 def convert_type_str(s: str, problem: Problem) -> model.types.Type:
     if s == "up:bool":
-        return problem.env.type_manager.BoolType()
+        return problem.environment.type_manager.BoolType()
     elif s == "up:integer":
-        return problem.env.type_manager.IntType()
+        return problem.environment.type_manager.IntType()
     elif "up:integer[" in s:
         lb = int(s.split("[")[1].split(",")[0])
         ub = int(s.split(",")[1].split("]")[0])
-        return problem.env.type_manager.IntType(lb, ub)
+        return problem.environment.type_manager.IntType(lb, ub)
     elif s == "up:real":
-        return problem.env.type_manager.RealType()
+        return problem.environment.type_manager.RealType()
     elif "up:real[" in s:
-        return problem.env.type_manager.RealType(
+        return problem.environment.type_manager.RealType(
             lower_bound=fractions.Fraction(s.split("[")[1].split(",")[0]),
             upper_bound=fractions.Fraction(s.split(",")[1].split("]")[0]),
         )
@@ -103,7 +103,7 @@ class ProtobufReader(Converter):
         self, msg: proto.Parameter, problem: Problem
     ) -> model.Parameter:
         return model.Parameter(
-            msg.name, convert_type_str(msg.type, problem), problem.env
+            msg.name, convert_type_str(msg.type, problem), problem.environment
         )
 
     @handles(proto.Fluent)
@@ -112,7 +112,7 @@ class ProtobufReader(Converter):
         sig: list = []
         for p in msg.parameters:
             sig.append(self.convert(p, problem))
-        fluent = model.Fluent(msg.name, value_type, sig, problem.env)
+        fluent = model.Fluent(msg.name, value_type, sig, problem.environment)
         return fluent
 
     @handles(proto.ObjectDeclaration)
@@ -130,15 +130,19 @@ class ProtobufReader(Converter):
             return self.convert(msg.atom, problem)
 
         elif msg.kind == proto.ExpressionKind.Value("PARAMETER"):
-            return problem.env.expression_manager.ParameterExp(
+            return problem.environment.expression_manager.ParameterExp(
                 param=Parameter(
-                    msg.atom.symbol, convert_type_str(msg.type, problem), problem.env
+                    msg.atom.symbol,
+                    convert_type_str(msg.type, problem),
+                    problem.environment,
                 ),
             )
         elif msg.kind == proto.ExpressionKind.Value("VARIABLE"):
-            return problem.env.expression_manager.VariableExp(
+            return problem.environment.expression_manager.VariableExp(
                 var=Variable(
-                    msg.atom.symbol, convert_type_str(msg.type, problem), problem.env
+                    msg.atom.symbol,
+                    convert_type_str(msg.type, problem),
+                    problem.environment,
                 ),
             )
         elif msg.kind == proto.ExpressionKind.Value("STATE_VARIABLE"):
@@ -151,7 +155,9 @@ class ProtobufReader(Converter):
 
             args.extend([self.convert(m, problem) for m in msg.list])
             if payload is not None:
-                return problem.env.expression_manager.FluentExp(payload, tuple(args))
+                return problem.environment.expression_manager.FluentExp(
+                    payload, tuple(args)
+                )
             else:
                 raise UPException(f"Unable to form fluent expression {msg}")
         elif (
@@ -178,7 +184,7 @@ class ProtobufReader(Converter):
 
             assert node_type is not None
 
-            return problem.env.expression_manager.create_node(
+            return problem.environment.expression_manager.create_node(
                 node_type=node_type,
                 args=tuple(args),
                 payload=payload,
@@ -219,7 +225,7 @@ class ProtobufReader(Converter):
             if len(timepoint_expr) > 1:
                 container = timepoint_expr[1].atom.symbol
             tp = model.timing.Timepoint(kd, container)
-            return problem.env.expression_manager.TimingExp(model.Timing(dl, tp))
+            return problem.environment.expression_manager.TimingExp(model.Timing(dl, tp))
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
@@ -231,18 +237,18 @@ class ProtobufReader(Converter):
 
         value = getattr(msg, field)
         if field == "int":
-            return problem.env.expression_manager.Int(value)
+            return problem.environment.expression_manager.Int(value)
         elif field == "real":
-            return problem.env.expression_manager.Real(
+            return problem.environment.expression_manager.Real(
                 fractions.Fraction(value.numerator, value.denominator)
             )
         elif field == "boolean":
-            return problem.env.expression_manager.Bool(value)
+            return problem.environment.expression_manager.Bool(value)
         else:
             # If atom symbols, return the equivalent UP alternative
             # Note that parameters are directly handled at expression level
             if problem.has_object(value):
-                return problem.env.expression_manager.ObjectExp(
+                return problem.environment.expression_manager.ObjectExp(
                     obj=problem.object(value)
                 )
             else:
@@ -253,10 +259,10 @@ class ProtobufReader(Converter):
         self, msg: proto.TypeDeclaration, problem: Problem
     ) -> model.Type:
         if msg.type_name == "up:bool":
-            return problem.env.type_manager.BoolType()
+            return problem.environment.type_manager.BoolType()
         elif msg.type_name.startswith("up:integer["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
-            return problem.env.type_manager.IntType(
+            return problem.environment.type_manager.IntType(
                 lower_bound=int(tmp[0]) if tmp[0] != "-inf" else None,
                 upper_bound=int(tmp[1]) if tmp[1] != "inf" else None,
             )
@@ -264,24 +270,28 @@ class ProtobufReader(Converter):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
             lower_bound = fractions.Fraction(tmp[0]) if tmp[0] != "-inf" else None
             upper_bound = fractions.Fraction(tmp[1]) if tmp[1] != "inf" else None
-            return problem.env.type_manager.RealType(
+            return problem.environment.type_manager.RealType(
                 lower_bound=lower_bound, upper_bound=upper_bound
             )
         else:
             father = (
                 problem.user_type(msg.parent_type) if msg.parent_type != "" else None
             )
-            return problem.env.type_manager.UserType(name=msg.type_name, father=father)
+            return problem.environment.type_manager.UserType(
+                name=msg.type_name, father=father
+            )
 
     @handles(proto.Problem)
     def _convert_problem(
-        self, msg: proto.Problem, env: Optional[Environment] = None
+        self, msg: proto.Problem, environment: Optional[Environment] = None
     ) -> Problem:
         problem_name = str(msg.problem_name) if str(msg.problem_name) != "" else None
         if msg.HasField("hierarchy"):
-            problem = model.htn.HierarchicalProblem(name=problem_name, env=env)
+            problem = model.htn.HierarchicalProblem(
+                name=problem_name, environment=environment
+            )
         else:
-            problem = Problem(name=problem_name, env=env)
+            problem = Problem(name=problem_name, environment=environment)
 
         for t in msg.types:
             problem._add_user_type(self.convert(t, problem))
@@ -339,7 +349,9 @@ class ProtobufReader(Converter):
         self, msg: proto.AbstractTaskDeclaration, problem: Problem
     ):
         return model.htn.Task(
-            msg.name, [self.convert(p, problem) for p in msg.parameters], problem.env
+            msg.name,
+            [self.convert(p, problem) for p in msg.parameters],
+            problem.environment,
         )
 
     @handles(proto.Task)
@@ -353,7 +365,9 @@ class ProtobufReader(Converter):
         else:
             raise ValueError(f"Unknown task name: {msg.task_name}")
         parameters = [self.convert(p, problem) for p in msg.parameters]
-        return model.htn.Subtask(task, *parameters, ident=msg.id, _env=problem.env)
+        return model.htn.Subtask(
+            task, *parameters, ident=msg.id, _env=problem.environment
+        )
 
     @handles(proto.Method)
     def _convert_method(
@@ -362,7 +376,7 @@ class ProtobufReader(Converter):
         method = model.htn.Method(
             msg.name,
             [self.convert(p, problem) for p in msg.parameters],
-            problem.env,
+            problem.environment,
         )
         achieved_task_params = []
         for p in msg.achieved_task.parameters:
@@ -383,7 +397,7 @@ class ProtobufReader(Converter):
     def _convert_task_network(
         self, msg: proto.TaskNetwork, problem: model.htn.HierarchicalProblem
     ) -> model.htn.TaskNetwork:
-        tn = model.htn.TaskNetwork(problem.env)
+        tn = model.htn.TaskNetwork(problem.environment)
         for v in msg.variables:
             tn.add_variable(v.name, convert_type_str(v.type, problem))
         for st in msg.subtasks:
@@ -703,7 +717,7 @@ class ProtobufReader(Converter):
         result: proto.CompilerResult,
         lifted_problem: unified_planning.model.Problem,
     ) -> unified_planning.engines.CompilerResult:
-        problem = self.convert(result.problem, lifted_problem.env)
+        problem = self.convert(result.problem, lifted_problem.environment)
         map: Dict[
             unified_planning.model.Action,
             Tuple[unified_planning.model.Action, List[unified_planning.model.FNode]],

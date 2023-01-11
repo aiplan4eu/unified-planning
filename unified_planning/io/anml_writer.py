@@ -112,11 +112,11 @@ class ConverterToANMLString(walkers.DagWalker):
             ],
             str,
         ],
-        env: "up.environment.Environment",
+        environment: "up.environment.Environment",
     ):
         walkers.DagWalker.__init__(self)
         self._names_mapping = names_mapping
-        self.simplifier = env.simplifier
+        self.simplifier = environment.simplifier
 
     def convert(self, expression):
         """Converts the given expression to a ANML string."""
@@ -245,9 +245,9 @@ class ANMLWriter:
             str,
         ] = {}
         # Init names_mapping.
-        names_mapping[self.problem.env.type_manager.BoolType()] = "boolean"
-        names_mapping[self.problem.env.type_manager.IntType()] = "integer"
-        names_mapping[self.problem.env.type_manager.RealType()] = "float"
+        names_mapping[self.problem.environment.type_manager.BoolType()] = "boolean"
+        names_mapping[self.problem.environment.type_manager.IntType()] = "integer"
+        names_mapping[self.problem.environment.type_manager.RealType()] = "float"
         for t in self.problem.user_types:
             ut = cast(_UserType, t)
             if _is_valid_anml_name(ut.name):  # No renaming needed
@@ -289,7 +289,7 @@ class ANMLWriter:
                     f"fluent {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)}{params_written};\n"
                 )
 
-        converter = ConverterToANMLString(names_mapping, self.problem.env)
+        converter = ConverterToANMLString(names_mapping, self.problem.environment)
 
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):

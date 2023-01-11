@@ -133,17 +133,17 @@ class Environment:
 GLOBAL_ENVIRONMENT: Optional[Environment] = None
 
 
-def get_env(env: Optional[Environment] = None) -> Environment:
+def get_environment(environment: Optional[Environment] = None) -> Environment:
     """
-    Returns the given env if it is not `None`, returns the `GLOBAL_ENVIRONMENT` otherwise.
+    Returns the given environment if it is not `None`, returns the `GLOBAL_ENVIRONMENT` otherwise.
 
-    :param env: The environment to return.
+    :param environment: The environment to return.
     :return: The given `environment` if it is not `None`, the `GLOBAL_ENVIRONMENT` otherwise.
     """
     global GLOBAL_ENVIRONMENT
-    if env is None:
+    if environment is None:
         if GLOBAL_ENVIRONMENT is None:
             GLOBAL_ENVIRONMENT = Environment()
         return GLOBAL_ENVIRONMENT
     else:
-        return env
+        return environment

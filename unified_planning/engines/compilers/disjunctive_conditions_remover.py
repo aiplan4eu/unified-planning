@@ -124,7 +124,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         """
         assert isinstance(problem, Problem)
 
-        env = problem.env
+        environment = problem.environment
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_fluents: List["up.model.Fluent"] = []
@@ -136,11 +136,11 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.clear_timed_goals()
         new_problem.clear_quality_metrics()
 
-        dnf = Dnf(env)
+        dnf = Dnf(environment)
         for a in problem.actions:
             if isinstance(a, InstantaneousAction):
                 new_precond = dnf.get_dnf_expression(
-                    env.expression_manager.And(a.preconditions)
+                    environment.expression_manager.And(a.preconditions)
                 )
                 if new_precond.is_or():
                     for and_exp in new_precond.args:
@@ -165,7 +165,9 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
                 for i, cl in a.conditions.items():
                     interval_list.append(i)
-                    new_cond = dnf.get_dnf_expression(env.expression_manager.And(cl))
+                    new_cond = dnf.get_dnf_expression(
+                        environment.expression_manager.And(cl)
+                    )
                     if new_cond.is_or():
                         conditions.append(new_cond.args)
                     else:
@@ -218,7 +220,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(qm)
         # Every meaningful action must set to False every new fluent added.
         # For the DurativeActions this must happen every time the action modifies something
-        em = env.expression_manager
+        em = environment.expression_manager
         # new_effects is the List of effects that must be added to every meaningful action
         new_effects: List["up.model.Effect"] = [
             up.model.Effect(em.FluentExp(f), em.FALSE(), em.TRUE()) for f in new_fluents
@@ -250,14 +252,16 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         goals: List["up.model.FNode"],
         timing: Optional["up.model.timing.TimeInterval"] = None,
     ) -> "up.model.FNode":
-        env = new_problem.env
+        env = new_problem.environment
         new_goal = dnf.get_dnf_expression(env.expression_manager.And(goals))
         if new_goal.is_or():
             new_name = self.name if timing is None else f"{self.name}_timed"
             fake_fluent = up.model.Fluent(
                 get_fresh_name(new_problem, f"{new_name}_fake_goal")
             )
-            fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
+            fake_action = InstantaneousAction(
+                f"{new_name}_fake_action", _env=environment
+            )
             fake_action.add_effect(fake_fluent, True)
             for and_exp in new_goal.args:
                 na = self._create_new_action_with_given_precond(

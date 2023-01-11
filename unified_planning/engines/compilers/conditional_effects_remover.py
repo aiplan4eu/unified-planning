@@ -127,8 +127,8 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
             :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
         """
         assert isinstance(problem, Problem)
-        env = problem.env
-        simplifier = env.simplifier
+        environment = problem.environment
+        simplifier = environment.simplifier
 
         new_to_old = {}
 
@@ -144,7 +144,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             f"The condition of effect: {e}\ncould not be removed without changing the problem."
                         )
                     else:
-                        em = env.expression_manager
+                        em = environment.expression_manager
                         c = e.condition
                         nv = simplifier.simplify(
                             em.Or(em.And(c, v), em.And(em.Not(c), f))
@@ -171,7 +171,10 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             # positive precondition
                             new_action.add_precondition(e.condition)
                             ne = up.model.Effect(
-                                e.fluent, e.value, env.expression_manager.TRUE(), e.kind
+                                e.fluent,
+                                e.value,
+                                environment.expression_manager.TRUE(),
+                                e.kind,
                             )
                             # We try to add the new effect, but it might be in conflict with exising effects,
                             # so the action is not added to the problem
@@ -182,7 +185,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                         else:
                             # negative precondition
                             new_action.add_precondition(
-                                env.expression_manager.Not(e.condition)
+                                environment.expression_manager.Not(e.condition)
                             )
                     # new action is created, then is checked if it has any impact and if it can be simplified
                     if len(new_action.effects) > 0:
@@ -215,7 +218,10 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             # positive precondition
                             new_action.add_condition(t, e.condition)
                             ne = up.model.Effect(
-                                e.fluent, e.value, env.expression_manager.TRUE(), e.kind
+                                e.fluent,
+                                e.value,
+                                environment.expression_manager.TRUE(),
+                                e.kind,
                             )
                             # We try to add the new effect, but it might be in conflict with exising effects,
                             # so the action is not added to the problem
@@ -226,7 +232,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                         else:
                             # negative precondition
                             new_action.add_condition(
-                                t, env.expression_manager.Not(e.condition)
+                                t, environment.expression_manager.Not(e.condition)
                             )
                     # new action is created, then is checked if it has any impact and if it can be simplified
                     if len(new_action.effects) > 0:

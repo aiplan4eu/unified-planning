@@ -32,15 +32,15 @@ class MAEnvironment(
     ):
         FluentsSetMixin.__init__(
             self,
-            ma_problem.env,
+            ma_problem.environment,
             ma_problem._add_user_type,
             ma_problem.has_name,
             ma_problem._initial_defaults,
         )
-        self._env = ma_problem.env
+        self._env = ma_problem.environment
 
     @property
-    def env(self) -> "up.Environment":
+    def environment(self) -> "up.Environment":
         """Returns this `MAEnvironment` `Environment`."""
         return self._env
 

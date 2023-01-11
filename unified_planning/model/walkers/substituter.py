@@ -28,11 +28,11 @@ from typing import List, Dict
 class Substituter(IdentityDagWalker):
     """Performs substitution into an expression"""
 
-    def __init__(self, env: "unified_planning.environment.Environment"):
-        IdentityDagWalker.__init__(self, env, True)
-        self.env = env
-        self.manager = env.expression_manager
-        self.type_checker = env.type_checker
+    def __init__(self, environment: "unified_planning.environment.Environment"):
+        IdentityDagWalker.__init__(self, environment, True)
+        self.environment = environment
+        self.manager = environment.expression_manager
+        self.type_checker = environment.type_checker
 
     def _get_key(self, expression, **kwargs):
         return expression

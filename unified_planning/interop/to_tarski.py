@@ -31,12 +31,15 @@ import tarski
 
 class TarskiFormulaConverter(walkers.DagWalker):
     def __init__(
-        self, language: "tarski.fol.FirstOrderLanguage", env, object_freshname: str
+        self,
+        language: "tarski.fol.FirstOrderLanguage",
+        environment,
+        object_freshname: str,
     ) -> None:
         walkers.DagWalker.__init__(self)
         self.object_freshname = object_freshname
         self.lang = language
-        self.env = env
+        self.environment = environment
 
     def convert_formula(
         self, expression: "unified_planning.model.FNode"
@@ -360,9 +363,11 @@ def convert_problem_to_tarski(
             ),
         )
     # creating tarski problem
-    em = problem.env.expression_manager
+    em = problem.environment.expression_manager
     tfc = TarskiFormulaConverter(
-        language=lang, env=problem.env, object_freshname=object_freshname
+        language=lang,
+        environment=problem.environment,
+        object_freshname=object_freshname,
     )
     new_problem = tarski.fstrips.problem.create_fstrips_problem(
         lang, problem.name, f"{problem.name}_domain"

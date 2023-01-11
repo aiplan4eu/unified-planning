@@ -19,7 +19,7 @@ that defines the types of its parameters.
 """
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import get_environment, Environment
 from unified_planning.model.types import domain_size, domain_item
 from typing import List, OrderedDict, Optional, Union, Iterator
 
@@ -37,10 +37,10 @@ class Fluent:
                 List["up.model.parameter.Parameter"],
             ]
         ] = None,
-        env: Optional[Environment] = None,
+        environment: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        self._env = get_env(env)
+        self._env = get_environment(environment)
         self._name = name
         if typename is None:
             self._typename = self._env.type_manager.BoolType()

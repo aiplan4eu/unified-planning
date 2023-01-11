@@ -139,10 +139,10 @@ class SequentialSimulator(Engine, SimulatorMixin):
         """
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
-        em = self._problem.env.expression_manager
+        em = self._problem.environment.expression_manager
         for e in event.effects:
             evaluated_args = tuple(self._se.evaluate(a, state) for a in e.fluent.args)
-            fluent = self._problem.env.expression_manager.FluentExp(
+            fluent = self._problem.environment.expression_manager.FluentExp(
                 e.fluent.fluent(), evaluated_args
             )
             if (not e.is_conditional()) or self._se.evaluate(
@@ -241,7 +241,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."
             )
         params_exp = tuple(
-            self._problem.env.expression_manager.auto_promote(parameters)
+            self._problem.environment.expression_manager.auto_promote(parameters)
         )
         grounded_action = self._grounder.ground_action(action, params_exp)
         event_list = self._get_or_create_events(action, params_exp, grounded_action)

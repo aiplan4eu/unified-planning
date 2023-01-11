@@ -55,7 +55,8 @@ class TestProblem(TestCase):
         self.assertEqual(cargo_at.name, "cargo_at")
         self.assertEqual(cargo_at.arity, 1)
         self.assertEqual(
-            cargo_at.signature, [up.model.Parameter("position", Location, problem.env)]
+            cargo_at.signature,
+            [up.model.Parameter("position", Location, problem.environment)],
         )
         self.assertTrue(cargo_at.type.is_bool_type())
 
@@ -65,8 +66,8 @@ class TestProblem(TestCase):
         self.assertEqual(
             is_connected.signature,
             [
-                up.model.Parameter("l1", Location, problem.env),
-                up.model.Parameter("l2", Location, problem.env),
+                up.model.Parameter("l1", Location, problem.environment),
+                up.model.Parameter("l2", Location, problem.environment),
             ],
         )
         self.assertTrue(is_connected.type.is_bool_type())

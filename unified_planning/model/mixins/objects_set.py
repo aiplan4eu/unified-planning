@@ -25,18 +25,18 @@ class ObjectsSetMixin:
     This class is a mixin that contains a `set` of `objects` with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
-    of the attributes (e.g. `env`, `add_user_type_method`, `has_name_method`), it is required
+    of the attributes (e.g. `environment`, `add_user_type_method`, `has_name_method`), it is required
     to pass the very same arguments to the mixins constructors.
     """
 
-    def __init__(self, env, add_user_type_method, has_name_method):
-        self._env = env
+    def __init__(self, environment, add_user_type_method, has_name_method):
+        self._env = environment
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._objects: List["up.model.object.Object"] = []
 
     @property
-    def env(self) -> "up.environment.Environment":
+    def environment(self) -> "up.environment.Environment":
         """Returns the `problem` `environment`."""
         return self._env
 

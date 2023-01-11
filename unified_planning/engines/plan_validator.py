@@ -51,7 +51,9 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
     def __init__(self, **options):
         engines.engine.Engine.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
-            unified_planning.environment.get_env(options.get("env", None))
+            unified_planning.environment.get_environment(
+                options.get("environment", None)
+            )
         )
         self.manager = self._env.expression_manager
         self._substituter = walkers.Substituter(self._env)

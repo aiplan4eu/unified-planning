@@ -18,7 +18,7 @@ from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import SequentialPlanValidator, ValidationResultStatus
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 
 
 class TestProblem(TestCase):
@@ -27,7 +27,7 @@ class TestProblem(TestCase):
         self.problems = get_example_problems()
 
     def test_all(self):
-        pv = SequentialPlanValidator(env=get_env())
+        pv = SequentialPlanValidator(environment=get_environment())
         for p in self.problems.values():
             if not pv.supports(p.problem.kind):
                 continue
@@ -51,11 +51,11 @@ class TestProblem(TestCase):
             problem, plan = p.problem, p.plan
             pk = problem.kind
             if SequentialPlanValidator.supports(pk):
-                env = unified_planning.environment.Environment()
-                env.factory.preference_list = [
-                    e for e in env.factory.preference_list if e != "tamer"
+                environment = unified_planning.environment.Environment()
+                environment.factory.preference_list = [
+                    e for e in environment.factory.preference_list if e != "tamer"
                 ]
-                with env.factory.PlanValidator(
+                with environment.factory.PlanValidator(
                     problem_kind=pk, plan_kind=plan.kind
                 ) as pv:
                     self.assertEqual(pv.name, "sequential_plan_validator")

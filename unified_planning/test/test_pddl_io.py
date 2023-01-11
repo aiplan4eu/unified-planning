@@ -646,7 +646,7 @@ class TestPddlIO(TestCase):
             PDDL_DOMAINS_PATH, "visit_precedence", "problem.pddl"
         )
         problem = reader.parse_problem(domain_filename, problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 2)
@@ -662,7 +662,7 @@ class TestPddlIO(TestCase):
         location = problem.user_type("location")
         precedes = problem.fluent("precedes")
         visited = problem.fluent("visited")
-        p = Variable("p", location, problem.env)
+        p = Variable("p", location, problem.environment)
         cond_test = em.Forall(
             em.And(
                 em.Or(em.Not(precedes(p, to_visit)), visited(p)),
@@ -670,8 +670,8 @@ class TestPddlIO(TestCase):
             ),
             p,
         )
-        l = Variable("l_0", location, problem.env)
-        l2 = Variable("l2", location, problem.env)
+        l = Variable("l_0", location, problem.environment)
+        l2 = Variable("l2", location, problem.environment)
         goal_test = em.Forall(
             em.And(
                 visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)

@@ -16,23 +16,23 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.model.walkers import Dnf, Nnf, Substituter
 
 
 class TestDnf(TestCase):
     def setUp(self):
         TestCase.setUp(self)
-        self.sub = Substituter(get_env())
-        self.simp = get_env().simplifier
+        self.sub = Substituter(get_environment())
+        self.simp = get_environment().simplifier
 
     def _subs_simp(self, exp, subs):
         ne = self.sub.substitute(exp, subs)
         return self.simp.simplify(ne)
 
     def test_nnf_dnf_1(self):
-        n = Nnf(get_env())
-        dnf = Dnf(get_env())
+        n = Nnf(get_environment())
+        dnf = Dnf(get_environment())
 
         a = FluentExp(Fluent("a"))
         b = FluentExp(Fluent("b"))
@@ -45,7 +45,7 @@ class TestDnf(TestCase):
         self.assertIn("((a and (not b)) or (a and (not c)))", str(dnf1))
 
     def test_dnf_2(self):
-        dnf = Dnf(get_env())
+        dnf = Dnf(get_environment())
 
         a = FluentExp(Fluent("a"))
         b = FluentExp(Fluent("b"))
@@ -57,8 +57,8 @@ class TestDnf(TestCase):
         self.assertIn("((a and (not b)) or (a and (not c) and d))", str(dnf2))
 
     def test_nnf_dnf_3(self):
-        n = Nnf(get_env())
-        dnf = Dnf(get_env())
+        n = Nnf(get_environment())
+        dnf = Dnf(get_environment())
 
         a = FluentExp(Fluent("a"))
         b = FluentExp(Fluent("b"))
@@ -77,8 +77,8 @@ class TestDnf(TestCase):
         )
 
     def test_nnf_dnf_4(self):
-        n = Nnf(get_env())
-        dnf = Dnf(get_env())
+        n = Nnf(get_environment())
+        dnf = Dnf(get_environment())
 
         a = FluentExp(Fluent("a"))
         b = FluentExp(Fluent("b"))
@@ -103,8 +103,8 @@ class TestDnf(TestCase):
         self.assertEqual(self._subs_simp(e4, subs), self._subs_simp(dnf4, subs))
 
     def test_nnf_dnf_5(self):
-        n = Nnf(get_env())
-        dnf = Dnf(get_env())
+        n = Nnf(get_environment())
+        dnf = Dnf(get_environment())
 
         a = FluentExp(Fluent("a"))
         b = FluentExp(Fluent("b"))

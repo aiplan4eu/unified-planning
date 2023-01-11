@@ -15,7 +15,7 @@
 
 
 import unified_planning as up
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment, get_environment
 from unified_planning.model import AbstractProblem
 from typing import Callable, Optional, Tuple
 from enum import Enum, auto
@@ -110,7 +110,7 @@ class Plan:
         self, kind: PlanKind, environment: Optional["Environment"] = None
     ) -> None:
         self._kind = kind
-        self._environment = get_env(environment)
+        self._environment = get_environment(environment)
 
     @property
     def environment(self) -> "Environment":

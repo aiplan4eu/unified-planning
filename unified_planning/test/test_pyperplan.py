@@ -17,14 +17,14 @@ import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.engines.results import POSITIVE_OUTCOMES
 from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.test.examples import get_example_problems
 
 
 class TestPyperplan(TestCase):
     def setUp(self):
         TestCase.setUp(self)
-        self.env = get_env()
+        self.environment = get_environment()
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("pyperplan")

@@ -28,9 +28,9 @@ from typing import List, Optional
 class TypeChecker(walkers.dag.DagWalker):
     """Walker used to retrieve the `Type` of an expression."""
 
-    def __init__(self, env: "unified_planning.environment.Environment"):
+    def __init__(self, environment: "unified_planning.environment.Environment"):
         walkers.dag.DagWalker.__init__(self)
-        self.env = env
+        self.environment = environment
 
     def get_type(self, expression: FNode) -> "unified_planning.model.types.Type":
         """
@@ -182,7 +182,7 @@ class TypeChecker(walkers.dag.DagWalker):
     def walk_identity_real(self, expression, args):
         assert expression is not None
         assert len(args) == 0
-        return self.env.type_manager.RealType(
+        return self.environment.type_manager.RealType(
             expression.constant_value(), expression.constant_value()
         )
 
@@ -190,7 +190,7 @@ class TypeChecker(walkers.dag.DagWalker):
     def walk_identity_int(self, expression, args):
         assert expression is not None
         assert len(args) == 0
-        return self.env.type_manager.IntType(
+        return self.environment.type_manager.IntType(
             expression.constant_value(), expression.constant_value()
         )
 
@@ -228,11 +228,11 @@ class TypeChecker(walkers.dag.DagWalker):
         if has_real:
             assert lower is None or isinstance(lower, Fraction)
             assert upper is None or isinstance(upper, Fraction)
-            return self.env.type_manager.RealType(lower, upper)
+            return self.environment.type_manager.RealType(lower, upper)
         else:
             assert lower is None or isinstance(lower, int)
             assert upper is None or isinstance(upper, int)
-            return self.env.type_manager.IntType(lower, upper)
+            return self.environment.type_manager.IntType(lower, upper)
 
     def walk_minus(self, expression, args):
         assert len(args) == 2
@@ -262,9 +262,9 @@ class TypeChecker(walkers.dag.DagWalker):
         if upper == float("inf"):
             upper = None
         if has_real:
-            return self.env.type_manager.RealType(lower, upper)
+            return self.environment.type_manager.RealType(lower, upper)
         else:
-            return self.env.type_manager.IntType(lower, upper)
+            return self.environment.type_manager.IntType(lower, upper)
 
     def walk_times(self, expression, args):
         has_real = False
@@ -289,9 +289,9 @@ class TypeChecker(walkers.dag.DagWalker):
         if upper == float("inf"):
             upper = None
         if has_real:
-            return self.env.type_manager.RealType(lower, upper)
+            return self.environment.type_manager.RealType(lower, upper)
         else:
-            return self.env.type_manager.IntType(lower, upper)
+            return self.environment.type_manager.IntType(lower, upper)
 
     def walk_div(self, expression, args):
         assert len(args) == 2
@@ -321,9 +321,9 @@ class TypeChecker(walkers.dag.DagWalker):
         if upper == float("inf"):
             upper = None
         if has_real:
-            return self.env.type_manager.RealType(lower, upper)
+            return self.environment.type_manager.RealType(lower, upper)
         else:
-            return self.env.type_manager.IntType(lower, upper)
+            return self.environment.type_manager.IntType(lower, upper)
 
     @walkers.handles(OperatorKind.LE, OperatorKind.LT)
     def walk_math_relation(self, expression, args):

@@ -34,12 +34,12 @@ class QuantifierSimplifier(Simplifier):
 
     def __init__(
         self,
-        env: "unified_planning.environment.Environment",
+        environment: "unified_planning.environment.Environment",
         problem: "up.model.problem.Problem",
     ):
         DagWalker.__init__(self, True)
-        self._env = env
-        self.manager = env.expression_manager
+        self._env = environment
+        self.manager = environment.expression_manager
         self._problem = problem
         self._assignments: Optional[Dict["Expression", "Expression"]] = None
         self._variable_assignments: Optional[Dict["Expression", "Expression"]] = None

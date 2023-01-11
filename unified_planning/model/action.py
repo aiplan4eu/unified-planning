@@ -20,7 +20,7 @@ and a `list` of `effects`.
 
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import (
     UPTypeError,
     UPUnboundedVariablesError,
@@ -42,7 +42,7 @@ class Action:
         _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        self._env = get_env(_env)
+        self._env = get_environment(_env)
         self._name = _name
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()
@@ -71,7 +71,7 @@ class Action:
         raise NotImplementedError
 
     @property
-    def env(self) -> Environment:
+    def environment(self) -> Environment:
         """Returns this `Action` `Environment`."""
         return self._env
 

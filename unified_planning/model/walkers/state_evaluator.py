@@ -27,7 +27,7 @@ class StateEvaluator(QuantifierSimplifier):
     :class:`~unified_planning.model.ROState` instead of the `assignment` map."""
 
     def __init__(self, problem: "up.model.problem.Problem"):
-        QuantifierSimplifier.__init__(self, problem.env, problem)
+        QuantifierSimplifier.__init__(self, problem.environment, problem)
 
     def evaluate(
         self,

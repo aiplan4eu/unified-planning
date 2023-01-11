@@ -355,9 +355,9 @@ def domain_item(
     :return: The `idx` domain item of the given `Type` in the domain of the given `Problem` instance.
     """
     if typename.is_bool_type():
-        return objects_set.env.expression_manager.Bool(idx == 0)
+        return objects_set.environment.expression_manager.Bool(idx == 0)
     elif typename.is_user_type():
-        return objects_set.env.expression_manager.ObjectExp(
+        return objects_set.environment.expression_manager.ObjectExp(
             list(objects_set.objects(typename))[idx]
         )
     elif typename.is_int_type():
@@ -366,7 +366,7 @@ def domain_item(
         ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError("Parameter not groundable!")
-        return objects_set.env.expression_manager.Int(lb + idx)
+        return objects_set.environment.expression_manager.Int(lb + idx)
     else:
         raise UPProblemDefinitionError("Parameter not groundable!")
 
