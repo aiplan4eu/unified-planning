@@ -17,6 +17,7 @@ import unittest
 import unified_planning as up
 from functools import wraps
 from importlib.util import find_spec
+from unified_planning.engines import OperationMode
 from unified_planning.environment import get_env
 from unified_planning.model import ProblemKind
 from unified_planning.test.pddl import enhsp
@@ -61,7 +62,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
         cond = False
         try:
             get_env().factory._get_engine_class(
-                "oneshot_planner",
+                OperationMode.ONESHOT_PLANNER,
                 problem_kind=self.kind,
                 optimality_guarantee=self.optimality_guarantee,
             )
@@ -92,7 +93,7 @@ class skipIfNoAnytimePlannerForProblemKind(object):
         cond = False
         try:
             get_env().factory._get_engine_class(
-                "anytime_planner",
+                OperationMode.ANYTIME_PLANNER,
                 problem_kind=self.kind,
                 anytime_guarantee=self.anytime_guarantee,
             )
@@ -118,7 +119,7 @@ class skipIfNoPlanValidatorForProblemKind(object):
         cond = False
         try:
             get_env().factory._get_engine_class(
-                "plan_validator", problem_kind=self.kind
+                OperationMode.PLAN_VALIDATOR, problem_kind=self.kind
             )
         except:
             cond = True
