@@ -123,8 +123,9 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         """
         assert isinstance(problem, Problem)
 
-        environment = problem.environment
-        expression_quantifier_remover = ExpressionQuantifiersRemover(environment)
+        expression_quantifier_remover = ExpressionQuantifiersRemover(
+            problem.environment
+        )
 
         new_to_old: Dict[Action, Action] = {}
 

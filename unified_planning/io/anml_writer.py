@@ -245,9 +245,10 @@ class ANMLWriter:
             str,
         ] = {}
         # Init names_mapping.
-        names_mapping[self.problem.environment.type_manager.BoolType()] = "boolean"
-        names_mapping[self.problem.environment.type_manager.IntType()] = "integer"
-        names_mapping[self.problem.environment.type_manager.RealType()] = "float"
+        env = self.problem.environment
+        names_mapping[env.type_manager.BoolType()] = "boolean"
+        names_mapping[env.type_manager.IntType()] = "integer"
+        names_mapping[env.type_manager.RealType()] = "float"
         for t in self.problem.user_types:
             ut = cast(_UserType, t)
             if _is_valid_anml_name(ut.name):  # No renaming needed

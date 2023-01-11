@@ -160,14 +160,14 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         """
         assert isinstance(problem, Problem)
 
-        environment = problem.environment
-        simplifier = environment.simplifier
+        env = problem.environment
+        simplifier = env.simplifier
 
-        fluent_remover = NegativeFluentRemover(problem, environment)
+        fluent_remover = NegativeFluentRemover(problem, env)
 
         new_to_old: Dict[Action, Action] = {}
 
-        new_problem = Problem(f"{self.name}_{problem.name}", environment)
+        new_problem = Problem(f"{self.name}_{problem.name}", env)
         for o in problem.all_objects:
             new_problem.add_object(o)
 
@@ -249,13 +249,13 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             if fneg is not None:
                 if v.bool_constant_value():
                     new_problem.set_initial_value(
-                        environment.expression_manager.FluentExp(fneg, tuple(fl.args)),
-                        environment.expression_manager.FALSE(),
+                        env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                        env.expression_manager.FALSE(),
                     )
                 else:
                     new_problem.set_initial_value(
-                        environment.expression_manager.FluentExp(fneg, tuple(fl.args)),
-                        environment.expression_manager.TRUE(),
+                        env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                        env.expression_manager.TRUE(),
                     )
 
         for action in problem.actions:
@@ -267,13 +267,11 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                     fneg = fluent_mapping.get(fl.fluent(), None)
                     if fneg is not None:
                         simplified_not_v = simplifier.simplify(
-                            environment.expression_manager.Not(v)
+                            env.expression_manager.Not(v)
                         )
                         new_effects.append(
                             Effect(
-                                environment.expression_manager.FluentExp(
-                                    fneg, tuple(fl.args)
-                                ),
+                                env.expression_manager.FluentExp(fneg, tuple(fl.args)),
                                 simplified_not_v,
                                 e.condition,
                                 e.kind,
@@ -293,12 +291,12 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         fneg = fluent_mapping.get(fl.fluent(), None)
                         if fneg is not None:
                             simplified_not_v = simplifier.simplify(
-                                environment.expression_manager.Not(v)
+                                env.expression_manager.Not(v)
                             )
                             new_durative_action._add_effect_instance(
                                 t,
                                 Effect(
-                                    environment.expression_manager.FluentExp(
+                                    env.expression_manager.FluentExp(
                                         fneg, tuple(fl.args)
                                     ),
                                     simplified_not_v,
@@ -317,14 +315,12 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 fneg = fluent_mapping.get(fl.fluent(), None)
                 if fneg is not None:
                     simplified_not_v = simplifier.simplify(
-                        environment.expression_manager.Not(v)
+                        env.expression_manager.Not(v)
                     )
                     new_problem._add_effect_instance(
                         t,
                         Effect(
-                            environment.expression_manager.FluentExp(
-                                fneg, tuple(fl.args)
-                            ),
+                            env.expression_manager.FluentExp(fneg, tuple(fl.args)),
                             simplified_not_v,
                             e.condition,
                             e.kind,
