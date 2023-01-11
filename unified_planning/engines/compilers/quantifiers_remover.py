@@ -209,7 +209,9 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(
                     Oversubscription(
                         {
-                            expression_quantifier_remover.remove_quantifiers(g): v
+                            expression_quantifier_remover.remove_quantifiers(
+                                g, problem
+                            ): v
                             for g, v in qm.goals.items()
                         }
                     )
