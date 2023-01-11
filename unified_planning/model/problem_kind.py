@@ -220,3 +220,6 @@ quality_metrics_kind.set_quality_metrics("FINAL_VALUE")
 
 oversubscription_kind = ProblemKind()
 oversubscription_kind.set_quality_metrics("OVERSUBSCRIPTION")
+
+actions_cost_kind = ProblemKind()
+actions_cost_kind.set_quality_metrics("ACTIONS_COST")

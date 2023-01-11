@@ -16,6 +16,8 @@ from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
     oversubscription_kind,
+    actions_cost_kind,
+    simple_numeric_kind,
 )
 from unified_planning.test import TestCase, main
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
@@ -48,6 +50,25 @@ class TestCompilersPipeline(TestCase):
         new_problem = res.problem
 
         with OneshotPlanner(problem_kind=problem.kind) as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(new_problem).plan
+            new_plan = plan.replace_action_instances(res.map_back_action_instance)
+            self.assertEqual(new_plan, test_plan)
+
+    @skipIfNoOneshotPlannerForProblemKind(simple_numeric_kind.union(actions_cost_kind))
+    def test_locations_connected_cost_minimize(self):
+        problem, test_plan = self.problems["locations_connected_cost_minimize"]
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.GROUNDING,
+        ) as compiler:
+            res = compiler.compile(problem)
+        new_problem = res.problem
+
+        with OneshotPlanner(
+            problem_kind=problem.kind,
+            optimality_guarantee=OptimalityGuarantee.SOLVED_OPTIMALLY,
+        ) as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(new_problem).plan
             new_plan = plan.replace_action_instances(res.map_back_action_instance)
