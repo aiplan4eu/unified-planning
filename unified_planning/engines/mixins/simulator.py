@@ -27,6 +27,16 @@ class Event:
     """This is an abstract class representing an event."""
 
     @property
+    def action(self) -> Optional["up.model.Action"]:
+        """Returns the Action that generated this event."""
+        raise NotImplementedError
+
+    @property
+    def actual_parameters(self) -> Optional[Tuple["up.model.FNode", ...]]:
+        """Returns the tuple of expressions used to ground the Action to obtain this Event."""
+        raise NotImplementedError
+
+    @property
     def conditions(self) -> List["up.model.FNode"]:
         """Returns the list of expressions that must be True in order for this event to be applicable."""
         raise NotImplementedError
@@ -353,10 +363,17 @@ class SimulatorMixin:
                         else:
                             raise NotImplementedError
             if ev.simulated_effect is not None:
+                assert ev.action is not None
+                assert ev.actual_parameters is not None
+                grounding_parameters = dict(
+                    zip(ev.action.parameters, ev.actual_parameters)
+                )
                 red_fluents.update(all_possible_assignments)
                 for f, v in zip(
                     ev.simulated_effect.fluents,
-                    ev.simulated_effect.function(self._problem, state, {}),
+                    ev.simulated_effect.function(
+                        self._problem, state, grounding_parameters
+                    ),
                 ):
                     if f in updated_values:
                         raise UPConflictingEffectsException(

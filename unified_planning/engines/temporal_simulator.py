@@ -40,7 +40,6 @@ from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.sequential_simulator import (
     InstantaneousEvent,
-    SequentialSimulator,
 )
 from unified_planning.engines.mixins.simulator import (
     Event,
@@ -75,6 +74,8 @@ class TemporalEvent(InstantaneousEvent):
 
     def __init__(
         self,
+        action: Optional["up.model.Action"],
+        actual_parameters: Optional[Tuple["up.model.FNode", ...]],
         kind: TemporalEventKind,
         timing: Timing,
         timing_included: bool,
@@ -83,7 +84,9 @@ class TemporalEvent(InstantaneousEvent):
         effects: List["up.model.Effect"],
         simulated_effect: Optional["up.model.SimulatedEffect"] = None,
     ):
-        InstantaneousEvent.__init__(self, conditions, effects, simulated_effect)
+        InstantaneousEvent.__init__(
+            self, action, actual_parameters, conditions, effects, simulated_effect
+        )
         self._kind = kind
         self._timing = timing
         self._timing_included = timing_included
@@ -182,6 +185,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
         problem_events: List[TemporalEvent] = cast(
             List[TemporalEvent],
             break_action_or_problem_in_event_list(
+                None,
+                None,
                 problem.timed_effects,
                 problem.timed_goals,
                 {},
@@ -648,6 +653,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
             assert isinstance(grounded_action, InstantaneousAction)
             return [
                 TemporalEvent(
+                    original_action,
+                    params,
                     TemporalEventKind.INSTANTANEOUS_ACTION,
                     StartTiming(),
                     True,
@@ -665,6 +672,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
             else:
                 assert isinstance(grounded_action, DurativeAction)
                 event_list = break_action_or_problem_in_event_list(
+                    original_action,
+                    params,
                     grounded_action.effects,
                     grounded_action.conditions,
                     grounded_action.simulated_effects,
@@ -772,6 +781,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
 
 
 def break_action_or_problem_in_event_list(
+    action: Optional[Action],
+    params: Optional[Tuple[FNode, ...]],
     effects: Dict[Timing, List[Effect]],
     conditions: Dict[TimeInterval, List[FNode]],
     simulated_effects: Dict[Timing, SimulatedEffect],
@@ -844,6 +855,8 @@ def break_action_or_problem_in_event_list(
         else:
             kind = TemporalEventKind.INTERMEDIATE_CONDITION_EFFECT
         event = TemporalEvent(
+            action,
+            params,
             kind,
             t,
             True,
@@ -862,6 +875,8 @@ def break_action_or_problem_in_event_list(
     # Create end event
     if t_end not in events:
         event = TemporalEvent(
+            action,
+            params,
             TemporalEventKind.END_PLAN if is_global else TemporalEventKind.END_ACTION,
             t_end,
             True,
@@ -874,6 +889,8 @@ def break_action_or_problem_in_event_list(
 
     for (t, timing_included), cl in start_durative_conditions_map.items():
         event = TemporalEvent(
+            action,
+            params,
             TemporalEventKind.START_CONDITION,
             t,
             timing_included,
@@ -888,6 +905,8 @@ def break_action_or_problem_in_event_list(
 
     for (t, timing_included), cl in end_durative_conditions_map.items():
         event = TemporalEvent(
+            action,
+            params,
             TemporalEventKind.END_CONDITION,
             t,
             timing_included,
@@ -908,6 +927,8 @@ def break_action_or_problem_in_event_list(
         ret_list.extend(ev_list)
 
     start_event = TemporalEvent(
+        action,
+        params,
         TemporalEventKind.START_PLAN if is_global else TemporalEventKind.START_ACTION,
         t_start,
         True,
