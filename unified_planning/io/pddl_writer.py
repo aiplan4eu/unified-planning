@@ -480,8 +480,11 @@ class PDDLWriter:
                 "Only one metric is supported!"
             )
 
+        em = self.problem.env.expression_manager
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
+                if em.FALSE() in a.preconditions:
+                    continue
                 out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 for ap in a.parameters:
@@ -527,6 +530,8 @@ class PDDLWriter:
                     out.write(")")
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
+                if any(em.FALSE() in cl for cl in a.conditions.values()):
+                    continue
                 out.write(f" (:durative-action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 for ap in a.parameters:
