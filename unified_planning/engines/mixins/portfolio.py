@@ -22,33 +22,32 @@ class PortfolioSelectorMixin:
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `PortfolioSelector`."""
 
     def __init__(self):
-        pass
+        self.optimality_metric_required = False
 
     @staticmethod
     def is_portfolio_selector() -> bool:
         return True
 
     @staticmethod
-    def supports_operation_mode_for_selection(
-        operation_mode: "up.engines.engine.OperationMode",
+    def satisfies(
+        optimality_guarantee: "up.engines.mixins.oneshot_planner.OptimalityGuarantee",
     ) -> bool:
         """
-        :param operation_mode: The `operation_mode` that must be supported.
-        :return: `True` if the `PortfolioSelector` implementation supports the given
-            `optimality_guarantee`, `False` otherwise.
+        :param optimality_guarantee: The `optimality_guarantee` that must be satisfied.
+        :return: `True` if the `PortfolioSelectorMixin` implementation satisfies the given
+        `optimality_guarantee`, `False` otherwise.
         """
         return False
 
-    def get_best_engines(
+    def get_best_oneshot_planners(
         self,
         problem: "up.model.AbstractProblem",
-        operation_mode: "up.engines.engine.OperationMode",
-        max_engines: Optional[int] = None,
+        max_planners: Optional[int] = None,
     ) -> Tuple[List[str], List[Dict[str, Any]]]:
         """
         This method takes an `AbstractProblem`, an operation_mode and optionally an integer
         and returns a Tuple of 2 elements:
-        The first one is a list of names of engines that are currently installed and that can
+        The first one is a list of names of oneshot planners that are currently installed and that can
         solve the problem; the list is ordered following some performance criteria, where
         the first element is the best one.
 
@@ -59,11 +58,10 @@ class PortfolioSelectorMixin:
         shows that the best result is obtained with 'tamer' with paramseters: {'weight': 0.8}
         and the second best result is obtained with 'enhsp-opt' without parameters (represented by an empty dict)
 
-        :param problem: the problem on which the performance of the different engines are tested.
-        :param operation_mode: the Operation Mode used to test the engines.
-        :param max_engines: if specified, gives a maximum length to the 2 returned lists.
-        :return: 2 lists; the first contains the names of the chosen engines, the second one contains the
-            parameters to give to the engines in the first list.
+        :param problem: the problem on which the performance of the different planners are tested.
+        :param max_planners: if specified, gives a maximum length to the 2 returned lists.
+        :return: 2 lists; the first contains the names of the chosen planners, the second one contains the
+            parameters to give to the planners in the first list.
         """
         assert isinstance(self, up.engines.engine.Engine)
         problem_kind = problem.kind
@@ -73,25 +71,19 @@ class PortfolioSelectorMixin:
                 raise up.exceptions.UPUsageError(msg)
             else:
                 warn(msg)
-        if not self.skip_checks and not self.supports_operation_mode_for_selection(
-            operation_mode
-        ):
-            msg = f"{self.name} does not support the {operation_mode}!"
-            if self.error_on_failed_checks:
-                raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
-        if max_engines is not None and max_engines <= 0:
+        if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
+            msg = f"The problem has no quality metrics but the planners are required to be optimal!"
+            raise up.exceptions.UPUsageError(msg)
+        if max_planners is not None and max_planners <= 0:
             raise up.exceptions.UPUsageError(
-                f"The specified number of max_engines must be > 0 but {max_engines} is given!"
+                f"The specified number of max_planners must be > 0 but {max_planners} is given!"
             )
-        return self._get_best_engines(problem, operation_mode, max_engines)
+        return self._get_best_oneshot_planners(problem, max_planners)
 
-    def _get_best_engines(
+    def _get_best_oneshot_planners(
         self,
         problem: "up.model.AbstractProblem",
-        operation_mode: "up.engines.engine.OperationMode",
-        max_engines: Optional[int] = None,
+        max_planners: Optional[int] = None,
     ) -> Tuple[List[str], List[Dict[str, Any]]]:
-        """Method called by the PortfolioSelectorMixin.get_best_engines method."""
+        """Method called by the PortfolioSelectorMixin.get_best_oneshot_planners method."""
         raise NotImplementedError

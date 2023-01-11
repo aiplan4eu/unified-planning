@@ -583,21 +583,21 @@ def PortfolioSelector(
     name: Optional[str] = None,
     params: Optional[Dict[str, Any]] = None,
     problem_kind: ProblemKind = ProblemKind(),
-    operation_mode: Optional[Union["OperationMode", str]] = None,
+    optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a portfolio selector. There are two ways to call this method:
     - using 'name' (the name of a specific portfolio) and eventually 'params'
         (portfolio dependent options).
         e.g. PortfolioSelector(name='ibacop')
-    - using 'problem_kind' and 'operation_mode'.
-        e.g. OneshotPlanner(problem_kind=problem.kind, operation_mode=OperationMode.ONESHOT_PLANNING)
+    - using 'problem_kind' and 'optimality_guarantee'.
+        e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
     """
     return get_env().factory.PortfolioSelector(
         name=name,
         params=params,
         problem_kind=problem_kind,
-        operation_mode=operation_mode,
+        optimality_guarantee=optimality_guarantee,
     )
 
 

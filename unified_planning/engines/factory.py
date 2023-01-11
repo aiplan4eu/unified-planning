@@ -371,7 +371,6 @@ class Factory:
         compilation_kind: Optional["CompilationKind"] = None,
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
-        target_operation_mode: Optional["OperationMode"] = None,
     ) -> Type["up.engines.engine.Engine"]:
         if name is not None:
             if name in self._engines:
@@ -388,9 +387,12 @@ class Factory:
                 if (
                     operation_mode == OperationMode.ONESHOT_PLANNER
                     or operation_mode == OperationMode.REPLANNER
+                    or operation_mode == OperationMode.PORTFOLIO_SELECTOR
                 ):
-                    assert issubclass(EngineClass, OneshotPlannerMixin) or issubclass(
-                        EngineClass, ReplannerMixin
+                    assert (
+                        issubclass(EngineClass, OneshotPlannerMixin)
+                        or issubclass(EngineClass, ReplannerMixin)
+                        or issubclass(EngineClass, PortfolioSelectorMixin)
                     )
                     assert anytime_guarantee is None
                     assert compilation_kind is None
@@ -427,17 +429,6 @@ class Factory:
                         anytime_guarantee
                     ):
                         continue
-                elif operation_mode == OperationMode.PORTFOLIO_SELECTOR:
-                    assert issubclass(EngineClass, PortfolioSelectorMixin)
-                    assert optimality_guarantee is None
-                    assert compilation_kind is None
-                    assert plan_kind is None
-                    assert anytime_guarantee is None
-                    assert target_operation_mode is not None
-                    if not EngineClass.supports_operation_mode_for_selection(
-                        target_operation_mode
-                    ):
-                        continue
                 else:
                     assert optimality_guarantee is None
                     assert anytime_guarantee is None
@@ -462,8 +453,6 @@ class Factory:
             msg = f"No available engine supports {optimality_guarantee}"
         elif anytime_guarantee is not None:
             msg = f"No available engine supports {anytime_guarantee}"
-        elif target_operation_mode is not None:
-            msg = f"No available engine supports {target_operation_mode}"
         else:
             msg = f"No available {operation_mode} engine"
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
@@ -530,14 +519,10 @@ class Factory:
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
-        target_operation_mode: Optional[OperationMode] = None,
     ) -> "up.engines.engine.Engine":
         if names is not None and operation_mode != OperationMode.COMPILER:
             assert name is None
             assert problem is None, "Parallel simulation is not supported"
-            assert (
-                target_operation_mode is None
-            ), "Parallel portfolio selection is not supported"
             if params is None:
                 params = [{} for i in range(len(names))]
             assert isinstance(params, List) and len(names) == len(params)
@@ -591,7 +576,6 @@ class Factory:
                 compilation_kind,
                 plan_kind,
                 anytime_guarantee,
-                target_operation_mode,
             )
             credits = EngineClass.get_credits(**params)
             self._print_credits([credits])
@@ -617,9 +601,14 @@ class Factory:
                 assert isinstance(res, CompilerMixin)
                 if compilation_kind is not None:
                     res.default = compilation_kind
-            elif operation_mode == OperationMode.ONESHOT_PLANNER:
+            elif (
+                operation_mode == OperationMode.ONESHOT_PLANNER
+                or operation_mode == OperationMode.PORTFOLIO_SELECTOR
+            ):
                 res = EngineClass(**params)
-                assert isinstance(res, OneshotPlannerMixin)
+                assert isinstance(res, OneshotPlannerMixin) or isinstance(
+                    res, PortfolioSelectorMixin
+                )
                 if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
                     res.optimality_metric_required = True
             elif operation_mode == OperationMode.ANYTIME_PLANNER:
@@ -844,29 +833,24 @@ class Factory:
         name: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
         problem_kind: ProblemKind = ProblemKind(),
-        operation_mode: Optional[Union["OperationMode", str]] = None,
+        optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
         """
         Returns a portfolio selector. There are two ways to call this method:
         - using 'name' (the name of a specific portfolio) and eventually 'params'
             (portfolio dependent options).
           e.g. PortfolioSelector(name='ibacop')
-        - using 'problem_kind' and 'operation_mode'.
-          e.g. OneshotPlanner(problem_kind=problem.kind, operation_mode=OperationMode.ONESHOT_PLANNING)
+        - using 'problem_kind' and 'optimality_guarantee'.
+          e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
-        if isinstance(operation_mode, str):
-            operation_mode = OperationMode[operation_mode]
-        if name is None and operation_mode is None:
-            raise up.exceptions.UPUsageError(
-                "For PortfolioSelector Operation Mode, at least one",
-                " of name and operation_mode kwargs must be set.",
-            )
+        if isinstance(optimality_guarantee, str):
+            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
         return self._get_engine(
             OperationMode.PORTFOLIO_SELECTOR,
             name=name,
             params=params,
             problem_kind=problem_kind,
-            target_operation_mode=operation_mode,
+            optimality_guarantee=optimality_guarantee,
         )
 
     def print_engines_info(
