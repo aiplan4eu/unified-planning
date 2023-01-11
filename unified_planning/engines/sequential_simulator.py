@@ -35,13 +35,35 @@ class InstantaneousEvent(Event):
 
     def __init__(
         self,
+        action: Optional["up.model.Action"],
+        actual_parameters: Optional[Tuple["up.model.FNode", ...]],
         conditions: List["up.model.FNode"],
         effects: List["up.model.Effect"],
         simulated_effect: Optional["up.model.SimulatedEffect"] = None,
     ):
+        if (action is None) != (actual_parameters is None):
+            raise UPUsageError(
+                f"{type(self)} has both action and actual_parameters",
+                "or both are None.",
+            )
+        if action is None and not simulated_effect is None:
+            raise UPUsageError(
+                f"{type(self)} can't have simulated effects when the action is None."
+            )
+
+        self._action = action
+        self._actual_parameters = actual_parameters
         self._conditions = conditions
         self._effects = effects
         self._simulated_effect = simulated_effect
+
+    @property
+    def action(self) -> Optional["up.model.Action"]:
+        return self._action
+
+    @property
+    def actual_parameters(self) -> Optional[Tuple["up.model.FNode", ...]]:
+        return self._actual_parameters
 
     @property
     def conditions(self) -> List["up.model.FNode"]:
@@ -326,6 +348,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
                     assert isinstance(grounded_action, up.model.InstantaneousAction)
                     event_list = [
                         InstantaneousEvent(
+                            original_action,
+                            params,
                             grounded_action.preconditions,
                             grounded_action.effects,
                             grounded_action.simulated_effect,
