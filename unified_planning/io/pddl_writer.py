@@ -530,7 +530,7 @@ class PDDLWriter:
                     out.write(")")
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
-                if any(em.FALSE() in cl for cl in a.conditions):
+                if any(em.FALSE() in cl for cl in a.conditions.values()):
                     continue
                 out.write(f" (:durative-action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
