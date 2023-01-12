@@ -34,31 +34,8 @@ class ROState:
 
 
 class COWState(ROState):
-    """This is an abstract class representing a classical `Read/Copy-on-Write state`"""
-
-    def make_child(
-        self,
-        updated_values: Dict["up.model.FNode", "up.model.FNode"],
-        running_events: Optional[
-            List[List["up.engines.mixins.simulator.Event"]]
-        ] = None,
-        stn: Optional["up.model.delta_stn.DeltaSimpleTemporalNetwork"] = None,
-        durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
-        events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
-    ) -> "COWState":
-        """
-        Returns a different `COWState` in which every value in `updated_values.keys()` is evaluated as his mapping
-        in new the `updated_values` dict and every other value is evaluated as in `self`.
-
-        :param updated_values: The dictionary that contains the values that need to be updated in the new `State`.
-        :return: The new `State` created.
-        """
-        raise NotImplementedError
-
-
-class UPCOWState(COWState):
     """
-    unified_planning implementation of the `COWState` interface.
+    Implementation of the `ROState` interface offering also the 'CopyOnWrite' feature.
     This class has an optional field `MAX_ANCESTORS` set to 20.
 
     The higher this number is, the less memory the data structure will use.
@@ -66,7 +43,8 @@ class UPCOWState(COWState):
 
     To set your own number just extend this class and re-define the `MAX_ANCESTORS` value. It must be `> 0`
 
-    If `MAX_ANCESTORS` is set to `None`, the data structure will always remain persistent with all the hierarchy created.
+    If `MAX_ANCESTORS` is set to `None`, the data structure will always remain
+    persistent with all the hierarchy created.
     """
 
     MAX_ANCESTORS: Optional[int] = 20
@@ -74,16 +52,17 @@ class UPCOWState(COWState):
     def __init__(
         self,
         values: Dict["up.model.FNode", "up.model.FNode"],
-        _father: Optional["UPCOWState"] = None,
+        _father: Optional["COWState"] = None,
     ):
         """
-        Creates a new `UPCOWState` where the map values represents the get_value method. The parameter `_father`
-        is for internal use only.
+        Creates a new `COWState` where the map values represents the get_value
+        method. The parameter `_father` is for internal use only.
         """
         max_ancestors = type(self).MAX_ANCESTORS
         if max_ancestors is not None and max_ancestors < 1:
             raise UPValueError(
-                f"The max_ancestor field of a class extending UPCOWState must be > 0: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}"
+                "The max_ancestor field of a class extending COWState must be > 0:",
+                f"in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}",
             )
         self._father = _father
         self._values = values
@@ -93,7 +72,7 @@ class UPCOWState(COWState):
             self._ancestors = _father._ancestors + 1
 
     def __repr__(self) -> str:
-        current_instance: Optional[UPCOWState] = self
+        current_instance: Optional[COWState] = self
         retval = []
         while current_instance is not None:
             retval.append(f"{str(current_instance._values)}")
@@ -119,12 +98,11 @@ class UPCOWState(COWState):
         :params value: The value searched for in the `State`.
         :return: The set value.
         """
-        right_instance: Optional[UPCOWState] = self
+        right_instance: Optional[COWState] = self
         while right_instance is not None:
             if right_instance._has_local_value(value):
                 return right_instance._values[value]
-            else:
-                right_instance = right_instance._father
+            right_instance = right_instance._father
         raise UPUsageError(
             f"The state {self} does not have a value for the value {value}"
         )
@@ -132,19 +110,17 @@ class UPCOWState(COWState):
     def make_child(
         self,
         updated_values: Dict["up.model.FNode", "up.model.FNode"],
-        running_events: Optional[
-            List[List["up.engines.mixins.simulator.Event"]]
-        ] = None,
+        agenda: Optional[List[List["up.engines.mixins.simulator.Event"]]] = None,
         stn: Optional["up.model.delta_stn.DeltaSimpleTemporalNetwork"] = None,
         durative_conditions: Optional[List["up.model.fnode.FNode"]] = None,
         last_events: Optional[Set["up.engines.mixins.simulator.Event"]] = None,
-    ) -> "UPCOWState":
+    ) -> "COWState":
         """
         Returns a different `UPCOWState` in which every value in updated_values.keys() is evaluated as his mapping
         in new the `updated_values` dict and every other value is evaluated as in `self`.
 
         :param updated_values: The dictionary that contains the `values` that need to be updated in the new `State`.
-        :param running_events: Not supported; makes sense only for temporal states.
+        :param agenda: Not supported; makes sense only for temporal states.
         :param stn: Not supported; makes sense only for temporal states.
         :param durative_conditions: Not supported; makes sense only for temporal states.
         :param last_events: Not supported; makes sense only for temporal states.
@@ -152,7 +128,7 @@ class UPCOWState(COWState):
         """
         # input validation
         if (
-            running_events is not None
+            agenda is not None
             or stn is not None
             or durative_conditions is not None
             or last_events is not None
@@ -163,13 +139,13 @@ class UPCOWState(COWState):
         # If the number of ancestors is less that the given threshold (or it's None) it just creates a new state with self set as the father.
         max_ancestors = type(self).MAX_ANCESTORS
         if max_ancestors is None or self._ancestors < max_ancestors:
-            return UPCOWState(updated_values, self)
+            return COWState(updated_values, self)
         # Otherwise we retrieve every ancestor, and from the oldest to the newest we update the "complete_values" dict
         else:
-            current_element: Optional[UPCOWState] = self
+            current_element: Optional[COWState] = self
             complete_values = updated_values.copy()
             while current_element is not None:
                 for k, v in current_element._values.items():
                     complete_values.setdefault(k, v)
                 current_element = current_element._father
-            return UPCOWState(complete_values)
+            return COWState(complete_values)

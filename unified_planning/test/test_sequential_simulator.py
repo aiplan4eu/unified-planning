@@ -17,7 +17,7 @@ import unified_planning as up
 import pytest
 from unified_planning.shortcuts import *
 from unified_planning.engines import SequentialSimulator, SimulatorMixin
-from unified_planning.model import UPCOWState
+from unified_planning.model import COWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPUsageError
@@ -45,7 +45,7 @@ class TestSimulator(TestCase):
         block_1 = problem.object("block_1")
         block_2 = problem.object("block_2")
         block_3 = problem.object("block_3")
-        state = UPCOWState(problem.initial_values)
+        state = COWState(problem.initial_values)
         # The initial state is:
         # ts_1, block_3, block_1, block_2
         # ts_2
@@ -70,7 +70,7 @@ class TestSimulator(TestCase):
         self.assertEqual(
             len(events), 1
         )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
+        state = cast(COWState, simulator.apply(events[0], state))
         self.assertIsNotNone(
             state
         )  # If the state is None it means the action was not applicable
@@ -79,7 +79,7 @@ class TestSimulator(TestCase):
         self.assertEqual(
             len(events), 1
         )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
+        state = cast(COWState, simulator.apply(events[0], state))
         self.assertIsNotNone(
             state
         )  # If the state is None it means the action was not applicable
@@ -88,7 +88,7 @@ class TestSimulator(TestCase):
         self.assertEqual(
             len(events), 1
         )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
+        state = cast(COWState, simulator.apply(events[0], state))
         self.assertIsNotNone(
             state
         )  # If the state is None it means the action was not applicable
@@ -97,7 +97,7 @@ class TestSimulator(TestCase):
         self.assertEqual(
             len(events), 1
         )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
+        state = cast(COWState, simulator.apply(events[0], state))
         self.assertIsNotNone(
             state
         )  # If the state is None it means the action was not applicable
@@ -127,19 +127,19 @@ class TestSimulator(TestCase):
         # move(block_3, from ts_1, to block_2)
         # And then we check if we reached the goal.
         event = simulator.get_events(move, (block_3, ts_3, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
+        state = cast(COWState, simulator.apply(event, state))
         self.assertIsNotNone(state)
         event = simulator.get_events(move, (block_1, ts_1, ts_3))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
+        state = cast(COWState, simulator.apply(event, state))
         self.assertIsNotNone(state)
         event = simulator.get_events(move, (block_3, block_2, ts_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
+        state = cast(COWState, simulator.apply(event, state))
         self.assertIsNotNone(state)
         event = simulator.get_events(move, (block_2, ts_2, block_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
+        state = cast(COWState, simulator.apply(event, state))
         self.assertIsNotNone(state)
         event = simulator.get_events(move, (block_3, ts_1, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
+        state = cast(COWState, simulator.apply(event, state))
         self.assertIsNotNone(state)
 
         self.assertTrue(simulator.is_goal(state))

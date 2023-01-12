@@ -18,7 +18,7 @@ from fractions import Fraction
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union, Iterator, cast
 from warnings import warn
 import unified_planning as up
-from unified_planning.model import FNode, COWState, ROState, Action
+from unified_planning.model import FNode, ROState, Action
 from unified_planning.model.walkers import StateEvaluator, FreeVarsExtractor
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 
@@ -125,10 +125,10 @@ class SimulatorMixin:
         raise NotImplementedError
 
     def apply(
-        self, event: Union["Event", Iterable["Event"]], state: "COWState"
-    ) -> Optional["COWState"]:
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
+    ) -> Optional["ROState"]:
         """
-        Returns `None` if the `event` is not applicable in the given `state`, otherwise returns a new `COWState`,
+        Returns `None` if the `event` is not applicable in the given `state`, otherwise returns a new `ROState`,
         which is a copy of the given `state` where the `applicable effects` of the `event` are applied; therefore
         some `fluent values` are updated.
 
@@ -138,23 +138,23 @@ class SimulatorMixin:
             iterable of events, all the given event's conditions are checked
             before applying all the event's effects.
         :return: `None` if the `event` is not applicable in the given `state`,
-            a new `COWState` with some updated `values` if the `event` is applicable.
+            a new `ROState` with some updated `values` if the `event` is applicable.
         """
         return self._apply(event, state)
 
     def _apply(
-        self, event: Union["Event", Iterable["Event"]], state: "COWState"
-    ) -> Optional["COWState"]:
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
+    ) -> Optional["ROState"]:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.apply.
         """
         raise NotImplementedError
 
     def apply_unsafe(
-        self, event: Union["Event", Iterable["Event"]], state: "COWState"
-    ) -> "COWState":
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
+    ) -> "ROState":
         """
-        Returns a new `COWState`, which is a copy of the given `state` but the applicable `effects` of the
+        Returns a new `ROState`, which is a copy of the given `state` but the applicable `effects` of the
         `event` are applied; therefore some `fluent` values are updated.
         IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
 
@@ -162,13 +162,13 @@ class SimulatorMixin:
         :param event: the `event` that has the information about the `effects`
             to apply; if an `Iterable` of `Event` is given, all the effects are
             applied at the same time.
-        :return: A new `COWState` with some updated values.
+        :return: A new `ROState` with some updated values.
         """
         return self._apply_unsafe(event, state)
 
     def _apply_unsafe(
-        self, event: Union["Event", Iterable["Event"]], state: "COWState"
-    ) -> "COWState":
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
+    ) -> "ROState":
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.apply_unsafe.
         """
@@ -284,15 +284,15 @@ class SimulatorMixin:
         """
         raise NotImplementedError
 
-    def get_initial_state(self) -> "COWState":
+    def get_initial_state(self) -> "ROState":
         """
-        Returns the `COWState` representing the initial state of the `problem` given at construction time to the simulator.
+        Returns the `ROState` representing the initial state of the `problem` given at construction time to the simulator.
 
-        :return: the `COWState` representing the `problem`'s initial state.
+        :return: the `ROState` representing the `problem`'s initial state.
         """
         return self._get_initial_state()
 
-    def _get_initial_state(self) -> "COWState":
+    def _get_initial_state(self) -> "ROState":
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.get_initial_state.
         """
@@ -382,48 +382,45 @@ class SimulatorMixin:
                     updated_values[f] = v
         return (updated_values, red_fluents)
 
+    def _get_unsatisfied_goals_mixin(
+        self,
+        state: "ROState",
+        state_evaluator: StateEvaluator,
+        early_termination: bool = False,
+    ) -> List["up.model.FNode"]:
+        unsatisfied_goals = []
+        assert isinstance(self, up.engines.engine.Engine)
+        if not self.skip_checks and not isinstance(self._problem, up.model.Problem):
+            msg = "Given problem is not an up.model.Problem"
+            if self.error_on_failed_checks:
+                raise UPUsageError(msg)
+            else:
+                warn(msg)
+        for g in cast(up.model.Problem, self._problem).goals:
+            g_eval = state_evaluator.evaluate(g, state).bool_constant_value()
+            if not g_eval:
+                unsatisfied_goals.append(g)
+                if early_termination:
+                    break
+        return unsatisfied_goals
 
-def get_unsatisfied_goals(
-    simulator: SimulatorMixin,
-    state: "ROState",
-    state_evaluator: StateEvaluator,
-    early_termination: bool = False,
-) -> List["up.model.FNode"]:
-    unsatisfied_goals = []
-    assert isinstance(simulator, up.engines.engine.Engine)
-    if not simulator.skip_checks and not isinstance(
-        simulator._problem, up.model.Problem
-    ):
-        msg = "Given problem is not an up.model.Problem"
-        if simulator.error_on_failed_checks:
-            raise UPUsageError(msg)
-        else:
-            warn(msg)
-    for g in cast(up.model.Problem, simulator._problem).goals:
-        g_eval = state_evaluator.evaluate(g, state).bool_constant_value()
-        if not g_eval:
-            unsatisfied_goals.append(g)
-            if early_termination:
-                break
-    return unsatisfied_goals
-
-
-def get_unsatisfied_conditions(
-    event: "Event",
-    state: "ROState",
-    state_evaluator: StateEvaluator,
-    early_termination: bool = False,
-) -> List["up.model.FNode"]:
-    # Evaluate every condition and if the condition is False or the condition is not simplified as a
-    # boolean constant in the given state, return False. Return True otherwise
-    unsatisfied_conditions = []
-    for c in event.conditions:
-        evaluated_cond = state_evaluator.evaluate(c, state)
-        if (
-            not evaluated_cond.is_bool_constant()
-            or not evaluated_cond.bool_constant_value()
-        ):
-            unsatisfied_conditions.append(c)
-            if early_termination:
-                break
-    return unsatisfied_conditions
+    def _get_unsatisfied_conditions_mixin(
+        self,
+        event: "Event",
+        state: "ROState",
+        state_evaluator: StateEvaluator,
+        early_termination: bool = False,
+    ) -> List["up.model.FNode"]:
+        # Evaluate every condition and if the condition is False or the condition is not simplified as a
+        # boolean constant in the given state, return False. Return True otherwise
+        unsatisfied_conditions = []
+        for c in event.conditions:
+            evaluated_cond = state_evaluator.evaluate(c, state)
+            if (
+                not evaluated_cond.is_bool_constant()
+                or not evaluated_cond.bool_constant_value()
+            ):
+                unsatisfied_conditions.append(c)
+                if early_termination:
+                    break
+        return unsatisfied_conditions

@@ -23,8 +23,7 @@ from unified_planning.model import (
     AbstractProblem,
     Problem,
     ProblemKind,
-    COWState,
-    UPCOWState,
+    ROState,
 )
 from unified_planning.engines.results import (
     ValidationResult,
@@ -100,7 +99,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         simulator = SequentialSimulator(problem)
-        current_state: "COWState" = simulator.get_initial_state()
+        current_state: "ROState" = simulator.get_initial_state()
         count = 0  # used for better error indexing
         for ai in plan.actions:
             action = ai.action
