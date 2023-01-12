@@ -25,10 +25,10 @@ from unified_planning.model import (
     AbstractProblem,
     Problem,
     ProblemKind,
-    COWState,
+    ROState,
     InstantaneousAction,
     DurativeAction,
-    TemporalState,
+    TemporalCOWState,
     Timing,
 )
 from unified_planning.engines.results import (
@@ -154,8 +154,8 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         simulator = TemporalSimulator(
             problem, self.error_on_failed_checks, self._epsilon
         )
-        current_state: "COWState" = simulator.get_initial_state()
-        assert isinstance(current_state, TemporalState)
+        current_state: "ROState" = simulator.get_initial_state()
+        assert isinstance(current_state, TemporalCOWState)
         end_plan: Fraction = Fraction(0)
         # keys of time_events_map are Fraction (the time), the first bool (that represents if the timing is included),
         # if the timing is not included, then the second bool represents if the events in it are START_CONDITION.
@@ -192,9 +192,9 @@ class TemporalPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 specific_time_set_events.add(ev)
 
         # Add events belonging to the problem (like TILs)
-        assert len(current_state.running_events) == 1
+        assert len(current_state.agenda) == 1
         only_end_events: bool = False
-        for ev in cast(List[TemporalEvent], current_state.running_events[0][:-1]):
+        for ev in cast(List[TemporalEvent], current_state.agenda[0][:-1]):
             if ev.timing.is_from_start():
                 assert (
                     not only_end_events
