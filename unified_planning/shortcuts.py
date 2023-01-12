@@ -29,6 +29,7 @@ from unified_planning.engines import (
     OptimalityGuarantee,
     OperationMode,
 )
+from unified_planning.plans import PlanKind
 from typing import IO, Any, Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
