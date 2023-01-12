@@ -46,7 +46,9 @@ from unified_planning.plans import PlanKind, TimeTriggeredPlan, ActionInstance
 from unified_planning.exceptions import UPUsageError
 
 
-def sort_time_events_map(item: Tuple[Tuple[Fraction, bool, bool], Set[TemporalEvent]]):
+def sort_time_events_map(
+    item: Tuple[Tuple[Fraction, bool, bool], Set[TemporalEvent]]
+) -> Tuple[Fraction, int]:
     """
     This method is used to sort the values of the time_events_map following this logic:
     The first field to order is the time;
@@ -54,6 +56,13 @@ def sort_time_events_map(item: Tuple[Tuple[Fraction, bool, bool], Set[TemporalEv
     not included (else branch);
     the second elements needed are the included ones (if branch);
     the last element needed are the start_condition that are not included.
+
+    :param item: The data structure to sort. The Fraction represents the absolute
+        time in which the Set[TemporalEvent] happen. The first boolean represents
+        if the Fraction is included in the Events or not. The second boolean
+        represents if the Events are START_CONDITION or not.
+    :return: The Tuple containing the Absolute time (the Fraction) and an integer
+        from 0 to 2 used to correctly order the Events.
     """
     first_elem = item[0]
     time = first_elem[0]
