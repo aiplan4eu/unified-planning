@@ -51,7 +51,7 @@ from unified_planning.io.pddl_writer import (
 )
 
 from unified_planning.model.walkers.simplifier import Simplifier
-from unified_planning.model.expression import ExpressionManager
+from unified_planning.model.expression import ExpressionManager, Expression
 from unified_planning.model.walkers.substituter import Substituter
 import re
 
@@ -916,7 +916,9 @@ class MAPDDLWriter:
                 f"The item {item} does not correspond to any item renamed."
             )
 
-    def _populate_domain_objects(self, obe: ObjectsExtractor, agent):
+    def _populate_domain_objects(
+        self, obe: ObjectsExtractor, agent: "up.model.multi_agent.Agent"
+    ):
         self.domain_objects = {}
         self.domain_objects_agents = {}
         self.domain_fluents_agents = {}
@@ -963,7 +965,12 @@ class MAPDDLWriter:
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
 
-    def convert_to_dot_exp(self, node, agent):
+    def convert_to_dot_exp(
+        self, node: "up.model.FNode", agent: "up.model.multi_agent.Agent"
+    ):
+        """
+        This function simplifies an FNode to convert it into an FNode of type Dot and substitute the new FNode for the original expression.
+        """
         # Initialize a simplifier object
         o = Simplifier(self.problem.env)
         # Define a helper function to simplify argument
@@ -997,14 +1004,25 @@ class MAPDDLWriter:
         new_dot_expression = self.sub_exp_dot(args_list, agent, node)
         return new_dot_expression
 
-    def sub_exp(self, old_exp, new_exp, expression):
+    def sub_exp(
+        self,
+        old_exp: "up.model.FNode",
+        new_exp: "up.model.FNode",
+        expression: "up.model.FNode",
+    ):
+        subs_map: Dict[Expression, Expression] = {}
         sub = Substituter(self.problem.env)
         subs_map[old_exp] = new_exp
-        new_expresion = sub.substitute(expression, subs_map)
-        return new_expresion
+        new_expression = sub.substitute(expression, subs_map)
+        return new_expression
 
-    def sub_exp_dot(self, list_old_exp, agent, expression):
-        subs_map = {}
+    def sub_exp_dot(
+        self,
+        list_old_exp: List["up.model.FNode"],
+        agent: "up.model.multi_agent.Agent",
+        expression,
+    ):
+        subs_map: Dict[Expression, Expression] = {}
         sub = Substituter(self.problem.env)
         for old_exp in list_old_exp:
             if old_exp.fluent() in agent.fluents:
@@ -1012,23 +1030,23 @@ class MAPDDLWriter:
                 subs_map[old_exp] = arg_dot
             else:
                 return old_exp
-        new_expresion = sub.substitute(expression, subs_map)
-        return new_expresion
+        new_expression = sub.substitute(expression, subs_map)
+        return new_expression
 
-    def add_agent_prefix(self, string, objects_list):
+    def add_agent_prefix(self, string: str, fluents_list: List["Fluent"]):
         match = re.search(r"\((\w+)\s\?", string)
         if match:
             found = match.group(1)
         else:
             return string
-        for obj in objects_list:
+        for obj in fluents_list:
             if obj.name == found:
                 return re.sub(r"\((\w+)\s\?", r"(a_\1 ?", string)
         return string
 
 
 def _update_domain_objects_ag(
-    dict_to_update: Dict[up.model.multi_agent.Agent, str],
+    dict_to_update: Dict["up.model.multi_agent.Agent", str],
     agent: up.model.multi_agent.Agent,
 ) -> None:
     """Small utility method that updated the dict domain_objects_agents."""
@@ -1036,7 +1054,7 @@ def _update_domain_objects_ag(
 
 
 def _update_domain_fluents_ag(
-    dict_to_update: Dict[up.model.multi_agent.Agent, List[Fluent]],
+    dict_to_update: Dict["up.model.multi_agent.Agent", List["Fluent"]],
     agent: up.model.multi_agent.Agent,
     fluent: Fluent,
 ) -> None:
