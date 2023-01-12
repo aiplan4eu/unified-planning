@@ -31,9 +31,8 @@ from unified_planning.model import (
     GlobalStartTiming,
     GlobalEndTiming,
     SimulatedEffect,
-    TemporalState,
+    TemporalCOWState,
     DeltaSimpleTemporalNetwork,
-    COWState,
     ROState,
 )
 from unified_planning.engines.compilers import Grounder, GrounderHelper
@@ -44,8 +43,6 @@ from unified_planning.engines.sequential_simulator import (
 from unified_planning.engines.mixins.simulator import (
     Event,
     SimulatorMixin,
-    get_unsatisfied_conditions,
-    get_unsatisfied_goals,
 )
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.walkers import StateEvaluator
@@ -222,13 +219,13 @@ class TemporalSimulator(Engine, SimulatorMixin):
         are respected in the state, it's effects don't violate any durative condition,
         the event does not violate any time constraint of events applied before and
         the event is expected in this `state` (it is a `START_ACTION`, an `INSTANTANEOUS_ACTION`
-        or it's already in the `state.running_events`).
+        or it's already in the `state.agenda`).
 
         :param state: the `state` where the `events` are checked.
         :param event: the `event` or `Iterable[Event]` that are checked.
         :return: Whether or not the `event` is/are applicable in the given `state`.
         """
-        if not isinstance(state, TemporalState):
+        if not isinstance(state, TemporalCOWState):
             raise UPUsageError(
                 f"Temporal Simulator needs a TemporalState instance, but {type(state)} is given!"
             )
@@ -250,7 +247,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         # check that the given events are compatible with the given running events
         for oe in correct_order_events_to_apply(
             events,
-            cast(List[List[TemporalEvent]], state.running_events),
+            cast(List[List[TemporalEvent]], state.agenda),
         ):
             if oe is None:
                 return False
@@ -260,7 +257,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             new_state = self.apply_unsafe(events, state)
         except UPUsageError:
             return False
-        assert isinstance(new_state, TemporalState)
+        assert isinstance(new_state, TemporalCOWState)
         if not new_state.stn.check_stn():
             return False
         assert self._se is not None
@@ -286,19 +283,21 @@ class TemporalSimulator(Engine, SimulatorMixin):
             or the list containing the first condition evaluated to False if the
             flag `early_termination` is set.
         """
-        return get_unsatisfied_conditions(event, state, self._se, early_termination)
+        return self._get_unsatisfied_conditions_mixin(
+            event, state, self._se, early_termination
+        )
 
     def _apply(
-        self, event: Union["Event", Iterable["Event"]], state: "up.model.COWState"
-    ) -> Optional["up.model.COWState"]:
+        self, event: Union["Event", Iterable["Event"]], state: "up.model.ROState"
+    ) -> Optional["up.model.ROState"]:
         """
-        Returns `None` if the event is not applicable in the given state, otherwise returns a new COWState,
+        Returns `None` if the event is not applicable in the given state, otherwise returns a new ROState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
 
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions to check and the effects to apply.
-        :return: None if the event is not applicable in the given state, a new COWState with some updated values
+        :return: None if the event is not applicable in the given state, a new ROState with some updated values
             if the event is applicable.
         """
         if not self.is_applicable(event, state):
@@ -307,18 +306,18 @@ class TemporalSimulator(Engine, SimulatorMixin):
             return self.apply_unsafe(event, state)
 
     def _apply_unsafe(
-        self, event: Union["Event", Iterable["Event"]], state: "COWState"
-    ) -> "COWState":
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
+    ) -> "ROState":
         """
-        Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
+        Returns a new ROState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
 
         :param state: the state where the event formulas are evaluated.
         :param event: the event that has the information about the effects to apply.
-        :return: A new COWState with some updated values.
+        :return: A new ROState with some updated values.
         """
-        if not isinstance(state, TemporalState):
+        if not isinstance(state, TemporalCOWState):
             raise UPUsageError("Temporal Simulator needs a TemporalState!")
         if isinstance(event, Event):
             events: Set[TemporalEvent] = {cast(TemporalEvent, event)}
@@ -329,7 +328,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         )
         # New State variables
         stn = state.stn.copy_stn()
-        running_events = [rel[:] for rel in state.running_events]
+        agenda = [rel[:] for rel in state.agenda]
         durative_conditions = state.durative_conditions[:]
 
         if len(events) == 0:
@@ -341,7 +340,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
         # have distance [0, 0]
         first = True
         for other_ev in correct_order_events_to_apply(
-            events, cast(List[List[TemporalEvent]], running_events)
+            events, cast(List[List[TemporalEvent]], agenda)
         ):
             assert (
                 other_ev is not None
@@ -351,7 +350,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     f"The timed simulator needs Temporal Events, {type(other_ev)} was given!"
                 )
             self._expand_event(
-                other_ev, stn, running_events, durative_conditions, last_event, state
+                other_ev, stn, agenda, durative_conditions, last_event, state
             )
             if first:
                 first_ev = other_ev
@@ -378,8 +377,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
         prev_state = state
         state_father = state._father
         while (red_fluents or written_fluents) and state_father is not None:
-            assert isinstance(prev_state, TemporalState)
-            assert isinstance(state_father, TemporalState)
+            assert isinstance(prev_state, TemporalCOWState)
+            assert isinstance(state_father, TemporalCOWState)
             # setup loop variables
             (
                 oth_updated_values,
@@ -418,10 +417,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
             state_father = state_father._father
 
         new_state = cast(
-            TemporalState,
+            TemporalCOWState,
             state.make_child(
                 updated_values,
-                running_events,
+                agenda,
                 stn,
                 durative_conditions,
                 cast(Set[Event], events),
@@ -447,7 +446,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
             present in this mapping, it will not be proposed in the generated events.
         :return: an Iterator of applicable Events.
         """
-        if not isinstance(state, TemporalState):
+        if not isinstance(state, TemporalCOWState):
             raise UPUsageError(
                 f"{type(self)}.is_goal expected TemporalState but {type(state)} was given!"
             )
@@ -455,8 +454,8 @@ class TemporalSimulator(Engine, SimulatorMixin):
             raise UPUsageError(
                 f"The duration map must bew specified to get all the applicable events of the {type(self)}"
             )
-        # get events already in the running_events
-        for rel in state.running_events:
+        # get events already in the agenda
+        for rel in state.agenda:
             event = rel[0]
             if self.is_applicable(event, state):
                 yield event
@@ -515,30 +514,30 @@ class TemporalSimulator(Engine, SimulatorMixin):
             containing the first goal evaluated to False if the flag
             "early_termination" is set.
         """
-        return get_unsatisfied_goals(self, state, self._se, early_termination)
+        return self._get_unsatisfied_goals_mixin(state, self._se, early_termination)
 
     def _is_goal(self, state: "ROState") -> bool:
         """
         Method called by the up.engines.mixins.simulator.SimulatorMixin.is_goal.
         """
-        if not isinstance(state, TemporalState):
+        if not isinstance(state, TemporalCOWState):
             raise UPUsageError(
                 f"{type(self)}.is_goal expected TemporalState but {type(state)} was given!"
             )
         if not len(self.get_unsatisfied_goals(state, early_termination=True)) == 0:
             return False
         # apply end_plan event and check if there still is something unresolved
-        new_state = cast(TemporalState, self.apply(self._end_plan_event, state))
+        new_state = cast(TemporalCOWState, self.apply(self._end_plan_event, state))
         if (
             new_state is None
-            or len(new_state.running_events) > 0
+            or len(new_state.agenda) > 0
             or len(new_state.durative_conditions) > 0
             or not new_state.stn.check_stn()
         ):
             return False
         return True
 
-    def _get_initial_state(self) -> "COWState":
+    def _get_initial_state(self) -> "ROState":
         """
         Returns the :class:`~unified_planning.model.TemporalState` instance that represents
         the initial state of the given `problem`.
@@ -585,7 +584,7 @@ class TemporalSimulator(Engine, SimulatorMixin):
                     initial_stn, self._end_plan_event, ev, left_bound=f0, right_bound=f0
                 )
 
-        self._initial_state = TemporalState(
+        self._initial_state = TemporalCOWState(
             cast(up.model.Problem, self._problem).initial_values,
             cast(List[List[Event]], [initial_running_events]),
             initial_stn,
@@ -695,10 +694,10 @@ class TemporalSimulator(Engine, SimulatorMixin):
         self,
         event: "TemporalEvent",
         stn: DeltaSimpleTemporalNetwork,
-        running_events: List[List[Event]],
+        agenda: List[List[Event]],
         durative_conditions: List[FNode],
         last_event: "TemporalEvent",
-        state: TemporalState,
+        state: TemporalCOWState,
     ):
         """IMPORTANT NOTE: This function modifies the data structures given as parameters."""
         if event.kind == TemporalEventKind.START_ACTION:
@@ -755,16 +754,16 @@ class TemporalSimulator(Engine, SimulatorMixin):
                 insert_interval(
                     stn, event, committed_event, left_bound=bound, right_bound=bound
                 )
-            running_events.append(committed_events)
+            agenda.append(committed_events)
         # InstantaneousAction Events modify only the STN, which is done at the end.
         elif not event.kind == TemporalEventKind.INSTANTANEOUS_ACTION:
             found = False
-            for el in running_events:
+            for el in agenda:
                 if el[0] == event:
                     el.pop(0)
                     found = True
                     if len(el) == 0:
-                        running_events.remove(el)
+                        agenda.remove(el)
                     break
             if not found:
                 raise UPUsageError(
@@ -982,7 +981,7 @@ def insert_interval(
 
 
 def correct_order_events_to_apply(
-    events: Iterable[TemporalEvent], running_events: List[List[TemporalEvent]]
+    events: Iterable[TemporalEvent], agenda: List[List[TemporalEvent]]
 ) -> Iterator[Optional[TemporalEvent]]:
     """
     This method yields the events in the correct order they must be applied. If a None element is
@@ -996,20 +995,20 @@ def correct_order_events_to_apply(
     )
     # Copy the running events and simulate the events being popped and added
     # from the state as they get applied.
-    running_events = [rel[:] for rel in running_events]
+    agenda = [rel[:] for rel in agenda]
     while events:
         # other ev is an event in the start_action_events (if there are any). if
-        # not, it's an event that is the head of one of the running_events list.
+        # not, it's an event that is the head of one of the agenda list.
         ret_ev = next(start_action_events, None)
         if ret_ev is None:
             for ev in events:
                 found = False
-                for rel in running_events:
+                for rel in agenda:
                     if rel[0] == ev:
                         found = True
                         ret_ev = rel.pop(0)
                         if not rel:
-                            running_events.remove(rel)
+                            agenda.remove(rel)
                         break
                 if found:
                     break
@@ -1020,4 +1019,4 @@ def correct_order_events_to_apply(
         events.remove(ret_ev)
         if ret_ev.kind == TemporalEventKind.START_ACTION:
             assert ret_ev.committed_events is not None
-            running_events.append(ret_ev.committed_events[:])
+            agenda.append(ret_ev.committed_events[:])

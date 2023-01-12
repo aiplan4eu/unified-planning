@@ -21,11 +21,9 @@ from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.simulator import (
     Event,
     SimulatorMixin,
-    get_unsatisfied_conditions,
-    get_unsatisfied_goals,
 )
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import COWState, ROState, UPCOWState, Problem, Action, FNode
+from unified_planning.model import ROState, COWState, Problem, Action, FNode
 from unified_planning.model.walkers import StateEvaluator
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast
 
@@ -131,14 +129,16 @@ class SequentialSimulator(Engine, SimulatorMixin):
             or the list containing the first condition evaluated to False if the
             flag `early_termination` is set.
         """
-        return get_unsatisfied_conditions(event, state, self._se, early_termination)
+        return self._get_unsatisfied_conditions_mixin(
+            event, state, self._se, early_termination
+        )
 
     def _apply(
-        self, event: Union["Event", Iterable["Event"]], state: "COWState"
-    ) -> Optional["COWState"]:
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
+    ) -> Optional["ROState"]:
         """
         Returns `None` if the event is not applicable in the given state,
-        otherwise returns a new COWState,which is a copy of the given state
+        otherwise returns a new ROState,which is a copy of the given state
         but the applicable effects of the event are applied; therefore some
         fluent values are updated.
 
@@ -146,7 +146,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param event: the event that has the information about the conditions
             to check and the effects to apply. An Iterable here is not accepted.
         :return: None if the event is not applicable in the given state, a new
-            COWState with some updated values if the event is applicable.
+            ROState with some updated values if the event is applicable.
         """
         if not isinstance(event, Event):
             raise UPUsageError(
@@ -159,20 +159,24 @@ class SequentialSimulator(Engine, SimulatorMixin):
             return self.apply_unsafe(event, state)
 
     def _apply_unsafe(
-        self, event: Union["Event", Iterable["Event"]], state: "COWState"
-    ) -> "COWState":
+        self, event: Union["Event", Iterable["Event"]], state: "ROState"
+    ) -> "ROState":
         """
-        Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
+        Returns a new ROState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
 
         :param state: the state where the event formulas are evaluated.
         :param event: the event that has the information about the effects to apply; an Iterable here is not accepted.
-        :return: A new COWState with some updated values.
+        :return: A new ROState with some updated values.
         """
         if not isinstance(event, InstantaneousEvent):
             raise UPUsageError(
                 f"SequentialSimulator accepts only ONE instance of InstantaneousEvent! {type(event)} was given"
+            )
+        if not isinstance(state, COWState):
+            raise UPUsageError(
+                f"{type(self)} got {type(state)}, expects up.model.COWState."
             )
         updated_values, _ = self._get_updated_values_and_red_fluents(
             event, state, self._se, self._all_possible_assignments
@@ -273,15 +277,15 @@ class SequentialSimulator(Engine, SimulatorMixin):
             containing the first goal evaluated to False if the flag
             "early_termination" is set.
         """
-        return get_unsatisfied_goals(self, state, self._se, early_termination)
+        return self._get_unsatisfied_goals_mixin(state, self._se, early_termination)
 
-    def _get_initial_state(self) -> "COWState":
+    def _get_initial_state(self) -> "ROState":
         """
-        Returns the :class:`~unified_planning.model.UPCOWState` instance that represents
+        Returns the :class:`~unified_planning.model.ROState` instance that represents
         the initial state of the given `problem`.
         """
         assert isinstance(self._problem, Problem)
-        return UPCOWState(self._problem.initial_values)
+        return COWState(self._problem.initial_values)
 
     @property
     def name(self) -> str:

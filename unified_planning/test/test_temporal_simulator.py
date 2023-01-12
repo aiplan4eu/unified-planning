@@ -21,7 +21,7 @@ from unified_planning.engines import (
     TemporalEvent,
     TemporalEventKind,
 )
-from unified_planning.model import UPCOWState, TemporalState, COWState
+from unified_planning.model import COWState, TemporalCOWState, COWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from typing import cast
@@ -34,7 +34,7 @@ class TestSimulator(TestCase):
 
     def _check_applicability(
         self,
-        state: TemporalState,
+        state: TemporalCOWState,
         applicable: List[TemporalEvent],
         inapplicable: List[TemporalEvent],
         simulator: SimulatorMixin,
@@ -65,7 +65,7 @@ class TestSimulator(TestCase):
         m3 = problem.object("m3")
         Match = problem.user_type("Match")
         Fuse = problem.user_type("Fuse")
-        state: TemporalState = cast(TemporalState, simulator.get_initial_state())
+        state: TemporalCOWState = cast(TemporalCOWState, simulator.get_initial_state())
         self.assertTrue(state.get_value(handfree()).bool_constant_value())
         self.assertFalse(state.get_value(light()).bool_constant_value())
         self.assertTrue(
@@ -131,7 +131,7 @@ class TestSimulator(TestCase):
             *ev_mend_f3,
         ]
         self._check_applicability(
-            cast(TemporalState, state),
+            cast(TemporalCOWState, state),
             applicable,
             inapplicable,
             simulator,
@@ -156,7 +156,7 @@ class TestSimulator(TestCase):
             *ev_mend_f3[1:],
         ]
         self._check_applicability(
-            cast(TemporalState, state_light_m1),
+            cast(TemporalCOWState, state_light_m1),
             applicable,
             inapplicable,
             simulator,
@@ -184,7 +184,7 @@ class TestSimulator(TestCase):
             *ev_mend_f3,
         ]
         self._check_applicability(
-            cast(TemporalState, state_mended_f1),
+            cast(TemporalCOWState, state_mended_f1),
             applicable,
             inapplicable,
             simulator,
@@ -210,7 +210,7 @@ class TestSimulator(TestCase):
             *ev_mend_f3,
         ]
         self._check_applicability(
-            cast(TemporalState, state_mended_f1),
+            cast(TemporalCOWState, state_mended_f1),
             applicable,
             inapplicable,
             simulator,
@@ -242,7 +242,7 @@ class TestSimulator(TestCase):
             *ev_mend_f3,
         ]
         self._check_applicability(
-            cast(TemporalState, state_mended_f1),
+            cast(TemporalCOWState, state_mended_f1),
             applicable,
             inapplicable,
             simulator,
@@ -322,7 +322,7 @@ class TestSimulator(TestCase):
         applicable = [ev_a[0], ev_b[0]]
         inapplicable = [ev_a[1], ev_b[1]]
         self._check_applicability(
-            cast(TemporalState, state),
+            cast(TemporalCOWState, state),
             applicable,
             inapplicable,
             simulator,
@@ -335,7 +335,7 @@ class TestSimulator(TestCase):
         applicable = [ev_a[1], ev_b[0]]
         inapplicable = [ev_a[0], ev_b[1]]
         self._check_applicability(
-            cast(TemporalState, state),
+            cast(TemporalCOWState, state),
             applicable,
             inapplicable,
             simulator,
@@ -348,7 +348,7 @@ class TestSimulator(TestCase):
         applicable = [ev_a[1], ev_b[1]]
         inapplicable = [ev_a[0], ev_b[0]]
         self._check_applicability(
-            cast(TemporalState, state),
+            cast(TemporalCOWState, state),
             applicable,
             inapplicable,
             simulator,
@@ -364,7 +364,7 @@ class TestSimulator(TestCase):
         applicable = []
         inapplicable = [*ev_a, *ev_b]
         self._check_applicability(
-            cast(TemporalState, false_state),
+            cast(TemporalCOWState, false_state),
             applicable,
             inapplicable,
             simulator,
