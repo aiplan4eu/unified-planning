@@ -104,7 +104,7 @@ class SequentialPlan(plans.plan.Plan):
             new_env = new_ai[0].action.env
         return SequentialPlan(new_ai, new_env)
 
-    def to_partial_order_plan(
+    def _to_partial_order_plan(
         self, problem: "up.model.mixins.ObjectsSetMixin"
     ) -> "up.plans.partial_order_plan.PartialOrderPlan":
         """
@@ -206,3 +206,27 @@ class SequentialPlan(plans.plan.Plan):
         return up.plans.partial_order_plan.PartialOrderPlan(
             {}, self._environment, nx.transitive_reduction(graph)
         )
+
+    def convert_to(
+        self,
+        plan_kind: "plans.plan.PlanKind",
+        problem: Optional["up.model.AbstractProblem"] = None,
+    ) -> "plans.plan.Plan":
+        """
+        This function takes a `PlanKind` and returns the representation of `self`
+        in the given `plan_kind`. If the conversion does not make sense, raises
+        an exception.
+
+        :param plan_kind: The plan_kind of the returned plan.
+        :param problem: Optionally, the `Problem` of which this plan is referring to;
+            might be needed in some conversions.
+        :return: The plan equivalent to self but represented in the kind of
+            `plan_kind`.
+        """
+        if plan_kind == self._kind:
+            return self
+        elif plan_kind == plans.plan.PlanKind.PARTIAL_ORDER_PLAN:
+            assert isinstance(problem, up.model.mixins.ObjectsSetMixin)
+            return self._to_partial_order_plan(problem)
+        else:
+            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
