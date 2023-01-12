@@ -210,7 +210,7 @@ class SequentialPlan(plans.plan.Plan):
     def convert_to(
         self,
         plan_kind: "plans.plan.PlanKind",
-        problem: Optional["up.model.AbstractProblem"] = None,
+        problem: "up.model.AbstractProblem",
     ) -> "plans.plan.Plan":
         """
         This function takes a `PlanKind` and returns the representation of `self`
@@ -218,8 +218,7 @@ class SequentialPlan(plans.plan.Plan):
         an exception.
 
         :param plan_kind: The plan_kind of the returned plan.
-        :param problem: Optionally, the `Problem` of which this plan is referring to;
-            might be needed in some conversions.
+        :param problem: The `Problem` of which this plan is referring to.
         :return: The plan equivalent to self but represented in the kind of
             `plan_kind`.
         """

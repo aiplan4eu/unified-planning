@@ -135,17 +135,14 @@ class Plan:
         """
         raise NotImplementedError
 
-    def convert_to(
-        self, plan_kind: PlanKind, problem: Optional[AbstractProblem] = None
-    ) -> "Plan":
+    def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
         """
         This function takes a `PlanKind` and returns the representation of `self`
         in the given `plan_kind`. If the conversion does not make sense, raises
         an exception.
 
         :param plan_kind: The plan_kind of the returned plan.
-        :param problem: Optionally, the `Problem` of which this plan is referring to;
-            might be needed in some conversions.
+        :param problem: The `Problem` of which this plan is referring to.
         :return: The plan equivalent to self but represented in the kind of
             `plan_kind`.
         """
