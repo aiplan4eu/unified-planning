@@ -39,9 +39,9 @@ class PartialOrderPlan(plans.plan.Plan):
         Constructs the PartialOrderPlan using the adjacency list representation.
 
         :param adjacency_list: The Dictionary representing the adjacency list for this PartialOrderPlan.
-        :param env: The environment in which the ActionInstances in the adjacency_list are created.
-        :param _graph: The graph that is semnatically equivalent to the adjacency_list.
-            NOTE: This parameter is for internal use only and it's maintainance is not guaranteed by any means.
+        :param environment: The environment in which the ActionInstances in the adjacency_list are created.
+        :param _graph: The graph that is semantically equivalent to the adjacency_list.
+            NOTE: This parameter is for internal use only and it's maintenance is not guaranteed by any means.
         :return: The created PartialOrderPlan.
         """
         # if we have a specific env or we don't have any actions
