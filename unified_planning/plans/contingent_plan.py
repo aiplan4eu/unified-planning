@@ -175,3 +175,23 @@ class ContingentPlan(plans.plan.Plan):
         new_root = self.root_node.replace_action_instances(replace_function)
         new_env = new_root.action_instance.action.env
         return ContingentPlan(new_root, new_env)
+
+    def convert_to(
+        self,
+        plan_kind: "plans.plan.PlanKind",
+        problem: "up.model.AbstractProblem",
+    ) -> "plans.plan.Plan":
+        """
+        This function takes a `PlanKind` and returns the representation of `self`
+        in the given `plan_kind`. If the conversion does not make sense, raises
+        an exception.
+
+        :param plan_kind: The plan_kind of the returned plan.
+        :param problem: The `Problem` of which this plan is referring to.
+        :return: The plan equivalent to self but represented in the kind of
+            `plan_kind`.
+        """
+        if plan_kind == self._kind:
+            return self
+        else:
+            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")

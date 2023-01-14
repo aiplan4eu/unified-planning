@@ -16,6 +16,7 @@
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_env
+from unified_planning.model import AbstractProblem
 from typing import Callable, Optional, Tuple
 from enum import Enum, auto
 
@@ -131,5 +132,18 @@ class Plan:
 
         :param replace_function: The function that must be used on the `ActionInstances` that must be replaced.
         :return: The new `Plan` in which every `ActionInstance` of the original `Plan` is modified by the given `replace_function`.
+        """
+        raise NotImplementedError
+
+    def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
+        """
+        This function takes a `PlanKind` and returns the representation of `self`
+        in the given `plan_kind`. If the conversion does not make sense, raises
+        an exception.
+
+        :param plan_kind: The plan_kind of the returned plan.
+        :param problem: The `Problem` of which this plan is referring to.
+        :return: The plan equivalent to self but represented in the kind of
+            `plan_kind`.
         """
         raise NotImplementedError
