@@ -23,33 +23,56 @@ from fractions import Fraction
 
 
 class TimeTriggeredPlan(plans.plan.Plan):
-    '''Represents a time triggered plan.'''
-    def __init__(self, actions: List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]], environment: Optional['Environment'] = None):
-        '''The first Fraction represents the absolute time in which the action
-        Action starts, while the last Fraction represents the duration
-        of the action to fullfill the problem goals.
-        The Action can be an InstantaneousAction, this is represented with a duration set
-        to None.
-        '''
+    """Represents a time triggered plan."""
+
+    def __init__(
+        self,
+        actions: List[Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]],
+        environment: Optional["Environment"] = None,
+    ):
+        """
+        The first `Fraction` represents the absolute time in which the
+        `Action` starts, while the last `Fraction` represents the duration
+        of the `Action` to fulfill the `problem goals`.
+        The `Action` can be an `InstantaneousAction`, this is represented with a duration set
+        to `None`.
+        """
         # if we have a specific env or we don't have any actions
         if environment is not None or not actions:
-            plans.plan.Plan.__init__(self, plans.plan.PlanKind.TIME_TRIGGERED_PLAN, environment)
+            plans.plan.Plan.__init__(
+                self, plans.plan.PlanKind.TIME_TRIGGERED_PLAN, environment
+            )
         # If we don't have a specific env and have at least 1 action, use the env of the first action
         else:
             assert len(actions) > 0
-            plans.plan.Plan.__init__(self, plans.plan.PlanKind.TIME_TRIGGERED_PLAN, actions[0][1].action.env)
-        for _, ai, _ in actions: # check that given env and the env in the actions is the same
+            plans.plan.Plan.__init__(
+                self, plans.plan.PlanKind.TIME_TRIGGERED_PLAN, actions[0][1].action.env
+            )
+        for (
+            _,
+            ai,
+            _,
+        ) in actions:  # check that given env and the env in the actions is the same
             if ai.action.env != self._environment:
-                raise UPUsageError('The environment given to the plan is not the same of the actions in the plan.')
+                raise UPUsageError(
+                    "The environment given to the plan is not the same of the actions in the plan."
+                )
         self._actions = actions
 
     def __repr__(self) -> str:
         return str(self._actions)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, TimeTriggeredPlan) and len(self._actions) == len(oth._actions):
+        if isinstance(oth, TimeTriggeredPlan) and len(self._actions) == len(
+            oth._actions
+        ):
             for (s, ai, d), (oth_s, oth_ai, oth_d) in zip(self._actions, oth._actions):
-                if s != oth_s or ai.action != oth_ai.action or ai.actual_parameters != oth_ai.actual_parameters or d != oth_d:
+                if (
+                    s != oth_s
+                    or ai.action != oth_ai.action
+                    or ai.actual_parameters != oth_ai.actual_parameters
+                    or d != oth_d
+                ):
                     return False
             return True
         else:
@@ -58,7 +81,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
     def __hash__(self) -> int:
         count: int = 0
         for i, (s, ai, d) in enumerate(self._actions):
-            count += i + hash(ai.action) + hash(ai.actual_parameters) + hash(s) + hash(d)
+            count += (
+                i + hash(ai.action) + hash(ai.actual_parameters) + hash(s) + hash(d)
+            )
         return count
 
     def __contains__(self, item: object) -> bool:
@@ -68,17 +93,57 @@ class TimeTriggeredPlan(plans.plan.Plan):
             return False
 
     @property
-    def timed_actions(self) -> List[Tuple[Fraction, 'plans.plan.ActionInstance', Optional[Fraction]]]:
-        '''Returns the sequence of tuples (start, action_instance, duration) where:
-            start is when the action starts;
-            action_instance is the action applied;
-            duration is the (optional) duration of the action.'''
+    def timed_actions(
+        self,
+    ) -> List[Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]]:
+        """
+        Returns the sequence of tuples (`start`, `action_instance`, `duration`) where:
+        - `start` is when the `ActionInstance` starts;
+        - `action_instance` is the `grounded Action` applied;
+        - `duration` is the (optional) duration of the `ActionInstance`.
+        """
         return self._actions
 
-    def replace_action_instances(self, replace_function: Callable[['plans.plan.ActionInstance'], 'plans.plan.ActionInstance']) -> 'plans.plan.Plan':
-        new_ai = [(s, replace_function(ai), d) for s, ai, d in self._actions]
+    def replace_action_instances(
+        self,
+        replace_function: Callable[
+            ["plans.plan.ActionInstance"], Optional["plans.plan.ActionInstance"]
+        ],
+    ) -> "plans.plan.Plan":
+        """
+        Returns a new `TimeTriggeredPlan` where every `ActionInstance` of the current `Plan` is replaced using the given `replace_function`.
+
+        :param replace_function: The function that applied to an `ActionInstance A` returns the `ActionInstance B`; `B`
+            replaces `A` in the resulting `Plan`.
+        :return: The `TimeTriggeredPlan` where every `ActionInstance` is replaced using the given `replace_function`.
+        """
+        new_ai = []
+        for s, ai, d in self._actions:
+            replaced_ai = replace_function(ai)
+            if replaced_ai is not None:
+                new_ai.append((s, replaced_ai, d))
         new_env = self._environment
         if len(new_ai) > 0:
             _, ai, _ = new_ai[0]
             new_env = ai.action.env
         return TimeTriggeredPlan(new_ai, new_env)
+
+    def convert_to(
+        self,
+        plan_kind: "plans.plan.PlanKind",
+        problem: "up.model.AbstractProblem",
+    ) -> "plans.plan.Plan":
+        """
+        This function takes a `PlanKind` and returns the representation of `self`
+        in the given `plan_kind`. If the conversion does not make sense, raises
+        an exception.
+
+        :param plan_kind: The plan_kind of the returned plan.
+        :param problem: The `Problem` of which this plan is referring to.
+        :return: The plan equivalent to self but represented in the kind of
+            `plan_kind`.
+        """
+        if plan_kind == self._kind:
+            return self
+        else:
+            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")

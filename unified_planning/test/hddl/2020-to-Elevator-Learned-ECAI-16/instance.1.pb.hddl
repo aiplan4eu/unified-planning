@@ -1,0 +1,20 @@
+(define (problem p)
+(:domain elevator)
+(:objects
+	P0 - PASSENGER
+	F0 - FLOOR
+	F1 - FLOOR
+)
+(:htn
+	:tasks (and
+	(task0 (ACHIEVE-SERVED P0))
+	)
+)
+(:init
+        (ABOVE F0 F1)
+        (ORIGIN P0 F1)
+        (DESTIN P0 F0)
+        (LIFT-AT F0)
+)
+)
+

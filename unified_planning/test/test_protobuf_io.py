@@ -12,23 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import pytest
-import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
-from unified_planning.grpc.proto_reader import ProtobufReader # type: ignore[attr-defined]
-from unified_planning.grpc.proto_writer import ProtobufWriter # type: ignore[attr-defined]
+
 from unified_planning.model.metrics import *
 from unified_planning.shortcuts import *
 from unified_planning.engines import LogMessage, CompilationKind
-from unified_planning.engines.results import LogLevel, PlanGenerationResultStatus
-from unified_planning.test import TestCase, skipIfEngineNotAvailable
+from unified_planning.engines.results import LogLevel
+from unified_planning.test import (
+    TestCase,
+    skipIfEngineNotAvailable,
+    skipIfModuleNotInstalled,
+)
 from unified_planning.test.examples import get_example_problems
 from unified_planning.plans import ActionInstance
 
 
 class TestProtobufIO(TestCase):
+    @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
+        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
 
@@ -39,12 +44,12 @@ class TestProtobufIO(TestCase):
         x_pb = self.pb_writer.convert(x, problem)
 
         self.assertEqual(x_pb.name, "x")
-        self.assertEqual(x_pb.value_type, "bool")
+        self.assertEqual(x_pb.value_type, "up:bool")
 
         x_up = self.pb_reader.convert(x_pb, problem)
 
         self.assertEqual(x_up.name, "x")
-        self.assertEqual(str(x_up.type), "bool")
+        self.assertEqual(x_up.type, BoolType())
 
     def test_fluent_2(self):
         problem = self.problems["robot"].problem
@@ -101,7 +106,7 @@ class TestProtobufIO(TestCase):
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertEqual(ex, ex_up)
 
-        o = Object('o', ex)
+        o = Object("o", ex)
         problem.add_object(o)
 
         ex = UserType("location", ex)
@@ -111,14 +116,15 @@ class TestProtobufIO(TestCase):
 
     def test_object_declaration(self):
         problem = Problem("test")
-
         loc_type = UserType("location")
-        obj = Object("l1", loc_type)
+        obj = problem.add_object("l1", loc_type)
         obj_pb = self.pb_writer.convert(obj)
         obj_up = self.pb_reader.convert(obj_pb, problem)
         self.assertEqual(obj, obj_up)
 
     def test_problem(self):
+        import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
+
         problem = self.problems["robot"].problem
 
         problem_pb = self.pb_writer.convert(problem)
@@ -157,7 +163,9 @@ class TestProtobufIO(TestCase):
         action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
 
         self.assertEqual(action_instance.action, action_instance_up.action)
-        self.assertEqual(action_instance.actual_parameters, action_instance_up.actual_parameters)
+        self.assertEqual(
+            action_instance.actual_parameters, action_instance_up.actual_parameters
+        )
 
     def test_plan(self):
         problem = self.problems["robot"].problem
@@ -238,10 +246,20 @@ class TestProtobufIO(TestCase):
             for grounded_action in ground_result.problem.actions:
                 # Test both callable "map_back_action_instance" act the same on every action of the grounded_problem
                 grounded_action_instance = ActionInstance(grounded_action)
-                original_action_instance_up = ground_result.map_back_action_instance(grounded_action_instance)
-                original_action_instance_pb = ground_result_up.map_back_action_instance(grounded_action_instance)
-                self.assertEqual(original_action_instance_pb.action, original_action_instance_up.action)
-                self.assertEqual(original_action_instance_pb.actual_parameters, original_action_instance_up.actual_parameters)
+                original_action_instance_up = ground_result.map_back_action_instance(
+                    grounded_action_instance
+                )
+                original_action_instance_pb = ground_result_up.map_back_action_instance(
+                    grounded_action_instance
+                )
+                self.assertEqual(
+                    original_action_instance_pb.action,
+                    original_action_instance_up.action,
+                )
+                self.assertEqual(
+                    original_action_instance_pb.actual_parameters,
+                    original_action_instance_up.actual_parameters,
+                )
 
     @skipIfEngineNotAvailable("tamer")
     def test_validation_result(self):
@@ -260,9 +278,13 @@ class TestProtobufIO(TestCase):
 
 
 class TestProtobufProblems(TestCase):
+    @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
+        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
 
@@ -273,6 +295,7 @@ class TestProtobufProblems(TestCase):
             problem_up = self.pb_reader.convert(problem_pb)
 
             self.assertEqual(problem, problem_up)
+            self.assertEqual(hash(problem), hash(problem_up))
 
     def test_all_plans(self):
         for name, example in self.problems.items():
@@ -282,6 +305,7 @@ class TestProtobufProblems(TestCase):
             plan_up = self.pb_reader.convert(plan_pb, problem)
 
             self.assertEqual(plan, plan_up)
+            self.assertEqual(hash(plan), hash(plan_up))
 
     @skipIfEngineNotAvailable("tamer")
     def test_some_plan_generations(self):

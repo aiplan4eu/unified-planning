@@ -14,10 +14,12 @@
 
 
 from collections import OrderedDict
+from typing import Mapping
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import PythonWriter
+
 
 class TestPythonWriter(TestCase):
     def setUp(self):
@@ -28,22 +30,23 @@ class TestPythonWriter(TestCase):
         for p in self.problems.values():
             original_problem = p.problem
             pw = PythonWriter(original_problem)
-            _locals = {}
+            _locals: Mapping[str, object] = {}
             exec(pw.write_problem_code(), {}, _locals)
-            self.assertEqual(original_problem, _locals['problem'])
+            self.assertEqual(original_problem, _locals["problem"])
+            self.assertEqual(hash(original_problem), hash(_locals["problem"]))
 
     def test_ad_hoc_1(self):
-        xd = Fluent('x-$')
-        xe = Fluent('x-&')
-        nop = Fluent('')
-        a = InstantaneousAction('3')
+        xd = Fluent("x-$")
+        xe = Fluent("x-&")
+        nop = Fluent("")
+        a = InstantaneousAction("3")
         a.add_precondition(Not(xd))
         a.add_effect(xd, True)
         a.add_precondition(Not(xe))
         a.add_effect(xe, True)
         a.add_precondition(Not(nop))
         a.add_effect(nop, True)
-        problem = Problem('basic')
+        problem = Problem("basic")
         problem.add_fluent(xd)
         problem.add_fluent(xe)
         problem.add_fluent(nop)
@@ -55,17 +58,19 @@ class TestPythonWriter(TestCase):
         problem.add_goal(xe)
         problem.add_goal(nop)
         pw = PythonWriter(problem)
-        _locals = {}
+        _locals: Mapping[str, object] = {}
         exec(pw.write_problem_code(), {}, _locals)
-        self.assertEqual(problem, _locals['problem'])
+        self.assertEqual(problem, _locals["problem"])
 
     def test_ad_hoc_2(self):
-        Location = UserType('Location')
-        robot_at = Fluent('robot_at', BoolType(), OrderedDict([('if', Location)]))
-        battery_charge = Fluent('battery_charge', RealType(0, 100))
-        move = InstantaneousAction('move', OrderedDict([('from', Location), ('to', Location)]))
-        l_from = move.parameter('from')
-        to = move.parameter('to')
+        Location = UserType("Location")
+        robot_at = Fluent("robot_at", BoolType(), OrderedDict([("if", Location)]))
+        battery_charge = Fluent("battery_charge", RealType(0, 100))
+        move = InstantaneousAction(
+            "move", OrderedDict([("from", Location), ("to", Location)])
+        )
+        l_from = move.parameter("from")
+        to = move.parameter("to")
         move.add_precondition(GE(battery_charge, 10))
         move.add_precondition(Not(Equals(l_from, to)))
         move.add_precondition(robot_at(l_from))
@@ -73,9 +78,9 @@ class TestPythonWriter(TestCase):
         move.add_effect(robot_at(l_from), False)
         move.add_effect(robot_at(to), True)
         move.add_effect(battery_charge, Minus(battery_charge, 10))
-        l1 = Object('l1', Location)
-        l2 = Object('l2', Location)
-        problem = Problem('robot')
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        problem = Problem("robot")
         problem.add_fluent(robot_at)
         problem.add_fluent(battery_charge)
         problem.add_action(move)
@@ -86,6 +91,6 @@ class TestPythonWriter(TestCase):
         problem.set_initial_value(battery_charge, 100)
         problem.add_goal(robot_at(l2))
         pw = PythonWriter(problem)
-        _locals = {}
+        _locals: Mapping[str, object] = {}
         exec(pw.write_problem_code(), {}, _locals)
-        self.assertEqual(problem, _locals['problem'])
+        self.assertEqual(problem, _locals["problem"])

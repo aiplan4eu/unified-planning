@@ -17,10 +17,14 @@ from unified_planning.plans.plan import Plan, ActionInstance, PlanKind
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
+from unified_planning.plans.contingent_plan import ContingentPlan
 
-__all__ = [ 'Plan', 'PlanKind',
-            'ActionInstance',
-            'SequentialPlan',
-            'TimeTriggeredPlan',
-            'PartialOrderPlan'
-          ]
+__all__ = [
+    "Plan",
+    "PlanKind",
+    "ActionInstance",
+    "SequentialPlan",
+    "TimeTriggeredPlan",
+    "PartialOrderPlan",
+    "ContingentPlan",
+]

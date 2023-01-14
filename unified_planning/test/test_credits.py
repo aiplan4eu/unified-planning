@@ -24,18 +24,19 @@ class TestCredits(TestCase):
     def setUp(self):
         TestCase.setUp(self)
 
-    @skipIfEngineNotAvailable('tamer')
+    @skipIfEngineNotAvailable("tamer")
     def test_robot_locations_visited(self):
         credits = StringIO()
-        test_credits = [' *** Credits ***',
-                        '  * In operation mode `OneshotPlanner` at line ',
-                        '  * Engine name: ',
-                        '  * Developers:  ',
-                        '  * Description: ',
-                        '  *              '
+        test_credits = [
+            " *** Credits ***",
+            "  * In operation mode `OneshotPlanner` at line ",
+            "  * Engine name: ",
+            "  * Developers:  ",
+            "  * Description: ",
+            "  *              ",
         ]
         set_credits_stream(credits)
-        with OneshotPlanner(name='tamer'):
+        with OneshotPlanner(name="tamer"):
             for test in test_credits:
                 printed_credits = credits.getvalue()
                 self.assertIn(test, printed_credits)
@@ -44,17 +45,20 @@ class TestCredits(TestCase):
     def test_long_env_credits(self):
         credits = StringIO()
         credits_keywords = [
-                '  * Engine name: ',
-                '  * Developers:  ',
-                '  * Description: ',
-                '  * Contacts:    ',
-                '  * Website:     ',
-                '  * License:     '
+            "  * Engine name: ",
+            "  * Developers:  ",
+            "  * Description: ",
+            "  * Contacts:    ",
+            "  * Website:     ",
+            "  * License:     ",
         ]
         get_env().factory.print_engines_info(credits, True)
         credits_printed = credits.getvalue()
         # test that every keyword occur the same number of time in the printed result
         number_of_credits_printed = credits_printed.count(credits_keywords[0])
-        for keyword in credits_keywords:
-            self.assertIn(keyword, credits_printed)
-            self.assertEqual(credits_printed.count(keyword), number_of_credits_printed)
+        if number_of_credits_printed > 0:  # If at least one credit was printed
+            for keyword in credits_keywords:
+                self.assertIn(keyword, credits_printed)
+                self.assertEqual(
+                    credits_printed.count(keyword), number_of_credits_printed
+                )

@@ -15,7 +15,13 @@
 """This module defines all the operators used by the Unified Planning library."""
 from enum import Enum, auto
 
+
 class OperatorKind(Enum):
+    """
+    Enum representing the type of an :class:`~unified_planning.model.FNode`. The :func:`Operator <unified_planning.model.FNode.node_type>` of an `FNode` defines the semantic for all the
+    other fields of the `FNode`.
+    """
+
     AND = auto()
     OR = auto()
     NOT = auto()
@@ -38,14 +44,29 @@ class OperatorKind(Enum):
     LE = auto()
     LT = auto()
     EQUALS = auto()
+    DOT = auto()
 
-BOOL_OPERATORS = frozenset([OperatorKind.AND, OperatorKind.OR, OperatorKind.NOT,
-                            OperatorKind.IMPLIES, OperatorKind.IFF, OperatorKind.EXISTS, OperatorKind.FORALL])
 
-CONSTANTS = frozenset([OperatorKind.BOOL_CONSTANT, OperatorKind.REAL_CONSTANT, OperatorKind.INT_CONSTANT])
+BOOL_OPERATORS = frozenset(
+    [
+        OperatorKind.AND,
+        OperatorKind.OR,
+        OperatorKind.NOT,
+        OperatorKind.IMPLIES,
+        OperatorKind.IFF,
+        OperatorKind.EXISTS,
+        OperatorKind.FORALL,
+    ]
+)
+
+CONSTANTS = frozenset(
+    [OperatorKind.BOOL_CONSTANT, OperatorKind.REAL_CONSTANT, OperatorKind.INT_CONSTANT]
+)
 
 IRA_RELATIONS = frozenset([OperatorKind.LE, OperatorKind.LT])
 
 RELATIONS = frozenset((OperatorKind.EQUALS,)) | IRA_RELATIONS
 
-IRA_OPERATORS = frozenset([OperatorKind.PLUS, OperatorKind.MINUS, OperatorKind.TIMES, OperatorKind.DIV])
+IRA_OPERATORS = frozenset(
+    [OperatorKind.PLUS, OperatorKind.MINUS, OperatorKind.TIMES, OperatorKind.DIV]
+)

@@ -3,16 +3,22 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "fee022a5a892d23a0508cc7e948509067dd3003b"
-  up_pyperplan_commit: "4dc20452a3f937bf6d547def5d2a579eda034f57"
+  up_tamer_commit: "869e7ab06cf23c5541a47f46209159fd51d8021f"
+  up_pyperplan_commit: "ac2b04d2d41c20b15f7c4143c19947f9704d1888"
+  up_fast_downward_commit: "eb1f0d801e140fffbdd6c1eb2b13e483299ab240"
 
 jobs:
-  mypy-check:
+  basic-check:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
@@ -20,17 +26,35 @@ jobs:
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
 
+      - name: Install tarski
+        run: |
+          python3 -m pip install tarski[arithmetic]
+          sudo apt install -y gringo
+
+      - name: Black check
+        run: |
+          python3 -m pip install black==22.6.0
+          python3 -m black --check --exclude=unified_planning/grpc/generated/ .
+
       - name: MyPy check
         run: python3 -m mypy unified_planning
+
+      - name: Test all packages imports
+        run: python3 scripts/test_imports.py
 
 
   run-tests-ubuntu:
     runs-on: ubuntu-latest
-    needs: [mypy-check]
+    needs: [basic-check]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
@@ -72,8 +96,11 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.9.3; ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.9.5; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
+
+      - name: Test code-snippets
+        run: bash scripts/test_code_snippets.sh
 
       - name: Run tests
         run: bash run_tests.sh
@@ -88,11 +115,16 @@ jobs:
 
   run-tests-windows:
     runs-on: windows-latest
-    needs: [mypy-check]
+    needs: [basic-check]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
@@ -129,7 +161,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.9.3; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.9.5; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
@@ -138,11 +170,16 @@ jobs:
 
   run-tests-macos:
     runs-on: macos-latest
-    needs: [mypy-check]
+    needs: [basic-check]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
@@ -153,7 +190,7 @@ jobs:
       - name: Install tarski
         run: |
           python3 -m pip install tarski[arithmetic]
-          brew install gringo
+#          brew install gringo -- Commented because not working on github actions
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
@@ -184,7 +221,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.9.3; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.9.5; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
@@ -198,22 +235,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Protobuf compiler
-        run: sudo apt install -y protobuf-compiler && protoc --version
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
-      - name: Check Protobuf validity
-        run: cd unified_planning/grpc && protoc --python_out=generated unified_planning.proto
+      - name: Install Protobuf compiler
+        run: |
+          python3 -m pip install grpcio-tools==1.48.1
+
+      - name: Check Protobuf generation
+        run: bash scripts/generate_protobuf_bindings.sh
 
       - name: Check Protobuf bindings
         run: |
           echo "Checking that the committed protobuf bindings are exactly the one generated from the declaration"
-          echo "Based on protoc version: $(protoc --version)"
           git diff --exit-code
 
 
   run-colab-notebooks:
     runs-on: ubuntu-latest
-    needs: [mypy-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf] # We only test colabs if the base tests were succesful
+    needs: [basic-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf] # We only test colabs if the base tests were succesful
 
     steps:
       - name: Checkout
@@ -245,16 +287,26 @@ jobs:
       - name: Install up-pyperplan
         run: python3 -m pip install up-pyperplan/
 
+      - name: Checkout up-fast-downward
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-fast-downward
+          path: up-fast-downward
+          ref: ${{env.up_fast_downward_commit}}
+
+      - name: Install up-fast-downward
+        run: python3 -m pip install up-fast-downward/
+
       - name: Install jupyter and ipython3
         run: sudo apt install jupyter; sudo apt install ipython3
 
       - name: Run colabs
-        run: bash test_colab.sh
+        run: bash scripts/test_colab.sh
 
 
   deploy-pypi:
     runs-on: ubuntu-latest
-    needs: [mypy-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf, run-colab-notebooks] # We only deploy if the tests were successful
+    needs: [basic-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf, run-colab-notebooks] # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
 
     steps:
@@ -271,7 +323,7 @@ jobs:
     - name: Make distrib
       run: |
         python3 -m pip install wheel
-        bash make_distrib.sh
+        bash scripts/make_distrib.sh
 
     - name: Upload to PyPI
       uses: pypa/gh-action-pypi-publish@master

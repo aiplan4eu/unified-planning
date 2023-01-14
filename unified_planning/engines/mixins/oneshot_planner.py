@@ -13,9 +13,10 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from enum import Enum, auto
-from typing import IO, Optional, Callable, Union
+from typing import IO, Optional, Callable
 
 
 class OptimalityGuarantee(Enum):
@@ -24,6 +25,10 @@ class OptimalityGuarantee(Enum):
 
 
 class OneshotPlannerMixin:
+    """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `OneshotPlanner`."""
+
+    def __init__(self):
+        self.optimality_metric_required = False
 
     @staticmethod
     def is_oneshot_planner() -> bool:
@@ -31,32 +36,58 @@ class OneshotPlannerMixin:
 
     @staticmethod
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
+        """
+        :param optimality_guarantee: The `optimality_guarantee` that must be satisfied.
+        :return: `True` if the `OneshotPlannerMixin` implementation satisfies the given
+        `optimality_guarantee`, `False` otherwise.
+        """
         return False
 
-    def solve(self, problem: 'up.model.AbstractProblem',
-              callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
-              timeout: Optional[float] = None,
-              output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
-        '''This method takes a up.model.AbstractProblem and returns a up.engines.results.PlanGenerationResult,
+    def solve(
+        self,
+        problem: "up.model.AbstractProblem",
+        heuristic: Optional[
+            Callable[["up.model.state.ROState"], Optional[float]]
+        ] = None,
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+    ) -> "up.engines.results.PlanGenerationResult":
+        """
+        This method takes a `AbstractProblem` and returns a `PlanGenerationResult`,
         which contains information about the solution to the problem given by the planner.
 
-        :param problem: is the up.model.AbstractProblem to solve.
-        :param callback: is a function used by the planner to give reports to the user during the problem resolution, defaults to None.
-        :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to None.
+        :param problem: is the `AbstractProblem` to solve.
+        :param heuristic: is a function that given a state returns its heuristic value or `None` if the state is a dead-end, defaults to `None`.
+        :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to `None`.
         :param output_stream: is a stream of strings where the planner writes his
-        output (and also errors) while the planner is solving the problem, defaults to None
-        :return: the up.engines.results.PlanGenerationResult created by the planner; a data structure containing the up.plan.Plan found
-        and some additional information about it.
+            output (and also errors) while it is solving the problem; defaults to `None`.
+        :return: the `PlanGenerationResult` created by the planner; a data structure containing the :class:`~unified_planning.plans.Plan` found
+            and some additional information about it.
 
-        The only required parameter is "problem" but the planner should warn the user if callback, timeout or
-        output_stream are not None and the planner ignores them.'''
+        The only required parameter is `problem` but the planner should warn the user if `heuristic`,
+        `timeout` or `output_stream` are not `None` and the planner ignores them.
+        """
         assert isinstance(self, up.engines.engine.Engine)
-        if not self.supports(problem.kind):
-            raise up.exceptions.UPUsageError(f'{self.name} cannot solve this kind of problem!')
-        return self._solve(problem, callback, timeout, output_stream)
+        problem_kind = problem.kind
+        if not self.skip_checks and not self.supports(problem_kind):
+            msg = f"We cannot establish whether {self.name} can solve this problem!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warn(msg)
+        if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
+            msg = f"The problem has no quality metrics but the engine is required to be optimal!"
+            raise up.exceptions.UPUsageError(msg)
+        return self._solve(problem, heuristic, timeout, output_stream)
 
-    def _solve(self, problem: 'up.model.AbstractProblem',
-               callback: Optional[Callable[['up.engines.results.PlanGenerationResult'], None]] = None,
-               timeout: Optional[float] = None,
-               output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
+    def _solve(
+        self,
+        problem: "up.model.AbstractProblem",
+        heuristic: Optional[
+            Callable[["up.model.state.ROState"], Optional[float]]
+        ] = None,
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+    ) -> "up.engines.results.PlanGenerationResult":
+        """Method called by the OneshotPlannerMixin.solve method."""
         raise NotImplementedError

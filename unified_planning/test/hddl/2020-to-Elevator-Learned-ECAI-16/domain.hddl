@@ -1,0 +1,323 @@
+(define (domain elevator )
+(:requirements 
+	:hierarchy
+	:typing
+	:method-preconditions
+	:negative-preconditions
+)
+(:types
+	PASSENGER FLOOR - OBJECT
+)
+(:predicates
+	( ORIGIN ?PASSENGER0 - PASSENGER ?FLOOR1 - FLOOR )
+	( LOCKED-ORIGIN ?PASSENGER0 - PASSENGER ?FLOOR1 - FLOOR )
+	( FLAGGED-ORIGIN ?PASSENGER0 - PASSENGER ?FLOOR1 - FLOOR )
+	( DESTIN ?PASSENGER0 - PASSENGER ?FLOOR1 - FLOOR )
+	( LOCKED-DESTIN ?PASSENGER0 - PASSENGER ?FLOOR1 - FLOOR )
+	( FLAGGED-DESTIN ?PASSENGER0 - PASSENGER ?FLOOR1 - FLOOR )
+	( ABOVE ?FLOOR0 - FLOOR ?FLOOR1 - FLOOR )
+	( LOCKED-ABOVE ?FLOOR0 - FLOOR ?FLOOR1 - FLOOR )
+	( FLAGGED-ABOVE ?FLOOR0 - FLOOR ?FLOOR1 - FLOOR )
+	( BOARDED ?PASSENGER0 - PASSENGER )
+	( LOCKED-BOARDED ?PASSENGER0 - PASSENGER )
+	( FLAGGED-BOARDED ?PASSENGER0 - PASSENGER )
+	( NOT-BOARDED ?PASSENGER0 - PASSENGER )
+	( LOCKED-NOT-BOARDED ?PASSENGER0 - PASSENGER )
+	( FLAGGED-NOT-BOARDED ?PASSENGER0 - PASSENGER )
+	( SERVED ?PASSENGER0 - PASSENGER )
+	( LOCKED-SERVED ?PASSENGER0 - PASSENGER )
+	( FLAGGED-SERVED ?PASSENGER0 - PASSENGER )
+	( NOT-SERVED ?PASSENGER0 - PASSENGER )
+	( LOCKED-NOT-SERVED ?PASSENGER0 - PASSENGER )
+	( FLAGGED-NOT-SERVED ?PASSENGER0 - PASSENGER )
+	( LIFT-AT ?FLOOR0 - FLOOR )
+	( LOCKED-LIFT-AT ?FLOOR0 - FLOOR )
+	( FLAGGED-LIFT-AT ?FLOOR0 - FLOOR )
+)
+(:task IFUNLOCK-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+)
+(:task IFUNLOCK-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+)
+(:task IFUNLOCK-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR )
+)
+(:task DO-BOARDED-DEPART1
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER )
+)
+(:task DO-BOARDED-BOARD1
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER )
+)
+(:task DO-SERVED-DEPART2
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER )
+)
+(:task ACHIEVE-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR )
+)
+(:task ACHIEVE-LIFT-AT0
+	:parameters ( ?FLOOR0 - FLOOR )
+)
+(:task ACHIEVE-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+)
+(:task ACHIEVE-BOARDED1
+	:parameters ( ?PASSENGER0 - PASSENGER )
+)
+(:task ACHIEVE-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+)
+(:task ACHIEVE-SERVED2
+	:parameters ( ?PASSENGER0 - PASSENGER )
+)
+( :method IFUNLOCK0-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task ( IFUNLOCK-BOARDED ?PASSENGER0 )
+	:precondition  ( FLAGGED-BOARDED ?PASSENGER0 )
+	:ordered-subtasks (and ( i-UNFLAG-BOARDED ?PASSENGER0 ))
+)
+( :method IFUNLOCK1-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task ( IFUNLOCK-BOARDED ?PASSENGER0 )
+	:precondition (not  ( FLAGGED-BOARDED ?PASSENGER0 ))
+	:ordered-subtasks (and ( i-UNLOCK-BOARDED ?PASSENGER0 ))
+)
+( :method IFUNLOCK2-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task ( IFUNLOCK-SERVED ?PASSENGER0 )
+	:precondition  ( FLAGGED-SERVED ?PASSENGER0 )
+	:ordered-subtasks (and ( i-UNFLAG-SERVED ?PASSENGER0 ))
+)
+( :method IFUNLOCK3-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task ( IFUNLOCK-SERVED ?PASSENGER0 )
+	:precondition (not  ( FLAGGED-SERVED ?PASSENGER0 ))
+	:ordered-subtasks (and ( i-UNLOCK-SERVED ?PASSENGER0 ))
+)
+( :method IFUNLOCK4-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR )
+	:task ( IFUNLOCK-LIFT-AT ?FLOOR0 )
+	:precondition  ( FLAGGED-LIFT-AT ?FLOOR0 )
+	:ordered-subtasks (and ( i-UNFLAG-LIFT-AT ?FLOOR0 ))
+)
+( :method IFUNLOCK5-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR )
+	:task ( IFUNLOCK-LIFT-AT ?FLOOR0 )
+	:precondition (not  ( FLAGGED-LIFT-AT ?FLOOR0 ))
+	:ordered-subtasks (and ( i-UNLOCK-LIFT-AT ?FLOOR0 ))
+)
+(:method M6-DO-BOARDED-DEPART1
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER )
+	:task ( DO-BOARDED-DEPART1 ?FLOOR0 ?PASSENGER1 )
+	:precondition (and  ( not ( BOARDED ?PASSENGER1 ) ))
+	:ordered-subtasks (and  ( ACHIEVE-LIFT-AT ?FLOOR0 ) ( IFUNLOCK-LIFT-AT ?FLOOR0 ) ( DEPART ?FLOOR0 ?PASSENGER1 ) )
+)
+(:method M7-DO-BOARDED-BOARD1
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER )
+	:task ( DO-BOARDED-BOARD1 ?FLOOR0 ?PASSENGER1 )
+	:precondition (and  ( not ( BOARDED ?PASSENGER1 ) ))
+	:ordered-subtasks (and  ( ACHIEVE-LIFT-AT ?FLOOR0 ) ( IFUNLOCK-LIFT-AT ?FLOOR0 ) ( BOARD ?FLOOR0 ?PASSENGER1 ) )
+)
+(:method M8-DO-SERVED-DEPART2
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER )
+	:task ( DO-SERVED-DEPART2 ?FLOOR0 ?PASSENGER1 )
+	:precondition (and  ( not ( SERVED ?PASSENGER1 ) ))
+	:ordered-subtasks (and  ( ACHIEVE-BOARDED ?PASSENGER1 ) ( ACHIEVE-LIFT-AT ?FLOOR0 ) ( IFUNLOCK-LIFT-AT ?FLOOR0 ) ( IFUNLOCK-BOARDED ?PASSENGER1 ) ( DEPART ?FLOOR0 ?PASSENGER1 ) )
+)
+( :method M9-ACHIEVE-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR )
+	:task  ( ACHIEVE-LIFT-AT ?FLOOR0 )
+	:precondition  ( LOCKED-LIFT-AT ?FLOOR0 )
+	:ordered-subtasks (and  ( i-FLAG-LIFT-AT ?FLOOR0 ))
+)
+( :method M10-ACHIEVE-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR )
+	:task  ( ACHIEVE-LIFT-AT ?FLOOR0 )
+	:precondition (and ( LIFT-AT ?FLOOR0 ) ( not ( LOCKED-LIFT-AT ?FLOOR0 )) )
+	:ordered-subtasks (and  ( i-LOCK-LIFT-AT ?FLOOR0 ))
+)
+( :method M11-ACHIEVE-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR )
+	:task  ( ACHIEVE-LIFT-AT ?FLOOR0 )
+	:precondition (and ( not ( LOCKED-LIFT-AT ?FLOOR0 )) ( not ( LIFT-AT ?FLOOR0 )) )
+	:ordered-subtasks (and ( ACHIEVE-LIFT-AT0 ?FLOOR0 ) ( i-LOCK-LIFT-AT ?FLOOR0 ))
+)
+( :method M12-ACHIEVE-LIFT-AT0
+	:parameters ( ?FLOOR0 - FLOOR )
+	:task ( ACHIEVE-LIFT-AT0 ?FLOOR0 )
+	:precondition  ( LIFT-AT ?FLOOR0 )
+	:subtasks ( )
+)
+( :method M13-ACHIEVE-LIFT-AT0
+	:parameters ( ?FLOOR0 - FLOOR ?FLOOR1 - FLOOR ?FLOOR3 - FLOOR)
+	:task  ( ACHIEVE-LIFT-AT0 ?FLOOR0 )
+	:precondition (and ( not ( LIFT-AT ?FLOOR0 ) ) ( LIFT-AT ?FLOOR1 ) ( ABOVE ?FLOOR1 ?FLOOR3 ) )
+	:ordered-subtasks (and  ( UP ?FLOOR1 ?FLOOR3 ) ( ACHIEVE-LIFT-AT0 ?FLOOR0 ) )
+)
+( :method M14-ACHIEVE-LIFT-AT0
+	:parameters ( ?FLOOR0 - FLOOR ?FLOOR1 - FLOOR ?FLOOR3 - FLOOR)
+	:task  ( ACHIEVE-LIFT-AT0 ?FLOOR0 )
+	:precondition (and ( not ( LIFT-AT ?FLOOR0 ) ) ( LIFT-AT ?FLOOR1 ) ( ABOVE ?FLOOR3 ?FLOOR1 ) )
+	:ordered-subtasks (and  ( DOWN ?FLOOR1 ?FLOOR3 ) ( ACHIEVE-LIFT-AT0 ?FLOOR0 ) )
+)
+( :method M15-ACHIEVE-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task  ( ACHIEVE-BOARDED ?PASSENGER0 )
+	:precondition  ( LOCKED-BOARDED ?PASSENGER0 )
+	:ordered-subtasks (and  ( i-FLAG-BOARDED ?PASSENGER0 ))
+)
+( :method M16-ACHIEVE-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task  ( ACHIEVE-BOARDED ?PASSENGER0 )
+	:precondition (and ( BOARDED ?PASSENGER0 ) ( not ( LOCKED-BOARDED ?PASSENGER0 )) )
+	:ordered-subtasks (and  ( i-LOCK-BOARDED ?PASSENGER0 ))
+)
+( :method M17-ACHIEVE-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task  ( ACHIEVE-BOARDED ?PASSENGER0 )
+	:precondition (and ( not ( LOCKED-BOARDED ?PASSENGER0 )) ( not ( BOARDED ?PASSENGER0 )) )
+	:ordered-subtasks (and ( ACHIEVE-BOARDED1 ?PASSENGER0 ) ( i-LOCK-BOARDED ?PASSENGER0 ))
+)
+( :method M18-ACHIEVE-BOARDED1
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task ( ACHIEVE-BOARDED1 ?PASSENGER0 )
+	:precondition  ( BOARDED ?PASSENGER0 )
+	:subtasks ( )
+)
+( :method M19-ACHIEVE-BOARDED1
+	:parameters ( ?FLOOR2 - FLOOR ?PASSENGER0 - PASSENGER)
+	:task  ( ACHIEVE-BOARDED1 ?PASSENGER0 )
+	:precondition (and ( not ( BOARDED ?PASSENGER0 ) ) ( not ( BOARDED ?PASSENGER0 ) ) ( ORIGIN ?PASSENGER0 ?FLOOR2 ) )
+	:ordered-subtasks (and  ( DO-BOARDED-BOARD1 ?FLOOR2 ?PASSENGER0 ) ( ACHIEVE-BOARDED1 ?PASSENGER0 ) )
+)
+( :method M20-ACHIEVE-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task  ( ACHIEVE-SERVED ?PASSENGER0 )
+	:precondition  ( LOCKED-SERVED ?PASSENGER0 )
+	:ordered-subtasks (and  ( i-FLAG-SERVED ?PASSENGER0 ))
+)
+( :method M21-ACHIEVE-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task  ( ACHIEVE-SERVED ?PASSENGER0 )
+	:precondition (and ( SERVED ?PASSENGER0 ) ( not ( LOCKED-SERVED ?PASSENGER0 )) )
+	:ordered-subtasks (and  ( i-LOCK-SERVED ?PASSENGER0 ))
+)
+( :method M22-ACHIEVE-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task  ( ACHIEVE-SERVED ?PASSENGER0 )
+	:precondition (and ( not ( LOCKED-SERVED ?PASSENGER0 )) ( not ( SERVED ?PASSENGER0 )) )
+	:ordered-subtasks (and ( ACHIEVE-SERVED2 ?PASSENGER0 ) ( i-LOCK-SERVED ?PASSENGER0 ))
+)
+( :method M23-ACHIEVE-SERVED2
+	:parameters ( ?PASSENGER0 - PASSENGER )
+	:task ( ACHIEVE-SERVED2 ?PASSENGER0 )
+	:precondition  ( SERVED ?PASSENGER0 )
+	:subtasks ( )
+)
+( :method M24-ACHIEVE-SERVED2
+	:parameters ( ?FLOOR2 - FLOOR ?PASSENGER0 - PASSENGER)
+	:task  ( ACHIEVE-SERVED2 ?PASSENGER0 )
+	:precondition (and ( not ( SERVED ?PASSENGER0 ) ) ( not ( SERVED ?PASSENGER0 ) ) ( DESTIN ?PASSENGER0 ?FLOOR2 ) )
+	:ordered-subtasks (and  ( DO-SERVED-DEPART2 ?FLOOR2 ?PASSENGER0 ) ( ACHIEVE-SERVED2 ?PASSENGER0 ) )
+)
+( :action BOARD
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER)
+	:precondition (and
+		 ( LIFT-AT ?FLOOR0 ) ( ORIGIN ?PASSENGER1 ?FLOOR0 ))
+	:effect (and
+		 ( BOARDED ?PASSENGER1 ))
+)
+( :action DEPART
+	:parameters ( ?FLOOR0 - FLOOR ?PASSENGER1 - PASSENGER)
+	:precondition (and
+		 ( LIFT-AT ?FLOOR0 ) ( DESTIN ?PASSENGER1 ?FLOOR0 ) ( BOARDED ?PASSENGER1 ) ( not ( LOCKED-BOARDED ?PASSENGER1 ) ))
+	:effect (and
+		 ( not ( BOARDED ?PASSENGER1 ) ) ( SERVED ?PASSENGER1 ))
+)
+( :action UP
+	:parameters ( ?FLOOR0 - FLOOR ?FLOOR1 - FLOOR)
+	:precondition (and
+		 ( LIFT-AT ?FLOOR0 ) ( ABOVE ?FLOOR0 ?FLOOR1 ) ( not ( LOCKED-LIFT-AT ?FLOOR0 ) ))
+	:effect (and
+		 ( not ( LIFT-AT ?FLOOR0 ) ) ( LIFT-AT ?FLOOR1 ))
+)
+( :action DOWN
+	:parameters ( ?FLOOR0 - FLOOR ?FLOOR1 - FLOOR)
+	:precondition (and
+		 ( LIFT-AT ?FLOOR0 ) ( ABOVE ?FLOOR1 ?FLOOR0 ) ( not ( LOCKED-LIFT-AT ?FLOOR0 ) ))
+	:effect (and
+		 ( not ( LIFT-AT ?FLOOR0 ) ) ( LIFT-AT ?FLOOR1 ))
+)
+( :action i-LOCK-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( LOCKED-BOARDED ?PASSENGER0 ))
+)
+( :action i-UNLOCK-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( not ( LOCKED-BOARDED ?PASSENGER0 ) ))
+)
+( :action i-FLAG-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( FLAGGED-BOARDED ?PASSENGER0 ))
+)
+( :action i-UNFLAG-BOARDED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( not ( FLAGGED-BOARDED ?PASSENGER0 ) ))
+)
+( :action i-LOCK-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( LOCKED-SERVED ?PASSENGER0 ))
+)
+( :action i-UNLOCK-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( not ( LOCKED-SERVED ?PASSENGER0 ) ))
+)
+( :action i-FLAG-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( FLAGGED-SERVED ?PASSENGER0 ))
+)
+( :action i-UNFLAG-SERVED
+	:parameters ( ?PASSENGER0 - PASSENGER)
+	:precondition ( )
+	:effect (and
+		 ( not ( FLAGGED-SERVED ?PASSENGER0 ) ))
+)
+( :action i-LOCK-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR)
+	:precondition ( )
+	:effect (and
+		 ( LOCKED-LIFT-AT ?FLOOR0 ))
+)
+( :action i-UNLOCK-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR)
+	:precondition ( )
+	:effect (and
+		 ( not ( LOCKED-LIFT-AT ?FLOOR0 ) ))
+)
+( :action i-FLAG-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR)
+	:precondition ( )
+	:effect (and
+		 ( FLAGGED-LIFT-AT ?FLOOR0 ))
+)
+( :action i-UNFLAG-LIFT-AT
+	:parameters ( ?FLOOR0 - FLOOR)
+	:precondition ( )
+	:effect (and
+		 ( not ( FLAGGED-LIFT-AT ?FLOOR0 ) ))
+)
+)

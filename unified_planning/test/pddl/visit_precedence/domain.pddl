@@ -1,0 +1,11 @@
+(define (domain visit_precedence_domain)
+ (:requirements :strips :typing :negative-preconditions :disjunctive-preconditions :universal-preconditions :durative-actions)
+ (:types location)
+ (:predicates (visited ?l - location) (precedes ?precedes - location ?successor - location))
+ (:durative-action visit
+  :parameters ( ?to_visit - location)
+  :duration (= ?duration 3)
+  :condition (and (at start (forall (?p - location)
+ (and (or (not (precedes ?p ?to_visit)) (visited ?p)) (not (visited ?to_visit))))))
+  :effect (and (at end (visited ?to_visit))))
+)

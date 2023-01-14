@@ -15,197 +15,405 @@
 
 
 from fractions import Fraction
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 
 import unified_planning
 import unified_planning.model
-import unified_planning.walkers as walkers
+import unified_planning.model.walkers as walkers
+from unified_planning.model.types import (
+    _UserType as UT,
+    _IntType as IT,
+    _RealType as RT,
+)
 
-import tarski # type: ignore
+import tarski
+
 
 class TarskiFormulaConverter(walkers.DagWalker):
-    def __init__(self, language: 'tarski.fol.FirstOrderLanguage', env, object_freshname: str) -> None:
+    def __init__(
+        self, language: "tarski.fol.FirstOrderLanguage", env, object_freshname: str
+    ) -> None:
         walkers.DagWalker.__init__(self)
         self.object_freshname = object_freshname
         self.lang = language
         self.env = env
 
-    def convert_formula(self, expression: 'unified_planning.model.FNode') -> 'tarski.syntax.formulas.Formula':
+    def convert_formula(
+        self, expression: "unified_planning.model.FNode"
+    ) -> "tarski.syntax.formulas.Formula":
         return self.walk(expression)
 
-    def walk_and(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_and(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         return tarski.syntax.land(*args, flat=True)
 
-    def walk_or(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_or(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         return tarski.syntax.lor(*args, flat=True)
 
-    def walk_not(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_not(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 1
         return tarski.syntax.neg(args[0])
 
-    def walk_iff(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_iff(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 2
         return tarski.syntax.equiv(args[0], args[1])
 
-    def walk_implies(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_implies(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 2
         return tarski.syntax.implies(args[0], args[1])
 
-    def walk_exists(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_exists(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 1
-        variables = [self.lang.variable(v.name, self.lang.get_sort(v.type.name if v.type.name != 'object' else self.object_freshname)) for v in expression.variables()] # type: ignore
+        variables = [
+            self.lang.variable(
+                v.name,
+                self.lang.get_sort(
+                    cast(UT, v.type).name
+                    if cast(UT, v.type).name != "object"
+                    else self.object_freshname
+                ),
+            )
+            for v in expression.variables()
+        ]
         return tarski.syntax.exists(*variables, args[0])
 
-    def walk_forall(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_forall(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 1
-        variables = [self.lang.variable(v.name, self.lang.get_sort(v.type.name if v.type.name != 'object' else self.object_freshname)) for v in expression.variables()] # type: ignore
+        variables = [
+            self.lang.variable(
+                v.name,
+                self.lang.get_sort(
+                    cast(UT, v.type).name
+                    if cast(UT, v.type).name != "object"
+                    else self.object_freshname
+                ),
+            )
+            for v in expression.variables()
+        ]
         return tarski.syntax.forall(*variables, args[0])
 
-    def walk_equals(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_equals(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.EQ), args)
+        return tarski.syntax.Atom(
+            self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.EQ), args
+        )
 
-    def walk_le(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_le(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.LE), args)
+        return tarski.syntax.Atom(
+            self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.LE), args
+        )
 
-    def walk_lt(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_lt(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 2
-        return tarski.syntax.Atom(self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.LT), args)
+        return tarski.syntax.Atom(
+            self.lang.get_predicate(tarski.syntax.BuiltinPredicateSymbol.LT), args
+        )
 
-    def walk_fluent_exp(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_fluent_exp(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         tarski_fluent_rep = self.lang.get(expression.fluent().name)
         new_args = []
         for i, x in enumerate(expression.args):
             if x.is_int_constant():
                 type = expression.fluent().signature[i].type
                 typename = _type_name_added_to_language_if_needed(self.lang, type)
-                constant = tarski.syntax.Constant(x.int_constant_value(), \
-                    self.lang.get_sort(typename))
+                constant = tarski.syntax.Constant(
+                    x.int_constant_value(), self.lang.get_sort(typename)
+                )
                 new_args.append(constant)
             elif x.is_real_constant():
-                raise unified_planning.exceptions.UPProblemDefinitionError('Fluents can not have reals into their signatures.')
+                raise unified_planning.exceptions.UPProblemDefinitionError(
+                    "Fluents can not have reals into their signatures."
+                )
             else:
                 new_args.append(args[i])
         return tarski_fluent_rep(*new_args)
 
-    def walk_plus(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_plus(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         value = args[0]
         for a in args[1:]:
             value = value + a
         return value
 
-    def walk_minus(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_minus(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 2
         return args[0] - args[1]
 
-    def walk_times(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_times(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         value = args[0]
         for a in args[1:]:
             value = value * a
         return value
 
-    def walk_div(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_div(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 2
         return args[0] / args[1]
 
-    def walk_bool_constant(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_bool_constant(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 0
         if expression.bool_constant_value():
             return tarski.syntax.top
         return tarski.syntax.bot
 
-    def walk_int_constant(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_int_constant(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 0
-        return tarski.syntax.Constant(expression.int_constant_value(), self.lang.Integer)
+        return tarski.syntax.Constant(
+            expression.int_constant_value(), self.lang.Integer
+        )
 
-    def walk_real_constant(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_real_constant(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         assert len(args) == 0
         return tarski.syntax.Constant(expression.real_constant_value(), self.lang.Real)
 
-    def walk_param_exp(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_param_exp(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         type = expression.parameter().type
         if type.is_user_type():
-            return self.lang.variable(expression.parameter().name, \
-                self.lang.get_sort(type.name if type.name != 'object' else self.object_freshname)) # type: ignore
+            return self.lang.variable(
+                expression.parameter().name,
+                self.lang.get_sort(
+                    cast(UT, type).name
+                    if cast(UT, type).name != "object"
+                    else self.object_freshname
+                ),
+            )
         else:
-            return self.lang.variable(expression.parameter().name, \
-                self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)))
+            return self.lang.variable(
+                expression.parameter().name,
+                self.lang.get_sort(
+                    _type_name_added_to_language_if_needed(self.lang, type)
+                ),
+            )
 
-    def walk_variable_exp(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_variable_exp(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         type = expression.variable().type
         if type.is_user_type():
-            return self.lang.variable(expression.variable().name, \
-                self.lang.get_sort(type.name if type.name != 'object' else self.object_freshname)) # type: ignore
+            return self.lang.variable(
+                expression.variable().name,
+                self.lang.get_sort(
+                    cast(UT, type).name
+                    if cast(UT, type).name != "object"
+                    else self.object_freshname
+                ),
+            )
         else:
-            return self.lang.variable(expression.variable().name, \
-                self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)))
+            return self.lang.variable(
+                expression.variable().name,
+                self.lang.get_sort(
+                    _type_name_added_to_language_if_needed(self.lang, type)
+                ),
+            )
 
-    def walk_object_exp(self, expression: 'unified_planning.model.FNode', args: List['tarski.syntax.formulas.Formula']) -> 'tarski.syntax.formulas.Formula':
+    def walk_object_exp(
+        self,
+        expression: "unified_planning.model.FNode",
+        args: List["tarski.syntax.formulas.Formula"],
+    ) -> "tarski.syntax.formulas.Formula":
         return self.lang.get_constant(expression.object().name)
 
-def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tarski.fstrips.problem.Problem':
-    '''Converts a problem in the unified_planning.model.Problem representation in the equivalent
-    tarski.fstrips.Problem representation.'''
+
+def convert_problem_to_tarski(
+    problem: "unified_planning.model.Problem",
+) -> "tarski.fstrips.problem.Problem":
+    """
+    Converts a :class:`~unified_planning.model.Problem` representation in the equivalent
+    `tarski.fstrips.Problem` representation.
+
+    :param problem: The `Problem` to convert.
+    :return: The generated `tarski.fstrips.Problem`.
+    """
     features: List[str] = []
     kind = problem.kind
-    if kind.has_equality(): # type: ignore
-        features.append('equality')
-    if kind.has_continuous_numbers() or kind.has_discrete_numbers() or kind.has_numeric_fluents(): # type: ignore
-        features.append('arithmetic')
-    object_freshname = 'object_'
+    if kind.has_equality():
+        features.append("equality")
+    if (
+        kind.has_continuous_numbers()
+        or kind.has_discrete_numbers()
+        or kind.has_numeric_fluents()
+    ):
+        features.append("arithmetic")
+    object_freshname = "object_"
     while problem.has_type(object_freshname):
-        object_freshname = object_freshname + '_'
-    #creating tarski language
-    lang = tarski.fstrips.language(f'{problem.name}_lang', features)
-    for ut in problem.user_types: #adding user_types to the language
-        if ut.father is not None:  # type: ignore
-            lang.sort(ut.name if ut.name != 'object' else object_freshname, ut.father.name if ut.father.name != 'object' else object_freshname) # type: ignore
+        object_freshname = object_freshname + "_"
+    # creating tarski language
+    lang = tarski.fstrips.language(f"{problem.name}_lang", features)
+    for ut in problem.user_types:  # adding user_types to the language
+        assert isinstance(ut, UT)
+        if ut.father is not None:
+            lang.sort(
+                ut.name if ut.name != "object" else object_freshname,
+                cast(UT, ut.father).name
+                if cast(UT, ut.father).name != "object"
+                else object_freshname,
+            )
         else:
-            lang.sort(ut.name if ut.name != 'object' else object_freshname) # type: ignore
-    for fluent in problem.fluents: #adding fluents to the language
+            lang.sort(ut.name if ut.name != "object" else object_freshname)
+    for fluent in problem.fluents:  # adding fluents to the language
         signature = []
         for param in fluent.signature:
             if param.type.is_user_type():
-                signature.append(lang.get_sort(param.type.name if param.type.name != 'object' else object_freshname)) # type: ignore
+                signature.append(
+                    lang.get_sort(
+                        cast(UT, param.type).name
+                        if cast(UT, param.type).name != "object"
+                        else object_freshname
+                    )
+                )
             else:
-                #typename will be the name that this type has in the tarski language
+                # typename will be the name that this type has in the tarski language
                 typename = _type_name_added_to_language_if_needed(lang, param.type)
                 signature.append(lang.get_sort(typename))
         if fluent.type.is_bool_type():
             lang.predicate(fluent.name, *signature)
         else:
             typename = _type_name_added_to_language_if_needed(lang, fluent.type)
-            lang.function(fluent.name, *signature, lang.get_sort(typename if typename != 'object' else object_freshname))
-    for o in problem.all_objects: #adding objects to the language
-        lang.constant(o.name, lang.get_sort(o.type.name if o.type.name != 'object' else object_freshname)) # type: ignore
-    #creating tarski problem
+            lang.function(
+                fluent.name,
+                *signature,
+                lang.get_sort(typename if typename != "object" else object_freshname),
+            )
+    for o in problem.all_objects:  # adding objects to the language
+        lang.constant(
+            o.name,
+            lang.get_sort(
+                cast(UT, o.type).name
+                if cast(UT, o.type).name != "object"
+                else object_freshname
+            ),
+        )
+    # creating tarski problem
     em = problem.env.expression_manager
-    tfc = TarskiFormulaConverter(language=lang, env=problem.env, object_freshname=object_freshname)
-    new_problem = tarski.fstrips.problem.create_fstrips_problem(lang, problem.name, f'{problem.name}_domain')
+    tfc = TarskiFormulaConverter(
+        language=lang, env=problem.env, object_freshname=object_freshname
+    )
+    new_problem = tarski.fstrips.problem.create_fstrips_problem(
+        lang, problem.name, f"{problem.name}_domain"
+    )
     for action in problem.actions:
         if not isinstance(action, unified_planning.model.InstantaneousAction):
-            raise unified_planning.exceptions.UPProblemDefinitionError('Tarski supports only Instantaneous Actions.')
+            raise unified_planning.exceptions.UPProblemDefinitionError(
+                "Tarski supports only Instantaneous Actions."
+            )
         parameters = []
         for p in action.parameters:
             if p.type.is_user_type():
-                parameters.append(lang.variable(p.name, lang.get_sort(p.type.name if p.type.name != 'object' else object_freshname))) # type: ignore
+                parameters.append(
+                    lang.variable(
+                        p.name,
+                        lang.get_sort(
+                            cast(UT, p.type).name
+                            if cast(UT, p.type).name != "object"
+                            else object_freshname
+                        ),
+                    )
+                )
             else:
-                parameters.append(lang.variable(p.name, lang.get_sort(_type_name_added_to_language_if_needed(lang, p.type))))
-        #add action to the problem
-        new_problem.action(action.name,
-                            parameters,
-                            precondition=tfc.convert_formula(em.And(action.preconditions)),
-                            effects=[_convert_effect(e, tfc, em) for e in action.effects])
+                parameters.append(
+                    lang.variable(
+                        p.name,
+                        lang.get_sort(
+                            _type_name_added_to_language_if_needed(lang, p.type)
+                        ),
+                    )
+                )
+        # add action to the problem
+        new_problem.action(
+            action.name,
+            parameters,
+            precondition=tfc.convert_formula(em.And(action.preconditions)),
+            effects=[_convert_effect(e, tfc, em) for e in action.effects],
+        )
     for fluent_exp, value_exp in problem.initial_values.items():
         if value_exp.is_bool_constant():
             if value_exp.constant_value():
                 parameters = []
                 for a in fluent_exp.args:
                     parameters.append(tfc.convert_formula(a))
-                new_problem.init.add(lang.get_predicate(fluent_exp.fluent().name), *parameters)
+                new_problem.init.add(
+                    lang.get_predicate(fluent_exp.fluent().name), *parameters
+                )
         else:
-            value: Optional[Union[Fraction, int, 'tarski.syntax.formulas.Formula']] = None
+            value: Optional[
+                Union[Fraction, int, "tarski.syntax.formulas.Formula"]
+            ] = None
             if value_exp.is_int_constant():
                 value = value_exp.int_constant_value()
             elif value_exp.is_real_constant():
@@ -216,36 +424,58 @@ def convert_problem_to_tarski(problem: 'unified_planning.model.Problem') -> 'tar
     new_problem.goal = tfc.convert_formula(em.And(problem.goals))
     return new_problem
 
-def _type_name_added_to_language_if_needed(lang: 'tarski.FirstOrderLanguage', type: 'unified_planning.model.Type') -> str:
-    typename = ''
+
+def _type_name_added_to_language_if_needed(
+    lang: "tarski.FirstOrderLanguage", type: "unified_planning.model.Type"
+) -> str:
+    typename = ""
     if type.is_user_type():
-        typename = type.name # type: ignore
+        typename = cast(UT, type).name
     else:
-        typename = str(type).replace(' ','')
-    if type.is_int_type() and (type.lower_bound is None or type.upper_bound is None): # type: ignore
-        if type.lower_bound is None and type.upper_bound is None: # type: ignore
-            typename = 'Integer'
-        elif type.lower_bound == 0: # type: ignore
-            assert type.upper_bound is None # type: ignore #must be true, otherwise branch would be skipped
-            typename = 'Natural'
+        typename = str(type).replace(" ", "")
+    if type.is_int_type() and (
+        cast(IT, type).lower_bound is None or cast(IT, type).upper_bound is None
+    ):
+        type = cast(IT, type)
+        if type.lower_bound is None and type.upper_bound is None:
+            typename = "Integer"
+        elif type.lower_bound == 0:
+            assert (
+                type.upper_bound is None
+            )  # must be true, otherwise branch would be skipped
+            typename = "Natural"
         else:
-            raise unified_planning.exceptions.UPProblemDefinitionError('Int type with just one bound is not accepted by tarski')
-    elif type.is_real_type() and (type.lower_bound is None or type.upper_bound is None): # type: ignore
-        if type.lower_bound is None and type.upper_bound is None: # type: ignore
-            typename = 'Real'
+            raise unified_planning.exceptions.UPProblemDefinitionError(
+                "Int type with just one bound is not accepted by tarski"
+            )
+    elif type.is_real_type() and (
+        cast(RT, type).lower_bound is None or cast(RT, type).upper_bound is None
+    ):
+        type = cast(RT, type)
+        if type.lower_bound is None and type.upper_bound is None:
+            typename = "Real"
         else:
-            raise unified_planning.exceptions.UPProblemDefinitionError('Real type with just one bound is not accepted by tarski')
+            raise unified_planning.exceptions.UPProblemDefinitionError(
+                "Real type with just one bound is not accepted by tarski"
+            )
     if not lang.has_sort(typename):
         # the type is not in the language, therefore it must be added
         if type.is_int_type():
-            lang.interval(typename, lang.Integer, type.lower_bound, type.upper_bound) # type: ignore
+            type = cast(IT, type)
+            lang.interval(typename, lang.Integer, type.lower_bound, type.upper_bound)
         elif type.is_real_type():
-            lang.interval(typename, lang.Real, type.lower_bound, type.upper_bound) # type: ignore
+            type = cast(RT, type)
+            lang.interval(typename, lang.Real, type.lower_bound, type.upper_bound)
         else:
             raise NotImplementedError
     return typename
 
-def _convert_effect(effect: 'unified_planning.model.Effect', tfc: TarskiFormulaConverter, em: 'unified_planning.model.ExpressionManager') -> 'tarski.fstrips.SingleEffect':
+
+def _convert_effect(
+    effect: "unified_planning.model.Effect",
+    tfc: TarskiFormulaConverter,
+    em: "unified_planning.model.ExpressionManager",
+) -> "tarski.fstrips.SingleEffect":
     condition = tfc.convert_formula(effect.condition)
     predicate = tfc.convert_formula(effect.fluent)
     if effect.value.is_bool_constant():

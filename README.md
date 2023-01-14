@@ -3,6 +3,7 @@
 [![Actions Status](https://github.com/aiplan4eu/unified-planning/actions/workflows/main.yml/badge.svg)](https://github.com/aiplan4eu/unified-planning/actions)
 [![Coverage Status](https://codecov.io/gh/aiplan4eu/unified-planning/branch/master/graph/badge.svg?token=GBM7HYNDRB)](https://codecov.io/gh/aiplan4eu/unified-planning)
 [![Documentation Status](https://readthedocs.org/projects/unified-planning/badge/?version=latest)](https://unified-planning.readthedocs.io/en/latest/)
+[![PyPI version](https://badge.fury.io/py/unified-planning.svg)](https://pypi.python.org/pypi/unified-planning)
 
 The unified_planning library makes it easy to formulate planning problems and to invoke automated planners.
 
@@ -17,23 +18,29 @@ The unified_planning library makes it easy to formulate planning problems and to
 ```python
 from unified_planning.shortcuts import *
 
-x = Fluent('x')
+x = Fluent("x")
 
-a = InstantaneousAction('a')
+a = InstantaneousAction("a")
 a.add_precondition(Not(x))
 a.add_effect(x, True)
 
-problem = Problem('basic')
+problem = Problem("basic")
 problem.add_fluent(x)
 problem.add_action(a)
 problem.set_initial_value(x, False)
 problem.add_goal(x)
 
 with OneshotPlanner(problem_kind=problem.kind) as planner:
-    plan = planner.solve(problem)
-    print(plan)
+    result = planner.solve(problem)
+    if result.status in unified_planning.engines.results.POSITIVE_OUTCOMES:
+        print(f"{planner.name} found this plan: {result.plan}")
+    else:
+        print("No plan found.")
 ```
 
+## Documentation
+
+The documentation is available [here](https://unified-planning.readthedocs.io/en/latest/)
 
 ## Notebooks
 

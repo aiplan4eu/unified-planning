@@ -25,12 +25,13 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.action import Action
 from unified_planning.model.htn.task import Task, Subtask
 from unified_planning.model.timing import Timepoint
-from unified_planning.walkers import OperatorsExtractor
+from unified_planning.model.walkers import OperatorsExtractor
 
 
 class TaskNetwork:
     """Represents an initial task network."""
-    def __init__(self, _env: Environment = None):
+
+    def __init__(self, _env: Optional[Environment] = None):
         self._env = get_env(_env)
         self._variables: OrderedDict[str, Parameter] = OrderedDict()
         self._subtasks: List[Subtask] = []
@@ -38,7 +39,7 @@ class TaskNetwork:
         self._operators_extractor = OperatorsExtractor()  # maybe add to Environment?
 
     def __repr__(self):
-        s = ['task network {\n']
+        s = ["task network {\n"]
         if len(self._variables) > 0:
             s.append("  variables = [\n")
             for v in self.variables:
@@ -54,36 +55,57 @@ class TaskNetwork:
                 s.append(f"    {c}\n")
             s.append("  ]\n")
         s.append("}")
-        return ''.join(s)
+        return "".join(s)
 
     def __eq__(self, oth):
         if not isinstance(oth, TaskNetwork):
             return False
-        return (set(self.variables) == set(oth.variables) and
-                set(self.subtasks) == set(oth.subtasks) and
-                set(self.constraints) == set(oth.constraints))
+        return (
+            set(self.variables) == set(oth.variables)
+            and set(self.subtasks) == set(oth.subtasks)
+            and set(self.constraints) == set(oth.constraints)
+        )
 
     def __hash__(self):
-        return (sum(map(hash, self.variables))
-                + sum(map(hash, self.subtasks))
-                + sum(map(hash, self.constraints)))
+        return (
+            sum(map(hash, self.variables))
+            + sum(map(hash, self.subtasks))
+            + sum(map(hash, self.constraints))
+        )
+
+    def clone(self):
+        new = TaskNetwork(self._env)
+        new._variables = self._variables.copy()
+        new._subtasks = self._subtasks[:]
+        new._constraints = self._constraints[:]
+        return new
 
     @property
     def variables(self) -> List[Parameter]:
         return list(self._variables.values())
 
     def add_variable(self, name: str, typename: Type) -> Parameter:
-        assert name not in self._variables, f"A variable with name {name} already exists."
-        param = Parameter(name, typename)
+        if name in self._variables:
+            raise ValueError(f"A variable with name {name} already exists.")
+        param = Parameter(name, typename, self._env)
         self._variables[name] = param
         return param
 
+    def parameter(self, name: str) -> Parameter:
+        """Returns the variable with the given name."""
+        return self._variables[name]
+
     @property
-    def subtasks(self) -> List['Subtask']:
+    def subtasks(self) -> List["Subtask"]:
         """Returns the list of the subtasks."""
         return self._subtasks
 
-    def add_subtask(self, task: Union[Subtask, Action, Task], *args: Expression, ident: Optional[str] = None) -> Subtask:
+    def add_subtask(
+        self,
+        task: Union[Subtask, Action, Task],
+        *args: Expression,
+        ident: Optional[str] = None,
+    ) -> Subtask:
         if isinstance(task, Subtask):
             assert len(args) == 0 and ident is None
             subtask = task
@@ -93,19 +115,31 @@ class TaskNetwork:
         self._subtasks.append(subtask)
         return subtask
 
+    def get_subtask(self, ident: str) -> Subtask:
+        """Returns the subtask with the given identifier."""
+        for st in self._subtasks:
+            if st.identifier == ident:
+                return st
+        raise ValueError(f"The task network has not subtask with identifier {ident}")
+
     @property
     def constraints(self) -> List[FNode]:
         return self._constraints
 
     def add_constraint(self, constraint: Expression):
-        constraint, = self._env.expression_manager.auto_promote(constraint)
+        (constraint,) = self._env.expression_manager.auto_promote(constraint)
         assert isinstance(constraint, FNode)
         assert self._env.type_checker.get_type(constraint).is_bool_type()
-        assert OperatorKind.FLUENT_EXP not in self._operators_extractor.get(constraint),\
-            f"The expression is not static (references a fluent): {constraint}"
+        assert OperatorKind.FLUENT_EXP not in self._operators_extractor.get(
+            constraint
+        ), f"The expression is not static (references a fluent): {constraint}"
         self._constraints.append(constraint)
 
-    def set_strictly_before(self, lhs: Union[Subtask, Timepoint, Timing], rhs: Union[Subtask, Timepoint, Timing]):
+    def set_strictly_before(
+        self,
+        lhs: Union[Subtask, Timepoint, Timing],
+        rhs: Union[Subtask, Timepoint, Timing],
+    ):
         if isinstance(lhs, Subtask):
             lhs = lhs.end
         if isinstance(lhs, Timepoint):
@@ -117,5 +151,3 @@ class TaskNetwork:
             rhs = Timing(timepoint=rhs, delay=0)
         assert isinstance(rhs, Timing)
         self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
-
-

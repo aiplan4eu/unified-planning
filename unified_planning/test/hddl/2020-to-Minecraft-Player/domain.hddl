@@ -1,0 +1,234 @@
+(define (domain minecraft)
+  (:requirements :negative-preconditions
+  	:hierarchy
+	:typing
+	:method-preconditions
+  )
+  (:types
+      location blocktype direction numbers - object
+
+  )
+ 
+  (:constants e w s n - direction)
+
+  (:predicates
+     (empty ?location - location)
+     (blockat ?location - location ?t - blocktype)
+     (neighbour ?loc1 ?loc2 - location ?dir - direction)
+     (on-top ?loc1 ?loc2 - location)
+     (reachable ?loc1 ?loc2 - location)
+     (player-at ?loc - location)
+     (isone ?z - numbers)
+     (prev ?z ?z2 - numbers)
+  )
+   
+  (:task buildhouse :parameters (?loc1 ?loc2 ?loc3 ?loc4 ?loc5 ?loc6 - location ?len ?len2 ?hgt - numbers ?t - blocktype))
+  (:task buildwall :parameters (?loc1 - location ?len ?hgt - numbers ?d - direction ?t - blocktype))
+  (:task buildroof :parameters (?loc1 - location ?len ?wdt - numbers ?d ?d2 - direction ?t - blocktype))
+  (:task builddoor :parameters (?loc1 - location))
+  (:task buildrow :parameters (?loc1 - location ?len - numbers ?d - direction ?t - blocktype))
+  (:task placeblockabstract :parameters (?loc1 - location ?t - blocktype))
+  (:task removeblockabstract :parameters (?loc1 - location))
+  (:task findway :parameters (?locC ?locG - location ?d - direction))
+  
+
+  (:method build-house-1
+    :parameters (?loc1 ?loc2 ?loc3 ?loc4 ?loc5 ?loc6 - location ?len ?len2 ?hgt - numbers ?t - blocktype)
+    :task (buildhouse ?loc1 ?loc2 ?loc3 ?loc4 ?loc5 ?loc6 ?len ?len2 ?hgt ?t)
+    :precondition ()
+    :ordered-subtasks (and 
+        (buildwall ?loc1 ?len ?hgt e ?t)
+        (buildwall ?loc2 ?len2 ?hgt n ?t)
+        (buildwall ?loc3 ?len ?hgt w ?t)
+        (buildwall ?loc4 ?len2 ?hgt s ?t)
+        (builddoor ?loc5)
+        (buildroof ?loc6 ?len ?len2 e n ?t)
+
+      )
+  )
+
+  (:method build-wall-1
+    :parameters (?loc1 - location ?len ?hgt - numbers ?d - direction ?t - blocktype)
+    :task (buildwall ?loc1 ?len ?hgt ?d ?t)
+    :precondition (and (isone ?hgt) )
+    :subtasks (and 
+        (buildrow ?loc1 ?len ?d ?t)
+      )
+  )
+
+  (:method build-wall-2
+    :parameters (?loc1 ?loc2 - location ?len ?hgt ?hgt2 - numbers ?d - direction ?t - blocktype)
+    :task (buildwall ?loc1 ?len ?hgt ?d ?t)
+    :precondition (and (not(isone ?hgt)) (prev ?hgt ?hgt2) (on-top ?loc1 ?loc2) )
+    :ordered-subtasks (and 
+        (buildrow ?loc1 ?len ?d ?t)
+        (buildwall ?loc2 ?len ?hgt2 ?d ?t)
+      )
+  )
+
+  (:method build-roof-1
+    :parameters (?loc1 - location ?len ?wdt - numbers ?d ?d2 - direction ?t - blocktype)
+    :task (buildroof ?loc1 ?len ?wdt ?d ?d2 ?t)
+    :precondition (and (isone ?wdt) )
+    :subtasks (and 
+        (buildrow ?loc1 ?len ?d ?t)
+      )
+  )
+
+  (:method build-roof-2
+    :parameters (?loc1 ?loc2 - location ?len ?wdt ?wdt2 - numbers ?d ?d2 - direction ?t - blocktype)
+    :task (buildroof ?loc1 ?len ?wdt ?d ?d2 ?t)
+    :precondition (and (not(isone ?wdt)) (prev ?wdt ?wdt2) (neighbour ?loc1 ?loc2 ?d2) )
+    :ordered-subtasks (and 
+        (buildrow ?loc1 ?len ?d ?t)
+        (buildroof ?loc2 ?len ?wdt2 ?d ?d2 ?t)
+      )
+  )
+
+  (:method build-door-1
+    :parameters (?loc1 ?loc2 - location)
+    :task (builddoor ?loc1)
+    :precondition (and (on-top ?loc1 ?loc2))
+    :ordered-subtasks (and 
+      (removeblockabstract ?loc1)
+      (removeblockabstract ?loc2)
+      )
+    )
+
+
+  (:method build-row-1
+    :parameters (?loc1 - location ?len - numbers ?d - direction ?t - blocktype)
+    :task (buildrow ?loc1 ?len ?d ?t)
+    :precondition (and (isone ?len) )
+    :subtasks (and 
+        (placeblockabstract ?loc1 ?t)
+      )
+  )
+
+  (:method build-row-2
+    :parameters (?loc1 ?loc2 - location ?len ?len2 - numbers ?d - direction ?t - blocktype)
+    :task (buildrow ?loc1 ?len ?d ?t)
+    :precondition (and (not(isone ?len)) (prev ?len ?len2) (neighbour ?loc1 ?loc2 ?d) )
+    :ordered-subtasks (and 
+        (placeblockabstract ?loc1 ?t)
+        (buildrow ?loc2 ?len2 ?d ?t)
+      )
+  )
+
+  (:method build-row-3
+    :parameters (?loc1 ?loc2 - location ?len ?len2 - numbers ?d - direction ?t - blocktype)
+    :task (buildrow ?loc1 ?len ?d ?t)
+    :precondition (and (not(isone ?len)) (prev ?len ?len2) (neighbour ?loc1 ?loc2 ?d) )
+    :ordered-subtasks (and 
+        (buildrow ?loc2 ?len2 ?d ?t)
+        (placeblockabstract ?loc1 ?t)
+      )
+  )
+
+  (:method place-block-abstract-1
+    :parameters (?loc1 ?locP - location ?t - blocktype)
+    :task (placeblockabstract ?loc1 ?t)
+    :precondition (and (empty ?loc1) (reachable ?locP ?loc1) (player-at ?locP))
+    :subtasks (and 
+        (placeblock ?loc1 ?t)
+      )
+  )
+
+  (:method place-block-abstract-2
+    :parameters (?loc1 - location ?t - blocktype)
+    :task (placeblockabstract ?loc1 ?t)
+    :precondition (and (blockat ?loc1 ?t))
+    :subtasks ()
+  )  
+
+  (:method place-block-abstract-3
+    :parameters (?loc1 ?locP - location ?t ?t2 - blocktype)
+    :task (placeblockabstract ?loc1 ?t)
+    :precondition (and (blockat ?loc1 ?t2) (reachable ?locP ?loc1) (player-at ?locP))
+    :ordered-subtasks (and 
+        (removeblock ?loc1 ?t2)
+        (placeblock ?loc1 ?t)
+      )
+  )
+  
+  (:method place-block-abstract-4
+    :parameters (?loc1 ?locP - location ?t - blocktype ?d - direction)
+    :task (placeblockabstract ?loc1 ?t)
+    :precondition (and  (not(reachable ?locP ?loc1)) (player-at ?locP))
+    :ordered-subtasks (and 
+        (findway ?locP ?loc1 ?d)
+        (placeblockabstract ?loc1 ?t)
+      )
+  )
+
+  (:method remove-block-abstract-1
+    :parameters (?loc1 - location)
+    :task (removeblockabstract ?loc1)
+    :precondition (and (empty ?loc1))
+    :subtasks ()
+  )
+
+  (:method remove-block-abstract-2
+    :parameters (?loc1 ?locP - location ?t - blocktype)
+    :task (removeblockabstract ?loc1)
+    :precondition (and (blockat ?loc1 ?t) (reachable ?locP ?loc1) (player-at ?locP))
+    :subtasks (and
+        (removeblock ?loc1 ?t)
+      )
+  )  
+
+  (:method remove-block-abstract-3
+    :parameters (?loc1 ?locP - location ?t - blocktype ?d - direction)
+    :task (removeblockabstract ?loc1)
+    :precondition (and (blockat ?loc1 ?t) (not(reachable ?locP ?loc1)) (player-at ?locP))
+    :ordered-subtasks (and
+        (findway ?locP ?loc1 ?d)
+        (removeblock ?loc1 ?t)
+      )
+  ) 
+
+  (:method find-way-same-dir
+    :parameters (?locC ?locG ?locN - location ?d - direction)
+    :task (findway ?locC ?locG ?d)
+    :precondition (and (empty ?locN) (neighbour ?locC ?locN ?d))
+    :subtasks (and 
+        (findway ?locN ?locG ?d)
+      )
+  )
+
+  (:method find-way-change-dir
+    :parameters (?locC ?locG ?locN ?locP - location ?d ?dN - direction)
+    :task (findway ?locC ?locG ?d)
+    :precondition (and (empty ?locN) (neighbour ?locC ?locN ?dN) (not(neighbour ?locC ?locN ?d)) (player-at ?locP))
+    :ordered-subtasks (and 
+        (walk ?locP ?locC)
+        (findway ?locN ?locG ?dN)
+      )
+  )
+
+  (:method find-way-stop
+    :parameters (?locC ?locG ?locP - location ?d - direction)
+    :task (findway ?locC ?locG ?d)
+    :precondition (and (reachable ?locC ?locG) (player-at ?locP))
+    :subtasks (and 
+        (walk ?locP ?locC)
+      )
+  )
+
+  (:action walk
+    :parameters (?locP ?locN - location)
+    :precondition (and (player-at ?locP) (empty ?locN))
+    :effect (and (player-at ?locN) (not (player-at ?locP)) ))
+
+
+  (:action placeblock
+    :parameters (?location - location ?t - blocktype)
+    :precondition (and (empty ?location) )
+    :effect (and (not (empty ?location)) (blockat ?location ?t)) )
+
+  (:action removeblock
+    :parameters (?location - location ?t - blocktype)
+    :precondition (and (not(empty ?location)) )
+    :effect (and (empty ?location) (not(blockat ?location ?t))) )
+
+)

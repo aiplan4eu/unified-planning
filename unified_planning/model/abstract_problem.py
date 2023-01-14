@@ -12,45 +12,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-'''This module defines an abstract problem class.'''
+"""This module defines an abstract problem class."""
 
 import unified_planning as up
 from typing import Optional
 
 
 class AbstractProblem:
-    '''This is an abstract class that represents a generic planning problem'''
+    """
+    This is an abstract class that represents a generic `planning problem`.
 
-    def __init__(self, name: str = None, env: 'up.environment.Environment' = None):
+    Together with the `unified_planning.model.mixins` classes it defines the most common
+    functionalities of `planning problems`.
+    """
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        env: Optional["up.environment.Environment"] = None,
+    ):
         self._env = up.environment.get_env(env)
         self._name = name
 
     @property
-    def env(self) -> 'up.environment.Environment':
-        '''Returns the problem environment.'''
+    def env(self) -> "up.environment.Environment":
+        """Returns the `Problem` `Environment`."""
         return self._env
 
     @property
     def name(self) -> Optional[str]:
-        '''Returns the problem name.'''
+        """Returns the `Problem` `name`."""
         return self._name
 
     @name.setter
     def name(self, new_name: str):
-        '''Sets the problem name.'''
+        """Sets the `Problem` `name`."""
         self._name = new_name
 
+    def clone(self):
+        raise NotImplementedError
+
     @property
-    def kind(self) -> 'up.model.problem_kind.ProblemKind':
-        '''Returns the ProblemKind of this problem.'''
+    def kind(self) -> "up.model.problem_kind.ProblemKind":
+        """Returns the :class:`~unified_planning.model.ProblemKind` of this `Problem`."""
         raise NotImplementedError
 
     def has_name(self, name: str) -> bool:
-        '''Returns True iff the given name is already used inside this problem.'''
+        """
+        Returns `True` the given `name` is already used inside this `Problem`,
+        `False` otherwise.
+
+        :param name: The target `name` to search in the `Problem`.
+        :return: `True` if the `name` is already used in the `Problem`, `False` otherwise.
+        """
         raise NotImplementedError
 
-    def normalize_plan(self, plan: 'up.plans.Plan')-> 'up.plans.Plan':
-        '''Normalizes the given plan, that is potentially the result of another
-        problem, updating the object references present in it with the ones of
-        this problem which are syntactically equal.'''
+    def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
+        """
+        Normalizes the given `Plan`, that is potentially the result of another
+        `Problem`, updating the `Object` references in the `Plan` with the ones of
+        this `Problem` which are syntactically equal.
+
+        :param plan: The `Plan` that must be normalized.
+        :return: A `Plan` syntactically valid for this `Problem`.
+        """
         raise NotImplementedError

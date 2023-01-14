@@ -1,0 +1,93 @@
+(define (domain towers)
+
+ (:requirements :negative-preconditions
+  	:hierarchy
+	:typing
+	:method-preconditions
+)
+
+ (:types RING - OBJ TOWER - OBJ)
+
+ (:predicates
+  (on ?r - RING ?o - OBJ)
+  (goal_on ?r - RING ?o - OBJ)
+  (towerTop ?o - OBJ ?t - TOWER)
+  (smallerThan ?r - RING ?o - OBJ))
+  (:task shiftTower :parameters (?t1 - TOWER ?t2 - TOWER ?t3 - TOWER))
+  (:task selectDirection :parameters (?r - RING ?t1 - TOWER ?t2 - TOWER ?t3 - TOWER))
+  (:task rotateTower :parameters (?t1 - TOWER ?T2 - TOWER ?t3 - TOWER))
+  (:task exchange :parameters (?t1 - TOWER ?t2 - TOWER ?t3 - TOWER))
+  (:task move_abstract :parameters (?t1 - TOWER ?t2 - TOWER))
+
+
+
+ (:method m-shiftTower
+  ; shift tower from ?t1 to ?t3 using ?t2
+  :parameters (?r - RING ?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
+  :task (shiftTower ?t1 ?t2 ?t3)
+  :precondition (towerTop ?r ?t1)
+  :ordered-tasks (and (selectDirection ?r ?t1 ?t2 ?t3)))
+
+
+ (:method selectedDirection
+  :parameters (?r - RING ?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
+  :task (selectDirection ?r ?t1 ?t2 ?t3)
+  :precondition (on ?r ?t1)
+  :ordered-tasks (and (rotateTower ?t1 ?t3 ?t2)))
+
+
+ (:method m-selectDirection
+  :parameters (?r - RING ?r1 - RING ?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
+  :task (selectDirection ?r ?t1 ?t2 ?t3)
+  :precondition (on ?r ?r1)
+  :ordered-tasks (and (selectDirection ?r1 ?t1 ?t3 ?t2)))
+
+ 
+ (:method m-rotateTower
+  :parameters (?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
+  :task (rotateTower ?t1 ?t2 ?t3)
+  :ordered-tasks (and (move_abstract ?t1 ?t2) (exchange ?t1 ?t2 ?t3)))
+
+
+ (:method exchangeClear
+  :parameters (?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
+  :task (exchange ?t1 ?t2 ?t3)
+  :precondition (and (towerTop ?t1 ?t1) (towerTop ?t3 ?t3))
+  :ordered-subtasks (and)
+ )
+
+
+ (:method exchangeLR
+  :parameters (?r1 - RING ?o3 - OBJ ?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
+  :task (exchange ?t1 ?t2 ?t3)
+  :precondition (and (towerTop ?r1 ?t1) (towerTop ?o3 ?t3) (smallerThan ?r1 ?o3))
+  :ordered-tasks (and (move_abstract ?t1 ?t3) (rotateTower ?t2 ?t3 ?t1)))
+
+
+ (:method exchangeRL
+  :parameters (?o1 - OBJ ?r3 - RING ?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
+  :task (exchange ?t1 ?t2 ?t3)
+  :precondition (and (towerTop ?o1 ?t1) (towerTop ?r3 ?t3) (smallerThan ?r3 ?o1))
+  :ordered-tasks (and (move_abstract ?t3 ?t1) (rotateTower ?t2 ?t3 ?t1)))
+
+ (:method newMethod21
+  :parameters (?r - RING ?o1 - OBJ ?t1 - TOWER ?o2 - OBJ ?t2 - TOWER)
+  :task (move_abstract  ?t1 ?t2)
+  :ordered-subtasks (move ?r ?o1 ?t1 ?o2 ?t2))
+
+
+ (:action move
+  :parameters (?r - RING ?o1 - OBJ ?t1 - TOWER ?o2 - OBJ ?t2 - TOWER)
+  :precondition (and
+    (towerTop ?r ?t1)
+    (towerTop ?o2 ?t2)
+    (on ?r ?o1) 
+    (smallerThan ?r ?o2))
+  :effect (and
+    (not (on ?r ?o1)) 
+    (on ?r ?o2)
+    (not (towerTop ?r ?t1))
+    (towerTop ?o1 ?t1) 
+    (not (towerTop ?o2 ?t2))
+    (towerTop ?r ?t2)))
+)

@@ -1,0 +1,355 @@
+(define (domain someDomain)
+	(:requirements :negative-preconditions :hierarchy)
+	(:predicates
+		(turnA)
+		(turnB)
+		(lt1)
+		(lt2)
+		(lt3)
+		(lx)
+		(ly)
+	)
+
+	(:task SG1
+		:parameters ()
+	)
+
+	(:task SG2
+		:parameters ()
+	)
+
+	(:method G1_S2t1_S_y
+		:parameters ()
+		:task (SG1)
+		:subtasks (and
+		 (task0 (t1G1))
+		 (task1 (SG1))
+		 (task2 (yG1))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+		)
+	)
+
+	(:method G1_S2t2_S_x_y
+		:parameters ()
+		:task (SG1)
+		:subtasks (and
+		 (task0 (t2G1))
+		 (task1 (SG1))
+		 (task2 (xG1))
+		 (task3 (yG1))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+			(< task2 task3)
+		)
+	)
+
+	(:method G1_S2t3_S_y_y_x
+		:parameters ()
+		:task (SG1)
+		:subtasks (and
+		 (task0 (t3G1))
+		 (task1 (SG1))
+		 (task2 (yG1))
+		 (task3 (yG1))
+		 (task4 (xG1))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+			(< task2 task3)
+			(< task3 task4)
+		)
+	)
+
+	(:method G1_S2t1_y
+		:parameters ()
+		:task (SG1)
+		:subtasks (and
+		 (task0 (t1G1))
+		 (task1 (yG1))
+		)
+		:ordering (and
+			(< task0 task1)
+		)
+	)
+
+	(:method G1_S2t2_x_y
+		:parameters ()
+		:task (SG1)
+		:subtasks (and
+		 (task0 (t2G1))
+		 (task1 (xG1))
+		 (task2 (yG1))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+		)
+	)
+
+	(:method G1_S2t3_y_y_x
+		:parameters ()
+		:task (SG1)
+		:subtasks (and
+		 (task0 (t3G1))
+		 (task1 (yG1))
+		 (task2 (yG1))
+		 (task3 (xG1))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+			(< task2 task3)
+		)
+	)
+
+	(:method G2_S2t1_S_y_x_y
+		:parameters ()
+		:task (SG2)
+		:subtasks (and
+		 (task0 (t1G2))
+		 (task1 (SG2))
+		 (task2 (yG2))
+		 (task3 (xG2))
+		 (task4 (yG2))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+			(< task2 task3)
+			(< task3 task4)
+		)
+	)
+
+	(:method G2_S2t2_S_x_x
+		:parameters ()
+		:task (SG2)
+		:subtasks (and
+		 (task0 (t2G2))
+		 (task1 (SG2))
+		 (task2 (xG2))
+		 (task3 (xG2))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+			(< task2 task3)
+		)
+	)
+
+	(:method G2_S2t3_S_y_y
+		:parameters ()
+		:task (SG2)
+		:subtasks (and
+		 (task0 (t3G2))
+		 (task1 (SG2))
+		 (task2 (yG2))
+		 (task3 (yG2))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+			(< task2 task3)
+		)
+	)
+
+	(:method G2_S2t1_y_x_y
+		:parameters ()
+		:task (SG2)
+		:subtasks (and
+		 (task0 (t1G2))
+		 (task1 (yG2))
+		 (task2 (xG2))
+		 (task3 (yG2))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+			(< task2 task3)
+		)
+	)
+
+	(:method G2_S2t2_x_x
+		:parameters ()
+		:task (SG2)
+		:subtasks (and
+		 (task0 (t2G2))
+		 (task1 (xG2))
+		 (task2 (xG2))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+		)
+	)
+
+	(:method G2_S2t3_y_y
+		:parameters ()
+		:task (SG2)
+		:subtasks (and
+		 (task0 (t3G2))
+		 (task1 (yG2))
+		 (task2 (yG2))
+		)
+		:ordering (and
+			(< task0 task1)
+			(< task1 task2)
+		)
+	)
+
+	(:action epsilon
+		:parameters ()
+		:precondition ()
+		:effect ()
+	)
+
+	(:action t1G1
+		:parameters ()
+		:precondition 
+			(and
+				(turnA)
+			)
+		:effect
+			(and
+				(not (turnA))
+				(turnB)
+				(lt1)
+			)
+	)
+
+	(:action t2G1
+		:parameters ()
+		:precondition 
+			(and
+				(turnA)
+			)
+		:effect
+			(and
+				(not (turnA))
+				(turnB)
+				(lt2)
+			)
+	)
+
+	(:action t3G1
+		:parameters ()
+		:precondition 
+			(and
+				(turnA)
+			)
+		:effect
+			(and
+				(not (turnA))
+				(turnB)
+				(lt3)
+			)
+	)
+
+	(:action xG1
+		:parameters ()
+		:precondition 
+			(and
+				(turnA)
+			)
+		:effect
+			(and
+				(not (turnA))
+				(turnB)
+				(lx)
+			)
+	)
+
+	(:action yG1
+		:parameters ()
+		:precondition 
+			(and
+				(turnA)
+			)
+		:effect
+			(and
+				(not (turnA))
+				(turnB)
+				(ly)
+			)
+	)
+
+	(:action t1G2
+		:parameters ()
+		:precondition 
+			(and
+				(turnB)
+				(lt1)
+			)
+		:effect
+			(and
+				(not (turnB))
+				(turnA)
+				(not (lt1))
+			)
+	)
+
+	(:action t2G2
+		:parameters ()
+		:precondition 
+			(and
+				(turnB)
+				(lt2)
+			)
+		:effect
+			(and
+				(not (turnB))
+				(turnA)
+				(not (lt2))
+			)
+	)
+
+	(:action t3G2
+		:parameters ()
+		:precondition 
+			(and
+				(turnB)
+				(lt3)
+			)
+		:effect
+			(and
+				(not (turnB))
+				(turnA)
+				(not (lt3))
+			)
+	)
+
+	(:action xG2
+		:parameters ()
+		:precondition 
+			(and
+				(turnB)
+				(lx)
+			)
+		:effect
+			(and
+				(not (turnB))
+				(turnA)
+				(not (lx))
+			)
+	)
+
+	(:action yG2
+		:parameters ()
+		:precondition 
+			(and
+				(turnB)
+				(ly)
+			)
+		:effect
+			(and
+				(not (turnB))
+				(turnA)
+				(not (ly))
+			)
+	)
+)
