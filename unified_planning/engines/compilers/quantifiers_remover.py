@@ -25,6 +25,7 @@ from unified_planning.model import (
     DurativeAction,
     Action,
     ProblemKind,
+    Oversubscription,
 )
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
@@ -81,6 +82,11 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod
@@ -126,6 +132,8 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_timed_goals()
         new_problem.clear_goals()
+        new_problem.clear_quality_metrics()
+
         for action in new_problem.actions:
             if isinstance(action, InstantaneousAction):
                 original_action = problem.action(action.name)
@@ -178,7 +186,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                 new_to_old[action] = original_action
             else:
                 raise NotImplementedError
-        for t, el in new_problem.timed_effects.items():
+        for el in new_problem.timed_effects.values():
             for e in el:
                 if e.is_conditional():
                     e.set_condition(
@@ -196,6 +204,20 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         for g in problem.goals:
             ng = expression_quantifier_remover.remove_quantifiers(g, problem)
             new_problem.add_goal(ng)
+        for qm in problem.quality_metrics:
+            if isinstance(qm, Oversubscription):
+                new_problem.add_quality_metric(
+                    Oversubscription(
+                        {
+                            expression_quantifier_remover.remove_quantifiers(
+                                g, problem
+                            ): v
+                            for g, v in qm.goals.items()
+                        }
+                    )
+                )
+            else:
+                new_problem.add_quality_metric(qm)
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name

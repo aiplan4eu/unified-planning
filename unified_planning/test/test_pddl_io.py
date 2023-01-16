@@ -452,6 +452,7 @@ class TestPddlIO(TestCase):
             assert isinstance(problem, up.model.htn.HierarchicalProblem)
 
     def test_examples_io(self):
+
         for example in self.problems.values():
             problem = example.problem
             kind = problem.kind
@@ -472,7 +473,14 @@ class TestPddlIO(TestCase):
                 reader = PDDLReader()
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
-                self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
+                # Case where the reader does not convert the final_value back to actions_cost.
+                if kind.has_actions_cost() and parsed_problem.kind.has_final_value():
+                    self.assertEqual(
+                        len(problem.fluents) + 1, len(parsed_problem.fluents)
+                    )
+                else:
+                    self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
+
                 self.assertTrue(
                     _have_same_user_types_considering_renamings(
                         problem, parsed_problem, w.get_item_named
@@ -489,7 +497,13 @@ class TestPddlIO(TestCase):
                         )
                     if isinstance(a, InstantaneousAction):
                         assert isinstance(parsed_a, InstantaneousAction)
-                        self.assertEqual(len(a.effects), len(parsed_a.effects))
+                        if (
+                            kind.has_actions_cost()
+                            and parsed_problem.kind.has_final_value()
+                        ):
+                            self.assertEqual(len(a.effects) + 1, len(parsed_a.effects))
+                        else:
+                            self.assertEqual(len(a.effects), len(parsed_a.effects))
                     elif isinstance(a, DurativeAction):
                         assert isinstance(parsed_a, DurativeAction)
                         self.assertEqual(str(a.duration), str(parsed_a.duration))

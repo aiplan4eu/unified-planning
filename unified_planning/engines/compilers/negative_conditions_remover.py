@@ -28,6 +28,7 @@ from unified_planning.model import (
     Effect,
     Timing,
     ProblemKind,
+    Oversubscription,
 )
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
@@ -120,6 +121,11 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod
@@ -213,6 +219,19 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         for g in problem.goals:
             ng = fluent_remover.remove_negative_fluents(g)
             new_problem.add_goal(ng)
+
+        for qm in problem.quality_metrics:
+            if isinstance(qm, Oversubscription):
+                new_problem.add_quality_metric(
+                    Oversubscription(
+                        {
+                            fluent_remover.remove_negative_fluents(g): v
+                            for g, v in qm.goals.items()
+                        }
+                    )
+                )
+            else:
+                new_problem.add_quality_metric(qm)
 
         # fluent_mapping is the map between a fluent and it's negation, when the
         # negation is None it means the fluent is never found in a negation into
