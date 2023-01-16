@@ -23,7 +23,18 @@ from unified_planning.model import DeltaSimpleTemporalNetwork, TimepointKind
 from unified_planning.plans.plan import ActionInstance
 from fractions import Fraction
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 
 @dataclass(unsafe_hash=True, frozen=True)
@@ -82,6 +93,7 @@ class STNPlan(plans.plan.Plan):
             Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]],
         ],
         environment: Optional["Environment"] = None,
+        _stn: Optional[DeltaSimpleTemporalNetwork] = None,
     ):
         """
         Constructs the `STNPlan` with 2 different possible representations:
@@ -102,10 +114,28 @@ class STNPlan(plans.plan.Plan):
             constraints are created.
         :return: The created STNPlan.
         """
+        assert (
+            _stn is None or not constraints
+        ), "_stn and constraints can't be both given"
         # if we have a specific env or we don't have any actions
-        if environment is not None or not constraints:
+        if environment is not None or (not constraints and _stn is None):
             plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, environment)
         # If we don't have a specific env, use the env of the first action
+        elif _stn is not None:
+            env = None
+            for r_node, cl in _stn.get_constraints().items():
+                assert isinstance(r_node, STNPlanNode), "Given _stn is wrong"
+                if r_node.environment is not None:
+                    env = r_node.environment
+                else:
+                    for _, l_node in cl:
+                        assert isinstance(l_node, STNPlanNode), "Given _stn is wrong"
+                        if l_node.environment is not None:
+                            env = l_node.environment
+                            break
+                if env is not None:
+                    break
+            plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
         elif isinstance(constraints, Dict):
             assert len(constraints) > 0
             env = None
@@ -119,7 +149,7 @@ class STNPlan(plans.plan.Plan):
                             break
                 if env is not None:
                     break
-            plans.plan.Plan.__init__(self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, env)
+            plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
         else:
             assert isinstance(constraints, List), "Typing not respected"
             env = None
@@ -130,7 +160,7 @@ class STNPlan(plans.plan.Plan):
                 elif b_node.environment is not None:
                     env = b_node.environment
                     break
-            plans.plan.Plan.__init__(self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, env)
+            plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
 
         self._stn = DeltaSimpleTemporalNetwork()
         start_plan = STNPlanNode(TimepointKind.GLOBAL_START)
@@ -176,26 +206,36 @@ class STNPlan(plans.plan.Plan):
         for b_node, l in self._stn.get_constraints().items():
             for upper_bound, a_node in l:
                 if upper_bound >= 0:
-                    upper_bounds[(a_node, b_node)] = upper_bound
+                    # Sets the upper bound for b-a; b-a is represented as the
+                    # Tuple[smaller_node, bigger_node], so it is (a, b).
+                    key = (a_node, b_node)
+                    upper_bounds[key] = min(
+                        upper_bound, upper_bounds.get(key, upper_bound)
+                    )
                 else:
-                    lower_bounds[(a_node, b_node)] = -upper_bound
+                    # If the bound is negative, it is represented as a lower bound for a-b
+                    # instead of an upper bound for b-a (b-a <= x) -> (a-b >= -x)
+                    key = (b_node, a_node)
+                    lower_bounds[key] = max(
+                        -upper_bound, lower_bounds.get(key, -upper_bound)
+                    )
         constraints: Dict[
-            Tuple[STNPlanNode, STNPlanNode], Tuple[Optional[Real], Optional[Real]]
-        ] = {}
-        for k, upper_bound in upper_bounds.items():
-            lower_bound = lower_bounds.get(k, None)
-            constraints[k] = (lower_bound, upper_bound)
-        for k, lower_bound in lower_bounds.items():
-            if k not in upper_bounds:
-                constraints[k] = (lower_bound, None)
-
-        ret_map: Dict[
             STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]
         ] = {}
-        for (a_node, b_node), (lower_bound, upper_bound) in constraints.items():
-            a_node_constraints = ret_map.setdefault(a_node, [])
-            a_node_constraints.append((lower_bound, upper_bound, b_node))
-        return ret_map
+        seen_couples: Set[STNPlanNode, STNPlanNode] = set()
+        for (left_node, right_node), upper_bound in upper_bounds.items():
+            key = (left_node, right_node)
+            seen_couples.add(key)
+            lower_bound = lower_bounds.get(key, None)
+            cl = constraints.setdefault(left_node, [])
+            cl.append((lower_bound, upper_bound, right_node))
+        for (left_node, right_node), lower_bound in lower_bounds.items():
+            key = (left_node, right_node)
+            if key not in seen_couples:
+                seen_couples.add(key)
+                cl = constraints.setdefault(left_node, [])
+                cl.append((lower_bound, None, right_node))
+        return constraints
 
     def replace_action_instances(
         self,
@@ -210,7 +250,25 @@ class STNPlan(plans.plan.Plan):
             replaces `A` in the resulting `Plan`.
         :return: The `PartialOrderPlan` where every `ActionInstance` is replaced using the given `replace_function`.
         """
-        pass  # TODO
+        replaced_nodes: Dict[STNPlanNode, STNPlanNode] = {}
+        for right_node, bound_list in self._stn.get_constraints().items():
+            assert isinstance(right_node, STNPlanNode)
+            if right_node not in replaced_nodes:
+                replaced_nodes[right_node] = STNPlanNode(
+                    right_node.kind,
+                    None
+                    if right_node.action_instance is None
+                    else replace_function(right_node.action_instance),
+                )
+            for _, left_node in bound_list:
+                assert isinstance(left_node, STNPlanNode)
+                if left_node not in replaced_nodes:
+                    replaced_nodes[left_node] = STNPlanNode(
+                        left_node.kind,
+                        None
+                        if left_node.action_instance is None
+                        else replace_function(left_node.action_instance),
+                    )
 
     def convert_to(
         self,
@@ -233,5 +291,7 @@ class STNPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
+        elif plan_kind == plans.plan.PlanKind.TIME_TRIGGERED_PLAN:
+            raise NotImplementedError  # TODO
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")

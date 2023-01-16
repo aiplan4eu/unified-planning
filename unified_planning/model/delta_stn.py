@@ -157,12 +157,15 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
             self._distances.setdefault(right_event, cast(T, 0))
 
     def get_constraints(self) -> Dict[Any, List[Tuple[T, Any]]]:
+        """
+        TODO document with attention to direct subsumed constraints (not in the result)
+        """
         constraints: Dict[Any, List[Tuple[T, Any]]] = {el: [] for el in self._distances}
-        for x, ngh in self._constraints.items():
+        for x, neighbor in self._constraints.items():
             seen_dst: Set[Any] = set()
-            while ngh is not None:
-                if ngh.dst not in seen_dst:
-                    seen_dst.add(ngh.dst)
-                    constraints[x].append((ngh.bound, ngh.dst))
-                ngh = ngh.next
+            while neighbor is not None:
+                if neighbor.dst not in seen_dst:
+                    seen_dst.add(neighbor.dst)
+                    constraints[x].append((neighbor.bound, neighbor.dst))
+                neighbor = neighbor.next
         return constraints
