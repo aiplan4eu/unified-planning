@@ -40,7 +40,13 @@ from unified_planning.plans import SequentialPlan, PlanKind
 
 
 class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
-    """Performs :class:`~unified_planning.plans.Plan` validation."""
+    """
+    Performs :class:`~unified_planning.plans.Plan` validation.
+
+    If the given :class:`~unified_planning.model.Problem` has any quality metric,
+    the metric is simply ignored because it predicates over the Optimality of
+    the Plan, but not the Validity!
+    """
 
     def __init__(self, **options):
         engines.engine.Engine.__init__(self)
@@ -78,6 +84,11 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod

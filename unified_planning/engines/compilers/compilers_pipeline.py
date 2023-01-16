@@ -98,7 +98,9 @@ class CompilersPipeline(engines.engine.Engine, CompilerMixin):
 def map_back_action_instance(
     action: ActionInstance,
     map_back_functions: List[Callable[[ActionInstance], ActionInstance]],
-) -> ActionInstance:
+) -> Optional[ActionInstance]:
     for f in map_back_functions:
         action = f(action)
+        if action is None:
+            break
     return action

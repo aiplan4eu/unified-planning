@@ -73,6 +73,11 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.tarski_grounder",
         "TarskiGrounder",
     ),
+    "fast-downward-grounder": ("up_fast_downward", "FastDownwardGrounder"),
+    "fast-downward-reachability-grounder": (
+        "up_fast_downward",
+        "FastDownwardReachabilityGrounder",
+    ),
     "up_grounder": ("unified_planning.engines.compilers.grounder", "Grounder"),
 }
 
@@ -102,6 +107,8 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
     "tarski_grounder",
+    "fast-downward-reachability-grounder",
+    "fast-downward-grounder",
     "up_grounder",
 ]
 
