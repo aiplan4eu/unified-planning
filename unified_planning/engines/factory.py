@@ -107,6 +107,8 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
     "tarski_grounder",
+    "fast-downward-reachability-grounder",
+    "fast-downward-grounder",
     "up_grounder",
 ]
 
