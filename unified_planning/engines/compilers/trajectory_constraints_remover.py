@@ -362,17 +362,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 conditions_list.append(c)
         return relevancy_dict
 
-    def _get_all_atoms(self, condition):
-        if condition.is_fluent_exp():
-            return [condition]
-        elif condition.is_and() or condition.is_or() or condition.is_not():
-            atoms = []
-            for arg in condition.args:
-                atoms += self._get_all_atoms(arg)
-            return atoms
-        else:
-            return []
-
     def _get_landmark_constraints(self, C):
         for constr in C:
             if constr.is_sometime() or constr.is_sometime_after():
