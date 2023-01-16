@@ -54,6 +54,9 @@ class InstantaneousEvent(Event):
 class SequentialSimulator(Engine, SimulatorMixin):
     """
     Sequential SimulatorMixin implementation.
+
+    This Simulator, when considering if a state is goal or not, ignores the
+    quality metrics.
     """
 
     def __init__(
