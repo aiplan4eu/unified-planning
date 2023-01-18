@@ -32,6 +32,7 @@ from unified_planning.model import (
     Problem,
     Object,
 )
+from unified_planning.model.multi_agent.agent import Agent
 from unified_planning.exceptions import (
     UPTypeError,
     UPProblemDefinitionError,
@@ -46,13 +47,7 @@ from unified_planning.io.pddl_writer import (
     ConverterToPDDLString,
     PDDL_KEYWORDS,
     INITIAL_LETTER,
-    PDDL_KEYWORDS,
-    INITIAL_LETTER,
 )
-
-from unified_planning.model.walkers.simplifier import Simplifier
-from unified_planning.model.expression import ExpressionManager, Expression
-from unified_planning.model.walkers.substituter import Substituter
 import re
 
 
@@ -88,7 +83,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
         if self.agent is not None and fluent in self.agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)} ?{self.agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f'(a_{self.get_mangled_name(fluent)} ?{self.get_mangled_name(self.agent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
