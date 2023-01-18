@@ -76,8 +76,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         ],
         agent: Optional["up.model.multi_agent.Agent"],
     ):
-        super().__init__(env, get_mangled_name)
-        self.get_mangled_name = get_mangled_name
+        ConverterToPDDLString.__init__(self, env, get_mangled_name)
         self.agent = agent
 
     def walk_dot(self, expression, args):
@@ -89,7 +88,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
         if self.agent is not None and fluent in self.agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)} ?{self.get_mangled_name(self.agent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f'(a_{self.get_mangled_name(fluent)} ?{self.agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
