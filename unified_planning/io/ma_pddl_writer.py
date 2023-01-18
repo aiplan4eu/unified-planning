@@ -83,7 +83,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
         if self.agent is not None and fluent in self.agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)} ?{self.get_mangled_name(self.agent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f'(a_{self.get_mangled_name(fluent)} ?{self.agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
