@@ -41,101 +41,18 @@ from unified_planning.model.types import _UserType
 from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
 from io import StringIO
 from functools import reduce
-
 from unified_planning.io.pddl_writer import (
     ObjectsExtractor,
     _update_domain_objects,
+    ConverterToPDDLString,
+    PDDL_KEYWORDS,
+    INITIAL_LETTER,
+    _get_pddl_name,
 )
 
-MAPDDL_KEYWORDS = {
-    "define",
-    "domain",
-    "requirements",
-    "types",
-    "constants",
-    "atomic",
-    "predicates",
-    "problem",
-    "atomic",
-    "constraints",
-    "either",
-    "number",
-    "action",
-    "parameters",
-    "precondition",
-    "effect",
-    "and",
-    "forall",
-    "preference",
-    "or",
-    "not",
-    "imply",
-    "exists",
-    "scale-up",
-    "scale-down",
-    "increase",
-    "decrease",
-    "durative-action",
-    "duration",
-    "condition",
-    "at",
-    "over",
-    "start",
-    "end",
-    "all",
-    "derived",
-    "objects",
-    "init",
-    "goal",
-    "when",
-    "decrease",
-    "always",
-    "sometime",
-    "within",
-    "at-most-once",
-    "sometime-after",
-    "sometime-before",
-    "always-within",
-    "hold-during",
-    "hold-after",
-    "metric",
-    "minimize",
-    "maximize",
-    "total-time",
-    "is-violated",
-    "strips",
-    "negative-preconditions",
-    "typing",
-    "disjunctive-preconditions",
-    "equality",
-    "existential-preconditions",
-    "universal-preconditions",
-    "quantified-preconditions",
-    "conditional-effects",
-    "fluents",
-    "adl",
-    "durative-actions",
-    "derived-predicates",
-    "timed-initial-literals",
-    "preferences",
-    "agent",
-}
 
-# The following map is used to mangle the invalid names by their class.
-INITIAL_LETTER: Dict[type, str] = {
-    InstantaneousAction: "a",
-    DurativeAction: "a",
-    Fluent: "f",
-    Parameter: "p",
-    Problem: "p",
-    Object: "o",
-}
-
-
-class ConverterToMAPDDLString(walkers.DagWalker):
+class ConverterToMAPDDLString(ConverterToPDDLString):
     """Expression converter to a MA-PDDL string."""
-
-    DECIMAL_PRECISION = 10  # Number of decimal places to print real constants
 
     def __init__(
         self,
@@ -153,57 +70,7 @@ class ConverterToMAPDDLString(walkers.DagWalker):
             str,
         ],
     ):
-        walkers.DagWalker.__init__(self)
-        self.get_mangled_name = get_mangled_name
-        self.simplifier = env.simplifier
-
-    def convert(self, expression):
-        """Converts the given expression to a MA-PDDL string."""
-        return self.walk(self.simplifier.simplify(expression))
-
-    def walk_exists(self, expression, args):
-        assert len(args) == 1
-        vars_string_list = [
-            f"{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}"
-            for v in expression.variables()
-        ]
-        return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
-
-    def walk_forall(self, expression, args):
-        assert len(args) == 1
-        vars_string_list = [
-            f"{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}"
-            for v in expression.variables()
-        ]
-        return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
-
-    def walk_variable_exp(self, expression, args):
-        assert len(args) == 0
-        return f"{self.get_mangled_name(expression.variable())}"
-
-    def walk_and(self, expression, args):
-        assert len(args) > 1
-        return f'(and {" ".join(args)})'
-
-    def walk_or(self, expression, args):
-        assert len(args) > 1
-        return f'(or {" ".join(args)})'
-
-    def walk_not(self, expression, args):
-        assert len(args) == 1
-        return f"(not {args[0]})"
-
-    def walk_implies(self, expression, args):
-        assert len(args) == 2
-        return f"(imply {args[0]} {args[1]})"
-
-    def walk_iff(self, expression, args):
-        assert len(args) == 2
-        return f"(and (imply {args[0]} {args[1]}) (imply {args[1]} {args[0]}) )"
-
-    def walk_fluent_exp(self, expression, args):
-        fluent = expression.fluent()
-        return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
+        ConverterToPDDLString.__init__(self, env, get_mangled_name)
 
     def walk_dot(self, expression, args):
         agent = expression.agent()
@@ -211,66 +78,6 @@ class ConverterToMAPDDLString(walkers.DagWalker):
         object = expression.args[0].args[0]
         # f.args[0].fluent(), f.agent().name, f.args[0].args[0]]
         return f'({self.get_mangled_name(fluent)}{" "}{self.get_mangled_name(agent)}{" " if len(args) > 0 else ""}{object})'
-
-    def walk_param_exp(self, expression, args):
-        assert len(args) == 0
-        p = expression.parameter()
-        return f"{self.get_mangled_name(p)}"
-
-    def walk_object_exp(self, expression, args):
-        assert len(args) == 0
-        o = expression.object()
-        return f"{self.get_mangled_name(o)}"
-
-    def walk_bool_constant(self, expression, args):
-        raise up.exceptions.UPUnreachableCodeError
-
-    def walk_real_constant(self, expression, args):
-        assert len(args) == 0
-        frac = expression.constant_value()
-
-        with localcontext() as ctx:
-            ctx.prec = self.DECIMAL_PRECISION
-            dec = frac.numerator / Decimal(frac.denominator, ctx)
-
-            if Fraction(dec) != frac:
-                warn(
-                    "The MA-PDDL printer cannot exactly represent the real constant '%s'"
-                    % frac
-                )
-            return str(dec)
-
-    def walk_int_constant(self, expression, args):
-        assert len(args) == 0
-        return str(expression.constant_value())
-
-    def walk_plus(self, expression, args):
-        assert len(args) > 1
-        return reduce(lambda x, y: f"(+ {y} {x})", args)
-
-    def walk_minus(self, expression, args):
-        assert len(args) == 2
-        return f"(- {args[0]} {args[1]})"
-
-    def walk_times(self, expression, args):
-        assert len(args) > 1
-        return reduce(lambda x, y: f"(* {y} {x})", args)
-
-    def walk_div(self, expression, args):
-        assert len(args) == 2
-        return f"(/ {args[0]} {args[1]})"
-
-    def walk_le(self, expression, args):
-        assert len(args) == 2
-        return f"(<= {args[0]} {args[1]})"
-
-    def walk_lt(self, expression, args):
-        assert len(args) == 2
-        return f"(< {args[0]} {args[1]})"
-
-    def walk_equals(self, expression, args):
-        assert len(args) == 2
-        return f"(= {args[0]} {args[1]})"
 
 
 class MAPDDLWriter:
@@ -333,7 +140,7 @@ class MAPDDLWriter:
             if self.problem.name is None:
                 name = "ma-pddl"
             else:
-                name = _get_ma_pddl_name(self.problem)
+                name = _get_pddl_name(self.problem)
             out.write(f"(domain {name}-domain)\n")
 
             if self.needs_requirements:
@@ -522,23 +329,6 @@ class MAPDDLWriter:
                 self.problem.env, self._get_mangled_name
             )
             costs: dict = {}
-            """metrics = self.problem.quality_metrics
-            if len(metrics) == 1:
-                metric = metrics[0]
-                if isinstance(metric, up.model.metrics.MinimizeActionCosts):
-               cd      for a in self.problem.actions:
-                        cost_exp = metric.get_action_cost(a)
-                        costs[a] = cost_exp
-                        if cost_exp is not None:
-                            _update_domain_objects(self.domain_objects, obe.get(cost_exp))
-                elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
-                    for a in self.problem.actions:
-                        costs[a] = self.problem.env.expression_manager.Int(1)
-            elif len(metrics) > 1:
-                raise up.exceptions.UPUnsupportedProblemTypeError(
-                    "Only one metric is supported!"
-                )"""
-
             for a in ag.actions:
                 if isinstance(a, up.model.InstantaneousAction):
                     out.write(f" (:action {self._get_mangled_name(a)}")
@@ -739,7 +529,7 @@ class MAPDDLWriter:
             if self.problem.name is None:
                 name = "ma-pddl"
             else:
-                name = _get_ma_pddl_name(self.problem)
+                name = _get_pddl_name(self.problem)
             out.write(f"(define (problem {name}-problem)\n")
             out.write(f" (:domain {name}-domain)\n")
             if self.domain_objects is None:
@@ -794,27 +584,6 @@ class MAPDDLWriter:
             out.write(
                 f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
             )
-            """metrics = self.problem.quality_metrics
-            if len(metrics) == 1:
-                metric = metrics[0]
-                out.write(" (:metric ")
-                if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
-                    out.write(f"minimize {converter.convert(metric.expression)}")
-                elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                    out.write(f"maximize {converter.convert(metric.expression)}")
-                elif isinstance(metric, up.model.metrics.MinimizeActionCosts) or isinstance(
-                    metric, up.model.metrics.MinimizeSequentialPlanLength
-                ):
-                    out.write(f"minimize (total-cost)")
-                elif isinstance(metric, up.model.metrics.MinimizeMakespan):
-                    out.write(f"minimize (total-time)")
-                else:
-                    raise NotImplementedError
-                out.write(")\n")
-            elif len(metrics) > 1:
-                raise up.exceptions.UPUnsupportedProblemTypeError(
-                    "Only one metric is supported!"
-                )"""
             out.write(")\n")
             out.seek(0)
             ag_problem = out.read()
@@ -905,13 +674,13 @@ class MAPDDLWriter:
         if isinstance(item, up.model.Type):
             assert item.is_user_type()
             original_name = cast(_UserType, item).name
-            tmp_name = _get_ma_pddl_name(item)
+            tmp_name = _get_pddl_name(item)
             # If the problem is hierarchical and the name is object, we want to change it
             if self.problem_kind.has_hierarchical_typing() and tmp_name == "object":
                 tmp_name = f"{tmp_name}_"
         else:
             original_name = item.name
-            tmp_name = _get_ma_pddl_name(item)
+            tmp_name = _get_pddl_name(item)
         # if the ma-pddl valid name is the same of the original one and it does not create conflicts,
         # it can be returned
         if tmp_name == original_name and tmp_name not in self.nto_renamings:
@@ -1011,35 +780,3 @@ class MAPDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
-
-
-def _get_ma_pddl_name(
-    item: Union[
-        "up.model.Type",
-        "up.model.Action",
-        "up.model.Fluent",
-        "up.model.Object",
-        "up.model.Parameter",
-        "up.model.Variable",
-        "up.model.multi_agent.MultiAgentProblem",
-        "up.model.multi_agent.Agent",
-    ]
-) -> str:
-    """This function returns a ma-pddl name for the chosen item"""
-    name = item.name  # type: ignore
-    assert name is not None
-    name = name.lower()
-    regex = re.compile(r"^[a-zA-Z]+.*")
-    if (
-        re.match(regex, name) is None
-    ):  # If the name does not start with an alphabetic char, we make it start with one.
-        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
-
-    name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
-    while (
-        name in MAPDDL_KEYWORDS
-    ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
-        name = f"{name}_"
-    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
-        name = f"?{name}"
-    return name
