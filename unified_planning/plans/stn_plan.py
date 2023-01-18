@@ -14,6 +14,7 @@
 #
 
 
+from itertools import product
 from numbers import Real
 import unified_planning as up
 import unified_planning.plans as plans
@@ -24,16 +25,15 @@ from unified_planning.plans.plan import ActionInstance
 from fractions import Fraction
 from dataclasses import dataclass
 from typing import (
-    Any,
     Callable,
     Dict,
-    Iterable,
     Iterator,
     List,
     Optional,
     Set,
     Tuple,
     Union,
+    cast,
 )
 
 
@@ -76,16 +76,25 @@ class STNPlanNode:
         return None
 
 
-def iterate_over_dict(d: Dict[Any, Iterable[Tuple[Any]]]) -> Iterator[Any]:
+def iterate_over_dict(
+    d: Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]]
+) -> Iterator[Tuple[STNPlanNode, Optional[Real], Optional[Real], STNPlanNode]]:
     for k, v in d.items():
         for tup in v:
             yield (k, *tup)
 
 
 class STNPlan(plans.plan.Plan):
-    """Represents a partial order plan. Actions are represent as an adjacency list graph."""
+    """
+    Represents a `STNPlan`. A Simple Temporal Network plan is a generalization of
+    a `TimeTriggeredPlan`, where the only constraints are among the start and the
+    end of the different `ActionInstances` or among the `start` and the `end` of the
+    plan.
 
-    # TODO docum
+    An `STNPlan` is consistent if exists a time assignment for each `STNPlanNode`
+    that does not violate any constraint; otherwise the `STNPlan` is inconsistent.
+    """
+
     def __init__(
         self,
         constraints: Union[
@@ -93,7 +102,7 @@ class STNPlan(plans.plan.Plan):
             Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]],
         ],
         environment: Optional["Environment"] = None,
-        _stn: Optional[DeltaSimpleTemporalNetwork] = None,
+        _stn: Optional[DeltaSimpleTemporalNetwork[Fraction]] = None,
     ):
         """
         Constructs the `STNPlan` with 2 different possible representations:
@@ -112,6 +121,7 @@ class STNPlan(plans.plan.Plan):
             in details above.
         :param environment: The environment in which the ActionInstances in the
             constraints are created.
+        :param _stn: Internal parameter, not to be used!
         :return: The created STNPlan.
         """
         assert (
@@ -136,6 +146,8 @@ class STNPlan(plans.plan.Plan):
                 if env is not None:
                     break
             plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
+            self._stn: DeltaSimpleTemporalNetwork[Fraction] = _stn
+            return
         elif isinstance(constraints, Dict):
             assert len(constraints) > 0
             env = None
@@ -165,47 +177,64 @@ class STNPlan(plans.plan.Plan):
         self._stn = DeltaSimpleTemporalNetwork()
         start_plan = STNPlanNode(TimepointKind.GLOBAL_START)
         end_plan = STNPlanNode(TimepointKind.GLOBAL_END)
-        self._stn.insert_interval(start_plan, end_plan, left_bound=0)
+        self._stn.insert_interval(start_plan, end_plan, left_bound=Fraction(0))
         if isinstance(constraints, List):
             gen: Iterator[
                 Tuple[STNPlanNode, Optional[Real], Optional[Real], STNPlanNode]
-            ] = constraints
+            ] = iter(constraints)
         else:
             assert isinstance(constraints, Dict), "Typing not respected"
             gen = iterate_over_dict(constraints)
+        f0 = Fraction(0)
         for a_node, lower_bound, upper_bound, b_node in gen:
-            self._stn.insert_interval(start_plan, a_node, left_bound=0)
-            self._stn.insert_interval(a_node, end_plan, left_bound=0)
-            self._stn.insert_interval(start_plan, b_node, left_bound=0)
-            self._stn.insert_interval(b_node, end_plan, left_bound=0)
-            self._stn.insert_interval(
-                a_node, b_node, left_bound=lower_bound, right_bound=upper_bound
-            )
+            self._stn.insert_interval(start_plan, a_node, left_bound=f0)
+            self._stn.insert_interval(a_node, end_plan, left_bound=f0)
+            self._stn.insert_interval(start_plan, b_node, left_bound=f0)
+            self._stn.insert_interval(b_node, end_plan, left_bound=f0)
+            lb = None if lower_bound is None else Fraction(float(lower_bound))
+            ub = None if upper_bound is None else Fraction(float(upper_bound))
+            self._stn.insert_interval(a_node, b_node, left_bound=lb, right_bound=ub)
 
-    def __repr__(self) -> str:
-        pass  # TODO
+    # def __repr__(self) -> str:
+    #     pass  # TODO
 
-    def __eq__(self, oth: object) -> bool:
-        pass  # TODO
+    # def __eq__(self, oth: object) -> bool:
+    #     pass  # TODO
 
-    def __hash__(self) -> int:
-        pass  # TODO
+    # def __hash__(self) -> int:
+    #     pass  # TODO
 
     def __contains__(self, item: object) -> bool:
-        # if isinstance(item, ActionInstance):
-        #     return any(item.is_semantically_equivalent(a) for a in self._graph.nodes)
-        # else:
-        #     return False
-        pass  # TODO
+        if isinstance(item, ActionInstance):
+            return any(
+                n.action_instance is not None
+                and item.is_semantically_equivalent(n.action_instance)
+                for n in self._stn.distances
+            )
+        else:
+            return False
 
     def get_constraints(
         self,
-    ) -> Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]]:
-        upper_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Real] = {}
-        lower_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Real] = {}
+    ) -> Dict[
+        STNPlanNode, List[Tuple[Optional[Fraction], Optional[Fraction], STNPlanNode]]
+    ]:
+        """
+        Returns all the constraints given by this `STNPlan`. Subsumed constraints
+        are removed, this means that the constraints returned by this method are
+        only the stricter.
+
+        The mapping returned is from the node `A` to the `List` of  `Tuple`
+        containing `lower_bound L`, `upper_bound U` and the node `B`.
+        The semantic is `L <= Time(A) - Time(B)] <= U`, where `Time[STNPlanNode]`
+        is the time in which the `STNPlanNode` happen. `L` or `U` can be None, this
+        means that the lower/upper bound is not set.
+        """
+        upper_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Fraction] = {}
+        lower_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Fraction] = {}
         for b_node, l in self._stn.get_constraints().items():
             for upper_bound, a_node in l:
-                if upper_bound >= 0:
+                if upper_bound > 0:
                     # Sets the upper bound for b-a; b-a is represented as the
                     # Tuple[smaller_node, bigger_node], so it is (a, b).
                     key = (a_node, b_node)
@@ -220,9 +249,10 @@ class STNPlan(plans.plan.Plan):
                         -upper_bound, lower_bounds.get(key, -upper_bound)
                     )
         constraints: Dict[
-            STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]
+            STNPlanNode,
+            List[Tuple[Optional[Fraction], Optional[Fraction], STNPlanNode]],
         ] = {}
-        seen_couples: Set[STNPlanNode, STNPlanNode] = set()
+        seen_couples: Set[Tuple[STNPlanNode, STNPlanNode]] = set()
         for (left_node, right_node), upper_bound in upper_bounds.items():
             key = (left_node, right_node)
             seen_couples.add(key)
@@ -244,31 +274,79 @@ class STNPlan(plans.plan.Plan):
         ],
     ) -> "plans.plan.Plan":
         """
-        Returns a new `PartialOrderPlan` where every `ActionInstance` of the current plan is replaced using the given `replace_function`.
+        Returns a new `STNPlan` where every `ActionInstance` of the current plan is replaced using the given `replace_function`.
 
         :param replace_function: The function that applied to an `ActionInstance A` returns the `ActionInstance B`; `B`
             replaces `A` in the resulting `Plan`.
-        :return: The `PartialOrderPlan` where every `ActionInstance` is replaced using the given `replace_function`.
+        :return: The `STNPlan` where every `ActionInstance` is replaced using the given `replace_function`.
         """
+        replaced_action_instances: Dict[ActionInstance, Optional[ActionInstance]] = {}
         replaced_nodes: Dict[STNPlanNode, STNPlanNode] = {}
-        for right_node, bound_list in self._stn.get_constraints().items():
-            assert isinstance(right_node, STNPlanNode)
-            if right_node not in replaced_nodes:
-                replaced_nodes[right_node] = STNPlanNode(
-                    right_node.kind,
-                    None
-                    if right_node.action_instance is None
-                    else replace_function(right_node.action_instance),
-                )
-            for _, left_node in bound_list:
-                assert isinstance(left_node, STNPlanNode)
-                if left_node not in replaced_nodes:
-                    replaced_nodes[left_node] = STNPlanNode(
-                        left_node.kind,
-                        None
-                        if left_node.action_instance is None
-                        else replace_function(left_node.action_instance),
+        nodes_to_remove: Set[STNPlanNode] = set()
+        for node in self._stn.distances:
+            assert isinstance(node, STNPlanNode)
+            ai = node.action_instance
+            if ai is None:
+                replaced_nodes[node] = node
+                continue
+            replaced_ai = replaced_action_instances.setdefault(ai, replace_function(ai))
+            if replaced_ai is None:
+                nodes_to_remove.add(node)
+                replaced_nodes[node] = node
+            else:
+                replaced_nodes[node] = STNPlanNode(node.kind, replaced_ai)
+
+        stn_constraints = self._stn.get_constraints()
+
+        # right_nodes are the nodes to the right of the nodes that must be remove.
+        right_nodes: Dict[STNPlanNode, Set[Tuple[STNPlanNode, Fraction]]] = {}
+        left_nodes: Dict[STNPlanNode, Set[Tuple[STNPlanNode, Fraction]]] = {}
+        new_constraints: Dict[STNPlanNode, List[Tuple[Fraction, STNPlanNode]]] = {}
+        for r_node, constraints in stn_constraints.items():
+            replaced_r_node = replaced_nodes[r_node]
+            new_rrn_constraints: List[
+                Tuple[Fraction, STNPlanNode]
+            ] = []  # rrn = replaced_right_node
+            # the nodes added on left_nodes_set are opn the left of the current node
+            left_nodes_set: Optional[Set[Tuple[STNPlanNode, Fraction]]] = (
+                left_nodes.setdefault(replaced_r_node, set())
+                if replaced_r_node in nodes_to_remove
+                else None
+            )
+            for bound, l_node in constraints:
+                replaced_l_node = replaced_nodes[l_node]
+                if left_nodes_set is not None:
+                    left_nodes_set.add((replaced_l_node, bound))
+                if replaced_l_node in nodes_to_remove:
+                    right_nodes.setdefault(replaced_l_node, set()).add(
+                        (replaced_r_node, bound)
                     )
+                new_rrn_constraints.append((bound, replaced_l_node))
+            new_constraints[replaced_r_node] = new_rrn_constraints
+
+        for ntr in nodes_to_remove:
+            left_nodes_set = left_nodes.get(ntr, set())
+            assert left_nodes_set is not None
+            right_nodes_set = right_nodes.get(ntr, set())
+            for (l_node, l_dist), (r_node, r_dist) in product(
+                left_nodes_set, right_nodes_set
+            ):
+                r_node_constraints = new_constraints.setdefault(r_node, [])
+                sum_dist = l_dist + r_dist
+                r_node_constraints.append((sum_dist, l_node))
+                if l_node in nodes_to_remove:
+                    right_nodes.setdefault(l_node, set()).add((r_node, sum_dist))
+                if r_node in nodes_to_remove:
+                    left_nodes.setdefault(r_node, set()).add((l_node, sum_dist))
+
+        new_stn: DeltaSimpleTemporalNetwork = DeltaSimpleTemporalNetwork()
+        for r_node, constraints in new_constraints.items():
+            if not r_node in nodes_to_remove:
+                for bound, l_node in constraints:
+                    if not l_node in nodes_to_remove:
+                        new_stn.add(r_node, l_node, bound)
+
+        return STNPlan(constraints={}, _stn=new_stn)
 
     def convert_to(
         self,
@@ -295,3 +373,10 @@ class STNPlan(plans.plan.Plan):
             raise NotImplementedError  # TODO
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+
+    def is_consistent(self) -> bool:
+        """
+        Returns True if if exists a time assignment for each STNPlanNode that
+        does not violate any constraint; False otherwise.
+        """
+        return self._stn.check_stn()

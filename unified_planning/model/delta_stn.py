@@ -78,6 +78,10 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
     def __contains__(self, value: Any) -> bool:
         return value in self._distances
 
+    @property
+    def distances(self) -> Dict[Any, T]:
+        return self._distances
+
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
         """
         Returns another STN with all the constraints already present
@@ -110,6 +114,7 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         return self._is_sat
 
     def get_stn_model(self, x: Any) -> T:
+        """TODO"""
         return cast(T, -1 * self._distances[x])
 
     def _is_subsumed(self, x: Any, y: Any, b: T) -> bool:
@@ -147,7 +152,24 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         left_bound: Optional[T] = None,
         right_bound: Optional[T] = None,
     ):
-        """TODO"""
+        """
+        Inserts in this STN the constraints to represent both a lower bound and
+        an upper bound to the arc from left_event to right_event.
+
+        If one of the 2 bounds is not given, it is considered to be +infinity for
+        the upper bound and - infinity for the lower bound.
+
+        :param left_event: The event to the left of the bound; if the left bound
+            is positive it's the smaller event, so the one that in time must
+            be scheduled earlier.
+        :param right_event: The event to the right of the bound; if the
+            left_bound is positive it's the bigger event, so the one that in
+            time must be scheduled later.
+        :param left_bound: Sets the minimum length of the arc from the left_event
+            to the right_event. If None the minimum length is set to -infinity.
+        :param right_bound: Sets the maximum length of the arc from the left_event
+            to the right_event. If None the maximum length is set to +infinity.
+        """
         if left_bound is not None:
             self.add(left_event, right_event, -left_bound)
         if right_bound is not None:
@@ -158,7 +180,15 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
 
     def get_constraints(self) -> Dict[Any, List[Tuple[T, Any]]]:
         """
-        TODO document with attention to direct subsumed constraints (not in the result)
+        Returns the mapping from a node to the list of it's constraints.
+        A constraint from node K (the one as key) and V (the one in the
+        constraints List) with bound B represents an arc from V to K with
+        maximum length B. NOTE that this does not predicate over the arc from K
+        to V.
+
+        Every constraint here represents only an upper bound.
+        NOTE that a negative upper bound from X to Y is equivalent to a positive
+        lower bound from Y to X.
         """
         constraints: Dict[Any, List[Tuple[T, Any]]] = {el: [] for el in self._distances}
         for x, neighbor in self._constraints.items():
