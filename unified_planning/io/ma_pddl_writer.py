@@ -77,7 +77,6 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         agent: Optional["up.model.multi_agent.Agent"],
     ):
         ConverterToPDDLString.__init__(self, env, get_mangled_name)
-        self.get_mangled_name = get_mangled_name
         self.agent = agent
 
     def walk_dot(self, expression, args):
@@ -806,6 +805,8 @@ class MAPDDLWriter:
             new_name not in self.nto_renamings
             and new_name not in self.otn_renamings.values()
         )
+        if isinstance(item, up.model.multi_agent.Agent):
+            new_name = item.name
         self.otn_renamings[item] = new_name
         self.nto_renamings[new_name] = item
 
