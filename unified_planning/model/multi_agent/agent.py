@@ -108,5 +108,4 @@ class Agent(
         new_a = Agent(self._name, self._ma_problem)
         new_a._fluents = self._fluents[:]
         new_a._actions = [a.clone() for a in self._actions]
-        new_a._goals = self._goals[:]
         return
