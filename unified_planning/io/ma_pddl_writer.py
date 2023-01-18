@@ -48,7 +48,6 @@ from unified_planning.io.pddl_writer import (
     PDDL_KEYWORDS,
     INITIAL_LETTER,
 )
-import re
 
 
 class ConverterToMAPDDLString(ConverterToPDDLString):
