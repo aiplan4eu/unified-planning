@@ -113,7 +113,6 @@ PDDL_KEYWORDS = {
     "derived-predicates",
     "timed-initial-literals",
     "preferences",
-    "agent",
     "contingent",
 }
 
@@ -401,10 +400,13 @@ class PDDLWriter:
                     )
             out.write(" )\n")
         else:
+            pddl_types = [
+                self._get_mangled_name(t)
+                for t in self.problem.user_types
+                if cast(_UserType, t).name != "object"
+            ]
             out.write(
-                f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])})\n'
-                if len(self.problem.user_types) > 0
-                else ""
+                f' (:types {" ".join(pddl_types)})\n' if len(pddl_types) > 0 else ""
             )
 
         if self.domain_objects is None:
@@ -478,8 +480,11 @@ class PDDLWriter:
                 "Only one metric is supported!"
             )
 
+        em = self.problem.env.expression_manager
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
+                if em.FALSE() in a.preconditions:
+                    continue
                 out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 for ap in a.parameters:
@@ -525,6 +530,8 @@ class PDDLWriter:
                     out.write(")")
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
+                if any(em.FALSE() in cl for cl in a.conditions.values()):
+                    continue
                 out.write(f" (:durative-action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 for ap in a.parameters:
@@ -838,8 +845,6 @@ def _get_pddl_name(
         "up.model.Parameter",
         "up.model.Variable",
         "up.model.Problem",
-        "up.model.multi_agent.MultiAgentProblem",
-        "up.model.multi_agent.Agent",
     ]
 ) -> str:
     """This function returns a pddl name for the chosen item"""
