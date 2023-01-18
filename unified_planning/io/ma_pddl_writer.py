@@ -801,6 +801,8 @@ class MAPDDLWriter:
             new_name not in self.nto_renamings
             and new_name not in self.otn_renamings.values()
         )
+        if isinstance(item, up.model.multi_agent.Agent):
+            new_name = item.name
         self.otn_renamings[item] = new_name
         self.nto_renamings[new_name] = item
 
