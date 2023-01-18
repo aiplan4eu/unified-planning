@@ -871,8 +871,6 @@ def _get_pddl_name(
         "up.model.Parameter",
         "up.model.Variable",
         "up.model.Problem",
-        "up.model.multi_agent.MultiAgentProblem",
-        "up.model.multi_agent.Agent",
     ]
 ) -> str:
     """This function returns a pddl name for the chosen item"""
