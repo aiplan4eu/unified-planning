@@ -46,7 +46,6 @@ from unified_planning.io.pddl_writer import (
     ConverterToPDDLString,
     PDDL_KEYWORDS,
     INITIAL_LETTER,
-    ConverterToPDDLString,
     PDDL_KEYWORDS,
     INITIAL_LETTER,
 )
@@ -78,6 +77,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         agent: Optional["up.model.multi_agent.Agent"],
     ):
         ConverterToPDDLString.__init__(self, env, get_mangled_name)
+        self.get_mangled_name = get_mangled_name
         self.agent = agent
 
     def walk_dot(self, expression, args):
