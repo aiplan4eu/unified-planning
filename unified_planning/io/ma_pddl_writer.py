@@ -87,7 +87,10 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        return f'(a_{self.get_mangled_name(fluent)} ?{self.get_mangled_name(self.agent) if self.agent is not None and fluent in self.agent.fluents else ""}{" " if len(args) > 0 else ""}{" ".join(args)})'
+        if self.agent is not None and fluent in self.agent.fluents:
+            return f'(a_{self.get_mangled_name(fluent)} ?{self.get_mangled_name(self.agent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
+        else:
+            return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
 
 class MAPDDLWriter:
@@ -675,7 +678,18 @@ class MAPDDLWriter:
             out.write(" (:init")
             for f, v in self.problem.initial_values.items():
                 if v.is_true():
-                    out.write(f"\n  {converter.convert(f)}")
+                    if f.is_dot():
+                        fluent = f.args[0].fluent()
+                        args = f.args
+                        if (
+                            f.agent().name != ag.name
+                            and fluent not in self.domain_fluents_agents
+                        ):
+                            out.write(f"")
+                        else:
+                            out.write(f"\n  {converter.convert(f)}")
+                    else:
+                        out.write(f"\n  {converter.convert(f)}")
                 elif v.is_false():
                     pass
                 else:
