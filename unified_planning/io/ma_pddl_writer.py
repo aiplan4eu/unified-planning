@@ -70,6 +70,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         agent: Optional["up.model.multi_agent.Agent"],
     ):
         super().__init__(env, get_mangled_name)
+        self.get_mangled_name = get_mangled_name
         self.agent = agent
 
     def walk_dot(self, expression, args):
