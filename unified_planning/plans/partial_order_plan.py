@@ -142,7 +142,6 @@ class PartialOrderPlan(plans.plan.Plan):
         new_adj_list: Dict[
             "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
         ] = {}
-        # Populate the new adjacency list with the replaced action instances
         for ai in self._graph.nodes:
             replaced_ai = original_to_replaced_ai.get(ai, None)
             if replaced_ai is not None:
@@ -160,9 +159,33 @@ class PartialOrderPlan(plans.plan.Plan):
             break
         return up.plans.PartialOrderPlan(new_adj_list, new_env)
 
-    def to_sequential_plan(self) -> SequentialPlan:
-        """Returns one between all possible `SequentialPlans` that respects the ordering constraints given by this `PartialOrderPlan`."""
-        return SequentialPlan(list(nx.topological_sort(self._graph)), self._environment)
+    def convert_to(
+        self,
+        plan_kind: "plans.plan.PlanKind",
+        problem: "up.model.AbstractProblem",
+    ) -> "plans.plan.Plan":
+        """
+        This function takes a `PlanKind` and returns the representation of `self`
+        in the given `plan_kind`. If the conversion does not make sense, raises
+        an exception.
+
+        For the conversion to `SequentialPlan`, returns one  all possible
+        `SequentialPlans` that respects the ordering constraints given by
+        this `PartialOrderPlan`.
+
+        :param plan_kind: The plan_kind of the returned plan.
+        :param problem: The `Problem` of which this plan is referring to.
+        :return: The plan equivalent to self but represented in the kind of
+            `plan_kind`.
+        """
+        if plan_kind == self._kind:
+            return self
+        elif plan_kind == plans.plan.PlanKind.SEQUENTIAL_PLAN:
+            return SequentialPlan(
+                list(nx.topological_sort(self._graph)), self._environment
+            )
+        else:
+            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
     def all_sequential_plans(self) -> Iterator[SequentialPlan]:
         """Returns all possible `SequentialPlans` that respects the ordering constraints given by this `PartialOrderPlan`."""
