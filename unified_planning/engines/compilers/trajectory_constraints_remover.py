@@ -267,6 +267,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         else:
             return R, True
 
+    # in the list E are added new effects based on the type of constraint
     def _add_cond_eff(self, env, E, cond, eff):
         if not cond.simplify().is_false():
             if eff.is_not():

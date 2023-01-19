@@ -578,10 +578,7 @@ class Problem(
         :param trajectory_constraint: The expression added to the `Problem`.
         """
         (constraint_exp,) = self._env.expression_manager.auto_promote(constraint)
-        all_constraints_simplified = self._env.expression_manager.And(
-            constraint_exp, *self._trajectory_constraints
-        ).simplify()
-        self._trajectory_constraints = [all_constraints_simplified]
+        self._trajectory_constraints.append(constraint_exp.simplify())
 
     @property
     def goals(self) -> List["up.model.fnode.FNode"]:

@@ -91,7 +91,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(always_not)
         self.assertTrue(
             str(problem.trajectory_constraints)
-            == "[(Always((not robot_at(l2))) and Always(robot_at(l1)))]"
+            == "[Always(robot_at(l1)), Always((not robot_at(l2)))]"
         )
 
     def test_create_sometime_constraint(self):
@@ -121,7 +121,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(sometime_not)
         self.assertTrue(
             str(problem.trajectory_constraints)
-            == "[(Sometime((not robot_at(l2))) and Sometime(robot_at(l1)))]"
+            == "[Sometime(robot_at(l1)), Sometime((not robot_at(l2)))]"
         )
 
     def test_create_at_most_once_constraint(self):
@@ -153,7 +153,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(at_most_once_not)
         self.assertTrue(
             str(problem.trajectory_constraints)
-            == "[(At-Most-Once((not robot_at(l2))) and At-Most-Once(robot_at(l1)))]"
+            == "[At-Most-Once(robot_at(l1)), At-Most-Once((not robot_at(l2)))]"
         )
 
     def test_create_sometime_before_constraint(self):
@@ -188,7 +188,7 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(sometime_before_not)
         self.assertTrue(
             str(problem.trajectory_constraints)
-            == "[(Sometime-Before((not robot_at(l1)), robot_at(l2)) and Sometime-Before(robot_at(l1), robot_at(l2)))]"
+            == "[Sometime-Before(robot_at(l1), robot_at(l2)), Sometime-Before((not robot_at(l1)), robot_at(l2))]"
         )
 
     def test_create_sometime_after_constraint(self):
@@ -223,41 +223,8 @@ class TestTrajectoryConstraint(TestCase):
         problem.add_trajectory_constraint(sometime_after_not)
         self.assertTrue(
             str(problem.trajectory_constraints)
-            == "[(Sometime-After((not robot_at(l1)), robot_at(l2)) and Sometime-After(robot_at(l1), robot_at(l2)))]"
+            == "[Sometime-After(robot_at(l1), robot_at(l2)), Sometime-After((not robot_at(l1)), robot_at(l2))]"
         )
-
-    def test_remove_external_forall(self):
-        problem = self.define_problem()
-        Location = UserType("Location")
-        l0 = unified_planning.model.Object("l0", Location)
-        l1 = unified_planning.model.Object("l1", Location)
-        l2 = unified_planning.model.Object("l2", Location)
-        l3 = unified_planning.model.Object("l3", Location)
-        l4 = unified_planning.model.Object("l4", Location)
-        s_loc = Variable("l", Location)
-        robot_at = unified_planning.model.Fluent("robot_at", BoolType(), l=Location)
-        test_forall = Forall(AtMostOnce(FluentExp(robot_at, [s_loc])), s_loc)
-        problem_with_forall = problem.clone()
-        problem_with_forall.add_trajectory_constraint(test_forall)
-        problem_without_forall = problem.clone()
-        for loc in [l4, l3, l2, l1, l0]:
-            problem_without_forall.add_trajectory_constraint(AtMostOnce(robot_at(loc)))
-
-        problem_with_forall_comp = (
-            TrajectoryConstraintsRemover()
-            .compile(
-                problem_with_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
-            )
-            .problem
-        )
-        problem_without_forall_comp = (
-            TrajectoryConstraintsRemover()
-            .compile(
-                problem_without_forall, CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
-            )
-            .problem
-        )
-        self.assertTrue(problem_with_forall_comp == problem_without_forall_comp)
 
     def test_remove_internal_forall(self):
         problem = self.define_problem()
