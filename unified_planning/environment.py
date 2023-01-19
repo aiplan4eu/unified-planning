@@ -72,6 +72,15 @@ class Environment:
 
     @error_used_name.setter
     def error_used_name(self, new_val: bool):
+        """
+        This flag determines if a problem in this environment can have the same
+        name for different elements (like an Action and a Fluent). If it is
+        True, this name duplication will raise an exception, if it is False it
+        will only raise a warning.
+
+        It always raise an exception to name in the same way 2 elements
+        belonging to the same category, like 2 actions.
+        """
         self._error_used_name = new_val
 
     @property
