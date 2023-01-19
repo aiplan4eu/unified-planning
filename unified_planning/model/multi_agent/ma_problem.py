@@ -53,7 +53,7 @@ class MultiAgentProblem(
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
         AbstractProblem.__init__(self, name, env)
-        UserTypesSetMixin.__init__(self, self.has_name)
+        UserTypesSetMixin.__init__(self, self.env, self.has_name)
         ObjectsSetMixin.__init__(self, self.env, self._add_user_type, self.has_name)
         AgentsSetMixin.__init__(self, self.env, self.has_name)
 
