@@ -133,16 +133,16 @@ class ANMLGrammar:
         boolean_expression = Forward()
         quantified_expression = Forward()
 
-        expression_list = Optional(Group(boolean_expression)) + ZeroOrMore(
-            Suppress(TK_COMMA) + Group(boolean_expression)
+        expression_list = Optional(Group(boolean_expression)) - ZeroOrMore(
+            Suppress(TK_COMMA) - Group(boolean_expression)
         )
         fluent_ref = Group(
             identifier
-            + Group(
+            - Group(
                 Optional(
                     Suppress(TK_L_PARENTHESIS)
-                    + expression_list
-                    + Suppress(TK_R_PARENTHESIS)
+                    - expression_list
+                    - Suppress(TK_R_PARENTHESIS)
                 )
             )
         )
@@ -188,15 +188,15 @@ class ANMLGrammar:
 
         conditional_expression <<= (
             TK_WHEN
-            + Group(timed_expression).set_results_name("condition")
-            + Suppress(TK_L_BRACE)
-            + Group(OneOrMore(timed_expression + Suppress(TK_SEMI))).set_results_name(
+            - Group(timed_expression).set_results_name("condition")
+            - Suppress(TK_L_BRACE)
+            - Group(OneOrMore(timed_expression - Suppress(TK_SEMI))).set_results_name(
                 "assignments"
             )
-            + Suppress(TK_R_BRACE)
+            - Suppress(TK_R_BRACE)
         )
 
-        expression_block_body = OneOrMore(Group(expression) + Suppress(TK_SEMI))
+        expression_block_body = OneOrMore(Group(expression) - Suppress(TK_SEMI))
         expression_block = Group(
             Group(interval).setResultsName("interval")
             + Suppress(TK_L_BRACE)
@@ -205,58 +205,55 @@ class ANMLGrammar:
         )
         expression_block.setParseAction(parse_exp_block_as_exp_sequence)
 
-        # temporal_expression = Optional(one_of((TK_START, TK_END, TK_ALL))) + Optional(
-        #     arithmetic_expression
-        # ) #TODO Old code to remove
         temporal_expression = Optional(arithmetic_expression)
 
         in_assignment_expression = (
             one_of((TK_DURATION,))
-            + Literal(TK_IN_ASSIGN)
-            + Suppress(TK_L_BRACKET)
-            + Group(temporal_expression).setResultsName("left_bound")
-            + Suppress(TK_COMMA)
-            + Group(temporal_expression).setResultsName("right_bound")
-            + Suppress(TK_R_BRACKET)
+            - Literal(TK_IN_ASSIGN)
+            - Suppress(TK_L_BRACKET)
+            - Group(temporal_expression).setResultsName("left_bound")
+            - Suppress(TK_COMMA)
+            - Group(temporal_expression).setResultsName("right_bound")
+            - Suppress(TK_R_BRACKET)
         )
         action_body = ZeroOrMore(
             Group((expression_block | timed_expression | in_assignment_expression))
-            + Suppress(TK_SEMI)
+            - Suppress(TK_SEMI)
         )
         action_body.setParseAction(restore_tagged_exp_block)
 
         type_decl = (
             Suppress(TK_TYPE)
-            + identifier.setResultsName("name")
-            + Group(ZeroOrMore(Suppress(TK_LT) + identifier)).setResultsName(
+            - identifier.setResultsName("name")
+            - Group(ZeroOrMore(Suppress(TK_LT) - identifier)).setResultsName(
                 "supertypes"
             )
         )
         type_decl.setParseAction(self.types.append)
-        identifier_list = identifier + ZeroOrMore(Suppress(TK_COMMA) + identifier)
+        identifier_list = identifier - ZeroOrMore(Suppress(TK_COMMA) - identifier)
         primitive_type = (
             Literal(TK_BOOLEAN).setResultsName("name")
             | (
                 Literal(TK_INTEGER).setResultsName("name")
-                + Optional(
+                - Optional(
                     Group(
                         Suppress(TK_L_BRACKET)
-                        + integer.setResultsName("left_bound")
-                        + Suppress(TK_COMMA)
-                        + integer.setResultsName("right_bound")
-                        + Suppress(TK_R_BRACKET)
+                        - integer.setResultsName("left_bound")
+                        - Suppress(TK_COMMA)
+                        - integer.setResultsName("right_bound")
+                        - Suppress(TK_R_BRACKET)
                     )
                 )
             )
             | (
                 TK_FLOAT.setResultsName("name")
-                + Optional(
+                - Optional(
                     Group(
                         Suppress(TK_L_BRACKET)
-                        + real.setResultsName("left_bound")
-                        + Suppress(TK_COMMA)
-                        + real.setResultsName("right_bound")
-                        + Suppress(TK_R_BRACKET)
+                        - real.setResultsName("left_bound")
+                        - Suppress(TK_COMMA)
+                        - real.setResultsName("right_bound")
+                        - Suppress(TK_R_BRACKET)
                     )
                 )
             )
@@ -264,37 +261,37 @@ class ANMLGrammar:
         type_ref = primitive_type | identifier
         instance_decl = (
             Suppress(TK_INSTANCE)
-            + type_ref.setResultsName("type")
-            + Group(identifier_list).setResultsName("names")
+            - type_ref.setResultsName("type")
+            - Group(identifier_list).setResultsName("names")
         )
         instance_decl.setParseAction(self.objects.append)
 
-        parameter_list = Optional(Group(Group(type_ref) + identifier)) + ZeroOrMore(
-            Suppress(TK_COMMA) + Group(Group(type_ref) + identifier)
+        parameter_list = Optional(Group(Group(type_ref) - identifier)) - ZeroOrMore(
+            Suppress(TK_COMMA) - Group(Group(type_ref) - identifier)
         )
         fluent_decl = (
             Suppress(one_of([TK_FLUENT, TK_CONSTANT]))
-            + type_ref.setResultsName("type")
-            + identifier.setResultsName("name")
-            + Group(
+            - type_ref.setResultsName("type")
+            - identifier.setResultsName("name")
+            - Group(
                 Optional(
                     Suppress(TK_L_PARENTHESIS)
-                    + parameter_list
-                    + Suppress(TK_R_PARENTHESIS)
+                    - parameter_list
+                    - Suppress(TK_R_PARENTHESIS)
                 )
             ).setResultsName("parameters")
-            + Optional(Suppress(TK_ASSIGN) + Group(expression)).setResultsName("init")
+            - Optional(Suppress(TK_ASSIGN) - Group(expression)).setResultsName("init")
         )
         fluent_decl.setParseAction(self.fluents.append)
         action_decl = (
             Suppress("action")
-            + identifier.setResultsName("name")
-            + Suppress(TK_L_PARENTHESIS)
-            + Group(parameter_list).setResultsName("parameters")
-            + Suppress(TK_R_PARENTHESIS)
-            + Suppress(TK_L_BRACE)
-            + Group(action_body).setResultsName("body")
-            + Suppress(TK_R_BRACE)
+            - identifier.setResultsName("name")
+            - Suppress(TK_L_PARENTHESIS)
+            - Group(parameter_list).setResultsName("parameters")
+            - Suppress(TK_R_PARENTHESIS)
+            - Suppress(TK_L_BRACE)
+            - Group(action_body).setResultsName("body")
+            - Suppress(TK_R_BRACE)
         )
         action_decl.setParseAction(self.actions.append)
         interval <<= (
@@ -309,14 +306,14 @@ class ANMLGrammar:
         )
         quantified_expression <<= Group(
             one_of([TK_FORALL, TK_EXISTS])
-            + Suppress(TK_L_PARENTHESIS)
-            + Group(parameter_list).setResultsName("quantifier_variables")
-            + Suppress(TK_R_PARENTHESIS)
-            + Suppress(TK_L_BRACE)
-            + Group(OneOrMore(boolean_expression + Suppress(TK_SEMI))).setResultsName(
+            - Suppress(TK_L_PARENTHESIS)
+            - Group(parameter_list).setResultsName("quantifier_variables")
+            - Suppress(TK_R_PARENTHESIS)
+            - Suppress(TK_L_BRACE)
+            - Group(OneOrMore(boolean_expression - Suppress(TK_SEMI))).setResultsName(
                 "quantifier_body"
             )
-            + Suppress(TK_R_BRACE)
+            - Suppress(TK_R_BRACE)
         )
 
         # Standalone expressions are defined to handle differently expressions
@@ -330,12 +327,12 @@ class ANMLGrammar:
 
         goal_body = OneOrMore(
             (standalone_expression_block | standalone_timed_expression)
-            + Suppress(TK_SEMI)
+            - Suppress(TK_SEMI)
         )
-        goal_decl = TK_GOAL + (
+        goal_decl = TK_GOAL - (
             standalone_timed_expression
             | standalone_expression_block
-            | TK_L_BRACE + goal_body + TK_R_BRACE
+            | TK_L_BRACE - goal_body - TK_R_BRACE
         )
         anml_stmt = (
             instance_decl
@@ -347,8 +344,8 @@ class ANMLGrammar:
             | standalone_timed_expression
         )
 
-        anml_body = OneOrMore(Group(anml_stmt + Suppress(TK_SEMI)))
-        anml_body.ignore(TK_COMMENT + rest_of_line)
+        anml_body = OneOrMore(Group(anml_stmt - Suppress(TK_SEMI)))
+        anml_body.ignore(TK_COMMENT - rest_of_line)
 
         self._problem = anml_body
 
