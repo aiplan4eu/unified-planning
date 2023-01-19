@@ -92,6 +92,24 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
+    @skipIfEngineNotAvailable("tamer")
+    def test_basic_with_custom_heuristic(self):
+        problem = self.problems["basic"].problem
+        x = problem.fluent("x")
+
+        with OneshotPlanner(name="tamer") as planner:
+            self.assertNotEqual(planner, None)
+
+            def h(state):
+                v = state.get_value(x()).bool_constant_value()
+                return 0 if v else 1
+
+            final_report = planner.solve(problem, heuristic=h)
+            plan = final_report.plan
+            self.assertEqual(
+                final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+            )
+
     @skipIfNoOneshotPlannerForProblemKind(
         basic_classical_kind.union(oversubscription_kind)
     )
