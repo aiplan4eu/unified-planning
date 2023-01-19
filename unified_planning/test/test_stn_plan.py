@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-from pprint import pprint
-from typing import Set
+from typing import Set, cast
+from numbers import Real as RealNumbers
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -56,7 +56,17 @@ class TestSTNPlan(TestCase):
         constraints[ai_3_s] = [(None, 6, ai_3_e)]
         constraints[ai_3_e] = [(None, 7, end_plan)]
 
-        plan = STNPlan(constraints)
+        plan = STNPlan(
+            cast(
+                Dict[
+                    STNPlanNode,
+                    List[
+                        Tuple[Optional[RealNumbers], Optional[RealNumbers], STNPlanNode]
+                    ],
+                ],
+                constraints,
+            )
+        )
 
         self.assertTrue(plan.is_consistent())
         # start_plan is linked to every node in it's constraints (the 8), every node is
