@@ -566,9 +566,7 @@ class Problem(
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
-    def add_trajectory_constraint(
-        self, constraint: "up.model.expression.BoolExpression"
-    ):
+    def add_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
         """
         Adds the given `trajectory_constraint` to the `Problem`;
         a trajectory_constraint is an expression defined as:
@@ -577,6 +575,25 @@ class Problem(
 
         :param trajectory_constraint: The expression added to the `Problem`.
         """
+        if constraint.is_and():
+            for arg in constraint.args:
+                assert (
+                    arg.is_forall()
+                    or arg.is_sometime()
+                    or arg.is_sometime_after()
+                    or arg.is_sometime_before()
+                    or arg.is_at_most_once()
+                    or arg.is_always()
+                )
+        else:
+            assert (
+                constraint.is_forall()
+                or constraint.is_sometime()
+                or constraint.is_sometime_after()
+                or constraint.is_sometime_before()
+                or constraint.is_at_most_once()
+                or constraint.is_always()
+            )
         (constraint_exp,) = self._env.expression_manager.auto_promote(constraint)
         self._trajectory_constraints.append(constraint_exp.simplify())
 
