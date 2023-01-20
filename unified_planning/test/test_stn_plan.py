@@ -95,6 +95,7 @@ class TestSTNPlan(TestCase):
                 seen_couples.add(test_1)
                 seen_couples.add(test_2)
 
+        # remove ai_1
         def replace_function(
             action_instance: ActionInstance,
         ) -> Optional[ActionInstance]:

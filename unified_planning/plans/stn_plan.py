@@ -156,7 +156,6 @@ class STNPlan(plans.plan.Plan):
             plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
         # If we don't have a specific env, use the env of the first action
         elif _stn is not None:
-            # empty _stn sets the given environment
             for r_node, cl in _stn.get_constraints().items():
                 assert isinstance(r_node, STNPlanNode), "Given _stn is wrong"
                 if r_node.environment is not None:
@@ -339,7 +338,7 @@ class STNPlan(plans.plan.Plan):
             new_rrn_constraints: List[
                 Tuple[Fraction, STNPlanNode]
             ] = []  # rrn = replaced_right_node
-            # the nodes added on left_nodes_set are opn the left of the current node
+            # the nodes added on left_nodes_set are on the left of the current node
             left_nodes_set: Optional[Set[Tuple[STNPlanNode, Fraction]]] = (
                 left_nodes.setdefault(replaced_r_node, set())
                 if replaced_r_node in nodes_to_remove
@@ -390,10 +389,6 @@ class STNPlan(plans.plan.Plan):
         in the given `plan_kind`. If the conversion does not make sense, raises
         an exception.
 
-        For the conversion to `SequentialPlan`, returns one  all possible
-        `SequentialPlans` that respects the ordering constraints given by
-        this `PartialOrderPlan`.
-
         :param plan_kind: The plan_kind of the returned plan.
         :param problem: The `Problem` of which this plan is referring to.
         :return: The plan equivalent to self but represented in the kind of
@@ -402,7 +397,7 @@ class STNPlan(plans.plan.Plan):
         if plan_kind == self._kind:
             return self
         elif plan_kind == plans.plan.PlanKind.TIME_TRIGGERED_PLAN:
-            raise NotImplementedError  # TODO
+            raise NotImplementedError
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
