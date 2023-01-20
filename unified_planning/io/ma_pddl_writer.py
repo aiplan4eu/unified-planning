@@ -920,7 +920,7 @@ def _get_pddl_name(
         "up.model.multi_agent.Agent",
     ]
 ) -> str:
-    """This function returns a pddl name for the chosen item"""
+    """This function returns a ma-pddl name for the chosen item"""
     name = item.name  # type: ignore
     assert name is not None
     name = name.lower()
