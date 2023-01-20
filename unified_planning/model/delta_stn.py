@@ -45,12 +45,14 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
     between the `Events` are feasible; in other words, for every `Event` in
     the STN, it exists a temporal assignment that does not violate any
     constraint. When the STN becomes inconsistent, it means that the added
-    constraints are too restraining, therefore an assignment that does not
+    constraints are too restraining, therefore a total assignment that does not
     violate any constraint does not exist.
     This specific implementation, called DeltaSTN, is specifically engineered
     to re-use previous calculations, using the incremental Bellman-Ford
     algorithm. This fits very well the planning use-case, where a lot of STN
-    with small differences one-another are used.
+    with small differences one-another are created and used to check for
+    consistency, in order to determine if it exists a scheduling of all the
+    given `Events` or not.
     """
 
     def __init__(
@@ -84,8 +86,8 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
 
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
         """
-        Returns another STN with all the constraints already present
-        in self.
+        Returns another `DeltaSimpleTemporalNetwork` with all the constraints
+        already present in self.
         """
         return DeltaSimpleTemporalNetwork(
             self._constraints.copy(),
@@ -96,8 +98,15 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
 
     def add(self, x: Any, y: Any, b: T):
         """
-        Adds the constraint `x - y <= b`. This gives an upper bound
-        to the distance from `x` to `y`. TODO explain  this better!
+        Adds the constraint `x - y <= b`. This gives an upper bound to the time
+        that can elapse from the event `y` to the event `x`.
+        To represent a lower bound, therefore `x - y >= b`, we just need to
+        multiply by minus, so we need to add the constraint `y - x <= -b`.
+
+        :param x: The element to the left of the minus in the added constraint.
+        :param y: The element to the right of the minus in the added constraint.
+        :param b: The upper bound to the time lapsed from the event `y` to the
+            event `x`.
         """
         if self._is_sat:
             self._distances.setdefault(x, cast(T, 0))
@@ -126,22 +135,22 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         return False
 
     def _inc_check(self, x: Any, y: Any, b: T) -> bool:
-        if self._distances[x] + b < self._distances[y]:
-            self._distances[y] = self._distances[x] + b
-        else:
-            return True
-        queue: Deque[Any] = deque()
-        queue.append(y)
-        while queue:
-            c = queue.popleft()
-            n = self._constraints[c]
-            while n is not None:
-                if self._distances[c] + n.bound < self._distances[n.dst]:
-                    if n.dst == y and abs(n.bound - b) <= self._epsilon:
-                        return False
-                    self._distances[n.dst] = self._distances[c] + n.bound
-                    queue.append(n.dst)
-                n = n.next
+        x_dist = self._distances[x]
+        x_plus_b = x_dist + b
+        if x_plus_b < self._distances[y]:
+            self._distances[y] = x_plus_b
+            queue: Deque[Any] = deque()
+            queue.append(y)
+            while queue:
+                c = queue.popleft()
+                n = self._constraints[c]
+                while n is not None:
+                    if self._distances[c] + n.bound < self._distances[n.dst]:
+                        if n.dst == y and abs(n.bound - b) <= self._epsilon:
+                            return False
+                        self._distances[n.dst] = self._distances[c] + n.bound
+                        queue.append(n.dst)
+                    n = n.next
         return True
 
     def insert_interval(

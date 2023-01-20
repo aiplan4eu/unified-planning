@@ -33,7 +33,6 @@ from typing import (
     Set,
     Tuple,
     Union,
-    cast,
 )
 
 
@@ -41,6 +40,7 @@ from typing import (
 class STNPlanNode:
     """
     This class represents a node of the `STNPlan`.
+
     :param kind: The `TimepointKind` of this node, it can be `global`, referring
         to the `START` or the `END` of the `Plan` itself, or `not global`,
         representing the `START` or the `END` of the given `ActionInstance`.
@@ -69,6 +69,19 @@ class STNPlanNode:
                 "but the ActionInstance is not given.",
             )
 
+    def __repr__(self) -> str:
+        mappings: Dict[TimepointKind, str] = {
+            TimepointKind.GLOBAL_START: "START PLAN",
+            TimepointKind.GLOBAL_END: "END PLAN",
+            TimepointKind.START: "START ACTION",
+            TimepointKind.END: "END ACTION",
+        }
+        res: List[str] = []
+        res.append(mappings[self.kind])
+        if self.action_instance is not None:
+            res.append(str(self.action_instance))
+        return " ".join(res)
+
     @property
     def environment(self) -> Optional[Environment]:
         if self.action_instance is not None:
@@ -76,10 +89,19 @@ class STNPlanNode:
         return None
 
 
-def iterate_over_dict(
+def flatten_dict_structure(
     d: Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]]
 ) -> Iterator[Tuple[STNPlanNode, Optional[Real], Optional[Real], STNPlanNode]]:
+    """
+    This method takes a dict containing a List of tuples of 3 elements, and
+    returns an Iterator of Tuples of 4 elements, where the first one is the key
+    and the other 3 are the elements in the list.
+
+    :param d: The dictionary to flatten.
+    """
     for k, v in d.items():
+        if not v:
+            yield (k, None, None, k)
         for tup in v:
             yield (k, *tup)
 
@@ -114,25 +136,27 @@ class STNPlan(plans.plan.Plan):
         and the other `STNPlanNode B`.
 
         The semantic is the same for the 2 representations and the temporal
-        constraints are represented like  `L <= Time(A) - Time(B)] <= U`, where
+        constraints are represented like  `L <= Time(A) - Time(B) <= U`, where
         `Time[STNPlanNode]` is the time in which the STNPlanNode happen.
 
-        :param constraints: The data structure to create the STNPlan, explained
+        :param constraints: The data structure to create the `STNPlan`, explained
             in details above.
-        :param environment: The environment in which the ActionInstances in the
-            constraints are created.
+        :param environment: The environment in which the `ActionInstances` in the
+            constraints are created; this parameters is ignored if there is
+            another environment in the action instances given in the constraints.
         :param _stn: Internal parameter, not to be used!
-        :return: The created STNPlan.
+        :return: The created `STNPlan`.
         """
         assert (
             _stn is None or not constraints
         ), "_stn and constraints can't be both given"
         # if we have a specific env or we don't have any actions
-        if environment is not None or (not constraints and _stn is None):
-            plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, environment)
+        env = environment
+        if (env is not None or not constraints) and _stn is None:
+            plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
         # If we don't have a specific env, use the env of the first action
         elif _stn is not None:
-            env = None
+            # empty _stn sets the given environment
             for r_node, cl in _stn.get_constraints().items():
                 assert isinstance(r_node, STNPlanNode), "Given _stn is wrong"
                 if r_node.environment is not None:
@@ -149,8 +173,6 @@ class STNPlan(plans.plan.Plan):
             self._stn: DeltaSimpleTemporalNetwork[Fraction] = _stn
             return
         elif isinstance(constraints, Dict):
-            assert len(constraints) > 0
-            env = None
             for k_node, l in constraints.items():
                 if k_node.environment is not None:
                     env = k_node.environment
@@ -164,7 +186,6 @@ class STNPlan(plans.plan.Plan):
             plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
         else:
             assert isinstance(constraints, List), "Typing not respected"
-            env = None
             for a_node, _, _, b_node in constraints:
                 if a_node.environment is not None:
                     env = a_node.environment
@@ -174,6 +195,7 @@ class STNPlan(plans.plan.Plan):
                     break
             plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
 
+        # Create and populate the DeltaSTN
         self._stn = DeltaSimpleTemporalNetwork()
         start_plan = STNPlanNode(TimepointKind.GLOBAL_START)
         end_plan = STNPlanNode(TimepointKind.GLOBAL_END)
@@ -184,9 +206,19 @@ class STNPlan(plans.plan.Plan):
             ] = iter(constraints)
         else:
             assert isinstance(constraints, Dict), "Typing not respected"
-            gen = iterate_over_dict(constraints)
+            gen = flatten_dict_structure(constraints)
         f0 = Fraction(0)
         for a_node, lower_bound, upper_bound, b_node in gen:
+            if (
+                a_node.environment is not None
+                and a_node.environment != self._environment
+            ) or (
+                b_node.environment is not None
+                and b_node.environment != self._environment
+            ):
+                raise UPUsageError(
+                    "Different environments given inside the same STNPlan!"
+                )
             self._stn.insert_interval(start_plan, a_node, left_bound=f0)
             self._stn.insert_interval(a_node, end_plan, left_bound=f0)
             self._stn.insert_interval(start_plan, b_node, left_bound=f0)
@@ -195,8 +227,8 @@ class STNPlan(plans.plan.Plan):
             ub = None if upper_bound is None else Fraction(float(upper_bound))
             self._stn.insert_interval(a_node, b_node, left_bound=lb, right_bound=ub)
 
-    # def __repr__(self) -> str:
-    #     pass  # TODO
+    def __repr__(self) -> str:
+        return str(self._stn)
 
     # def __eq__(self, oth: object) -> bool:
     #     pass  # TODO
@@ -226,9 +258,9 @@ class STNPlan(plans.plan.Plan):
 
         The mapping returned is from the node `A` to the `List` of  `Tuple`
         containing `lower_bound L`, `upper_bound U` and the node `B`.
-        The semantic is `L <= Time(A) - Time(B)] <= U`, where `Time[STNPlanNode]`
-        is the time in which the `STNPlanNode` happen. `L` or `U` can be None, this
-        means that the lower/upper bound is not set.
+        The semantic is `L <= Time(A) - Time(B) <= U`, where `Time[STNPlanNode]`
+        is the time in which the `STNPlanNode` happen. `L` or `U` can be `None`,
+        this means that the lower/upper bound is not set.
         """
         upper_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Fraction] = {}
         lower_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Fraction] = {}
@@ -346,7 +378,7 @@ class STNPlan(plans.plan.Plan):
                     if not l_node in nodes_to_remove:
                         new_stn.add(r_node, l_node, bound)
 
-        return STNPlan(constraints={}, _stn=new_stn)
+        return STNPlan(constraints={}, environment=self._environment, _stn=new_stn)
 
     def convert_to(
         self,
