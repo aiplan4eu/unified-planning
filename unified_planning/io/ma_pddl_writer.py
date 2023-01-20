@@ -17,10 +17,8 @@ import os as osy
 from fractions import Fraction
 import sys
 import re
-
 from decimal import Decimal, localcontext
 from warnings import warn
-
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
