@@ -17,6 +17,7 @@ import os as osy
 from fractions import Fraction
 import sys
 import re
+
 from decimal import Decimal, localcontext
 from warnings import warn
 import unified_planning as up
@@ -619,7 +620,6 @@ class MAPDDLWriter:
             self.domain_objects = None
             self.domain_objects_agents = {}
             self.domain_fluents_agents = {}
-
         return ag_domains
 
     def _write_problem(self):
