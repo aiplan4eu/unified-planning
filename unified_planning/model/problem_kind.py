@@ -226,12 +226,14 @@ quality_metrics_kind.set_quality_metrics("FINAL_VALUE")
 oversubscription_kind = ProblemKind()
 oversubscription_kind.set_quality_metrics("OVERSUBSCRIPTION")
 
+
 actions_cost_kind = ProblemKind()
 actions_cost_kind.set_quality_metrics("ACTIONS_COST")
 
 multi_agent_kind = ProblemKind()
 multi_agent_kind.set_problem_class("ACTION_BASED_MULTI_AGENT")
 multi_agent_kind.set_typing("FLAT_TYPING")
+
 multi_agent_kind.set_typing("HIERARCHICAL_TYPING")
 multi_agent_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
 multi_agent_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
