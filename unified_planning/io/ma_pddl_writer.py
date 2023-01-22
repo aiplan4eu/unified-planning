@@ -614,6 +614,7 @@ class MAPDDLWriter:
                 else:
                     raise NotImplementedError
             out.write(")\n")
+
             ag_domains[self._get_mangled_name(ag)] = out.getvalue()
             out.close()
             self.domain_objects = None
