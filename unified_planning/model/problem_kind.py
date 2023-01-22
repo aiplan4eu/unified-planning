@@ -245,4 +245,3 @@ multi_agent_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 multi_agent_kind.set_effects_kind("CONDITIONAL_EFFECTS")
 multi_agent_kind.set_fluents_type("NUMERIC_FLUENTS")
 multi_agent_kind.set_fluents_type("OBJECT_FLUENTS")
-
