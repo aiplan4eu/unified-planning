@@ -143,7 +143,6 @@ class PartialOrderPlan(plans.plan.Plan):
             "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
         ] = {}
 
-
         # Populate the new adjacency list with the replaced action instances
 
         for ai in self._graph.nodes:
