@@ -276,6 +276,13 @@ class TestProtobufIO(TestCase):
 
                 self.assertEqual(validation_result, validation_result_up)
 
+    def test_temporal_hierarchical_goal(self):
+        problem = self.problems["htn-go-temporal"].problem
+        problem_pb = self.pb_writer.convert(problem)
+        problem_up = self.pb_reader.convert(problem_pb)
+
+        self.assertEqual(problem, problem_up)
+
 
 class TestProtobufProblems(TestCase):
     @skipIfModuleNotInstalled("google.protobuf")
