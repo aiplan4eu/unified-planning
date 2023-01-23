@@ -175,12 +175,15 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(symbol=fn),
             kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
         )
+        dl_exp = proto.Expression(
+            atom=proto.Atom(int=timing.delay),
+            kind=proto.ExpressionKind.Value("CONSTANT"),
+        )
         tp_exp = proto.Expression(
-            list=[fn_exp] + args,
+            list=[fn_exp, dl_exp] + args,
             type="up:time",
             kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
         )
-        assert timing.delay == 0
         return tp_exp
 
     def walk_fluent_exp(
