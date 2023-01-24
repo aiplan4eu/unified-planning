@@ -110,14 +110,14 @@ def get_example_problems():
     htn_temporal.set_initial_value(connected(l3, l2), True)
     htn_temporal.set_initial_value(connected(l2, l1), True)
 
-    move = DurativeAction("move", l_from=Location, l_to=Location)
-    l_from = move.parameter("l_from")
-    l_to = move.parameter("l_to")
-    move.add_condition(StartTiming(), Equals(loc, l_from))
-    move.add_condition(overall, connected(l_from, l_to))
-    move.add_effect(EndTiming(), loc, l_to)
-    move.set_fixed_duration(10)
-    htn_temporal.add_action(move)
+    durative_move = DurativeAction("durative_move", l_from=Location, l_to=Location)
+    l_from = durative_move.parameter("l_from")
+    l_to = durative_move.parameter("l_to")
+    durative_move.add_condition(StartTiming(), Equals(loc, l_from))
+    durative_move.add_condition(overall, connected(l_from, l_to))
+    durative_move.add_effect(EndTiming(), loc, l_to)
+    durative_move.set_fixed_duration(10)
+    htn_temporal.add_action(durative_move)
     go = htn_temporal.add_task("go", target=Location)
 
     go_noop = Method("go-noop", target=Location)
@@ -135,7 +135,7 @@ def get_example_problems():
     target = go_recursive.parameter("target")
     go_recursive.add_precondition(Equals(loc, source))
     go_recursive.add_precondition(connected(source, inter))
-    t1 = go_recursive.add_subtask(move, source, inter)
+    t1 = go_recursive.add_subtask(durative_move, source, inter)
     t2 = go_recursive.add_subtask(go, target)
     go_recursive.set_ordered(t1, t2)
     htn_temporal.add_method(go_recursive)
@@ -156,27 +156,27 @@ def get_example_problems():
         [
             (
                 Fraction(0, 100),
-                up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                up.plans.ActionInstance(durative_move, (ObjectExp(l1), ObjectExp(l2))),
                 Fraction(1, 1),
             ),
             (
                 Fraction(101, 100),
-                up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3))),
+                up.plans.ActionInstance(durative_move, (ObjectExp(l2), ObjectExp(l3))),
                 Fraction(1, 1),
             ),
             (
                 Fraction(202, 100),
-                up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
+                up.plans.ActionInstance(durative_move, (ObjectExp(l3), ObjectExp(l4))),
                 Fraction(1, 1),
             ),
             (
                 Fraction(303, 100),
-                up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l3))),
+                up.plans.ActionInstance(durative_move, (ObjectExp(l4), ObjectExp(l3))),
                 Fraction(1, 1),
             ),
             (
                 Fraction(404, 100),
-                up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l2))),
+                up.plans.ActionInstance(durative_move, (ObjectExp(l3), ObjectExp(l2))),
                 Fraction(1, 1),
             ),
         ]
