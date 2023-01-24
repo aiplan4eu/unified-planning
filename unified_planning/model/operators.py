@@ -44,6 +44,11 @@ class OperatorKind(Enum):
     LE = auto()
     LT = auto()
     EQUALS = auto()
+    ALWAYS = auto()
+    SOMETIME = auto()
+    SOMETIME_BEFORE = auto()
+    SOMETIME_AFTER = auto()
+    AT_MOST_ONCE = auto()
     DOT = auto()
 
 
@@ -69,4 +74,14 @@ RELATIONS = frozenset((OperatorKind.EQUALS,)) | IRA_RELATIONS
 
 IRA_OPERATORS = frozenset(
     [OperatorKind.PLUS, OperatorKind.MINUS, OperatorKind.TIMES, OperatorKind.DIV]
+)
+
+TRAJECTORY_CONSTRAINTS = frozenset(
+    [
+        OperatorKind.ALWAYS,
+        OperatorKind.SOMETIME,
+        OperatorKind.SOMETIME_BEFORE,
+        OperatorKind.SOMETIME_AFTER,
+        OperatorKind.AT_MOST_ONCE,
+    ]
 )

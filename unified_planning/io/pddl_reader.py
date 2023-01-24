@@ -88,7 +88,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :contingent"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
                 )
             )
             + Suppress(")")
@@ -277,6 +277,12 @@ class PDDLGrammar:
                 + nested_expr().setResultsName("goal")
                 + Suppress(")")
             )
+            + Optional(
+                Suppress("(")
+                + ":constraints"
+                + nested_expr().setResultsName("constraints")
+                + Suppress(")")
+            )
             + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
             + Suppress(")")
         )
@@ -325,6 +331,13 @@ class PDDLReader:
             "/": self._em.Div,
             "*": self._em.Times,
         }
+        self._trajectory_constraints: Dict[str, Callable] = {
+            "always": self._em.Always,
+            "sometime": self._em.Sometime,
+            "sometime-before": self._em.SometimeBefore,
+            "sometime-after": self._em.SometimeAfter,
+            "at-most-once": self._em.AtMostOnce,
+        }
         grammar = PDDLGrammar()
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
@@ -356,6 +369,11 @@ class PDDLReader:
                         self._em.Exists if exp[0] == "exists" else self._em.Forall
                     )
                     solved.append(q_op(solved.pop(), *var.values()))
+                elif (
+                    exp[0] in self._trajectory_constraints
+                ):  # trajectory_constraints reference
+                    t_op: Callable = self._trajectory_constraints[exp[0]]
+                    solved.append(t_op(*[solved.pop() for _ in exp[1:]]))
                 elif problem.has_fluent(exp[0]):  # fluent reference
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
@@ -390,6 +408,12 @@ class PDDLReader:
                         all_vars = var.copy()
                         all_vars.update(new_vars)
                         stack.append((all_vars, exp[2], False))
+                    elif (
+                        exp[0] in self._trajectory_constraints
+                    ):  # trajectory_constraints reference
+                        stack.append((var, exp, True))
+                        for e in exp[1:]:
+                            stack.append((var, e, False))
                     elif problem.has_fluent(exp[0]):  # fluent reference
                         stack.append((var, exp, True))
                         for e in exp[1:]:
@@ -1168,10 +1192,16 @@ class PDDLReader:
             elif not isinstance(problem, htn.HierarchicalProblem):
                 raise SyntaxError("Missing goal section in problem file.")
 
+            if "constraints" in problem_res:
+                problem.add_trajectory_constraint(
+                    self._parse_exp(
+                        problem, None, types_map, {}, problem_res["constraints"][0]
+                    )
+                )
+
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(
                 problem
             )
-
             optimization = problem_res.get("optimization", None)
             metric = problem_res.get("metric", None)
 

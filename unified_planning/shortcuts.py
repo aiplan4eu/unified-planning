@@ -166,6 +166,61 @@ def FluentExp(
     return get_env().expression_manager.FluentExp(fluent, params)
 
 
+def Always(expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Always(a)`
+    Restriction: expression must be of `boolean type` and with only one arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Always` expression.
+    """
+    return get_env().expression_manager.Always(expression)
+
+
+def Sometime(expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Sometime(a)`
+    Restriction: expression must be of `boolean type` and with only one arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Sometime` expression.
+    """
+    return get_env().expression_manager.Sometime(expression)
+
+
+def SometimeBefore(*expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Sometime-Before(a, b)`
+    Restriction: expression must be of `boolean type` and with only one args
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Sometime` expression.
+    """
+    return get_env().expression_manager.SometimeBefore(*expression)
+
+
+def SometimeAfter(*expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Sometime-After(a, b)`
+    Restriction: expression must be of `boolean type` and with only two arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Sometime-After(a, b)` expression.
+    """
+    return get_env().expression_manager.SometimeAfter(*expression)
+
+
+def AtMostOnce(expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `At-Most-Once(a, b)`
+    Restriction: expression must be of `boolean type` and with only two arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `At-Most-Once(a, b)` expression.
+    """
+    return get_env().expression_manager.AtMostOnce(expression)
+
+
 def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
     """
     Returns an expression for the given :func:`Action parameter <unified_planning.model.Action.parameters>`.

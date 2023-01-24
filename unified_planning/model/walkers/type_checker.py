@@ -84,6 +84,71 @@ class TypeChecker(walkers.dag.DagWalker):
         assert len(args) == 0
         return expression.parameter().type
 
+    def walk_always(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression is not None
+        assert expression.is_always()
+        assert len(expression.args) == 1
+        if args[0] is None or not args[0].is_bool_type():
+            return None
+        return args[0]
+
+    def walk_sometime(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression is not None
+        assert expression.is_sometime()
+        assert len(expression.args) == 1
+        if args[0] is None or not args[0].is_bool_type():
+            return None
+        return args[0]
+
+    def walk_at_most_once(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression is not None
+        assert expression.is_at_most_once()
+        assert len(expression.args) == 1
+        if args[0] is None or not args[0].is_bool_type():
+            return None
+        return args[0]
+
+    def walk_sometime_before(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression is not None
+        assert expression.is_sometime_before()
+        assert len(expression.args) == 2
+        if (
+            args[0] is None
+            or args[1] is None
+            or not args[0].is_bool_type()
+            or not args[1].is_bool_type()
+            or args[0] != args[1]
+        ):
+            return None
+        else:
+            return args[0]
+
+    def walk_sometime_after(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression is not None
+        assert expression.is_sometime_after()
+        assert len(expression.args) == 2
+        assert expression.args[0].type == expression.args[1].type
+        if (
+            args[0] is None
+            or args[1] is None
+            or not args[0].is_bool_type()
+            or not args[1].is_bool_type()
+            or args[0] != args[1]
+        ):
+            return None
+        else:
+            return args[0]
+
     def walk_variable_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> "unified_planning.model.types.Type":
