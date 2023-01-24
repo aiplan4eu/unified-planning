@@ -570,32 +570,30 @@ class Problem(
         """
         Adds the given `trajectory_constraint` to the `Problem`;
         a trajectory_constraint is an expression defined as:
-            Always, Sometime, At-Most-Once, Sometime-Before, Sometime-After or
-            defined with quantifiers.
+        Always, Sometime, At-Most-Once, Sometime-Before, Sometime-After or
+        defined with universal quantifiers.
+        Nesting of these temporal operators is forbidden.
 
         :param trajectory_constraint: The expression added to the `Problem`.
         """
-        if constraint.is_and():
+        if constraint.is_and() or constraint.is_forall():
             for arg in constraint.args:
                 assert (
-                    arg.is_forall()
-                    or arg.is_sometime()
+                    arg.is_sometime()
                     or arg.is_sometime_after()
                     or arg.is_sometime_before()
                     or arg.is_at_most_once()
                     or arg.is_always()
-                )
+                ), "trajectory constraint not in the correct form"
         else:
             assert (
-                constraint.is_forall()
-                or constraint.is_sometime()
+                constraint.is_sometime()
                 or constraint.is_sometime_after()
                 or constraint.is_sometime_before()
                 or constraint.is_at_most_once()
                 or constraint.is_always()
-            )
-        (constraint_exp,) = self._env.expression_manager.auto_promote(constraint)
-        self._trajectory_constraints.append(constraint_exp.simplify())
+            ), "trajectory constraint not in the correct form"
+        self._trajectory_constraints.append(constraint.simplify())
 
     @property
     def goals(self) -> List["up.model.fnode.FNode"]:

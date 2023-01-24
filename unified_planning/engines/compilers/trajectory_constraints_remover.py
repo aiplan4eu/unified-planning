@@ -27,7 +27,7 @@ from functools import partial
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
 )
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 
 NUM = "num"
@@ -67,6 +67,15 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.TRAJECTORY_CONSTRAINTS_REMOVING
+
+    @staticmethod
+    def resulting_problem_kind(
+        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
+    ) -> ProblemKind:
+        new_kind = ProblemKind(problem_kind.features)
+        if new_kind.has_trajectory_constraints():
+            new_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+        return new_kind
 
     @staticmethod
     def supported_kind() -> ProblemKind:
@@ -123,9 +132,13 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         problem.name = f"{self.name}_{problem.name}"
         A = problem.actions
         I = problem.initial_values
-        C = self._build_constraint_list(
-            expression_quantifier_remover, env, problem.trajectory_constraints, problem
-        )
+        C = []
+        for c in problem.trajectory_constraints:
+            new_c = expression_quantifier_remover.remove_quantifiers(c, problem)
+            if new_c.is_and():
+                C.extend(new_c.args)
+            else:
+                C.append(new_c)
         # create a list that contains trajectory_constraints
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
@@ -196,31 +209,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             problem, partial(lift_action_instance, map=trace_back_map), self.name
         )
 
-    def _build_constraint_list(
-        self, expression_quantifier_remover, env, constraints, problem
-    ):
-        C_temp = (env.expression_manager.And(constraints)).simplify()
-        C_list = C_temp.args if C_temp.is_and() else [C_temp]
-        C_to_return = (
-            env.expression_manager.And(
-                self._remove_quantifier(expression_quantifier_remover, C_list, problem)
-            )
-        ).simplify()
-        return C_to_return.args if C_to_return.is_and() else [C_to_return]
-
-    def _remove_quantifier(self, expression_quantifier_remover, C, problem):
-        new_C = []
-        for c in C:
-            assert c.node_type is not OperatorKind.EXISTS
-            new_C.append(expression_quantifier_remover.remove_quantifiers(c, problem))
-        return new_C
-
     def _manage_sa_compilation(self, env, phi, psi, m_atom, a, E):
         R1 = (self._regression(env, phi, a)).simplify()
         R2 = (self._regression(env, psi, a)).simplify()
         if phi != R1 or psi != R2:
             cond = (
-                env.expression_manager.And([R1, env.expression_manager.Not(R2)])
+                env.expression_manager.And(R1, env.expression_manager.Not(R2))
             ).simplify()
             self._add_cond_eff(env, E, cond, env.expression_manager.Not(m_atom))
         if psi != R2:
