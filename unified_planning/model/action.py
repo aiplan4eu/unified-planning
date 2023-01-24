@@ -246,12 +246,6 @@ class InstantaneousAction(Action):
         """
         (precondition_exp,) = self._env.expression_manager.auto_promote(precondition)
         assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
-        opex = up.model.walkers.OperatorsExtractor()
-        ops = opex.get(precondition_exp)
-        if ops & set(up.model.operators.TRAJECTORY_CONSTRAINTS):
-            raise UPTypeError(
-                f"Trajectory constraint {precondition_exp} is not allowed in action preconditions."
-            )
         if precondition_exp == self._env.expression_manager.TRUE():
             return
         free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)
