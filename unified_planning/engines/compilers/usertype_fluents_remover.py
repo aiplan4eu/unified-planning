@@ -23,7 +23,7 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPConflictingEffectsException,
 )
-from unified_planning.model import Problem, ProblemKind, Fluent, Parameter
+from unified_planning.model import Problem, ProblemKind, Fluent, Parameter, Action
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     check_and_simplify_preconditions,
@@ -132,7 +132,7 @@ class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         simplifier = env.simplifier
         tm = env.type_manager
 
-        new_to_old = {}
+        new_to_old: Dict[Action, Action] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"

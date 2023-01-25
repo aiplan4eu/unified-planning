@@ -13,22 +13,19 @@
 # limitations under the License.
 #
 
-from fractions import Fraction
-from collections import OrderedDict
-from functools import reduce
-from typing import Dict, List, Optional, Set, Tuple, Union
+
+from typing import Dict, Iterable, List, Optional, Set, Tuple, cast
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
-from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.model.fnode import FNode
 from unified_planning.model.fluent import Fluent
 from unified_planning.model.variable import Variable
-from unified_planning.model.types import Type
+from unified_planning.model.types import Type, _UserType
 import unified_planning.model.operators as op
 
 
-class UsertypeFluentsWalker(IdentityDagWalker):
+class UsertypeFluentsWalker(walkers.dag.DagWalker):
     """
     TODO
     """
@@ -36,12 +33,14 @@ class UsertypeFluentsWalker(IdentityDagWalker):
     def __init__(
         self,
         new_fluents: Dict[Fluent, Fluent],
+        defined_names: Iterable[str],
         env: "unified_planning.environment.Environment",
     ):
         walkers.dag.DagWalker.__init__(self)
         self._new_fluents = new_fluents
         self.env = env
         self.manager = env.expression_manager
+        self._defined_names: Set[str] = set(defined_names)
 
     def remove_usertype_fluents(
         self, expression: FNode
@@ -58,38 +57,34 @@ class UsertypeFluentsWalker(IdentityDagWalker):
         """
         return self.walk(expression)
 
-    # TODO handle conflicting variable names
+    def _get_fresh_name(self, basename: str) -> str:
+        name, counter = basename, 0
+        while name in self._defined_names:
+            name = f"{basename}_{counter}"
+            counter += 1
+        self._defined_names.add(name)
+        return name
 
     def _process_exp_args(
         self,
         args: List[Tuple[FNode, Set[Variable], Set[FNode]]],
-        types: Optional[List[Type]] = None,
     ) -> Tuple[List[FNode], Set[Variable], Set[FNode]]:
         """
         This method takes the args given as parameters to a walker method (walk_and
-        for example) and a List of expected types (the default is everything boolean)
-        and returns the resulting expressions, the set of free Variables and the set
-        of FluentExp that are instantiated over the free Variables.
+        for example) and returns the resulting expressions, the set of free Variables
+        and the set of FluentExp that are instantiated over the free Variables.
 
-        If the type expected is boolean and there are free variables, those are bounded
+        If the arg type is boolean and there are free variables, those are bounded
         to the boolean expression using an And with their instantiated FluentExp and
         returning the And created under an Exists.
 
         :param args: The args given as parameters to a walker method.
-        :param types: The List of expected Types, defaults to all BoolType.
         :return: The computed expressions, the Variables that are still free in the
             computed expressions and the FluentExp that use the free Variables
         """
-        if types is None:
-            types_list = [self.env.type_manager.BoolType() for _ in args]
-        else:
-            types_list = types
         exp_args = []
-        variables = set()
-        fluents = set()
-        assert len(args) == len(types_list)
-        # TODO understand if the types parameter can be removed, for now it is ignored
-        # for (arg, free_vars, ut_fluents), arg_type in zip(args, types_list):
+        variables: Set[Variable] = set()
+        fluents: Set[FNode] = set()
         for arg, free_vars, ut_fluents in args:
             arg_type = arg.type
             if free_vars and arg_type.is_bool_type():
@@ -101,8 +96,6 @@ class UsertypeFluentsWalker(IdentityDagWalker):
                 variables.union(free_vars)
                 fluents.union(ut_fluents)
                 exp_args.append(arg)
-        # check that if types is None there are no variables and fluents
-        assert (not variables and not fluents) or types is not None
         return (exp_args, variables, fluents)
 
     def walk_and(
@@ -147,7 +140,7 @@ class UsertypeFluentsWalker(IdentityDagWalker):
         assert not any(
             v in added_vars for v in expression.variables()
         ), "Conflicting Variables naming"
-        return (self.manager.Exists(*exp_args, *expression.variables()), set(), set())
+        return (self.manager.Exists(exp_args[0], *expression.variables()), set(), set())
 
     def walk_forall(
         self, expression: FNode, args: List[Tuple[FNode, Set[Variable], Set[FNode]]]
@@ -158,7 +151,7 @@ class UsertypeFluentsWalker(IdentityDagWalker):
         assert not any(
             v in added_vars for v in expression.variables()
         ), "Conflicting Variables naming"
-        return (self.manager.Forall(*exp_args, *expression.variables()), set(), set())
+        return (self.manager.Forall(exp_args[0], *expression.variables()), set(), set())
 
     def walk_equals(
         self, expression: FNode, args: List[Tuple[FNode, Set[Variable], Set[FNode]]]
@@ -234,33 +227,16 @@ class UsertypeFluentsWalker(IdentityDagWalker):
     def walk_fluent_exp(
         self, expression: FNode, args: List[Tuple[FNode, Set[Variable], Set[FNode]]]
     ) -> Tuple[FNode, Set[Variable], Set[FNode]]:
-        exp_args, variables, fluents = self._process_exp_args(
-            args, types=[p.type for p in expression.fluent().signature]
-        )
+        exp_args, variables, fluents = self._process_exp_args(args)
         new_fluent = self._new_fluents.get(expression.fluent(), None)
-        if new_fluent is not None and not variables:
-            name = "new_name"  # TODO find a way to name without conflicts
-            new_var = Variable(name, expression.fluent().type, self.env)
-            return (
-                self.manager.VariableExp(new_var),
-                {new_var},
-                {self.manager.FluentExp(new_fluent, *exp_args)},
-            )
-        elif (
-            new_fluent is not None
-        ):  # and variables, meaning there are nested usertype_fluents
-            var_type = expression.fluent().type
-            basename, counter = (
-                "new_name",
-                0,
-            )  # TODO find a way to name without conflicts
-            new_var = Variable(basename, var_type, self.env)
-            while new_var in variables:
-                name = f"{basename}_{counter}"
-                counter += 1
-                new_var = Variable(name, var_type, self.env)
+        if new_fluent is not None:
+            v_type = cast(_UserType, expression.fluent().type)
+            assert v_type.is_user_type()
+            fresh_name = self._get_fresh_name(f"{new_fluent.name}_{v_type.name}")
+            new_var = Variable(fresh_name, v_type, self.env)
+            exp_args.append(self.manager.VariableExp(new_var))
             variables.add(new_var)
-            fluents.add({self.manager.FluentExp(new_fluent, *exp_args, new_var)})
+            fluents.add(self.manager.FluentExp(new_fluent, exp_args))
             return (self.manager.VariableExp(new_var), variables, fluents)
         else:
             return (
