@@ -160,6 +160,10 @@ class FluentsSetMixin:
 
         return fluent
 
+    def clear_fluents(self):
+        # TODO doc
+        self._fluents = []
+
     @property
     def fluents_defaults(
         self,
