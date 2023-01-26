@@ -15,6 +15,7 @@
 
 from typing import cast
 from unified_planning.shortcuts import *
+from unified_planning.model import DurativeAction
 from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import ANMLReader
@@ -49,7 +50,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.goals), 1)
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
-        a = problem.action("a")
+        a = cast(DurativeAction, problem.action("a"))
         self.assertEqual(a.duration, FixedDuration(em.Int(6)))
         self.assertEqual(len(a.conditions), 0)
         for timing, effect_list in a.effects.items():
@@ -80,7 +81,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        light_match = problem.action("light_match")
+        light_match = cast(DurativeAction, problem.action("light_match"))
         self.assertEqual(light_match.duration, FixedDuration(em.Int(6)))
         for interval, cond_list in light_match.conditions.items():
             self.assertEqual(interval, self.start_interval)
@@ -93,7 +94,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        mend_fuse = problem.action("mend_fuse")
+        mend_fuse = cast(DurativeAction, problem.action("mend_fuse"))
         self.assertEqual(mend_fuse.duration, FixedDuration(em.Int(5)))
         for interval, cond_list in mend_fuse.conditions.items():
             if interval in (self.start_interval, self.all_interval):
@@ -128,7 +129,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        move = problem.action("move")
+        move = cast(DurativeAction, problem.action("move"))
         for interval, cond_list in move.conditions.items():
             self.assertEqual(interval, self.start_interval)
             self.assertEqual(len(cond_list), 2)
@@ -161,7 +162,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        move = problem.action("move")
+        move = cast(DurativeAction, problem.action("move"))
         self.assertEqual(move.duration, FixedDuration(em.Int(4)))
         for interval, cond_list in move.conditions.items():
             self.assertEqual(interval, self.start_interval)
@@ -195,7 +196,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 1)
         self.assertEqual(len(problem.timed_effects), 1)
 
-        a = problem.action("a")
+        a = cast(DurativeAction, problem.action("a"))
         self.assertEqual(a.duration, FixedDuration(em.Int(1)))
         for interval, cond_list in a.conditions.items():
             self.assertEqual(interval, self.all_interval)
@@ -227,7 +228,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        visit = problem.action("visit")
+        visit = cast(DurativeAction, problem.action("visit"))
         to_visit = visit.parameter("to_visit")
         Location = problem.user_type("Location")
         precedes = problem.fluent("precedes")
@@ -285,7 +286,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 1)
 
-        a = problem.action("a")
+        a = cast(DurativeAction, problem.action("a"))
         self.assertEqual(
             a.duration,
             FixedDuration(em.Int(6)),
@@ -320,7 +321,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        move = problem.action("move")
+        move = cast(DurativeAction, problem.action("move"))
         distance_fluent = problem.fluent("distance")
         from_parameter = move.parameter("from")
         destination_parameter = move.parameter("destination")
@@ -360,7 +361,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        light_match = problem.action("light_match")
+        light_match = cast(DurativeAction, problem.action("light_match"))
         self.assertEqual(light_match.duration, FixedDuration(em.Int(5)))
         for interval, cond_list in light_match.conditions.items():
             self.assertEqual(interval, self.start_interval)
@@ -373,7 +374,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        mend_fuse = problem.action("mend_fuse")
+        mend_fuse = cast(DurativeAction, problem.action("mend_fuse"))
         self.assertEqual(
             mend_fuse.duration, RightOpenDurationInterval(em.Int(3), em.Int(5))
         )
@@ -411,7 +412,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        light_match = problem.action("action_LIGHT_MATCH")
+        light_match = cast(DurativeAction, problem.action("action_LIGHT_MATCH"))
         self.assertEqual(light_match.duration, FixedDuration(em.Real(Fraction(5))))
         for interval, cond_list in light_match.conditions.items():
             self.assertEqual(interval, self.start_interval)
@@ -424,7 +425,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        mend_fuse = problem.action("action_MEND_FUSE")
+        mend_fuse = cast(DurativeAction, problem.action("action_MEND_FUSE"))
         self.assertEqual(mend_fuse.duration, FixedDuration(em.Real(Fraction(2))))
         start_plus_one = StartTiming(1)
         for interval, cond_list in mend_fuse.conditions.items():
@@ -469,7 +470,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 0)
 
-        recipe = problem.action("recipe")
+        recipe = cast(DurativeAction, problem.action("recipe"))
         self.assertEqual(recipe.duration, FixedDuration(em.Int(160)))
         possible_delays = [
             10,
@@ -509,7 +510,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        prepare_bar = problem.action("prepare_bar")
+        prepare_bar = cast(DurativeAction, problem.action("prepare_bar"))
         self.assertEqual(prepare_bar.duration, FixedDuration(em.Int(6)))
         for interval, cond_list in prepare_bar.conditions.items():
             if interval == self.start_interval:
@@ -522,7 +523,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        finish_bar = problem.action("finish_bar")
+        finish_bar = cast(DurativeAction, problem.action("finish_bar"))
         self.assertEqual(finish_bar.duration, FixedDuration(em.Int(6)))
         for interval, cond_list in finish_bar.conditions.items():
             if interval == self.start_interval:
@@ -535,7 +536,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        load = problem.action("load")
+        load = cast(DurativeAction, problem.action("load"))
         self.assertEqual(load.duration, FixedDuration(em.Int(1)))
         for interval, cond_list in load.conditions.items():
             if interval == self.start_interval:
@@ -548,7 +549,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        unload = problem.action("unload")
+        unload = cast(DurativeAction, problem.action("unload"))
         self.assertEqual(unload.duration, FixedDuration(em.Int(1)))
         for interval, cond_list in unload.conditions.items():
             if interval == self.start_interval:
@@ -561,7 +562,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertTrue(False)
 
-        move_hoist = problem.action("move_hoist")
+        move_hoist = cast(DurativeAction, problem.action("move_hoist"))
         self.assertEqual(move_hoist.duration, FixedDuration(em.Int(1)))
         for interval, cond_list in move_hoist.conditions.items():
             if interval == self.start_interval:
@@ -595,7 +596,7 @@ class TestANMLReader(TestCase):
         self.assertEqual(len(problem.timed_goals), 0)
         self.assertEqual(len(problem.timed_effects), 2)
 
-        a = problem.action("a")
+        a = cast(DurativeAction, problem.action("a"))
         self.assertEqual(a.duration, FixedDuration(em.Int(1)))
         for interval, cond_list in a.conditions.items():
             self.assertEqual(interval, self.all_interval)
@@ -634,7 +635,7 @@ class TestANMLReader(TestCase):
             else:
                 self.assertEqual(len(list(problem.objects(ut))), 3)
 
-        move = problem.action("move")
+        move = cast(DurativeAction, problem.action("move"))
         self.assertEqual(move.duration, FixedDuration(em.Int(0)))
         for interval, cond_list in move.conditions.items():
             self.assertEqual(interval, self.start_interval)
