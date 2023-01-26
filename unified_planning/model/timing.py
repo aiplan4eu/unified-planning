@@ -18,7 +18,7 @@ from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
 from enum import Enum, auto
 from fractions import Fraction
-from typing import Union, Optional
+from typing import Set, Union, Optional
 
 
 class TimepointKind(Enum):
@@ -302,6 +302,13 @@ class Interval:
     def is_right_open(self) -> bool:
         """Returns `True` if the `upper` bound of this `Interval` is not included in the `Interval`, `False` otherwise."""
         return self._is_right_open
+
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this Interval."""
+        contained_names: Set[str] = set()
+        contained_names.update(self._lower.get_contained_names())
+        contained_names.update(self._upper.get_contained_names())
+        return contained_names
 
 
 class Duration:

@@ -28,3 +28,5 @@ from unified_planning.model.walkers.substituter import Substituter
 from unified_planning.model.walkers.type_checker import TypeChecker
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
 from unified_planning.model.walkers.any import AnyChecker
+from unified_planning.model.walkers.usertype_fluents_walker import UsertypeFluentsWalker
+from unified_planning.model.walkers.names_extractor import NamesExtractor

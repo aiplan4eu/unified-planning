@@ -109,6 +109,10 @@ class Action:
         """Returns `True` if the `Action` has `conditional effects`, `False` otherwise."""
         raise NotImplementedError
 
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this Action."""
+        raise NotImplementedError
+
 
 class InstantaneousAction(Action):
     """Represents an instantaneous action."""
@@ -417,6 +421,18 @@ class InstantaneousAction(Action):
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
         self._preconditions = preconditions
 
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this InstantaneousAction."""
+        contained_names: Set[str] = {self._name}
+        contained_names.update(self._parameters)
+        for p in self._preconditions:
+            contained_names.update(p.get_contained_names())
+        for e in self._effects:
+            contained_names.update(e.get_contained_names())
+        if self._simulated_effect is not None:
+            contained_names.update(self._simulated_effect.get_contained_names())
+        return contained_names
+
 
 class DurativeAction(Action, TimedCondsEffs):
     """Represents a durative action."""
@@ -623,6 +639,21 @@ class DurativeAction(Action, TimedCondsEffs):
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
 
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this DurativeAction."""
+        contained_names: Set[str] = {self._name}
+        contained_names.update(self._parameters)
+        contained_names.update(self._duration.get_contained_names())
+        for cl in self._conditions.values():
+            for c in cl:
+                contained_names.update(c.get_contained_names())
+        for el in self._effects.values():
+            for e in el:
+                contained_names.update(e.get_contained_names())
+        for simulated_effect in self._simulated_effects.values():
+            contained_names.update(simulated_effect.get_contained_names())
+        return contained_names
+
 
 class SensingAction(InstantaneousAction):
     """This class represents a sensing action."""
@@ -695,3 +726,10 @@ class SensingAction(InstantaneousAction):
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
+
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this SensingAction."""
+        contained_names: Set[str] = InstantaneousAction.get_contained_names(self)
+        for f in self._observed_fluents:
+            contained_names.update(f.get_contained_names())
+        return contained_names

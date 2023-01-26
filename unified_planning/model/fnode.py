@@ -19,7 +19,7 @@ import unified_planning.model.fluent
 import collections
 from unified_planning.environment import Environment
 from unified_planning.model.operators import OperatorKind
-from typing import List, Optional, Union
+from typing import List, Optional, Set, Union
 from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "payload"])
@@ -152,6 +152,10 @@ class FNode(object):
     def type(self) -> "unified_planning.model.Type":
         """Returns the `Type` of this expression."""
         return self._env.type_checker.get_type(self)
+
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this expression."""
+        return self._env.names_extractor.extract_names(self)
 
     def arg(self, idx: int) -> "FNode":
         """

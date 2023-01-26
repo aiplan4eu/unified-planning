@@ -21,7 +21,7 @@ A `condition` can be added to make it a `conditional effect`.
 
 import unified_planning as up
 from enum import Enum, auto
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Set
 
 
 class EffectKind(Enum):
@@ -159,6 +159,14 @@ class Effect:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `decrease`, `False` otherwise."""
         return self._kind == EffectKind.DECREASE
 
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this Effect."""
+        contained_names: Set[str] = set()
+        contained_names.update(self._fluent.get_contained_names())
+        contained_names.update(self._value.get_contained_names())
+        contained_names.update(self._condition.get_contained_names())
+        return contained_names
+
 
 class SimulatedEffect:
     """
@@ -229,3 +237,10 @@ class SimulatedEffect:
         are modified when this `simulated effect` is applied.
         """
         return self._function
+
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this SimulatedEffect."""
+        contained_names: Set[str] = set()
+        for f in self._fluents:
+            contained_names.update(f.get_contained_names())
+        return contained_names

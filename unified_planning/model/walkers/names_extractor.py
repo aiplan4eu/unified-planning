@@ -30,11 +30,8 @@ class NamesExtractor(walkers.dag.DagWalker):
 
     def __init__(
         self,
-        env: "unified_planning.environment.Environment",
     ):
         walkers.dag.DagWalker.__init__(self)
-        self.env = env
-        self._defined_names: Set[str] = set()
 
     def extract_names(self, expression: FNode) -> Set[str]:
         """
@@ -47,31 +44,33 @@ class NamesExtractor(walkers.dag.DagWalker):
         :param expression: The target expression that must be simplified with constant propagation.
         :return: The simplified expression.
         """
-        return self.walk(expression).copy()
+        return self.walk(expression)
 
-    def _args_union(self, args: List[Set[str]], base: Set[str]) -> Set[str]:
-        return reduce(lambda x, y: x.union(y), args, base)
+    def _args_merge_in_place(self, args: List[Set[str]], base: Set[str]) -> Set[str]:
+        for a in args:
+            base.update(a)
+        return base
 
     @walkers.handles(op.OperatorKind.EXISTS, op.OperatorKind.FORALL)
     def walk_quantifier(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
         assert len(args) == 1
         vars_names = set((v.name for v in expression.variables()))
-        return self._args_union(args, vars_names)
+        return self._args_merge_in_place(args, vars_names)
 
     def walk_fluent_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
-        return self._args_union(args, {expression.fluent().name})
+        return self._args_merge_in_place(args, {expression.fluent().name})
 
     def walk_param_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
-        return self._args_union(args, {expression.parameter().name})
+        return self._args_merge_in_place(args, {expression.parameter().name})
 
     def walk_variable_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
-        return self._args_union(args, {expression.variable().name})
+        return self._args_merge_in_place(args, {expression.variable().name})
 
     def walk_object_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
-        return self._args_union(args, {expression.object().name})
+        return self._args_merge_in_place(args, {expression.object().name})
 
     def walk_dot(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
-        return self._args_union(args, {expression.agent().name})
+        return self._args_merge_in_place(args, {expression.agent().name})
 
     @walkers.handles(
         op.OperatorKind.AND,
@@ -92,4 +91,4 @@ class NamesExtractor(walkers.dag.DagWalker):
         op.OperatorKind.EQUALS,
     )
     def walk_union(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
-        return self._args_union(args, set())
+        return self._args_merge_in_place(args, set())

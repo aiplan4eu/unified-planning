@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from fractions import Fraction
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Set, Union
 
 
 class PlanQualityMetric:
@@ -27,7 +27,9 @@ class PlanQualityMetric:
     problem goals, but also the problem's quality metric.
     """
 
-    pass
+    def get_contained_names(self) -> Set[str]:
+        """Returns the set containing all the names defined in this QualityMetric."""
+        return set()
 
 
 class MinimizeActionCosts(PlanQualityMetric):
@@ -69,6 +71,14 @@ class MinimizeActionCosts(PlanQualityMetric):
             meaning that `#TODO: add meaning of a None action cost`.
         """
         return self.costs.get(action, self.default)
+
+    def get_contained_names(self) -> Set[str]:
+        """Returns the set containing all the names defined in this QualityMetric."""
+        contained_names: Set[str] = set()
+        for c in self.costs.values():
+            if c is not None:
+                contained_names.update(c.get_contained_names())
+        return contained_names
 
 
 class MinimizeSequentialPlanLength(PlanQualityMetric):

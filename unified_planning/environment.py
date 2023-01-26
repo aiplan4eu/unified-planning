@@ -47,6 +47,7 @@ class Environment:
         self._free_vars_oracle = unified_planning.model.FreeVarsOracle()
         self._simplifier = unified_planning.model.walkers.Simplifier(self)
         self._free_vars_extractor = unified_planning.model.walkers.FreeVarsExtractor()
+        self._names_extractor = unified_planning.model.walkers.NamesExtractor()
         self._credits_stream: Optional[IO[str]] = sys.stdout
         self._error_used_name: bool = True
 
@@ -118,6 +119,10 @@ class Environment:
     def free_vars_extractor(self) -> "unified_planning.model.walkers.FreeVarsExtractor":
         """Returns the environment's `FreeVarsExtractor`."""
         return self._free_vars_extractor
+
+    @property
+    def names_extractor(self) -> "unified_planning.model.walkers.NamesExtractor":
+        return self._names_extractor
 
     @property
     def credits_stream(self) -> "Optional[IO[str]]":
