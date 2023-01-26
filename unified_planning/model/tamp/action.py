@@ -163,7 +163,7 @@ class InstantaneousMotionAction(InstantaneousAction):
     def __repr__(self) -> str:
         b = InstantaneousAction.__repr__(self)[0:-3]
         s = ["motion-", b]
-        s.append("    observations = [\n")
+        s.append("    motion constraints = [\n")
         for e in self._motion_constraints:
             s.append(f"      {str(e)}\n")
         s.append("    ]\n")
