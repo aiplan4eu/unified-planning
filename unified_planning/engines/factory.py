@@ -111,7 +111,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward-reachability-grounder",
     "fast-downward-grounder",
     "up_grounder",
-    "lpg"
+    "lpg",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
