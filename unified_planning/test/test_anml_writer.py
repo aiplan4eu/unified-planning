@@ -21,7 +21,7 @@ import tempfile
 import os
 
 
-class TestPythonWriter(TestCase):
+class TestANMLWriter(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()

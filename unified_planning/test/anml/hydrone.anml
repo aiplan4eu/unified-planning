@@ -1,0 +1,145 @@
+type Location;
+constant integer distance(Location a, Location b);
+
+fluent boolean visited(Location a);
+fluent boolean robot_at(Location x);
+fluent integer [0, 300] battery_charge;
+fluent boolean moving;
+
+action move(Location from, Location destination)
+{
+  duration := distance(from, destination);
+
+  [start] robot_at(from);
+  [start] destination != from;
+  [start] distance(from, destination) > 0;
+  [start] not moving;
+  [start] battery_charge >= distance(from, destination);
+
+  [start] moving := true;
+  [start] robot_at(from) := false;
+  [end] battery_charge := battery_charge - distance(from, destination);
+  [end] robot_at(destination) := true;
+  [end] moving := false;
+  [end] visited(destination) := true;
+};
+
+instance Location start_point, a1, a2, b1, b2, b3, b4, b5, b6;
+
+[start] distance(start_point, b1) := 70;
+[start] distance(start_point, b2) := 2;
+[start] distance(start_point, b3) := 30;
+[start] distance(start_point, b6) := 200;
+[start] distance(start_point, start_point) := -1;
+[start] distance(start_point, a1) := -1;
+[start] distance(start_point, a2) := -1;
+[start] distance(start_point, b4) := -1;
+[start] distance(start_point, b5) := -1;
+
+[start] distance(a1, b4) := 7;
+[start] distance(a1, start_point) := -1;
+[start] distance(a1, a1) := -1;
+[start] distance(a1, a2) := -1;
+[start] distance(a1, b1) := -1;
+[start] distance(a1, b2) := -1;
+[start] distance(a1, b3) := -1;
+[start] distance(a1, b5) := -1;
+[start] distance(a1, b6) := -1;
+
+[start] distance(a2, b6) := 20;
+[start] distance(a2, start_point) := -1;
+[start] distance(a2, a1) := -1;
+[start] distance(a2, a2) := -1;
+[start] distance(a2, b1) := -1;
+[start] distance(a2, b2) := -1;
+[start] distance(a2, b3) := -1;
+[start] distance(a2, b4) := -1;
+[start] distance(a2, b5) := -1;
+
+[start] distance(b1, start_point) := 70;
+[start] distance(b1, b4) := 10;
+[start] distance(b1, b6) := 1;
+[start] distance(b1, a1) := -1;
+[start] distance(b1, a2) := -1;
+[start] distance(b1, b1) := -1;
+[start] distance(b1, b2) := -1;
+[start] distance(b1, b3) := -1;
+[start] distance(b1, b5) := -1;
+
+[start] distance(b2, start_point) := 2;
+[start] distance(b2, b6) := 4;
+[start] distance(b2, a1) := -1;
+[start] distance(b2, a2) := -1;
+[start] distance(b2, b1) := -1;
+[start] distance(b2, b2) := -1;
+[start] distance(b2, b3) := -1;
+[start] distance(b2, b4) := -1;
+[start] distance(b2, b5) := -1;
+
+[start] distance(b3, start_point) := 30;
+[start] distance(b3, b4) := 40;
+[start] distance(b3, a1) := -1;
+[start] distance(b3, a2) := -1;
+[start] distance(b3, b1) := -1;
+[start] distance(b3, b2) := -1;
+[start] distance(b3, b3) := -1;
+[start] distance(b3, b5) := -1;
+[start] distance(b3, b6) := -1;
+
+[start] distance(b4, a1) := 7;
+[start] distance(b4, b1) := 10;
+[start] distance(b4, b3) := 40;
+[start] distance(b4, start_point) := -1;
+[start] distance(b4, a2) := -1;
+[start] distance(b4, b2) := -1;
+[start] distance(b4, b4) := -1;
+[start] distance(b4, b5) := -1;
+[start] distance(b4, b6) := -1;
+
+[start] distance(b5, b6) := 3;
+[start] distance(b5, start_point) := -1;
+[start] distance(b5, a1) := -1;
+[start] distance(b5, a2) := -1;
+[start] distance(b5, b1) := -1;
+[start] distance(b5, b2) := -1;
+[start] distance(b5, b3) := -1;
+[start] distance(b5, b4) := -1;
+[start] distance(b5, b5) := -1;
+
+[start] distance(b6, start_point) := 200;
+[start] distance(b6, a1) := 20;
+[start] distance(b6, b1) := 1;
+[start] distance(b6, b2) := 4;
+[start] distance(b6, b5) := 3;
+[start] distance(b6, start_point) := -1;
+[start] distance(b6, a2) := -1;
+[start] distance(b6, b3) := -1;
+[start] distance(b6, b4) := -1;
+[start] distance(b6, b6) := -1;
+
+[start] robot_at(start_point) := true;
+[start] robot_at(a1) := false;
+[start] robot_at(a2) := false;
+[start] robot_at(b1) := false;
+[start] robot_at(b2) := false;
+[start] robot_at(b3) := false;
+[start] robot_at(b4) := false;
+[start] robot_at(b5) := false;
+[start] robot_at(b6) := false;
+
+[start] battery_charge := 100;
+[start] moving := false;
+
+[start] visited(start_point) := true;
+[start] visited(a1) := false;
+[start] visited(a2) := false;
+[start] visited(b1) := false;
+[start] visited(b2) := false;
+[start] visited(b3) := false;
+[start] visited(b4) := false;
+[start] visited(b5) := false;
+[start] visited(b6) := false;
+
+[end] robot_at(start_point) == true;
+[end] visited(a1) == true;
+[end] visited(a2) == true;

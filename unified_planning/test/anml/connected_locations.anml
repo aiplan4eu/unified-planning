@@ -1,0 +1,30 @@
+type Location;
+
+fluent boolean is_at(Location l);
+fluent boolean is_connected(Location l1, Location l2);
+
+
+action move(Location from, Location to) { // test comment inside an action
+    [start] is_at(from);
+    [start] is_at(from) := false; // test comment inside an action
+    [start] is_at(to) := true;
+    [start] is_connected(from, to);
+};
+// test comment
+instance Location l1, l2, l3;
+
+[start] is_at(l1) := true;
+[start] is_at(l2) := false;
+[start] is_at(l3) := false;
+
+[start] is_connected(l1, l1) := false;
+[start] is_connected(l1, l2) := true;
+[start] is_connected(l1, l3) := false;
+[start] is_connected(l2, l1) := false;
+[start] is_connected(l2, l2) := false;
+[start] is_connected(l2, l3) := true;
+[start] is_connected(l3, l1) := true;
+[start] is_connected(l3, l2) := false;
+[start] is_connected(l3, l3) := false;
+
+[end] is_at(l3);

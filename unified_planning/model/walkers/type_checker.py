@@ -198,11 +198,16 @@ class TypeChecker(walkers.dag.DagWalker):
         has_real = False
         lower = None
         upper = None
+        is_time = False
         for x in args:
-            if x is None or not (x.is_int_type() or x.is_real_type()):
+            if x == TIME:
+                is_time = True
+            elif x is None or not (x.is_int_type() or x.is_real_type()):
                 return None
             if x.is_real_type():
                 has_real = True
+        if is_time:
+            return TIME
         for x in args:
             if x.lower_bound is None:
                 lower = -float("inf")
@@ -234,11 +239,16 @@ class TypeChecker(walkers.dag.DagWalker):
         has_real = False
         lower = None
         upper = None
+        is_time = False
         for x in args:
-            if x is None or not (x.is_int_type() or x.is_real_type()):
+            if x == TIME:
+                is_time = True
+            elif x is None or not (x.is_int_type() or x.is_real_type()):
                 return None
             if x.is_real_type():
                 has_real = True
+        if is_time:
+            return TIME
         left = args[0]
         right = args[1]
         left_lower = -float("inf") if left.lower_bound is None else left.lower_bound
