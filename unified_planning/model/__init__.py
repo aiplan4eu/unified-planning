@@ -62,7 +62,7 @@ from unified_planning.model.timing import (
     LeftOpenTimeInterval,
     RightOpenTimeInterval,
 )
-from unified_planning.model.types import Type, TypeManager
+from unified_planning.model.types import Type
 from unified_planning.model.variable import Variable, FreeVarsOracle
 from unified_planning.model.metrics import (
     PlanQualityMetric,
@@ -118,7 +118,6 @@ __all__ = [
     "LeftOpenTimeInterval",
     "RightOpenTimeInterval",
     "Type",
-    "TypeManager",
     "Variable",
     "FreeVarsOracle",
     "PlanQualityMetric",
