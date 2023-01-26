@@ -45,6 +45,7 @@ DEFAULT_ENGINES = {
     "enhsp": ("up_enhsp.enhsp_planner", "ENHSPSatEngine"),
     "enhsp-opt": ("up_enhsp.enhsp_planner", "ENHSPOptEngine"),
     "tamer": ("up_tamer.engine", "EngineImpl"),
+    "lpg": ("up_lpg.lpg_planner", "LPGEngine"),
     "sequential_plan_validator": (
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
@@ -110,6 +111,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward-reachability-grounder",
     "fast-downward-grounder",
     "up_grounder",
+    "lpg",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
