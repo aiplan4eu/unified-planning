@@ -204,6 +204,26 @@ class ConverterToPDDLString(walkers.DagWalker):
         ]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
 
+    def walk_always(self, expression, args):
+        assert len(args) == 1
+        return f"(always {args[0]})"
+
+    def walk_at_most_once(self, expression, args):
+        assert len(args) == 1
+        return f"(at-most-once {args[0]})"
+
+    def walk_sometime(self, expression, args):
+        assert len(args) == 1
+        return f"(sometime {args[0]})"
+
+    def walk_sometime_before(self, expression, args):
+        assert len(args) == 2
+        return f"(sometime-before {args[0]} {args[1]})"
+
+    def walk_sometime_after(self, expression, args):
+        assert len(args) == 2
+        return f"(sometime-after {args[0]} {args[1]})"
+
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
         return f"{self.get_mangled_name(expression.variable())}"
@@ -363,6 +383,8 @@ class PDDLWriter:
                 out.write(" :conditional-effects")
             if self.problem_kind.has_existential_conditions():
                 out.write(" :existential-preconditions")
+            if self.problem_kind.has_trajectory_constraints():
+                out.write(" :constraints")
             if self.problem_kind.has_universal_conditions():
                 out.write(" :universal-preconditions")
             if (
@@ -656,6 +678,10 @@ class PDDLWriter:
         out.write(
             f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
         )
+        if len(self.problem.trajectory_constraints) > 0:
+            out.write(
+                f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
+            )
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]

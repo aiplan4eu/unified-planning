@@ -28,6 +28,7 @@ class CompilationKind(Enum):
     DISJUNCTIVE_CONDITIONS_REMOVING = auto()
     NEGATIVE_CONDITIONS_REMOVING = auto()
     QUANTIFIERS_REMOVING = auto()
+    TRAJECTORY_CONSTRAINTS_REMOVING = auto()
 
 
 class CompilerMixin:

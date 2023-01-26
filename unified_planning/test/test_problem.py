@@ -547,6 +547,7 @@ class TestProblem(TestCase):
             "robot_with_durative_action",
             "robot_fluent_of_user_type_with_int_id",
             "matchcellar_static_duration",
+            "locations_connected_cost_minimize",
         ]
         for problem, _ in self.problems.values():
             if problem.name in names_of_SNP_problems:

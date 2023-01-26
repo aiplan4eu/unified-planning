@@ -20,14 +20,24 @@ import unified_planning.engines.compilers
 from unified_planning.plans import ActionInstance
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.model import Problem, ProblemKind, Action, Type, Expression, FNode
+from unified_planning.model import (
+    Problem,
+    ProblemKind,
+    Action,
+    Type,
+    Expression,
+    FNode,
+    MinimizeActionCosts,
+    Parameter,
+)
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.model.walkers import Substituter, Simplifier
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
     create_action_with_given_subs,
 )
-from typing import Dict, List, Optional, Tuple, Iterator
+from unified_planning.exceptions import UPUsageError
+from typing import Dict, Iterable, List, Optional, Tuple, Iterator, cast
 from itertools import product
 from functools import partial
 
@@ -81,6 +91,14 @@ class GrounderHelper:
         env = problem.env
         self._substituter = Substituter(env)
         self._simplifier = Simplifier(env, problem)
+
+    @property
+    def substituter(self) -> Substituter:
+        return self._substituter
+
+    @property
+    def simplifier(self) -> Simplifier:
+        return self._simplifier
 
     def ground_action(
         self, action: Action, parameters: Tuple[FNode, ...] = tuple()
@@ -253,6 +271,12 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod
@@ -300,6 +324,28 @@ class Grounder(engines.engine.Engine, CompilerMixin):
             if new_action is not None:
                 new_problem.add_action(new_action)
                 trace_back_map[new_action] = (old_action, list(parameters))
+
+        new_problem.clear_quality_metrics()
+        for qm in problem.quality_metrics:
+            if isinstance(qm, MinimizeActionCosts):
+                substituter = grounder_helper.substituter
+                simplifier = grounder_helper.simplifier
+                new_costs: Dict[Action, Optional[FNode]] = {}
+                for new_action, (old_action, params) in trace_back_map.items():
+                    subs = cast(
+                        Dict[Expression, Expression],
+                        dict(zip(old_action.parameters, params)),
+                    )
+                    old_cost = qm.get_action_cost(old_action)
+                    if old_cost is None:
+                        new_costs[new_action] = None
+                    else:
+                        new_costs[new_action] = simplifier.simplify(
+                            substituter.substitute(old_cost, subs)
+                        )
+                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+            else:
+                new_problem.add_quality_metric(qm)
 
         return CompilerResult(
             new_problem,

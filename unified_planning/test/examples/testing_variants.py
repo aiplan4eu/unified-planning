@@ -585,4 +585,138 @@ def get_example_problems():
     matchcellar_static_duration = Example(problem=problem, plan=t_plan)
     problems["matchcellar_static_duration"] = matchcellar_static_duration
 
+    # locations connected visited oversubscription
+    Location = UserType("Location")
+    is_at = Fluent("is_at", BoolType(), position=Location)
+    is_connected = Fluent(
+        "is_connected", BoolType(), location_1=Location, location_2=Location
+    )
+    visited = Fluent("visited", BoolType(), location=Location)
+    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(is_at(l_from))
+    move.add_precondition(Not(is_at(l_to)))
+    move.add_precondition(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)))
+    move.add_effect(is_at(l_from), False)
+    move.add_effect(is_at(l_to), True)
+    move.add_effect(visited(l_to), True)
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    l4 = Object("l4", Location)
+    l5 = Object("l5", Location)
+    problem = Problem("locations_connected_visited_oversubscription")
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(visited, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.add_object(l3)
+    problem.add_object(l4)
+    problem.add_object(l5)
+    problem.set_initial_value(is_at(l1), True)
+    problem.set_initial_value(visited(l1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l1, l3), True)
+    problem.set_initial_value(is_connected(l1, l5), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l2, l5), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.add_goal(is_at(l5))
+    loc_var = Variable("loc_var", Location)
+    problem.add_quality_metric(
+        Oversubscription(
+            {
+                visited(l2): 9,
+                visited(l2) | visited(l3): 5,
+                Forall(visited(loc_var) | loc_var.Equals(l2), loc_var)
+                & visited(l2).Not(): 10,
+            }
+        )
+    )
+
+    plan = unified_planning.plans.SequentialPlan(
+        [
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
+        ]
+    )
+    locations_connected_visited_oversubscription = Example(problem=problem, plan=plan)
+    problems[
+        "locations_connected_visited_oversubscription"
+    ] = locations_connected_visited_oversubscription
+
+    # locations connected cost minimize
+    Location = UserType("Location")
+    is_at = Fluent("is_at", BoolType(), position=Location)
+    is_connected = Fluent(
+        "is_connected", BoolType(), location_1=Location, location_2=Location
+    )
+    distance = Fluent("distance", RealType(), location_1=Location, location_2=Location)
+    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(is_at(l_from))
+    move.add_precondition(Not(is_at(l_to)))
+    move.add_precondition(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)))
+    move.add_effect(is_at(l_from), False)
+    move.add_effect(is_at(l_to), True)
+    move_cost = distance(l_from, l_to)
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    l4 = Object("l4", Location)
+    l5 = Object("l5", Location)
+    problem = Problem("locations_connected_cost_minimize")
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_fluent(distance, default_initial_value=100)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.add_object(l3)
+    problem.add_object(l4)
+    problem.add_object(l5)
+    problem.set_initial_value(is_at(l1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l1, l3), True)
+    problem.set_initial_value(is_connected(l1, l5), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l2, l5), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.set_initial_value(distance(l1, l2), 4)
+    problem.set_initial_value(distance(l1, l3), 8)
+    problem.set_initial_value(distance(l1, l5), 11)
+    problem.set_initial_value(distance(l2, l3), 5)
+    problem.set_initial_value(distance(l2, l5), 8)
+    problem.set_initial_value(distance(l3, l4), 1)
+    problem.set_initial_value(distance(l4, l5), 1)
+
+    problem.set_initial_value(distance(l2, l1), 4)
+    problem.set_initial_value(distance(l3, l1), 8)
+    problem.set_initial_value(distance(l5, l1), 11)
+    problem.set_initial_value(distance(l3, l2), 5)
+    problem.set_initial_value(distance(l5, l2), 8)
+    problem.set_initial_value(distance(l4, l3), 1)
+    problem.set_initial_value(distance(l5, l4), 1)
+    problem.add_goal(is_at(l5))
+    problem.add_quality_metric(MinimizeActionCosts({move: move_cost}))
+
+    plan = unified_planning.plans.SequentialPlan(
+        [
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
+        ]
+    )
+    locations_connected_cost_minimize = Example(problem=problem, plan=plan)
+    problems["locations_connected_cost_minimize"] = locations_connected_cost_minimize
+
     return problems

@@ -210,6 +210,8 @@ class SimulatorMixin:
         """
         Returns `True` if the given `state` satisfies the :class:`~unified_planning.model.AbstractProblem` :func:`goals <unified_planning.model.Problem.goals>`.
 
+        NOTE: This method does not consider the :func:`quality_metrics <unified_planning.model.Problem.quality_metrics>` of the problem.
+
         :param state: the `State` in which the `problem goals` are evaluated.
         :return: `True` if the evaluation of every `goal` is `True`, `False` otherwise.
         """

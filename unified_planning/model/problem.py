@@ -70,6 +70,7 @@ class Problem(
         self._timed_goals: Dict[
             "up.model.timing.TimeInterval", List["up.model.fnode.FNode"]
         ] = {}
+        self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
         self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
 
@@ -120,6 +121,11 @@ class Problem(
         for g in self.goals:
             s.append(f"  {str(g)}\n")
         s.append("]\n\n")
+        if self.trajectory_constraints:
+            s.append("trajectory constraints = [\n")
+            for c in self.trajectory_constraints:
+                s.append(f"  {str(c)}\n")
+            s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
             for qm in self.quality_metrics:
@@ -141,6 +147,8 @@ class Problem(
         ):
             return False
         if set(self._actions) != set(oth._actions):
+            return False
+        if set(self._trajectory_constraints) != set(oth._trajectory_constraints):
             return False
         oth_initial_values = oth.initial_values
         initial_values = self.initial_values
@@ -180,6 +188,8 @@ class Problem(
             res += hash(ut)
         for o in self._objects:
             res += hash(o)
+        for c in self._trajectory_constraints:
+            res += hash(c)
         for iv in self.initial_values.items():
             res += hash(iv)
         for t, el in self._timed_effects.items():
@@ -207,6 +217,7 @@ class Problem(
         }
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
+        new_p._trajectory_constraints = self._trajectory_constraints[:]
         new_p._metrics = []
         for m in self._metrics:
             if isinstance(m, up.model.metrics.MinimizeActionCosts):
@@ -555,14 +566,52 @@ class Problem(
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
+    def add_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
+        """
+        Adds the given `trajectory_constraint` to the `Problem`;
+        a trajectory_constraint is an expression defined as:
+        Always, Sometime, At-Most-Once, Sometime-Before, Sometime-After or
+        defined with universal quantifiers.
+        Nesting of these temporal operators is forbidden.
+
+        :param trajectory_constraint: The expression added to the `Problem`.
+        """
+        if constraint.is_and() or constraint.is_forall():
+            for arg in constraint.args:
+                assert (
+                    arg.is_sometime()
+                    or arg.is_sometime_after()
+                    or arg.is_sometime_before()
+                    or arg.is_at_most_once()
+                    or arg.is_always()
+                ), "trajectory constraint not in the correct form"
+        else:
+            assert (
+                constraint.is_sometime()
+                or constraint.is_sometime_after()
+                or constraint.is_sometime_before()
+                or constraint.is_at_most_once()
+                or constraint.is_always()
+            ), "trajectory constraint not in the correct form"
+        self._trajectory_constraints.append(constraint.simplify())
+
     @property
     def goals(self) -> List["up.model.fnode.FNode"]:
         """Returns all the `goals` in the `Problem`."""
         return self._goals
 
+    @property
+    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
+        """Returns the 'trajectory_constraints' in the 'Problem'."""
+        return self._trajectory_constraints
+
     def clear_goals(self):
         """Removes all the `goals` from the `Problem`."""
         self._goals = []
+
+    def clear_trajectory_constraints(self):
+        """Removes the trajectory_constraints."""
+        self._trajectory_constraints = []
 
     def add_quality_metric(self, metric: "up.model.metrics.PlanQualityMetric"):
         """
@@ -673,6 +722,8 @@ class Problem(
         if len(self._timed_goals) > 0:
             self._kind.set_time("TIMED_GOALS")
             self._kind.set_time("CONTINUOUS_TIME")
+        if len(self._trajectory_constraints) > 0:
+            self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)
