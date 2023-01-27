@@ -802,7 +802,6 @@ class MAPDDLWriter:
         )
         self.otn_renamings[item] = new_name
         self.nto_renamings[new_name] = item
-
         return new_name
 
     def get_item_named(
