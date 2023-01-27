@@ -25,10 +25,11 @@ from collections import OrderedDict
 class MotionConstraint:
     """
     This class represents a motion constraint.
-    
-    A motion constraint is a constraint that must hold true among the continuous parameters of a motion action 
+
+    A motion constraint is a constraint that must hold true among the continuous parameters of a motion action
     for it to be a legal transition of the system in its workspace.
     """
+
     def __init__(self, env: Optional[Environment] = None):
         self._env = get_env(env)
 
@@ -42,11 +43,12 @@ class MotionConstraint:
 class Waypoints(MotionConstraint):
     """
     This class represents a waypoints contraint.
-    
-    The waypoints constraint is a `MotionConstraint` representing the existence of a trajectory 
-    in the free configuration space of a movable object that lets it traverse a set of input waypoints 
+
+    The waypoints constraint is a `MotionConstraint` representing the existence of a trajectory
+    in the free configuration space of a movable object that lets it traverse a set of input waypoints
     starting from an initial configuration.
     """
+
     def __init__(
         self,
         movable: "up.model.expression.Expression",

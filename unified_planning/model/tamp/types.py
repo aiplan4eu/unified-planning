@@ -20,6 +20,8 @@ from unified_planning.exceptions import UPTypeError
 
 
 class _MovableType(_UserType):
+    """Represents the movable type."""
+
     def __init__(self, name: str, father: Optional[Type] = None):
         super().__init__(name, father)
         if father is not None and (not father.is_movable_type()):
@@ -31,11 +33,22 @@ class _MovableType(_UserType):
 
 @dataclass
 class OccupancyMap:
+    """
+    This class represents an occupancy map.
+
+    An occupancy map is a representation of the free and occupied working space,
+    where occupied areas represents the fixed obstacles.
+    The map is characterized by a frame of reference, that is a set of coordinates
+    that can be used to determine positions and velocities of objects in that frame.
+    """
+
     filename: str
     reference_frame: Tuple[int, ...]
 
 
 class _ConfigurationType(_UserType):
+    """Represents the configuration type."""
+
     def __init__(self, name: str, occupancy_map: OccupancyMap, size: int):
         super().__init__(name, None)
         self._size = size
@@ -43,10 +56,12 @@ class _ConfigurationType(_UserType):
 
     @property
     def size(self) -> int:
+        """Returns the size of this `ConfigurationType` (e.g., the number of Degrees of Freedom involved in the configuration)."""
         return self._size
 
     @property
     def occupancy_map(self) -> OccupancyMap:
+        """Returns the occupancy map of this `ConfigurationType`."""
         return self._occupancy_map
 
     def is_configuration_type(self) -> bool:

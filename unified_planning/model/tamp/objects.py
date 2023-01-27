@@ -21,10 +21,26 @@ import unified_planning.model.types
 
 
 class MotionModels(Enum):
+    """
+    This class represents the set of available motion models.
+
+    A motion model describes how a movable object moves with respect to time
+    and is usually expressed as an equation of motion governing the transition of
+    object states, such as position and velocity.
+    """
+
     REEDSSHEPP = auto()
 
 
 class MovableObject(Object):
+    """
+    This class represents a movable object.
+
+    A movable object is an object able to move in an environment
+    according to a certain motion model. Such an object is characterized
+    by a certain geometry as well as a kinematic and dynamic model.
+    """
+
     def __init__(
         self,
         name: str,
@@ -41,18 +57,28 @@ class MovableObject(Object):
 
     @property
     def model(self) -> str:
+        """Returns the model of this `MovableObject` (i.e., its geometry, kinematic model, and dynamic model)."""
         return self._model
 
     @property
     def motion_model(self) -> MotionModels:
+        """Returns the motion model of this `MovableObject`."""
         return self._motion_model
 
     @property
     def parameters(self) -> Dict[str, Any]:
+        """Returns the `dict` of parameters of the motion model of this `MovableObject`."""
         return self._parameters
 
 
 class ConfigurationObject(Object):
+    """
+    This class represents a configuration object.
+
+    A configuration of a movable object at a certain time is the description of its state
+    (i.e., the values of its links and joints) at that moment in time.
+    """
+
     def __init__(
         self,
         name: str,
@@ -65,4 +91,5 @@ class ConfigurationObject(Object):
 
     @property
     def configuration(self) -> Tuple[int, ...]:
+        """Returns the configuration of this `ConfigurationObject`."""
         return self._configuration
