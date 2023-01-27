@@ -20,7 +20,12 @@ import unified_planning as up
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
-    "PROBLEM_CLASS": ["ACTION_BASED", "HIERARCHICAL", "CONTINGENT"],
+    "PROBLEM_CLASS": [
+        "ACTION_BASED",
+        "HIERARCHICAL",
+        "CONTINGENT",
+        "ACTION_BASED_MULTI_AGENT",
+    ],
     "PROBLEM_TYPE": ["SIMPLE_NUMERIC_PLANNING", "GENERAL_NUMERIC_PLANNING"],
     "TIME": [
         "CONTINUOUS_TIME",
@@ -224,3 +229,16 @@ oversubscription_kind.set_quality_metrics("OVERSUBSCRIPTION")
 
 actions_cost_kind = ProblemKind()
 actions_cost_kind.set_quality_metrics("ACTIONS_COST")
+
+multi_agent_kind = ProblemKind()
+multi_agent_kind.set_problem_class("ACTION_BASED_MULTI_AGENT")
+multi_agent_kind.set_typing("FLAT_TYPING")
+multi_agent_kind.set_typing("HIERARCHICAL_TYPING")
+multi_agent_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+multi_agent_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+multi_agent_kind.set_conditions_kind("EQUALITY")
+multi_agent_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+multi_agent_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+multi_agent_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+multi_agent_kind.set_fluents_type("NUMERIC_FLUENTS")
+multi_agent_kind.set_fluents_type("OBJECT_FLUENTS")
