@@ -23,6 +23,12 @@ from collections import OrderedDict
 
 
 class MotionConstraint:
+    """
+    This class represents a motion constraint.
+    
+    A motion constraint is a constraint that must hold true among the continuous parameters of a motion action 
+    for it to be a legal transition of the system in its workspace.
+    """
     def __init__(self, env: Optional[Environment] = None):
         self._env = get_env(env)
 
@@ -34,6 +40,13 @@ class MotionConstraint:
 
 
 class Waypoints(MotionConstraint):
+    """
+    This class represents a waypoints contraint.
+    
+    The waypoints constraint is a `MotionConstraint` representing the existence of a trajectory 
+    in the free configuration space of a movable object that lets it traverse a set of input waypoints 
+    starting from an initial configuration.
+    """
     def __init__(
         self,
         movable: "up.model.expression.Expression",
@@ -87,14 +100,17 @@ class Waypoints(MotionConstraint):
 
     @property
     def movable(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the involved movable object."""
         return self._movable
 
     @property
     def starting(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the starting configuration of the involved movable object."""
         return self._starting
 
     @property
     def waypoints(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `list` of `FNode` representing the set of waypoints that the involved movable object should traverse."""
         return self._waypoints
 
 
@@ -157,7 +173,7 @@ class InstantaneousMotionAction(InstantaneousAction):
 
     @property
     def motion_constraints(self) -> List[MotionConstraint]:
-        """Returns the `list` motion constraints."""
+        """Returns the `list` of motion constraints."""
         return self._motion_constraints
 
     def __repr__(self) -> str:
