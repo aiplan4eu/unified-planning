@@ -59,23 +59,14 @@ from functools import partial
 
 
 class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
-    """TODO
-    Conditional effects remover class: this class offers the capability
-    to transform a :class:`~unified_planning.model.Problem` with conditional :class:`Effects <unified_planning.model.Effect>`
-    into a `Problem` without conditional `Effects`. This capability is offered by the :meth:`~unified_planning.engines.compilers.ConditionalEffectsRemover.compile`
-    method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
-    is the compiled Problem.
+    """
+    This class offers the capability to remove usertype fluents from the Problem.
 
-    This is done by substituting every conditional :class:`~unified_planning.model.Action` with different
-    actions representing every possible branch of the original action.
+    This is done by substituting them with a boolean fluent that takes the usertype
+    object as a parameter and return True if the original fluent would have returned
+    the object, False otherwise.
 
-    Also the conditional :meth:`timed_effects <unified_planning.model.Problem.timed_effects>` are removed maintaining the same
-    semantics.
-
-    When it is not possible to remove a conditional Effect without changing the semantic of the resulting Problem,
-    an :exc:`~unified_planning.exceptions.UPProblemDefinitionError` is raised.
-
-    This `Compiler` supports only the the `CONDITIONAL_EFFECTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    This `Compiler` supports only the the `USERTYPE_FLUENTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(self):
@@ -87,7 +78,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         return "utfr"
 
     @staticmethod
-    def supported_kind() -> ProblemKind:  # TODO check
+    def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
@@ -141,16 +132,14 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
-        """# TODO
+        """
         Takes an instance of a :class:`~unified_planning.model.Problem` and the wanted :class:`~unified_planning.engines.CompilationKind`
-        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>` field does not have conditional effects.
+        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>` field does not have usertype fluents.
 
-        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without conditional effects.
+        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without usertype fluents.
         :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
-            only :class:`~unified_planning.engines.CompilationKind.CONDITIONAL_EFFECTS_REMOVING` is supported by this compiler
+            only :class:`~unified_planning.engines.CompilationKind.USERTYPE_FLUENTS_REMOVING` is supported by this compiler
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
-        :raises: :exc:`~unified_planning.exceptions.UPProblemDefinitionError` when the :meth:`condition<unified_planning.model.Effect.condition>` of an
-            :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
         """
         assert isinstance(problem, Problem)
         env = problem.env

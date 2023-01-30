@@ -26,7 +26,11 @@ import unified_planning.model.operators as op
 
 class UsertypeFluentsWalker(walkers.dag.DagWalker):
     """
-    TODO
+    This walker takes the mapping from the usertype fluents to be removed from
+    the expression to the substituting Fluent; the set of the names already
+    defined in the Problem (to avoid naming conflicts) and the environment
+    and offers the capability to take an FNode with userType fluents and return
+    the equivalent expression without userType fluents.
     """
 
     def __init__(
@@ -45,14 +49,15 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self, expression: FNode
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         """
-        TODO
-        Performs basic simplification of the given expression.
+        Removes UserType Fluents from the given expression and returns the generated
+        expression, the set of Variables that are still free in the returned expression
+        and the set of FluentExp that must be True in order for the given expression to
+        be equivalent to the returned one.
 
-        If a :class:`~unified_planning.model.Problem` is given at the constructor, it also uses the static `fluents` of the `Problem` for
-        a better simplification.
-
-        :param expression: The target expression that must be simplified with constant propagation.
-        :return: The simplified expression.
+        :param expression: The target expression in which usertype fluents must be removed.
+        :return: The expression without userType fluents, the free variables in the
+            expression and all the FluentExp that must be True for the 2 expressions to be
+            equivalent.
         """
         exp, free_vars, added_fluents = self.walk(expression)
         return (exp, free_vars.copy(), added_fluents.copy())

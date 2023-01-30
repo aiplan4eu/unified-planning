@@ -25,7 +25,7 @@ import unified_planning.model.operators as op
 
 class NamesExtractor(walkers.dag.DagWalker):
     """
-    TODO
+    This walker returns all the names contained in an expression.
     """
 
     def __init__(
@@ -35,14 +35,10 @@ class NamesExtractor(walkers.dag.DagWalker):
 
     def extract_names(self, expression: FNode) -> Set[str]:
         """
-        TODO
-        Performs basic simplification of the given expression.
+        Returns the set of names contained in this expression.
 
-        If a :class:`~unified_planning.model.Problem` is given at the constructor, it also uses the static `fluents` of the `Problem` for
-        a better simplification.
-
-        :param expression: The target expression that must be simplified with constant propagation.
-        :return: The simplified expression.
+        :param expression: The expression containing the names.
+        :return: All the names contained in the given expression.
         """
         return self.walk(expression)
 
