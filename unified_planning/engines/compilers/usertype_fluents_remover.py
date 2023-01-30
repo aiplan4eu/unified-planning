@@ -58,7 +58,7 @@ from typing import Iterator, List, Dict, Tuple, Optional, cast
 from functools import partial
 
 
-class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
+class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
     """TODO
     Conditional effects remover class: this class offers the capability
     to transform a :class:`~unified_planning.model.Problem` with conditional :class:`Effects <unified_planning.model.Effect>`
@@ -117,7 +117,7 @@ class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= UserTypeFluentsRemover.supported_kind()
+        return problem_kind <= UsertypeFluentsRemover.supported_kind()
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
@@ -132,6 +132,8 @@ class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             new_kind.unset_fluents_type("OBJECT_FLUENTS")
             new_kind.set_effects_kind("CONDITIONAL_EFFECTS")
             new_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+            new_kind.set_conditions_kind("EQUALITY")
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         return new_kind
 
     def _compile(
@@ -185,7 +187,6 @@ class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         used_names = problem.get_contained_names()
         utf_remover = UsertypeFluentsWalker(fluents_map, used_names, env)
 
-        new_problem.clear_actions()
         for old_action in problem.actions:
             new_action = new_problem.action(old_action.name)
             if isinstance(new_action, InstantaneousAction):
@@ -224,6 +225,10 @@ class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 raise NotImplementedError  # Sensing Actions might be easy to implement
             new_to_old[new_action] = old_action
             old_to_new[old_action] = new_action
+
+        new_problem.clear_goals()
+        for g in problem.goals:
+            new_problem.add_goal(self._convert_to_value(g, em, utf_remover))
 
         new_problem.clear_timed_effects()
         for t, el in problem.timed_effects.items():
@@ -275,6 +280,37 @@ class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(Oversubscription(new_goals))
             else:
                 raise NotImplementedError
+
+        new_problem.clear_initial_values()
+        for f, v in problem.initial_values.items():
+            (
+                new_fluent_exp,
+                fluent_free_vars,
+                fluent_added_fluents,
+            ) = utf_remover.remove_usertype_fluents(f)
+            (
+                new_value,
+                value_free_vars,
+                value_added_fluents,
+            ) = utf_remover.remove_usertype_fluents(v)
+            if new_fluent_exp.is_variable_exp():
+                fluent_var = new_fluent_exp.variable()
+                for f in fluent_added_fluents:
+                    assert f.is_fluent_exp()
+                    if f.arg(-1).variable() == fluent_var:
+                        new_fluent_exp = f
+                        break
+                fluent_added_fluents.remove(new_fluent_exp)
+                new_value = em.Equals(new_value, fluent_var)
+            vars_list = list(fluent_free_vars)
+            vars_list.extend(value_free_vars)
+            for objects in product(*(problem.objects(v.type) for v in vars_list)):
+                objects = cast(Tuple[Object, ...], objects)
+                subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
+                new_problem.set_initial_value(
+                    substituter.substitute(new_fluent_exp, subs).simplify(),
+                    substituter.substitute(new_value, subs).simplify(),
+                )
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
@@ -338,11 +374,48 @@ class UserTypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             assert len(objects) == len(vars_list)
             objects = cast(Tuple[Object, ...], objects)
             subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
-            subbed_cond = substituter.substitute(new_condition, subs).simplify()
-            if not subbed_cond.is_constant() or subbed_cond.bool_constant_value():
-                yield Effect(
-                    substituter.substitute(new_fluent, subs).simplify(),
-                    substituter.substitute(new_value, subs).simplify(),
-                    subbed_cond,
-                    effect.kind,
-                )
+            resulting_effect_fluent = substituter.substitute(
+                new_fluent, subs
+            ).simplify()
+            resulting_effect_value = substituter.substitute(new_value, subs).simplify()
+            # Check if the type is boolean and not a constant, make it a conditional
+            # assignment with the correct boolean constant instead
+            if (
+                resulting_effect_value.type.is_bool_type()
+                and not resulting_effect_value.is_bool_constant()
+            ):
+                positive_condition = substituter.substitute(
+                    em.And(new_condition, resulting_effect_value), subs
+                ).simplify()
+                if (
+                    not positive_condition.is_constant()
+                    or positive_condition.bool_constant_value()
+                ):
+                    yield Effect(
+                        resulting_effect_fluent,
+                        em.TRUE(),
+                        positive_condition,
+                        effect.kind,
+                    )
+                negative_condition = substituter.substitute(
+                    em.Not(em.And(new_condition, resulting_effect_value)), subs
+                ).simplify()
+                if (
+                    not negative_condition.is_constant()
+                    or negative_condition.bool_constant_value()
+                ):
+                    yield Effect(
+                        resulting_effect_fluent,
+                        em.FALSE(),
+                        negative_condition,
+                        effect.kind,
+                    )
+            else:
+                subbed_cond = substituter.substitute(new_condition, subs).simplify()
+                if not subbed_cond.is_constant() or subbed_cond.bool_constant_value():
+                    yield Effect(
+                        resulting_effect_fluent,
+                        resulting_effect_value,
+                        subbed_cond,
+                        effect.kind,
+                    )

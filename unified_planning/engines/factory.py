@@ -74,6 +74,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.quantifiers_remover",
         "QuantifiersRemover",
     ),
+    "up_usertype_fluents_remover": (
+        "unified_planning.engines.compilers.usertype_fluents_remover",
+        "UsertypeFluentsRemover",
+    ),
     "tarski_grounder": (
         "unified_planning.engines.compilers.tarski_grounder",
         "TarskiGrounder",
@@ -111,6 +115,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_disjunctive_conditions_remover",
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
+    "up_usertype_fluents_remover",
     "tarski_grounder",
     "fast-downward-reachability-grounder",
     "fast-downward-grounder",

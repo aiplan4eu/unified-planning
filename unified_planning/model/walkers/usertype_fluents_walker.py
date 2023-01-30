@@ -93,8 +93,8 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
                     self.manager.Exists(self.manager.And(arg, *ut_fluents), *free_vars)
                 )
             else:
-                variables.union(free_vars)
-                fluents.union(ut_fluents)
+                variables.update(free_vars)
+                fluents.update(ut_fluents)
                 exp_args.append(arg)
         return (exp_args, variables, fluents)
 
@@ -254,11 +254,14 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         if new_fluent is not None:
             v_type = cast(_UserType, expression.fluent().type)
             assert v_type.is_user_type()
-            fresh_name = self._get_fresh_name(f"{new_fluent.name}_{v_type.name}")
+            fresh_name = self._get_fresh_name(
+                f"{new_fluent.name}_{v_type.name}".lower()
+            )
             new_var = up.model.variable.Variable(fresh_name, v_type, self.env)
             exp_args.append(self.manager.VariableExp(new_var))
             variables.add(new_var)
             fluents.add(self.manager.FluentExp(new_fluent, exp_args))
+
             return (self.manager.VariableExp(new_var), variables, fluents)
         else:
             return (

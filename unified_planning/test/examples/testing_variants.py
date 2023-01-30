@@ -109,6 +109,8 @@ def get_example_problems():
     problem.add_object(l2)
     problem.set_initial_value(is_at(Int(0)), l1)
     problem.set_initial_value(is_at(1), l1)
+    problem.add_goal(is_at(0).Equals(l2))
+    problem.add_goal(is_at(1).Equals(l2))
     plan = unified_planning.plans.SequentialPlan(
         [
             unified_planning.plans.ActionInstance(
