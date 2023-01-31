@@ -187,7 +187,20 @@ class ProtobufReader(Converter):
             msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
             and msg.type == "up:time"
         ):
-            fn = msg.list[0].atom.symbol
+            if len(msg.list) == 3:  # Contains a delay
+                assert msg.list[0].atom.symbol == "up:plus"
+                if msg.list[2].type == "up:integer":
+                    dl = int(msg.list[2].atom.int)
+                elif msg.list[2].type == "up:real":
+                    dl = self.convert(msg.list[2].atom.real)
+                else:
+                    raise ValueError(f"Invalid delay type {msg.list[2].type}")
+                lst = msg.list[1].list
+            else:
+                dl = 0
+                lst = msg.list
+
+            fn = lst[0].atom.symbol
             if fn == "up:start":
                 kd = model.TimepointKind.START
             elif fn == "up:end":
@@ -199,10 +212,10 @@ class ProtobufReader(Converter):
             else:
                 raise ValueError(f"Invalid temporal qualifier {fn}")
             container = None
-            if len(msg.list) > 1:
-                container = msg.list[1].atom.symbol
+            if len(lst) > 1:
+                container = lst[1].atom.symbol
             tp = model.timing.Timepoint(kd, container)
-            return problem.env.expression_manager.TimingExp(model.Timing(0, tp))
+            return problem.env.expression_manager.TimingExp(model.Timing(dl, tp))
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 

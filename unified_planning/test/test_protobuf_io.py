@@ -291,8 +291,8 @@ class TestProtobufIO(TestCase):
                 problem.add_action(action)
             node = problem.env.expression_manager.auto_promote(timing)[0]
             node_pb = self.pb_writer.convert(node)
-            # node_up = self.pb_reader.convert(node_pb, problem)
-            # self.assertEqual(node, node_up)
+            node_up = self.pb_reader.convert(node_pb, problem)
+            self.assertEqual(node, node_up)
             return node_pb
 
         def check(  # pylint: disable = too-many-arguments
