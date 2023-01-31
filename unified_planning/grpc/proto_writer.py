@@ -175,16 +175,41 @@ class FNode2Protobuf(walkers.DagWalker):
             atom=proto.Atom(symbol=fn),
             kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
         )
-        dl_exp = proto.Expression(
-            atom=proto.Atom(int=timing.delay),
-            kind=proto.ExpressionKind.Value("CONSTANT"),
-        )
         tp_exp = proto.Expression(
-            list=[fn_exp, dl_exp] + args,
+            list=[fn_exp] + args,
             type="up:time",
             kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
         )
-        return tp_exp
+        if timing.delay == 0:
+            return tp_exp
+        add_exp = proto.Expression(
+            atom=proto.Atom(symbol=map_operator(OperatorKind.PLUS)),
+            kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
+        )
+        if isinstance(timing.delay, int):
+            dl_exp = proto.Expression(
+                atom=proto.Atom(int=timing.delay),
+                type="up:integer",
+                kind=proto.ExpressionKind.Value("CONSTANT"),
+            )
+        elif isinstance(timing.delay, fractions.Fraction):
+            dl_exp = proto.Expression(
+                atom=proto.Atom(
+                    real=proto.Real(
+                        numerator=timing.delay.numerator,
+                        denominator=timing.delay.denominator,
+                    )
+                ),
+                type="up:real",
+                kind=proto.ExpressionKind.Value("CONSTANT"),
+            )
+        else:
+            raise ValueError(f"Unknown delay type: {type(timing.delay)}")
+        return proto.Expression(
+            list=[add_exp, tp_exp, dl_exp],
+            type="up:time",
+            kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
+        )
 
     def walk_fluent_exp(
         self, expression: model.FNode, args: List[proto.Expression]

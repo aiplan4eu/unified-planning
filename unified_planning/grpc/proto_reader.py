@@ -198,12 +198,11 @@ class ProtobufReader(Converter):
                 kd = model.TimepointKind.GLOBAL_END
             else:
                 raise ValueError(f"Invalid temporal qualifier {fn}")
-            delay = msg.list[1].atom.int
             container = None
-            if len(msg.list) > 2:
-                container = msg.list[2].atom.symbol
+            if len(msg.list) > 1:
+                container = msg.list[1].atom.symbol
             tp = model.timing.Timepoint(kd, container)
-            return problem.env.expression_manager.TimingExp(model.Timing(delay, tp))
+            return problem.env.expression_manager.TimingExp(model.Timing(0, tp))
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
