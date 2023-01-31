@@ -285,7 +285,9 @@ class TestProtobufIO(TestCase):
         self.assertEqual(problem, problem_up)
 
     def test_timing_expressions(self):
-        def build(timing: Timing, action: Action | None = None) -> proto.Expression:
+        def build(
+            timing: Timing, action: Union[Action, None] = None
+        ) -> proto.Expression:
             problem = Problem("test timing")
             if action is not None:
                 problem.add_action(action)
@@ -299,10 +301,10 @@ class TestProtobufIO(TestCase):
             expr: proto.Expression,
             kind: int,
             tpe: str = "",
-            length: int | None = None,
-            integer: int | None = None,
-            real: Fraction | None = None,
-            symbol: str | None = None,
+            length: Union[int, None] = None,
+            integer: Union[int, None] = None,
+            real: Union[Fraction, None] = None,
+            symbol: Union[str, None] = None,
         ) -> None:
             self.assertEqual(expr.kind, kind)
             self.assertEqual(expr.type, tpe)
