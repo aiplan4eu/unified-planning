@@ -14,9 +14,8 @@
 
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
-from unified_planning.engines import CompilationKind, LogMessage
+from unified_planning.engines import LogMessage
 from unified_planning.engines.results import LogLevel
-from unified_planning.model.metrics import *
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import *
 from unified_planning.test import (

@@ -15,7 +15,7 @@
 # type: ignore
 import fractions
 from itertools import product
-from typing import List
+from typing import List, Union
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning import model
@@ -76,6 +76,38 @@ def proto_type(tpe: model.Type) -> str:
         return str(tpe.name)
 
 
+def int_expression(value: int) -> proto.Expression:
+    return proto.Expression(
+        atom=proto.Atom(int=value),
+        type="up:integer",
+        kind=proto.ExpressionKind.Value("CONSTANT"),
+    )
+
+
+def real_expression(value: fractions.Fraction) -> proto.Expression:
+    return proto.Expression(
+        atom=proto.Atom(
+            real=proto.Real(
+                numerator=value.numerator,
+                denominator=value.denominator,
+            )
+        ),
+        type="up:real",
+        kind=proto.ExpressionKind.Value("CONSTANT"),
+    )
+
+
+def num_expression(value: Union[int, fractions.Fraction]) -> proto.Expression:
+    if isinstance(value, int):
+        return int_expression(value)
+    elif isinstance(value, fractions.Fraction):
+        return real_expression(value)
+    else:
+        raise ValueError(
+            f"Cannot be converted into a numeric protobuf expression: {value}"
+        )
+
+
 class FNode2Protobuf(walkers.DagWalker):
     def __init__(self, protobuf_writer):
         super().__init__()
@@ -97,24 +129,12 @@ class FNode2Protobuf(walkers.DagWalker):
     def walk_int_constant(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
-        return proto.Expression(
-            atom=proto.Atom(int=expression.int_constant_value()),
-            list=[],
-            kind=proto.ExpressionKind.Value("CONSTANT"),
-            type="up:integer",
-        )
+        return int_expression(expression.int_constant_value())
 
     def walk_real_constant(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
-        return proto.Expression(
-            atom=proto.Atom(
-                real=self._protobuf_writer.convert(expression.real_constant_value())
-            ),
-            list=[],
-            kind=proto.ExpressionKind.Value("CONSTANT"),
-            type="up:real",
-        )
+        return real_expression(expression.real_constant_value())
 
     def walk_param_exp(
         self, expression: model.FNode, args: List[proto.Expression]
@@ -181,35 +201,21 @@ class FNode2Protobuf(walkers.DagWalker):
             kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
         )
         if timing.delay == 0:
+            # no delay for this timing, the expression will somthing of the form (QUALIFIER [CONTAINER])
             return tp_exp
-        add_exp = proto.Expression(
-            atom=proto.Atom(symbol=map_operator(OperatorKind.PLUS)),
-            kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
-        )
-        if isinstance(timing.delay, int):
-            dl_exp = proto.Expression(
-                atom=proto.Atom(int=timing.delay),
-                type="up:integer",
-                kind=proto.ExpressionKind.Value("CONSTANT"),
-            )
-        elif isinstance(timing.delay, fractions.Fraction):
-            dl_exp = proto.Expression(
-                atom=proto.Atom(
-                    real=proto.Real(
-                        numerator=timing.delay.numerator,
-                        denominator=timing.delay.denominator,
-                    )
-                ),
-                type="up:real",
-                kind=proto.ExpressionKind.Value("CONSTANT"),
-            )
+
         else:
-            raise ValueError(f"Unknown delay type: {type(timing.delay)}")
-        return proto.Expression(
-            list=[add_exp, tp_exp, dl_exp],
-            type="up:time",
-            kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
-        )
+            # we have a delay, build an expression of the form (up:plus (QUALIFIER [CONTAINER]) DELAY)
+            add_exp = proto.Expression(
+                atom=proto.Atom(symbol=map_operator(OperatorKind.PLUS)),
+                kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
+            )
+            dl_exp = num_expression(timing.delay)
+            return proto.Expression(
+                list=[add_exp, tp_exp, dl_exp],
+                type="up:time",
+                kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
+            )
 
     def walk_fluent_exp(
         self, expression: model.FNode, args: List[proto.Expression]
