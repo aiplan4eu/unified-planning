@@ -31,7 +31,7 @@ class _MovableType(_UserType):
         return True
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class OccupancyMap:
     """
     This class represents an occupancy map.
@@ -44,9 +44,6 @@ class OccupancyMap:
 
     filename: str
     reference_frame: Tuple[int, ...]
-
-    def __hash__(self) -> int:
-        return hash(self.filename) + 3*hash(self.reference_frame)
 
 
 class _ConfigurationType(_UserType):
