@@ -55,6 +55,17 @@ class TypeManager:
             return self._reals.get((type.lower_bound, type.upper_bound), None) == type
         elif type.is_time_type():
             return type == TIME
+        elif type.is_movable_type():
+            assert isinstance(type, _MovableType)
+            return self._movable_types.get((type.name, type.father), None) == type
+        elif type.is_configuration_type():
+            assert isinstance(type, _ConfigurationType)
+            return (
+                self._configuration_types.get(
+                    (type.name, type.occupancy_map, type.size), None
+                )
+                == type
+            )
         elif type.is_user_type():
             assert isinstance(type, _UserType)
             return self._user_types.get((type.name, type.father), None) == type

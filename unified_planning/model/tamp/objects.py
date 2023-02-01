@@ -83,13 +83,13 @@ class ConfigurationObject(Object):
         self,
         name: str,
         typename: "unified_planning.model.types.Type",
-        configuration: Tuple[int, ...],
+        configuration: Tuple[float, ...],
         env: Optional[Environment] = None,
     ):
         super().__init__(name, typename, env)
         self._configuration = configuration
 
     @property
-    def configuration(self) -> Tuple[int, ...]:
+    def configuration(self) -> Tuple[float, ...]:
         """Returns the configuration of this `ConfigurationObject`."""
         return self._configuration

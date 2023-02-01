@@ -23,6 +23,7 @@ from unified_planning.model.tamp.objects import (
     MovableObject,
     ConfigurationObject,
 )
+from unified_planning.model.tamp.types import OccupancyMap
 
 __all__ = [
     "InstantaneousMotionAction",
@@ -31,4 +32,5 @@ __all__ = [
     "MotionModels",
     "MovableObject",
     "ConfigurationObject",
+    "OccupancyMap",
 ]

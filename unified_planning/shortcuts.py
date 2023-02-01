@@ -23,6 +23,7 @@ import unified_planning.model.types
 import unified_planning.model.multi_agent
 from unified_planning.environment import get_environment
 from unified_planning.model import *
+from unified_planning.model.tamp import *
 from unified_planning.engines import (
     Engine,
     CompilationKind,
@@ -465,6 +466,37 @@ def UserType(
     :return:  The retrieved or created `type`.
     """
     return get_environment().type_manager.UserType(name, father)
+
+
+def MovableType(
+    name: str, father: Optional[Type] = None
+) -> unified_planning.model.types.Type:
+    """
+    Returns the movable type defined in this :class:`~unified_planning.Environment`
+    with the given `name` and `father`.
+    If the type already exists, it is returned, otherwise it is created and returned.
+
+    :param name: The name of this movable type.
+    :param father: The movable type that must be set as the father for this type.
+    :return: The retrieved or created `Type`.
+    """
+    return get_env().type_manager.MovableType(name, father)
+
+
+def ConfigurationType(
+    name: str, occupancy_map: OccupancyMap, size: int
+) -> unified_planning.model.types.Type:
+    """
+    Returns the configuration type defined in this :class:`~unified_planning.Environment`
+    with the given `name`, `occupancy_map` and `size`.
+    If the type already exists, it is returned, otherwise it is created and returned.
+
+    :param name: The name of this configuration type.
+    :param occupancy_map: The occupancy map.
+    :param size: The size of the configuration.
+    :return: The retrieved or created `Type`.
+    """
+    return get_env().type_manager.ConfigurationType(name, occupancy_map, size)
 
 
 def OneshotPlanner(
