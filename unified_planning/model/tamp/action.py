@@ -100,6 +100,16 @@ class Waypoints(MotionConstraint):
             res += hash(p)
         return res
 
+    def __repr__(self) -> str:
+        s = ["waypoints("]
+        s.append(str(self.movable))
+        s.append(", ")
+        s.append(str(self.starting))
+        s.append(", ")
+        s.append(str(self.waypoints))
+        s.append(")")
+        return "".join(s)
+
     @property
     def movable(self) -> "up.model.fnode.FNode":
         """Returns the `FNode` representing the involved movable object."""
