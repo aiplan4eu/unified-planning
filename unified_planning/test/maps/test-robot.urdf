@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot name="up-test-robot">
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.6 0.2 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

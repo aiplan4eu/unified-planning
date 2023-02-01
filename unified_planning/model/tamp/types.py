@@ -45,6 +45,9 @@ class OccupancyMap:
     filename: str
     reference_frame: Tuple[int, ...]
 
+    def __hash__(self) -> int:
+        return hash(self.filename) + 3*hash(self.reference_frame)
+
 
 class _ConfigurationType(_UserType):
     """Represents the configuration type."""
