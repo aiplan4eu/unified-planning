@@ -38,9 +38,7 @@ def get_example_problems():
     # (e.g., 3 = [x, y, yaw] - N = [N-DOFs of a robot])
     RobotConfig = ConfigurationType("robot_config", map, 3)
 
-    robot_at = Fluent(
-        "robot_at", BoolType(), robot=Robot, configuration=RobotConfig
-    )
+    robot_at = Fluent("robot_at", BoolType(), robot=Robot, configuration=RobotConfig)
 
     # configurations in the map
     # map and RobotConfig added for consistency check
