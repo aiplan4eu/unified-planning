@@ -9,3 +9,4 @@ __pycache__/
 unified_planning/__pycache__/
 *.pyc
 *~
+.venv/

@@ -187,7 +187,24 @@ class ProtobufReader(Converter):
             msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
             and msg.type == "up:time"
         ):
-            fn = msg.list[0].atom.symbol
+            if (
+                len(msg.list) == 3
+            ):  # Expect something of the form (up:plus (QUALIFIER [CONTAINER]) DELAY)
+                assert (
+                    msg.list[0].atom.symbol == "up:plus"
+                ), f"Unexpected expression {msg.list[0].atom.symbol}"
+                if msg.list[2].type == "up:integer":
+                    dl = int(msg.list[2].atom.int)
+                elif msg.list[2].type == "up:real":
+                    dl = self.convert(msg.list[2].atom.real)
+                else:
+                    raise ValueError(f"Invalid delay type {msg.list[2].type}")
+                timepoint_expr = msg.list[1].list
+            else:  # Expects a single timepoint of the form (QUALIFIER [CONTAINER])
+                dl = 0
+                timepoint_expr = msg.list
+
+            fn = timepoint_expr[0].atom.symbol
             if fn == "up:start":
                 kd = model.TimepointKind.START
             elif fn == "up:end":
@@ -199,10 +216,10 @@ class ProtobufReader(Converter):
             else:
                 raise ValueError(f"Invalid temporal qualifier {fn}")
             container = None
-            if len(msg.list) > 1:
-                container = msg.list[1].atom.symbol
+            if len(timepoint_expr) > 1:
+                container = timepoint_expr[1].atom.symbol
             tp = model.timing.Timepoint(kd, container)
-            return problem.env.expression_manager.TimingExp(model.Timing(0, tp))
+            return problem.env.expression_manager.TimingExp(model.Timing(dl, tp))
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 
