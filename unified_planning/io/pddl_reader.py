@@ -32,7 +32,7 @@ assert (
 ), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
 from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
-from pyparsing import CharsNotIn, Empty
+from pyparsing import CharsNotIn, Empty, Located
 from pyparsing.results import ParseResults
 from pyparsing import one_of
 
@@ -62,6 +62,22 @@ class CaseInsensitiveToken:
             return False
 
 
+class CustomParseResults:
+    def __init__(self, r):
+        self.res = r
+        self.value = r.value
+        self.locn_start = r.locn_start
+        self.locn_end = r.locn_end
+        if len(self.value) == 1 and isinstance(self.value[0], str):
+            self.value = self.value[0]
+
+    def __getitem__(self, i):
+        return CustomParseResults(self.value[i])
+
+    def __len__(self):
+        return len(self.value)
+
+
 Object = CaseInsensitiveToken("object")
 TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
 
@@ -72,7 +88,11 @@ def nested_expr():
     """
     cnt = Empty() + CharsNotIn("() \n\t\r")
     nested = Forward()
-    nested <<= Group(Suppress("(") + ZeroOrMore(cnt | nested) + Suppress(")"))
+    nested <<= Group(
+        Located(
+            Suppress("(") + ZeroOrMore(Group(Located(cnt)) | nested) + Suppress(")")
+        )
+    )
     return nested
 
 
@@ -144,7 +164,7 @@ class PDDLGrammar:
         )
 
         parameters = ZeroOrMore(
-            Group(Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe))
+            Group(Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe)))
         ).setResultsName("params")
         action_def = Group(
             Suppress("(")
@@ -359,48 +379,48 @@ class PDDLReader:
         while len(stack) > 0:
             var, exp, status = stack.pop()
             if status:
-                if exp[0] == "-" and len(exp) == 2:  # unary minus
+                if exp[0].value == "-" and len(exp) == 2:  # unary minus
                     solved.append(self._em.Times(-1, solved.pop()))
-                elif exp[0] in self._operators:  # n-ary operators
-                    op: Callable = self._operators[exp[0]]
-                    solved.append(op(*[solved.pop() for _ in exp[1:]]))
-                elif exp[0] in ["exists", "forall"]:  # quantifier operators
+                elif exp[0].value in self._operators:  # n-ary operators
+                    op: Callable = self._operators[exp[0].value]
+                    solved.append(op(*[solved.pop() for _ in range(1, len(exp))]))
+                elif exp[0].value in ["exists", "forall"]:  # quantifier operators
                     q_op: Callable = (
-                        self._em.Exists if exp[0] == "exists" else self._em.Forall
+                        self._em.Exists if exp[0].value == "exists" else self._em.Forall
                     )
                     solved.append(q_op(solved.pop(), *var.values()))
                 elif (
-                    exp[0] in self._trajectory_constraints
+                    exp[0].value in self._trajectory_constraints
                 ):  # trajectory_constraints reference
-                    t_op: Callable = self._trajectory_constraints[exp[0]]
-                    solved.append(t_op(*[solved.pop() for _ in exp[1:]]))
-                elif problem.has_fluent(exp[0]):  # fluent reference
-                    f = problem.fluent(exp[0])
-                    args = [solved.pop() for _ in exp[1:]]
+                    t_op: Callable = self._trajectory_constraints[exp[0].value]
+                    solved.append(t_op(*[solved.pop() for _ in range(1, len(exp))]))
+                elif problem.has_fluent(exp[0].value):  # fluent reference
+                    f = problem.fluent(exp[0].value)
+                    args = [solved.pop() for _ in range(1, len(exp))]
                     solved.append(self._em.FluentExp(f, tuple(args)))
-                elif exp[0] in assignments:  # quantified assignment variable
+                elif exp[0].value in assignments:  # quantified assignment variable
                     assert len(exp) == 1
-                    solved.append(self._em.ObjectExp(assignments[exp[0]]))
+                    solved.append(self._em.ObjectExp(assignments[exp[0].value]))
                 else:
                     raise up.exceptions.UPUnreachableCodeError
             else:
-                if isinstance(exp, ParseResults):
+                if isinstance(exp.value, ParseResults):
                     if len(exp) == 0:  # empty precodition
                         solved.append(self._em.TRUE())
-                    elif exp[0] == "-" and len(exp) == 2:  # unary minus
+                    elif exp[0].value == "-" and len(exp) == 2:  # unary minus
                         stack.append((var, exp, True))
                         stack.append((var, exp[1], False))
-                    elif exp[0] in self._operators:  # n-ary operators
+                    elif exp[0].value in self._operators:  # n-ary operators
                         stack.append((var, exp, True))
-                        for e in exp[1:]:
-                            stack.append((var, e, False))
-                    elif exp[0] in ["exists", "forall"]:  # quantifier operators
-                        vars_string = " ".join(exp[1])
+                        for i in range(1, len(exp)):
+                            stack.append((var, exp[i], False))
+                    elif exp[0].value in ["exists", "forall"]:  # quantifier operators
+                        vars_string = " ".join([e.value for e in exp[1]])
                         vars_res = self._pp_parameters.parseString(vars_string)
                         new_vars = {}
                         for g in vars_res["params"]:
-                            t = types_map[g[1] if len(g) > 1 else Object]
-                            for o in g[0]:
+                            t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                            for o in g.value[0]:
                                 new_vars[o] = up.model.Variable(o, t, self._env)
                         # new_vars are the variables defined by the quantifier currently being solved
                         # all_vars are the variables defined by all the quantifiers around this expression
@@ -409,38 +429,40 @@ class PDDLReader:
                         all_vars.update(new_vars)
                         stack.append((all_vars, exp[2], False))
                     elif (
-                        exp[0] in self._trajectory_constraints
+                        exp[0].value in self._trajectory_constraints
                     ):  # trajectory_constraints reference
                         stack.append((var, exp, True))
-                        for e in exp[1:]:
-                            stack.append((var, e, False))
-                    elif problem.has_fluent(exp[0]):  # fluent reference
+                        for i in range(1, len(exp)):
+                            stack.append((var, exp[i], False))
+                    elif problem.has_fluent(exp[0].value):  # fluent reference
                         stack.append((var, exp, True))
-                        for e in exp[1:]:
-                            stack.append((var, e, False))
-                    elif exp[0] in assignments:  # quantified assignment variable
+                        for i in range(1, len(exp)):
+                            stack.append((var, exp[i], False))
+                    elif exp[0].value in assignments:  # quantified assignment variable
                         assert len(exp) == 1
                         stack.append((var, exp, True))
                     elif len(exp) == 1:  # expand an element inside brackets
                         stack.append((var, exp[0], False))
                     else:
                         raise SyntaxError(f"Not able to handle: {exp}")
-                elif isinstance(exp, str):
+                elif isinstance(exp.value, str):
                     if (
-                        exp[0] == "?" and exp[1:] in var
+                        exp.value[0] == "?" and exp.value[1:] in var
                     ):  # variable in a quantifier expression
-                        solved.append(self._em.VariableExp(var[exp[1:]]))
-                    elif exp in assignments:  # quantified assignment variable
-                        solved.append(self._em.ObjectExp(assignments[exp]))
-                    elif exp[0] == "?":  # action parameter
+                        solved.append(self._em.VariableExp(var[exp.value[1:]]))
+                    elif exp.value in assignments:  # quantified assignment variable
+                        solved.append(self._em.ObjectExp(assignments[exp.value]))
+                    elif exp.value[0] == "?":  # action parameter
                         assert act is not None
-                        solved.append(self._em.ParameterExp(act.parameter(exp[1:])))
-                    elif problem.has_fluent(exp):  # fluent
-                        solved.append(self._em.FluentExp(problem.fluent(exp)))
-                    elif problem.has_object(exp):  # object
-                        solved.append(self._em.ObjectExp(problem.object(exp)))
+                        solved.append(
+                            self._em.ParameterExp(act.parameter(exp.value[1:]))
+                        )
+                    elif problem.has_fluent(exp.value):  # fluent
+                        solved.append(self._em.FluentExp(problem.fluent(exp.value)))
+                    elif problem.has_object(exp.value):  # object
+                        solved.append(self._em.ObjectExp(problem.object(exp.value)))
                     else:  # number
-                        n = Fraction(exp)
+                        n = Fraction(exp.value)
                         if n.denominator == 1:
                             solved.append(self._em.Int(n.numerator))
                         else:
@@ -468,11 +490,10 @@ class PDDLReader:
             exp, cond = to_add.pop(0)
             if len(exp) == 0:
                 continue  # ignore the case where the effect list is empty, e.g., `:effect ()`
-            op = exp[0]
+            op = exp[0].value
             if op == "and":
-                exp = exp[1:]
-                for e in exp:
-                    to_add.append((e, cond))
+                for i in range(1, len(exp)):
+                    to_add.append((exp[i], cond))
             elif op == "when":
                 cond = self._parse_exp(problem, act, types_map, {}, exp[1], assignments)
                 cond = cond.simplify()
@@ -508,7 +529,7 @@ class PDDLReader:
                 )
                 act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
-                assert isinstance(exp, ParseResults)
+                assert isinstance(exp, CustomParseResults)
                 # Get the list of universal_assignments linked to this action. If it does not exist, default it to the empty list
                 assert universal_assignments is not None
                 action_assignments = universal_assignments.setdefault(act, [])
@@ -532,35 +553,35 @@ class PDDLReader:
         to_add = [(exp, vars)]
         while to_add:
             exp, vars = to_add.pop(0)
-            op = exp[0]
+            op = exp[0].value
             if op == "and":
-                for e in exp[1:]:
-                    to_add.append((e, vars))
+                for i in range(1, len(exp)):
+                    to_add.append((exp[i], vars))
             elif op == "forall":
-                vars_string = " ".join(exp[1])
+                vars_string = " ".join([e.value for e in exp[1]])
                 vars_res = self._pp_parameters.parseString(vars_string)
                 if vars is None:
                     vars = {}
                 for g in vars_res["params"]:
-                    t = types_map[g[1] if len(g) > 1 else Object]
-                    for o in g[0]:
+                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                    for o in g.value[0]:
                         vars[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], vars))
-            elif len(exp) == 3 and op == "at" and exp[1] == "start":
+            elif len(exp) == 3 and op == "at" and exp[1].value == "start":
                 cond = self._parse_exp(
                     problem, act, types_map, {} if vars is None else vars, exp[2]
                 )
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
                 act.add_condition(up.model.StartTiming(), cond)
-            elif len(exp) == 3 and op == "at" and exp[1] == "end":
+            elif len(exp) == 3 and op == "at" and exp[1].value == "end":
                 cond = self._parse_exp(
                     problem, act, types_map, {} if vars is None else vars, exp[2]
                 )
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
                 act.add_condition(up.model.EndTiming(), cond)
-            elif len(exp) == 3 and op == "over" and exp[1] == "all":
+            elif len(exp) == 3 and op == "over" and exp[1].value == "all":
                 t_all = up.model.OpenTimeInterval(
                     up.model.StartTiming(), up.model.EndTiming()
                 )
@@ -587,11 +608,11 @@ class PDDLReader:
         to_add = [eff]
         while to_add:
             eff = to_add.pop(0)
-            op = eff[0]
+            op = eff[0].value
             if op == "and":
-                for e in eff[1:]:
-                    to_add.append(e)
-            elif len(eff) == 3 and op == "at" and eff[1] == "start":
+                for i in range(1, len(eff)):
+                    to_add.append(eff[i])
+            elif len(eff) == 3 and op == "at" and eff[1].value == "start":
                 self._add_effect(
                     problem,
                     act,
@@ -601,7 +622,7 @@ class PDDLReader:
                     timing=up.model.StartTiming(),
                     assignments=assignments,
                 )
-            elif len(eff) == 3 and op == "at" and eff[1] == "end":
+            elif len(eff) == 3 and op == "at" and eff[1].value == "end":
                 self._add_effect(
                     problem,
                     act,
@@ -630,7 +651,7 @@ class PDDLReader:
         if len(e) == 0:
             return None
 
-        task_name = e[0]
+        task_name = e[0].value
         if problem.has_task(task_name) or problem.has_action(task_name):
             # check the form '(task_name param1 param2...)'
             task: Union[htn.Task, up.model.Action]
@@ -640,13 +661,13 @@ class PDDLReader:
                 task = problem.action(task_name)
             assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
             parameters = [
-                self._parse_exp(problem, method, types_map, {}, param)
-                for param in e[1:]
+                self._parse_exp(problem, method, types_map, {}, e[i])
+                for i in range(1, len(e))
             ]
             return htn.Subtask(task, *parameters)
-        elif len(e) == 2 and e[0] != "and":
+        elif len(e) == 2 and e[0].value != "and":
             # check the form "(task_id (task param1 param2...))"
-            task_id = e[0]
+            task_id = e[0].value
             subtask = self._parse_subtask(e[1], method, problem, types_map)
             if subtask is not None:
                 # the second element of the list is a valid subtask,
@@ -670,11 +691,11 @@ class PDDLReader:
             return [single_task]
         elif len(e) == 0:
             return []
-        elif e[0] == "and":
+        elif e[0].value == "and":
             return [
                 subtask
-                for e2 in e[1:]
-                for subtask in self._parse_subtasks(e2, method, problem, types_map)
+                for i in range(1, len(e))
+                for subtask in self._parse_subtasks(e[i], method, problem, types_map)
             ]
         else:
             raise SyntaxError(f"Could not parse the subtasks list: {e}")
@@ -693,15 +714,15 @@ class PDDLReader:
                 return True
         for a in domain_res.get("actions", []):
             for g in a.get("params", []):
-                if len(g) <= 1 or g[1] == Object:
+                if len(g.value) <= 1 or g.value[1] == Object:
                     return True
         for a in domain_res.get("tasks", []):
             for g in a.get("params", []):
-                if len(g) <= 1 or g[1] == Object:
+                if len(g.value) <= 1 or g.value[1] == Object:
                     return True
         for a in domain_res.get("methods", []):
             for g in a.get("params", []):
-                if len(g) <= 1 or g[1] == Object:
+                if len(g.value) <= 1 or g.value[1] == Object:
                     return True
         return False
 
@@ -878,8 +899,8 @@ class PDDLReader:
             name = task["name"]
             task_params = OrderedDict()
             for g in task.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else Object]
-                for p in g[0]:
+                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                for p in g.value[0]:
                     task_params[p] = t
             task = htn.Task(name, task_params)
             problem.add_task(task)
@@ -888,33 +909,27 @@ class PDDLReader:
             n = a["name"]
             a_params = OrderedDict()
             for g in a.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else Object]
-                for p in g[0]:
+                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                for p in g.value[0]:
                     a_params[p] = t
             if "duration" in a:
                 dur_act = up.model.DurativeAction(n, a_params, self._env)
-                dur = a["duration"][0]
-                if dur[0] == "=":
-                    dur.pop(0)
-                    dur.pop(0)
+                dur = CustomParseResults(a["duration"][0])
+                if dur[0].value == "=":
                     dur_act.set_fixed_duration(
-                        self._parse_exp(problem, dur_act, types_map, {}, dur)
+                        self._parse_exp(problem, dur_act, types_map, {}, dur[2])
                     )
-                elif dur[0] == "and":
+                elif dur[0].value == "and":
                     upper = None
                     lower = None
                     for j in range(1, len(dur)):
-                        if dur[j][0] == ">=" and lower is None:
-                            dur[j].pop(0)
-                            dur[j].pop(0)
+                        if dur[j][0].value == ">=" and lower is None:
                             lower = self._parse_exp(
-                                problem, dur_act, types_map, {}, dur[j]
+                                problem, dur_act, types_map, {}, dur[j][2]
                             )
-                        elif dur[j][0] == "<=" and upper is None:
-                            dur[j].pop(0)
-                            dur[j].pop(0)
+                        elif dur[j][0].value == "<=" and upper is None:
                             upper = self._parse_exp(
-                                problem, dur_act, types_map, {}, dur[j]
+                                problem, dur_act, types_map, {}, dur[j][2]
                             )
                         else:
                             raise SyntaxError(
@@ -930,9 +945,9 @@ class PDDLReader:
                     raise SyntaxError(
                         f"Not able to handle duration constraint of action {n}"
                     )
-                cond = a["cond"][0]
+                cond = CustomParseResults(a["cond"][0])
                 self._add_condition(problem, dur_act, cond, types_map)
-                eff = a["eff"][0]
+                eff = CustomParseResults(a["eff"][0])
                 self._add_timed_effects(
                     problem, dur_act, types_map, universal_assignments, eff
                 )
@@ -946,11 +961,13 @@ class PDDLReader:
                 ] = None
                 if "obs" in a:
                     act = up.model.SensingAction(n, a_params, self._env)
-                    obs_fluent = a["obs"][0]
-                    if obs_fluent[0] == "and":  # more than 1 fluent
-                        for o in obs_fluent[1:]:
+                    obs_fluent = CustomParseResults(a["obs"][0])
+                    if obs_fluent[0].value == "and":  # more than 1 fluent
+                        for i in range(1, len(obs_fluent)):
                             act.add_observed_fluent(
-                                self._parse_exp(problem, act, types_map, {}, o)
+                                self._parse_exp(
+                                    problem, act, types_map, {}, obs_fluent[i]
+                                )
                             )
                     else:
                         act.add_observed_fluent(
@@ -960,11 +977,17 @@ class PDDLReader:
                     act = up.model.InstantaneousAction(n, a_params, self._env)
                 if "pre" in a:
                     act.add_precondition(
-                        self._parse_exp(problem, act, types_map, {}, a["pre"][0])
+                        self._parse_exp(
+                            problem, act, types_map, {}, CustomParseResults(a["pre"][0])
+                        )
                     )
                 if "eff" in a:
                     self._add_effect(
-                        problem, act, types_map, universal_assignments, a["eff"][0]
+                        problem,
+                        act,
+                        types_map,
+                        universal_assignments,
+                        CustomParseResults(a["eff"][0]),
                     )
                 problem.add_action(act)
                 has_actions_cost = (
@@ -976,55 +999,67 @@ class PDDLReader:
             name = m["name"]
             method_params = OrderedDict()
             for g in m.get("params", []):
-                t = types_map[g[1] if len(g) > 1 else Object]
-                for p in g[0]:
+                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                for p in g.value[0]:
                     method_params[p] = t
 
             method = htn.Method(name, method_params)
-            achieved_task = m["task"][
-                0
-            ]  # a list of the form ["go", "?robot", "?target"]
-            for pname in achieved_task[1:]:
+            achieved_task = CustomParseResults(m["task"][0])
+            pnames = []
+            for i in range(1, len(achieved_task)):
+                pname = achieved_task[i].value
                 if pname[0] != "?":
                     raise SyntaxError(
                         f"All arguments of the task should be parameters: {achieved_task}"
                     )
-            achieved_task_params = [
-                method.parameter(pname[1:]) for pname in achieved_task[1:]
-            ]
-            method.set_task(problem.get_task(achieved_task[0]), *achieved_task_params)
-            for ord_subs in m.get("ordered-subtasks", []):
-                ord_subs = self._parse_subtasks(ord_subs, method, problem, types_map)
+                pnames.append(pname)
+            achieved_task_params = [method.parameter(pname[1:]) for pname in pnames]
+            method.set_task(
+                problem.get_task(achieved_task[0].value), *achieved_task_params
+            )
+            if "ordered-subtasks" in m:
+                ost = CustomParseResults(m.get("ordered-subtasks")[0])
+                ord_subs = self._parse_subtasks(ost, method, problem, types_map)
                 for s in ord_subs:
                     method.add_subtask(s)
                 method.set_ordered(*ord_subs)
-            for subs in m.get("subtasks", []):
-                subs = self._parse_subtasks(subs, method, problem, types_map)
+            if "subtasks" in m:
+                st = CustomParseResults(m.get("subtasks")[0])
+                subs = self._parse_subtasks(st, method, problem, types_map)
                 for s in subs:
                     method.add_subtask(s)
-            orderings_queue = list(m.get("ordering", []))
-            while not len(orderings_queue) == 0:
-                ordering = orderings_queue.pop(0)
-                if len(ordering) == 0:
-                    pass
-                elif ordering[0] == "and":
-                    # add the rest of the expression to the queue
-                    orderings_queue += ordering[1:]
-                elif ordering[0] == "<":
-                    if len(ordering) != 3:
+            if "ordering" in m:
+                orderings = CustomParseResults(m.get("ordering"))
+                stack = [orderings]
+                while len(stack) > 0:
+                    ordering = stack.pop(0)
+                    if len(ordering) == 0:
+                        pass
+                    elif ordering[0].value == "and":
+                        # add the rest of the expression to the queue
+                        for i in range(1, len(ordering)):
+                            stack.append(ordering[i])
+                    elif ordering[0].value == "<":
+                        if len(ordering) != 3:
+                            raise SyntaxError(
+                                f"Wrong number of parameters in ordering relation: {ordering}"
+                            )
+                        left = method.get_subtask(ordering[1].value)
+                        right = method.get_subtask(ordering[2].value)
+                        method.set_strictly_before(left, right)
+                    else:
                         raise SyntaxError(
-                            f"Wrong number of parameters in ordering relation: {ordering}"
+                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
                         )
-                    left = method.get_subtask(ordering[1])
-                    right = method.get_subtask(ordering[2])
-                    method.set_strictly_before(left, right)
-                else:
-                    raise SyntaxError(
-                        f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
-                    )
-            for precondition in m.get("precondition", []):
+            if "precondition" in m:
                 method.add_precondition(
-                    self._parse_exp(problem, method, types_map, {}, precondition)
+                    self._parse_exp(
+                        problem,
+                        method,
+                        types_map,
+                        {},
+                        CustomParseResults(m["precondition"][0]),
+                    )
                 )
             problem.add_method(method)
 
@@ -1040,13 +1075,13 @@ class PDDLReader:
                 for eff in eff_list:
                     # Parse the variable definition part and create 2 lists, the first one with the variable names,
                     # the second one with the variable types.
-                    vars_string = " ".join(eff[1])
+                    vars_string = " ".join([e.value for e in eff[1]])
                     vars_res = self._pp_parameters.parseString(vars_string)
                     var_names: List[str] = []
                     var_types: List["up.model.Type"] = []
                     for g in vars_res["params"]:
-                        t = types_map[g[1] if len(g) > 1 else Object]
-                        for o in g[0]:
+                        t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                        for o in g.value[0]:
                             var_names.append(f"?{o}")
                             var_types.append(t)
                     # for each variable type, get all the objects of that type and calculate the cartesian
@@ -1084,20 +1119,29 @@ class PDDLReader:
 
                 for tn_variables in tasknet.get("params", []):
                     tn_var_type = types_map[
-                        tn_variables[1] if len(tn_variables) > 1 else Object
+                        tn_variables.value[1] if len(tn_variables.value) > 1 else Object
                     ]
-                    for tn_var_name in tn_variables[0]:
+                    for tn_var_name in tn_variables.value[0]:
                         problem.task_network.add_variable(tn_var_name, tn_var_type)
 
-                for subtasks_expr in tasknet.get("tasks", []):
+                ta = tasknet.get("tasks", None)
+                if ta:
                     subtasks = self._parse_subtasks(
-                        subtasks_expr, problem.task_network, problem, types_map
+                        CustomParseResults(ta[0]),
+                        problem.task_network,
+                        problem,
+                        types_map,
                     )
                     for task in subtasks:
                         problem.task_network.add_subtask(task)
-                for subtasks_expr in tasknet.get("ordered-tasks", []):
+
+                ot = tasknet.get("ordered-tasks", None)
+                if ot:
                     subtasks = self._parse_subtasks(
-                        subtasks_expr, problem.task_network, problem, types_map
+                        CustomParseResults(ot[0]),
+                        problem.task_network,
+                        problem,
+                        types_map,
                     )
                     prev = None
                     for task in subtasks:
@@ -1106,39 +1150,45 @@ class PDDLReader:
                             problem.task_network.set_strictly_before(prev, cur)
                         prev = cur
 
-                orderings_queue = list(tasknet.get("ordering", []))
-                while not len(orderings_queue) == 0:
-                    ordering = orderings_queue.pop(0)
+                oq = tasknet.get("ordering", None)
+                stack = []
+                if oq:
+                    stack.append(CustomParseResults(oq))
+                while len(stack) > 0:
+                    ordering = stack.pop(0)
                     if len(ordering) == 0:
                         pass
-                    elif ordering[0] == "and":
+                    elif ordering[0].value == "and":
                         # add the rest of the expression to the queue
-                        orderings_queue += ordering[1:]
-                    elif ordering[0] == "<":
+                        stack += ordering[1:]
+                    elif ordering[0].value == "<":
                         if len(ordering) != 3:
                             raise SyntaxError(
                                 f"Wrong number of parameters in ordering relation: {ordering}"
                             )
-                        left = problem.task_network.get_subtask(ordering[1])
-                        right = problem.task_network.get_subtask(ordering[2])
+                        left = problem.task_network.get_subtask(ordering[1].value)
+                        right = problem.task_network.get_subtask(ordering[2].value)
                         problem.task_network.set_strictly_before(left, right)
                     else:
                         raise SyntaxError(
                             f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
                         )
 
-                for constraint in tasknet.get("constraints", []):
-                    problem.task_network.add_constraint(
-                        self._parse_exp(
-                            problem, problem.task_network, types_map, {}, constraint
+                constraints = tasknet.get("constraints", None)
+                if constraints:
+                    for constraint in CustomParseResults(constraints):
+                        problem.task_network.add_constraint(
+                            self._parse_exp(
+                                problem, problem.task_network, types_map, {}, constraint
+                            )
                         )
-                    )
 
             init_list = problem_res.get("init", [])
-            if len(init_list) == 1 and init_list[0][0] == "and":
-                init_list = init_list[0][1:]
-            for i in init_list:
-                operator = i[0]
+            if len(init_list) == 1 and list(init_list[0].value[0].value) == ["and"]:
+                init_list = init_list[0].value[1:]
+            for j in init_list:
+                i = CustomParseResults(j)
+                operator = i[0].value
                 if operator == "=":
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i[1]),
@@ -1147,9 +1197,9 @@ class PDDLReader:
                 elif (
                     len(i) == 3
                     and operator == "at"
-                    and i[1].replace(".", "", 1).isdigit()
+                    and i[1].value.replace(".", "", 1).isdigit()
                 ):
-                    ti = up.model.StartTiming(Fraction(i[1]))
+                    ti = up.model.StartTiming(Fraction(i[1].value))
                     va = self._parse_exp(problem, None, types_map, {}, i[2])
                     if va.is_fluent_exp():
                         problem.add_timed_effect(ti, va, self._em.TRUE())
@@ -1162,13 +1212,15 @@ class PDDLReader:
                 elif operator == "oneof":
                     assert isinstance(problem, ContingentProblem)
                     fluents = [
-                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                        self._parse_exp(problem, None, types_map, {}, i[x])
+                        for x in range(1, len(i))
                     ]
                     problem.add_oneof_initial_constraint(fluents)
                 elif operator == "or":
                     assert isinstance(problem, ContingentProblem)
                     fluents = [
-                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                        self._parse_exp(problem, None, types_map, {}, i[x])
+                        for x in range(1, len(i))
                     ]
                     problem.add_or_initial_constraint(fluents)
                 elif operator == "unknown":
@@ -1188,7 +1240,11 @@ class PDDLReader:
             if "goal" in problem_res:
                 problem.add_goal(
                     self._parse_exp(
-                        problem, None, types_map, {}, problem_res["goal"][0]
+                        problem,
+                        None,
+                        types_map,
+                        {},
+                        CustomParseResults(problem_res["goal"][0]),
                     )
                 )
             elif not isinstance(problem, htn.HierarchicalProblem):
@@ -1197,7 +1253,11 @@ class PDDLReader:
             if "constraints" in problem_res:
                 problem.add_trajectory_constraint(
                     self._parse_exp(
-                        problem, None, types_map, {}, problem_res["constraints"][0]
+                        problem,
+                        None,
+                        types_map,
+                        {},
+                        CustomParseResults(problem_res["constraints"][0]),
                     )
                 )
 
@@ -1205,13 +1265,14 @@ class PDDLReader:
                 problem
             )
             optimization = problem_res.get("optimization", None)
-            metric = problem_res.get("metric", None)
+            m = problem_res.get("metric", None)
 
-            if metric is not None:
+            if m is not None:
+                metric = CustomParseResults(m[0])
                 if (
                     optimization == "minimize"
                     and len(metric) == 1
-                    and metric[0] == "total-time"
+                    and metric[0].value == "total-time"
                 ):
                     problem.add_quality_metric(up.model.metrics.MinimizeMakespan())
                 else:
@@ -1223,7 +1284,8 @@ class PDDLReader:
                     ):
                         costs = {}
                         problem._fluents.remove(self._totalcost.fluent())
-                        problem._initial_value.pop(self._totalcost)
+                        if self._totalcost in problem._initial_value:
+                            problem._initial_value.pop(self._totalcost)
                         use_plan_length = all(False for _ in problem.durative_actions)
                         for a in problem.instantaneous_actions:
                             cost = None
