@@ -16,12 +16,6 @@
 
 import unified_planning as up
 from typing import List
-
-import pyparsing
-
-assert (
-    pyparsing.__version__ >= "3.0.0"
-), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
 from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
 from pyparsing import (
     Optional,
