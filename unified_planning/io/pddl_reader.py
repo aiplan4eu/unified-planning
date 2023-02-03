@@ -371,7 +371,7 @@ class PDDLReader:
         act: typing.Optional[Union[up.model.Action, htn.Method, htn.TaskNetwork]],
         types_map: TypesMap,
         var: Dict[str, up.model.Variable],
-        exp: Union[ParseResults, str],
+        exp: CustomParseResults,
         assignments: Dict[str, "up.model.Object"] = {},
     ) -> up.model.FNode:
         stack = [(var, exp, False)]
@@ -478,9 +478,9 @@ class PDDLReader:
         act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
         types_map: TypesMap,
         universal_assignments: typing.Optional[
-            Dict["up.model.Action", List[ParseResults]]
+            Dict["up.model.Action", List[CustomParseResults]]
         ],
-        exp: Union[ParseResults, str],
+        exp: CustomParseResults,
         cond: Union[up.model.FNode, bool] = True,
         timing: typing.Optional[up.model.Timing] = None,
         assignments: Dict[str, "up.model.Object"] = {},
@@ -546,7 +546,7 @@ class PDDLReader:
         self,
         problem: up.model.Problem,
         act: up.model.DurativeAction,
-        exp: Union[ParseResults, str],
+        exp: CustomParseResults,
         types_map: TypesMap,
         vars: typing.Optional[Dict[str, up.model.Variable]] = None,
     ):
@@ -600,9 +600,9 @@ class PDDLReader:
         act: up.model.DurativeAction,
         types_map: TypesMap,
         universal_assignments: typing.Optional[
-            Dict["up.model.Action", List[ParseResults]]
+            Dict["up.model.Action", List[CustomParseResults]]
         ],
-        eff: ParseResults,
+        eff: CustomParseResults,
         assignments: Dict[str, "up.model.Object"] = {},
     ):
         to_add = [eff]
@@ -807,7 +807,7 @@ class PDDLReader:
 
         types_map: TypesMap = {}
         object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
-        universal_assignments: Dict["up.model.Action", List[ParseResults]] = {}
+        universal_assignments: Dict["up.model.Action", List[CustomParseResults]] = {}
 
         # extract all type declarations into a dictionary
         type_declarations: Dict[
@@ -1174,9 +1174,11 @@ class PDDLReader:
                             f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
                         )
 
-                constraints = tasknet.get("constraints", None)
-                if constraints:
-                    for constraint in CustomParseResults(constraints):
+                cs = tasknet.get("constraints", None)
+                if cs:
+                    constraints = CustomParseResults(cs)
+                    for i in range(len(constraints)):
+                        constraint = constraints[i]
                         problem.task_network.add_constraint(
                             self._parse_exp(
                                 problem, problem.task_network, types_map, {}, constraint
@@ -1187,20 +1189,20 @@ class PDDLReader:
             if len(init_list) == 1 and list(init_list[0].value[0].value) == ["and"]:
                 init_list = init_list[0].value[1:]
             for j in init_list:
-                i = CustomParseResults(j)
-                operator = i[0].value
+                init = CustomParseResults(j)
+                operator = init[0].value
                 if operator == "=":
                     problem.set_initial_value(
-                        self._parse_exp(problem, None, types_map, {}, i[1]),
-                        self._parse_exp(problem, None, types_map, {}, i[2]),
+                        self._parse_exp(problem, None, types_map, {}, init[1]),
+                        self._parse_exp(problem, None, types_map, {}, init[2]),
                     )
                 elif (
-                    len(i) == 3
+                    len(init) == 3
                     and operator == "at"
-                    and i[1].value.replace(".", "", 1).isdigit()
+                    and init[1].value.replace(".", "", 1).isdigit()
                 ):
-                    ti = up.model.StartTiming(Fraction(i[1].value))
-                    va = self._parse_exp(problem, None, types_map, {}, i[2])
+                    ti = up.model.StartTiming(Fraction(init[1].value))
+                    va = self._parse_exp(problem, None, types_map, {}, init[2])
                     if va.is_fluent_exp():
                         problem.add_timed_effect(ti, va, self._em.TRUE())
                     elif va.is_not():
@@ -1208,32 +1210,32 @@ class PDDLReader:
                     elif va.is_equals():
                         problem.add_timed_effect(ti, va.arg(0), va.arg(1))
                     else:
-                        raise SyntaxError(f"Not able to handle this TIL {i}")
+                        raise SyntaxError(f"Not able to handle this TIL {init}")
                 elif operator == "oneof":
                     assert isinstance(problem, ContingentProblem)
                     fluents = [
-                        self._parse_exp(problem, None, types_map, {}, i[x])
-                        for x in range(1, len(i))
+                        self._parse_exp(problem, None, types_map, {}, init[x])
+                        for x in range(1, len(init))
                     ]
                     problem.add_oneof_initial_constraint(fluents)
                 elif operator == "or":
                     assert isinstance(problem, ContingentProblem)
                     fluents = [
-                        self._parse_exp(problem, None, types_map, {}, i[x])
-                        for x in range(1, len(i))
+                        self._parse_exp(problem, None, types_map, {}, init[x])
+                        for x in range(1, len(init))
                     ]
                     problem.add_or_initial_constraint(fluents)
                 elif operator == "unknown":
                     assert isinstance(problem, ContingentProblem)
-                    if len(i) != 2:
+                    if len(init) != 2:
                         raise SyntaxError(
                             "`unknown` constraint requires exactly one argument."
                         )
-                    arg = self._parse_exp(problem, None, types_map, {}, i[1])
+                    arg = self._parse_exp(problem, None, types_map, {}, init[1])
                     problem.add_unknown_initial_constraint(arg)
                 else:
                     problem.set_initial_value(
-                        self._parse_exp(problem, None, types_map, {}, i),
+                        self._parse_exp(problem, None, types_map, {}, init),
                         self._em.TRUE(),
                     )
 
