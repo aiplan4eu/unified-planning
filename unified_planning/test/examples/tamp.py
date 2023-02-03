@@ -13,10 +13,13 @@
 # limitations under the License.
 
 
+import os
 from unified_planning.shortcuts import *
 from collections import namedtuple
 
 Example = namedtuple("Example", ["problem", "plan"])
+
+FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_example_problems():
@@ -31,7 +34,7 @@ def get_example_problems():
     Robot = MovableType("robot")
 
     # representation of the free and occupied working space, fixed obstacles are located on the occupied areas (e.g., Octomap)
-    map = OccupancyMap("../tamp/test-map.yaml", (0, 0))
+    map = OccupancyMap(os.path.join(FILE_PATH, "..", "tamp", "test-map.yaml"), (0, 0))
 
     # representation of the state of a movable object
     # the input is equals to the number of variables useful to define this state
