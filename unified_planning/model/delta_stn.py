@@ -131,8 +131,8 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         """
         Returns the assignment to the given event in the minimal-makespan consistent solution.
 
-        :param x: The event of which the the time assignment in the minimal-makespan constistent
-            solution mus tbe returned.
+        :param x: The event of which the time assignment, in the minimal-makespan consistent
+            solution, must be returned.
         :return: The minimal possible time assignment for the given event.
         """
         return cast(T, -1 * self._distances[x])
