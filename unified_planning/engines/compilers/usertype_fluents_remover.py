@@ -20,10 +20,6 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import (
-    UPProblemDefinitionError,
-    UPConflictingEffectsException,
-)
 from unified_planning.model import (
     Problem,
     ProblemKind,
@@ -42,19 +38,13 @@ from unified_planning.model import (
     MaximizeExpressionOnFinalState,
     Oversubscription,
     Object,
-    Variable,
     Expression,
+    DurationInterval,
 )
 from unified_planning.model.walkers import UsertypeFluentsWalker, Substituter
 from unified_planning.model.types import _UserType
-from unified_planning.engines.compilers.utils import (
-    get_fresh_name,
-    check_and_simplify_preconditions,
-    check_and_simplify_conditions,
-    replace_action,
-)
-from unified_planning.utils import powerset
-from typing import Iterator, List, Dict, Tuple, Optional, cast
+from unified_planning.engines.compilers.utils import replace_action
+from typing import Iterator, Dict, Tuple, Optional, cast
 from functools import partial
 
 
@@ -103,6 +93,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
+        supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         return supported_kind
 
@@ -208,6 +200,14 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                             e, problem, fluents_map, substituter, em, utf_remover
                         ):
                             new_action._add_effect_instance(t, ne)
+                duration = old_action.duration
+                new_duration = DurationInterval(
+                    utf_remover.remove_usertype_fluents(duration.lower)[0],
+                    utf_remover.remove_usertype_fluents(duration.upper)[0],
+                    duration.is_left_open(),
+                    duration.is_right_open(),
+                )
+                new_action.set_duration_constraint(new_duration)
                 if new_action.simulated_effects:
                     raise NotImplementedError
             else:
