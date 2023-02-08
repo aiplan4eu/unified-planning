@@ -102,9 +102,3 @@ class Agent(
         for a in self._actions:
             res += hash(a)
         return res
-
-    def clone(self):
-        new_a = Agent(self._name, self._ma_problem)
-        new_a._fluents = self._fluents[:]
-        new_a._actions = [a.clone() for a in self._actions]
-        return new_a
