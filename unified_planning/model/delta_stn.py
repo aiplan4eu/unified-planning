@@ -82,6 +82,11 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
 
     @property
     def distances(self) -> Dict[Any, T]:
+        """
+        Return the mapping from an event to his distance.
+        The distance of an event is the negative of the minimum consistent time that can
+        be assigned to said event.
+        """
         return self._distances
 
     def copy_stn(self) -> "DeltaSimpleTemporalNetwork":
@@ -123,7 +128,13 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         return self._is_sat
 
     def get_stn_model(self, x: Any) -> T:
-        """TODO"""
+        """
+        Returns the assignment to the given event in the minimal-makespan consistent solution.
+
+        :param x: The event of which the the time assignment in the minimal-makespan constistent
+            solution mus tbe returned.
+        :return: The minimal possible time assignment for the given event.
+        """
         return cast(T, -1 * self._distances[x])
 
     def _is_subsumed(self, x: Any, y: Any, b: T) -> bool:
