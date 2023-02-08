@@ -229,11 +229,29 @@ class STNPlan(plans.plan.Plan):
     def __repr__(self) -> str:
         return str(self._stn)
 
-    # def __eq__(self, oth: object) -> bool:
-    #     pass  # TODO
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, STNPlan):
+            self_contraints = self.get_constraints()
+            oth_constraints = oth.get_constraints()
+            if len(self_contraints) != len(oth_constraints):
+                return False
+            for k, self_cl in self_contraints.items():
+                oth_cl = oth_constraints.get(k, None)
+                if oth_cl is None or len(oth_cl) != len(self_cl):
+                    return False
+                for self_c in self_cl:
+                    if not self_c in oth_cl:
+                        return False
+            return False
+        else:
+            return False
 
-    # def __hash__(self) -> int:
-    #     pass  # TODO
+    def __hash__(self) -> int:
+        count = 0
+        for k, cl in self.get_constraints().items():
+            for lb, ub, v in cl:
+                count += hash((k, lb, ub, v))
+        return count
 
     def __contains__(self, item: object) -> bool:
         if isinstance(item, ActionInstance):
@@ -337,7 +355,7 @@ class STNPlan(plans.plan.Plan):
             replaced_r_node = replaced_nodes[r_node]
             new_rrn_constraints: List[
                 Tuple[Fraction, STNPlanNode]
-            ] = []  # rrn = replaced_right_node
+            ] = []  # rrn means replaced_right_node
             # the nodes added on left_nodes_set are on the left of the current node
             left_nodes_set: Optional[Set[Tuple[STNPlanNode, Fraction]]] = (
                 left_nodes.setdefault(replaced_r_node, set())
