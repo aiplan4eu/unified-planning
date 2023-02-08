@@ -31,7 +31,7 @@ class AgentsSetMixin:
     def __init__(self, env, has_name_method):
         self._env: "up.environment.Environment" = env
         self._has_name_method = has_name_method
-        self._agents: List[Agent] = []
+        self._agents: List["up.model.multi_agent.Agent"] = []
 
     @property
     def env(self) -> "up.environment.Environment":

@@ -56,6 +56,7 @@ class TestNegativeConditionsRemover(TestCase):
         ) as npr:
             res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
+        assert isinstance(positive_problem, Problem)
         self.assertEqual(len(problem.fluents) + 1, len(positive_problem.fluents))
         self.assertTrue(problem.kind.has_negative_conditions())
         self.assertFalse(positive_problem.kind.has_negative_conditions())
@@ -77,6 +78,7 @@ class TestNegativeConditionsRemover(TestCase):
         npr = NegativeConditionsRemover()
         res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
+        assert isinstance(positive_problem, Problem)
         res_2 = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem_2 = res_2.problem
         self.assertEqual(positive_problem, positive_problem_2)
@@ -103,6 +105,7 @@ class TestNegativeConditionsRemover(TestCase):
         npr = NegativeConditionsRemover()
         res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
+        assert isinstance(positive_problem, Problem)
         self.assertTrue(problem.kind.has_negative_conditions())
         self.assertFalse(positive_problem.kind.has_negative_conditions())
         self.assertTrue(problem.kind.has_negative_conditions())
@@ -144,6 +147,7 @@ class TestNegativeConditionsRemover(TestCase):
         npr = NegativeConditionsRemover()
         res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
+        assert isinstance(positive_problem, Problem)
         self.assertEqual(len(problem.fluents) + 2, len(positive_problem.fluents))
         self.assertTrue(problem.kind.has_negative_conditions())
         self.assertFalse(positive_problem.kind.has_negative_conditions())
@@ -163,6 +167,7 @@ class TestNegativeConditionsRemover(TestCase):
         npr = NegativeConditionsRemover()
         res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
+        assert isinstance(positive_problem, Problem)
         self.assertEqual(len(problem.fluents) + 3, len(positive_problem.fluents))
         self.assertTrue(problem.kind.has_negative_conditions())
         self.assertFalse(positive_problem.kind.has_negative_conditions())
@@ -205,6 +210,8 @@ class TestNegativeConditionsRemover(TestCase):
         npr = NegativeConditionsRemover()
         res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         positive_problem = res.problem
+        assert isinstance(positive_problem, Problem)
+        assert isinstance(positive_problem, Problem)
         self.assertEqual(len(problem.fluents) + 1, len(positive_problem.fluents))
         y__negated__ = Fluent("y_0")
         test_problem = Problem(positive_problem.name)

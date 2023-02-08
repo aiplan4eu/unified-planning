@@ -52,8 +52,8 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot = Example(problem=problem, plan=plan)
-    problems["robot"] = robot
+    robot_example = Example(problem=problem, plan=plan)
+    problems["robot"] = robot_example
 
     # robot fluent of user_type
     Location = UserType("Location")
@@ -619,7 +619,7 @@ def get_example_problems():
     problem.add_goal(fuse_mended(f1))
     problem.add_goal(fuse_mended(f2))
     problem.add_goal(fuse_mended(f3))
-    plan = up.plans.TimeTriggeredPlan(
+    t_plan = up.plans.TimeTriggeredPlan(
         [
             (
                 Fraction(0, 1),
@@ -653,7 +653,7 @@ def get_example_problems():
             ),
         ]
     )
-    matchcellar = Example(problem=problem, plan=plan)
+    matchcellar = Example(problem=problem, plan=t_plan)
     problems["matchcellar"] = matchcellar
 
     # timed connected locations
@@ -662,17 +662,17 @@ def get_example_problems():
         "is_connected", BoolType(), location_1=Location, location_2=Location
     )
     is_at = Fluent("is_at", BoolType(), position=Location)
-    move = DurativeAction("move", l_from=Location, l_to=Location)
-    l_from = move.parameter("l_from")
-    l_to = move.parameter("l_to")
-    move.set_fixed_duration(6)
-    move.add_condition(StartTiming(), is_at(l_from))
-    move.add_condition(StartTiming(), Not(is_at(l_to)))
+    dur_move = DurativeAction("move", l_from=Location, l_to=Location)
+    l_from = dur_move.parameter("l_from")
+    l_to = dur_move.parameter("l_to")
+    dur_move.set_fixed_duration(6)
+    dur_move.add_condition(StartTiming(), is_at(l_from))
+    dur_move.add_condition(StartTiming(), Not(is_at(l_to)))
     mid_location = Variable("mid_loc", Location)
     # (E (location mid_location)
     # !((mid_location == l_from) || (mid_location == l_to)) && (is_connected(l_from, mid_location) || is_connected(mid_location, l_from)) &&
     # && (is_connected(l_to, mid_location) || is_connected(mid_location, l_to)))
-    move.add_condition(
+    dur_move.add_condition(
         ClosedTimeInterval(StartTiming(), EndTiming()),
         Exists(
             And(
@@ -686,7 +686,7 @@ def get_example_problems():
             mid_location,
         ),
     )
-    move.add_condition(
+    dur_move.add_condition(
         StartTiming(),
         Exists(
             And(
@@ -700,8 +700,8 @@ def get_example_problems():
             mid_location,
         ),
     )
-    move.add_effect(StartTiming(1), is_at(l_from), False)
-    move.add_effect(EndTiming(5), is_at(l_to), True)
+    dur_move.add_effect(StartTiming(1), is_at(l_from), False)
+    dur_move.add_effect(EndTiming(5), is_at(l_to), True)
     l1 = Object("l1", Location)
     l2 = Object("l2", Location)
     l3 = Object("l3", Location)
@@ -710,7 +710,7 @@ def get_example_problems():
     problem = Problem("timed_connected_locations")
     problem.add_fluent(is_at, default_initial_value=False)
     problem.add_fluent(is_connected, default_initial_value=False)
-    problem.add_action(move)
+    problem.add_action(dur_move)
     problem.add_object(l1)
     problem.add_object(l2)
     problem.add_object(l3)
@@ -722,21 +722,21 @@ def get_example_problems():
     problem.set_initial_value(is_connected(l3, l4), True)
     problem.set_initial_value(is_connected(l4, l5), True)
     problem.add_goal(is_at(l5))
-    plan = up.plans.TimeTriggeredPlan(
+    t_plan = up.plans.TimeTriggeredPlan(
         [
             (
                 Fraction(0, 1),
-                up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+                up.plans.ActionInstance(dur_move, (ObjectExp(l1), ObjectExp(l3))),
                 Fraction(6, 1),
             ),
             (
                 Fraction(601, 100),
-                up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l5))),
+                up.plans.ActionInstance(dur_move, (ObjectExp(l3), ObjectExp(l5))),
                 Fraction(6, 1),
             ),
         ]
     )
-    timed_connected_locations = Example(problem=problem, plan=plan)
+    timed_connected_locations = Example(problem=problem, plan=t_plan)
     problems["timed_connected_locations"] = timed_connected_locations
 
     # hierarchical blocks world
@@ -819,17 +819,17 @@ def get_example_problems():
     problem.add_fluent(is_connected, default_initial_value=False)
     problem.add_fluent(distance, default_initial_value=1)
 
-    move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-    r = move.parameter("r")
-    l_from = move.parameter("l_from")
-    l_to = move.parameter("l_to")
-    move.set_fixed_duration((distance(l_from, l_to)))
-    move.add_condition(StartTiming(), is_connected(l_from, l_to))
-    move.add_condition(StartTiming(), is_at(l_from, r))
-    move.add_condition(StartTiming(), Not(is_at(l_to, r)))
-    move.add_effect(StartTiming(), is_at(l_from, r), False)
-    move.add_effect(EndTiming(), is_at(l_to, r), True)
-    problem.add_action(move)
+    dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
+    r = dur_move.parameter("r")
+    l_from = dur_move.parameter("l_from")
+    l_to = dur_move.parameter("l_to")
+    dur_move.set_fixed_duration((distance(l_from, l_to)))
+    dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+    dur_move.add_condition(StartTiming(), is_at(l_from, r))
+    dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
+    dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
+    dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
+    problem.add_action(dur_move)
 
     r1 = Object("r1", Robot)
     l1 = Object("l1", Location)
@@ -851,39 +851,39 @@ def get_example_problems():
 
     problem.add_goal(is_at(l5, r1))
 
-    plan = up.plans.TimeTriggeredPlan(
+    t_plan = up.plans.TimeTriggeredPlan(
         [
             (
                 Fraction(0, 1),
                 up.plans.ActionInstance(
-                    move, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l2))
+                    dur_move, (ObjectExp(r1), ObjectExp(l1), ObjectExp(l2))
                 ),
                 Fraction(10, 1),
             ),
             (
                 Fraction(1001, 100),
                 up.plans.ActionInstance(
-                    move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))
+                    dur_move, (ObjectExp(r1), ObjectExp(l2), ObjectExp(l3))
                 ),
                 Fraction(10, 1),
             ),
             (
                 Fraction(2002, 100),
                 up.plans.ActionInstance(
-                    move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))
+                    dur_move, (ObjectExp(r1), ObjectExp(l3), ObjectExp(l4))
                 ),
                 Fraction(10, 1),
             ),
             (
                 Fraction(3003, 100),
                 up.plans.ActionInstance(
-                    move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5))
+                    dur_move, (ObjectExp(r1), ObjectExp(l4), ObjectExp(l5))
                 ),
                 Fraction(10, 1),
             ),
         ]
     )
-    robot_static_fluents_duration = Example(problem=problem, plan=plan)
+    robot_static_fluents_duration = Example(problem=problem, plan=t_plan)
     problems["robot_with_static_fluents_duration"] = robot_static_fluents_duration
 
     # travel

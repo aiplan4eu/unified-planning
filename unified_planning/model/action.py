@@ -115,13 +115,13 @@ class InstantaneousAction(Action):
         **kwargs: "up.model.types.Type",
     ):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
-        self._preconditions: List[up.model.fnode.FNode] = []
+        self._preconditions: List["up.model.fnode.FNode"] = []
         self._effects: List[up.model.effect.Effect] = []
         self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
         # fluent assigned is the set of the fluent that have an unconditional assignment
-        self._fluents_assigned: Set["up.model.FNode"] = set()
+        self._fluents_assigned: Set["up.model.fnode.FNode"] = set()
         # fluent_inc_dec is the set of the fluents that have an unconditional increase or decrease
-        self._fluents_inc_dec: Set["up.model.FNode"] = set()
+        self._fluents_inc_dec: Set["up.model.fnode.FNode"] = set()
 
     def __repr__(self) -> str:
         s = []
@@ -177,9 +177,9 @@ class InstantaneousAction(Action):
         return res
 
     def clone(self):
-        new_params = {}
-        for param_name, param in self._parameters.items():
-            new_params[param_name] = param.type
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
         new_instantaneous_action = InstantaneousAction(
             self._name, new_params, self._env
         )
@@ -432,10 +432,10 @@ class DurativeAction(Action):
             "up.model.timing.Timing", "up.model.effect.SimulatedEffect"
         ] = {}
         self._fluents_assigned: Dict[
-            "up.model.timing.Timing", Set["up.model.FNode"]
+            "up.model.timing.Timing", Set["up.model.fnode.FNode"]
         ] = {}
         self._fluents_inc_dec: Dict[
-            "up.model.timing.Timing", Set["up.model.FNode"]
+            "up.model.timing.Timing", Set["up.model.fnode.FNode"]
         ] = {}
 
     def __repr__(self) -> str:
@@ -524,9 +524,9 @@ class DurativeAction(Action):
         return res
 
     def clone(self):
-        new_params = {
-            param_name: param.type for param_name, param in self._parameters.items()
-        }
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
         new_durative_action = DurativeAction(self._name, new_params, self._env)
         new_durative_action._duration = self._duration
         new_durative_action._conditions = {
@@ -748,11 +748,9 @@ class DurativeAction(Action):
             interval = up.model.TimePointInterval(interval)
         (condition_exp,) = self._env.expression_manager.auto_promote(condition)
         assert self._env.type_checker.get_type(condition_exp).is_bool_type()
-        if interval in self._conditions:
-            if condition_exp not in self._conditions[interval]:
-                self._conditions[interval].append(condition_exp)
-        else:
-            self._conditions[interval] = [condition_exp]
+        conditions = self._conditions.setdefault(interval, [])
+        if condition_exp not in conditions:
+            conditions.append(condition_exp)
 
     def _set_conditions(
         self,
@@ -786,7 +784,7 @@ class DurativeAction(Action):
         if not self._env.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            raise UPTypeError("DurativeAction effect has not compatible types!")
         self._add_effect_instance(
             timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
         )
@@ -816,7 +814,7 @@ class DurativeAction(Action):
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            raise UPTypeError("DurativeAction effect has not compatible types!")
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Increase effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -854,7 +852,7 @@ class DurativeAction(Action):
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            raise UPTypeError("DurativeAction effect has not compatible types!")
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -926,3 +924,76 @@ class DurativeAction(Action):
                     f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
                 )
         self._simulated_effects[timing] = simulated_effect
+
+
+class SensingAction(InstantaneousAction):
+    """This class represents a sensing action."""
+
+    def __init__(
+        self,
+        _name: str,
+        _parameters: Optional["OrderedDict[str, up.model.types.Type]"] = None,
+        _env: Optional[Environment] = None,
+        **kwargs: "up.model.types.Type",
+    ):
+        InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
+        self._observed_fluents: List["up.model.fnode.FNode"] = []
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, SensingAction):
+            return super().__eq__(oth) and set(self._observed_fluents) == set(
+                oth._observed_fluents
+            )
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = super().__hash__()
+        for of in self._observed_fluents:
+            res += hash(of)
+        return res
+
+    def clone(self):
+        new_params = OrderedDict()
+        for param_name, param in self._parameters.items():
+            new_params[param_name] = param.type
+        new_sensing_action = SensingAction(self._name, new_params, self._env)
+        new_sensing_action._preconditions = self._preconditions[:]
+        new_sensing_action._effects = [e.clone() for e in self._effects]
+        new_sensing_action._fluents_assigned = self._fluents_assigned.copy()
+        new_sensing_action._fluents_inc_dec = self._fluents_inc_dec.copy()
+        new_sensing_action._simulated_effect = self._simulated_effect
+        new_sensing_action._observed_fluents = self._observed_fluents.copy()
+        return new_sensing_action
+
+    def add_observed_fluents(self, observed_fluents: List["up.model.fnode.FNode"]):
+        """
+        Adds the given list of observed fluents.
+
+        :param observed_fluents: The list of observed fluents that must be added.
+        """
+        for of in observed_fluents:
+            self.add_observed_fluent(of)
+
+    def add_observed_fluent(self, observed_fluent: "up.model.fnode.FNode"):
+        """
+        Adds the given observed fluent.
+
+        :param observed_fluent: The observed fluent that must be added.
+        """
+        self._observed_fluents.append(observed_fluent)
+
+    @property
+    def observed_fluents(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `list` observed fluents."""
+        return self._observed_fluents
+
+    def __repr__(self) -> str:
+        b = InstantaneousAction.__repr__(self)[0:-3]
+        s = ["sensing-", b]
+        s.append("    observations = [\n")
+        for e in self._observed_fluents:
+            s.append(f"      {str(e)}\n")
+        s.append("    ]\n")
+        s.append("  }")
+        return "".join(s)

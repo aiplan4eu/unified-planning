@@ -14,11 +14,13 @@
 
 
 import unified_planning as up
+import pytest
 from unified_planning.shortcuts import *
 from unified_planning.engines import SequentialSimulator, SimulatorMixin
 from unified_planning.model import UPCOWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
+from unified_planning.exceptions import UPUsageError
 from itertools import product
 from typing import cast
 
@@ -151,3 +153,12 @@ class TestSimulator(TestCase):
         problem = self.problems["hierarchical_blocks_world"].problem
         with Simulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)
+
+    @pytest.mark.filterwarnings("ignore:We cannot establish")
+    def test_check_disabling(self):
+        problem = self.problems["matchcellar"].problem
+        with self.assertRaises(UPUsageError) as e:
+            SequentialSimulator(problem)
+        self.assertIn("cannot establish whether", str(e.exception))
+        with Simulator(problem, name="sequential_simulator") as simulator:
+            pass

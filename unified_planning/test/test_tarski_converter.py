@@ -24,7 +24,6 @@ from unified_planning.test import (
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import (
     full_classical_kind,
-    full_numeric_kind,
     hierarchical_kind,
 )
 from unified_planning.plans import SequentialPlan, ActionInstance
@@ -80,6 +79,7 @@ class TestTarskiConverter(TestCase):
         )
         with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             new_plan = planner.solve(new_problem).plan
+            self.assertIsNotNone(new_plan)
             self.assertEqual(str(plan), str(new_plan))
 
     @skipIfEngineNotAvailable("tarski_grounder")
@@ -92,6 +92,7 @@ class TestTarskiConverter(TestCase):
         )
         with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             new_plan = planner.solve(new_problem).plan
+            self.assertIsNotNone(new_plan)
             self.assertEqual(str(plan), str(new_plan))
 
 

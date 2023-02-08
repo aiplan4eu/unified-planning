@@ -13,17 +13,17 @@
 # limitations under the License
 
 
-from unified_planning.model.metrics import *
-from unified_planning.shortcuts import *
-from unified_planning.engines import LogMessage, CompilationKind
+import unified_planning.grpc.generated.unified_planning_pb2 as proto
+from unified_planning.engines import LogMessage
 from unified_planning.engines.results import LogLevel
+from unified_planning.plans import ActionInstance
+from unified_planning.shortcuts import *
 from unified_planning.test import (
     TestCase,
     skipIfEngineNotAvailable,
     skipIfModuleNotInstalled,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.plans import ActionInstance
 
 
 class TestProtobufIO(TestCase):
@@ -275,6 +275,125 @@ class TestProtobufIO(TestCase):
                 validation_result_up = self.pb_reader.convert(validation_result_pb)
 
                 self.assertEqual(validation_result, validation_result_up)
+
+    def test_temporal_hierarchical_goal(self):
+        problem = self.problems["htn-go-temporal"].problem
+        problem_pb = self.pb_writer.convert(problem)
+        problem_up = self.pb_reader.convert(problem_pb)
+
+        self.assertEqual(problem, problem_up)
+
+    def test_timing_expressions(self):
+        def build(
+            timing: Timing, action: Union[Action, None] = None
+        ) -> proto.Expression:
+            problem = Problem("test timing")
+            if action is not None:
+                problem.add_action(action)
+            node = problem.env.expression_manager.auto_promote(timing)[0]
+            node_pb = self.pb_writer.convert(node)
+            node_up = self.pb_reader.convert(node_pb, problem)
+            self.assertEqual(node, node_up)
+            return node_pb
+
+        def check(  # pylint: disable = too-many-arguments
+            expr: proto.Expression,
+            kind: int,
+            tpe: str = "",
+            length: Union[int, None] = None,
+            integer: Union[int, None] = None,
+            real: Union[Fraction, None] = None,
+            symbol: Union[str, None] = None,
+        ) -> None:
+            self.assertEqual(expr.kind, kind)
+            self.assertEqual(expr.type, tpe)
+            if length is not None:
+                self.assertEqual(len(expr.list), length)
+            if integer is not None:
+                self.assertEqual(expr.atom, proto.Atom(int=integer))
+            if real is not None:
+                _pr = proto.Real(numerator=real.numerator, denominator=real.denominator)
+                self.assertEqual(expr.atom, proto.Atom(real=_pr))
+            if symbol is not None:
+                self.assertEqual(expr.atom, proto.Atom(symbol=symbol))
+
+        # pylint: disable = invalid-name
+        cont_kind = proto.ExpressionKind.Value("CONTAINER_ID")
+        const_kind = proto.ExpressionKind.Value("CONSTANT")
+        fun_app_kind = proto.ExpressionKind.Value("FUNCTION_APPLICATION")
+        fun_sym_kind = proto.ExpressionKind.Value("FUNCTION_SYMBOL")
+        cont_type = "up:container"
+        int_type = "up:integer"
+        real_type = "up:real"
+        time_type = "up:time"
+        add_symbol = "up:plus"
+        start_symbol = "up:start"
+        end_symbol = "up:end"
+        global_start_symbol = "up:global_start"
+        global_end_symbol = "up:global_end"
+        int_delay = 5
+        frac_delay = Fraction(1, 5)
+        act = Action("move")
+
+        # [ ] Delay
+        # [ ] Container
+        # StartTiming() --> (up:start)
+        for timing, symbol in zip(
+            [StartTiming(), EndTiming(), GlobalStartTiming(), GlobalEndTiming()],
+            [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
+        ):
+            t_pb = build(timing)
+            check(t_pb, fun_app_kind, tpe=time_type, length=1)
+            check(t_pb.list[0], fun_sym_kind, symbol=symbol)
+
+        # [x] Delay
+        # [ ] Container
+        # StartTiming(5) --> (up:plus (up:start) 5)
+        for timing, symbol in zip(
+            [StartTiming, EndTiming, GlobalStartTiming, GlobalEndTiming],
+            [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
+        ):
+            for delay in [int_delay, frac_delay]:
+                t_pb = build(timing(delay))
+                check(t_pb, fun_app_kind, tpe=time_type, length=3)
+                check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
+                check(t_pb.list[1], fun_app_kind, tpe=time_type, length=1)
+                check(t_pb.list[1].list[0], fun_sym_kind, symbol=symbol)
+                if delay == int_delay:
+                    check(t_pb.list[2], const_kind, tpe=int_type, integer=int_delay)
+                elif delay == frac_delay:
+                    check(t_pb.list[2], const_kind, tpe=real_type, real=frac_delay)
+
+        # [ ] Delay
+        # [x] Container
+        # StartTiming(move) --> (up:start move)
+        for timing, symbol in zip(
+            [StartTiming(container=act.name), EndTiming(container=act.name)],
+            [start_symbol, end_symbol],
+        ):
+            t_pb = build(timing)
+            check(t_pb, fun_app_kind, tpe=time_type, length=2)
+            check(t_pb.list[0], fun_sym_kind, symbol=symbol)
+            check(t_pb.list[1], cont_kind, tpe=cont_type, symbol=act.name)
+
+        # [x] Delay
+        # [x] Container
+        # StartTiming(5, move) --> (up:plus (up:start move) 5)
+        for timing, symbol in zip(
+            [StartTiming, EndTiming],
+            [start_symbol, end_symbol],
+        ):
+            for delay in [int_delay, frac_delay]:
+                t_pb = build(timing(delay, act.name))
+                check(t_pb, fun_app_kind, tpe=time_type, length=3)
+                check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
+                check(t_pb.list[1], fun_app_kind, tpe=time_type, length=2)
+                check(t_pb.list[1].list[0], fun_sym_kind, symbol=symbol)
+                check(t_pb.list[1].list[1], cont_kind, tpe=cont_type, symbol=act.name)
+                if delay == int_delay:
+                    check(t_pb.list[2], const_kind, tpe=int_type, integer=int_delay)
+                elif delay == frac_delay:
+                    check(t_pb.list[2], const_kind, tpe=real_type, real=frac_delay)
 
 
 class TestProtobufProblems(TestCase):

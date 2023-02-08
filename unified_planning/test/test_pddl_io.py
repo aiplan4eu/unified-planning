@@ -19,10 +19,10 @@ import pytest
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
-from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.problem_kind import full_numeric_kind
+from unified_planning.model.problem_kind import simple_numeric_kind
+from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.model.types import _UserType
 from unified_planning.engines import PlanGenerationResultStatus
 
@@ -452,6 +452,7 @@ class TestPddlIO(TestCase):
             assert isinstance(problem, up.model.htn.HierarchicalProblem)
 
     def test_examples_io(self):
+
         for example in self.problems.values():
             problem = example.problem
             kind = problem.kind
@@ -472,7 +473,14 @@ class TestPddlIO(TestCase):
                 reader = PDDLReader()
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
-                self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
+                # Case where the reader does not convert the final_value back to actions_cost.
+                if kind.has_actions_cost() and parsed_problem.kind.has_final_value():
+                    self.assertEqual(
+                        len(problem.fluents) + 1, len(parsed_problem.fluents)
+                    )
+                else:
+                    self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
+
                 self.assertTrue(
                     _have_same_user_types_considering_renamings(
                         problem, parsed_problem, w.get_item_named
@@ -484,11 +492,20 @@ class TestPddlIO(TestCase):
                     self.assertEqual(a, w.get_item_named(parsed_a.name))
                     for param, parsed_param in zip(a.parameters, parsed_a.parameters):
                         self.assertEqual(
-                            param.type, w.get_item_named(parsed_param.type.name)
+                            param.type,
+                            w.get_item_named(cast(_UserType, parsed_param.type).name),
                         )
-                    if isinstance(a, unified_planning.model.InstantaneousAction):
-                        self.assertEqual(len(a.effects), len(parsed_a.effects))
-                    elif isinstance(a, unified_planning.model.DurativeAction):
+                    if isinstance(a, InstantaneousAction):
+                        assert isinstance(parsed_a, InstantaneousAction)
+                        if (
+                            kind.has_actions_cost()
+                            and parsed_problem.kind.has_final_value()
+                        ):
+                            self.assertEqual(len(a.effects) + 1, len(parsed_a.effects))
+                        else:
+                            self.assertEqual(len(a.effects), len(parsed_a.effects))
+                    elif isinstance(a, DurativeAction):
+                        assert isinstance(parsed_a, DurativeAction)
                         self.assertEqual(str(a.duration), str(parsed_a.duration))
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
@@ -640,6 +657,7 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.timed_effects), 0)
 
         visit = problem.action("visit")
+        assert isinstance(visit, DurativeAction)
         to_visit = visit.parameter("to_visit")
         location = problem.user_type("location")
         precedes = problem.fluent("precedes")
@@ -704,13 +722,13 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.fluents), 1)
         self.assertEqual(len(problem.actions), 2)
         natural_disaster = problem.action("natural_disaster")
+        assert isinstance(natural_disaster, InstantaneousAction)
         # 9 effects because the forall is expanded in 3 * 3 possible locations instantiations
         self.assertEqual(len(natural_disaster.effects), 9)
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
-    @skipIfNoOneshotPlannerForProblemKind(full_numeric_kind)
-    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+    @skipIfNoOneshotPlannerForProblemKind(
+        simple_numeric_kind, OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_reading_domain_only(self):
         reader = PDDLReader()
@@ -738,6 +756,7 @@ class TestPddlIO(TestCase):
                             value_fluent(object_j),
                         )
                     )
+            problem.add_quality_metric(MinimizeSequentialPlanLength())
             with OneshotPlanner(
                 problem_kind=problem.kind, optimality_guarantee="SOLVED_OPTIMALLY"
             ) as planner:

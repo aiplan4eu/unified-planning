@@ -42,7 +42,7 @@ class handles(object):
 
     def __init__(self, *nodetypes):
         if len(nodetypes) == 1 and isinstance(nodetypes[0], Iterable):
-            nodetypes = nodetypes[0]
+            nodetypes = nodetypes[0]  # type: ignore
         self.nodetypes = list(nodetypes)
 
     def __call__(self, func):
@@ -60,7 +60,7 @@ class MetaNodeTypeHandler(type):
         obj = type.__new__(cls, name, bases, dct)
         for k, v in dct.items():
             if hasattr(v, "nodetypes"):
-                obj.set_handler(v, *v.nodetypes)
+                obj.set_handler(v, *v.nodetypes)  # type: ignore
         return obj
 
 

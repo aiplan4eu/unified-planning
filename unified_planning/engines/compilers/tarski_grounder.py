@@ -56,7 +56,7 @@ class TarskiGrounder(Engine, CompilerMixin):
         Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.GROUNDING)
         if len(kwargs) > 0:
-            raise
+            raise ValueError(f"Unknown parameters passed to TarskiGrounder: {kwargs}")
 
     @property
     def name(self) -> str:
@@ -74,6 +74,11 @@ class TarskiGrounder(Engine, CompilerMixin):
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod

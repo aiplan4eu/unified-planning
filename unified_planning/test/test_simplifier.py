@@ -355,7 +355,7 @@ class TestArithmeticOperators(TestCase):
         y = Fluent("y", IntType())
         fnode2 = Int(data2)
         fnodex_2 = Plus(x, fnode2)
-        data_list = [1, 5, 6, 2, 3, 4, -3, 5]
+        data_list: List[Union[int, Fluent]] = [1, 5, 6, 2, 3, 4, -3, 5]
 
         fnode_of_data_list = Plus(data_list)
         fnode_of_data_list = Plus(fnode_of_data_list, fnodex_2)
@@ -518,7 +518,7 @@ class TestArithmeticOperators(TestCase):
         x = Fluent("x", IntType())
         fnode2 = Int(data2)
         x_2 = Div(x, fnode2)
-        data_list = [Fraction(5), Fraction(1, 5)]
+        data_list: List[Union[Fraction, str]] = [Fraction(5), Fraction(1, 5)]
 
         fnode_of_data_list = Int(1)
         for a in data_list:
@@ -570,7 +570,7 @@ class TestWithSubstituter(TestCase):
         t = Bool(True)
         f = Bool(False)
         e1 = And(x, f)
-        sub = {x: True}
+        sub: Dict[Expression, Expression] = {x: True}
         s1 = su.substitute(e1, sub)
         r1 = s.simplify(s1)
         self.assertEqual(r1, f)
@@ -615,7 +615,7 @@ class TestWithSubstituter(TestCase):
         t = Bool(True)
         f = Bool(False)
         e1 = Or(x, t)
-        sub = {x: False}
+        sub: Dict[Expression, Expression] = {x: False}
         s1 = su.substitute(e1, sub)
         r1 = s.simplify(s1)
         self.assertEqual(r1, t)
@@ -668,7 +668,7 @@ class TestWithSubstituter(TestCase):
         t = Bool(True)
         f = Bool(False)
         e1 = Or(x, Not(t))
-        sub = {x: False}
+        sub: Dict[Expression, Expression] = {x: False}
         s1 = su.substitute(e1, sub)
         r1 = s.simplify(s1)
         self.assertEqual(r1, f)
@@ -686,7 +686,7 @@ class TestWithSubstituter(TestCase):
         t = Bool(True)
         f = Bool(False)
         e1 = Iff(x, y)
-        sub = {x: False}
+        sub: Dict[Expression, Expression] = {x: False}
         s1 = su.substitute(e1, sub)
         r1 = s.simplify(s1)
         self.assertEqual(r1, Not(y))
@@ -707,9 +707,8 @@ class TestWithSubstituter(TestCase):
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y"))
         t = Bool(True)
-        f = Bool(False)
         e1 = Implies(x, y)
-        sub = {x: False}
+        sub: Dict[Expression, Expression] = {x: False}
         s1 = su.substitute(e1, sub)
         r1 = s.simplify(s1)
         self.assertEqual(r1, t)
@@ -735,23 +734,33 @@ class TestWithSubstituter(TestCase):
             And(x, Iff(GT(Plus(a, 5), b), Not(Equals(c, d)))),
             Or(And(x, Not(y)), And(Not(x), y)),
         )
-        sub1 = {x: False, y: False, a: 0, b: 5, c: 0, d: 1}
+        sub1: Dict[Expression, Expression] = {
+            x: False,
+            y: False,
+            a: 0,
+            b: 5,
+            c: 0,
+            d: 1,
+        }
         s1 = su.substitute(e, sub1)
         r1 = s.simplify(s1)
         self.assertEqual(r1, t)
-        sub2 = {x: True, y: False, a: 0, b: 5, c: 0, d: 1}
+        sub2: Dict[Expression, Expression] = {x: True, y: False, a: 0, b: 5, c: 0, d: 1}
         s2 = su.substitute(e, sub2)
         r2 = s.simplify(s2)
         self.assertEqual(r2, f)
-        sub3 = {y: False, a: 0, b: 5, c: 0, d: 1}
+        sub3: Dict[Expression, Expression] = {y: False, a: 0, b: 5, c: 0, d: 1}
         s3 = su.substitute(e, sub3)
         r3 = s.simplify(s3)
         self.assertEqual(r3, Not(x))
-        sub4 = {y: False, a: 1, b: 5, c: 0, d: 1}
+        sub4: Dict[Expression, Expression] = {y: False, a: 1, b: 5, c: 0, d: 1}
         s4 = su.substitute(e, sub4)
         r4 = s.simplify(s4)
         self.assertEqual(r4, t)
-        sub5 = {Not(Equals(c, d)): GT(Plus(a, 5), b), y: False}
+        sub5: Dict[Expression, Expression] = {
+            Not(Equals(c, d)): GT(Plus(a, 5), b),
+            y: False,
+        }
         s5 = su.substitute(e, sub5)
         r5 = s.simplify(s5)
         self.assertEqual(r5, t)

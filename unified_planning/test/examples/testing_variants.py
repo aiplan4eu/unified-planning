@@ -53,8 +53,8 @@ def get_example_problems():
     plan = unified_planning.plans.SequentialPlan(
         [unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot = Example(problem=problem, plan=plan)
-    problems["robot_real_constants"] = robot
+    robot_example = Example(problem=problem, plan=plan)
+    problems["robot_real_constants"] = robot_example
 
     # robot_int_battery
     # this version of the problem robot has the battery charge fluent represented as an int instead of a real
@@ -86,8 +86,8 @@ def get_example_problems():
     plan = unified_planning.plans.SequentialPlan(
         [unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot = Example(problem=problem, plan=plan)
-    problems["robot_int_battery"] = robot
+    robot_example = Example(problem=problem, plan=plan)
+    problems["robot_int_battery"] = robot_example
 
     # robot fluent of user_type with int ID
     Int_t = IntType(0, 1)
@@ -491,5 +491,232 @@ def get_example_problems():
     )
     travel_with_consumptions = Example(problem=problem, plan=plan)
     problems["travel_with_consumptions"] = travel_with_consumptions
+
+    # matchcellar with static duration
+    Match = UserType("Match")
+    Fuse = UserType("Fuse")
+    handfree = Fluent("handfree")
+    light = Fluent("light")
+    match_durability = Fluent("match_durability", RealType(), match=Match)
+    fuse_difficulty = Fluent("fuse_difficulty", RealType(), fuse=Fuse)
+    match_used = Fluent("match_used", BoolType(), match=Match)
+    fuse_mended = Fluent("fuse_mended", BoolType(), fuse=Fuse)
+    light_match = DurativeAction("light_match", m=Match)
+    m = light_match.parameter("m")
+    light_match.set_fixed_duration(match_durability(m))
+    light_match.add_condition(StartTiming(), Not(match_used(m)))
+    light_match.add_effect(StartTiming(), match_used(m), True)
+    light_match.add_effect(StartTiming(), light, True)
+    light_match.add_effect(EndTiming(), light, False)
+    mend_fuse = DurativeAction("mend_fuse", f=Fuse)
+    f = mend_fuse.parameter("f")
+    mend_fuse.set_fixed_duration(fuse_difficulty(f))
+    mend_fuse.add_condition(StartTiming(), handfree)
+    mend_fuse.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), light)
+    mend_fuse.add_effect(StartTiming(), handfree, False)
+    mend_fuse.add_effect(EndTiming(), fuse_mended(f), True)
+    mend_fuse.add_effect(EndTiming(), handfree, True)
+    f1 = Object("f1", Fuse)
+    f2 = Object("f2", Fuse)
+    f3 = Object("f3", Fuse)
+    m1 = Object("m1", Match)
+    m2 = Object("m2", Match)
+    m3 = Object("m3", Match)
+    problem = Problem("matchcellar_static_duration")
+    problem.add_fluent(handfree)
+    problem.add_fluent(light)
+    problem.add_fluent(match_durability)
+    problem.add_fluent(fuse_difficulty)
+    problem.add_fluent(match_used, default_initial_value=False)
+    problem.add_fluent(fuse_mended, default_initial_value=False)
+    problem.add_action(light_match)
+    problem.add_action(mend_fuse)
+    problem.add_object(f1)
+    problem.add_object(f2)
+    problem.add_object(f3)
+    problem.add_object(m1)
+    problem.add_object(m2)
+    problem.add_object(m3)
+    problem.set_initial_value(light, False)
+    problem.set_initial_value(handfree, True)
+    problem.set_initial_value(match_durability(m1), 2)
+    problem.set_initial_value(match_durability(m2), 3)
+    problem.set_initial_value(match_durability(m3), 4)
+    problem.set_initial_value(fuse_difficulty(f1), 1)
+    problem.set_initial_value(fuse_difficulty(f2), 2)
+    problem.set_initial_value(fuse_difficulty(f3), 3)
+    problem.add_goal(fuse_mended(f1))
+    problem.add_goal(fuse_mended(f2))
+    problem.add_goal(fuse_mended(f3))
+    t_plan = up.plans.TimeTriggeredPlan(
+        [
+            (
+                Fraction(0, 1),
+                up.plans.ActionInstance(light_match, (ObjectExp(m1),)),
+                Fraction(2, 1),
+            ),
+            (
+                Fraction(1, 100),
+                up.plans.ActionInstance(mend_fuse, (ObjectExp(f1),)),
+                Fraction(1, 1),
+            ),
+            (
+                Fraction(201, 100),
+                up.plans.ActionInstance(light_match, (ObjectExp(m2),)),
+                Fraction(3, 1),
+            ),
+            (
+                Fraction(202, 100),
+                up.plans.ActionInstance(mend_fuse, (ObjectExp(f2),)),
+                Fraction(2, 1),
+            ),
+            (
+                Fraction(502, 100),
+                up.plans.ActionInstance(light_match, (ObjectExp(m3),)),
+                Fraction(4, 1),
+            ),
+            (
+                Fraction(503, 100),
+                up.plans.ActionInstance(mend_fuse, (ObjectExp(f3),)),
+                Fraction(3, 1),
+            ),
+        ]
+    )
+    matchcellar_static_duration = Example(problem=problem, plan=t_plan)
+    problems["matchcellar_static_duration"] = matchcellar_static_duration
+
+    # locations connected visited oversubscription
+    Location = UserType("Location")
+    is_at = Fluent("is_at", BoolType(), position=Location)
+    is_connected = Fluent(
+        "is_connected", BoolType(), location_1=Location, location_2=Location
+    )
+    visited = Fluent("visited", BoolType(), location=Location)
+    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(is_at(l_from))
+    move.add_precondition(Not(is_at(l_to)))
+    move.add_precondition(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)))
+    move.add_effect(is_at(l_from), False)
+    move.add_effect(is_at(l_to), True)
+    move.add_effect(visited(l_to), True)
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    l4 = Object("l4", Location)
+    l5 = Object("l5", Location)
+    problem = Problem("locations_connected_visited_oversubscription")
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(visited, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.add_object(l3)
+    problem.add_object(l4)
+    problem.add_object(l5)
+    problem.set_initial_value(is_at(l1), True)
+    problem.set_initial_value(visited(l1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l1, l3), True)
+    problem.set_initial_value(is_connected(l1, l5), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l2, l5), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.add_goal(is_at(l5))
+    loc_var = Variable("loc_var", Location)
+    problem.add_quality_metric(
+        Oversubscription(
+            {
+                visited(l2): 9,
+                visited(l2) | visited(l3): 5,
+                Forall(visited(loc_var) | loc_var.Equals(l2), loc_var)
+                & visited(l2).Not(): 10,
+            }
+        )
+    )
+
+    plan = unified_planning.plans.SequentialPlan(
+        [
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
+        ]
+    )
+    locations_connected_visited_oversubscription = Example(problem=problem, plan=plan)
+    problems[
+        "locations_connected_visited_oversubscription"
+    ] = locations_connected_visited_oversubscription
+
+    # locations connected cost minimize
+    Location = UserType("Location")
+    is_at = Fluent("is_at", BoolType(), position=Location)
+    is_connected = Fluent(
+        "is_connected", BoolType(), location_1=Location, location_2=Location
+    )
+    distance = Fluent("distance", RealType(), location_1=Location, location_2=Location)
+    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(is_at(l_from))
+    move.add_precondition(Not(is_at(l_to)))
+    move.add_precondition(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)))
+    move.add_effect(is_at(l_from), False)
+    move.add_effect(is_at(l_to), True)
+    move_cost = distance(l_from, l_to)
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    l4 = Object("l4", Location)
+    l5 = Object("l5", Location)
+    problem = Problem("locations_connected_cost_minimize")
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_fluent(distance, default_initial_value=100)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.add_object(l3)
+    problem.add_object(l4)
+    problem.add_object(l5)
+    problem.set_initial_value(is_at(l1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l1, l3), True)
+    problem.set_initial_value(is_connected(l1, l5), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l2, l5), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.set_initial_value(distance(l1, l2), 4)
+    problem.set_initial_value(distance(l1, l3), 8)
+    problem.set_initial_value(distance(l1, l5), 11)
+    problem.set_initial_value(distance(l2, l3), 5)
+    problem.set_initial_value(distance(l2, l5), 8)
+    problem.set_initial_value(distance(l3, l4), 1)
+    problem.set_initial_value(distance(l4, l5), 1)
+
+    problem.set_initial_value(distance(l2, l1), 4)
+    problem.set_initial_value(distance(l3, l1), 8)
+    problem.set_initial_value(distance(l5, l1), 11)
+    problem.set_initial_value(distance(l3, l2), 5)
+    problem.set_initial_value(distance(l5, l2), 8)
+    problem.set_initial_value(distance(l4, l3), 1)
+    problem.set_initial_value(distance(l5, l4), 1)
+    problem.add_goal(is_at(l5))
+    problem.add_quality_metric(MinimizeActionCosts({move: move_cost}))
+
+    plan = unified_planning.plans.SequentialPlan(
+        [
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
+            unified_planning.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
+        ]
+    )
+    locations_connected_cost_minimize = Example(problem=problem, plan=plan)
+    problems["locations_connected_cost_minimize"] = locations_connected_cost_minimize
 
     return problems

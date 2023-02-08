@@ -1,0 +1,53 @@
+type Entity;
+type Location;
+type Movable < Location;
+type Unmovable;
+type TableSpace < Unmovable < Location < Entity;
+type Block < Movable;
+
+fluent boolean clear(Location space);
+fluent boolean on(Movable object_, Location space);
+
+action move(Movable item, Location l_from, Location l_to) {
+   [start] clear(item);
+   [start] clear(l_to);
+   [start] on(item, l_from);
+
+   [start] clear(l_from) := true;
+   [start] on(item, l_from) := false;
+   [start] clear(l_to) := false;
+   [start] on(item, l_to) := true;
+};
+
+instance TableSpace ts_1, ts_2, ts_3;
+instance Block block_1, block_2, block_3;
+
+[start] clear(ts_2) := true;
+[start] clear(ts_3) := true;
+[start] clear(block_2) := true;
+[start] on(block_3, ts_1) := true;
+[start] on(block_1, block_3) := true;
+[start] on(block_2, block_1) := true;
+
+[start] clear(ts_1) := false;
+[start] clear(block_1) := false;
+[start] clear(block_3) := false;
+[start] on(block_1, ts_1) := false;
+[start] on(block_2, ts_1) := false;
+[start] on(block_1, ts_2) := false;
+[start] on(block_2, ts_2) := false;
+[start] on(block_3, ts_2) := false;
+[start] on(block_1, ts_3) := false;
+[start] on(block_2, ts_3) := false;
+[start] on(block_3, ts_3) := false;
+[start] on(block_1, block_1) := false;
+[start] on(block_3, block_1) := false;
+[start] on(block_1, block_2) := false;
+[start] on(block_2, block_2) := false;
+[start] on(block_3, block_2) := false;
+[start] on(block_2, block_3) := false;
+[start] on(block_3, block_3) := false;
+
+[end] on(block_1, ts_3);
+[end] on(block_2, block_1);
+[end] on(block_3, block_2);

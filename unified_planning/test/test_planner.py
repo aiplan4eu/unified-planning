@@ -19,13 +19,12 @@ from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
-    basic_numeric_kind,
+    general_numeric_kind,
     quality_metrics_kind,
     oversubscription_kind,
 )
 from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
-from unified_planning.test import skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
 from unified_planning.engines.results import POSITIVE_OUTCOMES
@@ -93,6 +92,24 @@ class TestPlanner(TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
+    @skipIfEngineNotAvailable("tamer")
+    def test_basic_with_custom_heuristic(self):
+        problem = self.problems["basic"].problem
+        x = problem.fluent("x")
+
+        with OneshotPlanner(name="tamer") as planner:
+            self.assertNotEqual(planner, None)
+
+            def h(state):
+                v = state.get_value(x()).bool_constant_value()
+                return 0 if v else 1
+
+            final_report = planner.solve(problem, heuristic=h)
+            plan = final_report.plan
+            self.assertEqual(
+                final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+            )
+
     @skipIfNoOneshotPlannerForProblemKind(
         basic_classical_kind.union(oversubscription_kind)
     )
@@ -142,7 +159,7 @@ class TestPlanner(TestCase):
             planner.error_on_failed_checks = True
             with self.assertRaises(up.exceptions.UPUsageError) as e:
                 final_report = planner.solve(problem)
-            self.assertIn("cannot solve this kind of problem", str(e.exception))
+            self.assertIn("cannot establish whether", str(e.exception))
             with Compiler(name="up_quantifiers_remover") as quantifiers_remover:
                 res = quantifiers_remover.compile(
                     problem, CompilationKind.QUANTIFIERS_REMOVING
@@ -159,16 +176,15 @@ class TestPlanner(TestCase):
                 self.assertEqual((plan.timed_actions[0])[1].action, move)
                 self.assertEqual((plan.timed_actions[1])[1].action, move)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
-    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(quality_metrics_kind), OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_actions_cost(self):
         problem = self.problems["basic_with_costs"].problem
         opt_plan = self.problems["basic_with_costs"].plan
         with OneshotPlanner(
             problem_kind=problem.kind,
-            optimality_guarantee=PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+            optimality_guarantee=OptimalityGuarantee.SOLVED_OPTIMALLY,
         ) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -178,7 +194,7 @@ class TestPlanner(TestCase):
             )
             self.assertEqual(plan, opt_plan)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(basic_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
     def test_robot(self):
         problem = self.problems["robot"].problem
         move = problem.action("move")
@@ -215,9 +231,8 @@ class TestPlanner(TestCase):
             self.assertEqual(len(plan.actions[2].actual_parameters), 2)
             self.assertEqual(len(plan.actions[3].actual_parameters), 1)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(quality_metrics_kind))
-    @skipIfNoOneshotPlannerSatisfiesOptimalityGuarantee(
-        PlanGenerationResultStatus.SOLVED_OPTIMALLY
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(quality_metrics_kind), OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_robot_loader_adv(self):
         problem = self.problems["robot_loader_adv"].problem.clone()
@@ -249,7 +264,7 @@ class TestPlanner(TestCase):
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_check_flags(self):
         problem = self.problems["robot"].problem
-        error_msg = "ENHSP cannot solve this kind of problem!"
+        error_msg = "We cannot establish whether ENHSP can solve this problem!"
         with OneshotPlanner(name="opt-pddl-planner") as planner:
 
             # By default, when getting an Engine by name, we get a warning if the problem is not

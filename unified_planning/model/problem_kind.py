@@ -20,7 +20,7 @@ import unified_planning as up
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
-    "PROBLEM_CLASS": ["ACTION_BASED", "HIERARCHICAL"],
+    "PROBLEM_CLASS": ["ACTION_BASED", "HIERARCHICAL", "CONTINGENT"],
     "PROBLEM_TYPE": ["SIMPLE_NUMERIC_PLANNING", "GENERAL_NUMERIC_PLANNING"],
     "TIME": [
         "CONTINUOUS_TIME",
@@ -50,6 +50,7 @@ FEATURES = {
         "OVERSUBSCRIPTION",
     ],
     "SIMULATED_ENTITIES": ["SIMULATED_EFFECTS"],
+    "CONSTRAINTS_KIND": ["TRAJECTORY_CONSTRAINTS"],
 }
 
 
@@ -65,8 +66,8 @@ class ProblemKindMeta(type):
             assert feature in possible_features
             self._features.discard(feature)
 
-        def _has(self, feature):
-            return feature in self._features
+        def _has(self, features):
+            return len(self._features.intersection(features)) > 0
 
         obj = type.__new__(cls, name, bases, dct)
         for m, l in FEATURES.items():
@@ -74,8 +75,9 @@ class ProblemKindMeta(type):
             setattr(
                 obj, "unset_" + m.lower(), partialmethod(_unset, possible_features=l)
             )
+            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=l))
             for f in l:
-                setattr(obj, "has_" + f.lower(), partialmethod(_has, feature=f))
+                setattr(obj, "has_" + f.lower(), partialmethod(_has, features=[f]))
         return obj
 
 
@@ -123,7 +125,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
 
     def __le__(self, oth: object):
         if not isinstance(oth, ProblemKind):
-            raise
+            raise ValueError(f"Unable to compare a ProblemKind with a {type(oth)}")
         return self._features.issubset(oth._features)
 
     @property
@@ -179,21 +181,23 @@ full_classical_kind.set_effects_kind("CONDITIONAL_EFFECTS")
 object_fluent_kind = ProblemKind()
 object_fluent_kind.set_fluents_type("OBJECT_FLUENTS")
 
-basic_numeric_kind = ProblemKind()
-basic_numeric_kind.set_problem_class("ACTION_BASED")
-basic_numeric_kind.set_typing("FLAT_TYPING")
-basic_numeric_kind.set_numbers("DISCRETE_NUMBERS")
-basic_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
-basic_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
+simple_numeric_kind = ProblemKind()
+simple_numeric_kind.set_problem_class("ACTION_BASED")
+simple_numeric_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+simple_numeric_kind.set_typing("FLAT_TYPING")
+simple_numeric_kind.set_numbers("DISCRETE_NUMBERS")
+simple_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
+simple_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
+simple_numeric_kind.set_effects_kind("INCREASE_EFFECTS")
+simple_numeric_kind.set_effects_kind("DECREASE_EFFECTS")
 
-full_numeric_kind = ProblemKind()
-full_numeric_kind.set_problem_class("ACTION_BASED")
-full_numeric_kind.set_typing("FLAT_TYPING")
-full_numeric_kind.set_numbers("DISCRETE_NUMBERS")
-full_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
-full_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
-full_numeric_kind.set_effects_kind("INCREASE_EFFECTS")
-full_numeric_kind.set_effects_kind("DECREASE_EFFECTS")
+general_numeric_kind = ProblemKind()
+general_numeric_kind.set_problem_class("ACTION_BASED")
+general_numeric_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+general_numeric_kind.set_typing("FLAT_TYPING")
+general_numeric_kind.set_numbers("DISCRETE_NUMBERS")
+general_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
+general_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
 
 basic_temporal_kind = ProblemKind()
 basic_temporal_kind.set_problem_class("ACTION_BASED")
@@ -217,3 +221,6 @@ quality_metrics_kind.set_quality_metrics("FINAL_VALUE")
 
 oversubscription_kind = ProblemKind()
 oversubscription_kind.set_quality_metrics("OVERSUBSCRIPTION")
+
+actions_cost_kind = ProblemKind()
+actions_cost_kind.set_quality_metrics("ACTIONS_COST")

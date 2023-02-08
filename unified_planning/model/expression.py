@@ -42,6 +42,7 @@ BoolExpression = Union[
     "up.model.fnode.FNode",
     "up.model.fluent.Fluent",
     "up.model.parameter.Parameter",
+    "up.model.variable.Variable",
     bool,
 ]
 ConstantExpression = Union[
@@ -224,6 +225,33 @@ class ExpressionManager(object):
         else:
             return self.create_node(node_type=OperatorKind.OR, args=tuple_args)
 
+    def XOr(
+        self, *args: Union[BoolExpression, Iterable[BoolExpression]]
+    ) -> "up.model.fnode.FNode":
+        """Returns an exclusive disjunction of terms in CNF form.
+        This function has polimorphic n-arguments:
+          - XOr(a,b,c)
+          - XOr([a,b,c])
+        Restriction: Arguments must be boolean
+
+        :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
+        of it, like `a, b, c`.
+        :return: The exclusive disjunction in CNF form.
+        """
+        tuple_args = tuple(self.auto_promote(*args))
+
+        if len(tuple_args) == 0:
+            return self.FALSE()
+        elif len(tuple_args) == 1:
+            return tuple_args[0]
+        else:
+            new_args = []
+            for a in tuple_args:
+                new_args.append(
+                    self.And([a] + [self.Not(o) for o in tuple_args if o is not a])
+                )
+            return self.Or(new_args)
+
     def Not(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
@@ -320,21 +348,86 @@ class ExpressionManager(object):
             node_type=OperatorKind.FORALL, args=expressions, payload=vars
         )
 
+    def Always(self, expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Always(a)`
+        Restriction: expression must be of `boolean type` and with only one arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Always` expression.
+        """
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.ALWAYS, args=expressions)
+
+    def Sometime(self, expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Sometime(a)`
+        Restriction: expression must be of `boolean type` and with only one arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Sometime` expression.
+        """
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.SOMETIME, args=expressions)
+
+    def AtMostOnce(self, expression: BoolExpression) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `At-Most-Once(a, b)`
+        Restriction: expression must be of `boolean type` and with only two arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `At-Most-Once(a, b)` expression.
+        """
+        expressions = tuple(self.auto_promote(expression))
+        return self.create_node(node_type=OperatorKind.AT_MOST_ONCE, args=expressions)
+
+    def SometimeBefore(
+        self, phi: BoolExpression, psi: BoolExpression
+    ) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Sometime-Before(a, b)`
+        Restriction: expression must be of `boolean type` and with only one args
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Sometime` expression.
+        """
+        expressions = tuple(self.auto_promote(phi, psi))
+        return self.create_node(
+            node_type=OperatorKind.SOMETIME_BEFORE, args=expressions
+        )
+
+    def SometimeAfter(
+        self, phi: BoolExpression, psi: BoolExpression
+    ) -> "up.model.fnode.FNode":
+        """Creates an expression of the form:
+            `Sometime-After(a, b)`
+        Restriction: expression must be of `boolean type` and with only two arg.
+
+        :param expression: The `boolean` expression of the trajectory constraints.
+        :return: The created `Sometime-After(a, b)` expression.
+        """
+        expressions = tuple(self.auto_promote(phi, psi))
+        return self.create_node(node_type=OperatorKind.SOMETIME_AFTER, args=expressions)
+
     def FluentExp(
-        self, fluent: "up.model.fluent.Fluent", params: Tuple[Expression, ...] = tuple()
+        self, fluent: "up.model.fluent.Fluent", params: Iterable[Expression] = tuple()
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression for the given `fluent` and `parameters`.
         Restriction: `parameters type` must be compatible with the `Fluent` :func:`signature <unified_planning.model.Fluent.signature>`
 
         :param fluent: The `Fluent` that will be set as the `payload` of this expression.
-        :param params: The expression acting as `parameters` for this `Fluent`; mainly the parameters will
-            be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
+        :param params: The Iterable of expressions acting as `parameters` for this `Fluent`; mainly the parameters will
+            be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or
+            :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
         :return: The created `Fluent` Expression.
         """
-        assert fluent.arity == len(params)
         assert fluent.environment == self.env
-        params_exp = self.auto_promote(*params)
+        params_exp = self.auto_promote(params)
+        if fluent.arity != len(params_exp):
+            raise UPExpressionDefinitionError(
+                f"In FluentExp, fluent has arity {fluent.arity} but {len(params_exp)} parameters were passed."
+            )
         return self.create_node(
             node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent
         )

@@ -729,11 +729,15 @@ message CompilerResult {
 }
 
 service UnifiedPlanning {
-    // A plan request to the engine.
+    // An anytime plan request to the engine.
     // The engine replies with a stream of N `Answer` messages where:
     //  - the first (N-1) message are of type `IntermediateReport`
     //  - the last message is of type `FinalReport`
-    rpc planOneShot(PlanRequest) returns(stream PlanGenerationResult);
+    rpc planAnytime(PlanRequest) returns(stream PlanGenerationResult);
+
+    // A oneshot plan request to the engine.
+    // The engine replies with athe PlanGenerationResult
+    rpc planOneShot(PlanRequest) returns(PlanGenerationResult);
 
     // A validation request to the engine.
     // The engine replies with the ValidationResult

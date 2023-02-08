@@ -1,0 +1,45 @@
+fluent boolean handfree;
+fluent boolean match_used(integer[1,3] i);
+fluent boolean fuse_mended(integer[1, 3] i);
+fluent boolean light;
+
+
+action light_match(integer[1,3] m) {
+
+   duration == 5;
+
+   [start] match_used(m) == false;
+
+   [start] match_used(m) := true;
+   [start] light := true;
+   [end] light := false;
+};
+
+action mend_fuse(integer[1,3] f) {
+   duration < 5 and duration >= 3;
+
+   [start] handfree == true;
+   [all] light == true;
+
+   [start] handfree := false;
+   [end] fuse_mended(f) := true;
+   [end] handfree := true;
+};
+
+
+[0] handfree := true;
+[0] light := false;
+
+[0] match_used(1) := false;
+[0] match_used(2) := false;
+[0] match_used(3) := false;
+
+[0] fuse_mended(1) := false;
+[0] fuse_mended(2) := false;
+[0] fuse_mended(3) := false;
+
+goal {
+   [end] fuse_mended(1);
+   [end] fuse_mended(2);
+   [end] fuse_mended(3);
+};

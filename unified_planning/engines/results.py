@@ -65,7 +65,7 @@ class PlanGenerationResultStatus(Enum):
     UNSUPPORTED_PROBLEM = auto()  # The problem given is not supported by the planner
     INTERMEDIATE = (
         auto()
-    )  # The report is not a final one but it's given through the callback function
+    )  # The report is not a final one but it's an intermediate anytime result
 
 
 POSITIVE_OUTCOMES = frozenset(

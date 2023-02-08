@@ -23,8 +23,14 @@ import unified_planning.model.types
 import unified_planning.model.multi_agent
 from unified_planning.environment import get_env
 from unified_planning.model import *
-from unified_planning.engines import Engine, CompilationKind
-from typing import IO, Iterable, List, Union, Dict, Tuple, Optional
+from unified_planning.engines import (
+    Engine,
+    CompilationKind,
+    OptimalityGuarantee,
+    OperationMode,
+)
+from unified_planning.plans import PlanKind
+from typing import IO, Any, Iterable, List, Union, Dict, Tuple, Optional
 from fractions import Fraction
 
 
@@ -56,6 +62,21 @@ def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     :return: The `OR` expression created.
     """
     return get_env().expression_manager.Or(*args)
+
+
+def XOr(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
+    """
+    Returns an exclusive disjunction of terms in CNF form.
+    This function has polimorphic n-arguments:
+        - XOr(a,b,c)
+        - XOr([a,b,c])
+    Restriction: Arguments must be boolean
+
+    :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
+    of it, like `a, b, c`.
+    :return: The exclusive disjunction in CNF form.
+    """
+    return get_env().expression_manager.XOr(*args)
 
 
 def Not(expression: BoolExpression) -> FNode:
@@ -131,18 +152,73 @@ def Forall(
 
 
 def FluentExp(
-    fluent: "unified_planning.model.Fluent", params: Tuple[Expression, ...] = tuple()
+    fluent: "unified_planning.model.Fluent", params: Iterable[Expression] = tuple()
 ) -> FNode:
     """
     Creates an expression for the given `fluent` and `parameters`.
     Restriction: `parameters type` must be compatible with the `Fluent` :func:`signature <unified_planning.model.Fluent.signature>`
 
     :param fluent: The `Fluent` that will be set as the `payload` of this expression.
-    :param params: The expression acting as `parameters` for this `Fluent`; mainly the parameters will
+    :param params: The Iterable of expressions acting as `parameters` for this `Fluent`; mainly the parameters will
         be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
     :return: The created `Fluent` Expression.
     """
     return get_env().expression_manager.FluentExp(fluent, params)
+
+
+def Always(expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Always(a)`
+    Restriction: expression must be of `boolean type` and with only one arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Always` expression.
+    """
+    return get_env().expression_manager.Always(expression)
+
+
+def Sometime(expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Sometime(a)`
+    Restriction: expression must be of `boolean type` and with only one arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Sometime` expression.
+    """
+    return get_env().expression_manager.Sometime(expression)
+
+
+def SometimeBefore(*expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Sometime-Before(a, b)`
+    Restriction: expression must be of `boolean type` and with only one args
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Sometime` expression.
+    """
+    return get_env().expression_manager.SometimeBefore(*expression)
+
+
+def SometimeAfter(*expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `Sometime-After(a, b)`
+    Restriction: expression must be of `boolean type` and with only two arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `Sometime-After(a, b)` expression.
+    """
+    return get_env().expression_manager.SometimeAfter(*expression)
+
+
+def AtMostOnce(expression: BoolExpression) -> FNode:
+    """Creates an expression of the form:
+        `At-Most-Once(a, b)`
+    Restriction: expression must be of `boolean type` and with only two arg.
+
+    :param expression: The `boolean` expression of the trajectory constraints.
+    :return: The created `At-Most-Once(a, b)` expression.
+    """
+    return get_env().expression_manager.AtMostOnce(expression)
 
 
 def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
@@ -363,7 +439,8 @@ def IntType(
 
 
 def RealType(
-    lower_bound: Optional[Fraction] = None, upper_bound: Optional[Fraction] = None
+    lower_bound: Optional[Union[Fraction, int]] = None,
+    upper_bound: Optional[Union[Fraction, int]] = None,
 ) -> unified_planning.model.types.Type:
     """
     Returns the `real` type defined in the global environment with the given `bounds`.
@@ -394,7 +471,7 @@ def OneshotPlanner(
     *,
     name: Optional[str] = None,
     names: Optional[List[str]] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> Engine:
@@ -415,6 +492,37 @@ def OneshotPlanner(
         params=params,
         problem_kind=problem_kind,
         optimality_guarantee=optimality_guarantee,
+    )
+
+
+def AnytimePlanner(
+    *,
+    name: Optional[str] = None,
+    params: Optional[Dict[str, str]] = None,
+    problem_kind: ProblemKind = ProblemKind(),
+    anytime_guarantee: Optional[Union["up.engines.AnytimeGuarantee", str]] = None,
+) -> Engine:
+    """
+    Returns a anytime planner. There are two ways to call this method:
+    - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
+      e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
+    - using 'problem_kind' and 'anytime_guarantee'.
+      e.g. AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)
+
+    An AnytimePlanner is a planner that returns an iterator of solutions.
+    Depending on the given anytime_guarantee parameter, every plan being generated is:
+    - strictly better in terms of quality than the previous one (INCREASING_QUALITY);
+    - optimal (OPTIMAL_PLANS);
+    - just a different plan, with no specific guarantee (None).
+
+    It raises an exception if the problem has no optimality metrics and anytime_guarantee
+    is equal to INCREASING_QUALITY or OPTIMAL_PLAN.
+    """
+    return get_env().factory.AnytimePlanner(
+        name=name,
+        params=params,
+        problem_kind=problem_kind,
+        anytime_guarantee=anytime_guarantee,
     )
 
 
@@ -490,7 +598,7 @@ def Simulator(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    params: Optional[Dict[str, str]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a Simulator. There are two ways to call this method:
@@ -507,7 +615,7 @@ def Replanner(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    params: Optional[Dict[str, str]] = None,
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> "up.engines.engine.Engine":
     """
@@ -522,6 +630,29 @@ def Replanner(
         problem=problem,
         name=name,
         params=params,
+        optimality_guarantee=optimality_guarantee,
+    )
+
+
+def PortfolioSelector(
+    *,
+    name: Optional[str] = None,
+    params: Optional[Dict[str, Any]] = None,
+    problem_kind: ProblemKind = ProblemKind(),
+    optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
+) -> "up.engines.engine.Engine":
+    """
+    Returns a portfolio selector. There are two ways to call this method:
+    - using 'name' (the name of a specific portfolio) and eventually 'params'
+        (portfolio dependent options).
+        e.g. PortfolioSelector(name='ibacop')
+    - using 'problem_kind' and 'optimality_guarantee'.
+        e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+    """
+    return get_env().factory.PortfolioSelector(
+        name=name,
+        params=params,
+        problem_kind=problem_kind,
         optimality_guarantee=optimality_guarantee,
     )
 

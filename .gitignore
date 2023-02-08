@@ -5,5 +5,8 @@ coverage.xml
 .planners/
 __pycache__/
 .mypy_cache/
+.vscode/
+unified_planning/__pycache__/
 *.pyc
 *~
+.venv/

@@ -18,12 +18,12 @@ import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 import typing
+from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_env
 from unified_planning.exceptions import UPUsageError
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
-
 
 import pyparsing
 
@@ -31,7 +31,8 @@ assert (
     pyparsing.__version__ >= "3.0.0"
 ), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, nested_expr, Group, rest_of_line, Optional
+from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
+from pyparsing import CharsNotIn, Empty
 from pyparsing.results import ParseResults
 from pyparsing import one_of
 
@@ -65,6 +66,16 @@ Object = CaseInsensitiveToken("object")
 TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
 
 
+def nested_expr():
+    """
+    A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case.
+    """
+    cnt = Empty() + CharsNotIn("() \n\t\r")
+    nested = Forward()
+    nested <<= Group(Suppress("(") + ZeroOrMore(cnt | nested) + Suppress(")"))
+    return nested
+
+
 class PDDLGrammar:
     def __init__(self):
         name = Word(alphas, alphanums + "_" + "-")
@@ -77,7 +88,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
                 )
             )
             + Suppress(")")
@@ -145,6 +156,7 @@ class PDDLGrammar:
             + Suppress(")")
             + Optional(":precondition" - nested_expr().setResultsName("pre"))
             + Optional(":effect" - nested_expr().setResultsName("eff"))
+            + Optional(":observe" - nested_expr().setResultsName("obs"))
             + Suppress(")")
         )
 
@@ -265,6 +277,12 @@ class PDDLGrammar:
                 + nested_expr().setResultsName("goal")
                 + Suppress(")")
             )
+            + Optional(
+                Suppress("(")
+                + ":constraints"
+                + nested_expr().setResultsName("constraints")
+                + Suppress(")")
+            )
             + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
             + Suppress(")")
         )
@@ -313,6 +331,13 @@ class PDDLReader:
             "/": self._em.Div,
             "*": self._em.Times,
         }
+        self._trajectory_constraints: Dict[str, Callable] = {
+            "always": self._em.Always,
+            "sometime": self._em.Sometime,
+            "sometime-before": self._em.SometimeBefore,
+            "sometime-after": self._em.SometimeAfter,
+            "at-most-once": self._em.AtMostOnce,
+        }
         grammar = PDDLGrammar()
         self._pp_domain = grammar.domain
         self._pp_problem = grammar.problem
@@ -344,6 +369,11 @@ class PDDLReader:
                         self._em.Exists if exp[0] == "exists" else self._em.Forall
                     )
                     solved.append(q_op(solved.pop(), *var.values()))
+                elif (
+                    exp[0] in self._trajectory_constraints
+                ):  # trajectory_constraints reference
+                    t_op: Callable = self._trajectory_constraints[exp[0]]
+                    solved.append(t_op(*[solved.pop() for _ in exp[1:]]))
                 elif problem.has_fluent(exp[0]):  # fluent reference
                     f = problem.fluent(exp[0])
                     args = [solved.pop() for _ in exp[1:]]
@@ -378,6 +408,12 @@ class PDDLReader:
                         all_vars = var.copy()
                         all_vars.update(new_vars)
                         stack.append((all_vars, exp[2], False))
+                    elif (
+                        exp[0] in self._trajectory_constraints
+                    ):  # trajectory_constraints reference
+                        stack.append((var, exp, True))
+                        for e in exp[1:]:
+                            stack.append((var, e, False))
                     elif problem.has_fluent(exp[0]):  # fluent reference
                         stack.append((var, exp, True))
                         for e in exp[1:]:
@@ -733,6 +769,12 @@ class PDDLReader:
                 self._env,
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
             )
+        elif ":contingent" in set(domain_res.get("features", [])):
+            problem = up.model.ContingentProblem(
+                domain_res["name"],
+                self._env,
+                initial_defaults={self._tm.BoolType(): self._em.FALSE()},
+            )
         else:
             problem = up.model.Problem(
                 domain_res["name"],
@@ -897,7 +939,23 @@ class PDDLReader:
                     dur_act
                 )
             else:
-                act = up.model.InstantaneousAction(n, a_params, self._env)
+                act: typing.Optional[
+                    Union[up.model.SensingAction, up.model.InstantaneousAction]
+                ] = None
+                if "obs" in a:
+                    act = up.model.SensingAction(n, a_params, self._env)
+                    obs_fluent = a["obs"][0]
+                    if obs_fluent[0] == "and":  # more than 1 fluent
+                        for o in obs_fluent[1:]:
+                            act.add_observed_fluent(
+                                self._parse_exp(problem, act, types_map, {}, o)
+                            )
+                    else:
+                        act.add_observed_fluent(
+                            self._parse_exp(problem, act, types_map, {}, obs_fluent)
+                        )
+                else:
+                    act = up.model.InstantaneousAction(n, a_params, self._env)
                 if "pre" in a:
                     act.add_precondition(
                         self._parse_exp(problem, act, types_map, {}, a["pre"][0])
@@ -1074,14 +1132,20 @@ class PDDLReader:
                         )
                     )
 
-            for i in problem_res.get("init", []):
-                if i[0] == "=":
+            init_list = problem_res.get("init", [])
+            if len(init_list) == 1 and init_list[0][0] == "and":
+                init_list = init_list[0][1:]
+            for i in init_list:
+                operator = i[0]
+                if operator == "=":
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i[1]),
                         self._parse_exp(problem, None, types_map, {}, i[2]),
                     )
                 elif (
-                    len(i) == 3 and i[0] == "at" and i[1].replace(".", "", 1).isdigit()
+                    len(i) == 3
+                    and operator == "at"
+                    and i[1].replace(".", "", 1).isdigit()
                 ):
                     ti = up.model.StartTiming(Fraction(i[1]))
                     va = self._parse_exp(problem, None, types_map, {}, i[2])
@@ -1093,6 +1157,26 @@ class PDDLReader:
                         problem.add_timed_effect(ti, va.arg(0), va.arg(1))
                     else:
                         raise SyntaxError(f"Not able to handle this TIL {i}")
+                elif operator == "oneof":
+                    assert isinstance(problem, ContingentProblem)
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_oneof_initial_constraint(fluents)
+                elif operator == "or":
+                    assert isinstance(problem, ContingentProblem)
+                    fluents = [
+                        self._parse_exp(problem, None, types_map, {}, x) for x in i[1:]
+                    ]
+                    problem.add_or_initial_constraint(fluents)
+                elif operator == "unknown":
+                    assert isinstance(problem, ContingentProblem)
+                    if len(i) != 2:
+                        raise SyntaxError(
+                            "`unknown` constraint requires exactly one argument."
+                        )
+                    arg = self._parse_exp(problem, None, types_map, {}, i[1])
+                    problem.add_unknown_initial_constraint(arg)
                 else:
                     problem.set_initial_value(
                         self._parse_exp(problem, None, types_map, {}, i),
@@ -1108,10 +1192,16 @@ class PDDLReader:
             elif not isinstance(problem, htn.HierarchicalProblem):
                 raise SyntaxError("Missing goal section in problem file.")
 
+            if "constraints" in problem_res:
+                problem.add_trajectory_constraint(
+                    self._parse_exp(
+                        problem, None, types_map, {}, problem_res["constraints"][0]
+                    )
+                )
+
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(
                 problem
             )
-
             optimization = problem_res.get("optimization", None)
             metric = problem_res.get("metric", None)
 

@@ -113,6 +113,7 @@ PDDL_KEYWORDS = {
     "derived-predicates",
     "timed-initial-literals",
     "preferences",
+    "contingent",
 }
 
 # The following map is used to mangle the invalid names by their class.
@@ -202,6 +203,26 @@ class ConverterToPDDLString(walkers.DagWalker):
             for v in expression.variables()
         ]
         return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
+
+    def walk_always(self, expression, args):
+        assert len(args) == 1
+        return f"(always {args[0]})"
+
+    def walk_at_most_once(self, expression, args):
+        assert len(args) == 1
+        return f"(at-most-once {args[0]})"
+
+    def walk_sometime(self, expression, args):
+        assert len(args) == 1
+        return f"(sometime {args[0]})"
+
+    def walk_sometime_before(self, expression, args):
+        assert len(args) == 2
+        return f"(sometime-before {args[0]} {args[1]})"
+
+    def walk_sometime_after(self, expression, args):
+        assert len(args) == 2
+        return f"(sometime-after {args[0]} {args[1]})"
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
@@ -362,6 +383,8 @@ class PDDLWriter:
                 out.write(" :conditional-effects")
             if self.problem_kind.has_existential_conditions():
                 out.write(" :existential-preconditions")
+            if self.problem_kind.has_trajectory_constraints():
+                out.write(" :constraints")
             if self.problem_kind.has_universal_conditions():
                 out.write(" :universal-preconditions")
             if (
@@ -399,10 +422,13 @@ class PDDLWriter:
                     )
             out.write(" )\n")
         else:
+            pddl_types = [
+                self._get_mangled_name(t)
+                for t in self.problem.user_types
+                if cast(_UserType, t).name != "object"
+            ]
             out.write(
-                f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])})\n'
-                if len(self.problem.user_types) > 0
-                else ""
+                f' (:types {" ".join(pddl_types)})\n' if len(pddl_types) > 0 else ""
             )
 
         if self.domain_objects is None:
@@ -476,8 +502,11 @@ class PDDLWriter:
                 "Only one metric is supported!"
             )
 
+        em = self.problem.env.expression_manager
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
+                if em.FALSE() in a.preconditions:
+                    continue
                 out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 for ap in a.parameters:
@@ -523,6 +552,8 @@ class PDDLWriter:
                     out.write(")")
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
+                if any(em.FALSE() in cl for cl in a.conditions.values()):
+                    continue
                 out.write(f" (:durative-action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 for ap in a.parameters:
@@ -647,6 +678,10 @@ class PDDLWriter:
         out.write(
             f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
         )
+        if len(self.problem.trajectory_constraints) > 0:
+            out.write(
+                f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
+            )
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]

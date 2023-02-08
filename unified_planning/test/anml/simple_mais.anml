@@ -1,0 +1,87 @@
+fluent boolean step_started(integer[1, 10] i);
+fluent boolean step_completed(integer[1, 10] i);
+fluent boolean bar_completed;
+fluent boolean recipe_started;
+fluent integer[1, 10] hoist_position;
+
+action recipe() {
+   duration := 160;
+   [start] recipe_started := true;
+   [start+10] step_started(1);
+   [start+20] step_completed(1);
+   [start+25] step_started(2);
+   [start+35] step_completed(2);
+   [start+40] step_started(3);
+   [start+50] step_completed(3);
+   [start+55] step_started(4);
+   [start+65] step_completed(4);
+   [start+70] step_started(5);
+   [start+80] step_completed(5);
+   [start+85] step_started(6);
+   [start+95] step_completed(6);
+   [start+100] step_started(7);
+   [start+110] step_completed(7);
+   [start+115] step_started(8);
+   [start+125] step_completed(8);
+   [start+130] step_started(9);
+   [start+140] step_completed(9);
+   [start+145] step_started(10);
+   [start+155] step_completed(10);
+   [end] bar_completed := true;
+};
+
+action prepare_bar() {
+   duration := 6;
+   [start] recipe_started;
+   [end] step_started(1) := true;
+};
+
+action finish_bar() {
+   duration := 6;
+   [start] step_started(10) and not step_completed(10);
+   [end] step_completed(10) := true;
+};
+
+action load(integer[1, 9] s) {
+   duration := 1;
+   [start] step_started(s) and not step_completed(s) and hoist_position == s;
+   [end] step_completed(s) := true;
+};
+
+action unload(integer[2, 10] s) {
+   duration := 1;
+   [start] not step_started(s) and step_completed(s-1) and hoist_position == s;
+   [end] step_started(s) := true;
+};
+
+action move_hoist(integer[1, 10] to) {
+   duration := 1;
+   [start] not (hoist_position == to);
+   [end] hoist_position := to;
+};
+
+[start] recipe_started := false;
+[start] bar_completed := false;
+[start] hoist_position := 1;
+[start] step_started(1) := false;
+[start] step_completed(1) := false;
+[start] step_started(2) := false;
+[start] step_completed(2) := false;
+[start] step_started(3) := false;
+[start] step_completed(3) := false;
+[start] step_started(4) := false;
+[start] step_completed(4) := false;
+[start] step_started(5) := false;
+[start] step_completed(5) := false;
+[start] step_started(6) := false;
+[start] step_completed(6) := false;
+[start] step_started(7) := false;
+[start] step_completed(7) := false;
+[start] step_started(8) := false;
+[start] step_completed(8) := false;
+[start] step_started(9) := false;
+[start] step_completed(9) := false;
+[start] step_started(10) := false;
+[start] step_completed(10) := false;
+
+[end] bar_completed;
