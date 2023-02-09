@@ -130,7 +130,7 @@ class MAPDDLWriter:
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
         self.domain_objects_agents: Dict[up.model.multi_agent.Agent, str]
-        self.all_public_fluents: set[Fluent] = set()
+        self.all_public_fluents: Set[Fluent] = set()
 
     def _write_domain(self):
         ag_domains = {}
