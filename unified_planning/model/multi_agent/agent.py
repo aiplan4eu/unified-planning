@@ -47,7 +47,6 @@ class Agent(
         ActionsSetMixin.__init__(
             self, ma_problem.env, ma_problem._add_user_type, self.has_name
         )
-        self._ma_problem = ma_problem
         self._env = ma_problem.env
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
