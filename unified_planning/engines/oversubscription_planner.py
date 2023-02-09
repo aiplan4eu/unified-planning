@@ -25,6 +25,8 @@ from unified_planning.engines.results import (
     PlanGenerationResult,
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.model.fnode import FNode
+from unified_planning.model.timing import TimeInterval
 from unified_planning.utils import powerset
 from typing import Type, IO, Optional, Union, List, Tuple, Callable
 from fractions import Fraction
@@ -109,7 +111,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             goals: List[
                 Tuple[
                     Union[
-                        Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+                        tuple,
                         "up.model.FNode",
                     ],
                     Union[Fraction, int],
@@ -134,7 +136,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
             for g in t[1]:
-                if len(g) == 2:
+                if isinstance(g, tuple) and list(map(type, g)) == [TimeInterval, FNode]:
                     new_problem.add_timed_goal(g[0], g[1])
                 else:
                     new_problem.add_goal(g)
