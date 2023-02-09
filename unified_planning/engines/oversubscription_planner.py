@@ -126,7 +126,10 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
             for g in t[1]:
-                new_problem.add_goal(g)
+                if len(g) == 2:
+                    new_problem.add_timed_goal(g[0], g[1])
+                else:
+                    new_problem.add_goal(g)
             start = time.time()
             res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
             if timeout is not None:
