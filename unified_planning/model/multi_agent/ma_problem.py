@@ -159,8 +159,30 @@ class MultiAgentProblem(
         Returns `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
 
         :param name: The target name to find in the `MultiAgentProblem`.
-        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise."""
-        return self.has_object(name) or self.has_type(name) or self.has_agent(name)
+        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+        """
+        return (
+            self.has_object(name)
+            or self.has_type(name)
+            or self.has_agent(name)
+            or self._env_ma.has_name(name)
+            or any(a.has_name_in_agent(name) for a in self._agents)
+        )
+
+    def has_name_not_in_agents(self, name: str) -> bool:
+        """
+        Returns `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise;
+        this method does not check in the problem's agents
+
+        :param name: The target name to find in the `MultiAgentProblem` without checking Agents.
+        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+        """
+        return (
+            self.has_object(name)
+            or self.has_type(name)
+            or self.has_agent(name)
+            or self._env_ma.has_name(name)
+        )
 
     @property
     def ma_environment(self) -> "up.model.multi_agent.ma_environment.MAEnvironment":
