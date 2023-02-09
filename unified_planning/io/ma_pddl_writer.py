@@ -80,10 +80,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        if (
-            self.agent is not None
-            and fluent in self.agent.fluents + self.agent.public_fluents
-        ):
+        if self.agent is not None and fluent in self.agent.fluents:
             return f'(a_{self.get_mangled_name(fluent)} ?{self.agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
@@ -289,7 +286,7 @@ class MAPDDLWriter:
                     agent = g.agent()
                     # args = g.args
                     # objects = g.args[0].args
-                    if f not in ag.fluents + ag.public_fluents:
+                    if f not in ag.fluents:
                         if f.type.is_bool_type():
                             params = []
                             i = 0
@@ -704,7 +701,7 @@ class MAPDDLWriter:
         is_private: bool = False,
     ):
         if isinstance(obj, up.model.multi_agent.Agent):
-            fluents_list = obj.fluents if is_private else obj.public_fluents
+            fluents_list = obj.private_fluents if is_private else obj.public_fluents
             prefix = "a_"
         else:
             fluents_list = obj.fluents

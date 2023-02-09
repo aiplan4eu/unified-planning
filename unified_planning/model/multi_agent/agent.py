@@ -84,9 +84,7 @@ class Agent(
         **kwargs: "up.model.types.Type",
     ) -> "up.model.fluent.Fluent":
         """Adds the given `public fluent` to the `problem`.
-
         If the first parameter is not a `Fluent`, the parameters will be passed to the `Fluent` constructor to create it.
-
         :param fluent_or_name: `Fluent` instance or `name` of the `fluent` to be constructed.
         :param typename: If only the `name` of the `fluent` is given, this is the `fluent's type` (passed to the `Fluent` constructor).
         :param default_initial_value: If provided, defines the default value taken in initial state by
@@ -94,77 +92,70 @@ class Agent(
         :param kwargs: If only the `name` of the `fluent` is given, these are the `fluent's parameters` (passed to the `Fluent` constructor).
         :return: The `fluent` passed or constructed.
         """
-        if isinstance(fluent_or_name, up.model.fluent.Fluent):
-            assert len(kwargs) == 0 and typename is None
-            fluent = fluent_or_name
-            assert (
-                fluent.environment == self._env
-            ), "Fluent does not have the same environment of the problem"
-        else:
-            fluent = up.model.fluent.Fluent(
-                fluent_or_name, typename, None, env=self.env, **kwargs
-            )
-        if self._has_name_method(fluent.name):
-            raise UPProblemDefinitionError("Name " + fluent.name + " already defined!")
+        fluent = self.add_fluent(
+            fluent_or_name,
+            typename,
+            default_initial_value=default_initial_value,
+            **kwargs,
+        )
         self._public_fluents.append(fluent)
-        if not default_initial_value is None:
-            (v_exp,) = self.env.expression_manager.auto_promote(default_initial_value)
-            self._fluents_defaults[fluent] = v_exp
-        elif fluent.type in self._initial_defaults:
-            self._fluents_defaults[fluent] = self._initial_defaults[fluent.type]
-        if fluent.type.is_user_type():
-            self._add_user_type_method(fluent.type)
-        for param in fluent.signature:
-            if param.type.is_user_type():
-                self._add_user_type_method(param.type)
-
         return fluent
 
-    def fluent(self, name: str) -> "up.model.fluent.Fluent":
+    def add_private_fluent(
+        self,
+        fluent_or_name: Union["up.model.fluent.Fluent", str],
+        typename: Optional["up.model.types.Type"] = None,
+        *,
+        default_initial_value: Optional["ConstantExpression"] = None,
+        **kwargs: "up.model.types.Type",
+    ) -> "up.model.fluent.Fluent":
+        """Adds the given `private fluent` to the `problem`.
+        If the first parameter is not a `Fluent`, the parameters will be passed to the `Fluent` constructor to create it.
+        :param fluent_or_name: `Fluent` instance or `name` of the `fluent` to be constructed.
+        :param typename: If only the `name` of the `fluent` is given, this is the `fluent's type` (passed to the `Fluent` constructor).
+        :param default_initial_value: If provided, defines the default value taken in initial state by
+                                      a state variable of this `fluent` that has no explicit value.
+        :param kwargs: If only the `name` of the `fluent` is given, these are the `fluent's parameters` (passed to the `Fluent` constructor).
+        :return: The `fluent` passed or constructed.
         """
-        Returns the `fluent` with the given name.
-
-        :param name: The `name` of the target `fluent`:
-        :return: The `fluent` with the given `name`.
-        """
-        for f in self._fluents + self._public_fluents:
-            if f.name == name:
-                return f
-        raise UPValueError(f"Fluent of name: {name} is not defined!")
-
-    def has_fluent(self, name: str) -> bool:
-        """
-        Returns `True` if the `fluent` with the given `name` is in the `problem`,
-        `False` otherwise.
-
-        :param name: The `name` of the target `fluent`.
-        :return: `True` if the `fluent` with the given `name` is in the `problem`,
-            `False` otherwise.
-        """
-        for f in self._fluents + self._public_fluents:
-            if f.name == name:
-                return True
-        return False
+        return self.add_fluent(
+            fluent_or_name,
+            typename,
+            default_initial_value=default_initial_value,
+            **kwargs,
+        )
 
     def add_public_fluents(self, fluents: List["up.model.fluent.Fluent"]):
         """
         Adds the given `list` of `public fluents` to the `problem`.
-
         :param fluents: The `list` of `public fluents` that must be added to the `problem`.
         """
         for fluent in fluents:
             self.add_public_fluent(fluent)
+
+    def add_private_fluents(self, fluents: List["up.model.fluent.Fluent"]):
+        """
+        Adds the given `list` of `private fluents` to the `problem`.
+        :param fluents: The `list` of `private fluents` that must be added to the `problem`.
+        """
+        for fluent in fluents:
+            self.add_private_fluent(fluent)
 
     @property
     def public_fluents(self) -> List["up.model.fluent.Fluent"]:
         """Returns the `fluents` currently in the `problem`."""
         return self._public_fluents
 
+    @property
+    def private_fluents(self) -> List["up.model.fluent.Fluent"]:
+        """Returns the `fluents` currently in the `problem`."""
+        return [f for f in self._fluents if f not in self._public_fluents]
+
     def __repr__(self) -> str:
         s = []
         s.append(f"Agent name = {str(self._name)}\n\n")
         s.append("private fluents = [\n")
-        for f in self._fluents:
+        for f in self.private_fluents:
             s.append(f" {str(f)}\n")
         s.append("]\n\n")
         s.append("public fluents = [\n")
@@ -184,8 +175,6 @@ class Agent(
             return False
         if set(self._fluents) != set(oth._fluents):
             return False
-        if set(self._public_fluents) != set(oth._public_fluents):
-            return False
         if set(self._actions) != set(oth._actions):
             return False
         return True
@@ -193,8 +182,6 @@ class Agent(
     def __hash__(self) -> int:
         res = hash(self._name)
         for f in self._fluents:
-            res += hash(f)
-        for f in self._public_fluents:
             res += hash(f)
         for a in self._actions:
             res += hash(a)
