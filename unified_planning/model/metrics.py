@@ -148,7 +148,9 @@ class Oversubscription(PlanQualityMetric):
     The gained value for each fulfilled `goal` of the problem is stored in this quality metric.
     """
 
-    def __init__(self, goals: Dict["up.model.FNode", Union[Fraction, int]]):
+    def __init__(
+        self, goals: Dict[Union[tuple, "up.model.FNode"], Union[Fraction, int]]
+    ):
         goals = dict(
             (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
         )
