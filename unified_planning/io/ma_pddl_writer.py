@@ -80,7 +80,10 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        if self.agent is not None and fluent in self.agent.fluents:
+        if (
+            self.agent is not None
+            and fluent in self.agent.fluents + self.agent.public_fluents
+        ):
             return f'(a_{self.get_mangled_name(fluent)} ?{self.agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
@@ -127,7 +130,7 @@ class MAPDDLWriter:
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
         self.domain_objects_agents: Dict[up.model.multi_agent.Agent, str]
-        self.domain_fluents_agents: Dict[up.model.multi_agent.Agent, List[Fluent]]
+        self.all_public_fluents: set[Fluent] = set()
 
     def _write_domain(self):
         ag_domains = {}
@@ -195,7 +198,10 @@ class MAPDDLWriter:
                     user_types_hierarchy[None] if None in user_types_hierarchy else []
                 )
                 out.write(
-                    f'    {" ".join(self._get_mangled_name(t) for t in stack)}{" " if len(self.problem.agents) > 0 else ""}{" ".join(self._get_mangled_name(ag) + "_type" for ag in self.problem.agents)} - object\n'
+                    f'    {" ".join(self._get_mangled_name(t) for t in stack)}{" " if len(self.problem.agents) > 0 else ""}ag - object\n'
+                )
+                out.write(
+                    f'    {" ".join(self._get_mangled_name(ag) + "_type" for ag in self.problem.agents)} - ag\n'
                 )
                 while stack:
                     current_type = stack.pop()
@@ -210,15 +216,22 @@ class MAPDDLWriter:
                 out.write(" )\n")
             else:
                 out.write(
-                    f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])}{" " if len(self.problem.agents) > 0 else ""}{" ".join(self._get_mangled_name(ag) + "_type" for ag in self.problem.agents)})\n'
+                    f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])}{" " if len(self.problem.agents) > 0 else ""}ag - object\n'
                     if len(self.problem.user_types) > 0
                     else ""
                 )
+                out.write(
+                    f'    {" ".join(self._get_mangled_name(ag) + "_type" for ag in self.problem.agents)} - ag\n'
+                )
+                out.write(" )\n")
 
             if self.domain_objects is None:
                 # This method populates the self._domain_objects map
                 self._populate_domain_objects(obe, ag)
             assert self.domain_objects is not None
+
+            if len(self.all_public_fluents) == 0:
+                self._all_public_fluents(self.all_public_fluents, self.problem.agents)
 
             if len(self.domain_objects) > 0:
                 out.write(" (:constants")
@@ -235,125 +248,34 @@ class MAPDDLWriter:
             if len(self.domain_objects) > 0 or len(self.domain_objects_agents) > 0:
                 out.write("\n )\n")
 
-            predicates = []
-            functions = []
-            for f in self.problem.ma_environment.fluents:
-                if f.type.is_bool_type():
-                    params = []
-                    i = 0
-                    for param in f.signature:
-                        if param.type.is_user_type():
-                            params.append(
-                                f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
-                            )
-                            i += 1
-                        else:
-                            raise UPTypeError(
-                                "MA-PDDL supports only user type parameters"
-                            )
-                    predicates.append(f'({self._get_mangled_name(f)}{"".join(params)})')
-                elif f.type.is_int_type() or f.type.is_real_type():
-                    params = []
-                    i = 0
-                    for param in f.signature:
-                        if param.type.is_user_type():
-                            params.append(
-                                f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
-                            )
-                            i += 1
-                        else:
-                            raise UPTypeError(
-                                "MA-PDDL supports only user type parameters"
-                            )
-                    functions.append(f'({self._get_mangled_name(f)}{"".join(params)})')
-                else:
-                    raise UPTypeError(
-                        "MA-PDDL supports only boolean and numerical fluents"
-                    )
-            if (
-                self.problem.kind.has_actions_cost()
-                or self.problem.kind.has_plan_length()
-            ):
-                functions.append("(total-cost)")
+            (
+                predicates_environment,
+                functions_environment,
+            ) = self.get_predicates_functions(self.problem.ma_environment)
+            predicates_agent, functions_agent = self.get_predicates_functions(
+                ag, is_private=True
+            )
 
-            predicates_dot_agents = []
-            functions_dot_agents = []
-            # I add the fluents of other agents specified with the DOT as public fluents
-            if len(self.domain_fluents_agents) > 0:
-                for ag_dot, fleunt_list in self.domain_fluents_agents.items():
-                    for f in fleunt_list:
-                        if f.type.is_bool_type():
-                            params = []
-                            i = 0
-                            for param in f.signature:
-                                if param.type.is_user_type():
-                                    params.append(
-                                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
-                                    )
-                                    i += 1
-                                else:
-                                    raise UPTypeError(
-                                        "MA-PDDL supports only user type parameters"
-                                    )
-                            predicates_dot_agents.append(
-                                f'({self._get_mangled_name(f)} ?agent - {self._get_mangled_name(ag_dot) + "_type"}{"".join(params)})'
-                            )
-                        elif f.type.is_int_type() or f.type.is_real_type():
-                            params = []
-                            i = 0
-                            for param in f.signature:
-                                if param.type.is_user_type():
-                                    params.append(
-                                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
-                                    )
-                                    i += 1
-                                else:
-                                    raise UPTypeError(
-                                        "MA-PDDL supports only user type parameters"
-                                    )
-                            functions_dot_agents.append(
-                                f'({self._get_mangled_name(f)} ?agent - {self._get_mangled_name(ag_dot) + "_type"}{"".join(params)})'
-                            )
-                        else:
-                            raise UPTypeError(
-                                "MA-PDDL supports only boolean and numerical fluents"
-                            )
-
-            predicates_agent = []
-            functions_agent = []
-            for f in ag.fluents:
+            predicates_public_agent = []
+            functions_public_agent = []
+            for f in self.all_public_fluents:
+                params = []
+                i = 0
+                for param in f.signature:
+                    if param.type.is_user_type():
+                        params.append(
+                            f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
+                        )
+                        i += 1
+                    else:
+                        raise UPTypeError("MA-PDDL supports only user type parameters")
+                expression = (
+                    f'(a_{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+                )
                 if f.type.is_bool_type():
-                    params = []
-                    i = 0
-                    for param in f.signature:
-                        if param.type.is_user_type():
-                            params.append(
-                                f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
-                            )
-                            i += 1
-                        else:
-                            raise UPTypeError(
-                                "MA-PDDL supports only user type parameters"
-                            )
-                    predicates_agent.append(
-                        f'(a_{self._get_mangled_name(f)} ?agent - {self._get_mangled_name(ag) + "_type"}{"".join(params)})'
-                    )
+                    predicates_public_agent.append(expression)
                 elif f.type.is_int_type() or f.type.is_real_type():
-                    params = []
-                    i = 0
-                    for param in f.signature:
-                        if param.type.is_user_type():
-                            params.append(
-                                f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
-                            )
-                            i += 1
-                        else:
-                            raise UPTypeError(
-                                "MA-PDDL supports only user type parameters"
-                            )
-                    functions_agent.append(
-                        f'(a_{self._get_mangled_name(f)} ?agent - {self._get_mangled_name(ag) +"_type"}{"".join(params)})'
-                    )
+                    functions_public_agent.append(expression)
                 else:
                     raise UPTypeError(
                         "MA-PDDL supports only boolean and numerical fluents"
@@ -367,7 +289,7 @@ class MAPDDLWriter:
                     agent = g.agent()
                     # args = g.args
                     # objects = g.args[0].args
-                    if f not in ag.fluents:
+                    if f not in ag.fluents + ag.public_fluents:
                         if f.type.is_bool_type():
                             params = []
                             i = 0
@@ -408,21 +330,25 @@ class MAPDDLWriter:
             nl = "\n  "
             out.write(
                 f" (:predicates\n "
-                if len(predicates) > 0
+                if len(predicates_environment) > 0
                 or len(predicates_agent) > 0
-                or len(predicates_dot_agents) > 0
                 or len(predicates_agent_goal) > 0
-                else ""
-            )
-            out.write(f"{nl.join(predicates)}\n" if len(predicates) > 0 else "")
-            out.write(
-                f"  {nl.join(predicates_dot_agents)}\n"
-                if len(predicates_dot_agents) > 0
+                or len(predicates_public_agent) > 0
                 else ""
             )
             out.write(
-                f"{nl.join(predicates_agent_goal)}\n"
+                f" {nl.join(predicates_environment)}\n"
+                if len(predicates_environment) > 0
+                else ""
+            )
+            out.write(
+                f"  {nl.join(predicates_agent_goal)}\n"
                 if len(predicates_agent_goal) > 0
+                else ""
+            )
+            out.write(
+                f"  {nl.join(predicates_public_agent)}\n"
+                if len(predicates_public_agent) > 0
                 else ""
             )
 
@@ -434,30 +360,34 @@ class MAPDDLWriter:
             )
             out.write(
                 f")\n"
-                if len(predicates) > 0
+                if len(predicates_environment) > 0
                 or len(predicates_agent) > 0
-                or len(predicates_dot_agents) > 0
                 or len(predicates_agent_goal) > 0
+                or len(predicates_public_agent) > 0
                 else ""
             )
 
             out.write(
                 f" (:functions\n"
-                if len(functions) > 0
-                or len(functions_dot_agents) > 0
+                if len(functions_environment) > 0
                 or len(functions_agent) > 0
                 or len(functions_agent_goal) > 0
+                or len(functions_public_agent) > 0
                 else ""
             )
-            out.write(f' {" ".join(functions)}\n' if len(functions) > 0 else "")
             out.write(
-                f' {" ".join(functions_dot_agents)}\n'
-                if len(functions_dot_agents) > 0
+                f' {" ".join(functions_environment)}\n'
+                if len(functions_environment) > 0
                 else ""
             )
             out.write(
                 f' {" ".join(functions_agent_goal)}\n'
                 if len(functions_agent_goal) > 0
+                else ""
+            )
+            out.write(
+                f' {" ".join(functions_public_agent)}\n'
+                if len(functions_public_agent) > 0
                 else ""
             )
             out.write(
@@ -467,10 +397,10 @@ class MAPDDLWriter:
             )
             out.write(
                 f" )\n"
-                if len(functions) > 0
-                or len(functions_dot_agents) > 0
+                if len(functions_environment) > 0
                 or len(functions_agent) > 0
                 or len(functions_agent_goal) > 0
+                or len(functions_public_agent) > 0
                 else ""
             )
 
@@ -619,7 +549,7 @@ class MAPDDLWriter:
             out.close()
             self.domain_objects = None
             self.domain_objects_agents = {}
-            self.domain_fluents_agents = {}
+            # self.all_public_fluents = []
 
         return ag_domains
 
@@ -671,18 +601,25 @@ class MAPDDLWriter:
                 self.problem.env, self._get_mangled_name, ag
             )
             out.write(" (:init")
+
             for f, v in self.problem.initial_values.items():
                 if v.is_true():
                     if f.is_dot():
                         fluent = f.args[0].fluent()
                         args = f.args
                         if (
-                            f.agent().name != ag.name
-                            and fluent not in self.domain_fluents_agents
+                            fluent in self.all_public_fluents
+                            or fluent in ag.fluents
+                            and f.agent().name == ag.name
                         ):
-                            out.write(f"")
-                        else:
                             out.write(f"\n  {converter.convert(f)}")
+                        elif (
+                            f.agent().name != ag.name
+                            and fluent in self.all_public_fluents
+                        ):
+                            out.write(f"\n  {converter.convert(f)}")
+                        else:
+                            out.write(f"")
                     else:
                         out.write(f"\n  {converter.convert(f)}")
                 elif v.is_false():
@@ -701,7 +638,7 @@ class MAPDDLWriter:
             out.close()
             self.domain_objects = None
             self.domain_objects_agents = {}
-            self.domain_fluents_agents = {}
+            # self.all_public_fluents = []
         return ag_problems
 
     def print_ma_domain_agent(self, agent_name):
@@ -757,6 +694,45 @@ class MAPDDLWriter:
             path_ma_pddl = osy.path.join(outdir_ma_pddl, ag + "_problem.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(problem)
+
+    def get_predicates_functions(
+        self,
+        obj: Union[
+            up.model.multi_agent.Agent,
+            up.model.multi_agent.ma_environment.MAEnvironment,
+        ],
+        is_private: bool = False,
+    ):
+        if isinstance(obj, up.model.multi_agent.Agent):
+            fluents_list = obj.fluents if is_private else obj.public_fluents
+            prefix = "a_"
+        else:
+            fluents_list = obj.fluents
+            prefix = ""
+        predicates = []
+        functions = []
+        for f in fluents_list:
+            params = []
+            i = 0
+            for param in f.signature:
+                if param.type.is_user_type():
+                    params.append(
+                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
+                    )
+                    i += 1
+                else:
+                    raise UPTypeError("MA-PDDL supports only user type parameters")
+            if isinstance(obj, up.model.multi_agent.Agent):
+                expression = f'({prefix}{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+            else:
+                expression = f'({prefix}{self._get_mangled_name(f)}{"".join(params)})'
+            if f.type.is_bool_type():
+                predicates.append(expression)
+            elif f.type.is_int_type() or f.type.is_real_type():
+                functions.append(expression)
+            else:
+                raise UPTypeError("MA-PDDL supports only boolean and numerical fluents")
+        return predicates, functions
 
     def _get_mangled_name(
         self,
@@ -858,12 +834,21 @@ class MAPDDLWriter:
                 f"The item {item} does not correspond to any item renamed."
             )
 
+    def _all_public_fluents(
+        self,
+        list_to_update: Set[Fluent],
+        agents: List[up.model.multi_agent.Agent],
+    ) -> None:
+        """This function creates a list with all public fluents of all agents."""
+        for agent in agents:
+            for fluent in agent.public_fluents:
+                list_to_update.add(fluent)
+
     def _populate_domain_objects(
         self, obe: ObjectsExtractor, agent: "up.model.multi_agent.Agent"
     ):
         self.domain_objects = {}
         self.domain_objects_agents = {}
-        self.domain_fluents_agents = {}
         # Iterate the actions to retrieve domain objects
         import unified_planning.model.walkers as walkers
 
@@ -872,17 +857,9 @@ class MAPDDLWriter:
                 for p in a.preconditions:
                     if p.is_dot():
                         _update_domain_objects_ag(self.domain_objects_agents, p.agent())
-                        _update_domain_fluents_ag(
-                            self.domain_fluents_agents, p.agent(), p.args[0].fluent()
-                        )
                     elif p.args[0].is_dot():
                         _update_domain_objects_ag(
                             self.domain_objects_agents, p.args[0].agent()
-                        )
-                        _update_domain_fluents_ag(
-                            self.domain_fluents_agents,
-                            p.args[0].agent(),
-                            p.args[0].args[0].fluent(),
                         )
                     _update_domain_objects(self.domain_objects, obe.get(p))
                 for e in a.effects:
@@ -956,16 +933,3 @@ def _update_domain_objects_ag(
 ) -> None:
     """Small utility method that updated the dict domain_objects_agents."""
     dict_to_update.setdefault(agent, agent.name + "_type")
-
-
-def _update_domain_fluents_ag(
-    dict_to_update: Dict["up.model.multi_agent.Agent", List["Fluent"]],
-    agent: up.model.multi_agent.Agent,
-    fluent: Fluent,
-) -> None:
-    """Small utility method that updated the dict domain_fluents_agents."""
-    dict_to_update.setdefault(agent, [])
-    if fluent in dict_to_update[agent]:
-        pass
-    else:
-        dict_to_update[agent].append(fluent)
