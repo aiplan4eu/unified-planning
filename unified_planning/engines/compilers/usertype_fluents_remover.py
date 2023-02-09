@@ -186,8 +186,12 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         e, problem, fluents_map, substituter, em, utf_remover
                     ):
                         new_action._add_effect_instance(ne)
-                if new_action.simulated_effect is not None:
-                    raise NotImplementedError
+                if old_action.simulated_effect is not None:
+                    new_action.set_simulated_effect(
+                        self._convert_simulated_effect(
+                            old_action.simulated_effect, fluents_map, em, problem
+                        )
+                    )
             elif isinstance(old_action, DurativeAction):
                 assert isinstance(new_action, DurativeAction)
                 new_action.clear_conditions()
@@ -211,10 +215,14 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     duration.is_right_open(),
                 )
                 new_action.set_duration_constraint(new_duration)
-                if new_action.simulated_effects:
-                    raise NotImplementedError
+                for t, se in old_action.simulated_effects.items():
+                    new_action.set_simulated_effect(
+                        t, self._convert_simulated_effect(se, fluents_map, em, problem)
+                    )
             else:
-                raise NotImplementedError  # Sensing Actions might be easy to implement
+                raise NotImplementedError(
+                    f"Not implemented action class: {type(old_action)}"
+                )
             new_to_old[new_action] = old_action
             old_to_new[old_action] = new_action
 
@@ -313,7 +321,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         simulated_effect: SimulatedEffect,
         fluents_map: Dict[Fluent, Fluent],
         em: ExpressionManager,
-        utf_remover: UsertypeFluentsWalker,
         original_problem: Problem,
     ) -> SimulatedEffect:
         result_fluents: List[FNode] = []
@@ -323,9 +330,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 for o in original_problem.objects(f_exp.type):
                     compiled_fluents_args = f_exp.args[:]
-                    compiled_fluents_args.append(o)
+                    compiled_fluents_args.append(em.ObjectExp(o))
                     result_fluents.append(
-                        em.FluentExp(fluents_map[f_exp.fluent], compiled_fluents_args)
+                        em.FluentExp(fluents_map[f_exp.fluent()], compiled_fluents_args)
                     )
 
         def new_fun(
@@ -335,6 +342,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         ) -> List["up.model.fnode.FNode"]:
             # create a the state for the original problem from the state of the
             # compiled problem
+            assert isinstance(compiled_problem, Problem)
             original_state: Dict[FNode, FNode] = {}
             for f in original_problem.fluents:
                 if f not in fluents_map:
@@ -347,7 +355,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     for compiled_fluent_exp in get_all_fluent_exp(
                         compiled_problem, compiled_fluent
                     ):
-                        compiled_value = compiled_state[compiled_fluent_exp]
+                        compiled_value = compiled_state.get_value(compiled_fluent_exp)
                         assert (
                             compiled_value.is_bool_constant()
                         ), "Error, boolean value is not a boolean constant in the state"
