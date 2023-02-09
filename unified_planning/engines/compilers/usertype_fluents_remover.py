@@ -29,6 +29,7 @@ from unified_planning.model import (
     InstantaneousAction,
     DurativeAction,
     Effect,
+    SimulatedEffect,
     FNode,
     ExpressionManager,
     MinimizeActionCosts,
@@ -40,11 +41,13 @@ from unified_planning.model import (
     Object,
     Expression,
     DurationInterval,
+    UPCOWState,
 )
 from unified_planning.model.walkers import UsertypeFluentsWalker, Substituter
 from unified_planning.model.types import _UserType
 from unified_planning.engines.compilers.utils import replace_action
-from typing import Iterator, Dict, Tuple, Optional, cast
+from unified_planning.model.fluent import get_all_fluent_exp
+from typing import Iterator, Dict, List, Tuple, Optional, cast
 from functools import partial
 
 
@@ -304,6 +307,89 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
+
+    def _convert_simulated_effect(
+        self,
+        simulated_effect: SimulatedEffect,
+        fluents_map: Dict[Fluent, Fluent],
+        em: ExpressionManager,
+        utf_remover: UsertypeFluentsWalker,
+        original_problem: Problem,
+    ) -> SimulatedEffect:
+        result_fluents: List[FNode] = []
+        for f_exp in simulated_effect.fluents:
+            if f_exp.fluent not in fluents_map:
+                result_fluents.append(f_exp)
+            else:
+                for o in original_problem.objects(f_exp.type):
+                    compiled_fluents_args = f_exp.args[:]
+                    compiled_fluents_args.append(o)
+                    result_fluents.append(
+                        em.FluentExp(fluents_map[f_exp.fluent], compiled_fluents_args)
+                    )
+
+        def new_fun(
+            compiled_problem: "up.model.problem.AbstractProblem",
+            compiled_state: "up.model.state.ROState",
+            params: Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
+        ) -> List["up.model.fnode.FNode"]:
+            # create a the state for the original problem from the state of the
+            # compiled problem
+            original_state: Dict[FNode, FNode] = {}
+            for f in original_problem.fluents:
+                if f not in fluents_map:
+                    for fluent_exp in get_all_fluent_exp(original_problem, f):
+                        original_state[fluent_exp] = compiled_state.get_value(
+                            fluent_exp
+                        )
+                else:
+                    compiled_fluent = fluents_map[f]
+                    for compiled_fluent_exp in get_all_fluent_exp(
+                        compiled_problem, compiled_fluent
+                    ):
+                        compiled_value = compiled_state[compiled_fluent_exp]
+                        assert (
+                            compiled_value.is_bool_constant()
+                        ), "Error, boolean value is not a boolean constant in the state"
+                        if compiled_value.bool_constant_value():
+                            original_fluent_exp = em.FluentExp(
+                                f, compiled_fluent_exp.args[:-1]
+                            )
+                            obj_exp = compiled_fluent_exp.args[-1]
+                            test_value = original_state.setdefault(
+                                original_fluent_exp, obj_exp
+                            )
+                            assert (
+                                obj_exp == test_value
+                            ), "Error, found True Value multiple times in the same state for a boolean fluent used to remove a UserType fluent"
+            state = UPCOWState(original_state)
+            # populate the ret_val list with the default returned value, when a non
+            # usertype fluent is returned, while with a series of True and False
+            # when a usertype is returned
+            ret_val = []
+            result_fluents_iterator = iter(result_fluents)
+            for ret_f_exp in simulated_effect.function(original_problem, state, params):
+                if ret_f_exp.type.is_user_type():
+                    assert ret_f_exp.is_object_exp()
+                    returned_obj = ret_f_exp.object()
+                    true_found = False
+                    for _ in original_problem.objects(ret_f_exp.type):
+                        current_val = next(result_fluents_iterator)
+                        current_obj = current_val.args[-1].object()
+                        if returned_obj == current_obj:
+                            assert (
+                                not true_found
+                            ), "error, multiple true value found, only 1 accepted"
+                            true_found = True
+                            ret_val.append(em.TRUE())
+                        else:
+                            ret_val.append(em.FALSE())
+                else:
+                    next(result_fluents_iterator)
+                    ret_val.append(ret_f_exp)
+            return ret_val
+
+        return SimulatedEffect(result_fluents, new_fun)
 
     def _convert_to_value(
         self,

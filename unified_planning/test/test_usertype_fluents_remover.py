@@ -30,7 +30,7 @@ from unified_planning.model.types import domain_item, domain_size
 from unified_planning.model.walkers import QuantifierSimplifier
 
 
-class TestConditionalEffectsRemover(TestCase):
+class TestUsertypeFLuentsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
