@@ -14,6 +14,7 @@
 #
 """This module defines the dnf remover class."""
 
+from fractions import Fraction
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -32,7 +33,7 @@ from unified_planning.model import (
     Oversubscription,
 )
 from unified_planning.model.walkers import Dnf
-from typing import List, Optional, Tuple, Dict, cast
+from typing import List, Optional, Tuple, Dict, Union, cast
 from itertools import product
 from functools import partial
 
@@ -209,12 +210,19 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if isinstance(qm, Oversubscription):
-                new_oversubscription = {}
-                for g, v in qm.goals.items():
-                    new_goal = self._goals_without_disjunctions_adding_new_elements(
-                        dnf, new_problem, new_to_old, new_fluents, [g]
-                    )
-                    new_oversubscription[new_goal] = v
+                new_oversubscription: Dict[
+                    Union[Tuple[TimeInterval, FNode], FNode], Union[Fraction, int]
+                ] = {}
+                for goal, priority in qm.goals.items():
+                    if isinstance(goal, FNode):
+                        new_goal = self._goals_without_disjunctions_adding_new_elements(
+                            dnf, new_problem, new_to_old, new_fluents, [goal]
+                        )
+                    elif isinstance(goal, tuple):
+                        new_goal = self._goals_without_disjunctions_adding_new_elements(
+                            dnf, new_problem, new_to_old, new_fluents, [goal[1]]
+                        )
+                    new_oversubscription[new_goal] = priority
                 new_problem.add_quality_metric(Oversubscription(new_oversubscription))
             else:
                 new_problem.add_quality_metric(qm)

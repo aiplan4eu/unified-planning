@@ -106,7 +106,15 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         if len(problem.quality_metrics) == 0:
-            goals: List[Tuple["up.model.FNode", Union[Fraction, int]]] = []
+            goals: List[
+                Tuple[
+                    Union[
+                        Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+                        "up.model.FNode",
+                    ],
+                    Union[Fraction, int],
+                ]
+            ] = []
         else:
             assert len(problem.quality_metrics) == 1
             qm = problem.quality_metrics[0]

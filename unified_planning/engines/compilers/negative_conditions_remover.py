@@ -14,6 +14,7 @@
 #
 """This module defines the negative preconditions remover class."""
 
+from fractions import Fraction
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -30,13 +31,14 @@ from unified_planning.model import (
     ProblemKind,
     Oversubscription,
 )
+from unified_planning.model.timing import TimeInterval
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
 from unified_planning.exceptions import (
     UPExpressionDefinitionError,
     UPProblemDefinitionError,
 )
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Tuple, Union, Optional
 from functools import partial
 
 
@@ -224,14 +226,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if isinstance(qm, Oversubscription):
-                new_problem.add_quality_metric(
-                    Oversubscription(
-                        {
-                            fluent_remover.remove_negative_fluents(g): v
-                            for g, v in qm.goals.items()
-                        }
-                    )
-                )
+                args: Dict[
+                    Union[Tuple[TimeInterval, FNode], FNode], Union[Fraction, int]
+                ] = {}
+                for goal, priority in qm.goals.items():
+                    if isinstance(goal, FNode):
+                        args[fluent_remover.remove_negative_fluents(goal)] = priority
+                    elif isinstance(goal, tuple):
+                        args[fluent_remover.remove_negative_fluents(goal[1])] = priority
+                new_problem.add_quality_metric(Oversubscription(args))
             else:
                 new_problem.add_quality_metric(qm)
 

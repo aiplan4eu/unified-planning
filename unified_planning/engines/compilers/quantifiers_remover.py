@@ -15,6 +15,7 @@
 """This module defines the quantifiers remover class."""
 
 
+from fractions import Fraction
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -27,9 +28,11 @@ from unified_planning.model import (
     ProblemKind,
     Oversubscription,
 )
+from unified_planning.model.fnode import FNode
+from unified_planning.model.timing import TimeInterval
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Union
 from functools import partial
 
 
@@ -209,16 +212,23 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
             new_problem.add_goal(ng)
         for qm in problem.quality_metrics:
             if isinstance(qm, Oversubscription):
-                new_problem.add_quality_metric(
-                    Oversubscription(
-                        {
+                args: Dict[
+                    Union[Tuple[TimeInterval, FNode], FNode], Union[Fraction, int]
+                ] = {}
+                for goal, priority in qm.goals.items():
+                    if isinstance(goal, FNode):
+                        args[
                             expression_quantifier_remover.remove_quantifiers(
-                                g, problem
-                            ): v
-                            for g, v in qm.goals.items()
-                        }
-                    )
-                )
+                                goal, problem
+                            )
+                        ] = priority
+                    elif isinstance(goal, tuple):
+                        args[
+                            expression_quantifier_remover.remove_quantifiers(
+                                goal[1], problem
+                            )
+                        ] = priority
+                new_problem.add_quality_metric(Oversubscription(args))
             else:
                 new_problem.add_quality_metric(qm)
 

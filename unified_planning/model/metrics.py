@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from fractions import Fraction
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 
 class PlanQualityMetric:
@@ -149,7 +149,14 @@ class Oversubscription(PlanQualityMetric):
     """
 
     def __init__(
-        self, goals: Dict[Union[tuple, "up.model.FNode"], Union[Fraction, int]]
+        self,
+        goals: Dict[
+            Union[
+                Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+                "up.model.FNode",
+            ],
+            Union[Fraction, int],
+        ],
     ):
         goals = dict(
             (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
