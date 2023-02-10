@@ -21,7 +21,7 @@ A `condition` can be added to make it a `conditional effect`.
 
 import unified_planning as up
 from enum import Enum, auto
-from typing import List, Callable, Dict, Set
+from typing import List, Callable, Dict
 
 
 class EffectKind(Enum):
