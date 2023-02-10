@@ -549,6 +549,8 @@ enum Feature {
     OVERSUBSCRIPTION = 29;
     // SIMULATED_ENTITIES
     SIMULATED_EFFECTS = 25;
+    // HIERARCHICAL
+    METHOD_PRECONDITIONS = 32;
 }
 
 // =================== Plan ================

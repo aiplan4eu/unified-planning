@@ -113,6 +113,13 @@ class HierarchicalProblem(up.model.problem.Problem):
         minimum time as possible."""
         self._kind = super().kind
         self._kind.set_problem_class("HIERARCHICAL")
+
+        linear_checker = up.model.walkers.linear_checker.LinearChecker(self)
+        for method in self.methods:
+            for method_cond in method.preconditions:
+                self._kind.set_hierarchical("METHOD_PRECONDITIONS")
+                self._update_problem_kind_condition(method_cond, linear_checker)
+
         return self._kind
 
     def has_name(self, name: str) -> bool:
