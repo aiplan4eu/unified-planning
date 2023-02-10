@@ -18,7 +18,7 @@ from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
 from enum import Enum, auto
 from fractions import Fraction
-from typing import Set, Union, Optional
+from typing import Union, Optional
 
 
 class TimepointKind(Enum):

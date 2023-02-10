@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from fractions import Fraction
-from typing import Dict, Optional, Set, Union
+from typing import Dict, Optional, Union
 
 
 class PlanQualityMetric:
@@ -26,6 +26,8 @@ class PlanQualityMetric:
     satisfy the semantic of the given metric, so a `Plan`, to be valid, not only needs to satisfy all the
     problem goals, but also the problem's quality metric.
     """
+
+    pass
 
 
 class MinimizeActionCosts(PlanQualityMetric):
