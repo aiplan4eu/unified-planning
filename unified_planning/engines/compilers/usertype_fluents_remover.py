@@ -47,7 +47,7 @@ from unified_planning.model.walkers import UsertypeFluentsWalker, Substituter
 from unified_planning.model.types import _UserType
 from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.model.fluent import get_all_fluent_exp
-from typing import Iterator, Dict, List, Tuple, Optional, cast
+from typing import Iterator, Dict, List, Set, Tuple, Optional, cast
 from functools import partial
 
 
@@ -168,7 +168,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 new_problem.add_fluent(fluent)
 
-        used_names = problem.get_contained_names()
+        used_names = self._get_names_in_problem(problem)
         utf_remover = UsertypeFluentsWalker(fluents_map, used_names, env)
 
         for old_action in problem.actions:
@@ -178,7 +178,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 new_action.clear_preconditions()
                 for p in old_action.preconditions:
                     new_action.add_precondition(
-                        self._convert_to_value(p, em, utf_remover)
+                        utf_remover.remove_usertype_fluents_from_condition(p)
                     )
                 new_action.clear_effects()
                 for e in old_action.effects:
@@ -198,7 +198,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 for i, cl in old_action.conditions.items():
                     for c in cl:
                         new_action.add_condition(
-                            i, self._convert_to_value(c, em, utf_remover)
+                            i, utf_remover.remove_usertype_fluents_from_condition(c)
                         )
                 new_action.clear_effects()
                 for t, el in old_action.effects.items():
@@ -228,7 +228,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
 
         new_problem.clear_goals()
         for g in problem.goals:
-            new_problem.add_goal(self._convert_to_value(g, em, utf_remover))
+            new_problem.add_goal(utf_remover.remove_usertype_fluents_from_condition(g))
 
         new_problem.clear_timed_effects()
         for t, el in problem.timed_effects.items():
@@ -242,8 +242,14 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         for i, cl in problem.timed_goals.items():
             for c in cl:
                 new_problem.add_timed_goal(
-                    i, self._convert_to_value(c, em, utf_remover)
+                    i, utf_remover.remove_usertype_fluents_from_condition(c)
                 )
+
+        new_problem.clear_trajectory_constraints()
+        for tr in problem.trajectory_constraints:
+            new_problem.add_trajectory_constraint(
+                utf_remover.remove_usertype_fluents_from_condition(tr)
+            )
 
         new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
@@ -255,13 +261,17 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             elif isinstance(qm, MinimizeExpressionOnFinalState):
                 new_problem.add_quality_metric(
                     MinimizeExpressionOnFinalState(
-                        self._convert_to_value(qm.expression, em, utf_remover)
+                        utf_remover.remove_usertype_fluents_from_condition(
+                            qm.expression
+                        )
                     )
                 )
             elif isinstance(qm, MaximizeExpressionOnFinalState):
                 new_problem.add_quality_metric(
                     MaximizeExpressionOnFinalState(
-                        self._convert_to_value(qm.expression, em, utf_remover)
+                        utf_remover.remove_usertype_fluents_from_condition(
+                            qm.expression
+                        )
                     )
                 )
             elif isinstance(qm, MinimizeActionCosts):
@@ -269,12 +279,12 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 for a in problem.actions:
                     cost = qm.get_action_cost(a)
                     if cost is not None:
-                        cost = self._convert_to_value(cost, em, utf_remover)
+                        cost = utf_remover.remove_usertype_fluents_from_condition(cost)
                     new_costs[old_to_new[a]] = cost
                 new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
             elif isinstance(qm, Oversubscription):
                 new_goals = {
-                    self._convert_to_value(g, em, utf_remover): v
+                    utf_remover.remove_usertype_fluents_from_condition(g): v
                     for g, v in qm.goals.items()
                 }
                 new_problem.add_quality_metric(Oversubscription(new_goals))
@@ -399,22 +409,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
 
         return SimulatedEffect(result_fluents, new_fun)
 
-    def _convert_to_value(
-        self,
-        expression: FNode,
-        em: ExpressionManager,
-        utf_remover: UsertypeFluentsWalker,
-    ) -> FNode:
-        new_exp, free_vars, added_fluents = utf_remover.remove_usertype_fluents(
-            expression
-        )
-        if free_vars:
-            assert added_fluents
-            new_exp = em.Exists(em.And(new_exp, *added_fluents), *free_vars)
-        else:
-            assert not added_fluents
-        return new_exp.simplify()
-
     def _convert_effect(
         self,
         effect: Effect,
@@ -448,7 +442,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             fluent_added_fluents.remove(new_fluent)
             new_value = em.Equals(new_value, fluent_var)
         new_condition = em.And(
-            self._convert_to_value(effect.condition, em, utf_remover),
+            utf_remover.remove_usertype_fluents_from_condition(effect.condition),
             *fluent_added_fluents,
         )
         vars_list = list(fluent_free_vars)
@@ -502,3 +496,66 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         subbed_cond,
                         effect.kind,
                     )
+
+    def _update_names_in_effect(self, effect: Effect, defined_names: Set[str]):
+        """Important NOTE: this method adds elements to the defined_names set."""
+        defined_names.update(effect._fluent.get_contained_names())
+        defined_names.update(effect._value.get_contained_names())
+        defined_names.update(effect._condition.get_contained_names())
+
+    def _get_names_in_problem(self, problem: Problem) -> Set[str]:
+        defined_names: Set[str] = (
+            {problem._name} if problem._name is not None else set()
+        )
+        for ut in problem._user_types:
+            defined_names.add(cast(up.model.types._UserType, ut).name)
+        for f in problem._fluents:
+            defined_names.add(f.name)
+        for a in problem._actions:
+            if isinstance(a, InstantaneousAction):
+                defined_names.update(a._parameters)
+                for p in a._preconditions:
+                    defined_names.update(p.get_contained_names())
+                for e in a._effects:
+                    self._update_names_in_effect(e, defined_names)
+            elif isinstance(a, DurativeAction):
+                defined_names.update(a._parameters)
+                defined_names.update(a.duration.lower.get_contained_names())
+                defined_names.update(a.duration.upper.get_contained_names())
+                for cl in a._conditions.values():
+                    for c in cl:
+                        defined_names.update(c.get_contained_names())
+                for el in a._effects.values():
+                    for e in el:
+                        self._update_names_in_effect(e, defined_names)
+            else:
+                raise NotImplementedError(f"Action class {type(a)} not implemented.")
+        for o in problem._objects:
+            defined_names.add(o.name)
+        for fe, ve in problem.initial_values.items():
+            defined_names.update(fe.get_contained_names())
+            defined_names.update(ve.get_contained_names())
+        for el in problem._timed_effects.values():
+            for e in el:
+                self._update_names_in_effect(e, defined_names)
+        for gl in problem._timed_goals.values():
+            for g in gl:
+                defined_names.update(g.get_contained_names())
+        for g in problem._goals:
+            defined_names.update(g.get_contained_names())
+        for tr in problem.trajectory_constraints:
+            defined_names.update(tr.get_contained_names())
+        for qm in problem._metrics:
+            if isinstance(qm, MinimizeActionCosts):
+                for cost in qm.costs.values():
+                    if cost is not None:
+                        defined_names.update(cost.get_contained_names())
+            elif isinstance(
+                qm, (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState)
+            ):
+                defined_names.update(qm.expression.get_contained_names())
+            elif isinstance(qm, Oversubscription):
+                for g in qm.goals:
+                    defined_names.update(g.get_contained_names())
+
+        return defined_names

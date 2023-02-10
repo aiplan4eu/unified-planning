@@ -110,47 +110,43 @@ class TestUsertypeFLuentsRemover(TestCase):
         ut1 = UserType("UT1")
         f1 = Fluent("f1", ut1)
         g1 = Fluent("g1", ut1)
+        f1_r = Fluent("f1_r", ut1, param_ut1=ut1)
         b1 = Fluent("b1", BoolType(), param_1=ut1)
         b1_1 = Fluent("b1_1", BoolType(), param_1=ut1, param_2=ut1)
         int1 = Fluent("int1", IntType(1, 3), param_1=ut1)
 
         obj_1 = Object("o_1", ut1)
         obj_2 = Object("o_2", ut1)
-        obj_3 = Object("o_3", ut1)
         conds = [
             f1.Equals(obj_1),
             f1.Equals(g1),
             b1(f1),
             b1_1(f1, g1),
             int1(f1) < 1.5,
+            int1(g1) + int1(f1) + 5 - 3 > 4.5,
+            b1(f1_r(f1_r(f1_r(f1)))),
         ]
-
         a = InstantaneousAction("a")
         for condition in conds:
             a.add_precondition(condition)
 
-        problem.add_fluents([f1, g1, b1, b1_1, int1])
-        problem.add_objects([obj_1, obj_2, obj_3])
+        problem.add_fluents([f1, g1, f1_r, b1, b1_1, int1])
+        problem.add_objects([obj_1, obj_2])
         problem.add_action(a)
 
         init: Dict[FNode, Union[Object, int, bool]] = {
             f1(): obj_1,
             g1(): obj_2,
+            f1_r(obj_1): obj_2,
+            f1_r(obj_2): obj_1,
             b1(obj_1): True,
             b1(obj_2): False,
-            b1(obj_3): False,
             b1_1(obj_1, obj_1): True,
             b1_1(obj_2, obj_1): False,
-            b1_1(obj_3, obj_1): False,
             b1_1(obj_1, obj_2): True,
             b1_1(obj_2, obj_2): False,
-            b1_1(obj_3, obj_2): False,
-            b1_1(obj_1, obj_3): True,
-            b1_1(obj_2, obj_3): False,
-            b1_1(obj_3, obj_3): False,
             int1(obj_1): 1,
             int1(obj_2): 2,
-            int1(obj_3): 2,
         }
 
         for k, v in init.items():

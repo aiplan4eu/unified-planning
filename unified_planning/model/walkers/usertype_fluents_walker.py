@@ -62,6 +62,17 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         exp, free_vars, added_fluents = self.walk(expression)
         return (exp, free_vars.copy(), added_fluents.copy())
 
+    def remove_usertype_fluents_from_condition(self, expression: FNode) -> FNode:
+        new_exp, free_vars, added_fluents = self.remove_usertype_fluents(expression)
+        if free_vars:
+            assert added_fluents
+            new_exp = self.manager.Exists(
+                self.manager.And(new_exp, *added_fluents), *free_vars
+            )
+        else:
+            assert not added_fluents
+        return new_exp.simplify()
+
     def _get_fresh_name(self, basename: str) -> str:
         name, counter = basename, 0
         while name in self._defined_names:
@@ -308,6 +319,56 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         assert len(args) == 2
         exp_args, variables, fluents = self._process_exp_args(args)
         return (self.manager.Div(*exp_args), variables, fluents)
+
+    def walk_always(
+        self,
+        expression: FNode,
+        args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+    ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
+        assert len(args) == 1
+        exp_args, _, _ = self._process_exp_args(args)
+        assert len(exp_args) == 1
+        return (self.manager.Always(exp_args[0]), set(), set())
+
+    def walk_sometime(
+        self,
+        expression: FNode,
+        args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+    ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
+        assert len(args) == 1
+        exp_args, _, _ = self._process_exp_args(args)
+        assert len(exp_args) == 1
+        return (self.manager.Sometime(exp_args[0]), set(), set())
+
+    def walk_sometime_before(
+        self,
+        expression: FNode,
+        args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+    ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
+        assert len(args) == 2
+        exp_args, _, _ = self._process_exp_args(args)
+        assert len(exp_args) == 2
+        return (self.manager.SometimeBefore(exp_args[0], exp_args[1]), set(), set())
+
+    def walk_sometime_after(
+        self,
+        expression: FNode,
+        args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+    ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
+        assert len(args) == 2
+        exp_args, _, _ = self._process_exp_args(args)
+        assert len(exp_args) == 2
+        return (self.manager.SometimeAfter(exp_args[0], exp_args[1]), set(), set())
+
+    def walk_at_most_once(
+        self,
+        expression: FNode,
+        args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+    ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
+        assert len(args) == 1
+        exp_args, _, _ = self._process_exp_args(args)
+        assert len(exp_args) == 1
+        return (self.manager.AtMostOnce(exp_args[0]), set(), set())
 
     def walk_dot(
         self,

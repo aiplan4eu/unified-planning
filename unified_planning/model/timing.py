@@ -303,13 +303,6 @@ class Interval:
         """Returns `True` if the `upper` bound of this `Interval` is not included in the `Interval`, `False` otherwise."""
         return self._is_right_open
 
-    def get_contained_names(self) -> Set[str]:
-        """Returns all the names contained in this Interval."""
-        contained_names: Set[str] = set()
-        contained_names.update(self._lower.get_contained_names())
-        contained_names.update(self._upper.get_contained_names())
-        return contained_names
-
 
 class Duration:
     pass
