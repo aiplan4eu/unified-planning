@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import Iterator, List
@@ -136,7 +137,13 @@ class ActionsSetMixin:
             action.env == self._env
         ), "Action does not have the same environment of the problem"
         if self._has_name_method(action.name):
-            raise UPProblemDefinitionError("Name " + action.name + " already defined!")
+            msg = f"Name {action.name} already defined!"
+            if self._env.error_used_name or any(
+                action.name == a.name for a in self._actions
+            ):
+                raise UPProblemDefinitionError(msg)
+            else:
+                warn(msg)
         self._actions.append(action)
         for param in action.parameters:
             if param.type.is_user_type():

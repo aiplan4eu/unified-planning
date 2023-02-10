@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
@@ -28,7 +29,8 @@ class UserTypesSetMixin:
     arguments to the mixins constructors.
     """
 
-    def __init__(self, has_name_method):
+    def __init__(self, env, has_name_method):
+        self._env = env
         self._has_name_method = has_name_method
         self._user_types: List["up.model.types.Type"] = []
         # The field _user_types_hierarchy stores the information about the types and the list of their sons.
@@ -40,13 +42,17 @@ class UserTypesSetMixin:
         """This method adds a Type, together with all it's ancestors, to the user_types_hierarchy"""
         assert type.is_user_type()
         if type not in self._user_types:
-            t = cast(_UserType, type)
-            if self._has_name_method(t.name):
-                raise UPProblemDefinitionError(
-                    f"The type name {t.name} is already used in the problem"
-                )
-            if t.father is not None:
-                self._add_user_type(t.father)
+            ut = cast(_UserType, type)
+            if self._has_name_method(ut.name):
+                msg = f"The type name {ut.name} is already used in the problem"
+                if self._env.error_used_name or any(
+                    ut.name == cast(_UserType, t).name for t in self._user_types
+                ):
+                    raise UPProblemDefinitionError(msg)
+                else:
+                    warn(msg)
+            if ut.father is not None:
+                self._add_user_type(ut.father)
             self._user_types.append(type)
 
     @property

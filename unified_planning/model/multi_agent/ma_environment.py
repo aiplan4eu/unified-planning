@@ -34,7 +34,7 @@ class MAEnvironment(
             self,
             ma_problem.env,
             ma_problem._add_user_type,
-            self.has_name,
+            ma_problem.has_name,
             ma_problem._initial_defaults,
         )
         self._env = ma_problem.env

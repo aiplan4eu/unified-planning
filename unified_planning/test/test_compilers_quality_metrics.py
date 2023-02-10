@@ -49,9 +49,11 @@ class TestCompilersPipeline(TestCase):
             res = compiler.compile(problem)
         new_problem = res.problem
 
-        with OneshotPlanner(problem_kind=problem.kind) as planner:
+        with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             self.assertNotEqual(planner, None)
-            plan = planner.solve(new_problem).plan
+
+            solve_res = planner.solve(new_problem)
+            plan = solve_res.plan
             new_plan = plan.replace_action_instances(res.map_back_action_instance)
             self.assertEqual(new_plan, test_plan)
 

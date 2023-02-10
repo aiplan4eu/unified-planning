@@ -48,6 +48,7 @@ class Environment:
         self._simplifier = unified_planning.model.walkers.Simplifier(self)
         self._free_vars_extractor = unified_planning.model.walkers.FreeVarsExtractor()
         self._credits_stream: Optional[IO[str]] = sys.stdout
+        self._error_used_name: bool = True
 
     # The getstate and setstate method are needed in the Parallel engine. The
     #  Parallel engine creates a deep copy of the Environment instance in
@@ -64,6 +65,23 @@ class Environment:
         self.__dict__.update(state)
         # Add _credits_stream back since it doesn't exist in the pickle
         self._credits_stream = None
+
+    @property
+    def error_used_name(self) -> bool:
+        return self._error_used_name
+
+    @error_used_name.setter
+    def error_used_name(self, new_val: bool):
+        """
+        This flag determines if a problem in this environment can have the same
+        name for different elements (like an Action and a Fluent). If it is
+        True, this name duplication will raise an exception, if it is False it
+        will only raise a warning.
+
+        It always raise an exception to name in the same way 2 elements
+        belonging to the same category, like 2 actions.
+        """
+        self._error_used_name = new_val
 
     @property
     def free_vars_oracle(self) -> "unified_planning.model.FreeVarsOracle":

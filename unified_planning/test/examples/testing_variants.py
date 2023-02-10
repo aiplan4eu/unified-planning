@@ -598,7 +598,7 @@ def get_example_problems():
     move.add_precondition(Not(Equals(l_from, l_to)))
     move.add_precondition(is_at(l_from))
     move.add_precondition(Not(is_at(l_to)))
-    move.add_precondition(Or(is_connected(l_from, l_to), is_connected(l_to, l_from)))
+    move.add_precondition(is_connected(l_from, l_to))
     move.add_effect(is_at(l_from), False)
     move.add_effect(is_at(l_to), True)
     move.add_effect(visited(l_to), True)

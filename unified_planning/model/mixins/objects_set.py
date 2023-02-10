@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
@@ -71,7 +72,14 @@ class ObjectsSetMixin:
             assert typename is not None, "Missing type of the object"
             obj = up.model.object.Object(obj_or_name, typename, self._env)
         if self._has_name_method(obj.name):
-            raise UPProblemDefinitionError("Name " + obj.name + " already defined!")
+            msg = f"Name {obj.name} already defined!"
+            if self._env.error_used_name or any(
+                obj.name == o.name for o in self._objects
+            ):
+                raise UPProblemDefinitionError(msg)
+            else:
+                warn(msg)
+            raise UPProblemDefinitionError()
         self._objects.append(obj)
         if obj.type.is_user_type():
             self._add_user_type_method(obj.type)

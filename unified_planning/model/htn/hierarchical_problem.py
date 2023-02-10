@@ -15,11 +15,13 @@
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Optional, List, Union, Dict
+from warnings import warn
 
 import unified_planning as up
 from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task
 from unified_planning.model.htn.task_network import TaskNetwork
+from unified_planning.exceptions import UPProblemDefinitionError
 
 
 class HierarchicalProblem(up.model.problem.Problem):
@@ -113,6 +115,21 @@ class HierarchicalProblem(up.model.problem.Problem):
         self._kind.set_problem_class("HIERARCHICAL")
         return self._kind
 
+    def has_name(self, name: str) -> bool:
+        """
+        Returns `True` if the given `name` is already in the `HierarchicalProblem`, `False` otherwise.
+
+        :param name: The target name to find in the `HierarchicalProblem`.
+        :return: `True` if the given `name` is already in the `HierarchicalProblem`, `False` otherwise."""
+        return (
+            self.has_action(name)
+            or self.has_fluent(name)
+            or self.has_object(name)
+            or self.has_type(name)
+            or self.has_task(name)
+            or name in self._methods
+        )
+
     @property
     def tasks(self) -> List[Task]:
         return list(self._abstract_tasks.values())
@@ -128,9 +145,14 @@ class HierarchicalProblem(up.model.problem.Problem):
             task = Task(task, _parameters=OrderedDict(**kwargs))
         else:
             assert len(kwargs) == 0
-        assert (
-            task.name not in self._abstract_tasks
-        ), f"A task with name '{task.name}' already exists."
+        if self.has_name(task.name):
+            msg = f"Name of task {task.name} already defined!"
+            if self._env.error_used_name or any(
+                task.name == t for t in self._abstract_tasks
+            ):
+                raise UPProblemDefinitionError(msg)
+            else:
+                warn(msg)
         self._abstract_tasks[task.name] = task
         for param in task.parameters:
             if param.type.is_user_type():
@@ -148,9 +170,14 @@ class HierarchicalProblem(up.model.problem.Problem):
         assert (
             method.achieved_task is not None
         ), f"No achieved task was specified for this method."
-        assert (
-            method.name not in self._methods
-        ), f"A method with name '{method.name}' already exists."
+        if self.has_name(method.name):
+            msg = f"Name of method {method.name} already defined!"
+            if self._env.error_used_name or any(
+                method.name == m for m in self._methods
+            ):
+                raise UPProblemDefinitionError(msg)
+            else:
+                warn(msg)
         assert (
             method.achieved_task.task.name in self._abstract_tasks
         ), f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"

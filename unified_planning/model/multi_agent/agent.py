@@ -50,11 +50,13 @@ class Agent(
         self._env = ma_problem.env
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
+        self._ma_problem_has_name_not_in_agents = ma_problem.has_name_not_in_agents
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        # Don't pickle _add_user_type_method
+        # Don't pickle MultiAgentProblem methods
         state["_add_user_type_method"] = None
+        state["_ma_problem_has_name_not_in_agents"] = None
         return state
 
     def has_name(self, name: str) -> bool:
@@ -62,7 +64,21 @@ class Agent(
         Returns `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
 
         :param name: The target name to find in the `MultiAgentProblem`.
-        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise."""
+        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+        """
+        return (
+            self.has_action(name)
+            or self.has_fluent(name)
+            or self._ma_problem_has_name_not_in_agents(name)
+        )
+
+    def has_name_in_agent(self, name: str) -> bool:
+        """
+        Returns `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+
+        :param name: The target name to find in the `MultiAgentProblem`.
+        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+        """
         return self.has_action(name) or self.has_fluent(name)
 
     @property

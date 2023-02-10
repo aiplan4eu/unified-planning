@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
@@ -136,7 +137,13 @@ class FluentsSetMixin:
                 fluent_or_name, typename, None, env=self.env, **kwargs
             )
         if self._has_name_method(fluent.name):
-            raise UPProblemDefinitionError("Name " + fluent.name + " already defined!")
+            msg = f"Name {fluent.name} already defined!"
+            if self._env.error_used_name or any(
+                fluent.name == f.name for f in self._fluents
+            ):
+                raise UPProblemDefinitionError(msg)
+            else:
+                warn(msg)
         self._fluents.append(fluent)
         if not default_initial_value is None:
             (v_exp,) = self.env.expression_manager.auto_promote(default_initial_value)

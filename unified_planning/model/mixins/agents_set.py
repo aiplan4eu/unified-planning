@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
@@ -42,9 +43,13 @@ class AgentsSetMixin:
         """This method adds an Agent"""
         if agent not in self._agents:
             if self._has_name_method(agent.name):
-                raise UPProblemDefinitionError(
-                    f"The agent name {agent.name} is already used in the problem"
-                )
+                msg = f"The agent name {agent.name} is already used in the problem"
+                if self._env.error_used_name or any(
+                    agent.name == a.name for a in self._agents
+                ):
+                    raise UPProblemDefinitionError(msg)
+                else:
+                    warn(msg)
             self._agents.append(agent)
 
     @property
@@ -62,6 +67,6 @@ class AgentsSetMixin:
     def has_agent(self, name: str) -> bool:
         """Returns True iff the agent 'name' is defined."""
         for agent in self._agents:
-            if agent._name == name:
+            if agent.name == name:
                 return True
         return False
