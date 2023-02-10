@@ -365,6 +365,7 @@ class MultiAgentProblem(
                 self._update_problem_kind_condition(c)
             for e in action.effects:
                 self._update_problem_kind_effect(e)
+        elif isinstance(action, up.model.action.DurativeAction):
             self._kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
