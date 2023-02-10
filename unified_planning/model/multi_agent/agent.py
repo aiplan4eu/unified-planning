@@ -19,7 +19,7 @@ from unified_planning.model.mixins import (
     ActionsSetMixin,
     FluentsSetMixin,
 )
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Union
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from unified_planning.model.expression import ConstantExpression
 
@@ -175,6 +175,8 @@ class Agent(
             return False
         if set(self._fluents) != set(oth._fluents):
             return False
+        if set(self._public_fluents) != set(oth._public_fluents):
+            return False
         if set(self._actions) != set(oth._actions):
             return False
         return True
@@ -182,6 +184,8 @@ class Agent(
     def __hash__(self) -> int:
         res = hash(self._name)
         for f in self._fluents:
+            res += hash(f)
+        for f in self._public_fluents:
             res += hash(f)
         for a in self._actions:
             res += hash(a)
