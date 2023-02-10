@@ -1,1 +1,1 @@
-recursive-include unified_planning/test/pddl/ *.pddl *.hddl
+recursive-include unified_planning/test/ *.pddl *.hddl *.anml
