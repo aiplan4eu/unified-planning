@@ -54,8 +54,9 @@ class Agent(
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        # Don't pickle _add_user_type_method
+        # Don't pickle MultiAgentProblem methods
         state["_add_user_type_method"] = None
+        state["_ma_problem_has_name_not_in_agents"] = None
         return state
 
     def has_name(self, name: str) -> bool:

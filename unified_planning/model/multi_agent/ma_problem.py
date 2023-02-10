@@ -67,6 +67,7 @@ class MultiAgentProblem(
         self.__dict__.update(state)
         for a in self._agents:
             a._add_user_type_method = self._add_user_type
+            a._ma_problem_has_name_not_in_agents = self.has_name_not_in_agents
 
     def __repr__(self) -> str:
         s = []
