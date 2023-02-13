@@ -53,7 +53,7 @@ def check_and_simplify_conditions(
     # t = timing, lc = list condition
     for i, lc in action.conditions.items():
         # conditions (as an And FNode)
-        c = problem.env.expression_manager.And(lc)
+        c = problem.environment.expression_manager.And(lc)
         # conditions simplified
         cs = simplifier.simplify(c)
         if cs.is_bool_constant():
@@ -90,7 +90,7 @@ def check_and_simplify_preconditions(
     if len(ap) == 0:
         return (True, [])
     # preconditions (as an And FNode)
-    p = problem.env.expression_manager.And(ap)
+    p = problem.environment.expression_manager.And(ap)
     # preconditions simplified
     ps = simplifier.simplify(p)
     # new action preconditions
@@ -119,7 +119,7 @@ def create_effect_with_given_subs(
     new_condition = simplifier.simplify(
         substituter.substitute(old_effect.condition, subs)
     )
-    if new_condition == problem.env.expression_manager.FALSE():
+    if new_condition == problem.environment.expression_manager.FALSE():
         return None
     else:
         return Effect(new_fluent, new_value, new_condition, old_effect.kind)

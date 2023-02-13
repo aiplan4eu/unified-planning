@@ -21,7 +21,7 @@ from collections import OrderedDict
 from typing import List, Union, Optional
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.action import Action
@@ -73,7 +73,7 @@ class Method:
         _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        self._env = get_env(_env)
+        self._env = get_environment(_env)
         self._task: Optional[ParameterizedTask] = None
         self._name = _name
         self._parameters: "OrderedDict[str, Parameter]" = OrderedDict()

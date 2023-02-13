@@ -135,12 +135,19 @@ class TarskiGrounder(Engine, CompilerMixin):
                 for p in tuple_of_parameters:
                     if isinstance(p, str):
                         temp_list_of_converted_parameters.append(
-                            problem.env.expression_manager.ObjectExp(problem.object(p))
+                            problem.environment.expression_manager.ObjectExp(
+                                problem.object(p)
+                            )
                         )
                     else:
                         temp_list_of_converted_parameters.append(
                             convert_tarski_formula(
-                                problem.env, fluents, objects, parameters, types, p
+                                problem.environment,
+                                fluents,
+                                objects,
+                                parameters,
+                                types,
+                                p,
                             )
                         )
                 grounded_actions_map[action].append(

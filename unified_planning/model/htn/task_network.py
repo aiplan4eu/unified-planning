@@ -15,7 +15,7 @@
 from collections import OrderedDict
 from typing import List, Union, Optional
 
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import get_environment, Environment
 from unified_planning.model.timing import Timing
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.fnode import FNode
@@ -32,7 +32,7 @@ class TaskNetwork:
     """Represents an initial task network."""
 
     def __init__(self, _env: Optional[Environment] = None):
-        self._env = get_env(_env)
+        self._env = get_environment(_env)
         self._variables: OrderedDict[str, Parameter] = OrderedDict()
         self._subtasks: List[Subtask] = []
         self._constraints: List[FNode] = []

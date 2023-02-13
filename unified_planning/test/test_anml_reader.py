@@ -42,7 +42,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "basic.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 1)
@@ -70,7 +70,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "match.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 4)
@@ -152,7 +152,7 @@ class TestANMLReader(TestCase):
             ANML_FILES_PATH, "constants_no_variable_duration.anml"
         )
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 4)
@@ -186,7 +186,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "durative_goals.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 2)
@@ -218,7 +218,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "forall.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 2)
@@ -233,7 +233,7 @@ class TestANMLReader(TestCase):
         Location = problem.user_type("Location")
         precedes = problem.fluent("precedes")
         visited = problem.fluent("visited")
-        p = Variable("p", Location, problem.env)
+        p = Variable("p", Location, problem.environment)
         cond_test = em.Forall(
             em.And(
                 em.Or(em.Not(precedes(p, to_visit)), visited(p)),
@@ -241,8 +241,8 @@ class TestANMLReader(TestCase):
             ),
             p,
         )
-        l = Variable("l", Location, problem.env)
-        l2 = Variable("l2", Location, problem.env)
+        l = Variable("l", Location, problem.environment)
+        l2 = Variable("l2", Location, problem.environment)
         goal_test = em.Forall(
             em.And(
                 visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)
@@ -276,7 +276,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "basic_conditional.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 2)
@@ -311,7 +311,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "hydrone.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 5)
@@ -351,7 +351,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "match_int_id.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 4)
@@ -402,7 +402,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "match_test_parser.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 6)
@@ -460,7 +460,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "simple_mais.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 5)
@@ -586,7 +586,7 @@ class TestANMLReader(TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "tils.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 2)
@@ -620,7 +620,7 @@ class TestANMLReader(TestCase):
             ANML_FILES_PATH, "hierarchical_blocks_world.anml"
         )
         problem = reader.parse_problem(problem_filename)
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 2)

@@ -37,23 +37,27 @@ class TimeTriggeredPlan(plans.plan.Plan):
         The `Action` can be an `InstantaneousAction`, this is represented with a duration set
         to `None`.
         """
-        # if we have a specific env or we don't have any actions
+        # if we have a specific environment or we don't have any actions
         if environment is not None or not actions:
             plans.plan.Plan.__init__(
                 self, plans.plan.PlanKind.TIME_TRIGGERED_PLAN, environment
             )
-        # If we don't have a specific env and have at least 1 action, use the env of the first action
+        # If we don't have a specific environment and have at least 1 action, use the environment of the first action
         else:
             assert len(actions) > 0
             plans.plan.Plan.__init__(
-                self, plans.plan.PlanKind.TIME_TRIGGERED_PLAN, actions[0][1].action.env
+                self,
+                plans.plan.PlanKind.TIME_TRIGGERED_PLAN,
+                actions[0][1].action.environment,
             )
         for (
             _,
             ai,
             _,
-        ) in actions:  # check that given env and the env in the actions is the same
-            if ai.action.env != self._environment:
+        ) in (
+            actions
+        ):  # check that given environment and the environment in the actions is the same
+            if ai.action.environment != self._environment:
                 raise UPUsageError(
                     "The environment given to the plan is not the same of the actions in the plan."
                 )
@@ -125,7 +129,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
         new_env = self._environment
         if len(new_ai) > 0:
             _, ai, _ = new_ai[0]
-            new_env = ai.action.env
+            new_env = ai.action.environment
         return TimeTriggeredPlan(new_ai, new_env)
 
     def convert_to(

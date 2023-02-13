@@ -120,9 +120,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         :return: The resulting `CompilerResult` data structure.
         """
         assert isinstance(problem, Problem)
-        env = problem.env
+        env = problem.environment
         substituter = Substituter(env)
-        expression_quantifier_remover = ExpressionQuantifiersRemover(problem.env)
+        expression_quantifier_remover = ExpressionQuantifiersRemover(env)
         grounding_result = engines.compilers.grounder.Grounder().compile(
             problem, CompilationKind.GROUNDING
         )

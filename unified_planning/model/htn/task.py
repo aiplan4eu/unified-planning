@@ -18,7 +18,7 @@ A Task has a name and a signature that defines the types of its parameters.
 """
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import get_environment, Environment
 from typing import List, OrderedDict, Optional, Union
 from unified_planning.model.fnode import FNode
 from unified_planning.model.action import Action
@@ -38,7 +38,7 @@ class Task:
         _env: Optional[Environment] = None,
         **kwargs: Type,
     ):
-        self._env = get_env(_env)
+        self._env = get_environment(_env)
         self._name = name
         self._parameters: List[Parameter] = []
         if _parameters is not None:
@@ -105,7 +105,7 @@ class Subtask:
         ident: Optional[str] = None,
         _env: Optional[Environment] = None,
     ):
-        self._env = get_env(_env)
+        self._env = get_environment(_env)
         self._task = _task
         self._ident: str
         if ident is not None:

@@ -63,7 +63,7 @@ class TestTarskiConverter(TestCase):
             problem, plan = self.problems[n]
             tarski_problem = up.interop.convert_problem_to_tarski(problem)
             new_problem = up.interop.convert_problem_from_tarski(
-                problem.env, tarski_problem
+                problem.environment, tarski_problem
             )
             new_plan = _switch_plan(plan, new_problem)
             pv = SequentialPlanValidator()
@@ -75,7 +75,7 @@ class TestTarskiConverter(TestCase):
         problem, plan = self.problems["hierarchical_blocks_world_object_as_root"]
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         new_problem = up.interop.convert_problem_from_tarski(
-            problem.env, tarski_problem
+            problem.environment, tarski_problem
         )
         with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             new_plan = planner.solve(new_problem).plan
@@ -88,7 +88,7 @@ class TestTarskiConverter(TestCase):
         problem, plan = self.problems["hierarchical_blocks_world_with_object"]
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         new_problem = up.interop.convert_problem_from_tarski(
-            problem.env, tarski_problem
+            problem.environment, tarski_problem
         )
         with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             new_plan = planner.solve(new_problem).plan

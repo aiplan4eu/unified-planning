@@ -25,18 +25,18 @@ class FluentsSetMixin:
     This class is a mixin that contains a `set` of `fluents` with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
-    of the attributes (e.g. `env`, `add_user_type_method`, `has_name_method`), it is required
+    of the attributes (e.g. `environment`, `add_user_type_method`, `has_name_method`), it is required
     to pass the very same arguments to the mixins constructors.
     """
 
     def __init__(
         self,
-        env,
+        environment,
         add_user_type_method,
         has_name_method,
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
-        self._env = env
+        self._env = environment
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._fluents: List["up.model.fluent.Fluent"] = []
@@ -45,13 +45,13 @@ class FluentsSetMixin:
         ] = {}
         self._initial_defaults: Dict["up.model.types.Type", "up.model.fnode.FNode"] = {}
         for k, v in initial_defaults.items():
-            (v_exp,) = self.env.expression_manager.auto_promote(v)
+            (v_exp,) = self.environment.expression_manager.auto_promote(v)
             self._initial_defaults[k] = v_exp
         # The field initial default optionally associates a type to a default value. When a new fluent is
         # created with no explicit default, it will be associated with the initial-default of his type, if any.
 
     @property
-    def env(self) -> "up.environment.Environment":
+    def environment(self) -> "up.environment.Environment":
         """Returns the `problem` `Environment`."""
         return self._env
 
@@ -134,7 +134,7 @@ class FluentsSetMixin:
             ), "Fluent does not have the same environment of the problem"
         else:
             fluent = up.model.fluent.Fluent(
-                fluent_or_name, typename, None, env=self.env, **kwargs
+                fluent_or_name, typename, None, environment=self.environment, **kwargs
             )
         if self._has_name_method(fluent.name):
             msg = f"Name {fluent.name} already defined!"
@@ -146,7 +146,9 @@ class FluentsSetMixin:
                 warn(msg)
         self._fluents.append(fluent)
         if not default_initial_value is None:
-            (v_exp,) = self.env.expression_manager.auto_promote(default_initial_value)
+            (v_exp,) = self.environment.expression_manager.auto_promote(
+                default_initial_value
+            )
             self._fluents_defaults[fluent] = v_exp
         elif fluent.type in self._initial_defaults:
             self._fluents_defaults[fluent] = self._initial_defaults[fluent.type]

@@ -21,7 +21,7 @@ import sys
 import unified_planning as up
 import unified_planning.model.types
 import unified_planning.model.multi_agent
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.model import *
 from unified_planning.engines import (
     Engine,
@@ -46,7 +46,7 @@ def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     of it, like `a, b, c`.
     :return: The `AND` expression created.
     """
-    return get_env().expression_manager.And(*args)
+    return get_environment().expression_manager.And(*args)
 
 
 def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
@@ -61,7 +61,7 @@ def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     of it, like `a, b, c`.
     :return: The `OR` expression created.
     """
-    return get_env().expression_manager.Or(*args)
+    return get_environment().expression_manager.Or(*args)
 
 
 def XOr(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
@@ -76,7 +76,7 @@ def XOr(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     of it, like `a, b, c`.
     :return: The exclusive disjunction in CNF form.
     """
-    return get_env().expression_manager.XOr(*args)
+    return get_environment().expression_manager.XOr(*args)
 
 
 def Not(expression: BoolExpression) -> FNode:
@@ -88,7 +88,7 @@ def Not(expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of which the negation must be created.
     :return: The created `NOT` expression.
     """
-    return get_env().expression_manager.Not(expression)
+    return get_environment().expression_manager.Not(expression)
 
 
 def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
@@ -101,7 +101,7 @@ def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
     :param right: The `boolean` expression acting as the implied part of the `Implies`.
     :return: The created `Implication`.
     """
-    return get_env().expression_manager.Implies(left, right)
+    return get_environment().expression_manager.Implies(left, right)
 
 
 def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
@@ -115,7 +115,7 @@ def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
     :param right: The `right` member of the `Iff expression`.
     :return: The created `Iff` expression.
     """
-    return get_env().expression_manager.Iff(left, right)
+    return get_environment().expression_manager.Iff(left, right)
 
 
 def Exists(
@@ -132,7 +132,7 @@ def Exists(
     :param *vars: All the `Variables` appearing in the `existential` expression.
     :return: The created `Existential` expression.
     """
-    return get_env().expression_manager.Exists(expression, *vars)
+    return get_environment().expression_manager.Exists(expression, *vars)
 
 
 def Forall(
@@ -148,7 +148,7 @@ def Forall(
     :param *vars: All the `Variables` appearing in the `universal` expression.
     :return: The created `Forall` expression.
     """
-    return get_env().expression_manager.Forall(expression, *vars)
+    return get_environment().expression_manager.Forall(expression, *vars)
 
 
 def FluentExp(
@@ -163,7 +163,7 @@ def FluentExp(
         be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
     :return: The created `Fluent` Expression.
     """
-    return get_env().expression_manager.FluentExp(fluent, params)
+    return get_environment().expression_manager.FluentExp(fluent, params)
 
 
 def Always(expression: BoolExpression) -> FNode:
@@ -174,7 +174,7 @@ def Always(expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Always` expression.
     """
-    return get_env().expression_manager.Always(expression)
+    return get_environment().expression_manager.Always(expression)
 
 
 def Sometime(expression: BoolExpression) -> FNode:
@@ -185,7 +185,7 @@ def Sometime(expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Sometime` expression.
     """
-    return get_env().expression_manager.Sometime(expression)
+    return get_environment().expression_manager.Sometime(expression)
 
 
 def SometimeBefore(*expression: BoolExpression) -> FNode:
@@ -196,7 +196,7 @@ def SometimeBefore(*expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Sometime` expression.
     """
-    return get_env().expression_manager.SometimeBefore(*expression)
+    return get_environment().expression_manager.SometimeBefore(*expression)
 
 
 def SometimeAfter(*expression: BoolExpression) -> FNode:
@@ -207,7 +207,7 @@ def SometimeAfter(*expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Sometime-After(a, b)` expression.
     """
-    return get_env().expression_manager.SometimeAfter(*expression)
+    return get_environment().expression_manager.SometimeAfter(*expression)
 
 
 def AtMostOnce(expression: BoolExpression) -> FNode:
@@ -218,7 +218,7 @@ def AtMostOnce(expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `At-Most-Once(a, b)` expression.
     """
-    return get_env().expression_manager.AtMostOnce(expression)
+    return get_environment().expression_manager.AtMostOnce(expression)
 
 
 def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
@@ -228,7 +228,7 @@ def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
     :param param: The `Parameter` that must be promoted to `FNode`.
     :return: The `FNode` containing the given `param` as his payload.
     """
-    return get_env().expression_manager.ParameterExp(param)
+    return get_environment().expression_manager.ParameterExp(param)
 
 
 def VariableExp(var: "unified_planning.model.Variable") -> FNode:
@@ -238,7 +238,7 @@ def VariableExp(var: "unified_planning.model.Variable") -> FNode:
     :param var: The `Variable` that must be promoted to `FNode`.
     :return: The `FNode` containing the given `variable` as his payload.
     """
-    return get_env().expression_manager.VariableExp(var)
+    return get_environment().expression_manager.VariableExp(var)
 
 
 def ObjectExp(obj: "unified_planning.model.Object") -> FNode:
@@ -248,7 +248,7 @@ def ObjectExp(obj: "unified_planning.model.Object") -> FNode:
     :param obj: The `Object` that must be promoted to `FNode`.
     :return: The `FNode` containing the given object as his payload.
     """
-    return get_env().expression_manager.ObjectExp(obj)
+    return get_environment().expression_manager.ObjectExp(obj)
 
 
 def TimingExp(timing: "up.model.timing.Timing") -> "up.model.fnode.FNode":
@@ -258,17 +258,17 @@ def TimingExp(timing: "up.model.timing.Timing") -> "up.model.fnode.FNode":
     :param timing: The `Timing` that must be promoted to `FNode`.
     :return: The `FNode` containing the given `timing` as his payload.
     """
-    return get_env().expression_manager.TimingExp(timing)
+    return get_environment().expression_manager.TimingExp(timing)
 
 
 def TRUE() -> FNode:
     """Return the boolean constant `True`."""
-    return get_env().expression_manager.TRUE()
+    return get_environment().expression_manager.TRUE()
 
 
 def FALSE() -> FNode:
     """Return the boolean constant `False`."""
-    return get_env().expression_manager.FALSE()
+    return get_environment().expression_manager.FALSE()
 
 
 def Bool(value: bool) -> FNode:
@@ -278,7 +278,7 @@ def Bool(value: bool) -> FNode:
     :param value: The boolean value that must be promoted to `FNode`.
     :return: The `FNode` containing the given `value` as his payload.
     """
-    return get_env().expression_manager.Bool(value)
+    return get_environment().expression_manager.Bool(value)
 
 
 def Int(value: int) -> FNode:
@@ -288,7 +288,7 @@ def Int(value: int) -> FNode:
     :param value: The integer that must be promoted to `FNode`.
     :return: The `FNode` containing the given `integer` as his payload.
     """
-    return get_env().expression_manager.Int(value)
+    return get_environment().expression_manager.Int(value)
 
 
 def Real(value: Fraction) -> FNode:
@@ -298,7 +298,7 @@ def Real(value: Fraction) -> FNode:
     :param value: The `Fraction` that must be promoted to `FNode`.
     :return: The `FNode` containing the given `value` as his payload.
     """
-    return get_env().expression_manager.Real(value)
+    return get_environment().expression_manager.Real(value)
 
 
 def Plus(*args: Union[Expression, Iterable[Expression]]) -> FNode:
@@ -310,7 +310,7 @@ def Plus(*args: Union[Expression, Iterable[Expression]]) -> FNode:
         of it, like `a, b, 3`.
     :return: The `PLUS` expression created. (like `a + b + 3`)
     """
-    return get_env().expression_manager.Plus(*args)
+    return get_environment().expression_manager.Plus(*args)
 
 
 def Minus(left: Expression, right: Expression) -> FNode:
@@ -321,7 +321,7 @@ def Minus(left: Expression, right: Expression) -> FNode:
     :param right: The `Minus subtrahend`.
     :return: The created `Minus` expression.
     """
-    return get_env().expression_manager.Minus(left, right)
+    return get_environment().expression_manager.Minus(left, right)
 
 
 def Times(*args: Union[Expression, Iterable[Expression]]) -> FNode:
@@ -333,7 +333,7 @@ def Times(*args: Union[Expression, Iterable[Expression]]) -> FNode:
         of it, like `a, b, 3`.
     :return: The `TIMES` expression created. (like `a * b * 3`)
     """
-    return get_env().expression_manager.Times(*args)
+    return get_environment().expression_manager.Times(*args)
 
 
 def Div(left: Expression, right: Expression) -> FNode:
@@ -344,7 +344,7 @@ def Div(left: Expression, right: Expression) -> FNode:
     :param right: The `Div divisor`.
     :return: The created `DIV` expression.
     """
-    return get_env().expression_manager.Div(left, right)
+    return get_environment().expression_manager.Div(left, right)
 
 
 def LE(left: Expression, right: Expression) -> FNode:
@@ -355,7 +355,7 @@ def LE(left: Expression, right: Expression) -> FNode:
     :param right: The right side of the `<=`.
     :return: The created `LE` expression.
     """
-    return get_env().expression_manager.LE(left, right)
+    return get_environment().expression_manager.LE(left, right)
 
 
 def GE(left: Expression, right: Expression) -> FNode:
@@ -366,7 +366,7 @@ def GE(left: Expression, right: Expression) -> FNode:
     :param right: The right side of the `>=`.
     :return: The created `GE` expression.
     """
-    return get_env().expression_manager.GE(left, right)
+    return get_environment().expression_manager.GE(left, right)
 
 
 def LT(left: Expression, right: Expression) -> FNode:
@@ -377,7 +377,7 @@ def LT(left: Expression, right: Expression) -> FNode:
     :param right: The right side of the `<`.
     :return: The created `LT` expression.
     """
-    return get_env().expression_manager.LT(left, right)
+    return get_environment().expression_manager.LT(left, right)
 
 
 def GT(left: Expression, right: Expression) -> FNode:
@@ -388,7 +388,7 @@ def GT(left: Expression, right: Expression) -> FNode:
     :param right: The right side of the `>`.
     :return: The created `GT` expression.
     """
-    return get_env().expression_manager.GT(left, right)
+    return get_environment().expression_manager.GT(left, right)
 
 
 def Equals(left: Expression, right: Expression) -> FNode:
@@ -401,7 +401,7 @@ def Equals(left: Expression, right: Expression) -> FNode:
     :param right: The right side of the `==`.
     :return: The created `Equals` expression.
     """
-    return get_env().expression_manager.Equals(left, right)
+    return get_environment().expression_manager.Equals(left, right)
 
 
 def Dot(
@@ -416,12 +416,12 @@ def Dot(
     :param fluent_exp: The `Fluent_exp` that will be set as the `args` of this expression.
     :return: The created `Dot` Expression.
     """
-    return get_env().expression_manager.Dot(agent, fluent_exp)
+    return get_environment().expression_manager.Dot(agent, fluent_exp)
 
 
 def BoolType() -> unified_planning.model.types.Type:
     """Returns the global environment's boolean type."""
-    return get_env().type_manager.BoolType()
+    return get_environment().type_manager.BoolType()
 
 
 def IntType(
@@ -435,7 +435,7 @@ def IntType(
     :param upper_bound: The integer used as this type's `upper bound`.
     :return: The retrieved or created type.
     """
-    return get_env().type_manager.IntType(lower_bound, upper_bound)
+    return get_environment().type_manager.IntType(lower_bound, upper_bound)
 
 
 def RealType(
@@ -450,7 +450,7 @@ def RealType(
     :param upper_bound: The `Fraction` used as this type's `upper bound`.
     :return: The retrieved or created `type`.
     """
-    return get_env().type_manager.RealType(lower_bound, upper_bound)
+    return get_environment().type_manager.RealType(lower_bound, upper_bound)
 
 
 def UserType(
@@ -464,7 +464,7 @@ def UserType(
     :param father: The user type that must be set as the `father` for the created `type`.
     :return:  The retrieved or created `type`.
     """
-    return get_env().type_manager.UserType(name, father)
+    return get_environment().type_manager.UserType(name, father)
 
 
 def OneshotPlanner(
@@ -486,7 +486,7 @@ def OneshotPlanner(
     - using 'problem_kind' and 'optimality_guarantee'.
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
     """
-    return get_env().factory.OneshotPlanner(
+    return get_environment().factory.OneshotPlanner(
         name=name,
         names=names,
         params=params,
@@ -518,7 +518,7 @@ def AnytimePlanner(
     It raises an exception if the problem has no optimality metrics and anytime_guarantee
     is equal to INCREASING_QUALITY or OPTIMAL_PLAN.
     """
-    return get_env().factory.AnytimePlanner(
+    return get_environment().factory.AnytimePlanner(
         name=name,
         params=params,
         problem_kind=problem_kind,
@@ -546,7 +546,7 @@ def PlanValidator(
     - using 'problem_kind' and 'plan_kind' parameters.
       e.g. PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)
     """
-    return get_env().factory.PlanValidator(
+    return get_environment().factory.PlanValidator(
         name=name,
         names=names,
         params=params,
@@ -584,7 +584,7 @@ def Compiler(
       e.g. Compiler(problem_kind=problem.kind,
                     compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
     """
-    return get_env().factory.Compiler(
+    return get_environment().factory.Compiler(
         name=name,
         names=names,
         params=params,
@@ -608,7 +608,9 @@ def Simulator(
         (simulator dependent options).
         e.g. Simulator(problem, name='sequential_simulator')
     """
-    return get_env().factory.Simulator(problem=problem, name=name, params=params)
+    return get_environment().factory.Simulator(
+        problem=problem, name=name, params=params
+    )
 
 
 def Replanner(
@@ -626,7 +628,7 @@ def Replanner(
       (replanner dependent options).
       e.g. Replanner(problem, name='replanner[tamer]')
     """
-    return get_env().factory.Replanner(
+    return get_environment().factory.Replanner(
         problem=problem,
         name=name,
         params=params,
@@ -649,7 +651,7 @@ def PortfolioSelector(
     - using 'problem_kind' and 'optimality_guarantee'.
         e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
     """
-    return get_env().factory.PortfolioSelector(
+    return get_environment().factory.PortfolioSelector(
         name=name,
         params=params,
         problem_kind=problem_kind,
@@ -658,8 +660,8 @@ def PortfolioSelector(
 
 
 def print_engines_info(stream: IO[str] = sys.stdout, full_credits: bool = False):
-    get_env().factory.print_engines_info(stream, full_credits)
+    get_environment().factory.print_engines_info(stream, full_credits)
 
 
 def set_credits_stream(stream: Optional[IO[str]]):
-    get_env().credits_stream = stream
+    get_environment().credits_stream = stream

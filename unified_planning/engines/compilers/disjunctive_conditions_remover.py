@@ -124,7 +124,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         """
         assert isinstance(problem, Problem)
 
-        env = problem.env
+        env = problem.environment
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_fluents: List["up.model.Fluent"] = []
@@ -250,7 +250,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         goals: List["up.model.FNode"],
         timing: Optional["up.model.timing.TimeInterval"] = None,
     ) -> "up.model.FNode":
-        env = new_problem.env
+        env = new_problem.environment
         new_goal = dnf.get_dnf_expression(env.expression_manager.And(goals))
         if new_goal.is_or():
             new_name = self.name if timing is None else f"{self.name}_timed"

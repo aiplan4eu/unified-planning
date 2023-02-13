@@ -29,7 +29,7 @@ class ConverterToPythonString(walkers.DagWalker):
     """Expression converter to a Python string."""
 
     def __init__(
-        self, env: "up.environment.Environment", names_mapping: Dict[str, str]
+        self, environment: "up.environment.Environment", names_mapping: Dict[str, str]
     ):
         walkers.DagWalker.__init__(self)
         self._names_mapping = names_mapping
@@ -90,7 +90,7 @@ class ConverterToPythonString(walkers.DagWalker):
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
         p = expression.parameter()
-        return f'emgr.ParameterExp(up.model.Parameter("{p.name}", {_print_python_type(p.type, self._names_mapping)}, env))'
+        return f'emgr.ParameterExp(up.model.Parameter("{p.name}", {_print_python_type(p.type, self._names_mapping)}, environment))'
 
     def walk_object_exp(self, expression, args):
         assert len(args) == 0
@@ -185,13 +185,13 @@ class PythonWriter:
             if action_var_name.isidentifier():
                 names_mapping[action_var_name] = action_var_name
 
-        converter = ConverterToPythonString(self.problem.env, names_mapping)
+        converter = ConverterToPythonString(self.problem.environment, names_mapping)
         out.write("from fractions import Fraction\n")
         out.write("from collections import OrderedDict\n")
         out.write("import unified_planning as up\n")
-        out.write("env = up.environment.get_env()\n")
-        out.write("emgr = env.expression_manager\n")
-        out.write("tm = env.type_manager\n")
+        out.write("environment = up.environment.get_environment()\n")
+        out.write("emgr = environment.expression_manager\n")
+        out.write("tm = environment.type_manager\n")
 
         for type in self.problem.user_types:  # define user_types
             utype = cast(_UserType, type)
@@ -233,7 +233,7 @@ class PythonWriter:
             f'"{self.problem.name}"' if self.problem.name is not None else "None"
         )
         out.write(
-            f"problem = up.model.{problem_class}({problem_name}, env, initial_defaults=problem_initial_defaults)\n"
+            f"problem = up.model.{problem_class}({problem_name}, environment, initial_defaults=problem_initial_defaults)\n"
         )
 
         for o in self.problem.all_objects:  # add objects to the problem

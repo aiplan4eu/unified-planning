@@ -97,7 +97,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
         assert isinstance(self._problem, up.model.Problem)
-        (goal_exp,) = self._problem.env.expression_manager.auto_promote(goal)
+        (goal_exp,) = self._problem.environment.expression_manager.auto_promote(goal)
         goals = self._problem.goals
         self._problem.clear_goals()
         for g in goals:

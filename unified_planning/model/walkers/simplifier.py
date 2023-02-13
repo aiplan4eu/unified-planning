@@ -32,12 +32,12 @@ class Simplifier(walkers.dag.DagWalker):
 
     def __init__(
         self,
-        env: "unified_planning.environment.Environment",
+        environment: "unified_planning.environment.Environment",
         problem: Optional["unified_planning.model.problem.Problem"] = None,
     ):
         walkers.dag.DagWalker.__init__(self)
-        self.env = env
-        self.manager = env.expression_manager
+        self.environment = environment
+        self.manager = environment.expression_manager
         if problem is not None:
             self.static_fluents = problem.get_static_fluents()
         else:
@@ -179,7 +179,7 @@ class Simplifier(walkers.dag.DagWalker):
         assert len(args) == 1
         free_vars: Set[
             "up.model.variable.Variable"
-        ] = self.env.free_vars_oracle.get_free_variables(args[0])
+        ] = self.environment.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]
@@ -189,7 +189,7 @@ class Simplifier(walkers.dag.DagWalker):
         assert len(args) == 1
         free_vars: Set[
             "up.model.variable.Variable"
-        ] = self.env.free_vars_oracle.get_free_variables(args[0])
+        ] = self.environment.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]

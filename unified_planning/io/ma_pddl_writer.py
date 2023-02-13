@@ -94,7 +94,7 @@ class MAPDDLWriter:
         problem: "up.model.multi_agent.MultiAgentProblem",
         needs_requirements: bool = True,
     ):
-        self._env = problem.env
+        self._env = problem.environment
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
@@ -402,7 +402,7 @@ class MAPDDLWriter:
             )
 
             converter = ConverterToMAPDDLString(
-                self.problem.env, self._get_mangled_name, ag
+                self.problem.environment, self._get_mangled_name, ag
             )
             costs: dict = {}
             for a in ag.actions:
@@ -595,7 +595,7 @@ class MAPDDLWriter:
 
             out.write("\n )\n")
             converter = ConverterToMAPDDLString(
-                self.problem.env, self._get_mangled_name, ag
+                self.problem.environment, self._get_mangled_name, ag
             )
             out.write(" (:init")
 

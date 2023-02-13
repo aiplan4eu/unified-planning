@@ -16,7 +16,7 @@
 
 import unified_planning as up
 import unified_planning.model.walkers as walkers
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment, get_environment
 from unified_planning.model.walkers.dag import DagWalker
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import _IntType, _RealType
@@ -37,22 +37,22 @@ class LinearChecker(DagWalker):
     def __init__(
         self,
         problem: Optional["up.model.problem.Problem"] = None,
-        env: Optional["up.environment.Environment"] = None,
+        environment: Optional["up.environment.Environment"] = None,
     ):
         DagWalker.__init__(self)
         if problem is not None:
-            if env is not None:
+            if environment is not None:
                 assert (
-                    problem.env == env
+                    problem.environment == environment
                 ), "The given environemt is different from the given problem environment"
             self._static_fluents: Set[
                 "up.model.fluent.Fluent"
             ] = problem.get_static_fluents()
-            self._env = problem.env
+            self._env = problem.environment
             self._simplifier = walkers.Simplifier(self._env, problem)
         else:
             self._static_fluents = set()
-            self._env = get_env(env)
+            self._env = get_environment(environment)
             self._simplifier = self._env.simplifier
 
     def get_fluents(

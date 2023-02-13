@@ -35,8 +35,8 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
     be cached because the `problem` can change, and therefore the resulting expression changes.
     """
 
-    def __init__(self, env):
-        self._env = env
+    def __init__(self, environment):
+        self._env = environment
         IdentityDagWalker.__init__(self, self._env, True)
         self._substituter = walkers.substituter.Substituter(self._env)
 

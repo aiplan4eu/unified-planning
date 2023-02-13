@@ -88,7 +88,7 @@ class GrounderHelper:
         self._grounded_actions: Dict[
             Tuple[Action, Tuple[FNode, ...]], Optional[Action]
         ] = {}
-        env = problem.env
+        env = problem.environment
         self._substituter = Substituter(env)
         self._simplifier = Simplifier(env, problem)
 

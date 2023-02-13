@@ -26,11 +26,11 @@ class ContingentProblem(Problem):
     def __init__(
         self,
         name: Optional[str] = None,
-        env: Optional["up.environment.Environment"] = None,
+        environment: Optional["up.environment.Environment"] = None,
         *,
         initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
-        Problem.__init__(self, name, env, initial_defaults=initial_defaults)
+        Problem.__init__(self, name, environment, initial_defaults=initial_defaults)
         self._hidden_fluents: Set["up.model.fnode.FNode"] = set()
         self._or_initial_constraints: List[List["up.model.fnode.FNode"]] = []
         self._oneof_initial_constraints: List[List["up.model.fnode.FNode"]] = []

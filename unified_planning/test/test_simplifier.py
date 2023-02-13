@@ -17,7 +17,7 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.model.walkers import Simplifier, Substituter
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from fractions import Fraction
 
 
@@ -26,7 +26,7 @@ class TestBoolOperators(TestCase):
         TestCase.setUp(self)
 
     def test_and_constant(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         t = Bool(True)
         f = Bool(False)
         e1 = And(t, f)
@@ -43,7 +43,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r3, t)
 
     def test_and_fluent(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = Fluent("x")
         y = Fluent("y")
         t = Bool(True)
@@ -74,7 +74,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r8, f)
 
     def test_or_constant(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         t = Bool(True)
         f = Bool(False)
         e1 = Or(t, f)
@@ -91,7 +91,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r3, f)
 
     def test_or_fluent(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = Fluent("x")
         y = Fluent("y")
         t = Bool(True)
@@ -122,7 +122,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r8, t)
 
     def test_not(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = Fluent("x")
         t = Bool(True)
         f = Bool(False)
@@ -141,7 +141,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r5, FluentExp(x))
 
     def test_iff(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y"))
         t = Bool(True)
@@ -178,7 +178,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r10, x)
 
     def test_implies(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y"))
         t = Bool(True)
@@ -212,7 +212,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r9, Not(x))
 
     def test_equals(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x", IntType()))
         y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
@@ -234,7 +234,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r4, t)
 
     def test_le(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x", IntType()))
         y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
@@ -256,7 +256,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r4, f)
 
     def test_lt(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x", IntType()))
         y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
@@ -278,7 +278,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r4, f)
 
     def test_gt(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x", IntType()))
         y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
@@ -300,7 +300,7 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r4, t)
 
     def test_ge(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x", IntType()))
         y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
@@ -328,7 +328,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_plus_constant(self):
         # simple plus
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data1 = Fraction(5.0)
         data2 = 3
         fnode1 = Real(data1)
@@ -349,7 +349,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_plus_fluent(self):
         # plus with fluent
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data2 = 3
         x = Fluent("x", IntType())
         y = Fluent("y", IntType())
@@ -369,7 +369,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_minus_constant(self):
         # simple minus
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data1 = 5
         data2 = 3
         fnode1 = Int(data1)
@@ -386,7 +386,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_minus_fluent(self):
         # minus with fluent
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data2 = 3
         x = Fluent("x", IntType())
         y = Fluent("y", IntType())
@@ -418,7 +418,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_times_constant(self):
         # simple times
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data1 = 5
         data2 = 3
         fnode1 = Int(data1)
@@ -446,7 +446,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_times_fluent(self):
         # plus with fluent
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data2 = 3
         x = FluentExp(Fluent("x", IntType()))
         fnode2 = Int(data2)
@@ -473,7 +473,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_div_constant(self):
         # simple div
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data1 = 5
         data2 = 3
         fnode1 = Int(data1)
@@ -513,7 +513,7 @@ class TestArithmeticOperators(TestCase):
 
     def test_div_fluent(self):
         # div with fluent
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         data2 = 3
         x = Fluent("x", IntType())
         fnode2 = Int(data2)
@@ -536,7 +536,7 @@ class TestArithmeticOperators(TestCase):
         self.assertEqual(fnode_simplified, Div(Fraction("6.4"), Div(x, Int(3))))
 
     def test_general(self):
-        s = Simplifier(get_env())
+        s = Simplifier(get_environment())
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y", IntType()))
         t = Bool(True)
@@ -563,8 +563,8 @@ class TestWithSubstituter(TestCase):
         TestCase.setUp(self)
 
     def test_and_fluent(self):
-        s = Simplifier(get_env())
-        su = Substituter(get_env())
+        s = Simplifier(get_environment())
+        su = Substituter(get_environment())
         x = Fluent("x")
         y = FluentExp(Fluent("y"))
         t = Bool(True)
@@ -608,8 +608,8 @@ class TestWithSubstituter(TestCase):
         self.assertEqual(r7, f)
 
     def test_or_fluent(self):
-        s = Simplifier(get_env())
-        su = Substituter(get_env())
+        s = Simplifier(get_environment())
+        su = Substituter(get_environment())
         x = Fluent("x")
         y = FluentExp(Fluent("y"))
         t = Bool(True)
@@ -662,8 +662,8 @@ class TestWithSubstituter(TestCase):
         self.assertEqual(r9, t)
 
     def test_not(self):
-        s = Simplifier(get_env())
-        su = Substituter(get_env())
+        s = Simplifier(get_environment())
+        su = Substituter(get_environment())
         x = Fluent("x")
         t = Bool(True)
         f = Bool(False)
@@ -679,8 +679,8 @@ class TestWithSubstituter(TestCase):
         self.assertEqual(r2, t)
 
     def test_iff(self):
-        s = Simplifier(get_env())
-        su = Substituter(get_env())
+        s = Simplifier(get_environment())
+        su = Substituter(get_environment())
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y"))
         t = Bool(True)
@@ -702,8 +702,8 @@ class TestWithSubstituter(TestCase):
         self.assertEqual(r5, t)
 
     def test_implies(self):
-        s = Simplifier(get_env())
-        su = Substituter(get_env())
+        s = Simplifier(get_environment())
+        su = Substituter(get_environment())
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y"))
         t = Bool(True)
@@ -719,8 +719,8 @@ class TestWithSubstituter(TestCase):
         self.assertEqual(r3, Not(x))
 
     def test_num_to_bools_operators(self):
-        s = Simplifier(get_env())
-        su = Substituter(get_env())
+        s = Simplifier(get_environment())
+        su = Substituter(get_environment())
         a = FluentExp(Fluent("a", IntType()))
         b = FluentExp(Fluent("b", IntType()))
         c = FluentExp(Fluent("c", IntType()))

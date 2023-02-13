@@ -18,7 +18,7 @@ An Object is represented by a name and by its type.
 """
 
 from typing import Optional
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment, get_environment
 import unified_planning.model.types
 
 
@@ -37,11 +37,11 @@ class Object:
         self,
         name: str,
         typename: "unified_planning.model.types.Type",
-        env: Optional[Environment] = None,
+        environment: Optional[Environment] = None,
     ):
         self._name = name
         self._typename = typename
-        self._env = get_env(env)
+        self._env = get_environment(environment)
         assert self._env.type_manager.has_type(
             typename
         ), "type of the object does not belong to the same environment of the object"

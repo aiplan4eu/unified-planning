@@ -52,7 +52,7 @@ class TestCredits(TestCase):
             "  * Website:     ",
             "  * License:     ",
         ]
-        get_env().factory.print_engines_info(credits, True)
+        get_environment().factory.print_engines_info(credits, True)
         credits_printed = credits.getvalue()
         # test that every keyword occur the same number of time in the printed result
         number_of_credits_printed = credits_printed.count(credits_keywords[0])

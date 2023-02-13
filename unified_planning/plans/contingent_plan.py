@@ -40,7 +40,7 @@ class ContingentPlanNode:
 
     @property
     def environment(self) -> "up.environment.Environment":
-        return self._action_instance.action.env
+        return self._action_instance.action.environment
 
     def add_child(
         self,
@@ -131,17 +131,17 @@ class ContingentPlan(plans.plan.Plan):
         root_node: Optional["ContingentPlanNode"] = None,
         environment: Optional["up.Environment"] = None,
     ):
-        # if we have a specific env or we don't have any actions
+        # if we have a specific environment or we don't have any actions
         if environment is not None or root_node is None:
             plans.plan.Plan.__init__(
                 self, plans.plan.PlanKind.CONTINGENT_PLAN, environment
             )
-        # If we don't have a specific env and have at least 1 action, use the env of the first action
+        # If we don't have a specific environment and have at least 1 action, use the environment of the first action
         else:
             plans.plan.Plan.__init__(
                 self,
                 plans.plan.PlanKind.CONTINGENT_PLAN,
-                root_node.action_instance.action.env,
+                root_node.action_instance.action.environment,
             )
         self._root_node = root_node
 
@@ -173,7 +173,7 @@ class ContingentPlan(plans.plan.Plan):
         if self.root_node is None:
             return ContingentPlan(None, self._environment)
         new_root = self.root_node.replace_action_instances(replace_function)
-        new_env = new_root.action_instance.action.env
+        new_env = new_root.action_instance.action.environment
         return ContingentPlan(new_root, new_env)
 
     def convert_to(

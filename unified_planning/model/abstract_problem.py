@@ -29,13 +29,13 @@ class AbstractProblem:
     def __init__(
         self,
         name: Optional[str] = None,
-        env: Optional["up.environment.Environment"] = None,
+        environment: Optional["up.environment.Environment"] = None,
     ):
-        self._env = up.environment.get_env(env)
+        self._env = up.environment.get_environment(environment)
         self._name = name
 
     @property
-    def env(self) -> "up.environment.Environment":
+    def environment(self) -> "up.environment.Environment":
         """Returns the `Problem` `Environment`."""
         return self._env
 

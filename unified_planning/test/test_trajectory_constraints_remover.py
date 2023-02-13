@@ -25,7 +25,7 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         problem, fluents, actions = self.get_problem()
-        self.simplifier = Simplifier(problem.env)
+        self.simplifier = Simplifier(problem.environment)
         self.problem = problem
         self.fluents = fluents
         self.actions = actions
@@ -73,19 +73,19 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         e_phi = FluentExp(self.fluents[4])
         act_1 = self.actions[0]
         R_a = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, a_phi, act_1)
+            self.traj_remover._regression(self.problem.environment, a_phi, act_1)
         )
         R_b = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, b_phi, act_1)
+            self.traj_remover._regression(self.problem.environment, b_phi, act_1)
         )
         R_c = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, c_phi, act_1)
+            self.traj_remover._regression(self.problem.environment, c_phi, act_1)
         )
         R_d = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, d_phi, act_1)
+            self.traj_remover._regression(self.problem.environment, d_phi, act_1)
         )
         R_e = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, e_phi, act_1)
+            self.traj_remover._regression(self.problem.environment, e_phi, act_1)
         )
         self.assertTrue(
             R_a.is_true()
@@ -104,19 +104,19 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         e_phi = FluentExp(self.fluents[4])
         act_2 = self.actions[1]
         R_a = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, a_phi, act_2)
+            self.traj_remover._regression(self.problem.environment, a_phi, act_2)
         )
         R_b = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, b_phi, act_2)
+            self.traj_remover._regression(self.problem.environment, b_phi, act_2)
         )
         R_c = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, c_phi, act_2)
+            self.traj_remover._regression(self.problem.environment, c_phi, act_2)
         )
         R_d = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, d_phi, act_2)
+            self.traj_remover._regression(self.problem.environment, d_phi, act_2)
         )
         R_e = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, e_phi, act_2)
+            self.traj_remover._regression(self.problem.environment, e_phi, act_2)
         )
         self.assertTrue(
             R_a.is_true()
@@ -135,19 +135,19 @@ class TestTrajectoryConstraintsRemoverCase(TestCase):
         e_phi = FluentExp(self.fluents[4])
         act_3 = self.actions[2]
         R_a = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, a_phi, act_3)
+            self.traj_remover._regression(self.problem.environment, a_phi, act_3)
         )
         R_b = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, b_phi, act_3)
+            self.traj_remover._regression(self.problem.environment, b_phi, act_3)
         )
         R_c = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, c_phi, act_3)
+            self.traj_remover._regression(self.problem.environment, c_phi, act_3)
         )
         R_d = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, d_phi, act_3)
+            self.traj_remover._regression(self.problem.environment, d_phi, act_3)
         )
         R_e = self.simplifier.simplify(
-            self.traj_remover._regression(self.problem.env, e_phi, act_3)
+            self.traj_remover._regression(self.problem.environment, e_phi, act_3)
         )
         self.assertTrue(
             R_a == a_phi

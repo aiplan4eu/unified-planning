@@ -153,8 +153,8 @@ class Factory:
     and handles the operation modes available in the library.
     """
 
-    def __init__(self, env: "Environment"):
-        self._env = env
+    def __init__(self, environment: "Environment"):
+        self._env = environment
         self._engines: Dict[str, Type["up.engines.engine.Engine"]] = {}
         self._engines_info: List[Tuple[str, str, str]] = []
         self._meta_engines: Dict[str, Type["up.engines.meta_engine.MetaEngine"]] = {}

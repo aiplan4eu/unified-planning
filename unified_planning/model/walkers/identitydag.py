@@ -29,12 +29,12 @@ class IdentityDagWalker(walkers.dag.DagWalker):
 
     def __init__(
         self,
-        env: "unified_planning.environment.Environment",
+        environment: "unified_planning.environment.Environment",
         invalidate_memoization=False,
     ):
         walkers.dag.DagWalker.__init__(self, invalidate_memoization)
-        self.env = env
-        self.manager = env.expression_manager
+        self.environment = environment
+        self.manager = environment.expression_manager
 
     def walk_and(self, expression: FNode, args: List[FNode], **kwargs):
         return self.manager.And(args)

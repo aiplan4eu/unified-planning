@@ -80,13 +80,13 @@ class TestProtobufIO(TestCase):
 
     def test_expression(self):
         problem = Problem("test")
-        ex = problem.env.expression_manager.true_expression
+        ex = problem.environment.expression_manager.true_expression
 
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
         self.assertEqual(ex, ex_up)
 
-        ex = problem.env.expression_manager.Int(10)
+        ex = problem.environment.expression_manager.Int(10)
 
         ex_pb = self.pb_writer.convert(ex)
         ex_up = self.pb_reader.convert(ex_pb, problem)
@@ -191,12 +191,12 @@ class TestProtobufIO(TestCase):
         problem.add_quality_metric(metric=MinimizeMakespan())
         problem.add_quality_metric(
             metric=MinimizeExpressionOnFinalState(
-                problem.env.expression_manager.true_expression
+                problem.environment.expression_manager.true_expression
             )
         )
         problem.add_quality_metric(
             metric=MaximizeExpressionOnFinalState(
-                problem.env.expression_manager.true_expression
+                problem.environment.expression_manager.true_expression
             )
         )
 
@@ -290,7 +290,7 @@ class TestProtobufIO(TestCase):
             problem = Problem("test timing")
             if action is not None:
                 problem.add_action(action)
-            node = problem.env.expression_manager.auto_promote(timing)[0]
+            node = problem.environment.expression_manager.auto_promote(timing)[0]
             node_pb = self.pb_writer.convert(node)
             node_up = self.pb_reader.convert(node_pb, problem)
             self.assertEqual(node, node_up)
