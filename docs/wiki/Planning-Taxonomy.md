@@ -144,6 +144,7 @@ Actual tools that implement planning algorithms and operation modes
   * **Tamer**
   * **FF**
   * **ENHSP**
+  * **FMAP**
   * **Scikit-decide**
 
 Several relations are possible!
