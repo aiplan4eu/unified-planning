@@ -174,7 +174,7 @@ def Always(expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Always` expression.
     """
-    return get_env().expression_manager.Always(expression)
+    return get_environment().expression_manager.Always(expression)
 
 
 def Sometime(expression: BoolExpression) -> FNode:
@@ -185,7 +185,7 @@ def Sometime(expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Sometime` expression.
     """
-    return get_env().expression_manager.Sometime(expression)
+    return get_environment().expression_manager.Sometime(expression)
 
 
 def SometimeBefore(*expression: BoolExpression) -> FNode:
@@ -196,7 +196,7 @@ def SometimeBefore(*expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Sometime` expression.
     """
-    return get_env().expression_manager.SometimeBefore(*expression)
+    return get_environment().expression_manager.SometimeBefore(*expression)
 
 
 def SometimeAfter(*expression: BoolExpression) -> FNode:
@@ -207,7 +207,7 @@ def SometimeAfter(*expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `Sometime-After(a, b)` expression.
     """
-    return get_env().expression_manager.SometimeAfter(*expression)
+    return get_environment().expression_manager.SometimeAfter(*expression)
 
 
 def AtMostOnce(expression: BoolExpression) -> FNode:
@@ -218,7 +218,7 @@ def AtMostOnce(expression: BoolExpression) -> FNode:
     :param expression: The `boolean` expression of the trajectory constraints.
     :return: The created `At-Most-Once(a, b)` expression.
     """
-    return get_env().expression_manager.AtMostOnce(expression)
+    return get_environment().expression_manager.AtMostOnce(expression)
 
 
 def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:

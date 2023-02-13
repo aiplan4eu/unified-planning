@@ -54,7 +54,7 @@ from unified_planning.io.anml_grammar import (
     TK_INTEGER,
     TK_FLOAT,
 )
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import ANMLSyntaxError, UPUnsupportedProblemTypeError
 from unified_planning.model import (
     DurationInterval,
@@ -101,7 +101,7 @@ class ANMLReader:
     """
 
     def __init__(self, env: Optional[Environment] = None):
-        self._env = get_env(env)
+        self._env = get_environment(env)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
         # map from timing name, globality flag to corresponding Timepoint

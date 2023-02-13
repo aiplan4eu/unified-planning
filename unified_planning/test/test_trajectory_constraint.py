@@ -18,7 +18,6 @@ from unified_planning.io.pddl_reader import PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
-from unified_planning.environment import get_env
 from unified_planning.engines.compilers.trajectory_constraints_remover import (
     TrajectoryConstraintsRemover,
 )

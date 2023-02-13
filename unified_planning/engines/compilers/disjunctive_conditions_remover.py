@@ -257,9 +257,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             fake_fluent = up.model.Fluent(
                 get_fresh_name(new_problem, f"{new_name}_fake_goal")
             )
-            fake_action = InstantaneousAction(
-                f"{new_name}_fake_action", _env=environment
-            )
+            fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
             fake_action.add_effect(fake_fluent, True)
             for and_exp in new_goal.args:
                 na = self._create_new_action_with_given_precond(

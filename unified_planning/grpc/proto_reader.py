@@ -225,7 +225,9 @@ class ProtobufReader(Converter):
             if len(timepoint_expr) > 1:
                 container = timepoint_expr[1].atom.symbol
             tp = model.timing.Timepoint(kd, container)
-            return problem.environment.expression_manager.TimingExp(model.Timing(dl, tp))
+            return problem.environment.expression_manager.TimingExp(
+                model.Timing(dl, tp)
+            )
 
         raise ValueError(f"Unknown expression kind `{msg.kind}`")
 

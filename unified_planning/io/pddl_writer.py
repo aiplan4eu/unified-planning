@@ -504,7 +504,7 @@ class PDDLWriter:
                 "Only one metric is supported!"
             )
 
-        em = self.problem.env.expression_manager
+        em = self.problem.environment.expression_manager
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 if em.FALSE() in a.preconditions:

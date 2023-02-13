@@ -290,7 +290,7 @@ class TestProtobufIO(TestCase):
             problem = Problem("test timing")
             if action is not None:
                 problem.add_action(action)
-            node = problem.env.expression_manager.auto_promote(timing)[0]
+            node = problem.environment.expression_manager.auto_promote(timing)[0]
             node_pb = self.pb_writer.convert(node)
             node_up = self.pb_reader.convert(node_pb, problem)
             self.assertEqual(node, node_up)
