@@ -17,7 +17,7 @@ from warnings import warn
 import unified_planning as up
 
 
-class PlanRepairMixin:
+class PlanRepairerMixin:
     def __init__(self):
         self.optimality_metric_required = False
 
@@ -43,9 +43,10 @@ class PlanRepairMixin:
 
     def repair(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
-    ) -> "up.engines.results.PlanRepairResult":
+    ) -> "up.engines.results.PlanGenerationResult":
         assert isinstance(self, up.engines.engine.Engine)
-        if not self.skip_checks and not self.supports(problem.kind):
+        problem_kind = problem.kind
+        if not self.skip_checks and not self.supports(problem_kind):
             msg = f"We cannot establish whether {self.name} can validate this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
@@ -64,5 +65,5 @@ class PlanRepairMixin:
 
     def _repair(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
-    ) -> PlanRepairResult:
+    ) -> "up.engines.results.PlanGenerationResult":
         raise NotImplementedError

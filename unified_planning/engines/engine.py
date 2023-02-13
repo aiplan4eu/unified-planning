@@ -32,6 +32,7 @@ class OperationMode(Enum):
     COMPILER = "compiler"
     SIMULATOR = "simulator"
     REPLANNER = "replanner"
+    PLAN_REPAIRER = "plan_repairer"
 
 
 class EngineMeta(type):

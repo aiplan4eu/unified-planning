@@ -167,19 +167,6 @@ class ValidationResult(Result):
 
 
 @dataclass
-class PlanRepairResult(Result):
-    """Class that represents the result of a plan repair call."""
-
-    status: PlanRepairResultStatus  # TODO: to define
-    plan: Optional["up.plans.Plan"]
-    engine_name: str
-    log_messages: Optional[List[LogMessage]] = field(default=None)
-
-    def is_definitive_result(self, *args) -> bool:
-        return True
-
-
-@dataclass
 class CompilerResult(Result):
     """Class that represents the result of a compile call."""
 
