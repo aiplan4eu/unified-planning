@@ -129,10 +129,17 @@ class TestUsertypeFLuentsRemover(TestCase):
         a = InstantaneousAction("a")
         for condition in conds:
             a.add_precondition(condition)
+        a.add_effect(f1, g1)
+
+        b = InstantaneousAction("b")
+        b.add_effect(f1_r(f1), g1)
+
+        c = InstantaneousAction("c")
+        c.add_effect(f1, g1, b1(g1))
 
         problem.add_fluents([f1, g1, f1_r, b1, b1_1, int1])
         problem.add_objects([obj_1, obj_2])
-        problem.add_action(a)
+        problem.add_actions((a, b, c))
 
         init: Dict[FNode, Union[Object, int, bool]] = {
             f1(): obj_1,
@@ -158,6 +165,110 @@ class TestUsertypeFLuentsRemover(TestCase):
         ) as utfr:
             res = utfr.compile(problem)
         compiled_problem = res.problem
+
+        print(compiled_problem.action(c.name))
+
+        new_f1 = compiled_problem.fluent(f1.name)
+        new_g1 = compiled_problem.fluent(g1.name)
+        new_f1_r = compiled_problem.fluent(f1_r.name)
+        g1_var = Variable("g1_ut1", g1.type)
+        expected_effects = {}
+
+        # a effect -> f1 := g1
+        expected_effects[a.name] = {
+            Effect(
+                new_f1(obj_1),
+                TRUE(),
+                new_g1(obj_1),
+            ),
+            Effect(
+                new_f1(obj_1),
+                FALSE(),
+                Not(new_g1(obj_1)),
+            ),
+            Effect(
+                new_f1(obj_2),
+                TRUE(),
+                new_g1(obj_2),
+            ),
+            Effect(
+                new_f1(obj_2),
+                FALSE(),
+                Not(new_g1(obj_2)),
+            ),
+        }
+
+        # b effect -> f1_r(f1):= g1
+        expected_effects[b.name] = {
+            Effect(
+                new_f1_r(obj_1, obj_1),
+                TRUE(),
+                And(new_f1(obj_1), new_g1(obj_1)),
+            ),
+            Effect(
+                new_f1_r(obj_1, obj_1),
+                FALSE(),
+                And(new_f1(obj_1), Not(new_g1(obj_1))),
+            ),
+            Effect(
+                new_f1_r(obj_2, obj_1),
+                TRUE(),
+                And(new_f1(obj_2), new_g1(obj_1)),
+            ),
+            Effect(
+                new_f1_r(obj_2, obj_1),
+                FALSE(),
+                And(new_f1(obj_2), Not(new_g1(obj_1))),
+            ),
+            Effect(
+                new_f1_r(obj_1, obj_2),
+                TRUE(),
+                And(new_f1(obj_1), new_g1(obj_2)),
+            ),
+            Effect(
+                new_f1_r(obj_1, obj_2),
+                FALSE(),
+                And(new_f1(obj_1), Not(new_g1(obj_2))),
+            ),
+            Effect(
+                new_f1_r(obj_2, obj_2),
+                TRUE(),
+                And(new_f1(obj_2), new_g1(obj_2)),
+            ),
+            Effect(
+                new_f1_r(obj_2, obj_2),
+                FALSE(),
+                And(new_f1(obj_2), Not(new_g1(obj_2))),
+            ),
+        }
+
+        # c effect -> if  b1(g1) then f1 := g1
+        expected_effects[c.name] = {
+            Effect(
+                new_f1(obj_1),
+                TRUE(),
+                And(Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), new_g1(obj_1)),
+            ),
+            Effect(
+                new_f1(obj_1),
+                FALSE(),
+                And(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), Not(new_g1(obj_1))
+                ),
+            ),
+            Effect(
+                new_f1(obj_2),
+                TRUE(),
+                And(Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), new_g1(obj_2)),
+            ),
+            Effect(
+                new_f1(obj_2),
+                FALSE(),
+                And(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), Not(new_g1(obj_2))
+                ),
+            ),
+        }
 
         simplifier = QuantifierSimplifier(problem.env, problem)
         compiled_simplifier = QuantifierSimplifier(
@@ -204,3 +315,11 @@ class TestUsertypeFLuentsRemover(TestCase):
                     compiled_condition, compiled_assignments, {}
                 )
                 self.assertEqual(sc, scc)
+
+        for action in compiled_problem.actions:
+            assert isinstance(action, InstantaneousAction)
+            action_expected_effects = expected_effects[action.name]
+            action_effects = action.effects
+            self.assertEqual(len(action_expected_effects), len(action_effects))
+            for effect in action_effects:
+                self.assertIn(effect, action_expected_effects)

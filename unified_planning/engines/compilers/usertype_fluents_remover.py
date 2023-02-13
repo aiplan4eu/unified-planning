@@ -428,11 +428,21 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             value_free_vars,
             value_added_fluents,
         ) = utf_remover.remove_usertype_fluents(effect.value)
+        condition_to_add = True
         if new_fluent.is_variable_exp():  # this effect's fluent is a user_type fluent
+            if new_value.is_variable_exp():
+                condition_to_add = em.Equals(new_fluent, new_value)
+                assert effect.value.fluent() in fluents_map
+                value_var = new_value.variable()
+                for f in value_added_fluents:
+                    assert f.is_fluent_exp()
+                    if f.arg(-1).variable() == value_var:
+                        new_value = f
+                        break
+                value_added_fluents.remove(new_value)
+            else:
+                new_value = em.Equals(new_value, new_fluent.variable())
             assert effect.fluent.fluent() in fluents_map
-            assert (
-                not value_free_vars and not value_added_fluents
-            ), "Error, this value type should be a UserType"
             fluent_var = new_fluent.variable()
             for f in fluent_added_fluents:
                 assert f.is_fluent_exp()
@@ -440,10 +450,13 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     new_fluent = f
                     break
             fluent_added_fluents.remove(new_fluent)
-            new_value = em.Equals(new_value, fluent_var)
         new_condition = em.And(
             utf_remover.remove_usertype_fluents_from_condition(effect.condition),
+        )
+        condition_to_add = em.And(
             *fluent_added_fluents,
+            *value_added_fluents,
+            condition_to_add,
         )
         vars_list = list(fluent_free_vars)
         vars_list.extend(value_free_vars)
@@ -462,7 +475,10 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 and not resulting_effect_value.is_bool_constant()
             ):
                 positive_condition = substituter.substitute(
-                    em.And(new_condition, resulting_effect_value), subs
+                    em.And(condition_to_add, resulting_effect_value), subs
+                )
+                positive_condition = em.And(
+                    new_condition, positive_condition
                 ).simplify()
                 if (
                     not positive_condition.is_constant()
@@ -475,7 +491,10 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         effect.kind,
                     )
                 negative_condition = substituter.substitute(
-                    em.Not(em.And(new_condition, resulting_effect_value)), subs
+                    em.And(condition_to_add, em.Not(resulting_effect_value)), subs
+                )
+                negative_condition = em.And(
+                    new_condition, negative_condition
                 ).simplify()
                 if (
                     not negative_condition.is_constant()
@@ -488,7 +507,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         effect.kind,
                     )
             else:
-                subbed_cond = substituter.substitute(new_condition, subs).simplify()
+                subbed_cond = substituter.substitute(
+                    em.And(new_condition, condition_to_add), subs
+                ).simplify()
                 if not subbed_cond.is_constant() or subbed_cond.bool_constant_value():
                     yield Effect(
                         resulting_effect_fluent,

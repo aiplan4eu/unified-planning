@@ -45,6 +45,20 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self.manager = env.expression_manager
         self._defined_names: Set[str] = set(defined_names)
 
+    def _get_key(self, expression: FNode, **kwargs):
+        return (expression, kwargs["is_condition"])
+
+    def _push_with_children_to_stack(self, expression: FNode, **kwargs):
+        """Add children to the stack."""
+        self.stack.append((True, expression))
+        if not kwargs["is_condition"] and expression.type.is_bool_type():
+            kwargs["is_condition"] = True
+        for s in self._get_children(expression):
+            # Add only if not memoized already
+            key = self._get_key(s, **kwargs)
+            if key not in self.memoization:
+                self.stack.append((False, s))
+
     def remove_usertype_fluents(
         self, expression: FNode
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
@@ -59,11 +73,11 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
             expression and all the FluentExp that must be True for the 2 expressions to be
             equivalent.
         """
-        exp, free_vars, added_fluents = self.walk(expression)
+        exp, free_vars, added_fluents = self.walk(expression, is_condition=False)
         return (exp, free_vars.copy(), added_fluents.copy())
 
     def remove_usertype_fluents_from_condition(self, expression: FNode) -> FNode:
-        new_exp, free_vars, added_fluents = self.remove_usertype_fluents(expression)
+        new_exp, free_vars, added_fluents = self.walk(expression, is_condition=True)
         if free_vars:
             assert added_fluents
             new_exp = self.manager.Exists(
@@ -118,6 +132,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         exp_args, _, _ = self._process_exp_args(args)
         return (self.manager.And(*exp_args), set(), set())
@@ -126,6 +141,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         exp_args, _, _ = self._process_exp_args(args)
         return (self.manager.Or(*exp_args), set(), set())
@@ -134,6 +150,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 1
         exp_args, _, _ = self._process_exp_args(args)
@@ -143,6 +160,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
         exp_args, _, _ = self._process_exp_args(args)
@@ -152,6 +170,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
         exp_args, _, _ = self._process_exp_args(args)
@@ -161,6 +180,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 1
         exp_args, _, _ = self._process_exp_args(args)
@@ -174,6 +194,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 1
         exp_args, _, _ = self._process_exp_args(args)
@@ -187,6 +208,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
 
@@ -213,6 +235,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
 
@@ -239,6 +262,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
 
@@ -264,6 +288,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         exp_args, variables, fluents = self._process_exp_args(args)
         new_fluent = self._new_fluents.get(expression.fluent(), None)
@@ -290,6 +315,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         exp_args, variables, fluents = self._process_exp_args(args)
         return (self.manager.Plus(*exp_args), variables, fluents)
@@ -298,6 +324,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
         exp_args, variables, fluents = self._process_exp_args(args)
@@ -307,6 +334,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         exp_args, variables, fluents = self._process_exp_args(args)
         return (self.manager.Times(*exp_args), variables, fluents)
@@ -315,6 +343,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
         exp_args, variables, fluents = self._process_exp_args(args)
@@ -324,6 +353,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 1
         exp_args, _, _ = self._process_exp_args(args)
@@ -334,6 +364,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 1
         exp_args, _, _ = self._process_exp_args(args)
@@ -344,6 +375,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
         exp_args, _, _ = self._process_exp_args(args)
@@ -354,6 +386,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 2
         exp_args, _, _ = self._process_exp_args(args)
@@ -364,6 +397,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         assert len(args) == 1
         exp_args, _, _ = self._process_exp_args(args)
@@ -374,6 +408,7 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         raise NotImplementedError(
             "The UserType Fluents remover currently does not support multiagent"
@@ -390,5 +425,6 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         self,
         expression: FNode,
         args: List[Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]],
+        **kwargs,
     ) -> Tuple[FNode, Set["up.model.variable.Variable"], Set[FNode]]:
         return (expression, set(), set())
