@@ -111,7 +111,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             goals: List[
                 Tuple[
                     Union[
-                        tuple,
+                        Tuple[TimeInterval, FNode],
                         "up.model.FNode",
                     ],
                     Union[Fraction, int],
