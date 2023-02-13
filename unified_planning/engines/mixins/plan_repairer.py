@@ -44,6 +44,14 @@ class PlanRepairerMixin:
     def repair(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.PlanGenerationResult":
+        """
+        Resolves the given problem, potentially using the plan given in input.
+        The plan can be valid or invalid, optimal or non-optimal.
+
+        :param problem: the problem to solve
+        :param plan: the plan that can be used to find the solution
+        :return: a :class:`up.engines.results.PlanGenerationResult`
+        """
         assert isinstance(self, up.engines.engine.Engine)
         problem_kind = problem.kind
         if not self.skip_checks and not self.supports(problem_kind):
