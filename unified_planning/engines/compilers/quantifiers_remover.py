@@ -224,8 +224,11 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                         ] = priority
                     elif isinstance(goal, tuple):
                         args[
-                            expression_quantifier_remover.remove_quantifiers(
-                                goal[1], problem
+                            (
+                                goal[0],
+                                expression_quantifier_remover.remove_quantifiers(
+                                    goal[1], problem
+                                ),
                             )
                         ] = priority
                 new_problem.add_quality_metric(Oversubscription(args))

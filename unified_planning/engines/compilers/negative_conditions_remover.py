@@ -233,7 +233,9 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                     if isinstance(goal, FNode):
                         args[fluent_remover.remove_negative_fluents(goal)] = priority
                     elif isinstance(goal, tuple):
-                        args[fluent_remover.remove_negative_fluents(goal[1])] = priority
+                        args[
+                            (goal[0], fluent_remover.remove_negative_fluents(goal[1]))
+                        ] = priority
                 new_problem.add_quality_metric(Oversubscription(args))
             else:
                 new_problem.add_quality_metric(qm)

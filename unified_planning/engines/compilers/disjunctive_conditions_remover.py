@@ -218,11 +218,13 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                         new_goal = self._goals_without_disjunctions_adding_new_elements(
                             dnf, new_problem, new_to_old, new_fluents, [goal]
                         )
+                        new_oversubscription[new_goal] = priority
                     elif isinstance(goal, tuple):
                         new_goal = self._goals_without_disjunctions_adding_new_elements(
                             dnf, new_problem, new_to_old, new_fluents, [goal[1]]
                         )
-                    new_oversubscription[new_goal] = priority
+                        new_oversubscription[(goal[0], new_goal)] = priority
+
                 new_problem.add_quality_metric(Oversubscription(new_oversubscription))
             else:
                 new_problem.add_quality_metric(qm)

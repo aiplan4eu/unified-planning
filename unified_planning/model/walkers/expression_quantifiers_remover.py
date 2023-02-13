@@ -22,8 +22,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.object import Object
 from unified_planning.model.mixins import ObjectsSetMixin
 from unified_planning.model.expression import Expression
-from unified_planning.model.timing import TimeInterval
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict
 from itertools import product
 
 
