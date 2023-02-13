@@ -29,7 +29,7 @@ setup(
         "tamer": ["up-tamer==0.3.1.3.dev1"],
         "enhsp": ["up-enhsp==0.0.9"],
         "fast-downward": ["up-fast-downward==0.1.2"],
-        "lgp": ["up-lpg==0.0.4.9"],
+        "lpg": ["up-lpg==0.0.4.9"],
         "engines": [
             "tarski[arithmetic]",
             "up-pyperplan==0.3.0.2.dev1",
