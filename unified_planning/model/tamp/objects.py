@@ -14,9 +14,10 @@
 #
 
 from enum import Enum, auto
-from typing import Dict, Optional, Any, Tuple
+from typing import Dict, Optional, Any, Tuple, Iterable
 from unified_planning.model import Object
 from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
 import unified_planning.model.types
 
 
@@ -45,20 +46,32 @@ class MovableObject(Object):
         self,
         name: str,
         typename: "unified_planning.model.types.Type",
-        model: str,
+        *,
+        footprint: Optional[Iterable[Tuple[float, float]]] = None,
+        model: Optional[str] = None,
         motion_model: MotionModels,
         parameters: Dict[str, Any],
         env: Optional[Environment] = None,
     ):
         super().__init__(name, typename, env)
+        if model is None and footprint is None:
+            raise UPUsageError(
+                "One of `model` or `footprint` paramters must be specified!"
+            )
+        self._footprint = footprint
         self._model = model
         self._motion_model = motion_model
         self._parameters = parameters
 
     @property
-    def model(self) -> str:
+    def model(self) -> Optional[str]:
         """Returns the model of this `MovableObject` (i.e., its geometry, kinematic model, and dynamic model)."""
         return self._model
+
+    @property
+    def footprint(self) -> Optional[Iterable[Tuple[float, float]]]:
+        """Returns the footprint of this `MovableObject`."""
+        return self._footprint
 
     @property
     def motion_model(self) -> MotionModels:
