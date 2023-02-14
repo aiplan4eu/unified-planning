@@ -15,7 +15,9 @@
 from collections import OrderedDict
 from typing import List, Union, Optional
 
+import unified_planning.model.walkers
 from unified_planning.environment import get_env, Environment
+from unified_planning.model.htn.ordering import TemporalConstraints, ordering, PartialOrder, TotalOrder
 from unified_planning.model.timing import Timing
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.fnode import FNode
@@ -125,6 +127,23 @@ class TaskNetwork:
     @property
     def constraints(self) -> List[FNode]:
         return self._constraints
+
+    def temporal_constraints(self) -> TemporalConstraints:
+        time_checker = unified_planning.model.walkers.AnyChecker(lambda e: e.is_timing_exp())
+        temporal_constraints = [c for c in self.constraints if time_checker.any(c)]
+        return ordering(list(t.identifier for t in self.subtasks), temporal_constraints)
+
+    def partial_order(self) -> PartialOrder:
+        order = self.temporal_constraints()
+        if not isinstance(order, PartialOrder):
+            raise ValueError("The task network has constraints that are not reducible to a qualitative partial order")
+        return order
+
+    def total_order(self) -> TotalOrder:
+        order = self.temporal_constraints()
+        if not isinstance(order, TotalOrder):
+            raise ValueError("The task network constraints do not define a total order")
+        return order
 
     def add_constraint(self, constraint: Expression):
         (constraint,) = self._env.expression_manager.auto_promote(constraint)
