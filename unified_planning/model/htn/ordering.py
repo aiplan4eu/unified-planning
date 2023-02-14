@@ -62,17 +62,17 @@ def ordering(task_ids: List[str], time_constraints: List[FNode]) -> TemporalCons
         rhs = c.arg(1)
         if not lhs.is_timing_exp() or not rhs.is_timing_exp():
             break
-        lhs = lhs.timing()
-        rhs = rhs.timing()
-        if lhs.delay != 0 or rhs.delay != 0:
+        lhs = lhs.timing()  # type: ignore
+        rhs = rhs.timing()  # type: ignore
+        if lhs.delay != 0 or rhs.delay != 0:  # type: ignore
             break
-        lhs = lhs.timepoint
-        rhs = rhs.timepoint
-        if lhs.kind != TimepointKind.END or rhs.kind != TimepointKind.START:
+        lhs = lhs.timepoint  # type: ignore
+        rhs = rhs.timepoint  # type: ignore
+        if lhs.kind != TimepointKind.END or rhs.kind != TimepointKind.START:  # type: ignore
             break
-        if lhs.container is None or rhs.container is None:
+        if lhs.container is None or rhs.container is None:  # type: ignore
             break
-        precedences.append((lhs.container, rhs.container))
+        precedences.append((lhs.container, rhs.container))  # type: ignore
 
     qualitative = len(precedences) == len(time_constraints)
     if not qualitative:
