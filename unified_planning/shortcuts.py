@@ -650,8 +650,6 @@ def PlanRepairer(
     - using 'problem_kind' and 'optimality_guarantee'.
       e.g. PlanRepairer(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
     """
-    if isinstance(optimality_guarantee, str):
-        optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
     return get_environment().factory.PlanRepairer(
         name=name,
         params=params,
