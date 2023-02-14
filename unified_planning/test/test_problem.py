@@ -126,7 +126,8 @@ class TestProblem(TestCase):
         self.assertEqual(str(robot_at), "bool robot_at[position=Location]")
         self.assertEqual(robot_at.arity, 1)
         self.assertEqual(
-            robot_at.signature, [up.model.Parameter("position", Location, problem.env)]
+            robot_at.signature,
+            [up.model.Parameter("position", Location, problem.environment)],
         )
         self.assertTrue(robot_at.type.is_bool_type())
 
@@ -201,7 +202,8 @@ class TestProblem(TestCase):
         self.assertEqual(robot_at.name, "robot_at")
         self.assertEqual(robot_at.arity, 1)
         self.assertEqual(
-            robot_at.signature, [up.model.Parameter("position", Location, problem.env)]
+            robot_at.signature,
+            [up.model.Parameter("position", Location, problem.environment)],
         )
         self.assertTrue(robot_at.type.is_bool_type())
 
@@ -209,7 +211,8 @@ class TestProblem(TestCase):
         self.assertEqual(cargo_at.name, "cargo_at")
         self.assertEqual(cargo_at.arity, 1)
         self.assertEqual(
-            cargo_at.signature, [up.model.Parameter("position", Location, problem.env)]
+            cargo_at.signature,
+            [up.model.Parameter("position", Location, problem.environment)],
         )
         self.assertTrue(cargo_at.type.is_bool_type())
 
@@ -296,8 +299,8 @@ class TestProblem(TestCase):
         self.assertEqual(
             robot_at.signature,
             [
-                up.model.Parameter("robot", Robot, problem.env),
-                up.model.Parameter("position", Location, problem.env),
+                up.model.Parameter("robot", Robot, problem.environment),
+                up.model.Parameter("position", Location, problem.environment),
             ],
         )
         self.assertTrue(robot_at.type.is_bool_type())
@@ -308,8 +311,8 @@ class TestProblem(TestCase):
         self.assertEqual(
             cargo_at.signature,
             [
-                up.model.Parameter("cargo", Container, problem.env),
-                up.model.Parameter("position", Location, problem.env),
+                up.model.Parameter("cargo", Container, problem.environment),
+                up.model.Parameter("position", Location, problem.environment),
             ],
         )
         self.assertTrue(cargo_at.type.is_bool_type())
@@ -320,8 +323,8 @@ class TestProblem(TestCase):
         self.assertEqual(
             cargo_mounted.signature,
             [
-                up.model.Parameter("cargo", Container, problem.env),
-                up.model.Parameter("robot", Robot, problem.env),
+                up.model.Parameter("cargo", Container, problem.environment),
+                up.model.Parameter("robot", Robot, problem.environment),
             ],
         )
         self.assertTrue(cargo_mounted.type.is_bool_type())

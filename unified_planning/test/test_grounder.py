@@ -256,7 +256,7 @@ class TestGrounder(TestCase):
 
     def test_matchcellar_static_duration(self):
         problem = self.problems["matchcellar_static_duration"].problem
-        fvo = problem.env.free_vars_oracle
+        fvo = problem.environment.free_vars_oracle
         gro = Grounder()
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem

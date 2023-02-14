@@ -17,7 +17,7 @@ from fractions import Fraction
 import os
 from unified_planning.plans import ActionInstance
 import unified_planning
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
 from unified_planning.test import (
     TestCase,
@@ -43,7 +43,7 @@ from unified_planning.exceptions import (
 class TestNegativeConditionsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
-        self.env = get_env()
+        self.environment = get_environment()
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)

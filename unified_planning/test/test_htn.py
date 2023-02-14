@@ -105,7 +105,7 @@ class TestProblem(TestCase):
 
         tn.set_strictly_before(a2.end + 3, a4.start)
         assert_temporal(tn)
-        env = get_env()
+        env = get_environment()
 
         # a set of constraints that cannot be interpreted as precedences and should make the task network "temporal"
         temporal_constraints = [

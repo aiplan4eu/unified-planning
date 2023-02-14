@@ -20,7 +20,7 @@ and a `list` of `effects`.
 
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import (
     UPTypeError,
     UPUnboundedVariablesError,
@@ -42,7 +42,7 @@ class Action:
         _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        self._env = get_env(_env)
+        self._environment = get_environment(_env)
         self._name = _name
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()
@@ -50,16 +50,20 @@ class Action:
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
-                assert self._env.type_manager.has_type(
+                assert self._environment.type_manager.has_type(
                     t
                 ), "type of parameter does not belong to the same environment of the action"
-                self._parameters[n] = up.model.parameter.Parameter(n, t, self._env)
+                self._parameters[n] = up.model.parameter.Parameter(
+                    n, t, self._environment
+                )
         else:
             for n, t in kwargs.items():
-                assert self._env.type_manager.has_type(
+                assert self._environment.type_manager.has_type(
                     t
                 ), "type of parameter does not belong to the same environment of the action"
-                self._parameters[n] = up.model.parameter.Parameter(n, t, self._env)
+                self._parameters[n] = up.model.parameter.Parameter(
+                    n, t, self._environment
+                )
 
     def __eq__(self, oth: object) -> bool:
         raise NotImplementedError
@@ -71,9 +75,9 @@ class Action:
         raise NotImplementedError
 
     @property
-    def env(self) -> Environment:
+    def environment(self) -> Environment:
         """Returns this `Action` `Environment`."""
-        return self._env
+        return self._environment
 
     @property
     def name(self) -> str:
@@ -152,7 +156,7 @@ class InstantaneousAction(Action):
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InstantaneousAction):
             cond = (
-                self._env == oth._env
+                self._environment == oth._environment
                 and self._name == oth._name
                 and self._parameters == oth._parameters
             )
@@ -181,7 +185,7 @@ class InstantaneousAction(Action):
             (param_name, param.type) for param_name, param in self._parameters.items()
         )
         new_instantaneous_action = InstantaneousAction(
-            self._name, new_params, self._env
+            self._name, new_params, self._environment
         )
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
@@ -244,11 +248,15 @@ class InstantaneousAction(Action):
 
         :param precondition: The expression that must be added to the `action's preconditions`.
         """
-        (precondition_exp,) = self._env.expression_manager.auto_promote(precondition)
-        assert self._env.type_checker.get_type(precondition_exp).is_bool_type()
-        if precondition_exp == self._env.expression_manager.TRUE():
+        (precondition_exp,) = self._environment.expression_manager.auto_promote(
+            precondition
+        )
+        assert self._environment.type_checker.get_type(precondition_exp).is_bool_type()
+        if precondition_exp == self._environment.expression_manager.TRUE():
             return
-        free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)
+        free_vars = self._environment.free_vars_oracle.get_free_variables(
+            precondition_exp
+        )
         if len(free_vars) != 0:
             raise UPUnboundedVariablesError(
                 f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
@@ -274,9 +282,9 @@ class InstantaneousAction(Action):
             fluent_exp,
             value_exp,
             condition_exp,
-        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("InstantaneousAction effect has not compatible types!")
@@ -302,7 +310,7 @@ class InstantaneousAction(Action):
             fluent_exp,
             value_exp,
             condition_exp,
-        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
@@ -337,7 +345,7 @@ class InstantaneousAction(Action):
             fluent_exp,
             value_exp,
             condition_exp,
-        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
@@ -356,7 +364,7 @@ class InstantaneousAction(Action):
 
     def _add_effect_instance(self, effect: "up.model.effect.Effect"):
         assert (
-            effect.environment == self._env
+            effect.environment == self._environment
         ), "effect does not have the same environment of the action"
         if not effect.is_conditional():
             if effect.is_assignment():
@@ -420,7 +428,7 @@ class DurativeAction(Action):
     ):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
         self._duration: "up.model.timing.DurationInterval" = (
-            up.model.timing.FixedDuration(self._env.expression_manager.Int(0))
+            up.model.timing.FixedDuration(self._environment.expression_manager.Int(0))
         )
         self._conditions: Dict[
             "up.model.timing.TimeInterval", List["up.model.fnode.FNode"]
@@ -475,7 +483,7 @@ class DurativeAction(Action):
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, DurativeAction):
             if (
-                self._env != oth._env
+                self._environment != oth._environment
                 or self._name != oth._name
                 or self._parameters != oth._parameters
                 or self._duration != oth._duration
@@ -527,7 +535,7 @@ class DurativeAction(Action):
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
         )
-        new_durative_action = DurativeAction(self._name, new_params, self._env)
+        new_durative_action = DurativeAction(self._name, new_params, self._environment)
         new_durative_action._duration = self._duration
         new_durative_action._conditions = {
             t: cl[:] for t, cl in self._conditions.items()
@@ -626,8 +634,8 @@ class DurativeAction(Action):
         :param duration: The new `duration interval` of this `action`.
         """
         lower, upper = duration.lower, duration.upper
-        tlower = self._env.type_checker.get_type(lower)
-        tupper = self._env.type_checker.get_type(upper)
+        tlower = self._environment.type_checker.get_type(lower)
+        tupper = self._environment.type_checker.get_type(upper)
         assert tlower.is_int_type() or tlower.is_real_type()
         assert tupper.is_int_type() or tupper.is_real_type()
         if (
@@ -652,7 +660,7 @@ class DurativeAction(Action):
 
         :param value: The `value` set as both edges of this `action's duration`.
         """
-        (value_exp,) = self._env.expression_manager.auto_promote(value)
+        (value_exp,) = self._environment.expression_manager.auto_promote(value)
         self.set_duration_constraint(up.model.timing.FixedDuration(value_exp))
 
     def set_closed_duration_interval(
@@ -666,7 +674,9 @@ class DurativeAction(Action):
         :param lower: The value set as the lower edge of this `action's duration`.
         :param upper: The value set as the upper edge of this `action's duration`.
         """
-        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        lower_exp, upper_exp = self._environment.expression_manager.auto_promote(
+            lower, upper
+        )
         self.set_duration_constraint(
             up.model.timing.ClosedDurationInterval(lower_exp, upper_exp)
         )
@@ -684,7 +694,9 @@ class DurativeAction(Action):
 
         Note that `lower` and `upper` are not part of the interval.
         """
-        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        lower_exp, upper_exp = self._environment.expression_manager.auto_promote(
+            lower, upper
+        )
         self.set_duration_constraint(
             up.model.timing.OpenDurationInterval(lower_exp, upper_exp)
         )
@@ -702,7 +714,9 @@ class DurativeAction(Action):
 
         Note that `lower` is not part of the interval.
         """
-        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        lower_exp, upper_exp = self._environment.expression_manager.auto_promote(
+            lower, upper
+        )
         self.set_duration_constraint(
             up.model.timing.LeftOpenDurationInterval(lower_exp, upper_exp)
         )
@@ -720,7 +734,9 @@ class DurativeAction(Action):
 
         Note that `upper` is not part of the interval.
         """
-        lower_exp, upper_exp = self._env.expression_manager.auto_promote(lower, upper)
+        lower_exp, upper_exp = self._environment.expression_manager.auto_promote(
+            lower, upper
+        )
         self.set_duration_constraint(
             up.model.timing.RightOpenDurationInterval(lower_exp, upper_exp)
         )
@@ -746,8 +762,8 @@ class DurativeAction(Action):
         """
         if isinstance(interval, up.model.Timing):
             interval = up.model.TimePointInterval(interval)
-        (condition_exp,) = self._env.expression_manager.auto_promote(condition)
-        assert self._env.type_checker.get_type(condition_exp).is_bool_type()
+        (condition_exp,) = self._environment.expression_manager.auto_promote(condition)
+        assert self._environment.type_checker.get_type(condition_exp).is_bool_type()
         conditions = self._conditions.setdefault(interval, [])
         if condition_exp not in conditions:
             conditions.append(condition_exp)
@@ -779,9 +795,9 @@ class DurativeAction(Action):
             fluent_exp,
             value_exp,
             condition_exp,
-        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
-        if not self._env.type_checker.get_type(condition_exp).is_bool_type():
+        if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("DurativeAction effect has not compatible types!")
@@ -809,7 +825,7 @@ class DurativeAction(Action):
             fluent_exp,
             value_exp,
             condition_exp,
-        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
@@ -847,7 +863,7 @@ class DurativeAction(Action):
             fluent_exp,
             value_exp,
             condition_exp,
-        ) = self._env.expression_manager.auto_promote(fluent, value, condition)
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
         assert fluent_exp.is_fluent_exp()
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
@@ -869,7 +885,7 @@ class DurativeAction(Action):
         self, timing: "up.model.timing.Timing", effect: "up.model.effect.Effect"
     ):
         assert (
-            self._env == effect.environment
+            self._environment == effect.environment
         ), "effect does not have the same environment of the action"
         fluents_assigned = self._fluents_assigned.setdefault(timing, set())
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
@@ -957,7 +973,7 @@ class SensingAction(InstantaneousAction):
         new_params = OrderedDict()
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.type
-        new_sensing_action = SensingAction(self._name, new_params, self._env)
+        new_sensing_action = SensingAction(self._name, new_params, self._environment)
         new_sensing_action._preconditions = self._preconditions[:]
         new_sensing_action._effects = [e.clone() for e in self._effects]
         new_sensing_action._fluents_assigned = self._fluents_assigned.copy()

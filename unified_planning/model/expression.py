@@ -53,8 +53,8 @@ ConstantExpression = Union[
 class ExpressionManager(object):
     """ExpressionManager is responsible for the creation of all expressions."""
 
-    def __init__(self, env: "up.environment.Environment"):
-        self.env = env
+    def __init__(self, environment: "up.environment.Environment"):
+        self.environment = environment
         self.expressions: Dict[
             "up.model.fnode.FNodeContent", "up.model.fnode.FNode"
         ] = {}
@@ -102,22 +102,22 @@ class ExpressionManager(object):
         for e in tuple_args:
             if isinstance(e, up.model.fluent.Fluent):
                 assert (
-                    e.environment == self.env
+                    e.environment == self.environment
                 ), "Fluent has a different environment of the expression manager"
                 res.append(self.FluentExp(e))
             elif isinstance(e, up.model.parameter.Parameter):
                 assert (
-                    e.environment == self.env
+                    e.environment == self.environment
                 ), "Parameter has a different environment of the expression manager"
                 res.append(self.ParameterExp(e))
             elif isinstance(e, up.model.variable.Variable):
                 assert (
-                    e.environment == self.env
+                    e.environment == self.environment
                 ), "Variable has a different environment of the expression manager"
                 res.append(self.VariableExp(e))
             elif isinstance(e, up.model.object.Object):
                 assert (
-                    e.environment == self.env
+                    e.environment == self.environment
                 ), "Object has a different environment of the expression manager"
                 res.append(self.ObjectExp(e))
             elif isinstance(e, up.model.timing.Timing):
@@ -132,7 +132,7 @@ class ExpressionManager(object):
                 res.append(self.Real(e))
             else:
                 assert (
-                    e.environment == self.env
+                    e.environment == self.environment
                 ), "Expression has a different environment of the expression manager"
                 res.append(e)
         return res
@@ -171,12 +171,12 @@ class ExpressionManager(object):
             return self.expressions[content]
         else:
             assert all(
-                a.environment == self.env for a in args
+                a.environment == self.environment for a in args
             ), "2 FNode in the same expression have different environments"
-            n = up.model.fnode.FNode(content, self._next_free_id, self.env)
+            n = up.model.fnode.FNode(content, self._next_free_id, self.environment)
             self._next_free_id += 1
             self.expressions[content] = n
-            self.env.type_checker.get_type(n)
+            self.environment.type_checker.get_type(n)
             return n
 
     def And(
@@ -422,7 +422,7 @@ class ExpressionManager(object):
             :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
         :return: The created `Fluent` Expression.
         """
-        assert fluent.environment == self.env
+        assert fluent.environment == self.environment
         params_exp = self.auto_promote(params)
         if fluent.arity != len(params_exp):
             raise UPExpressionDefinitionError(
@@ -445,7 +445,7 @@ class ExpressionManager(object):
         :param fluent_exp: The `Fluent_exp` that will be set as the `args` of this expression.
         :return: The created `Dot` Expression.
         """
-        assert agent.env == self.env
+        assert agent.environment == self.environment
         (fluent_exp,) = self.auto_promote(fluent_exp)
         return self.create_node(
             node_type=OperatorKind.DOT, args=(fluent_exp,), payload=agent
@@ -471,7 +471,7 @@ class ExpressionManager(object):
         :param var: The `Variable` that must be promoted to `FNode`.
         :return: The `FNode` containing the given `variable` as his payload.
         """
-        assert var.environment == self.env
+        assert var.environment == self.environment
         return self.create_node(
             node_type=OperatorKind.VARIABLE_EXP, args=tuple(), payload=var
         )
@@ -483,7 +483,7 @@ class ExpressionManager(object):
         :param obj: The `Object` that must be promoted to `FNode`.
         :return: The `FNode` containing the given object as his payload.
         """
-        assert obj.environment == self.env
+        assert obj.environment == self.environment
         return self.create_node(
             node_type=OperatorKind.OBJECT_EXP, args=tuple(), payload=obj
         )

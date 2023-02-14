@@ -18,7 +18,7 @@ import unified_planning as up
 from functools import wraps
 from importlib.util import find_spec
 from unified_planning.engines import OperationMode
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.model import ProblemKind
 from unified_planning.test.pddl import enhsp
 from typing import Optional
@@ -36,7 +36,7 @@ class skipIfEngineNotAvailable(object):
 
     def __call__(self, test_fun):
         msg = "%s not available" % self.engine
-        cond = self.engine not in get_env().factory.engines
+        cond = self.engine not in get_environment().factory.engines
 
         @unittest.skipIf(cond, msg)
         @wraps(test_fun)
@@ -61,7 +61,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
         msg = "no oneshot planner available for the given problem kind"
         cond = False
         try:
-            get_env().factory._get_engine_class(
+            get_environment().factory._get_engine_class(
                 OperationMode.ONESHOT_PLANNER,
                 problem_kind=self.kind,
                 optimality_guarantee=self.optimality_guarantee,
@@ -92,7 +92,7 @@ class skipIfNoAnytimePlannerForProblemKind(object):
         msg = "no anytime planner available for the given problem kind"
         cond = False
         try:
-            get_env().factory._get_engine_class(
+            get_environment().factory._get_engine_class(
                 OperationMode.ANYTIME_PLANNER,
                 problem_kind=self.kind,
                 anytime_guarantee=self.anytime_guarantee,
@@ -118,7 +118,7 @@ class skipIfNoPlanValidatorForProblemKind(object):
         msg = "no plan validator available for the given problem kind"
         cond = False
         try:
-            get_env().factory._get_engine_class(
+            get_environment().factory._get_engine_class(
                 OperationMode.PLAN_VALIDATOR, problem_kind=self.kind
             )
         except:

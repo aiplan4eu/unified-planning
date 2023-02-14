@@ -15,7 +15,7 @@
 
 import os
 import unified_planning
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     classical_kind,

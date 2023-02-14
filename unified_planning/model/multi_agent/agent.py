@@ -39,15 +39,15 @@ class Agent(
     ):
         FluentsSetMixin.__init__(
             self,
-            ma_problem.env,
+            ma_problem.environment,
             ma_problem._add_user_type,
             self.has_name,
             ma_problem._initial_defaults,
         )
         ActionsSetMixin.__init__(
-            self, ma_problem.env, ma_problem._add_user_type, self.has_name
+            self, ma_problem.environment, ma_problem._add_user_type, self.has_name
         )
-        self._env = ma_problem.env
+        self._env = ma_problem.environment
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
         self._ma_problem_has_name_not_in_agents = ma_problem.has_name_not_in_agents
@@ -87,7 +87,7 @@ class Agent(
         return self._name
 
     @property
-    def env(self) -> "up.Environment":
+    def environment(self) -> "up.Environment":
         """Returns this `Agent` `Environment`."""
         return self._env
 

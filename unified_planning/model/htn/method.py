@@ -21,7 +21,7 @@ from collections import OrderedDict
 from typing import List, Union, Optional
 
 import unified_planning as up
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
 from unified_planning.model.htn.task_network import AbstractTaskNetwork
 from unified_planning.model.parameter import Parameter

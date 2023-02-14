@@ -24,18 +24,18 @@ class ActionsSetMixin:
     This class is a mixin that contains a `set` of `actions` with some related methods.
 
     NOTE: when this mixin is used in combination with other mixins that share some
-    of the attributes (e.g. `env`, `add_user_type_method`, `has_name_method`), it is required
+    of the attributes (e.g. `environment`, `add_user_type_method`, `has_name_method`), it is required
     to pass the very same arguments to the mixins constructors.
     """
 
-    def __init__(self, env, add_user_type_method, has_name_method):
-        self._env = env
+    def __init__(self, environment, add_user_type_method, has_name_method):
+        self._env = environment
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._actions: List["up.model.action.Action"] = []
 
     @property
-    def env(self) -> "up.environment.Environment":
+    def environment(self) -> "up.environment.Environment":
         """Returns the `Problem` environment."""
         return self._env
 
@@ -134,7 +134,7 @@ class ActionsSetMixin:
         :param action: The `action` that must be added to the `problem`.
         """
         assert (
-            action.env == self._env
+            action.environment == self._env
         ), "Action does not have the same environment of the problem"
         if self._has_name_method(action.name):
             msg = f"Name {action.name} already defined!"

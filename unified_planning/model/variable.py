@@ -19,7 +19,7 @@ A Variable has a name and a type.
 
 
 from typing import List, Optional, Set
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment, get_environment
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 import unified_planning
@@ -34,11 +34,11 @@ class Variable:
         self,
         name: str,
         typename: "unified_planning.model.types.Type",
-        env: Optional[Environment] = None,
+        environment: Optional[Environment] = None,
     ):
         self._name = name
         self._typename = typename
-        self._env = get_env(env)
+        self._env = get_environment(environment)
         assert self._env.type_manager.has_type(
             typename
         ), "type of variable does not belong to the same environment of the variable"

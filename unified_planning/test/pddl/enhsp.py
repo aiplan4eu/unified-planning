@@ -17,7 +17,7 @@ import unified_planning as up
 import unified_planning.engines
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.engines import PlanGenerationResult, PlanGenerationResultStatus
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from typing import List, Optional, Union, IO, Iterator
 
 
@@ -182,10 +182,10 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
         return None
 
 
-env = get_env()
+environment = get_environment()
 if os.path.isfile(
     os.path.join(FILE_PATH, "..", "..", "..", ".planners", "enhsp-20", "enhsp.jar")
 ):
-    env.factory.add_engine(
+    environment.factory.add_engine(
         "opt-pddl-planner", "unified_planning.test.pddl.enhsp", "ENHSP"
     )

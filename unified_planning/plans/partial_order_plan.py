@@ -41,20 +41,20 @@ class PartialOrderPlan(plans.plan.Plan):
         :param adjacency_list: The Dictionary representing the adjacency list for this PartialOrderPlan.
         :param environment: The environment in which the ActionInstances in the adjacency_list are created.
         :param _graph: The graph that is semantically equivalent to the adjacency_list.
-            NOTE: This parameter is for internal use only and it's maintenance is not guaranteed by any means.
+            NOTE: This parameter is for internal use only and it's maintainance is not guaranteed by any means.
         :return: The created PartialOrderPlan.
         """
-        # if we have a specific env or we don't have any actions
+        # if we have a specific environment or we don't have any actions
         if environment is not None or not adjacency_list:
             plans.plan.Plan.__init__(
                 self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, environment
             )
-        # If we don't have a specific env, use the env of the first action
+        # If we don't have a specific environment, use the environment of the first action
         else:
             assert len(adjacency_list) > 0
             for ai in adjacency_list.keys():
                 plans.plan.Plan.__init__(
-                    self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, ai.action.env
+                    self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, ai.action.environment
                 )
                 break
         if _graph is not None:
@@ -72,13 +72,13 @@ class PartialOrderPlan(plans.plan.Plan):
                 ai_v_list,
             ) in (
                 adjacency_list.items()
-            ):  # check that given env and the env in the actions is the same
-                if ai_k.action.env != self._environment:
+            ):  # check that given environment and the environment in the actions is the same
+                if ai_k.action.environment != self._environment:
                     raise UPUsageError(
                         "The environment given to the plan is not the same of the actions in the plan."
                     )
                 for ai in ai_v_list:
-                    if ai.action.env != self._environment:
+                    if ai.action.environment != self._environment:
                         raise UPUsageError(
                             "The environment given to the plan is not the same of the actions in the plan."
                         )
@@ -158,7 +158,7 @@ class PartialOrderPlan(plans.plan.Plan):
 
         new_env = self._environment
         for ai in new_adj_list.keys():
-            new_env = ai.action.env
+            new_env = ai.action.environment
             break
         return up.plans.PartialOrderPlan(new_adj_list, new_env)
 

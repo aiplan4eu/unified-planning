@@ -19,7 +19,7 @@ import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 import typing
 from unified_planning.model import ContingentProblem
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPUsageError
 from collections import OrderedDict
 from fractions import Fraction
@@ -312,8 +312,8 @@ class PDDLReader:
     Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
     """
 
-    def __init__(self, env: typing.Optional[Environment] = None):
-        self._env = get_env(env)
+    def __init__(self, environment: typing.Optional[Environment] = None):
+        self._env = get_environment(environment)
         self._em = self._env.expression_manager
         self._tm = self._env.type_manager
         self._operators: Dict[str, Callable] = {
@@ -869,7 +869,7 @@ class PDDLReader:
         for g in domain_res.get("constants", []):
             t = types_map[g[1] if len(g) > 1 else Object]
             for o in g[0]:
-                problem.add_object(up.model.Object(o, t, problem.env))
+                problem.add_object(up.model.Object(o, t, problem.environment))
 
         for task in domain_res.get("tasks", []):
             assert isinstance(problem, htn.HierarchicalProblem)
@@ -1032,7 +1032,7 @@ class PDDLReader:
             for g in problem_res.get("objects", []):
                 t = types_map[g[1] if len(g) > 1 else Object]
                 for o in g[0]:
-                    problem.add_object(up.model.Object(o, t, problem.env))
+                    problem.add_object(up.model.Object(o, t, problem.environment))
 
             for action, eff_list in universal_assignments.items():
                 for eff in eff_list:

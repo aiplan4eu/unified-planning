@@ -16,7 +16,7 @@ from collections import OrderedDict
 from typing import List, Union, Optional, Tuple
 
 import unified_planning.model.walkers
-from unified_planning.environment import get_env, Environment
+from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPUnboundedVariablesError
 from unified_planning.model.htn.ordering import (
     TemporalConstraints,
@@ -41,7 +41,7 @@ class AbstractTaskNetwork:
     either in a method o in an initial task network."""
 
     def __init__(self, _env: Optional[Environment] = None):
-        self._env = get_env(_env)
+        self._env = get_environment(_env)
         self._subtasks: List[Subtask] = []
         self._constraints: List[FNode] = []
         self._operators_extractor = OperatorsExtractor()  # maybe add to Environment?
@@ -167,7 +167,6 @@ class AbstractTaskNetwork:
 class TaskNetwork(AbstractTaskNetwork):
     def __init__(self, _env: Optional[Environment] = None):
         super().__init__(_env)
-        self._env = get_env(_env)
         self._variables: OrderedDict[str, Parameter] = OrderedDict()
 
     def __repr__(self):

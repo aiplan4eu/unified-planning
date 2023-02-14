@@ -31,6 +31,7 @@ from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
 from unified_planning.engines.mixins.replanner import ReplannerMixin
+from unified_planning.engines.mixins.plan_repairer import PlanRepairerMixin
 from unified_planning.engines.mixins.simulator import SimulatorMixin
 from unified_planning.engines.engine import OperationMode
 from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, cast
@@ -153,8 +154,8 @@ class Factory:
     and handles the operation modes available in the library.
     """
 
-    def __init__(self, env: "Environment"):
-        self._env = env
+    def __init__(self, environment: "Environment"):
+        self._env = environment
         self._engines: Dict[str, Type["up.engines.engine.Engine"]] = {}
         self._engines_info: List[Tuple[str, str, str]] = []
         self._meta_engines: Dict[str, Type["up.engines.meta_engine.MetaEngine"]] = {}
@@ -398,11 +399,13 @@ class Factory:
                 if (
                     operation_mode == OperationMode.ONESHOT_PLANNER
                     or operation_mode == OperationMode.REPLANNER
+                    or operation_mode == OperationMode.PLAN_REPAIRER
                     or operation_mode == OperationMode.PORTFOLIO_SELECTOR
                 ):
                     assert (
                         issubclass(EngineClass, OneshotPlannerMixin)
                         or issubclass(EngineClass, ReplannerMixin)
+                        or issubclass(EngineClass, PlanRepairerMixin)
                         or issubclass(EngineClass, PortfolioSelectorMixin)
                     )
                     assert anytime_guarantee is None
@@ -501,7 +504,7 @@ class Factory:
             if not self._credit_disclaimer_printed:
                 self._credit_disclaimer_printed = True
                 w.write(
-                    f"\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_env().credits_stream = None`\n"
+                    f"\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_environment().credits_stream = None`\n"
                 )
             w.write("  *** Credits ***\n")
             w.write(
@@ -614,11 +617,14 @@ class Factory:
                     res.default = compilation_kind
             elif (
                 operation_mode == OperationMode.ONESHOT_PLANNER
+                or operation_mode == OperationMode.PLAN_REPAIRER
                 or operation_mode == OperationMode.PORTFOLIO_SELECTOR
             ):
                 res = EngineClass(**params)
-                assert isinstance(res, OneshotPlannerMixin) or isinstance(
-                    res, PortfolioSelectorMixin
+                assert (
+                    isinstance(res, OneshotPlannerMixin)
+                    or isinstance(res, PortfolioSelectorMixin)
+                    or isinstance(res, PlanRepairerMixin)
                 )
                 if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
                     res.optimality_metric_required = True
@@ -836,6 +842,31 @@ class Factory:
             problem.kind,
             optimality_guarantee,
             problem=problem,
+        )
+
+    def PlanRepairer(
+        self,
+        *,
+        name: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+        problem_kind: ProblemKind = ProblemKind(),
+        optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a plan repairer. There are two ways to call this method:
+        - using 'name' (the name of a plan repairer) and eventually 'params'.
+          e.g. PlanRepairer(name='xxx')
+        - using 'problem_kind' and 'optimality_guarantee'.
+          e.g. PlanRepairer(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+        """
+        if isinstance(optimality_guarantee, str):
+            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+        return self._get_engine(
+            OperationMode.PLAN_REPAIRER,
+            name=name,
+            params=params,
+            problem_kind=problem_kind,
+            optimality_guarantee=optimality_guarantee,
         )
 
     def PortfolioSelector(

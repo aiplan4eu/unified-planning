@@ -35,7 +35,7 @@ class TestSimulator(TestCase):
     ):
         # This test takes a simulator and the problem and makes some testing.
         self.assertEqual(problem.name, "hierarchical_blocks_world")
-        em = problem.env.expression_manager
+        em = problem.environment.expression_manager
         move = problem.action("move")
         clear = problem.fluent("clear")
         on = problem.fluent("on")

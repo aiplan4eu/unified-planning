@@ -85,7 +85,7 @@ class STNPlanNode:
     @property
     def environment(self) -> Optional[Environment]:
         if self.action_instance is not None:
-            return self.action_instance.action.env
+            return self.action_instance.action.environment
         return None
 
 

@@ -1,6 +1,6 @@
 from typing import List, Set, Optional, Tuple
 
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.model import FNode, TimepointKind, Timing, StartTiming, EndTiming
 from unified_planning.model.walkers import AnyChecker
 
@@ -23,7 +23,7 @@ class PartialOrder(TemporalConstraints):
     def __init__(self, precedences: List[Tuple[str, str]]):
         self.precedences = precedences
         constraints = [
-            get_env().expression_manager.LT(
+            get_environment().expression_manager.LT(
                 EndTiming(container=a), StartTiming(container=b)
             )
             for (a, b) in precedences

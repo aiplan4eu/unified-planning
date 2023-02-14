@@ -173,7 +173,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             for p in params_name:
                 obj = get_item_named(p)
                 assert isinstance(obj, up.model.Object), "Wrong plan or renaming."
-                parameters.append(problem.env.expression_manager.ObjectExp(obj))
+                parameters.append(problem.environment.expression_manager.ObjectExp(obj))
             act_instance = up.plans.ActionInstance(action, tuple(parameters))
             if is_tt:
                 actions.append((start, act_instance, dur))

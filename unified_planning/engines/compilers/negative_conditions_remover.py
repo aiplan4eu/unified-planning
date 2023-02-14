@@ -41,8 +41,8 @@ from functools import partial
 
 
 class NegativeFluentRemover(IdentityDagWalker):
-    def __init__(self, problem, env):
-        self._env = env
+    def __init__(self, problem, environment):
+        self._env = environment
         IdentityDagWalker.__init__(self, self._env)
         self._fluent_mapping: Dict[Fluent, Fluent] = {}
         self._problem = problem
@@ -160,7 +160,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         """
         assert isinstance(problem, Problem)
 
-        env = problem.env
+        env = problem.environment
         simplifier = env.simplifier
 
         fluent_remover = NegativeFluentRemover(problem, env)

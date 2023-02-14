@@ -167,7 +167,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def __init__(
         self,
-        env: "up.environment.Environment",
+        environment: "up.environment.Environment",
         get_mangled_name: Callable[
             [
                 Union[
@@ -182,7 +182,7 @@ class ConverterToPDDLString(walkers.DagWalker):
     ):
         walkers.DagWalker.__init__(self)
         self.get_mangled_name = get_mangled_name
-        self.simplifier = env.simplifier
+        self.simplifier = environment.simplifier
 
     def convert(self, expression):
         """Converts the given expression to a PDDL string."""
@@ -483,7 +483,9 @@ class PDDLWriter:
             f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else ""
         )
 
-        converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
+        converter = ConverterToPDDLString(
+            self.problem.environment, self._get_mangled_name
+        )
         costs = {}
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
@@ -496,13 +498,13 @@ class PDDLWriter:
                         _update_domain_objects(self.domain_objects, obe.get(cost_exp))
             elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
                 for a in self.problem.actions:
-                    costs[a] = self.problem.env.expression_manager.Int(1)
+                    costs[a] = self.problem.environment.expression_manager.Int(1)
         elif len(metrics) > 1:
             raise up.exceptions.UPUnsupportedProblemTypeError(
                 "Only one metric is supported!"
             )
 
-        em = self.problem.env.expression_manager
+        em = self.problem.environment.expression_manager
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 if em.FALSE() in a.preconditions:
@@ -663,7 +665,9 @@ class PDDLWriter:
                         f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}'
                     )
             out.write("\n )\n")
-        converter = ConverterToPDDLString(self.problem.env, self._get_mangled_name)
+        converter = ConverterToPDDLString(
+            self.problem.environment, self._get_mangled_name
+        )
         out.write(" (:init")
         for f, v in self.problem.initial_values.items():
             if v.is_true():

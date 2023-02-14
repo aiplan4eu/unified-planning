@@ -16,7 +16,7 @@
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main
 from unified_planning.model.walkers import Substituter
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPTypeError
 
 
@@ -25,7 +25,7 @@ class TestSubstituter(TestCase):
         TestCase.setUp(self)
 
     def test_id_walker(self):
-        s = Substituter(get_env())
+        s = Substituter(get_environment())
         # small test on already-done expressions to check the id-dagwalker
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y", IntType()))
@@ -48,7 +48,7 @@ class TestSubstituter(TestCase):
         self.assertEqual(r3, e3)
 
     def test_substitution(self):
-        s = Substituter(get_env())
+        s = Substituter(get_environment())
         xfluent = Fluent("x", IntType())
         x = FluentExp(xfluent)
         subst: Dict[Expression, Expression] = {}

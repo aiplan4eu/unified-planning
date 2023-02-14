@@ -32,7 +32,7 @@ class TestModel(TestCase):
         env_2 = up.environment.Environment()
         test_type_2 = env_2.type_manager.UserType("test_type")
         it_2 = env_2.type_manager.IntType()
-        id_2 = Fluent("id", test_type_2, obj_id=it_2, env=env_2)
+        id_2 = Fluent("id", test_type_2, obj_id=it_2, environment=env_2)
         obj_2 = Object("obj", test_type_2, env_2)
         self.assertEqual(id_2(1).type, test_type_2)
         self.assertNotEqual(id_2(1).type, test_type)

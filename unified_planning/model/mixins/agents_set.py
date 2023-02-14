@@ -29,13 +29,13 @@ class AgentsSetMixin:
     arguments to the mixins constructors.
     """
 
-    def __init__(self, env, has_name_method):
-        self._env: "up.environment.Environment" = env
+    def __init__(self, environment, has_name_method):
+        self._env: "up.environment.Environment" = environment
         self._has_name_method = has_name_method
         self._agents: List["up.model.multi_agent.Agent"] = []
 
     @property
-    def env(self) -> "up.environment.Environment":
+    def environment(self) -> "up.environment.Environment":
         """Returns the problem environment."""
         return self._env
 
