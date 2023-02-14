@@ -82,12 +82,11 @@ class Timepoint:
     def __hash__(self) -> int:
         return hash(self._kind) + hash(self._container)
 
-    def __add__(self, delay: Union[int, Fraction]) -> 'Timing':
+    def __add__(self, delay: Union[int, Fraction]) -> "Timing":
         return Timing(delay, self)
 
-    def __sub__(self, delay: Union[int, Fraction]) -> 'Timing':
+    def __sub__(self, delay: Union[int, Fraction]) -> "Timing":
         return Timing(-delay, self)
-
 
     @property
     def kind(self) -> TimepointKind:
@@ -127,10 +126,10 @@ class Timing:
     def __hash__(self) -> int:
         return hash(self._delay) ^ hash(self._timepoint)
 
-    def __add__(self, delay: Union[int, Fraction]) -> 'Timing':
+    def __add__(self, delay: Union[int, Fraction]) -> "Timing":
         return Timing(self.delay + delay, self.timepoint)
 
-    def __sub__(self, delay: Union[int, Fraction]) -> 'Timing':
+    def __sub__(self, delay: Union[int, Fraction]) -> "Timing":
         return Timing(self.delay - delay, self.timepoint)
 
     @property

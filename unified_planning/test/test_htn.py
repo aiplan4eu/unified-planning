@@ -60,9 +60,11 @@ class TestProblem(TestCase):
             order = tn.temporal_constraints()
             assert isinstance(order, PartialOrder)
             assert not isinstance(order, TotalOrder)
+
         def assert_to(tn):
             order = tn.temporal_constraints()
             assert isinstance(order, TotalOrder)
+
         def assert_temporal(tn):
             order = tn.temporal_constraints()
             assert not isinstance(order, PartialOrder)
@@ -94,15 +96,15 @@ class TestProblem(TestCase):
         # a set of constraints that cannot be interpreted as precedences and should make the task network "temporal"
         temporal_constraints = [
             # simple temporal constraint
-            env.expression_manager.LT(a1.end +1, a2.start-3),
+            env.expression_manager.LT(a1.end + 1, a2.start - 3),
             # lesser equal prevents this from being interpreted as a precedence
             # note: low level API only handles Timing (+0, transforms a Timpoint into a Timing
             env.expression_manager.LE(a1.end + 0, a2.start + 0),
             # disjunction of precedence constraints, should be detected as temporal as well
             env.expression_manager.Or(
-                env.expression_manager.LT(a1.end +0, a2.start+0),
-                env.expression_manager.LT(a1.end +0, a3.start+0),
-            )
+                env.expression_manager.LT(a1.end + 0, a2.start + 0),
+                env.expression_manager.LT(a1.end + 0, a3.start + 0),
+            ),
         ]
         for c in temporal_constraints:
             tn = tn_base.clone()
@@ -115,7 +117,6 @@ class TestProblem(TestCase):
         hddl_dir = os.path.join(FILE_PATH, "hddl")
         subfolders = [f.path for f in os.scandir(hddl_dir) if f.is_dir()]
         for id, domain in enumerate(subfolders[:]):
-            if id != 25: continue
             name = os.path.basename(domain)
             print(f"=== [{id}] {name} ===")
             domain_filename = os.path.join(domain, "domain.hddl")
@@ -124,14 +125,11 @@ class TestProblem(TestCase):
             problem = reader.parse_problem(domain_filename, problem_filename)
 
             assert isinstance(problem, up.model.htn.HierarchicalProblem)
-            print(problem.task_network.temporal_constraints())
             if name.startswith("2020-to-"):
                 # a totally ordered domain
                 constraints = problem.task_network.temporal_constraints()
-                from unified_planning.model.htn.ordering import TotalOrder
                 assert isinstance(constraints, TotalOrder)
             elif name.startswith("2020-po-"):
-                # a totally ordered domain
+                # a partially ordered domain
                 constraints = problem.task_network.temporal_constraints()
-                from unified_planning.model.htn.ordering import PartialOrder
                 assert isinstance(constraints, PartialOrder)

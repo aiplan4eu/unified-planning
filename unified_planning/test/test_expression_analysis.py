@@ -19,7 +19,6 @@ from unified_planning.test import TestCase
 
 
 class TestExprAnalysis(TestCase):
-
     def test_any(self):
         a = FluentExp(Fluent("a"))
         b = FluentExp(Fluent("b"))
@@ -37,4 +36,3 @@ class TestExprAnalysis(TestCase):
 
         assert not check_any(e1, lambda e: e.is_or())
         assert not check_any(e1, lambda e: e.is_times())
-

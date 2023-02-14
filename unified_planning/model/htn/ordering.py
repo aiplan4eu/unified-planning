@@ -7,8 +7,9 @@ from unified_planning.model.walkers import AnyChecker
 
 class TemporalConstraints:
     """A set of temporal constraints on a set of timepoints.
-       `TotalOrder` and `PartialOrder` are two special cases that are represented as subclasses.
+    `TotalOrder` and `PartialOrder` are two special cases that are represented as subclasses.
     """
+
     def __init__(self, constraints: List[FNode]):
         self.constraints = constraints
 
@@ -18,9 +19,15 @@ class TemporalConstraints:
 
 class PartialOrder(TemporalConstraints):
     """A purely qualitative set of constraints that define a partial order on its elements."""
+
     def __init__(self, precedences: List[Tuple[str, str]]):
         self.precedences = precedences
-        constraints = [get_env().expression_manager.LT(EndTiming(container=a), StartTiming(container=b)) for (a, b) in precedences]
+        constraints = [
+            get_env().expression_manager.LT(
+                EndTiming(container=a), StartTiming(container=b)
+            )
+            for (a, b) in precedences
+        ]
         super().__init__(constraints)
 
     def __repr__(self):
@@ -30,9 +37,10 @@ class PartialOrder(TemporalConstraints):
 
 class TotalOrder(PartialOrder):
     """A purely qualitative set of constraints that define a total order on its elements."""
+
     def __init__(self, order: List[str]):
         self.order = order
-        precedences = [(order[i-1], order[i]) for i in range(1, len(order))]
+        precedences = [(order[i - 1], order[i]) for i in range(1, len(order))]
         super().__init__(precedences)
 
     def __repr__(self):
@@ -41,7 +49,9 @@ class TotalOrder(PartialOrder):
 
 def ordering(task_ids: List[str], time_constraints: List[FNode]) -> TemporalConstraints:
     has_time = AnyChecker(predicate=lambda e: e.is_timing_exp())
-    assert all(has_time.any(c) for c in time_constraints), "A temporal constraint has no time expression"
+    assert all(
+        has_time.any(c) for c in time_constraints
+    ), "A temporal constraint has no time expression"
 
     precedences = []
     # try transforming all constraints into precedences
@@ -76,7 +86,9 @@ def ordering(task_ids: List[str], time_constraints: List[FNode]) -> TemporalCons
             return PartialOrder(precedences)
 
 
-def _build_total_order(tasks: Set[str], precedences: List[Tuple[str, str]]) -> Optional[List[str]]:
+def _build_total_order(
+    tasks: Set[str], precedences: List[Tuple[str, str]]
+) -> Optional[List[str]]:
     """Returns a total order over all elements, or None if the given precedences are not sufficient to impose a total order."""
     order = []
     pending_tasks = tasks.copy()
@@ -84,14 +96,20 @@ def _build_total_order(tasks: Set[str], precedences: List[Tuple[str, str]]) -> O
 
     while len(pending_tasks) > 0:
         # find all elements with no predecessors
-        firsts = [t for t in pending_tasks if all(tgt != t for (src, tgt) in pending_precedences)]
+        firsts = [
+            t
+            for t in pending_tasks
+            if all(tgt != t for (src, tgt) in pending_precedences)
+        ]
         if len(firsts) != 1:
             return None  # not exactly one leading element => not a total order
         first = firsts[0]
         order.append(first)
         # remove `first` from the pending tasks/constraints before continuing
         pending_tasks.remove(first)
-        pending_precedences = [(src, tgt) for (src, tgt) in pending_precedences if src != first]
+        pending_precedences = [
+            (src, tgt) for (src, tgt) in pending_precedences if src != first
+        ]
 
     assert len(pending_tasks) == 0
     assert len(order) == len(tasks)
