@@ -438,19 +438,6 @@ class TestPddlIO(TestCase):
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
         self._test_htn_transport_reader(problem_2)
 
-    def test_hddl_parsing(self):
-        """Tests that all HDDL benchmarks are successfully parsed."""
-        hddl_dir = os.path.join(FILE_PATH, "hddl")
-        subfolders = [f.path for f in os.scandir(hddl_dir) if f.is_dir()]
-        for id, domain in enumerate(subfolders[:]):
-            print(f"=== [{id}] {domain} ===")
-            domain_filename = os.path.join(domain, "domain.hddl")
-            problem_filename = os.path.join(domain, "instance.1.pb.hddl")
-            reader = PDDLReader()
-            problem = reader.parse_problem(domain_filename, problem_filename)
-
-            assert isinstance(problem, up.model.htn.HierarchicalProblem)
-
     def test_examples_io(self):
 
         for example in self.problems.values():

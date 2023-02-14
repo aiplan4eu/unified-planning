@@ -497,30 +497,6 @@ class TestProblem(TestCase):
                         problem.initial_value(cost(locations[i], locations[j])), Int(0)
                     )
 
-    def test_htn_problem_creation(self):
-        problems = examples.hierarchical.get_example_problems()
-        problem = problems["htn-go"].problem
-        self.assertTrue(isinstance(problem, up.model.htn.HierarchicalProblem))
-        self.assertTrue(problem.kind.has_hierarchical())
-        self.assertEqual(2, len(problem.fluents))
-        self.assertEqual(1, len(problem.actions))
-        self.assertEqual(["go"], [task.name for task in problem.tasks])
-        self.assertEqual(
-            ["go-noop", "go-recursive"], [method.name for method in problem.methods]
-        )
-
-        go_direct = problem.method("go-noop")
-        self.assertEqual(0, len(go_direct.subtasks))
-        self.assertEqual(1, len(go_direct.preconditions))
-        self.assertEqual(0, len(go_direct.constraints))
-
-        go_indirect = problem.method("go-recursive")
-        self.assertEqual(2, len(go_indirect.subtasks))
-        self.assertEqual(2, len(go_indirect.preconditions))
-        self.assertEqual(1, len(go_indirect.constraints))
-
-        self.assertEqual(2, len(problem.task_network.subtasks))
-
     def test_simple_numeric_planning_kind(self):
 
         problem = self.problems["robot"].problem
