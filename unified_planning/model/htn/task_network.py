@@ -17,6 +17,7 @@ from typing import List, Union, Optional
 
 import unified_planning.model.walkers
 from unified_planning.environment import get_env, Environment
+from unified_planning.exceptions import UPUnboundedVariablesError
 from unified_planning.model.htn.ordering import (
     TemporalConstraints,
     ordering,
@@ -35,15 +36,121 @@ from unified_planning.model.timing import Timepoint
 from unified_planning.model.walkers import OperatorsExtractor
 
 
-class TaskNetwork:
-    """Represents an initial task network."""
+class AbstractTaskNetwork:
+    """Core functionalities to represent task networks,
+    either in a method o in an initial task network."""
 
     def __init__(self, _env: Optional[Environment] = None):
         self._env = get_env(_env)
-        self._variables: OrderedDict[str, Parameter] = OrderedDict()
         self._subtasks: List[Subtask] = []
         self._constraints: List[FNode] = []
         self._operators_extractor = OperatorsExtractor()  # maybe add to Environment?
+
+    @property
+    def subtasks(self) -> List["Subtask"]:
+        """Returns the list of the subtasks."""
+        return self._subtasks
+
+    def add_subtask(
+        self,
+        task: Union[Subtask, Action, Task],
+        *args: Expression,
+        ident: Optional[str] = None,
+    ) -> Subtask:
+        """Adds a subtask, with no particular ordering relative to the existing ones."""
+        if isinstance(task, Subtask):
+            assert len(args) == 0 and ident is None
+            subtask = task
+        else:
+            subtask = Subtask(task, *args, ident=ident)
+        assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
+        self._subtasks.append(subtask)
+        return subtask
+
+    def get_subtask(self, ident: str) -> Subtask:
+        """Returns the subtask with the given identifier."""
+        for st in self._subtasks:
+            if st.identifier == ident:
+                return st
+        raise ValueError(f"No subtask with identifier {ident}")
+
+    @property
+    def constraints(self) -> List[FNode]:
+        """Returns the list of the method's constraints.
+        Note that these may contain both ordering and non-ordering constraints."""
+        return self._constraints
+
+    def temporal_constraints(self) -> TemporalConstraints:
+        time_checker = unified_planning.model.walkers.AnyChecker(
+            lambda e: e.is_timing_exp()
+        )
+        temporal_constraints = [c for c in self.constraints if time_checker.any(c)]
+        return ordering(list(t.identifier for t in self.subtasks), temporal_constraints)
+
+    def partial_order(self) -> PartialOrder:
+        order = self.temporal_constraints()
+        if not isinstance(order, PartialOrder):
+            raise ValueError(
+                "The task network has constraints that are not reducible to a qualitative partial order"
+            )
+        return order
+
+    def total_order(self) -> TotalOrder:
+        order = self.temporal_constraints()
+        if not isinstance(order, TotalOrder):
+            raise ValueError("The task network constraints do not define a total order")
+        return order
+
+    def add_constraint(self, constraint: Expression):
+        (constraint,) = self._env.expression_manager.auto_promote(constraint)
+        assert isinstance(constraint, FNode)
+        assert self._env.type_checker.get_type(constraint).is_bool_type()
+        assert OperatorKind.FLUENT_EXP not in self._operators_extractor.get(
+            constraint
+        ), f"The expression is not static (references a fluent): {constraint}"
+        free_vars = self._env.free_vars_oracle.get_free_variables(constraint)
+        if len(free_vars) != 0:
+            raise UPUnboundedVariablesError(
+                f"The constraint {str(constraint)} has unbounded variables:\n{str(free_vars)}"
+            )
+        if (
+            constraint != self._env.expression_manager.TRUE()
+            and constraint not in self._constraints
+        ):
+            self._constraints.append(constraint)
+
+    def set_ordered(self, *subtasks: Subtask):
+        """Imposes a sequential order between the given subtasks."""
+        if len(subtasks) < 2:
+            return
+        prev = subtasks[0]
+        for next in subtasks[1:]:
+            self.set_strictly_before(prev, next)
+            prev = next
+
+    def set_strictly_before(
+        self,
+        lhs: Union[Subtask, Timepoint, Timing],
+        rhs: Union[Subtask, Timepoint, Timing],
+    ):
+        if isinstance(lhs, Subtask):
+            lhs = lhs.end
+        if isinstance(lhs, Timepoint):
+            lhs = Timing(timepoint=lhs, delay=0)
+        assert isinstance(lhs, Timing)
+        if isinstance(rhs, Subtask):
+            rhs = rhs.start
+        if isinstance(rhs, Timepoint):
+            rhs = Timing(timepoint=rhs, delay=0)
+        assert isinstance(rhs, Timing)
+        self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
+
+
+class TaskNetwork(AbstractTaskNetwork):
+    def __init__(self, _env: Optional[Environment] = None):
+        super().__init__(_env)
+        self._env = get_env(_env)
+        self._variables: OrderedDict[str, Parameter] = OrderedDict()
 
     def __repr__(self):
         s = ["task network {\n"]
@@ -101,81 +208,3 @@ class TaskNetwork:
     def parameter(self, name: str) -> Parameter:
         """Returns the variable with the given name."""
         return self._variables[name]
-
-    @property
-    def subtasks(self) -> List["Subtask"]:
-        """Returns the list of the subtasks."""
-        return self._subtasks
-
-    def add_subtask(
-        self,
-        task: Union[Subtask, Action, Task],
-        *args: Expression,
-        ident: Optional[str] = None,
-    ) -> Subtask:
-        if isinstance(task, Subtask):
-            assert len(args) == 0 and ident is None
-            subtask = task
-        else:
-            subtask = Subtask(task, *args, ident=ident)
-        assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
-        self._subtasks.append(subtask)
-        return subtask
-
-    def get_subtask(self, ident: str) -> Subtask:
-        """Returns the subtask with the given identifier."""
-        for st in self._subtasks:
-            if st.identifier == ident:
-                return st
-        raise ValueError(f"The task network has not subtask with identifier {ident}")
-
-    @property
-    def constraints(self) -> List[FNode]:
-        return self._constraints
-
-    def temporal_constraints(self) -> TemporalConstraints:
-        time_checker = unified_planning.model.walkers.AnyChecker(
-            lambda e: e.is_timing_exp()
-        )
-        temporal_constraints = [c for c in self.constraints if time_checker.any(c)]
-        return ordering(list(t.identifier for t in self.subtasks), temporal_constraints)
-
-    def partial_order(self) -> PartialOrder:
-        order = self.temporal_constraints()
-        if not isinstance(order, PartialOrder):
-            raise ValueError(
-                "The task network has constraints that are not reducible to a qualitative partial order"
-            )
-        return order
-
-    def total_order(self) -> TotalOrder:
-        order = self.temporal_constraints()
-        if not isinstance(order, TotalOrder):
-            raise ValueError("The task network constraints do not define a total order")
-        return order
-
-    def add_constraint(self, constraint: Expression):
-        (constraint,) = self._env.expression_manager.auto_promote(constraint)
-        assert isinstance(constraint, FNode)
-        assert self._env.type_checker.get_type(constraint).is_bool_type()
-        assert OperatorKind.FLUENT_EXP not in self._operators_extractor.get(
-            constraint
-        ), f"The expression is not static (references a fluent): {constraint}"
-        self._constraints.append(constraint)
-
-    def set_strictly_before(
-        self,
-        lhs: Union[Subtask, Timepoint, Timing],
-        rhs: Union[Subtask, Timepoint, Timing],
-    ):
-        if isinstance(lhs, Subtask):
-            lhs = lhs.end
-        if isinstance(lhs, Timepoint):
-            lhs = Timing(timepoint=lhs, delay=0)
-        assert isinstance(lhs, Timing)
-        if isinstance(rhs, Subtask):
-            rhs = rhs.start
-        if isinstance(rhs, Timepoint):
-            rhs = Timing(timepoint=rhs, delay=0)
-        assert isinstance(rhs, Timing)
-        self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
