@@ -15,7 +15,7 @@
 
 
 import unified_planning as up
-from unified_planning.environment import Environment, get_env
+from unified_planning.environment import Environment, get_environment
 from unified_planning.model import InstantaneousAction
 from unified_planning.exceptions import UPTypeError
 from typing import Optional, List
@@ -30,8 +30,8 @@ class MotionConstraint:
     for it to be a legal transition of the system in its workspace.
     """
 
-    def __init__(self, env: Optional[Environment] = None):
-        self._env = get_env(env)
+    def __init__(self, environment: Optional[Environment] = None):
+        self._environment = get_environment(environment)
 
     def __eq__(self, oth) -> bool:
         raise NotImplementedError
@@ -54,24 +54,25 @@ class Waypoints(MotionConstraint):
         movable: "up.model.expression.Expression",
         starting: "up.model.expression.Expression",
         waypoints: List["up.model.expression.Expression"],
-        env: Optional[Environment] = None,
+        environment: Optional[Environment] = None,
     ):
-        super().__init__(env)
-        (movable_exp,) = self._env.expression_manager.auto_promote(movable)
-        if not self._env.type_checker.get_type(movable_exp).is_movable_type():
+        super().__init__(environment)
+        (movable_exp,) = self._environment.expression_manager.auto_promote(movable)
+        if not self._environment.type_checker.get_type(movable_exp).is_movable_type():
             raise UPTypeError(
                 "First parameter of Waypoints's constructor must be of movable type!"
             )
-        starting_exp, *waypoints_exp = self._env.expression_manager.auto_promote(
-            starting, *waypoints
-        )
-        t = self._env.type_checker.get_type(starting_exp)
+        (
+            starting_exp,
+            *waypoints_exp,
+        ) = self._environment.expression_manager.auto_promote(starting, *waypoints)
+        t = self._environment.type_checker.get_type(starting_exp)
         if not t.is_configuration_type():
             raise UPTypeError(
                 "starting parameter of Waypoints's constructor must be of configuration type!"
             )
         for p in waypoints_exp:
-            pt = self._env.type_checker.get_type(p)
+            pt = self._environment.type_checker.get_type(p)
             if not pt.is_configuration_type():
                 raise UPTypeError(
                     "waypoints parameter of Waypoints's constructor must be a list of configuration type objects!"
@@ -85,7 +86,7 @@ class Waypoints(MotionConstraint):
         self._waypoints = waypoints_exp
 
     def __eq__(self, oth) -> bool:
-        if not isinstance(oth, Waypoints) or self._env != oth._env:
+        if not isinstance(oth, Waypoints) or self._environment != oth._environment:
             return False
         if self._movable != oth._movable or self._starting != oth._starting:
             return False
@@ -133,10 +134,10 @@ class InstantaneousMotionAction(InstantaneousAction):
         self,
         _name: str,
         _parameters: Optional["OrderedDict[str, up.model.types.Type]"] = None,
-        _env: Optional[Environment] = None,
+        _environment: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
+        InstantaneousAction.__init__(self, _name, _parameters, _environment, **kwargs)
         self._motion_constraints: List[MotionConstraint] = []
 
     def __eq__(self, oth: object) -> bool:
@@ -157,7 +158,9 @@ class InstantaneousMotionAction(InstantaneousAction):
         new_params = OrderedDict()
         for param_name, param in self._parameters.items():
             new_params[param_name] = param.type
-        new_motion_action = InstantaneousMotionAction(self._name, new_params, self._env)
+        new_motion_action = InstantaneousMotionAction(
+            self._name, new_params, self._environment
+        )
         new_motion_action._preconditions = self._preconditions[:]
         new_motion_action._effects = [e.clone() for e in self._effects]
         new_motion_action._fluents_assigned = self._fluents_assigned.copy()

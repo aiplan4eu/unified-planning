@@ -480,7 +480,7 @@ def MovableType(
     :param father: The movable type that must be set as the father for this type.
     :return: The retrieved or created `Type`.
     """
-    return get_env().type_manager.MovableType(name, father)
+    return get_environment().type_manager.MovableType(name, father)
 
 
 def ConfigurationType(
@@ -496,7 +496,7 @@ def ConfigurationType(
     :param size: The size of the configuration.
     :return: The retrieved or created `Type`.
     """
-    return get_env().type_manager.ConfigurationType(name, occupancy_map, size)
+    return get_environment().type_manager.ConfigurationType(name, occupancy_map, size)
 
 
 def OneshotPlanner(
