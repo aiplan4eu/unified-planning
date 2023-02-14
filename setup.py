@@ -38,7 +38,7 @@ setup(
             "up-enhsp==0.0.9",
             "up-fast-downward==0.1.2",
             "up-lpg==0.0.4.9",
-            "fmap==up-fmap==0.0.2",
+            "up-fmap==0.0.2",
         ],
     },
     license="APACHE",
