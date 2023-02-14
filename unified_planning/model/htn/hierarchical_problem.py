@@ -20,7 +20,7 @@ from warnings import warn
 import unified_planning as up
 from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task
-from unified_planning.model.htn.task_network import TaskNetwork
+from unified_planning.model.htn.task_network import TaskNetwork, AbstractTaskNetwork
 from unified_planning.exceptions import UPProblemDefinitionError
 
 
@@ -113,12 +113,38 @@ class HierarchicalProblem(up.model.problem.Problem):
         minimum time as possible."""
         self._kind = super().kind
         self._kind.set_problem_class("HIERARCHICAL")
+        (TO, PO, TEMPORAL) = (0, 1, 2)
+
+        def lvl(tn: AbstractTaskNetwork):
+            """Determines the expressivity level of temporal constraints within a task network"""
+            if tn.total_order() is not None:
+                return TO
+            elif tn.partial_order() is not None:
+                return PO
+            else:
+                return TEMPORAL
+
+        ordering_kind = lvl(self.task_network)
+        if len(self.task_network.variables) > 0:
+            self._kind.set_hierarchical("INITIAL_TASK_NETWORK_VARIABLES")
+        if len(self.task_network.non_temporal_constraints()) > 0:
+            self._kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
 
         linear_checker = up.model.walkers.linear_checker.LinearChecker(self)
         for method in self.methods:
+            ordering_kind = max(ordering_kind, lvl(method))
             for method_cond in method.preconditions:
                 self._kind.set_hierarchical("METHOD_PRECONDITIONS")
                 self._update_problem_kind_condition(method_cond, linear_checker)
+            if len(method.non_temporal_constraints()) > 0:
+                self._kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
+
+        if ordering_kind == TO:
+            self._kind.set_hierarchical("TASK_ORDER_TOTAL")
+        elif ordering_kind == PO:
+            self._kind.set_hierarchical("TASK_ORDER_PARTIAL")
+        else:
+            self._kind.set_hierarchical("TASK_ORDER_TEMPORAL")
 
         return self._kind
 

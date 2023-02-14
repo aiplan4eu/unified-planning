@@ -55,8 +55,15 @@ class TestProblem(TestCase):
 
         self.assertEqual(2, len(problem.task_network.subtasks))
 
+        # temporal HTN
+        assert (
+            "TASK_ORDER_TEMPORAL"
+            in self.problems["htn-go-temporal"].problem.kind.features
+        )
+
     def test_ordering(self):
-        """Checks that we detect the right orderings in task networks """
+        """Checks that we detect the right orderings in task networks"""
+
         def assert_po(tn):
             assert tn.partial_order() is not None
             assert tn.total_order() is None
@@ -105,7 +112,7 @@ class TestProblem(TestCase):
             # simple temporal constraint
             env.expression_manager.LT(a1.end + 1, a2.start - 3),
             # lesser equal prevents this from being interpreted as a precedence
-            # note: low level API only handles Timing (+0, transforms a Timpoint into a Timing
+            # note: low level API only handles Timing (+0, transforms a Timepoint into a Timing
             env.expression_manager.LE(a1.end + 0, a2.start + 0),
             # disjunction of precedence constraints, should be detected as temporal as well
             env.expression_manager.Or(
@@ -136,7 +143,15 @@ class TestProblem(TestCase):
                 # a totally ordered domain
                 constraints = problem.task_network._ordering()
                 assert isinstance(constraints, TotalOrder)
+                assert "TASK_ORDER_TOTAL" in problem.kind.features
             elif name.startswith("2020-po-"):
                 # a partially ordered domain
                 constraints = problem.task_network._ordering()
                 assert isinstance(constraints, PartialOrder)
+                TO_instances = [
+                    "2020-po-Satellite"
+                ]  # these problems allow non-ordered goal tasks but have only one initial task in our test instance
+                assert (
+                    "TASK_ORDER_PARTIAL" in problem.kind.features
+                    or name in TO_instances
+                )

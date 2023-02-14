@@ -93,13 +93,15 @@ class AbstractTaskNetwork:
 
     def _ordering(self) -> TemporalConstraints:
         """Analyses the temporal constraints and classifies them into TO, PO or Temporal"""
-        return ordering(list(t.identifier for t in self.subtasks), self.temporal_constraints())
+        return ordering(
+            list(t.identifier for t in self.subtasks), self.temporal_constraints()
+        )
 
     def partial_order(self) -> Optional[List[Tuple[str, str]]]:
         """If the temporal constraints define a partial order, returns a list of precedences between the network' subtasks.
-           Returns None, if the temporal constraints cannot be fully expressed by a set of precedence constraints.
-           This can be the case if, e.g., the constraint contains simple temporal constraints, implying a given delay between
-           two subtasks.
+        Returns None, if the temporal constraints cannot be fully expressed by a set of precedence constraints.
+        This can be the case if, e.g., the constraint contains simple temporal constraints, implying a given delay between
+        two subtasks.
         """
         order = self._ordering()
         if isinstance(order, PartialOrder):
@@ -109,7 +111,7 @@ class AbstractTaskNetwork:
 
     def total_order(self) -> Optional[List[str]]:
         """If the temporal constraints define a total order, returns the ordered list of task identifiers.
-           Returns None, if the temporal constraints cannot be exactly expressed by a total order.
+        Returns None, if the temporal constraints cannot be exactly expressed by a total order.
         """
         order = self._ordering()
         if isinstance(order, TotalOrder):
