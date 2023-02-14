@@ -16,6 +16,7 @@
 
 
 from itertools import product
+from pprint import pprint
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -47,7 +48,7 @@ from unified_planning.model.walkers import UsertypeFluentsWalker, Substituter
 from unified_planning.model.types import _UserType
 from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.model.fluent import get_all_fluent_exp
-from typing import Iterator, Dict, List, Set, Tuple, Optional, cast
+from typing import Iterator, Dict, List, Set, Tuple, Optional, Union, cast
 from functools import partial
 
 
@@ -114,7 +115,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
-        if new_kind.has_conditional_effects():
+        if new_kind.has_fluents_type("OBJECT_FLUENTS"):
             new_kind.unset_fluents_type("OBJECT_FLUENTS")
             new_kind.set_effects_kind("CONDITIONAL_EFFECTS")
             new_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
@@ -209,8 +210,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                             new_action._add_effect_instance(t, ne)
                 duration = old_action.duration
                 new_duration = DurationInterval(
-                    utf_remover.remove_usertype_fluents(duration.lower)[0],
-                    utf_remover.remove_usertype_fluents(duration.upper)[0],
+                    utf_remover.remove_usertype_fluents_from_condition(duration.lower),
+                    utf_remover.remove_usertype_fluents_from_condition(duration.upper),
                     duration.is_left_open(),
                     duration.is_right_open(),
                 )
@@ -418,6 +419,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         em: ExpressionManager,
         utf_remover: UsertypeFluentsWalker,
     ) -> Iterator[Effect]:
+        returned_effects: Set[Effect] = set()
         (
             new_fluent,
             fluent_free_vars,
@@ -428,10 +430,10 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             value_free_vars,
             value_added_fluents,
         ) = utf_remover.remove_usertype_fluents(effect.value)
-        condition_to_add = True
+
+        condition_to_add: Union[bool, FNode] = True
         if new_fluent.is_variable_exp():  # this effect's fluent is a user_type fluent
-            if new_value.is_variable_exp():
-                condition_to_add = em.Equals(new_fluent, new_value)
+            if new_value.is_variable_exp():  # also the value is a user_type fluent
                 assert effect.value.fluent() in fluents_map
                 value_var = new_value.variable()
                 for f in value_added_fluents:
@@ -440,6 +442,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         new_value = f
                         break
                 value_added_fluents.remove(new_value)
+                new_value = substituter.substitute(
+                    new_value, {value_var: new_fluent.variable()}
+                )
             else:
                 new_value = em.Equals(new_value, new_fluent.variable())
             assert effect.fluent.fluent() in fluents_map
@@ -484,12 +489,15 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     not positive_condition.is_constant()
                     or positive_condition.bool_constant_value()
                 ):
-                    yield Effect(
+                    effect = Effect(
                         resulting_effect_fluent,
                         em.TRUE(),
                         positive_condition,
                         effect.kind,
                     )
+                    if effect not in returned_effects:
+                        yield effect
+                        returned_effects.add(effect)
                 negative_condition = substituter.substitute(
                     em.And(condition_to_add, em.Not(resulting_effect_value)), subs
                 )
@@ -500,23 +508,29 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     not negative_condition.is_constant()
                     or negative_condition.bool_constant_value()
                 ):
-                    yield Effect(
+                    effect = Effect(
                         resulting_effect_fluent,
                         em.FALSE(),
                         negative_condition,
                         effect.kind,
                     )
+                    if effect not in returned_effects:
+                        yield effect
+                        returned_effects.add(effect)
             else:
                 subbed_cond = substituter.substitute(
                     em.And(new_condition, condition_to_add), subs
                 ).simplify()
                 if not subbed_cond.is_constant() or subbed_cond.bool_constant_value():
-                    yield Effect(
+                    effect = Effect(
                         resulting_effect_fluent,
                         resulting_effect_value,
                         subbed_cond,
                         effect.kind,
                     )
+                    if effect not in returned_effects:
+                        yield effect
+                        returned_effects.add(effect)
 
     def _update_names_in_effect(self, effect: Effect, defined_names: Set[str]):
         """Important NOTE: this method adds elements to the defined_names set."""

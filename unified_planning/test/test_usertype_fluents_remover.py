@@ -113,6 +113,7 @@ class TestUsertypeFLuentsRemover(TestCase):
         f1_r = Fluent("f1_r", ut1, param_ut1=ut1)
         b1 = Fluent("b1", BoolType(), param_1=ut1)
         b1_1 = Fluent("b1_1", BoolType(), param_1=ut1, param_2=ut1)
+        f1_b_ut1 = Fluent("f1_b_ut1", ut1, param_bool=BoolType(), param_ut1=ut1)
         int1 = Fluent("int1", IntType(1, 3), param_1=ut1)
 
         obj_1 = Object("o_1", ut1)
@@ -137,9 +138,12 @@ class TestUsertypeFLuentsRemover(TestCase):
         c = InstantaneousAction("c")
         c.add_effect(f1, g1, b1(g1))
 
-        problem.add_fluents([f1, g1, f1_r, b1, b1_1, int1])
+        d = InstantaneousAction("d")
+        d.add_effect(f1_b_ut1(b1(g1), g1), g1)
+
+        problem.add_fluents([f1, g1, f1_r, b1, b1_1, f1_b_ut1, int1])
         problem.add_objects([obj_1, obj_2])
-        problem.add_actions((a, b, c))
+        problem.add_actions([a, b, c, d])
 
         init: Dict[FNode, Union[Object, int, bool]] = {
             f1(): obj_1,
@@ -152,6 +156,10 @@ class TestUsertypeFLuentsRemover(TestCase):
             b1_1(obj_2, obj_1): False,
             b1_1(obj_1, obj_2): True,
             b1_1(obj_2, obj_2): False,
+            f1_b_ut1(True, obj_1): obj_1,
+            f1_b_ut1(False, obj_1): obj_2,
+            f1_b_ut1(True, obj_2): obj_2,
+            f1_b_ut1(False, obj_2): obj_1,
             int1(obj_1): 1,
             int1(obj_2): 2,
         }
@@ -166,11 +174,10 @@ class TestUsertypeFLuentsRemover(TestCase):
             res = utfr.compile(problem)
         compiled_problem = res.problem
 
-        print(compiled_problem.action(c.name))
-
         new_f1 = compiled_problem.fluent(f1.name)
         new_g1 = compiled_problem.fluent(g1.name)
         new_f1_r = compiled_problem.fluent(f1_r.name)
+        new_f1_b_ut1 = compiled_problem.fluent(f1_b_ut1.name)
         g1_var = Variable("g1_ut1", g1.type)
         expected_effects = {}
 
@@ -270,6 +277,39 @@ class TestUsertypeFLuentsRemover(TestCase):
             ),
         }
 
+        # d effect -> f1_b_ut1(b1(g1), g1) := g1
+        expected_effects[d.name] = {
+            Effect(
+                new_f1_b_ut1(And(b1(obj_1), new_g1(obj_1)), obj_1, obj_1),
+                TRUE(),
+                new_g1(obj_1),
+            ),
+            Effect(
+                new_f1_b_ut1(And(b1(obj_2), new_g1(obj_2)), obj_2, obj_1),
+                TRUE(),
+                And(new_g1(obj_2), new_g1(obj_1)),
+            ),
+            Effect(
+                new_f1_b_ut1(And(b1(obj_2), new_g1(obj_2)), obj_2, obj_1),
+                FALSE(),
+                And(new_g1(obj_2), Not(new_g1(obj_1))),
+            ),
+            Effect(
+                new_f1_b_ut1(And(b1(obj_2), new_g1(obj_2)), obj_2, obj_2),
+                TRUE(),
+                new_g1(obj_2),
+            ),
+            Effect(
+                new_f1_b_ut1(And(b1(obj_1), new_g1(obj_1)), obj_1, obj_2),
+                TRUE(),
+                And(new_g1(obj_1), new_g1(obj_2)),
+            ),
+            Effect(
+                new_f1_b_ut1(And(b1(obj_1), new_g1(obj_1)), obj_1, obj_2),
+                FALSE(),
+                And(new_g1(obj_1), Not(new_g1(obj_2))),
+            ),
+        }
         simplifier = QuantifierSimplifier(problem.env, problem)
         compiled_simplifier = QuantifierSimplifier(
             compiled_problem.env, compiled_problem
