@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 import unified_planning.model.walkers
 from unified_planning.environment import get_env, Environment
@@ -45,6 +45,9 @@ class AbstractTaskNetwork:
         self._subtasks: List[Subtask] = []
         self._constraints: List[FNode] = []
         self._operators_extractor = OperatorsExtractor()  # maybe add to Environment?
+        self._time_checker = unified_planning.model.walkers.AnyChecker(
+            lambda e: e.is_timing_exp()
+        )
 
     @property
     def subtasks(self) -> List["Subtask"]:
@@ -80,26 +83,39 @@ class AbstractTaskNetwork:
         Note that these may contain both ordering and non-ordering constraints."""
         return self._constraints
 
-    def temporal_constraints(self) -> TemporalConstraints:
-        time_checker = unified_planning.model.walkers.AnyChecker(
-            lambda e: e.is_timing_exp()
-        )
-        temporal_constraints = [c for c in self.constraints if time_checker.any(c)]
-        return ordering(list(t.identifier for t in self.subtasks), temporal_constraints)
+    def temporal_constraints(self) -> List[FNode]:
+        """All constraints that impose an order between tasks or explicitly refer to a timepoint."""
+        return [c for c in self.constraints if self._time_checker.any(c)]
 
-    def partial_order(self) -> PartialOrder:
-        order = self.temporal_constraints()
-        if not isinstance(order, PartialOrder):
-            raise ValueError(
-                "The task network has constraints that are not reducible to a qualitative partial order"
-            )
-        return order
+    def non_temporal_constraints(self) -> List[FNode]:
+        """All constraints that do not involve any temporal aspect"""
+        return [c for c in self.constraints if not self._time_checker.any(c)]
 
-    def total_order(self) -> TotalOrder:
-        order = self.temporal_constraints()
-        if not isinstance(order, TotalOrder):
-            raise ValueError("The task network constraints do not define a total order")
-        return order
+    def _ordering(self) -> TemporalConstraints:
+        """Analyses the temporal constraints and classifies them into TO, PO or Temporal"""
+        return ordering(list(t.identifier for t in self.subtasks), self.temporal_constraints())
+
+    def partial_order(self) -> Optional[List[Tuple[str, str]]]:
+        """If the temporal constraints define a partial order, returns a list of precedences between the network' subtasks.
+           Returns None, if the temporal constraints cannot be fully expressed by a set of precedence constraints.
+           This can be the case if, e.g., the constraint contains simple temporal constraints, implying a given delay between
+           two subtasks.
+        """
+        order = self._ordering()
+        if isinstance(order, PartialOrder):
+            return order.precedences
+        else:
+            return None
+
+    def total_order(self) -> Optional[List[str]]:
+        """If the temporal constraints define a total order, returns the ordered list of task identifiers.
+           Returns None, if the temporal constraints cannot be exactly expressed by a total order.
+        """
+        order = self._ordering()
+        if isinstance(order, TotalOrder):
+            return order.order
+        else:
+            return None
 
     def add_constraint(self, constraint: Expression):
         (constraint,) = self._env.expression_manager.auto_promote(constraint)

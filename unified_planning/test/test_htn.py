@@ -56,34 +56,41 @@ class TestProblem(TestCase):
         self.assertEqual(2, len(problem.task_network.subtasks))
 
     def test_ordering(self):
+        """Checks that we detect the right orderings in task networks """
         def assert_po(tn):
-            order = tn.temporal_constraints()
-            assert isinstance(order, PartialOrder)
-            assert not isinstance(order, TotalOrder)
+            assert tn.partial_order() is not None
+            assert tn.total_order() is None
 
         def assert_to(tn):
-            order = tn.temporal_constraints()
-            assert isinstance(order, TotalOrder)
+            assert tn.partial_order() is not None
+            assert tn.total_order() is not None
 
         def assert_temporal(tn):
-            order = tn.temporal_constraints()
-            assert not isinstance(order, PartialOrder)
+            assert tn.partial_order() is None
+            assert tn.total_order() is None
+            assert len(tn.temporal_constraints()) > 0
 
         tn = TaskNetwork()
         a = Task("a")
         assert_to(tn)
         a1 = tn.add_subtask(a, ident="a1")
         assert_to(tn)
+        assert tn.total_order() == ["a1"]
         a2 = tn.add_subtask(a, ident="a2")
         assert_po(tn)
+        assert tn.partial_order() == []
         tn.set_strictly_before(a1, a2)
         assert_to(tn)
+        assert tn.total_order() == ["a1", "a2"]
         a3 = tn.add_subtask(a, ident="a3")
         assert_po(tn)
+        assert tn.partial_order() == [("a1", "a2")]
         tn.set_strictly_before(a1.end + 0, a3.start)
         assert_po(tn)
+        assert set(tn.partial_order()) == {("a1", "a2"), ("a1", "a3")}  # type: ignore
         tn.set_strictly_before(a2, a3)
         assert_to(tn)
+        assert tn.total_order() == ["a1", "a2", "a3"]
 
         a4 = tn.add_subtask(a, ident="a4")
         assert_po(tn)
@@ -127,9 +134,9 @@ class TestProblem(TestCase):
             assert isinstance(problem, up.model.htn.HierarchicalProblem)
             if name.startswith("2020-to-"):
                 # a totally ordered domain
-                constraints = problem.task_network.temporal_constraints()
+                constraints = problem.task_network._ordering()
                 assert isinstance(constraints, TotalOrder)
             elif name.startswith("2020-po-"):
                 # a partially ordered domain
-                constraints = problem.task_network.temporal_constraints()
+                constraints = problem.task_network._ordering()
                 assert isinstance(constraints, PartialOrder)
