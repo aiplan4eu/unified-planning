@@ -48,6 +48,7 @@ DEFAULT_ENGINES = {
     "tamer": ("up_tamer.engine", "EngineImpl"),
     "lpg": ("up_lpg.lpg_planner", "LPGEngine"),
     "lpg-anytime": ("up_lpg.lpg_planner", "LPGAnytimeEngine"),
+    "fmap": ("up_fmap.fmap_planner", "FMAPsolver"),
     "sequential_plan_validator": (
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
@@ -115,6 +116,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_grounder",
     "lpg",
     "lpg-anytime",
+    "fmap",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
