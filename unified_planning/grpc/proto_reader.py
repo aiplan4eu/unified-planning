@@ -680,7 +680,9 @@ class ProtobufReader(Converter):
 
         return unified_planning.engines.PlanGenerationResult(
             status=status,
-            plan=self.convert(result.plan, problem),
+            plan=self.convert(result.plan, problem)
+            if result.HasField("plan")
+            else None,
             engine_name=result.engine.name,
             metrics=metrics,
             log_messages=log_messages,
