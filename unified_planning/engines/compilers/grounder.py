@@ -31,7 +31,7 @@ from unified_planning.model import (
     Parameter,
 )
 from unified_planning.model.types import domain_size, domain_item
-from unified_planning.model.walkers import Substituter, Simplifier
+from unified_planning.model.walkers import Simplifier
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
     create_action_with_given_subs,
@@ -89,12 +89,7 @@ class GrounderHelper:
             Tuple[Action, Tuple[FNode, ...]], Optional[Action]
         ] = {}
         env = problem.environment
-        self._substituter = Substituter(env)
         self._simplifier = Simplifier(env, problem)
-
-    @property
-    def substituter(self) -> Substituter:
-        return self._substituter
 
     @property
     def simplifier(self) -> Simplifier:
@@ -141,7 +136,7 @@ class GrounderHelper:
                     zip(action.parameters, list(parameters))
                 )
                 new_action = create_action_with_given_subs(
-                    self._problem, action, self._simplifier, self._substituter, subs
+                    self._problem, action, self._simplifier, subs
                 )
             self._grounded_actions[key] = new_action
             return new_action
@@ -328,7 +323,6 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
             if isinstance(qm, MinimizeActionCosts):
-                substituter = grounder_helper.substituter
                 simplifier = grounder_helper.simplifier
                 new_costs: Dict[Action, Optional[FNode]] = {}
                 for new_action, (old_action, params) in trace_back_map.items():
@@ -341,7 +335,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
                         new_costs[new_action] = None
                     else:
                         new_costs[new_action] = simplifier.simplify(
-                            substituter.substitute(old_cost, subs)
+                            old_cost.substitute(subs)
                         )
                 new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
             else:

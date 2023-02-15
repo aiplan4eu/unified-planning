@@ -15,7 +15,7 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
@@ -180,10 +180,35 @@ class Simplifier(walkers.dag.DagWalker):
         free_vars: Set[
             "up.model.variable.Variable"
         ] = self.environment.free_vars_oracle.get_free_variables(args[0])
-        vars = tuple(var for var in expression.variables() if var in free_vars)
-        if len(vars) == 0:
-            return args[0]
-        return self.manager.Exists(args[0], *vars)
+        vars = set(var for var in expression.variables() if var in free_vars)
+        new_arg, to_check = args[0], True
+        while to_check:
+            to_check = False
+            if new_arg.is_and():
+                for i, and_arg in enumerate(new_arg.args):
+                    if and_arg.is_equals():
+                        variable, value = and_arg.args
+                        if (
+                            not variable.is_variable_exp()
+                            or variable.variable() not in vars
+                        ):
+                            variable, value = value, variable
+                        if (
+                            variable.is_variable_exp()
+                            and variable.variable() in vars
+                            and variable != value
+                        ):
+                            to_check = True
+                            new_arg = self.manager.And(
+                                *(a for j, a in enumerate(new_arg.args) if i != j)
+                            )
+                            new_arg = new_arg.substitute({variable: value})
+                            vars.remove(variable.variable())
+                            break
+        if vars:
+            return self.manager.Exists(new_arg, *vars)
+        else:
+            return new_arg
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1

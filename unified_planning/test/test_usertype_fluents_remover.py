@@ -81,10 +81,7 @@ class TestUsertypeFLuentsRemover(TestCase):
             original_kind.has_conditional_effects()
             or original_kind.has_existential_conditions()
         )
-        self.assertTrue(
-            compiled_kind.has_conditional_effects()
-            and compiled_kind.has_existential_conditions()
-        )
+        self.assertTrue(compiled_kind.has_conditional_effects())
 
         original_is_at = problem.fluent("is_at")
         compiled_is_at = compiled_problem.fluent("is_at")

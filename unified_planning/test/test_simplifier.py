@@ -563,8 +563,8 @@ class TestWithSubstituter(TestCase):
         TestCase.setUp(self)
 
     def test_and_fluent(self):
-        s = Simplifier(get_environment())
-        su = Substituter(get_environment())
+        s = get_environment().simplifier
+        su = get_environment().substituter
         x = Fluent("x")
         y = FluentExp(Fluent("y"))
         t = Bool(True)

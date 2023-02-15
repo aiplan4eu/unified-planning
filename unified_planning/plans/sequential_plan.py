@@ -122,7 +122,7 @@ class SequentialPlan(plans.plan.Plan):
         :param problem: The `problem` for which this `SequentialPlan` is created.
         :return: A `PartialOrderPlan` compatible with the given `problem`.
         """
-        subs = walkers.Substituter(self._environment)
+        subs = self._environment.substituter
         simp = self._environment.simplifier
         eqr = walkers.ExpressionQuantifiersRemover(self._environment)
         fve = self._environment.free_vars_extractor

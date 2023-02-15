@@ -141,7 +141,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         env = problem.env
         tm = env.type_manager
         em = env.expression_manager
-        substituter = Substituter(env)
 
         new_to_old: Dict[Action, Action] = {}
         old_to_new: Dict[Action, Action] = {}
@@ -184,7 +183,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 new_action.clear_effects()
                 for e in old_action.effects:
                     for ne in self._convert_effect(
-                        e, problem, fluents_map, substituter, em, utf_remover
+                        e, problem, fluents_map, em, utf_remover
                     ):
                         new_action._add_effect_instance(ne)
                 if old_action.simulated_effect is not None:
@@ -205,7 +204,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 for t, el in old_action.effects.items():
                     for e in el:
                         for ne in self._convert_effect(
-                            e, problem, fluents_map, substituter, em, utf_remover
+                            e, problem, fluents_map, em, utf_remover
                         ):
                             new_action._add_effect_instance(t, ne)
                 duration = old_action.duration
@@ -235,7 +234,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         for t, el in problem.timed_effects.items():
             for e in el:
                 for ne in self._convert_effect(
-                    e, problem, fluents_map, substituter, em, utf_remover
+                    e, problem, fluents_map, em, utf_remover
                 ):
                     new_problem._add_effect_instance(t, ne)
 
@@ -319,8 +318,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 objects = cast(Tuple[Object, ...], objects)
                 subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
                 new_problem.set_initial_value(
-                    substituter.substitute(new_fluent_exp, subs).simplify(),
-                    substituter.substitute(new_value, subs).simplify(),
+                    new_fluent_exp.substitute(subs).simplify(),
+                    new_value.substitute(subs).simplify(),
                 )
 
         return CompilerResult(
@@ -415,7 +414,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         effect: Effect,
         problem: Problem,
         fluents_map: Dict[Fluent, Fluent],
-        substituter: Substituter,
         em: ExpressionManager,
         utf_remover: UsertypeFluentsWalker,
     ) -> Iterator[Effect]:
@@ -442,9 +440,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         new_value = f
                         break
                 value_added_fluents.remove(new_value)
-                new_value = substituter.substitute(
-                    new_value, {value_var: new_fluent.variable()}
-                )
+                new_value = new_value.substitute({value_var: new_fluent.variable()})
             else:
                 new_value = em.Equals(new_value, new_fluent.variable())
             assert effect.fluent.fluent() in fluents_map
@@ -469,19 +465,17 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             assert len(objects) == len(vars_list)
             objects = cast(Tuple[Object, ...], objects)
             subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
-            resulting_effect_fluent = substituter.substitute(
-                new_fluent, subs
-            ).simplify()
-            resulting_effect_value = substituter.substitute(new_value, subs).simplify()
+            resulting_effect_fluent = new_fluent.substitute(subs).simplify()
+            resulting_effect_value = new_value.substitute(subs).simplify()
             # Check if the type is boolean and not a constant, make it a conditional
             # assignment with the correct boolean constant instead
             if (
                 resulting_effect_value.type.is_bool_type()
                 and not resulting_effect_value.is_bool_constant()
             ):
-                positive_condition = substituter.substitute(
-                    em.And(condition_to_add, resulting_effect_value), subs
-                )
+                positive_condition = em.And(
+                    condition_to_add, resulting_effect_value
+                ).substitute(subs)
                 positive_condition = em.And(
                     new_condition, positive_condition
                 ).simplify()
@@ -498,9 +492,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     if effect not in returned_effects:
                         yield effect
                         returned_effects.add(effect)
-                negative_condition = substituter.substitute(
-                    em.And(condition_to_add, em.Not(resulting_effect_value)), subs
-                )
+                negative_condition = em.And(
+                    condition_to_add, em.Not(resulting_effect_value)
+                ).substitute(subs)
                 negative_condition = em.And(
                     new_condition, negative_condition
                 ).simplify()
@@ -518,9 +512,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         yield effect
                         returned_effects.add(effect)
             else:
-                subbed_cond = substituter.substitute(
-                    em.And(new_condition, condition_to_add), subs
-                ).simplify()
+                subbed_cond = (
+                    em.And(new_condition, condition_to_add).substitute(subs).simplify()
+                )
                 if not subbed_cond.is_constant() or subbed_cond.bool_constant_value():
                     effect = Effect(
                         resulting_effect_fluent,
