@@ -504,7 +504,7 @@ class Factory:
             if not self._credit_disclaimer_printed:
                 self._credit_disclaimer_printed = True
                 w.write(
-                    f"\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_env().credits_stream = None`\n"
+                    f"\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_environment().credits_stream = None`\n"
                 )
             w.write("  *** Credits ***\n")
             w.write(

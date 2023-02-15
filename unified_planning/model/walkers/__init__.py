@@ -27,3 +27,4 @@ from unified_planning.model.walkers.state_evaluator import StateEvaluator
 from unified_planning.model.walkers.substituter import Substituter
 from unified_planning.model.walkers.type_checker import TypeChecker
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
+from unified_planning.model.walkers.any import AnyChecker

@@ -106,6 +106,9 @@ class LogMessage:
     level: LogLevel
     message: str
 
+    def __str__(self):
+        return f"[{self.level.name}] {self.message}"
+
 
 @dataclass
 class Result:

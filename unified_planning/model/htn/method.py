@@ -21,12 +21,11 @@ from collections import OrderedDict
 from typing import List, Union, Optional
 
 import unified_planning as up
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
+from unified_planning.model.htn.task_network import AbstractTaskNetwork
 from unified_planning.model.parameter import Parameter
-from unified_planning.model.action import Action
-from unified_planning.model.htn.task import Task, Subtask
-from unified_planning.model.timing import Timing, Timepoint
+from unified_planning.model.htn.task import Task
 from unified_planning.model.expression import Expression
 
 
@@ -61,8 +60,8 @@ class ParameterizedTask:
         return self._params
 
 
-class Method:
-    """This is the method interface."""
+class Method(AbstractTaskNetwork):
+    """HTN Method: encoding of a procedure for achieving a high-level task."""
 
     def __init__(
         self,
@@ -73,13 +72,11 @@ class Method:
         _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        self._env = get_environment(_env)
+        super(Method, self).__init__(_env)
         self._task: Optional[ParameterizedTask] = None
         self._name = _name
         self._parameters: "OrderedDict[str, Parameter]" = OrderedDict()
         self._preconditions: List[up.model.fnode.FNode] = []
-        self._constraints: List[up.model.fnode.FNode] = []
-        self._subtasks: List[Subtask] = []
         if _parameters is None:
             for n, t in kwargs.items():
                 self._parameters[n] = Parameter(n, t, self._env)
@@ -132,8 +129,8 @@ class Method:
             and self._parameters == oth._parameters
             and self._task == oth._task
             and set(self._preconditions) == set(oth._preconditions)
-            and set(self._subtasks) == set(oth._subtasks)
-            and set(self._constraints) == set(oth._constraints)
+            and set(self.subtasks) == set(oth.subtasks)
+            and set(self.constraints) == set(oth.constraints)
         )
 
     def __hash__(self) -> int:
@@ -141,7 +138,7 @@ class Method:
         res += hash(self._task)
         res += sum(map(hash, self.parameters))
         res += sum(map(hash, self._preconditions))
-        res += sum(map(hash, self._constraints))
+        res += sum(map(hash, self.constraints))
         res += sum(map(hash, self.subtasks))
         return res
 
@@ -229,78 +226,3 @@ class Method:
             )
         if precondition_exp not in self._preconditions:
             self._preconditions.append(precondition_exp)
-
-    @property
-    def constraints(self) -> List["up.model.fnode.FNode"]:
-        """Returns the list of the method's constraints."""
-        return self._constraints
-
-    def add_constraint(self, constraint: Expression):
-        """Adds the given constraint to the method."""
-        (constraint_exp,) = self._env.expression_manager.auto_promote(constraint)
-        assert self._env.type_checker.get_type(constraint_exp).is_bool_type()
-        if constraint_exp == self._env.expression_manager.TRUE():
-            return
-        free_vars = self._env.free_vars_oracle.get_free_variables(constraint_exp)
-        if len(free_vars) != 0:
-            raise UPUnboundedVariablesError(
-                f"The constraint {str(constraint_exp)} has unbounded variables:\n{str(free_vars)}"
-            )
-        if constraint_exp not in self._constraints:
-            self._constraints.append(constraint_exp)
-
-    @property
-    def subtasks(self) -> List["Subtask"]:
-        """Returns the list of the method's subtasks."""
-        return self._subtasks
-
-    def add_subtask(
-        self,
-        subtask: Union[Subtask, Action, Task],
-        *args: Expression,
-        ident: Optional[str] = None,
-    ) -> Subtask:
-        """Adds a subtask to this method, with no particular ordering relative to the existing ones."""
-        if not isinstance(subtask, Subtask):
-            parameters = self._env.expression_manager.auto_promote(*args)
-            subtask = Subtask(subtask, *parameters, ident=ident)
-        else:
-            assert len(args) == 0
-        assert isinstance(subtask, Subtask)
-        assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
-        self._subtasks.append(subtask)
-        return subtask
-
-    def get_subtask(self, ident: str) -> Subtask:
-        """Returns the subtask with the given identifier."""
-        for st in self._subtasks:
-            if st.identifier == ident:
-                return st
-        raise ValueError(f"Method {self._name} has not subtask with identifier {ident}")
-
-    def set_ordered(self, *subtasks: Subtask):
-        """Imposes a sequential order between the given subtasks."""
-        if len(subtasks) < 2:
-            return
-        prev = subtasks[0]
-        for i in range(1, len(subtasks)):
-            next = subtasks[i]
-            self.set_strictly_before(prev, next)
-            prev = next
-
-    def set_strictly_before(
-        self,
-        lhs: Union[Subtask, Timepoint, Timing],
-        rhs: Union[Subtask, Timepoint, Timing],
-    ):
-        if isinstance(lhs, Subtask):
-            lhs = lhs.end
-        if isinstance(lhs, Timepoint):
-            lhs = Timing(timepoint=lhs, delay=0)
-        assert isinstance(lhs, Timing)
-        if isinstance(rhs, Subtask):
-            rhs = rhs.start
-        if isinstance(rhs, Timepoint):
-            rhs = Timing(timepoint=rhs, delay=0)
-        assert isinstance(rhs, Timing)
-        self.add_constraint(self._env.expression_manager.LT(lhs, rhs))
