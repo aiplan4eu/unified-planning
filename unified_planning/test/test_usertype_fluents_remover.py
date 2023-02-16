@@ -307,7 +307,7 @@ class TestUsertypeFLuentsRemover(TestCase):
                 And(new_g1(obj_1), Not(new_g1(obj_2))),
             ),
         }
-        simplifier = QuantifierSimplifier(problem.env, problem)
+        simplifier = QuantifierSimplifier(problem.environment, problem)
         compiled_simplifier = QuantifierSimplifier(
             compiled_problem.env, compiled_problem
         )
@@ -318,7 +318,7 @@ class TestUsertypeFLuentsRemover(TestCase):
         ):
             all_fluent_exp = [
                 f
-                for k in problem.env.free_vars_extractor.get(condition)
+                for k in problem.environment.free_vars_extractor.get(condition)
                 for f in get_all_fluent_exp(problem, k.fluent())
             ]
             gen = [

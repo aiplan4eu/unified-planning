@@ -137,7 +137,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
         """
         assert isinstance(problem, Problem)
-        env = problem.env
+        env = problem.environment
         tm = env.type_manager
         em = env.expression_manager
 
@@ -159,9 +159,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     new_param_name = f"{base_name}_{count}"
                     count += 1
                 new_signature.append(Parameter(new_param_name, fluent.type, env))
-                new_fluent = Fluent(
-                    fluent.name, tm.BoolType(), _signature=new_signature, env=env
-                )
+                new_fluent = Fluent(fluent.name, tm.BoolType(), new_signature, env)
                 fluents_map[fluent] = new_fluent
                 new_problem.add_fluent(new_fluent)
             else:
