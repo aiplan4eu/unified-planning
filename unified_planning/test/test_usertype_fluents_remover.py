@@ -309,7 +309,7 @@ class TestUsertypeFLuentsRemover(TestCase):
         }
         simplifier = QuantifierSimplifier(problem.environment, problem)
         compiled_simplifier = QuantifierSimplifier(
-            compiled_problem.env, compiled_problem
+            compiled_problem.environment, compiled_problem
         )
 
         for condition, compiled_condition in zip(
