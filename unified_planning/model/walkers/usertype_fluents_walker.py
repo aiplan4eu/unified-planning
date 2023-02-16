@@ -57,9 +57,10 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
     ]:
         """
         Removes UserType Fluents from the given expression and returns the generated
-        expression, the set of Variables that are still free in the returned expression
-        and the set of FluentExp that must be True in order for the given expression to
-        be equivalent to the returned one.
+        expression, the top-level Variable (if any, None otherwise), the set of Variables
+        that are still free in the returned expression, the top-level Variable (if any,
+        None otherwise) and the set of FluentExp that must be True in order for the given
+        expression to be equivalent to the returned one.
 
         :param expression: The target expression in which usertype fluents must be removed.
         :return: The expression without userType fluents, the top level added variable, the free variables in the

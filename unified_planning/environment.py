@@ -128,6 +128,7 @@ class Environment:
 
     @property
     def names_extractor(self) -> "unified_planning.model.walkers.NamesExtractor":
+        """Returns the environment's `NamesExtractor`."""
         return self._names_extractor
 
     @property

@@ -199,10 +199,13 @@ class Simplifier(walkers.dag.DagWalker):
                             or variable.variable() not in vars
                         ):
                             variable, value = value, variable
+                        value_free_vars = self.env.free_vars_oracle.get_free_variables(
+                            args[0]
+                        )
                         if (
                             variable.is_variable_exp()
                             and variable.variable() in vars
-                            and variable != value
+                            and variable not in value_free_vars
                         ):
                             check_equality_simplification = True
                             new_arg = self.manager.And(

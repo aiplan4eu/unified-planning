@@ -16,7 +16,6 @@
 
 
 from itertools import product
-from pprint import pprint
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -44,7 +43,7 @@ from unified_planning.model import (
     DurationInterval,
     UPCOWState,
 )
-from unified_planning.model.walkers import UsertypeFluentsWalker, Substituter
+from unified_planning.model.walkers import UsertypeFluentsWalker
 from unified_planning.model.types import _UserType
 from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.model.fluent import get_all_fluent_exp
@@ -251,7 +250,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             )
 
         for qm in problem.quality_metrics:
-
             if isinstance(qm, MinimizeSequentialPlanLength) or isinstance(
                 qm, MinimizeMakespan
             ):
