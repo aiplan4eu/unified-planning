@@ -48,7 +48,7 @@ from unified_planning.model.walkers import UsertypeFluentsWalker, Substituter
 from unified_planning.model.types import _UserType
 from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.model.fluent import get_all_fluent_exp
-from typing import Iterator, Dict, List, Set, Tuple, Optional, Union, cast
+from typing import Iterator, Dict, List, OrderedDict, Set, Tuple, Optional, Union, cast
 from functools import partial
 
 
@@ -145,10 +145,10 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         new_to_old: Dict[Action, Action] = {}
         old_to_new: Dict[Action, Action] = {}
 
-        new_problem = problem.clone()
-        new_problem.name = f"{self.name}_{problem.name}"
+        new_problem = Problem(f"{self.name}_{problem.name}", env)
+        new_problem.add_objects(problem.all_objects)
+
         fluents_map: Dict[Fluent, Fluent] = {}
-        new_problem.clear_fluents()
         for fluent in problem.fluents:
             assert isinstance(fluent, Fluent)
             if fluent.type.is_user_type():
@@ -172,15 +172,16 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         utf_remover = UsertypeFluentsWalker(fluents_map, used_names, env)
 
         for old_action in problem.actions:
-            new_action = new_problem.action(old_action.name)
-            if isinstance(new_action, InstantaneousAction):
-                assert isinstance(old_action, InstantaneousAction)
-                new_action.clear_preconditions()
+            params = OrderedDict(((p.name, p.type) for p in old_action.parameters))
+            if isinstance(old_action, InstantaneousAction):
+                new_action: Union[
+                    InstantaneousAction, DurativeAction
+                ] = InstantaneousAction(old_action.name, _parameters=params, _env=env)
+                assert isinstance(new_action, InstantaneousAction)
                 for p in old_action.preconditions:
                     new_action.add_precondition(
                         utf_remover.remove_usertype_fluents_from_condition(p)
                     )
-                new_action.clear_effects()
                 for e in old_action.effects:
                     for ne in self._convert_effect(
                         e, problem, fluents_map, em, utf_remover
@@ -193,14 +194,15 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         )
                     )
             elif isinstance(old_action, DurativeAction):
+                new_action = DurativeAction(
+                    old_action.name, _parameters=params, _env=env
+                )
                 assert isinstance(new_action, DurativeAction)
-                new_action.clear_conditions()
                 for i, cl in old_action.conditions.items():
                     for c in cl:
                         new_action.add_condition(
                             i, utf_remover.remove_usertype_fluents_from_condition(c)
                         )
-                new_action.clear_effects()
                 for t, el in old_action.effects.items():
                     for e in el:
                         for ne in self._convert_effect(
@@ -223,14 +225,13 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 raise NotImplementedError(
                     f"Not implemented action class: {type(old_action)}"
                 )
+            new_problem.add_action(new_action)
             new_to_old[new_action] = old_action
             old_to_new[old_action] = new_action
 
-        new_problem.clear_goals()
         for g in problem.goals:
             new_problem.add_goal(utf_remover.remove_usertype_fluents_from_condition(g))
 
-        new_problem.clear_timed_effects()
         for t, el in problem.timed_effects.items():
             for e in el:
                 for ne in self._convert_effect(
@@ -238,20 +239,17 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 ):
                     new_problem._add_effect_instance(t, ne)
 
-        new_problem.clear_timed_goals()
         for i, cl in problem.timed_goals.items():
             for c in cl:
                 new_problem.add_timed_goal(
                     i, utf_remover.remove_usertype_fluents_from_condition(c)
                 )
 
-        new_problem.clear_trajectory_constraints()
         for tr in problem.trajectory_constraints:
             new_problem.add_trajectory_constraint(
                 utf_remover.remove_usertype_fluents_from_condition(tr)
             )
 
-        new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
 
             if isinstance(qm, MinimizeSequentialPlanLength) or isinstance(
@@ -291,27 +289,26 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
 
-        new_problem.clear_initial_values()
         for f, v in problem.initial_values.items():
             (
                 new_fluent_exp,
+                fluent_var,
                 fluent_free_vars,
-                fluent_added_fluents,
+                last_fluent,
+                _,
             ) = utf_remover.remove_usertype_fluents(f)
             (
                 new_value,
+                _,
                 value_free_vars,
-                value_added_fluents,
+                _,
+                _,
             ) = utf_remover.remove_usertype_fluents(v)
-            if new_fluent_exp.is_variable_exp():
-                fluent_var = new_fluent_exp.variable()
-                for f in fluent_added_fluents:
-                    assert f.is_fluent_exp()
-                    if f.arg(-1).variable() == fluent_var:
-                        new_fluent_exp = f
-                        break
-                fluent_added_fluents.remove(new_fluent_exp)
+            if fluent_var is not None:
+                assert last_fluent is not None
+                new_fluent_exp = last_fluent
                 new_value = em.Equals(new_value, fluent_var)
+                fluent_free_vars.add(fluent_var)
             vars_list = list(fluent_free_vars)
             vars_list.extend(value_free_vars)
             for objects in product(*(problem.objects(v.type) for v in vars_list)):
@@ -420,47 +417,45 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         returned_effects: Set[Effect] = set()
         (
             new_fluent,
+            fluent_last_var,
             fluent_free_vars,
+            fluent_last_fluent,
             fluent_added_fluents,
         ) = utf_remover.remove_usertype_fluents(effect.fluent)
         (
             new_value,
+            value_last_var,
             value_free_vars,
+            value_last_fluent,
             value_added_fluents,
         ) = utf_remover.remove_usertype_fluents(effect.value)
 
-        condition_to_add: Union[bool, FNode] = True
-        if new_fluent.is_variable_exp():  # this effect's fluent is a user_type fluent
-            if new_value.is_variable_exp():  # also the value is a user_type fluent
+        if fluent_last_var is not None:  # this effect's fluent is a user_type fluent
+            assert fluent_last_fluent is not None
+            fluent_free_vars.add(fluent_last_var)
+            if value_last_var is not None:  # also the value is a user_type fluent
+                assert value_last_fluent is not None
                 assert effect.value.fluent() in fluents_map
-                value_var = new_value.variable()
-                for f in value_added_fluents:
-                    assert f.is_fluent_exp()
-                    if f.arg(-1).variable() == value_var:
-                        new_value = f
-                        break
-                value_added_fluents.remove(new_value)
-                new_value = new_value.substitute({value_var: new_fluent.variable()})
+                new_value = value_last_fluent
+                # The "top-level" variables of the fluent and the value must be the same
+                new_value = new_value.substitute({value_last_var: fluent_last_var})
             else:
-                new_value = em.Equals(new_value, new_fluent.variable())
+                # transform the expression of type Usertype in the corresponding boolean expression
+                new_value = em.Equals(new_value, fluent_last_var)
             assert effect.fluent.fluent() in fluents_map
-            fluent_var = new_fluent.variable()
-            for f in fluent_added_fluents:
-                assert f.is_fluent_exp()
-                if f.arg(-1).variable() == fluent_var:
-                    new_fluent = f
-                    break
-            fluent_added_fluents.remove(new_fluent)
-        new_condition = em.And(
-            utf_remover.remove_usertype_fluents_from_condition(effect.condition),
+            new_fluent = fluent_last_fluent
+        new_condition = utf_remover.remove_usertype_fluents_from_condition(
+            effect.condition
         )
         condition_to_add = em.And(
             *fluent_added_fluents,
             *value_added_fluents,
-            condition_to_add,
         )
         vars_list = list(fluent_free_vars)
         vars_list.extend(value_free_vars)
+        # create all the possible configurations of variable instantiations and
+        # evaluate if the result is a valid Effect or not. In case it is, yield
+        # the Effect and proceed with the next iteration
         for objects in product(*(problem.objects(v.type) for v in vars_list)):
             assert len(objects) == len(vars_list)
             objects = cast(Tuple[Object, ...], objects)

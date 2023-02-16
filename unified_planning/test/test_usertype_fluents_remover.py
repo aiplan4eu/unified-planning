@@ -50,6 +50,9 @@ class TestUsertypeFLuentsRemover(TestCase):
         self.assertTrue(problem.kind.has_object_fluents())
         self.assertFalse(compiled_problem.kind.has_object_fluents())
 
+        print(problem)
+        print(compiled_problem)
+
         with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
             self.assertNotEqual(planner, None)
             solve_res = planner.solve(compiled_problem)

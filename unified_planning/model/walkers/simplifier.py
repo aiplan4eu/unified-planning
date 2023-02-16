@@ -181,9 +181,15 @@ class Simplifier(walkers.dag.DagWalker):
             "up.model.variable.Variable"
         ] = self.environment.free_vars_oracle.get_free_variables(args[0])
         vars = set(var for var in expression.variables() if var in free_vars)
-        new_arg, to_check = args[0], True
-        while to_check:
-            to_check = False
+        # Here we check if the arg is in the form:
+        # phi(l_i) and l_i == x with phi and x general formulae and l_i a variable
+        # bounded to this Exists.
+        # if it is, it can be simplified with phi(x) and l_i is removed from the free variables.
+        # this process is repeated until there are no more equalities with variables bounded to this
+        # Exists
+        new_arg, check_equality_simplification = args[0], True
+        while check_equality_simplification:
+            check_equality_simplification = False
             if new_arg.is_and():
                 for i, and_arg in enumerate(new_arg.args):
                     if and_arg.is_equals():
@@ -198,7 +204,7 @@ class Simplifier(walkers.dag.DagWalker):
                             and variable.variable() in vars
                             and variable != value
                         ):
-                            to_check = True
+                            check_equality_simplification = True
                             new_arg = self.manager.And(
                                 *(a for j, a in enumerate(new_arg.args) if i != j)
                             )
