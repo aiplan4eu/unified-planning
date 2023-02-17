@@ -263,7 +263,9 @@ class ConverterToPDDLString(walkers.DagWalker):
         return f"{self.get_mangled_name(o)}"
 
     def walk_bool_constant(self, expression, args):
-        raise up.exceptions.UPUnreachableCodeError
+        raise up.exceptions.UPUnreachableCodeError(
+            f"Found expression {expression} in PDDL"
+        )
 
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
@@ -507,7 +509,7 @@ class PDDLWriter:
         em = self.problem.environment.expression_manager
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
-                if em.FALSE() in a.preconditions:
+                if any(p.simplify().is_false() for p in a.preconditions):
                     continue
                 out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
@@ -521,13 +523,16 @@ class PDDLWriter:
                 out.write(")")
                 if len(a.preconditions) > 0:
                     out.write(
-                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions])})'
+                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in (c.simplify() for c in a.preconditions) if not p.is_true()])})'
                     )
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
-                        if e.is_conditional():
-                            out.write(f" (when {converter.convert(e.condition)}")
+                        simplified_cond = e.condition.simplify()
+                        if not simplified_cond.is_true():
+                            if simplified_cond.is_false():
+                                continue
+                            out.write(f" (when {converter.convert(simplified_cond)}")
                         if e.value.is_true():
                             out.write(f" {converter.convert(e.fluent)}")
                         elif e.value.is_false():
@@ -544,7 +549,7 @@ class PDDLWriter:
                             out.write(
                                 f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
                             )
-                        if e.is_conditional():
+                        if not simplified_cond.is_true():
                             out.write(f")")
 
                     if a in costs:
@@ -554,7 +559,9 @@ class PDDLWriter:
                     out.write(")")
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
-                if any(em.FALSE() in cl for cl in a.conditions.values()):
+                if any(
+                    c.simplify().is_false() for cl in a.conditions.values() for c in cl
+                ):
                     continue
                 out.write(f" (:durative-action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
@@ -583,7 +590,9 @@ class PDDLWriter:
                 if len(a.conditions) > 0:
                     out.write(f"\n  :condition (and ")
                     for interval, cl in a.conditions.items():
-                        for c in cl:
+                        for c in (cond.simplify() for cond in cl):
+                            if c.is_true():
+                                continue
                             if interval.lower == interval.upper:
                                 if interval.lower.is_from_start():
                                     out.write(f"(at start {converter.convert(c)})")
@@ -600,30 +609,34 @@ class PDDLWriter:
                     out.write("\n  :effect (and")
                     for t, el in a.effects.items():
                         for e in el:
+                            simplified_cond = e.condition.simplify()
+                            if simplified_cond.is_false():
+                                continue
                             if t.is_from_start():
                                 out.write(f" (at start")
                             else:
                                 out.write(f" (at end")
-                            if e.is_conditional():
+                            if not simplified_cond.is_true():
                                 out.write(f" (when {converter.convert(e.condition)}")
-                            if e.value.is_true():
+                            simplified_value = e.value.simplify()
+                            if simplified_value.is_true():
                                 out.write(f" {converter.convert(e.fluent)}")
-                            elif e.value.is_false():
+                            elif simplified_value.is_false():
                                 out.write(f" (not {converter.convert(e.fluent)})")
                             elif e.is_increase():
                                 out.write(
-                                    f" (increase {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                    f" (increase {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
                                 )
                             elif e.is_decrease():
                                 out.write(
-                                    f" (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                    f" (decrease {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
                                 )
                             else:
                                 out.write(
-                                    f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                    f" (assign {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
                                 )
-                            if e.is_conditional():
-                                out.write(f")")
+                            if not simplified_cond.is_true():
+                                out.write(")")
                             out.write(")")
                     if a in costs:
                         out.write(
