@@ -523,7 +523,7 @@ class PDDLWriter:
                 out.write(")")
                 if len(a.preconditions) > 0:
                     out.write(
-                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in a.preconditions])})'
+                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in (c.simplify() for c in a.preconditions) if not p.is_true()])})'
                     )
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
@@ -590,7 +590,9 @@ class PDDLWriter:
                 if len(a.conditions) > 0:
                     out.write(f"\n  :condition (and ")
                     for interval, cl in a.conditions.items():
-                        for c in cl:
+                        for c in (cond.simplify() for cond in cl):
+                            if c.is_true():
+                                continue
                             if interval.lower == interval.upper:
                                 if interval.lower.is_from_start():
                                     out.write(f"(at start {converter.convert(c)})")
@@ -616,24 +618,25 @@ class PDDLWriter:
                                 out.write(f" (at end")
                             if not simplified_cond.is_true():
                                 out.write(f" (when {converter.convert(e.condition)}")
-                            if e.value.is_true():
+                            simplified_value = e.value.simplify()
+                            if simplified_value.is_true():
                                 out.write(f" {converter.convert(e.fluent)}")
-                            elif e.value.is_false():
+                            elif simplified_value.is_false():
                                 out.write(f" (not {converter.convert(e.fluent)})")
                             elif e.is_increase():
                                 out.write(
-                                    f" (increase {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                    f" (increase {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
                                 )
                             elif e.is_decrease():
                                 out.write(
-                                    f" (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                    f" (decrease {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
                                 )
                             else:
                                 out.write(
-                                    f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
+                                    f" (assign {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
                                 )
                             if not simplified_cond.is_true():
-                                out.write(f")")
+                                out.write(")")
                             out.write(")")
                     if a in costs:
                         out.write(
