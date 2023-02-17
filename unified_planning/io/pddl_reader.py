@@ -475,7 +475,9 @@ class PDDLReader:
                     to_add.append((e, cond))
             elif op == "when":
                 cond = self._parse_exp(problem, act, types_map, {}, exp[1], assignments)
-                to_add.append((exp[2], cond))
+                cond = cond.simplify()
+                if not cond.is_false():
+                    to_add.append((exp[2], cond))
             elif op == "not":
                 exp = exp[1]
                 eff = (
