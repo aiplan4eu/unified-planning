@@ -128,6 +128,7 @@ def create_action_with_given_subs(
     simplifier,
     subs: Dict[Expression, Expression],
 ) -> Optional[Action]:
+    """This method is used to instantiate the actions parameters to a constant."""
     naming_list: List[str] = []
     for param, value in subs.items():
         assert isinstance(param, Parameter)

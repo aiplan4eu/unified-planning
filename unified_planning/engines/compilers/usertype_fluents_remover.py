@@ -96,9 +96,15 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
 
     @staticmethod
@@ -289,31 +295,25 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             (
                 new_fluent_exp,
                 fluent_var,
-                fluent_free_vars,
+                free_vars,
                 last_fluent,
-                _,
+                free_fluents,
             ) = utf_remover.remove_usertype_fluents(f)
-            (
-                new_value,
-                _,
-                value_free_vars,
-                _,
-                _,
-            ) = utf_remover.remove_usertype_fluents(v)
+            assert (
+                not free_vars and not free_fluents
+            ), "Error in fluent's initial values; expected all constant for fluent arguments"
             if fluent_var is not None:
                 assert last_fluent is not None
-                new_fluent_exp = last_fluent
-                new_value = em.Equals(new_value, fluent_var)
-                fluent_free_vars.add(fluent_var)
-            vars_list = list(fluent_free_vars)
-            vars_list.extend(value_free_vars)
-            for objects in product(*(problem.objects(v.type) for v in vars_list)):
-                objects = cast(Tuple[Object, ...], objects)
-                subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
-                new_problem.set_initial_value(
-                    new_fluent_exp.substitute(subs).simplify(),
-                    new_value.substitute(subs).simplify(),
-                )
+                assert (
+                    v.is_object_exp()
+                ), "Error: Usertype fluents initial value is not an object"
+                value_obj = v.object()
+                for obj in problem.objects(fluent_var.type):
+                    new_problem.set_initial_value(
+                        last_fluent.substitute({fluent_var: obj}), obj == value_obj
+                    )
+            else:
+                new_problem.set_initial_value(f, v)
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
