@@ -519,7 +519,9 @@ class PDDLReader:
                 for i in range(1, len(exp)):
                     to_add.append((exp[i], cond))
             elif op == "when":
-                cond = self._parse_exp(problem, act, types_map, {}, exp[1], complete_str, assignments)
+                cond = self._parse_exp(
+                    problem, act, types_map, {}, exp[1], complete_str, assignments
+                )
                 cond = cond.simplify()
                 if not cond.is_false():
                     to_add.append((exp[2], cond))
@@ -1518,8 +1520,10 @@ class PDDLReader:
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
         domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
+
         if problem_str is not None:
             problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
         else:
             problem_res = None
+
         return self._parse_problem(domain_res, domain_str, problem_res, problem_str)
