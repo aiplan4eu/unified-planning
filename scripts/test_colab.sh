@@ -2,7 +2,7 @@
 
 SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-cd ${SCRIPTS_DIR}/../
+cd ${SCRIPTS_DIR}/../docs/
 
 boi="# begin of installation"
 eoi="# end of installation"
