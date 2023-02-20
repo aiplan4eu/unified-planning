@@ -27,7 +27,7 @@ from typing import Dict, Union, Callable, List, cast
 
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
 from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
-from pyparsing import CharsNotIn, Empty, Located
+from pyparsing import CharsNotIn, Empty, Located, col, lineno
 from pyparsing.results import ParseResults
 from pyparsing import one_of
 
@@ -71,6 +71,18 @@ class CustomParseResults:
 
     def __len__(self):
         return len(self.value)
+
+    def line_start(self, complete_str: str) -> int:
+        return lineno(self.locn_start, complete_str)
+
+    def col_start(self, complete_str: str) -> int:
+        return col(self.locn_start, complete_str)
+
+    def line_end(self, complete_str: str) -> int:
+        return lineno(self.locn_end, complete_str)
+
+    def col_end(self, complete_str: str) -> int:
+        return col(self.locn_end, complete_str)
 
 
 Object = CaseInsensitiveToken("object")
@@ -367,9 +379,14 @@ class PDDLReader:
         types_map: TypesMap,
         var: Dict[str, up.model.Variable],
         exp: CustomParseResults,
+        complete_str: str,
         assignments: Dict[str, "up.model.Object"] = {},
     ) -> up.model.FNode:
         stack = [(var, exp, False)]
+        start_line, start_col = exp.line_start(complete_str), exp.col_start(
+            complete_str
+        )
+        end_line, end_col = exp.line_end(complete_str), exp.col_end(complete_str)
         solved: List[up.model.FNode] = []
         while len(stack) > 0:
             var, exp, status = stack.pop()
@@ -397,7 +414,9 @@ class PDDLReader:
                     assert len(exp) == 1
                     solved.append(self._em.ObjectExp(assignments[exp[0].value]))
                 else:
-                    raise up.exceptions.UPUnreachableCodeError
+                    raise up.exceptions.UPUnreachableCodeError(
+                        f"Invalid expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                    )
             else:
                 if isinstance(exp.value, ParseResults):
                     if len(exp) == 0:  # empty precodition
@@ -439,7 +458,9 @@ class PDDLReader:
                     elif len(exp) == 1:  # expand an element inside brackets
                         stack.append((var, exp[0], False))
                     else:
-                        raise SyntaxError(f"Not able to handle: {exp}")
+                        raise SyntaxError(
+                            f"Not able to handle: {exp} found at line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                        )
                 elif isinstance(exp.value, str):
                     if (
                         exp.value[0] == "?" and exp.value[1:] in var
@@ -457,13 +478,20 @@ class PDDLReader:
                     elif problem.has_object(exp.value):  # object
                         solved.append(self._em.ObjectExp(problem.object(exp.value)))
                     else:  # number
-                        n = Fraction(exp.value)
+                        try:
+                            n = Fraction(exp.value)
+                        except ValueError:
+                            raise SyntaxError(
+                                f"Expected number, found {exp} in expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                            )
                         if n.denominator == 1:
                             solved.append(self._em.Int(n.numerator))
                         else:
                             solved.append(self._em.Real(n))
                 else:
-                    raise SyntaxError(f"Not able to handle: {exp}")
+                    raise SyntaxError(
+                        f"Not able to handle: {exp}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                    )
         assert len(solved) == 1  # sanity check
         return solved.pop()
 
@@ -476,6 +504,7 @@ class PDDLReader:
             Dict["up.model.Action", List[CustomParseResults]]
         ],
         exp: CustomParseResults,
+        complete_str: str,
         cond: Union[up.model.FNode, bool] = True,
         timing: typing.Optional[up.model.Timing] = None,
         assignments: Dict[str, "up.model.Object"] = {},
@@ -490,36 +519,50 @@ class PDDLReader:
                 for i in range(1, len(exp)):
                     to_add.append((exp[i], cond))
             elif op == "when":
-                cond = self._parse_exp(problem, act, types_map, {}, exp[1], assignments)
+                cond = self._parse_exp(problem, act, types_map, {}, exp[1], complete_str, assignments)
                 cond = cond.simplify()
                 if not cond.is_false():
                     to_add.append((exp[2], cond))
             elif op == "not":
                 exp = exp[1]
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp, assignments),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp, complete_str, assignments
+                    ),
                     self._em.FALSE(),
                     cond,
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "assign":
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp[1], assignments),
-                    self._parse_exp(problem, act, types_map, {}, exp[2], assignments),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp[1], complete_str, assignments
+                    ),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp[2], complete_str, assignments
+                    ),
                     cond,
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "increase":
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp[1], assignments),
-                    self._parse_exp(problem, act, types_map, {}, exp[2], assignments),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp[1], complete_str, assignments
+                    ),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp[2], complete_str, assignments
+                    ),
                     cond,
                 )
                 act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp[1], assignments),
-                    self._parse_exp(problem, act, types_map, {}, exp[2], assignments),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp[1], complete_str, assignments
+                    ),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp[2], complete_str, assignments
+                    ),
                     cond,
                 )
                 act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
@@ -531,7 +574,9 @@ class PDDLReader:
                 action_assignments.append(exp)
             else:
                 eff = (
-                    self._parse_exp(problem, act, types_map, {}, exp, assignments),
+                    self._parse_exp(
+                        problem, act, types_map, {}, exp, complete_str, assignments
+                    ),
                     self._em.TRUE(),
                     cond,
                 )
@@ -543,6 +588,7 @@ class PDDLReader:
         act: up.model.DurativeAction,
         exp: CustomParseResults,
         types_map: TypesMap,
+        complete_str: str,
         vars: typing.Optional[Dict[str, up.model.Variable]] = None,
     ):
         to_add = [(exp, vars)]
@@ -564,14 +610,24 @@ class PDDLReader:
                 to_add.append((exp[2], vars))
             elif len(exp) == 3 and op == "at" and exp[1].value == "start":
                 cond = self._parse_exp(
-                    problem, act, types_map, {} if vars is None else vars, exp[2]
+                    problem,
+                    act,
+                    types_map,
+                    {} if vars is None else vars,
+                    exp[2],
+                    complete_str,
                 )
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
                 act.add_condition(up.model.StartTiming(), cond)
             elif len(exp) == 3 and op == "at" and exp[1].value == "end":
                 cond = self._parse_exp(
-                    problem, act, types_map, {} if vars is None else vars, exp[2]
+                    problem,
+                    act,
+                    types_map,
+                    {} if vars is None else vars,
+                    exp[2],
+                    complete_str,
                 )
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
@@ -581,13 +637,26 @@ class PDDLReader:
                     up.model.StartTiming(), up.model.EndTiming()
                 )
                 cond = self._parse_exp(
-                    problem, act, types_map, {} if vars is None else vars, exp[2]
+                    problem,
+                    act,
+                    types_map,
+                    {} if vars is None else vars,
+                    exp[2],
+                    complete_str,
                 )
                 if vars is not None:
                     cond = self._em.Forall(cond, *vars.values())
                 act.add_condition(t_all, cond)
             else:
-                raise SyntaxError(f"Not able to handle: {exp}")
+                start_line, start_col = exp.line_start(complete_str), exp.col_start(
+                    complete_str
+                )
+                end_line, end_col = exp.line_end(complete_str), exp.col_end(
+                    complete_str
+                )
+                raise SyntaxError(
+                    f"Not able to handle: {exp}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                )
 
     def _add_timed_effects(
         self,
@@ -598,6 +667,7 @@ class PDDLReader:
             Dict["up.model.Action", List[CustomParseResults]]
         ],
         eff: CustomParseResults,
+        complete_str: str,
         assignments: Dict[str, "up.model.Object"] = {},
     ):
         to_add = [eff]
@@ -614,6 +684,7 @@ class PDDLReader:
                     types_map,
                     universal_assignments,
                     eff[2],
+                    complete_str,
                     timing=up.model.StartTiming(),
                     assignments=assignments,
                 )
@@ -624,6 +695,7 @@ class PDDLReader:
                     types_map,
                     universal_assignments,
                     eff[2],
+                    complete_str,
                     timing=up.model.EndTiming(),
                     assignments=assignments,
                 )
@@ -632,7 +704,15 @@ class PDDLReader:
                 action_assignments = universal_assignments.setdefault(act, [])
                 action_assignments.append(eff)
             else:
-                raise SyntaxError(f"Not able to handle: {eff}")
+                start_line, start_col = eff.line_start(complete_str), eff.col_start(
+                    complete_str
+                )
+                end_line, end_col = eff.line_end(complete_str), eff.col_end(
+                    complete_str
+                )
+                raise SyntaxError(
+                    f"Not able to handle: {eff}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                )
 
     def _parse_subtask(
         self,
@@ -640,6 +720,7 @@ class PDDLReader:
         method: typing.Optional[Union[htn.Method, htn.TaskNetwork]],
         problem: htn.HierarchicalProblem,
         types_map: TypesMap,
+        complete_str: str,
     ) -> typing.Optional[htn.Subtask]:
         """Returns the Subtask corresponding to the given expression e or
         None if the expression cannot be interpreted as a subtask."""
@@ -656,14 +737,16 @@ class PDDLReader:
                 task = problem.action(task_name)
             assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
             parameters = [
-                self._parse_exp(problem, method, types_map, {}, e[i])
+                self._parse_exp(problem, method, types_map, {}, e[i], complete_str)
                 for i in range(1, len(e))
             ]
             return htn.Subtask(task, *parameters)
         elif len(e) == 2 and e[0].value != "and":
             # check the form "(task_id (task param1 param2...))"
             task_id = e[0].value
-            subtask = self._parse_subtask(e[1], method, problem, types_map)
+            subtask = self._parse_subtask(
+                e[1], method, problem, types_map, complete_str
+            )
             if subtask is not None:
                 # the second element of the list is a valid subtask,
                 # return the subtask, with the given identifier
@@ -675,13 +758,14 @@ class PDDLReader:
 
     def _parse_subtasks(
         self,
-        e,
+        e: CustomParseResults,
         method: typing.Optional[Union[htn.Method, htn.TaskNetwork]],
         problem: htn.HierarchicalProblem,
         types_map: TypesMap,
+        complete_str: str,
     ) -> List[htn.Subtask]:
         """Returns the list of subtasks of the expression"""
-        single_task = self._parse_subtask(e, method, problem, types_map)
+        single_task = self._parse_subtask(e, method, problem, types_map, complete_str)
         if single_task is not None:
             return [single_task]
         elif len(e) == 0:
@@ -690,10 +774,18 @@ class PDDLReader:
             return [
                 subtask
                 for i in range(1, len(e))
-                for subtask in self._parse_subtasks(e[i], method, problem, types_map)
+                for subtask in self._parse_subtasks(
+                    e[i], method, problem, types_map, complete_str
+                )
             ]
         else:
-            raise SyntaxError(f"Could not parse the subtasks list: {e}")
+            start_line, start_col = e.line_start(complete_str), e.col_start(
+                complete_str
+            )
+            end_line, end_col = e.line_end(complete_str), e.col_end(complete_str)
+            raise SyntaxError(
+                f"Could not parse the subtasks list: {e}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+            )
 
     def _check_if_object_type_is_needed(self, domain_res) -> bool:
         for p in domain_res.get("predicates", []):
@@ -778,7 +870,11 @@ class PDDLReader:
         return True
 
     def _parse_problem(
-        self, domain_res: ParseResults, problem_res: typing.Optional[ParseResults]
+        self,
+        domain_res: ParseResults,
+        domain_str: str,
+        problem_res: typing.Optional[ParseResults],
+        problem_str=typing.Optional[str],
     ) -> "up.model.Problem":
         problem: up.model.Problem
         if ":hierarchy" in set(domain_res.get("features", [])):
@@ -912,7 +1008,9 @@ class PDDLReader:
                 dur = CustomParseResults(a["duration"][0])
                 if dur[0].value == "=":
                     dur_act.set_fixed_duration(
-                        self._parse_exp(problem, dur_act, types_map, {}, dur[2])
+                        self._parse_exp(
+                            problem, dur_act, types_map, {}, dur[2], domain_str
+                        )
                     )
                 elif dur[0].value == "and":
                     upper = None
@@ -920,31 +1018,34 @@ class PDDLReader:
                     for j in range(1, len(dur)):
                         if dur[j][0].value == ">=" and lower is None:
                             lower = self._parse_exp(
-                                problem, dur_act, types_map, {}, dur[j][2]
+                                problem, dur_act, types_map, {}, dur[j][2], domain_str
                             )
                         elif dur[j][0].value == "<=" and upper is None:
                             upper = self._parse_exp(
-                                problem, dur_act, types_map, {}, dur[j][2]
+                                problem, dur_act, types_map, {}, dur[j][2], domain_str
                             )
                         else:
                             raise SyntaxError(
-                                f"Not able to handle duration constraint of action {n}"
+                                f"Not able to handle duration constraint of action {n}",
+                                f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                             )
                     if lower is None or upper is None:
                         raise SyntaxError(
-                            f"Not able to handle duration constraint of action {n}"
+                            f"Not able to handle duration constraint of action {n}",
+                            f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                         )
                     d = up.model.ClosedDurationInterval(lower, upper)
                     dur_act.set_duration_constraint(d)
                 else:
                     raise SyntaxError(
-                        f"Not able to handle duration constraint of action {n}"
+                        f"Not able to handle duration constraint of action {n}",
+                        f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                     )
                 cond = CustomParseResults(a["cond"][0])
-                self._add_condition(problem, dur_act, cond, types_map)
+                self._add_condition(problem, dur_act, cond, types_map, domain_str)
                 eff = CustomParseResults(a["eff"][0])
                 self._add_timed_effects(
-                    problem, dur_act, types_map, universal_assignments, eff
+                    problem, dur_act, types_map, universal_assignments, eff, domain_str
                 )
                 problem.add_action(dur_act)
                 has_actions_cost = has_actions_cost and self._durative_action_has_cost(
@@ -961,19 +1062,31 @@ class PDDLReader:
                         for i in range(1, len(obs_fluent)):
                             act.add_observed_fluent(
                                 self._parse_exp(
-                                    problem, act, types_map, {}, obs_fluent[i]
+                                    problem,
+                                    act,
+                                    types_map,
+                                    {},
+                                    obs_fluent[i],
+                                    domain_str,
                                 )
                             )
                     else:
                         act.add_observed_fluent(
-                            self._parse_exp(problem, act, types_map, {}, obs_fluent)
+                            self._parse_exp(
+                                problem, act, types_map, {}, obs_fluent, domain_str
+                            )
                         )
                 else:
                     act = up.model.InstantaneousAction(n, a_params, self._env)
                 if "pre" in a:
                     act.add_precondition(
                         self._parse_exp(
-                            problem, act, types_map, {}, CustomParseResults(a["pre"][0])
+                            problem,
+                            act,
+                            types_map,
+                            {},
+                            CustomParseResults(a["pre"][0]),
+                            domain_str,
                         )
                     )
                 if "eff" in a:
@@ -983,6 +1096,7 @@ class PDDLReader:
                         types_map,
                         universal_assignments,
                         CustomParseResults(a["eff"][0]),
+                        domain_str,
                     )
                 problem.add_action(act)
                 has_actions_cost = (
@@ -1005,7 +1119,8 @@ class PDDLReader:
                 pname = achieved_task[i].value
                 if pname[0] != "?":
                     raise SyntaxError(
-                        f"All arguments of the task should be parameters: {achieved_task}"
+                        f"All arguments of the task {achieved_task} should be parameters.",
+                        f"Line: {achieved_task.line_start(domain_str)}, col: {achieved_task.col_start(domain_str)}",
                     )
                 pnames.append(pname)
             achieved_task_params = [method.parameter(pname[1:]) for pname in pnames]
@@ -1014,13 +1129,15 @@ class PDDLReader:
             )
             if "ordered-subtasks" in m:
                 ost = CustomParseResults(m.get("ordered-subtasks")[0])
-                ord_subs = self._parse_subtasks(ost, method, problem, types_map)
+                ord_subs = self._parse_subtasks(
+                    ost, method, problem, types_map, domain_str
+                )
                 for s in ord_subs:
                     method.add_subtask(s)
                 method.set_ordered(*ord_subs)
             if "subtasks" in m:
                 st = CustomParseResults(m.get("subtasks")[0])
-                subs = self._parse_subtasks(st, method, problem, types_map)
+                subs = self._parse_subtasks(st, method, problem, types_map, domain_str)
                 for s in subs:
                     method.add_subtask(s)
             if "ordering" in m:
@@ -1037,14 +1154,16 @@ class PDDLReader:
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
                             raise SyntaxError(
-                                f"Wrong number of parameters in ordering relation: {ordering}"
+                                f"Wrong number of parameters in ordering relation: {ordering}",
+                                f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
                         left = method.get_subtask(ordering[1].value)
                         right = method.get_subtask(ordering[2].value)
                         method.set_strictly_before(left, right)
                     else:
                         raise SyntaxError(
-                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}",
+                            f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
             if "precondition" in m:
                 method.add_precondition(
@@ -1054,11 +1173,13 @@ class PDDLReader:
                         types_map,
                         {},
                         CustomParseResults(m["precondition"][0]),
+                        domain_str,
                     )
                 )
             problem.add_method(method)
 
         if problem_res is not None:
+            assert problem_str is not None
             problem.name = problem_res["name"]
 
             for g in problem_res.get("objects", []):
@@ -1094,6 +1215,7 @@ class PDDLReader:
                                 types_map,
                                 None,
                                 eff[2],
+                                domain_str,
                                 assignments=assignments,
                             )
                         elif isinstance(action, up.model.DurativeAction):
@@ -1103,6 +1225,7 @@ class PDDLReader:
                                 types_map,
                                 None,
                                 eff[2],
+                                domain_str,
                                 assignments=assignments,
                             )
                         else:
@@ -1126,6 +1249,7 @@ class PDDLReader:
                         problem.task_network,
                         problem,
                         types_map,
+                        problem_str,
                     )
                     for task in subtasks:
                         problem.task_network.add_subtask(task)
@@ -1137,6 +1261,7 @@ class PDDLReader:
                         problem.task_network,
                         problem,
                         types_map,
+                        problem_str,
                     )
                     prev = None
                     for task in subtasks:
@@ -1159,14 +1284,16 @@ class PDDLReader:
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
                             raise SyntaxError(
-                                f"Wrong number of parameters in ordering relation: {ordering}"
+                                f"Wrong number of parameters in ordering relation: {ordering}",
+                                f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
                         left = problem.task_network.get_subtask(ordering[1].value)
                         right = problem.task_network.get_subtask(ordering[2].value)
                         problem.task_network.set_strictly_before(left, right)
                     else:
                         raise SyntaxError(
-                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}",
+                            f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
 
                 cs = tasknet.get("constraints", None)
@@ -1176,7 +1303,12 @@ class PDDLReader:
                         constraint = constraints[i]
                         problem.task_network.add_constraint(
                             self._parse_exp(
-                                problem, problem.task_network, types_map, {}, constraint
+                                problem,
+                                problem.task_network,
+                                types_map,
+                                {},
+                                constraint,
+                                problem_str,
                             )
                         )
 
@@ -1188,8 +1320,12 @@ class PDDLReader:
                 operator = init[0].value
                 if operator == "=":
                     problem.set_initial_value(
-                        self._parse_exp(problem, None, types_map, {}, init[1]),
-                        self._parse_exp(problem, None, types_map, {}, init[2]),
+                        self._parse_exp(
+                            problem, None, types_map, {}, init[1], problem_str
+                        ),
+                        self._parse_exp(
+                            problem, None, types_map, {}, init[2], problem_str
+                        ),
                     )
                 elif (
                     len(init) == 3
@@ -1197,7 +1333,9 @@ class PDDLReader:
                     and init[1].value.replace(".", "", 1).isdigit()
                 ):
                     ti = up.model.StartTiming(Fraction(init[1].value))
-                    va = self._parse_exp(problem, None, types_map, {}, init[2])
+                    va = self._parse_exp(
+                        problem, None, types_map, {}, init[2], problem_str
+                    )
                     if va.is_fluent_exp():
                         problem.add_timed_effect(ti, va, self._em.TRUE())
                     elif va.is_not():
@@ -1205,18 +1343,25 @@ class PDDLReader:
                     elif va.is_equals():
                         problem.add_timed_effect(ti, va.arg(0), va.arg(1))
                     else:
-                        raise SyntaxError(f"Not able to handle this TIL {init}")
+                        raise SyntaxError(
+                            f"Not able to handle this TIL {init}",
+                            f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                        )
                 elif operator == "oneof":
                     assert isinstance(problem, ContingentProblem)
                     fluents = [
-                        self._parse_exp(problem, None, types_map, {}, init[x])
+                        self._parse_exp(
+                            problem, None, types_map, {}, init[x], problem_str
+                        )
                         for x in range(1, len(init))
                     ]
                     problem.add_oneof_initial_constraint(fluents)
                 elif operator == "or":
                     assert isinstance(problem, ContingentProblem)
                     fluents = [
-                        self._parse_exp(problem, None, types_map, {}, init[x])
+                        self._parse_exp(
+                            problem, None, types_map, {}, init[x], problem_str
+                        )
                         for x in range(1, len(init))
                     ]
                     problem.add_or_initial_constraint(fluents)
@@ -1224,13 +1369,18 @@ class PDDLReader:
                     assert isinstance(problem, ContingentProblem)
                     if len(init) != 2:
                         raise SyntaxError(
-                            "`unknown` constraint requires exactly one argument."
+                            "`unknown` constraint requires exactly one argument.",
+                            f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
-                    arg = self._parse_exp(problem, None, types_map, {}, init[1])
+                    arg = self._parse_exp(
+                        problem, None, types_map, {}, init[1], problem_str
+                    )
                     problem.add_unknown_initial_constraint(arg)
                 else:
                     problem.set_initial_value(
-                        self._parse_exp(problem, None, types_map, {}, init),
+                        self._parse_exp(
+                            problem, None, types_map, {}, init, problem_str
+                        ),
                         self._em.TRUE(),
                     )
 
@@ -1242,6 +1392,7 @@ class PDDLReader:
                         types_map,
                         {},
                         CustomParseResults(problem_res["goal"][0]),
+                        problem_str,
                     )
                 )
             elif not isinstance(problem, htn.HierarchicalProblem):
@@ -1255,6 +1406,7 @@ class PDDLReader:
                         types_map,
                         {},
                         CustomParseResults(problem_res["constraints"][0]),
+                        problem_str,
                     )
                 )
 
@@ -1273,7 +1425,9 @@ class PDDLReader:
                 ):
                     problem.add_quality_metric(up.model.metrics.MinimizeMakespan())
                 else:
-                    metric_exp = self._parse_exp(problem, None, types_map, {}, metric)
+                    metric_exp = self._parse_exp(
+                        problem, None, types_map, {}, metric, problem_str
+                    )
                     if (
                         has_actions_cost
                         and optimization == "minimize"
@@ -1340,13 +1494,15 @@ class PDDLReader:
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        domain_res = self._pp_domain.parse_file(domain_filename, parse_all=True)
+        with open(domain_filename, "r") as domain_file:
+            domain_str = domain_file.read()
 
-        problem_res = None
+        problem_str = None
         if problem_filename is not None:
-            problem_res = self._pp_problem.parse_file(problem_filename, parse_all=True)
+            with open(problem_filename, "r") as problem_file:
+                problem_str = problem_file.read()
 
-        return self._parse_problem(domain_res, problem_res)
+        return self.parse_problem_string(domain_str, problem_str)
 
     def parse_problem_string(
         self, domain_str: str, problem_str: typing.Optional[str] = None
@@ -1366,5 +1522,4 @@ class PDDLReader:
             problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
         else:
             problem_res = None
-
-        return self._parse_problem(domain_res, problem_res)
+        return self._parse_problem(domain_res, domain_str, problem_res, problem_str)
