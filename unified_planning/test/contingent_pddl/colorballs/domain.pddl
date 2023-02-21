@@ -3,8 +3,9 @@
 
    (:requirements :strips :typing :contingent)
    (:types pos obj col gar)
-   (:predicates (color ?o ?c) (trashed ?o) (garbage-color ?t ?c) (garbage-at ?t ?p)
-                (adj ?i ?j)  (at ?i) (holding ?o) (obj-at ?o ?i) )
+
+   (:predicates (color ?o - obj ?c - col) (trashed ?o - obj) (garbage-color ?t - gar ?c - col) (garbage-at ?t - gar ?p - pos)
+                (adj ?i - pos ?j - pos)  (at ?i - pos) (holding ?o - obj) (obj-at ?o - obj ?i - pos) )
 
    (:action observe-color
      :parameters (?c - col ?o - obj)

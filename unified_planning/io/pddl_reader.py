@@ -871,14 +871,14 @@ class PDDLReader:
     def _check_if_object_type_is_needed(self, domain_res) -> bool:
         for p in domain_res.get("predicates", []):
             for g in p[1]:
-                if len(g) <= 1 or g[1] == Object:
+                if len(g.value) <= 1 or g.value[1] == Object:
                     return True
         for p in domain_res.get("functions", []):
             for g in p[1]:
-                if len(g) <= 1 or g[1] == Object:
+                if len(g.value) <= 1 or g.value[1] == Object:
                     return True
         for g in domain_res.get("constants", []):
-            if len(g) <= 1 or g[1] == Object:
+            if len(g.value) <= 1 or g.value[1] == Object:
                 return True
         for a in domain_res.get("actions", []):
             for g in a.get("params", []):
@@ -1426,14 +1426,15 @@ class PDDLReader:
                 oq = tasknet.get("ordering", None)
                 stack = []
                 if oq:
-                    stack.append(CustomParseResults(oq))
+                    stack.append(CustomParseResults(oq[0]))
                 while len(stack) > 0:
                     ordering = stack.pop(0)
                     if len(ordering) == 0:
                         pass
                     elif ordering[0].value == "and":
                         # add the rest of the expression to the queue
-                        stack += ordering[1:]
+                        for i in range(1, len(ordering)):
+                            stack.append(ordering[i])
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
                             raise SyntaxError(
@@ -1451,7 +1452,7 @@ class PDDLReader:
 
                 cs = tasknet.get("constraints", None)
                 if cs:
-                    constraints = CustomParseResults(cs)
+                    constraints = CustomParseResults(cs[0])
                     for i in range(len(constraints)):
                         constraint = constraints[i]
                         problem.task_network.add_constraint(
