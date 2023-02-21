@@ -43,9 +43,11 @@ def basic():
 
 def resource_set():
     def create_resource_set(name: str, capacity: int):
+        # create n objects: one for each element in the resource set
         rtype = UserType(f"rset_{name}")
         for i in range(capacity):
             pb.add_object(f"{name}{i}", rtype)
+        # create a fluent that will create a state-variable in [0,1] for each resource object
         fluent = pb.add_fluent(
             f"rset_{name}",
             typename=IntType(0, 1),
@@ -54,10 +56,12 @@ def resource_set():
         )
         return fluent, rtype
 
-    def use_resource_set(activity, fluent, rtype):
-        var = activity.add_parameter("used_resource_instance", rtype)
-        activity.add_decrease_effect(activity.start, fluent(var), 1)
-        activity.add_increase_effect(activity.end, fluent(var), 1)
+    def use_resource_set(activity, resource_fluent, resource_object_type):
+        # create a variable whose value will identify the resource object to use
+        var = activity.add_parameter("used_resource_instance", resource_object_type)
+        # use the resource pointed out by our variable
+        activity.add_decrease_effect(activity.start, resource_fluent(var), 1)
+        activity.add_increase_effect(activity.end, resource_fluent(var), 1)
 
     pb = SchedulingProblem(name="sched:resource_set")
     resource_set_fluent, resource_set_parameter_type = create_resource_set("R", 4)
@@ -65,6 +69,3 @@ def resource_set():
     use_resource_set(act, resource_set_fluent, resource_set_parameter_type)
 
     return Example(pb, None)
-
-
-resource_set()

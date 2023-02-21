@@ -40,12 +40,12 @@ def parse(instance: str, instance_name: str):
     first_times_line = 1
     last_times_line = first_times_line + num_jobs - 1
     times = int_matrix(lines[first_times_line : last_times_line + 1])
-    print("Times: ", times)
+    # print("Times: ", times)
 
     first_machine_line = last_times_line + 2
     last_machine_line = first_machine_line + num_jobs - 1
     machines = int_matrix(lines[first_machine_line : last_machine_line + 1])
-    print("Machines: ", machines)
+    # print("Machines: ", machines)
 
     problem = unified_planning.model.scheduling.SchedulingProblem(
         f"sched:jobshop-{instance_name}"
