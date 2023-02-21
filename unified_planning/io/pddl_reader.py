@@ -1295,9 +1295,8 @@ class PDDLReader:
                 for s in subs:
                     method.add_subtask(s)
             if "ordering" in m:
-                orderings = CustomParseResults(m.get("ordering"))
-                stack = [orderings]
-                while len(stack) > 0:
+                stack = [CustomParseResults(m.get("ordering")[0])]
+                while stack:
                     ordering = stack.pop(0)
                     if len(ordering) == 0:
                         pass
