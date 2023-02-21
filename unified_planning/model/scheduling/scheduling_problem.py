@@ -6,15 +6,14 @@ import unified_planning as up
 from unified_planning.model import Type, Parameter, Timepoint, TimepointKind, Timing, Fluent, FNode, TimeInterval
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle
+from unified_planning.model.problem import Problem
 
 
 def todo():
     raise NotImplementedError
 
 
-
-
-class SchedulingProblem(up.model.problem.Problem):
+class SchedulingProblem(Problem):
     """A scheduling problem shares most of its construct with a planning problem with the following differences:
        - there are no action in a scheduling problem
        - it defines a set of variables and timepoints over which constraints can be stated
@@ -38,7 +37,7 @@ class SchedulingProblem(up.model.problem.Problem):
             ],
         ] = {},
     ):
-        super().__init__(name=name, env=env, initial_defaults=initial_defaults)
+        super().__init__(name=name, environment=env, initial_defaults=initial_defaults)
 
         self._base: Chronicle = Chronicle(":", _env=env)
         self._activities: List[Activity] = []

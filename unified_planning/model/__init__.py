@@ -74,6 +74,7 @@ from unified_planning.model.metrics import (
     Oversubscription,
 )
 import unified_planning.model.multi_agent
+import unified_planning.model.scheduling
 
 __all__ = [
     "Action",

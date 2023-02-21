@@ -63,7 +63,7 @@ for j in range(num_jobs):
         act.uses(operators, amount=1)
 
         if prev_in_job is not None:
-            act.add_constraint(get_env().expression_manager.LE(prev_in_job.end, act.start))
+            act.add_constraint(get_environment().expression_manager.LE(prev_in_job.end, act.start))
         prev_in_job = act
 
 

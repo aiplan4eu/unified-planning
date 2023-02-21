@@ -3,7 +3,7 @@ from typing import *
 
 import unified_planning as up
 from unified_planning import Environment
-from unified_planning.environment import get_env
+from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPProblemDefinitionError
 
 
@@ -19,7 +19,7 @@ class Chronicle:
     ):
 
         self._duration = None
-        self._env = get_env(_env)
+        self._env = get_environment(_env)
         self._name = _name
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()

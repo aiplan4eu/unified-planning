@@ -1,6 +1,5 @@
 from typing import Optional
 
-from unified_planning.environment import get_env
 from unified_planning.model import Timepoint, Timing, TimepointKind, Fluent, Type, Parameter
 from unified_planning.model.scheduling.chronicle import Chronicle
 
