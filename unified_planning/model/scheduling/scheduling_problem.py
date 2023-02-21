@@ -223,22 +223,3 @@ class SchedulingProblem(
         if isinstance(timing, int):
             timing = GlobalStartTiming(timing)
         self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
-
-
-if __name__ == "__main__":
-
-    # red = predicate("red")
-    # r1 = Resource()
-    # r2 = Resource()
-    #
-    # red(r1);
-    # red(r3)
-    #
-    # lvl = Fluent("lvl", r=Resource, [0,1])
-    #
-    #
-    # dvar r_of_a1: Resource
-    # red(r_of_a1) == true
-    # at start(a1)    lvl(r_of_a1) decrease by 1
-
-    print(pb)
