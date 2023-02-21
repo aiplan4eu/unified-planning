@@ -22,10 +22,10 @@ from unified_planning.model.mixins import (
     FluentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
+    InitialStateMixin,
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
-from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
@@ -41,6 +41,7 @@ class Problem(
     FluentsSetMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
+    InitialStateMixin,
 ):
     """
     Represents the classical planning problem, with :class:`Actions <unified_planning.model.Action>`, :class:`Fluents <unified_planning.model.Fluent>`, :class:`Objects <unified_planning.model.Object>` and :class:`UserTypes <unified_planning.model.Type>`.
@@ -66,8 +67,8 @@ class Problem(
         ObjectsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
+        InitialStateMixin.__init__(self, self, self, self.environment)
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
-        self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
         ] = {}
@@ -104,7 +105,7 @@ class Problem(
                 s.append(f"  {str(f)} := {str(v)}\n")
         s.append("]\n\n")
         s.append("initial values = [\n")
-        for k, v in self._initial_value.items():
+        for k, v in self.explicit_initial_values.items():
             s.append(f"  {str(k)} := {str(v)}\n")
         s.append("]\n\n")
         if len(self.timed_effects) > 0:
@@ -154,16 +155,8 @@ class Problem(
             return False
         if set(self._trajectory_constraints) != set(oth._trajectory_constraints):
             return False
-        oth_initial_values = oth.initial_values
-        initial_values = self.initial_values
-        if len(initial_values) != len(oth_initial_values):
+        if not self._eq_initial_state(oth):
             return False
-        for fluent, value in initial_values.items():
-            oth_value = oth_initial_values.get(fluent, None)
-            if oth_value is None:
-                return False
-            elif value != oth_value:
-                return False
         if len(self._timed_effects) != len(oth._timed_effects):
             return False
         for t, tel in self._timed_effects.items():
@@ -307,80 +300,6 @@ class Problem(
                 if e.fluent.fluent() in static_fluents:
                     static_fluents.remove(e.fluent.fluent())
         return static_fluents
-
-    def set_initial_value(
-        self,
-        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
-        value: Union[
-            "up.model.fnode.FNode",
-            "up.model.fluent.Fluent",
-            "up.model.object.Object",
-            bool,
-            int,
-            float,
-            Fraction,
-        ],
-    ):
-        """
-        Sets the initial value for the given `Fluent`. The given `Fluent` must be grounded, therefore if
-        it's :func:`arity <unified_planning.model.Fluent.arity>` is `> 0`, the `fluent` parameter must be
-        an `FNode` and the method :func:`~unified_planning.model.FNode.is_fluent_exp` must return `True`.
-
-        :param fluent: The grounded `Fluent` of which the initial value must be set.
-        :param value: The `value` assigned in the initial state to the given `fluent`.
-        """
-        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("Initial value assignment has not compatible types!")
-        self._initial_value[fluent_exp] = value_exp
-
-    def initial_value(
-        self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
-    ) -> "up.model.fnode.FNode":
-        """
-        Retrieves the initial value assigned to the given `fluent`.
-
-        :param fluent: The target `fluent` of which the `value` in the initial state must be retrieved.
-        :return: The `value` expression assigned to the given `fluent` in the initial state.
-        """
-        (fluent_exp,) = self._env.expression_manager.auto_promote(fluent)
-        for a in fluent_exp.args:
-            if not a.is_constant():
-                raise UPExpressionDefinitionError(
-                    f"Impossible to return the initial value of a fluent expression with no constant arguments: {fluent_exp}."
-                )
-        if fluent_exp in self._initial_value:
-            return self._initial_value[fluent_exp]
-        elif fluent_exp.fluent() in self._fluents_defaults:
-            return self._fluents_defaults[fluent_exp.fluent()]
-        else:
-            raise UPProblemDefinitionError("Initial value not set!")
-
-    @property
-    def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """
-        Gets the initial value of all the grounded fluents present in the `Problem`.
-
-        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible.
-        """
-        res = self._initial_value
-        for f in self._fluents:
-            for f_exp in get_all_fluent_exp(self, f):
-                res[f_exp] = self.initial_value(f_exp)
-        return res
-
-    @property
-    def explicit_initial_values(
-        self,
-    ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """
-        Returns the problem's defined initial values; those are only the initial values set with the
-        :func:`~unified_planning.model.Problem.set_initial_value` method.
-
-        IMPORTANT NOTE: For all the initial values of the problem use :func:`initial_values <unified_planning.model.Problem.initial_values>`.
-        """
-        return self._initial_value
 
     def add_timed_goal(
         self,
