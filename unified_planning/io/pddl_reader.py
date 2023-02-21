@@ -134,7 +134,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":constants"
             - ZeroOrMore(
-                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
+                Group(Located(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe)))
             ).setResultsName("constants")
             + Suppress(")")
         )
@@ -146,7 +146,10 @@ class PDDLGrammar:
                 + Group(
                     ZeroOrMore(
                         Group(
-                            Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe)
+                            Located(
+                                Group(OneOrMore(variable))
+                                + Optional(Suppress("-") + tpe)
+                            )
                         )
                     )
                 )
@@ -337,6 +340,8 @@ class PDDLGrammar:
 class PDDLReader:
     """
     Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
+
+    Note: in the error report messages, a tabulation counts as one column.
     """
 
     def __init__(self, environment: typing.Optional[Environment] = None):
@@ -409,11 +414,29 @@ class PDDLReader:
                 elif problem.has_fluent(exp[0].value):  # fluent reference
                     f = problem.fluent(exp[0].value)
                     args = [solved.pop() for _ in range(1, len(exp))]
-                    solved.append(self._em.FluentExp(f, tuple(args)))
+                    try:
+                        solved.append(self._em.FluentExp(f, tuple(args)))
+                    except Exception as e:
+                        start_line, start_col = exp.line_start(
+                            complete_str
+                        ), exp.col_start(complete_str)
+                        end_line, end_col = exp.line_end(complete_str), exp.col_end(
+                            complete_str
+                        )
+                        raise SyntaxError(
+                            repr(e)
+                            + f"\nError from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                        )
                 elif exp[0].value in assignments:  # quantified assignment variable
                     assert len(exp) == 1
                     solved.append(self._em.ObjectExp(assignments[exp[0].value]))
                 else:
+                    start_line, start_col = exp.line_start(complete_str), exp.col_start(
+                        complete_str
+                    )
+                    end_line, end_col = exp.line_end(complete_str), exp.col_end(
+                        complete_str
+                    )
                     raise up.exceptions.UPUnreachableCodeError(
                         f"Invalid expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                     )
@@ -433,7 +456,21 @@ class PDDLReader:
                         vars_res = self._pp_parameters.parseString(vars_string)
                         new_vars = {}
                         for g in vars_res["params"]:
-                            t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                            try:
+                                t = types_map[
+                                    g.value[1] if len(g.value) > 1 else Object
+                                ]
+                            except KeyError:
+                                g_start_line, g_start_col = lineno(
+                                    g.locn_start, complete_str
+                                ), col(g.locn_start, complete_str)
+                                g_end_line, g_end_col = lineno(
+                                    g.locn_end, complete_str
+                                ), col(g.locn_end, complete_str)
+                                raise SyntaxError(
+                                    f"Undefined variable's type: {g[1]}."
+                                    + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                                )
                             for o in g.value[0]:
                                 new_vars[o] = up.model.Variable(o, t, self._env)
                         # new_vars are the variables defined by the quantifier currently being solved
@@ -458,8 +495,14 @@ class PDDLReader:
                     elif len(exp) == 1:  # expand an element inside brackets
                         stack.append((var, exp[0], False))
                     else:
+                        start_line, start_col = exp.line_start(
+                            complete_str
+                        ), exp.col_start(complete_str)
+                        end_line, end_col = exp.line_end(complete_str), exp.col_end(
+                            complete_str
+                        )
                         raise SyntaxError(
-                            f"Not able to handle: {exp} found at line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                            f"Not able to handle: {complete_str[exp.locn_start: exp.locn_end]} found at line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                         )
                 elif isinstance(exp.value, str):
                     if (
@@ -470,9 +513,21 @@ class PDDLReader:
                         solved.append(self._em.ObjectExp(assignments[exp.value]))
                     elif exp.value[0] == "?":  # action parameter
                         assert act is not None
-                        solved.append(
-                            self._em.ParameterExp(act.parameter(exp.value[1:]))
-                        )
+                        try:
+                            solved.append(
+                                self._em.ParameterExp(act.parameter(exp.value[1:]))
+                            )
+                        except KeyError:
+                            start_line, start_col = exp.line_start(
+                                complete_str
+                            ), exp.col_start(complete_str)
+                            end_line, end_col = exp.line_end(complete_str), exp.col_end(
+                                complete_str
+                            )
+                            raise SyntaxError(
+                                f"Undefined name found: {exp.value[1:]}.\nError in expression from"
+                                + f" line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                            )
                     elif problem.has_fluent(exp.value):  # fluent
                         solved.append(self._em.FluentExp(problem.fluent(exp.value)))
                     elif problem.has_object(exp.value):  # object
@@ -481,14 +536,26 @@ class PDDLReader:
                         try:
                             n = Fraction(exp.value)
                         except ValueError:
+                            start_line, start_col = exp.line_start(
+                                complete_str
+                            ), exp.col_start(complete_str)
+                            end_line, end_col = exp.line_end(complete_str), exp.col_end(
+                                complete_str
+                            )
                             raise SyntaxError(
-                                f"Expected number, found {exp} in expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                                f"Found invalid expression: {complete_str[exp.locn_start:exp.locn_end]}. From line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                             )
                         if n.denominator == 1:
                             solved.append(self._em.Int(n.numerator))
                         else:
                             solved.append(self._em.Real(n))
                 else:
+                    start_line, start_col = exp.line_start(complete_str), exp.col_start(
+                        complete_str
+                    )
+                    end_line, end_col = exp.line_end(complete_str), exp.col_end(
+                        complete_str
+                    )
                     raise SyntaxError(
                         f"Not able to handle: {exp}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                     )
@@ -606,7 +673,19 @@ class PDDLReader:
                 if vars is None:
                     vars = {}
                 for g in vars_res["params"]:
-                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                    try:
+                        t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                    except KeyError:
+                        g_start_line, g_start_col = lineno(
+                            g.locn_start, complete_str
+                        ), col(g.locn_start, complete_str)
+                        g_end_line, g_end_col = lineno(g.locn_end, complete_str), col(
+                            g.locn_end, complete_str
+                        )
+                        raise SyntaxError(
+                            f"Undefined variable's type: {g[1]}."
+                            + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                        )
                     for o in g.value[0]:
                         vars[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], vars))
@@ -950,8 +1029,8 @@ class PDDLReader:
             problem._add_user_type(types_map[type])
 
         # declare all types
-        for type, father_name in type_declarations.items():
-            declare_type(type, father_name)
+        for declared_type, father_name in type_declarations.items():
+            declare_type(declared_type, father_name)
 
         if object_type_needed and Object not in types_map:
             # The object type is needed, but has not been defined explicitly. We manually define it
@@ -963,8 +1042,20 @@ class PDDLReader:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
-                param_type = types_map[g[1] if len(g) > 1 else Object]
-                for param_name in g[0]:
+                try:
+                    param_type = types_map[g.value[1] if len(g.value) > 1 else Object]
+                except KeyError:
+                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                        g.locn_start, domain_str
+                    )
+                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                        g.locn_end, domain_str
+                    )
+                    raise SyntaxError(
+                        f"Undefined parameter's type: {g.value[1]}."
+                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    )
+                for param_name in g.value[0]:
                     params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
@@ -973,9 +1064,34 @@ class PDDLReader:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
-                param_type = types_map[g[1] if len(g) > 1 else Object]
-                for param_name in g[0]:
-                    params[param_name] = param_type
+                g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                    g.locn_start, domain_str
+                )
+                g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                    g.locn_end, domain_str
+                )
+                try:
+                    param_type = types_map[g.value[1] if len(g.value) > 1 else Object]
+                except KeyError:
+                    raise SyntaxError(
+                        f"Undefined parameter's type: {g.value[1]}."
+                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    )
+                for param_name in g.value[0]:
+                    if param_name not in params:
+                        params[param_name] = param_type
+                    else:
+                        g_start_line, g_start_col = lineno(
+                            g.locn_start, domain_str
+                        ), col(g.locn_start, domain_str)
+                        g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                            g.locn_end, domain_str
+                        )
+                        raise SyntaxError(
+                            f"In definition of function {n} the parameter {param_name} "
+                            + f"is defined twice.\nError from line: {g_start_line}, col: {g_start_col}"
+                            + f" to line: {g_end_line}, col: {g_end_col}."
+                        )
             f = up.model.Fluent(n, self._tm.RealType(), params, self._env)
             if n == "total-cost":
                 has_actions_cost = True
@@ -983,8 +1099,20 @@ class PDDLReader:
             problem.add_fluent(f)
 
         for g in domain_res.get("constants", []):
-            t = types_map[g[1] if len(g) > 1 else Object]
-            for o in g[0]:
+            try:
+                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+            except KeyError:
+                g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                    g.locn_start, domain_str
+                )
+                g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                    g.locn_end, domain_str
+                )
+                raise SyntaxError(
+                    f"Undefined variable's type: {g.value[1]}."
+                    + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                )
+            for o in g.value[0]:
                 problem.add_object(up.model.Object(o, t, problem.environment))
 
         for task in domain_res.get("tasks", []):
@@ -992,7 +1120,19 @@ class PDDLReader:
             name = task["name"]
             task_params = OrderedDict()
             for g in task.get("params", []):
-                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                try:
+                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                except KeyError:
+                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                        g.locn_start, domain_str
+                    )
+                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                        g.locn_end, domain_str
+                    )
+                    raise SyntaxError(
+                        f"Undefined parameter's type: {g.value[1]}."
+                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    )
                 for p in g.value[0]:
                     task_params[p] = t
             task = htn.Task(name, task_params)
@@ -1002,7 +1142,19 @@ class PDDLReader:
             n = a["name"]
             a_params = OrderedDict()
             for g in a.get("params", []):
-                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                try:
+                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                except KeyError:
+                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                        g.locn_start, domain_str
+                    )
+                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                        g.locn_end, domain_str
+                    )
+                    raise SyntaxError(
+                        f"Undefined parameter's type: {g.value[1]}."
+                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    )
                 for p in g.value[0]:
                     a_params[p] = t
             if "duration" in a:
@@ -1028,20 +1180,20 @@ class PDDLReader:
                             )
                         else:
                             raise SyntaxError(
-                                f"Not able to handle duration constraint of action {n}",
-                                f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
+                                f"Not able to handle duration constraint of action {n}"
+                                + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                             )
                     if lower is None or upper is None:
                         raise SyntaxError(
-                            f"Not able to handle duration constraint of action {n}",
-                            f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
+                            f"Not able to handle duration constraint of action {n}"
+                            + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                         )
                     d = up.model.ClosedDurationInterval(lower, upper)
                     dur_act.set_duration_constraint(d)
                 else:
                     raise SyntaxError(
-                        f"Not able to handle duration constraint of action {n}",
-                        f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
+                        f"Not able to handle duration constraint of action {n}"
+                        + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                     )
                 cond = CustomParseResults(a["cond"][0])
                 self._add_condition(problem, dur_act, cond, types_map, domain_str)
@@ -1121,8 +1273,8 @@ class PDDLReader:
                 pname = achieved_task[i].value
                 if pname[0] != "?":
                     raise SyntaxError(
-                        f"All arguments of the task {achieved_task} should be parameters.",
-                        f"Line: {achieved_task.line_start(domain_str)}, col: {achieved_task.col_start(domain_str)}",
+                        f"All arguments of the task {achieved_task} should be parameters."
+                        + f"Line: {achieved_task.line_start(domain_str)}, col: {achieved_task.col_start(domain_str)}",
                     )
                 pnames.append(pname)
             achieved_task_params = [method.parameter(pname[1:]) for pname in pnames]
@@ -1156,16 +1308,16 @@ class PDDLReader:
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
                             raise SyntaxError(
-                                f"Wrong number of parameters in ordering relation: {ordering}",
-                                f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                                f"Wrong number of parameters in ordering relation: {ordering}"
+                                + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
                         left = method.get_subtask(ordering[1].value)
                         right = method.get_subtask(ordering[2].value)
                         method.set_strictly_before(left, right)
                     else:
                         raise SyntaxError(
-                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}",
-                            f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                            + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
             if "precondition" in m:
                 method.add_precondition(
@@ -1286,16 +1438,16 @@ class PDDLReader:
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
                             raise SyntaxError(
-                                f"Wrong number of parameters in ordering relation: {ordering}",
-                                f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                                f"Wrong number of parameters in ordering relation: {ordering}"
+                                + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
                         left = problem.task_network.get_subtask(ordering[1].value)
                         right = problem.task_network.get_subtask(ordering[2].value)
                         problem.task_network.set_strictly_before(left, right)
                     else:
                         raise SyntaxError(
-                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}",
-                            f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                            f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
+                            + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
 
                 cs = tasknet.get("constraints", None)
@@ -1334,7 +1486,18 @@ class PDDLReader:
                     and operator == "at"
                     and init[1].value.replace(".", "", 1).isdigit()
                 ):
-                    ti = up.model.StartTiming(Fraction(init[1].value))
+                    try:
+                        ti = up.model.StartTiming(Fraction(init[1].value))
+                    except ValueError:
+                        start_line, start_col = init.line_start(
+                            problem_str
+                        ), init.col_start(problem_str)
+                        end_line, end_col = init.line_end(problem_str), init.col_end(
+                            problem_str
+                        )
+                        raise SyntaxError(
+                            f"Expected number, found {init[1].value} in expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                        )
                     va = self._parse_exp(
                         problem, None, types_map, {}, init[2], problem_str
                     )
@@ -1346,8 +1509,8 @@ class PDDLReader:
                         problem.add_timed_effect(ti, va.arg(0), va.arg(1))
                     else:
                         raise SyntaxError(
-                            f"Not able to handle this TIL {init}",
-                            f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                            f"Not able to handle this TIL {init}"
+                            + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
                 elif operator == "oneof":
                     assert isinstance(problem, ContingentProblem)
@@ -1371,8 +1534,8 @@ class PDDLReader:
                     assert isinstance(problem, ContingentProblem)
                     if len(init) != 2:
                         raise SyntaxError(
-                            "`unknown` constraint requires exactly one argument.",
-                            f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                            "`unknown` constraint requires exactly one argument."
+                            + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
                     arg = self._parse_exp(
                         problem, None, types_map, {}, init[1], problem_str
@@ -1519,9 +1682,11 @@ class PDDLReader:
         :param problem_filename: Optionally the string representing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
+        domain_str = domain_str.replace("\t", " ")
         domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
 
         if problem_str is not None:
+            problem_str = problem_str.replace("\t", " ")
             problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
         else:
             problem_res = None
