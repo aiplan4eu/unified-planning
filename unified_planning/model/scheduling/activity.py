@@ -1,5 +1,6 @@
 from typing import Optional
 
+from unified_planning.environment import get_environment
 from unified_planning.model import (
     Timepoint,
     Timing,
@@ -46,4 +47,4 @@ class Activity(Chronicle):
         return param
 
     def set_release_date(self, date: int):
-        self.add_constraint(get_env().expression_manager.LE(date, self._start))
+        self.add_constraint(get_environment().expression_manager.LE(date, self._start))

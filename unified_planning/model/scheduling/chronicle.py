@@ -537,8 +537,4 @@ class Chronicle:
                 fluents_inc_dec.add(effect.fluent)
             else:
                 raise NotImplementedError
-        if simulated_effect is not None and effect.fluent in simulated_effect.fluents:
-            raise UPConflictingEffectsException(
-                f"The effect {effect} is in conflict with the simulated effects already in the action."
-            )
         self._effects.setdefault(timing, []).append(effect)
