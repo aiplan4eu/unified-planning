@@ -18,6 +18,7 @@ from unified_planning.model import (
 )
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle
+from unified_planning.model.timing import GlobalStartTiming
 
 
 class SchedulingProblem(
@@ -192,30 +193,36 @@ class SchedulingProblem(
 
     def add_effect(
         self,
-        timing: "up.model.timing.Timing",
+        timing: Union[int, "up.model.timing.Timing"],
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        self._base.add_effect(timing, fluent, value, condition)
+        if isinstance(timing, int):
+            timing = GlobalStartTiming(timing)
+        self._base.add_effect(timing, fluent, value, condition)  # type: ignore
 
     def add_increase_effect(
         self,
-        timing: "up.model.timing.Timing",
+        timing: Union[int, "up.model.timing.Timing"],
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        self._base.add_increase_effect(timing, fluent, value, condition)
+        if isinstance(timing, int):
+            timing = GlobalStartTiming(timing)
+        self._base.add_increase_effect(timing, fluent, value, condition)  # type: ignore
 
     def add_decrease_effect(
         self,
-        timing: "up.model.timing.Timing",
+        timing: Union[int, "up.model.timing.Timing"],
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        self._base.add_decrease_effect(timing, fluent, value, condition)
+        if isinstance(timing, int):
+            timing = GlobalStartTiming(timing)
+        self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
 
 
 if __name__ == "__main__":
