@@ -47,4 +47,7 @@ class Activity(Chronicle):
         return param
 
     def set_release_date(self, date: int):
-        self.add_constraint(get_environment().expression_manager.LE(date, self._start))
+        self.add_constraint(get_environment().expression_manager.LE(date, self.start))
+
+    def set_deadline(self, date: int):
+        self.add_constraint(get_environment().expression_manager.LE(self.end, date))
