@@ -18,9 +18,23 @@ from typing import Tuple, List
 
 
 class Path:
+    """
+    This class represents a geometric path.
+    A geometric path is a list of waypoints,
+    either in the joint space or in the operating space of the robot,
+    usually bringing the robot from an initial to a final configuration.
+    """
+
     pass
 
 
 @dataclass(eq=True, frozen=True)
 class ReedsSheppPath(Path):
+    """
+    This class represents a ReedsShepp Path.
+    It is composed of a list of tuple where:
+    - the first element is the waypoint (e.g., pose of the robot in N-d space);
+    - the second element is the steering to be applied at that waypoint.
+    """
+
     path: List[Tuple[Tuple[float, ...], float]]
