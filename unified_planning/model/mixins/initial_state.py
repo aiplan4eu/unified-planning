@@ -2,7 +2,11 @@ from fractions import Fraction
 from typing import Union, Dict
 
 import unified_planning as up
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError, UPExpressionDefinitionError
+from unified_planning.exceptions import (
+    UPProblemDefinitionError,
+    UPTypeError,
+    UPExpressionDefinitionError,
+)
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.mixins import ObjectsSetMixin, FluentsSetMixin
 
@@ -10,10 +14,12 @@ from unified_planning.model.mixins import ObjectsSetMixin, FluentsSetMixin
 class InitialStateMixin:
     """A Problem mixin that allows setting and infering the value of fluents in the initial state."""
 
-    def __init__(self,
-                 object_set: ObjectsSetMixin,
-                 fluent_set: FluentsSetMixin,
-                 environment: "up.environment.Environment"):
+    def __init__(
+        self,
+        object_set: ObjectsSetMixin,
+        fluent_set: FluentsSetMixin,
+        environment: "up.environment.Environment",
+    ):
         self._object_set = object_set
         self._fluent_set = fluent_set
         self._env = environment

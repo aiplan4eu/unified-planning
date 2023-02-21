@@ -23,9 +23,12 @@ Machines
 
 lines = instance.splitlines()
 
+
 def ints(line: str) -> List[int]:
     return list(map(int, line.rstrip().split()))
-def int_matrix(lines) -> List[List[int]]   :
+
+
+def int_matrix(lines) -> List[List[int]]:
     return list(map(ints, lines))
 
 
@@ -36,17 +39,19 @@ num_machines = sizes[1]
 
 first_times_line = 1
 last_times_line = first_times_line + num_jobs - 1
-times = int_matrix(lines[first_times_line:last_times_line +1])
+times = int_matrix(lines[first_times_line : last_times_line + 1])
 print("Times: ", times)
 
 
 first_machine_line = last_times_line + 2
 last_machine_line = first_machine_line + num_jobs - 1
-machines = int_matrix(lines[first_machine_line:last_machine_line+1])
+machines = int_matrix(lines[first_machine_line : last_machine_line + 1])
 print("Machines: ", machines)
 
-problem = unified_planning.model.scheduling.SchedulingProblem(f'jobshop-{instance_name}')
-machine_objects =[problem.add_resource(f"m{i}") for i in range(1, num_machines+1)]
+problem = unified_planning.model.scheduling.SchedulingProblem(
+    f"jobshop-{instance_name}"
+)
+machine_objects = [problem.add_resource(f"m{i}") for i in range(1, num_machines + 1)]
 
 # use the jobshop with operators extension: each activity requires an operator
 # for its duration
@@ -63,7 +68,9 @@ for j in range(num_jobs):
         act.uses(operators, amount=1)
 
         if prev_in_job is not None:
-            act.add_constraint(get_environment().expression_manager.LE(prev_in_job.end, act.start))
+            act.add_constraint(
+                get_environment().expression_manager.LE(prev_in_job.end, act.start)
+            )
         prev_in_job = act
 
 

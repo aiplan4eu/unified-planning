@@ -1,6 +1,13 @@
 from typing import Optional
 
-from unified_planning.model import Timepoint, Timing, TimepointKind, Fluent, Type, Parameter
+from unified_planning.model import (
+    Timepoint,
+    Timing,
+    TimepointKind,
+    Fluent,
+    Type,
+    Parameter,
+)
 from unified_planning.model.scheduling.chronicle import Chronicle
 
 
@@ -9,7 +16,7 @@ class Activity(Chronicle):
     associated SchedulingProblem"""
 
     def __init__(self, name: str, duration: Optional[int]):
-        super().__init__(name) # TODO
+        super().__init__(name)  # TODO
         start_tp = Timepoint(TimepointKind.START, container=name)
         end_tp = Timepoint(TimepointKind.END, container=name)
         self._start = Timing(0, start_tp)
@@ -30,7 +37,7 @@ class Activity(Chronicle):
         self.add_increase_effect(self.end, resource, amount)
 
     def add_parameter(self, name: str, tpe: Type) -> Parameter:
-        assert ':' not in name, f"Usage of ':' is forbidden in names: {name}"
+        assert ":" not in name, f"Usage of ':' is forbidden in names: {name}"
         scoped_name = f"{self.name}:{name}"
         if name in self._parameters:
             raise ValueError(f"Name '{name}' already used in activity '{self.name}'")

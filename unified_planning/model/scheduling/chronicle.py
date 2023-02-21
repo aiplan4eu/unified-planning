@@ -363,13 +363,13 @@ class Chronicle:
         )
 
     def add_constraint(
-            self,
-            constraint: Union[
-                "up.model.fnode.FNode",
-                "up.model.fluent.Fluent",
-                "up.model.parameter.Parameter",
-                bool,
-            ],
+        self,
+        constraint: Union[
+            "up.model.fnode.FNode",
+            "up.model.fluent.Fluent",
+            "up.model.parameter.Parameter",
+            bool,
+        ],
     ):
         """
         Adds the given expression to the `chronicle's constraints`.
