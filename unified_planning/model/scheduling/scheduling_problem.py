@@ -1,49 +1,101 @@
 from collections import OrderedDict
-from fractions import Fraction
 from typing import Optional, List, Union, Dict
 
+from unified_planning.model.expression import ConstantExpression
+from unified_planning.model.mixins import InitialStateMixin, MetricsMixin
+from unified_planning.model.mixins.objects_set import ObjectsSetMixin
+from unified_planning.model.mixins.fluents_set import FluentsSetMixin
+from unified_planning.model.mixins.user_types_set import UserTypesSetMixin
+from unified_planning.model.abstract_problem import AbstractProblem
+
 import unified_planning as up
-from unified_planning.model import Type, Parameter, Timepoint, TimepointKind, Timing, Fluent, FNode, TimeInterval
+from unified_planning.model import (
+    Type,
+    Parameter,
+    Fluent,
+    FNode,
+    TimeInterval,
+)
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle
-from unified_planning.model.problem import Problem
 
 
-def todo():
-    raise NotImplementedError
-
-
-class SchedulingProblem(Problem):
+class SchedulingProblem(
+    AbstractProblem,
+    UserTypesSetMixin,
+    FluentsSetMixin,
+    ObjectsSetMixin,
+    InitialStateMixin,
+    MetricsMixin,
+):
     """A scheduling problem shares most of its construct with a planning problem with the following differences:
-       - there are no action in a scheduling problem
-       - it defines a set of variables and timepoints over which constraints can be stated
-       - it provides some shortcuts to deal with typical scheduling constructs (activities, resources, ...)
-       """
+    - there are no action in a scheduling problem
+    - it defines a set of variables and timepoints over which constraints can be stated
+    - it provides some shortcuts to deal with typical scheduling constructs (activities, resources, ...)
+    """
+
+    @property
+    def kind(self) -> "up.model.problem_kind.ProblemKind":
+        self._kind = up.model.problem_kind.ProblemKind()
+        self._kind.set_problem_class("SCHEDULING")
+        return self._kind
 
     def __init__(
         self,
         name: Optional[str] = None,
-        env: Optional["up.environment.Environment"] = None,
+        environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict[
-            "up.model.types.Type",
-            Union[
-                "up.model.fnode.FNode",
-                "up.model.object.Object",
-                bool,
-                int,
-                float,
-                Fraction,
-            ],
-        ] = {},
+        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
     ):
-        super().__init__(name=name, environment=env, initial_defaults=initial_defaults)
+        AbstractProblem.__init__(self, name, environment)
+        UserTypesSetMixin.__init__(self, self.environment, self.has_name)
+        FluentsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name, initial_defaults
+        )
+        ObjectsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name
+        )
+        InitialStateMixin.__init__(self, self, self, self.environment)
+        MetricsMixin.__init__(self, self.environment)
+        self._operators_extractor = up.model.walkers.OperatorsExtractor()
+        self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
 
-        self._base: Chronicle = Chronicle(":", _env=env)
+        # the base chronicle contains all timed goals and timed effects
+        self._base: Chronicle = Chronicle(":", _env=environment)
         self._activities: List[Activity] = []
 
+        self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
+
     def __repr__(self) -> str:
-        s = [super().__repr__()]
+        s = []
+        if self.name is not None:
+            s.append(f"problem name = {str(self.name)}\n\n")
+        if len(self.user_types) > 0:
+            s.append(f"types = {str(list(self.user_types))}\n\n")
+        s.append("fluents = [\n")
+        for f in self.fluents:
+            s.append(f"  {str(f)}\n")
+        s.append("]\n\n")
+        if len(self.user_types) > 0:
+            s.append("objects = [\n")
+            for ty in self.user_types:
+                s.append(f"  {str(ty)}: {str(list(self.objects(ty)))}\n")
+            s.append("]\n\n")
+        s.append("initial fluents default = [\n")
+        for f in self._fluents:
+            if f in self._fluents_defaults:
+                v = self._fluents_defaults[f]
+                s.append(f"  {str(f)} := {str(v)}\n")
+        s.append("]\n\n")
+        s.append("initial values = [\n")
+        for k, v in self.explicit_initial_values.items():
+            s.append(f"  {str(k)} := {str(v)}\n")
+        s.append("]\n\n")
+        if len(self.quality_metrics) > 0:
+            s.append("quality metrics = [\n")
+            for qm in self.quality_metrics:
+                s.append(f"  {str(qm)}\n")
+            s.append("]\n\n")
         s.append("\nBASE")
         s.append(str(self._base))
 
@@ -54,16 +106,65 @@ class SchedulingProblem(Problem):
 
         return "".join(s)
 
-    def _name_exists(self, name: str) -> bool:
+    def __eq__(self, oth: object) -> bool:
+        if not (isinstance(oth, SchedulingProblem)) or self._env != oth._env:
+            return False
+        if self.kind != oth.kind or self._name != oth._name:
+            return False
+        if set(self._fluents) != set(oth._fluents):
+            return False
+        if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(
+            oth._objects
+        ):
+            return False
+        if not self._eq_initial_state(oth):
+            return False
+        if set(self.quality_metrics) != set(oth.quality_metrics):
+            return False
+        if self._base != oth._base:
+            return False
+        if set(self._activities) != set(oth._activities):
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        res = hash(self.kind) + hash(self._name)
+        for f in self._fluents:
+            res += hash(f)
+        for ut in self._user_types:
+            res += hash(ut)
+        for o in self._objects:
+            res += hash(o)
+        for iv in self.initial_values.items():
+            res += hash(iv)
+        res += hash(self._base)
+        res += sum(map(hash, self._activities))
+        return res
+
+    def clone(self):
+        new_p = SchedulingProblem(self._name, self._env)
+        new_p._fluents = self._fluents[:]
+        new_p._user_types = self._user_types[:]
+        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
+        new_p._objects = self._objects[:]
+        new_p._initial_value = self._initial_value.copy()
+        new_p._metrics = self._cloned_metrics(new_actions=None)
+        new_p._initial_defaults = self._initial_defaults.copy()
+        new_p._fluents_defaults = self._fluents_defaults.copy()
+        new_p._base = self._base.clone()
+        new_p._activities = [a.clone() for a in self._activities]
+        return new_p
+
+    def has_name(self, name: str) -> bool:
         return name in self._base._parameters
 
     def add_variable(self, name: str, tpe: Type) -> Parameter:
-        assert not self._name_exists(name)
+        assert not self.has_name(name)
         param = Parameter(name, tpe)
         self._base._parameters[name] = param
         return param
 
-    def add_activity(self, name: str, duration: Optional[int]) -> 'Activity':
+    def add_activity(self, name: str, duration: Optional[int]) -> "Activity":
         act = Activity(name=name, duration=duration)
         self._activities.append(act)
         return act
@@ -74,39 +175,58 @@ class SchedulingProblem(Problem):
         tpe = self._env.type_manager.IntType(0, capacity)
         return self.add_fluent(name, tpe, default_initial_value=capacity)
 
-    def add_constraint(self, constraint: Union[
-                "up.model.fnode.FNode",
-                "up.model.fluent.Fluent",
-                "up.model.parameter.Parameter",
-                bool,
-            ]):
+    def add_constraint(
+        self,
+        constraint: Union[
+            "up.model.fnode.FNode",
+            "up.model.fluent.Fluent",
+            "up.model.parameter.Parameter",
+            bool,
+        ],
+    ):
         """Enforce a boolean expression to be true in any solution"""
         self._base.add_constraint(constraint)
 
     def add_condition(self, span: TimeInterval, condition: FNode):
         self._base.add_condition(span, condition)
 
-    def add_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
-                   value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
+    def add_effect(
+        self,
+        timing: "up.model.timing.Timing",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+    ):
         self._base.add_effect(timing, fluent, value, condition)
 
-    def add_increase_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
-                            value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
+    def add_increase_effect(
+        self,
+        timing: "up.model.timing.Timing",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+    ):
         self._base.add_increase_effect(timing, fluent, value, condition)
 
-    def add_decrease_effect(self, timing: 'up.model.timing.Timing', fluent: Union['up.model.fnode.FNode', 'up.model.fluent.Fluent'],
-                            value: 'up.model.expression.Expression', condition: 'up.model.expression.BoolExpression' = True):
+    def add_decrease_effect(
+        self,
+        timing: "up.model.timing.Timing",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+    ):
         self._base.add_decrease_effect(timing, fluent, value, condition)
 
 
 if __name__ == "__main__":
     from unified_planning.shortcuts import *
+
     pb = SchedulingProblem()
 
     Resource = UserType("Resource")
     r1 = pb.add_object("r1", Resource)
     r2 = pb.add_object("r2", Resource)
-    pb.add_fluent("lvl", IntType(0,1), default_initial_value=1, r=Resource)
+    pb.add_fluent("lvl", IntType(0, 1), default_initial_value=1, r=Resource)
 
     red = pb.add_fluent("red", BoolType(), r=Resource)
     pb.set_initial_value(red(r1), True)

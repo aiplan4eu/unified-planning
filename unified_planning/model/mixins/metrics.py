@@ -9,6 +9,7 @@ from unified_planning.model.mixins import ActionsSetMixin
 
 class MetricsMixin:
     """Problem mixin that adds the capabilities to manage quality metrics."""
+
     def __init__(self, environment: "up.environment.Environment"):
         self._env = environment
         self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
@@ -32,7 +33,7 @@ class MetricsMixin:
         self._metrics = []
 
     def _cloned_metrics(
-        self, new_actions: Optional[ActionsSetMixin] = None
+        self, new_actions: Optional[ActionsSetMixin]
     ) -> List[PlanQualityMetric]:
         """Returns the list of cloned metric.
         We make sure that any action appearing in hte metric is from the new set passed as parameter."""
