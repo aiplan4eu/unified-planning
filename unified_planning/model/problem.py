@@ -23,13 +23,13 @@ from unified_planning.model.mixins import (
     ObjectsSetMixin,
     UserTypesSetMixin,
     InitialStateMixin,
+    MetricsMixin,
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
-    UPExpressionDefinitionError,
 )
 from fractions import Fraction
 from typing import Optional, List, Dict, Set, Union, cast
@@ -42,6 +42,7 @@ class Problem(
     ActionsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
+    MetricsMixin,
 ):
     """
     Represents the classical planning problem, with :class:`Actions <unified_planning.model.Action>`, :class:`Fluents <unified_planning.model.Fluent>`, :class:`Objects <unified_planning.model.Object>` and :class:`UserTypes <unified_planning.model.Type>`.
@@ -68,6 +69,7 @@ class Problem(
             self, self.environment, self._add_user_type, self.has_name
         )
         InitialStateMixin.__init__(self, self, self, self.environment)
+        MetricsMixin.__init__(self, self.environment)
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
@@ -77,7 +79,6 @@ class Problem(
         ] = {}
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
-        self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
 
     def __repr__(self) -> str:
         s = []
@@ -215,13 +216,7 @@ class Problem(
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
-        new_p._metrics = []
-        for m in self._metrics:
-            if isinstance(m, up.model.metrics.MinimizeActionCosts):
-                costs = {new_p.action(a.name): c for a, c in m.costs.items()}
-                new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
-            else:
-                new_p._metrics.append(m)
+        new_p._metrics = self._cloned_metrics(new_actions=new_p)
         new_p._initial_defaults = self._initial_defaults.copy()
         new_p._fluents_defaults = self._fluents_defaults.copy()
         return new_p
@@ -536,24 +531,6 @@ class Problem(
         """Removes the trajectory_constraints."""
         self._trajectory_constraints = []
 
-    def add_quality_metric(self, metric: "up.model.metrics.PlanQualityMetric"):
-        """
-        Adds the given `quality metric` to the `Problem`; a `quality metric` defines extra requirements that a :class:`~unified_planning.plans.Plan`
-        must satisfy in order to be valid.
-
-        :param metric: The `quality metric` that a `Plan` of this `Problem` must satisfy in order to be valid.
-        """
-        self._metrics.append(metric)
-
-    @property
-    def quality_metrics(self) -> List["up.model.metrics.PlanQualityMetric"]:
-        """Returns all the `quality metrics` in the `Problem`."""
-        return self._metrics
-
-    def clear_quality_metrics(self):
-        """Removes all the `quality metrics` in the `Problem`."""
-        self._metrics = []
-
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """
@@ -564,8 +541,6 @@ class Problem(
         seldom as possible.
         """
         # Create the needed data structures
-        fluents_to_only_increase: Set["up.model.fluent.Fluent"] = set()
-        fluents_to_only_decrease: Set["up.model.fluent.Fluent"] = set()
         static_fluents: Set["up.model.fluent.Fluent"] = self.get_static_fluents()
 
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
@@ -574,49 +549,9 @@ class Problem(
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class("ACTION_BASED")
         self._kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
-        for metric in self._metrics:
-            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
-                self._kind.set_quality_metrics("FINAL_VALUE")
-                (
-                    is_linear,
-                    fnode_to_only_increase,  # positive fluents in minimize can only be increased
-                    fnode_to_only_decrease,  # negative fluents in minimize can only be decreased
-                ) = linear_checker.get_fluents(metric.expression)
-                if is_linear:
-                    fluents_to_only_increase = {
-                        e.fluent() for e in fnode_to_only_increase
-                    }
-                    fluents_to_only_decrease = {
-                        e.fluent() for e in fnode_to_only_decrease
-                    }
-                else:
-                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                self._kind.set_quality_metrics("FINAL_VALUE")
-                (
-                    is_linear,
-                    fnode_to_only_decrease,  # positive fluents in maximize can only be decreased
-                    fnode_to_only_increase,  # negative fluents in maximize can only be increased
-                ) = linear_checker.get_fluents(metric.expression)
-                if is_linear:
-                    fluents_to_only_increase = {
-                        e.fluent() for e in fnode_to_only_increase
-                    }
-                    fluents_to_only_decrease = {
-                        e.fluent() for e in fnode_to_only_decrease
-                    }
-                else:
-                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                self._kind.set_quality_metrics("ACTIONS_COST")
-            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
-                self._kind.set_quality_metrics("MAKESPAN")
-            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
-                self._kind.set_quality_metrics("PLAN_LENGTH")
-            elif isinstance(metric, up.model.metrics.Oversubscription):
-                self._kind.set_quality_metrics("OVERSUBSCRIPTION")
-            else:
-                assert False, "Unknown quality metric"
+        fluents_to_only_increase, fluents_to_only_decrease = self._update_kind_metric(
+            self._kind, linear_checker
+        )
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
         for object in self._objects:
