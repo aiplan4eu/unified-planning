@@ -4,7 +4,11 @@ from typing import *
 import unified_planning as up
 from unified_planning import Environment
 from unified_planning.environment import get_environment
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import (
+    UPProblemDefinitionError,
+    UPTypeError,
+    UPConflictingEffectsException,
+)
 
 
 class Chronicle:
@@ -18,11 +22,13 @@ class Chronicle:
         **kwargs: "up.model.types.Type",
     ):
 
-        self._duration = None
         self._env = get_environment(_env)
         self._name = _name
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()
+        )
+        self._duration = up.model.timing.FixedDuration(
+            self._env.expression_manager.Int(0)
         )
         if _parameters is not None:
             assert len(kwargs) == 0
@@ -44,9 +50,6 @@ class Chronicle:
         ] = {}
         self._effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
-        ] = {}
-        self._simulated_effects: Dict[
-            "up.model.timing.Timing", "up.model.effect.SimulatedEffect"
         ] = {}
         self._fluents_assigned: Dict[
             "up.model.timing.Timing", Set["up.model.FNode"]
@@ -90,11 +93,6 @@ class Chronicle:
                 for e in el:
                     s.append(f"        {str(e)}:\n")
             s.append("    ]\n")
-        if len(self._simulated_effects) > 0:
-            s.append("    simulated effects = [\n")
-            for t, se in self.simulated_effects.items():
-                s.append(f"      {str(t)}: {se}\n")
-            s.append("    ]\n")
         s.append("  }")
         return "".join(s)
 
@@ -123,12 +121,6 @@ class Chronicle:
                     return False
                 elif set(el) != set(oth_el):
                     return False
-            for t, se in self._simulated_effects.items():
-                oth_se = oth._simulated_effects.get(t, None)
-                if oth_se is None:
-                    return False
-                elif se != oth_se:
-                    return False
             return True
         else:
             return False
@@ -145,8 +137,6 @@ class Chronicle:
             res += hash(t)
             for e in el:
                 res += hash(e)
-        for t, se in self._simulated_effects.items():
-            res += hash(t) + hash(se)
         return res
 
     def clone(self):
@@ -529,7 +519,6 @@ class Chronicle:
         ), "effect does not have the same environment of the action"
         fluents_assigned = self._fluents_assigned.setdefault(timing, set())
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
-        simulated_effect = self._simulated_effects.get(timing, None)
         if not effect.is_conditional():
             if effect.is_assignment():
                 if (
@@ -553,30 +542,3 @@ class Chronicle:
                 f"The effect {effect} is in conflict with the simulated effects already in the action."
             )
         self._effects.setdefault(timing, []).append(effect)
-
-    @property
-    def simulated_effects(
-        self,
-    ) -> Dict["up.model.timing.Timing", "up.model.effect.SimulatedEffect"]:
-        """Returns the `action` `simulated effects`."""
-        return self._simulated_effects
-
-    def set_simulated_effect(
-        self,
-        timing: "up.model.timing.Timing",
-        simulated_effect: "up.model.effect.SimulatedEffect",
-    ):
-        """
-        Sets the given `simulated effect` at the specified `timing`.
-
-        :param timing: The time in which the `simulated effect` must be applied.
-        :param simulated effects: The `simulated effect` that must be applied at the given `timing`.
-        """
-        for f in simulated_effect.fluents:
-            if f in self._fluents_assigned.get(
-                timing, set()
-            ) or f in self._fluents_inc_dec.get(timing, set()):
-                raise UPConflictingEffectsException(
-                    f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
-                )
-        self._simulated_effects[timing] = simulated_effect
