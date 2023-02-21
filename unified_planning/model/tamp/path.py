@@ -13,27 +13,14 @@
 # limitations under the License.
 #
 
-from unified_planning.model.tamp.action import (
-    InstantaneousMotionAction,
-    MotionConstraint,
-    Waypoints,
-)
-from unified_planning.model.tamp.objects import (
-    MotionModels,
-    MovableObject,
-    ConfigurationObject,
-)
-from unified_planning.model.tamp.types import OccupancyMap
-from unified_planning.model.tamp.path import Path, ReedsSheppPath
+from dataclasses import dataclass
+from typing import Tuple, List
 
-__all__ = [
-    "InstantaneousMotionAction",
-    "MotionConstraint",
-    "Waypoints",
-    "MotionModels",
-    "MovableObject",
-    "ConfigurationObject",
-    "OccupancyMap",
-    "Path",
-    "ReedsSheppPath",
-]
+
+class Path:
+    pass
+
+
+@dataclass(eq=True, frozen=True)
+class ReedsSheppPath(Path):
+    path: List[Tuple[Tuple[float, ...], float]]
