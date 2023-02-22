@@ -74,12 +74,6 @@ from unified_planning.model import (
 )
 from fractions import Fraction
 from typing import Dict, Set, Tuple, Union, Callable, List, Optional
-
-import pyparsing
-
-assert (
-    pyparsing.__version__ >= "3.0.0"
-), f"unified_planning needs a pyparsing version >= 3. Current version detected: {pyparsing.__version__}, please update it."
 from pyparsing.results import ParseResults
 
 

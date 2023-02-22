@@ -426,7 +426,7 @@ class ExpressionManager(object):
         params_exp = self.auto_promote(params)
         if fluent.arity != len(params_exp):
             raise UPExpressionDefinitionError(
-                f"In FluentExp, fluent has arity {fluent.arity} but {len(params_exp)} parameters were passed."
+                f"In FluentExp, fluent: {fluent.name} has arity {fluent.arity} but {len(params_exp)} parameters were passed."
             )
         return self.create_node(
             node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent
