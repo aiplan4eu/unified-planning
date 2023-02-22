@@ -138,3 +138,14 @@ class ObjectsSetMixin:
     def all_objects(self) -> List["up.model.object.Object"]:
         """Returns the `list` containing all the `objects` in the `problem`."""
         return self._objects
+
+    def __eq__(self, other):
+        return isinstance(other, ObjectsSetMixin) and set(self._objects) == set(
+            other._objects
+        )
+
+    def __hash__(self):
+        return sum(map(hash, self._objects))
+
+    def _clone_to(self, other: "ObjectsSetMixin"):
+        other._objects = self._objects.copy()

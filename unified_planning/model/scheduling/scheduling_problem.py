@@ -39,6 +39,7 @@ class SchedulingProblem(  # type: ignore[misc]
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class("SCHEDULING")
+        # TODO: complete with ore precise kinds
         return self._kind
 
     def __init__(
@@ -58,8 +59,6 @@ class SchedulingProblem(  # type: ignore[misc]
         )
         InitialStateMixin.__init__(self, self, self, self.environment)
         MetricsMixin.__init__(self, self.environment)
-        self._operators_extractor = up.model.walkers.OperatorsExtractor()
-        self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
 
         # the base chronicle contains all timed goals and timed effects
         self._base: Chronicle = Chronicle(":", _env=environment)
@@ -96,11 +95,11 @@ class SchedulingProblem(  # type: ignore[misc]
             s.append("quality metrics = [\n")
             for qm in self.quality_metrics:
                 s.append(f"  {str(qm)}\n")
-            s.append("]\n\n")
+            s.append("]\n")
         s.append("\nBASE")
         s.append(str(self._base))
 
-        s.append("\nActivities:\n  ")
+        s.append("\n\nActivities:\n  ")
         for act in self._activities:
             s.append(str(act))
             s.append("\n  ")
@@ -113,16 +112,15 @@ class SchedulingProblem(  # type: ignore[misc]
         if self.kind != oth.kind or self._name != oth._name:
             return False
 
-        if not InitialStateMixin.__eq__(self, oth):
+        if not UserTypesSetMixin.__eq__(self, oth):
+            return False
+        if not ObjectsSetMixin.__eq__(self, oth):
             return False
         if not FluentsSetMixin.__eq__(self, oth):
             return False
-        if not MetricsMixin.__eq__(self, oth):
+        if not InitialStateMixin.__eq__(self, oth):
             return False
-
-        if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(
-            oth._objects
-        ):
+        if not MetricsMixin.__eq__(self, oth):
             return False
 
         if self._base != oth._base:
@@ -134,14 +132,11 @@ class SchedulingProblem(  # type: ignore[misc]
     def __hash__(self) -> int:
         res = hash(self.kind) + hash(self._name)
 
+        res += UserTypesSetMixin.__hash__(self)
+        res += ObjectsSetMixin.__hash__(self)
         res += FluentsSetMixin.__hash__(self)
         res += InitialStateMixin.__hash__(self)
         res += MetricsMixin.__hash__(self)
-
-        for ut in self._user_types:
-            res += hash(ut)
-        for o in self._objects:
-            res += hash(o)
 
         res += hash(self._base)
         res += sum(map(hash, self._activities))
@@ -149,13 +144,11 @@ class SchedulingProblem(  # type: ignore[misc]
 
     def clone(self):
         new_p = SchedulingProblem(self._name, self._env)
+        UserTypesSetMixin._clone_to(self, new_p)
+        ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
         MetricsMixin._clone_to(self, new_p, new_actions=None)
-
-        new_p._user_types = self._user_types[:]
-        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
-        new_p._objects = self._objects[:]
 
         new_p._base = self._base.clone()
         new_p._activities = [a.clone() for a in self._activities]
