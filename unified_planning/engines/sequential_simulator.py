@@ -218,11 +218,16 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 event.simulated_effect.fluents,
                 event.simulated_effect.function(self._problem, state, {}),
             ):
-                if f in updated_values:
-                    raise UPConflictingEffectsException(
-                        f"The fluent {f} is modified twice in the same event."
-                    )
-                updated_values[f] = v
+                old_value = updated_values.get(f, None)
+                if old_value is not None:
+                    if not f.type.is_bool_type():
+                        raise UPConflictingEffectsException(
+                            f"The fluent {f} is modified twice in the same event."
+                        )
+                    elif not old_value.bool_constant_value():
+                        updated_values[f] = v
+                else:
+                    updated_values[f] = v
         return state.make_child(updated_values)
 
     def _evaluate_effect(
@@ -259,40 +264,47 @@ class SequentialSimulator(Engine, SimulatorMixin):
         if (not effect.is_conditional()) or self._se.evaluate(
             effect.condition, state
         ).is_true():
+            new_value = self._se.evaluate(effect.value, state)
             if effect.is_assignment():
-                if fluent in updated_values:
+                old_value = updated_values.get(fluent, None)
+                if (
+                    old_value is not None
+                    and new_value.constant_value() != old_value.constant_value()
+                ):
+                    if not fluent.type.is_bool_type():
+                        raise UPConflictingEffectsException(
+                            f"The fluent {fluent} is modified by 2 different assignments in the same event."
+                        )
+                    # solve with add-after-delete logic
+                    elif not old_value.bool_constant_value():
+                        return fluent, new_value
+                    else:
+                        return None, None
+                elif old_value is not None and fluent not in assigned_fluent:
                     raise UPConflictingEffectsException(
-                        f"The fluent {fluent} is modified by 2 assignments in the same event."
+                        f"The fluent {fluent} is modified by 1 assignments and an increase/decrease in the same event."
                     )
-                assigned_fluent.add(fluent)
-                return (fluent, self._se.evaluate(effect.value, state))
+                else:
+                    assigned_fluent.add(fluent)
+                    return fluent, new_value
             else:
                 if fluent in assigned_fluent:
                     raise UPConflictingEffectsException(
                         f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same event."
                     )
-                # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
-                # otherwisee we take it's evaluation in the state as it's value.
-                f_eval = updated_values.get(fluent, self._se.evaluate(fluent, state))
-                v_eval = self._se.evaluate(effect.value, state)
+                # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
+                # otherwise we take it's evaluation in the state as it's value.
+                f_eval = updated_values.get(
+                    fluent, self._se.evaluate(fluent, state)
+                )
                 if effect.is_increase():
-                    return (
-                        fluent,
-                        em.auto_promote(
-                            f_eval.constant_value() + v_eval.constant_value()
-                        )[0],
-                    )
+                    return fluent, em.auto_promote(f_eval.constant_value() + new_value.constant_value())[0]
                 elif effect.is_decrease():
-                    return (
-                        fluent,
-                        em.auto_promote(
-                            f_eval.constant_value() - v_eval.constant_value()
-                        )[0],
-                    )
+                    return fluent, em.auto_promote(f_eval.constant_value() - new_value.constant_value())[0]
                 else:
                     raise NotImplementedError
         else:
-            return (None, None)
+            return None, None
 
     def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
         """

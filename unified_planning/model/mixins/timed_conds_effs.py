@@ -304,7 +304,7 @@ class TimedCondsEffs:
         fluents_assigned = self._fluents_assigned.setdefault(timing, set())
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
         simulated_effect = self._simulated_effects.get(timing, None)
-        if not effect.is_conditional():
+        if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
             if effect.is_assignment():
                 if (
                     effect.fluent in fluents_assigned
@@ -322,7 +322,11 @@ class TimedCondsEffs:
                 fluents_inc_dec.add(effect.fluent)
             else:
                 raise NotImplementedError
-        if simulated_effect is not None and effect.fluent in simulated_effect.fluents:
+        if (
+            simulated_effect is not None
+            and not effect.fluent.type.is_bool_type()
+            and effect.fluent in simulated_effect.fluents
+        ):
             raise UPConflictingEffectsException(
                 f"The effect {effect} is in conflict with the simulated effects already in the action."
             )
@@ -347,9 +351,10 @@ class TimedCondsEffs:
         :param simulated effects: The `simulated effect` that must be applied at the given `timing`.
         """
         for f in simulated_effect.fluents:
-            if f in self._fluents_assigned.get(
-                timing, set()
-            ) or f in self._fluents_inc_dec.get(timing, set()):
+            if not f.type.is_bool_type() and (
+                f in self._fluents_assigned.get(timing, set())
+                or f in self._fluents_inc_dec.get(timing, set())
+            ):
                 raise UPConflictingEffectsException(
                     f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
                 )

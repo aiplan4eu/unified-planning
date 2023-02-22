@@ -402,7 +402,7 @@ class InstantaneousAction(Action):
         assert (
             effect.environment == self._environment
         ), "effect does not have the same environment of the action"
-        if not effect.is_conditional():
+        if not effect.is_conditional() and not effect.value.type.is_bool_type():
             if effect.is_assignment():
                 if (
                     effect.fluent in self._fluents_assigned
@@ -422,6 +422,7 @@ class InstantaneousAction(Action):
                 raise NotImplementedError
         if (
             self._simulated_effect is not None
+            and not effect.fluent.type.is_bool_type()
             and effect.fluent in self._simulated_effect.fluents
         ):
             raise UPConflictingEffectsException(
@@ -442,7 +443,9 @@ class InstantaneousAction(Action):
             `simulated effect`.
         """
         for f in simulated_effect.fluents:
-            if f in self._fluents_assigned or f in self._fluents_inc_dec:
+            if not f.type.is_bool_type() and (
+                f in self._fluents_assigned or f in self._fluents_inc_dec
+            ):
                 raise UPConflictingEffectsException(
                     f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
                 )
