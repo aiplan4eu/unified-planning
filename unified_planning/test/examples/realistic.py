@@ -701,7 +701,7 @@ def get_example_problems():
         ),
     )
     dur_move.add_effect(StartTiming(1), is_at(l_from), False)
-    dur_move.add_effect(EndTiming(5), is_at(l_to), True)
+    dur_move.add_effect(EndTiming() - 5, is_at(l_to), True)
     l1 = Object("l1", Location)
     l2 = Object("l2", Location)
     l3 = Object("l3", Location)

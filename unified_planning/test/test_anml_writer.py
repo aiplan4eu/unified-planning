@@ -110,7 +110,7 @@ action move(Location l_from, Location l_to) {
    [ start, start ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))) });
    [ start, end ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))) });
    [ start + 1 ] is_at(l_from) := false;
-   [ end + 5 ] is_at(l_to) := true;
+   [ end - 5 ] is_at(l_to) := true;
 };
 instance Location l1, l2, l3, l4, l5;
 [ start ] is_at(l1) := true;

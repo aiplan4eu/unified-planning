@@ -354,7 +354,7 @@ class TestProtobufIO(TestCase):
             [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
         ):
             for delay in [int_delay, frac_delay]:
-                t_pb = build(timing(delay))
+                t_pb = build(timing() + delay)
                 check(t_pb, fun_app_kind, tpe=time_type, length=3)
                 check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
                 check(t_pb.list[1], fun_app_kind, tpe=time_type, length=1)
@@ -384,7 +384,7 @@ class TestProtobufIO(TestCase):
             [start_symbol, end_symbol],
         ):
             for delay in [int_delay, frac_delay]:
-                t_pb = build(timing(delay, act.name))
+                t_pb = build(timing(container=act.name) + delay)
                 check(t_pb, fun_app_kind, tpe=time_type, length=3)
                 check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
                 check(t_pb.list[1], fun_app_kind, tpe=time_type, length=2)
