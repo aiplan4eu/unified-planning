@@ -35,7 +35,7 @@ from fractions import Fraction
 from typing import Optional, List, Dict, Set, Union, cast
 
 
-class Problem(
+class Problem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
     FluentsSetMixin,

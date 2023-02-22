@@ -21,7 +21,7 @@ from unified_planning.model.scheduling.chronicle import Chronicle
 from unified_planning.model.timing import GlobalStartTiming
 
 
-class SchedulingProblem(
+class SchedulingProblem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
     FluentsSetMixin,
