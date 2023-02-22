@@ -388,10 +388,6 @@ class PDDLReader:
         assignments: Dict[str, "up.model.Object"] = {},
     ) -> up.model.FNode:
         stack = [(var, exp, False)]
-        start_line, start_col = exp.line_start(complete_str), exp.col_start(
-            complete_str
-        )
-        end_line, end_col = exp.line_end(complete_str), exp.col_end(complete_str)
         solved: List[up.model.FNode] = []
         while len(stack) > 0:
             var, exp, status = stack.pop()
