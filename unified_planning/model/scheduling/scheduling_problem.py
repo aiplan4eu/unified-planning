@@ -112,16 +112,19 @@ class SchedulingProblem(
             return False
         if self.kind != oth.kind or self._name != oth._name:
             return False
-        if set(self._fluents) != set(oth._fluents):
+
+        if not InitialStateMixin.__eq__(self, oth):
             return False
+        if not FluentsSetMixin.__eq__(self, oth):
+            return False
+        if not MetricsMixin.__eq__(self, oth):
+            return False
+
         if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(
             oth._objects
         ):
             return False
-        if not self._eq_initial_state(oth):
-            return False
-        if set(self.quality_metrics) != set(oth.quality_metrics):
-            return False
+
         if self._base != oth._base:
             return False
         if set(self._activities) != set(oth._activities):
@@ -130,28 +133,30 @@ class SchedulingProblem(
 
     def __hash__(self) -> int:
         res = hash(self.kind) + hash(self._name)
-        for f in self._fluents:
-            res += hash(f)
+
+        res += FluentsSetMixin.__hash__(self)
+        res += InitialStateMixin.__hash__(self)
+        res += MetricsMixin.__hash__(self)
+
         for ut in self._user_types:
             res += hash(ut)
         for o in self._objects:
             res += hash(o)
-        for iv in self.initial_values.items():
-            res += hash(iv)
+
         res += hash(self._base)
         res += sum(map(hash, self._activities))
         return res
 
     def clone(self):
         new_p = SchedulingProblem(self._name, self._env)
-        new_p._fluents = self._fluents[:]
+        FluentsSetMixin._clone_to(self, new_p)
+        InitialStateMixin._clone_to(self, new_p)
+        MetricsMixin._clone_to(self, new_p, new_actions=None)
+
         new_p._user_types = self._user_types[:]
         new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
-        new_p._initial_value = self._initial_value.copy()
-        new_p._metrics = self._cloned_metrics(new_actions=None)
-        new_p._initial_defaults = self._initial_defaults.copy()
-        new_p._fluents_defaults = self._fluents_defaults.copy()
+
         new_p._base = self._base.clone()
         new_p._activities = [a.clone() for a in self._activities]
         return new_p

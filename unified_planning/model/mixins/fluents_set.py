@@ -171,3 +171,19 @@ class FluentsSetMixin:
     def initial_defaults(self) -> Dict["up.model.types.Type", "up.model.fnode.FNode"]:
         """Returns the `problem's fluents defaults` for each `type`."""
         return self._initial_defaults
+
+    def __eq__(self, oth):
+        # ignores default values as they may have no impact on the initial state
+        if not isinstance(oth, FluentsSetMixin):
+            return False
+        if set(self._fluents) != set(oth._fluents):
+            return False
+        return True
+
+    def __hash__(self):
+        return sum(map(hash, self._fluents))
+
+    def _clone_to(self, other: "FluentsSetMixin"):
+        other._fluents = self._fluents.copy()
+        other._initial_defaults = self._initial_defaults.copy()
+        other._fluents_defaults = self._fluents_defaults.copy()

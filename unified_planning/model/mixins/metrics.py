@@ -32,9 +32,15 @@ class MetricsMixin:
         """Removes all the `quality metrics` in the `Problem`."""
         self._metrics = []
 
-    def _cloned_metrics(
-        self, new_actions: Optional[ActionsSetMixin]
-    ) -> List[PlanQualityMetric]:
+    def __eq__(self, other):
+        if not isinstance(other, MetricsMixin):
+            return False
+        return set(self._metrics) == set(other._metrics)
+
+    def __hash__(self):
+        return sum(map(hash, self._metrics))
+
+    def _clone_to(self, other: "MetricsMixin", new_actions: Optional[ActionsSetMixin]):
         """Returns the list of cloned metric.
         We make sure that any action appearing in hte metric is from the new set passed as parameter."""
         cloned: List[PlanQualityMetric] = []
@@ -45,7 +51,7 @@ class MetricsMixin:
                 cloned.append(up.model.metrics.MinimizeActionCosts(costs))
             else:
                 cloned.append(m)
-        return cloned
+        other._metrics = cloned
 
     def _update_kind_metric(
         self,

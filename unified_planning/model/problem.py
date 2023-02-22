@@ -144,9 +144,15 @@ class Problem(
             return False
         if self.kind != oth.kind or self._name != oth._name:
             return False
-        if set(self._fluents) != set(oth._fluents) or set(self._goals) != set(
-            oth._goals
-        ):
+
+        if not FluentsSetMixin.__eq__(self, oth):
+            return False
+        if not InitialStateMixin.__eq__(self, oth):
+            return False
+        if not MetricsMixin.__eq__(self, oth):
+            return False
+
+        if set(self._goals) != set(oth._goals):
             return False
         if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(
             oth._objects
@@ -156,8 +162,7 @@ class Problem(
             return False
         if set(self._trajectory_constraints) != set(oth._trajectory_constraints):
             return False
-        if not self._eq_initial_state(oth):
-            return False
+
         if len(self._timed_effects) != len(oth._timed_effects):
             return False
         for t, tel in self._timed_effects.items():
@@ -178,8 +183,11 @@ class Problem(
 
     def __hash__(self) -> int:
         res = hash(self._kind) + hash(self._name)
-        for f in self._fluents:
-            res += hash(f)
+
+        res += FluentsSetMixin.__hash__(self)
+        res += InitialStateMixin.__hash__(self)
+        res += MetricsMixin.__hash__(self)
+
         for a in self._actions:
             res += hash(a)
         for ut in self._user_types:
@@ -188,8 +196,6 @@ class Problem(
             res += hash(o)
         for c in self._trajectory_constraints:
             res += hash(c)
-        for iv in self.initial_values.items():
-            res += hash(iv)
         for t, el in self._timed_effects.items():
             res += hash(t)
             for e in set(el):
@@ -204,21 +210,24 @@ class Problem(
 
     def clone(self):
         new_p = Problem(self._name, self._env)
-        new_p._fluents = self._fluents[:]
+        FluentsSetMixin._clone_to(self, new_p)
+        InitialStateMixin._clone_to(self, new_p)
+
         new_p._actions = [a.clone() for a in self._actions]
         new_p._user_types = self._user_types[:]
         new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
-        new_p._initial_value = self._initial_value.copy()
+
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
-        new_p._metrics = self._cloned_metrics(new_actions=new_p)
-        new_p._initial_defaults = self._initial_defaults.copy()
-        new_p._fluents_defaults = self._fluents_defaults.copy()
+
+        MetricsMixin._clone_to(
+            self, new_p, new_actions=new_p
+        )  # last as it requires actions to be cloned already
         return new_p
 
     def has_name(self, name: str) -> bool:

@@ -1,5 +1,5 @@
 from fractions import Fraction
-from typing import Union, Dict
+from typing import Union, Dict, Any
 
 import unified_planning as up
 from unified_planning.exceptions import (
@@ -99,8 +99,10 @@ class InitialStateMixin:
         """
         return self._initial_value
 
-    def _eq_initial_state(self, oth: "InitialStateMixin") -> bool:
+    def __eq__(self, oth: Any) -> bool:
         """Returns true iff the two initial states are equivalent."""
+        if not isinstance(oth, InitialStateMixin):
+            return False
         oth_initial_values = oth.initial_values
         initial_values = self.initial_values
         if len(initial_values) != len(oth_initial_values):
@@ -112,3 +114,9 @@ class InitialStateMixin:
             elif value != oth_value:
                 return False
         return True
+
+    def __hash__(self):
+        return sum(map(hash, self.initial_values.items()))
+
+    def _clone_to(self, other: "InitialStateMixin"):
+        other._initial_value = self._initial_value.copy()
