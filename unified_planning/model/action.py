@@ -618,6 +618,11 @@ class DurativeAction(Action, TimedCondsEffs):
             up.model.timing.RightOpenDurationInterval(lower_exp, upper_exp)
         )
 
+    def is_conditional(self) -> bool:
+        """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
+        # re-implemenation needed for inheritance, delegate implementation.
+        return TimedCondsEffs.is_conditional(self)
+
 
 class SensingAction(InstantaneousAction):
     """This class represents a sensing action."""
