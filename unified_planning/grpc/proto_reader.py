@@ -35,6 +35,9 @@ from unified_planning.model import (
 )
 from unified_planning.model.effect import EffectKind
 from unified_planning.model.operators import OperatorKind
+from unified_planning.plans import ActionInstance
+from unified_planning.plans.hierarchical_plan import MethodInstance, Decomposition
+from unified_planning.model.htn.hierarchical_problem import HierarchicalProblem
 
 
 def convert_type_str(s: str, problem: Problem) -> model.types.Type:
@@ -578,47 +581,83 @@ class ProtobufReader(Converter):
     def _convert_plan(
         self, msg: proto.Plan, problem: Problem
     ) -> unified_planning.plans.Plan:
-        actions = [self.convert(a, problem) for a in msg.actions]
-        if all(isinstance(a, tuple) for a in actions):
-            # If all actions are tuples, we can assume that they are
-            # (absolute start time, action, duration)
-            return unified_planning.plans.TimeTriggeredPlan(actions)
+        actions = [self._convert_action_instance(a, problem) for a in msg.actions]
+        if all(a[2] is not None for a in actions):
+            # If all actions have temporal term, we can assume that they are
+            # (id, action, (absolute start time, duration))
+            time_triggered_actions = [
+                (start, action, duration) for _, action, (start, duration) in actions
+            ]
+            flat_plan = unified_planning.plans.TimeTriggeredPlan(time_triggered_actions)
         else:
-            # Otherwise, we assume they are instantenous actions
-            return unified_planning.plans.SequentialPlan(actions=actions)
+            # Otherwise, we assume they are a sequence of actions (id, action, None)
+            action_sequence = [action for _, action, _ in actions]
+            flat_plan = unified_planning.plans.SequentialPlan(actions=action_sequence)
+
+        if msg.HasField("hierarchy"):
+            assert isinstance(problem, HierarchicalProblem)
+            # map each action/method ID with the correcponding instance
+            instances = {id: action for id, action, _ in actions}
+
+            # return the Action/Method with the given id
+            # this recursively build any needed instance.
+            def instance_with_id(id: str) -> Union[ActionInstance, MethodInstance]:
+                if id not in instances:
+                    proto_method = next(
+                        filter(lambda m: m.id == id, msg.hierarchy.methods)
+                    )
+                    method = problem.method(proto_method.method_name)
+                    parameters = tuple(
+                        [
+                            self._convert_atom(param, problem)
+                            for param in proto_method.parameters
+                        ]
+                    )
+                    subtasks = {
+                        id: instance_with_id(impl)
+                        for id, impl in proto_method.subtasks.items()
+                    }
+                    instance = MethodInstance(
+                        method, parameters, Decomposition(subtasks)
+                    )
+                    instances[id] = instance
+                return instances[id]
+
+            decomposition = Decomposition(
+                {
+                    id: instance_with_id(impl)
+                    for id, impl in msg.hierarchy.root_tasks.items()
+                }
+            )
+
+            return unified_planning.plans.HierarchicalPlan(flat_plan, decomposition)
+
+        else:
+            return flat_plan
 
     @handles(proto.ActionInstance)
     def _convert_action_instance(
         self, msg: proto.ActionInstance, problem: Problem
-    ) -> Union[
-        Tuple[
-            model.timing.Timing,
-            unified_planning.plans.ActionInstance,
-            model.timing.Duration,
-        ],
-        unified_planning.plans.ActionInstance,
+    ) -> Tuple[
+        str, ActionInstance, Optional[Tuple[model.Timing, model.timing.Duration]]
     ]:
         # action instance parameters are atoms but in UP they are FNodes
         # converting to up.model.FNode
         parameters = tuple([self.convert(param, problem) for param in msg.parameters])
 
+        id = msg.id
         action_instance = unified_planning.plans.ActionInstance(
             problem.action(msg.action_name),
             parameters,
         )
 
-        start_time = (
-            self.convert(msg.start_time) if msg.HasField("start_time") else None
-        )
-        end_time = self.convert(msg.end_time) if msg.HasField("end_time") else None
-        if start_time is not None:
-            return (
-                start_time,  # Absolute Start Time
-                action_instance,
-                end_time - start_time if end_time else None,  # Duration
-            )
+        if msg.HasField("start_time") and msg.HasField("end_time"):
+            start_time = self.convert(msg.start_time)
+            end_time = self.convert(msg.end_time)
+            duration = end_time - start_time
+            return id, action_instance, (start_time, duration)
         else:
-            return action_instance
+            return id, action_instance, None
 
     @handles(proto.PlanGenerationResult)
     def _convert_plan_generation_result(
@@ -729,7 +768,7 @@ class ProtobufReader(Converter):
         for grounded_action in problem.actions:
             original_action_instance = self.convert(
                 result.map_back_plan[grounded_action.name], lifted_problem
-            )
+            )[1]
             map[grounded_action] = (
                 original_action_instance.action,
                 original_action_instance.actual_parameters,

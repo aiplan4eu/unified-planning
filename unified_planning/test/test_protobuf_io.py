@@ -160,7 +160,7 @@ class TestProtobufIO(TestCase):
         action_instance = plan.actions[0]
 
         action_instance_pb = self.pb_writer.convert(action_instance)
-        action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
+        action_instance_up = self.pb_reader.convert(action_instance_pb, problem)[1]
 
         self.assertEqual(action_instance.action, action_instance_up.action)
         self.assertEqual(

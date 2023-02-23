@@ -34,6 +34,32 @@ class Decomposition:
             s.pop(-1)  # remove last line break
         return "".join(s)
 
+    def __eq__(self, other):
+        return self is other
+
+    def __hash__(self):
+        return sum(map(hash, self.subtasks.keys()))
+
+    def is_semantically_equivalent(self, other: "Decomposition") -> bool:
+        if set(self.subtasks.keys()) != set(other.subtasks.keys()):
+            return False
+        for k in self.subtasks:
+            my = self.subtasks[k]
+            ot = other.subtasks[k]
+            if isinstance(my, MethodInstance):
+                if not isinstance(
+                    ot, MethodInstance
+                ) or not my.is_semantically_equivalent(ot):
+                    return False
+            elif isinstance(my, ActionInstance):
+                if not isinstance(
+                    ot, ActionInstance
+                ) or not my.is_semantically_equivalent(ot):
+                    return False
+            else:
+                raise ValueError
+        return True
+
     def _accumulate_instances(
         self,
         id_prefix: str,
@@ -73,13 +99,23 @@ class MethodInstance:
     """An instantiation of a method, including its parameter and a decomposition for each of its subtasks."""
 
     method: Method
-    parameters: Dict[str, FNode]
+    parameters: Tuple[FNode, ...]
     decomposition: "Decomposition" = Decomposition()
 
     def __repr__(self):
-        params = [self.parameters[p.name] for p in self.method.parameters]
+        return f"{self.method.name}{self.parameters}\n{self.decomposition}"
+
+    def __eq__(self, other):
+        return self is other
+
+    def __hash__(self):
+        return hash(self.method) + sum(map(hash, self.parameters))
+
+    def is_semantically_equivalent(self, other: "MethodInstance") -> bool:
         return (
-            f"{self.method.name}({', '.join(map(str, params))})\n{self.decomposition}"
+            self.method == other.method
+            and self.parameters == other.parameters
+            and self.decomposition.is_semantically_equivalent(other.decomposition)
         )
 
     def _replace_action_instances(
@@ -102,6 +138,19 @@ class HierarchicalPlan(Plan):
         super().__init__(PlanKind.HIERARCHICAL_PLAN)
         self._flat_plan = flat_plan
         self._decomposition = decomposition
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, HierarchicalPlan)
+            and self.action_plan == other.action_plan
+            and self.decomposition.is_semantically_equivalent(other.decomposition)
+        )
+
+    def __hash__(self):
+        return hash(self._flat_plan) + hash(self._decomposition)
+
+    def __repr__(self):
+        return str(self.action_plan)
 
     @property
     def decomposition(self) -> Decomposition:

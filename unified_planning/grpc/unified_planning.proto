@@ -577,18 +577,12 @@ message ActionInstance {
 }
 
 message MethodInstance {
-    // Optional. A unique identifier of the method that might be used to refer to it (e.g. in HTN plans).
+    //  A unique identifier of the method that is used to refer to it in the hierarchy.
     string id = 1;
     // name of the method
     string method_name = 2;
     // Parameters of the method instance, required to be constants.
     repeated Atom parameters = 3;
-    // Timepoint at which the method starts.
-    // Must be the start/end timepoint of an action or the global start/end timepoints.
-    Timepoint start_time = 4;
-    // Timepoint at which the method ends.
-    // Must be the start/end timepoint of an action or the global start/end timepoints.
-    Timepoint end_time = 5;
 
     // A mapping of the IDs of the method's subtasks into the IDs of the action/methods that refine them.
     map<string, string> subtasks = 6;

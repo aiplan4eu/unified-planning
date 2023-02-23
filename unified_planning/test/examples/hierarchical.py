@@ -103,16 +103,12 @@ def get_example_problems():
     ) -> MethodInstance:
         (target,) = get_environment().expression_manager.auto_promote(target)
         if len(acts) == 0:
-            return MethodInstance(go_noop, parameters={"target": target})
+            return MethodInstance(go_noop, parameters=(target,))
         else:
             a = acts[0]
             return MethodInstance(
                 go_recursive,
-                parameters={
-                    "source": a.actual_parameters[0],
-                    "inter": a.actual_parameters[1],
-                    "target": target,
-                },
+                parameters=(a.actual_parameters[0], a.actual_parameters[1], target),
                 decomposition=Decomposition(
                     {t1.identifier: acts[0], t2.identifier: goto_hier(acts[1:], target)}
                 ),
@@ -194,7 +190,7 @@ def get_example_problems():
     )
 
     htn_temporal.set_initial_value(loc, l1)
-    plan_temporal = up.plans.TimeTriggeredPlan(
+    flat_plan = up.plans.TimeTriggeredPlan(  # type: ignore
         [
             (
                 Fraction(0, 100),
@@ -229,7 +225,7 @@ def get_example_problems():
         ]
     )
 
-    acts = [a[1] for a in plan_temporal.timed_actions]
+    acts = [a[1] for a in flat_plan.timed_actions]  # type: ignore
     plan = HierarchicalPlan(
         flat_plan,
         Decomposition(
