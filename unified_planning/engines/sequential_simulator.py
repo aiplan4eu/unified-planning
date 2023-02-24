@@ -151,7 +151,28 @@ class SequentialSimulator(Engine, SimulatorMixin):
                         unsatisfied_conditions.append(em.LE(fluent, upper_bound))
                         if early_termination:
                             break
-
+        if event.simulated_effect is not None:
+            to_check = False
+            for f in event.simulated_effect.fluents:
+                if f.type in self._bounded_numeric_types:
+                    to_check = True
+                    break
+            if to_check:
+                for f, v in zip(
+                    event.simulated_effect.fluents,
+                    event.simulated_effect.function(self._problem, state, {}),
+                ):
+                    lower_bound, upper_bound = self._bounded_numeric_types.get(
+                        f.type, (None, None)
+                    )
+                    if lower_bound is not None and v < lower_bound:
+                        unsatisfied_conditions.append(em.LE(lower_bound, f))
+                        if early_termination:
+                            break
+                    if upper_bound is not None and v > upper_bound:
+                        unsatisfied_conditions.append(em.LE(f, upper_bound))
+                        if early_termination:
+                            break
         return unsatisfied_conditions
 
     def _apply(
@@ -214,6 +235,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
         assigned_fluent: Set["up.model.FNode"],
         em: ExpressionManager,
     ) -> Tuple[Optional[FNode], Optional[FNode]]:
+        """
+        TODO"""
         evaluated_args = tuple(self._se.evaluate(a, state) for a in effect.fluent.args)
         fluent = self._problem.environment.expression_manager.FluentExp(
             effect.fluent.fluent(), evaluated_args
