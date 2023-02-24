@@ -22,25 +22,27 @@ from unified_planning.model.mixins import (
     FluentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
+    InitialStateMixin,
+    MetricsMixin,
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
-from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
-    UPExpressionDefinitionError,
 )
 from fractions import Fraction
 from typing import Optional, List, Dict, Set, Union, cast
 
 
-class Problem(
+class Problem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
     FluentsSetMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
+    InitialStateMixin,
+    MetricsMixin,
 ):
     """
     Represents the classical planning problem, with :class:`Actions <unified_planning.model.Action>`, :class:`Fluents <unified_planning.model.Fluent>`, :class:`Objects <unified_planning.model.Object>` and :class:`UserTypes <unified_planning.model.Type>`.
@@ -66,8 +68,9 @@ class Problem(
         ObjectsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
+        InitialStateMixin.__init__(self, self, self, self.environment)
+        MetricsMixin.__init__(self, self.environment)
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
-        self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
         ] = {}
@@ -76,11 +79,10 @@ class Problem(
         ] = {}
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
-        self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
 
     def __repr__(self) -> str:
         s = []
-        if not self.name is None:
+        if self.name is not None:
             s.append(f"problem name = {str(self.name)}\n\n")
         if len(self.user_types) > 0:
             s.append(f"types = {str(list(self.user_types))}\n\n")
@@ -104,7 +106,7 @@ class Problem(
                 s.append(f"  {str(f)} := {str(v)}\n")
         s.append("]\n\n")
         s.append("initial values = [\n")
-        for k, v in self._initial_value.items():
+        for k, v in self.explicit_initial_values.items():
             s.append(f"  {str(k)} := {str(v)}\n")
         s.append("]\n\n")
         if len(self.timed_effects) > 0:
@@ -142,28 +144,25 @@ class Problem(
             return False
         if self.kind != oth.kind or self._name != oth._name:
             return False
-        if set(self._fluents) != set(oth._fluents) or set(self._goals) != set(
-            oth._goals
-        ):
+
+        if not UserTypesSetMixin.__eq__(self, oth):
             return False
-        if set(self._user_types) != set(oth._user_types) or set(self._objects) != set(
-            oth._objects
-        ):
+        if not ObjectsSetMixin.__eq__(self, oth):
+            return False
+        if not FluentsSetMixin.__eq__(self, oth):
+            return False
+        if not InitialStateMixin.__eq__(self, oth):
+            return False
+        if not MetricsMixin.__eq__(self, oth):
+            return False
+
+        if set(self._goals) != set(oth._goals):
             return False
         if set(self._actions) != set(oth._actions):
             return False
         if set(self._trajectory_constraints) != set(oth._trajectory_constraints):
             return False
-        oth_initial_values = oth.initial_values
-        initial_values = self.initial_values
-        if len(initial_values) != len(oth_initial_values):
-            return False
-        for fluent, value in initial_values.items():
-            oth_value = oth_initial_values.get(fluent, None)
-            if oth_value is None:
-                return False
-            elif value != oth_value:
-                return False
+
         if len(self._timed_effects) != len(oth._timed_effects):
             return False
         for t, tel in self._timed_effects.items():
@@ -184,18 +183,17 @@ class Problem(
 
     def __hash__(self) -> int:
         res = hash(self._kind) + hash(self._name)
-        for f in self._fluents:
-            res += hash(f)
+
+        res += FluentsSetMixin.__hash__(self)
+        res += ObjectsSetMixin.__hash__(self)
+        res += UserTypesSetMixin.__hash__(self)
+        res += InitialStateMixin.__hash__(self)
+        res += MetricsMixin.__hash__(self)
+
         for a in self._actions:
             res += hash(a)
-        for ut in self._user_types:
-            res += hash(ut)
-        for o in self._objects:
-            res += hash(o)
         for c in self._trajectory_constraints:
             res += hash(c)
-        for iv in self.initial_values.items():
-            res += hash(iv)
         for t, el in self._timed_effects.items():
             res += hash(t)
             for e in set(el):
@@ -210,27 +208,21 @@ class Problem(
 
     def clone(self):
         new_p = Problem(self._name, self._env)
-        new_p._fluents = self._fluents[:]
+        UserTypesSetMixin._clone_to(self, new_p)
+        ObjectsSetMixin._clone_to(self, new_p)
+        FluentsSetMixin._clone_to(self, new_p)
+        InitialStateMixin._clone_to(self, new_p)
+
         new_p._actions = [a.clone() for a in self._actions]
-        new_p._user_types = self._user_types[:]
-        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
-        new_p._objects = self._objects[:]
-        new_p._initial_value = self._initial_value.copy()
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
-        new_p._metrics = []
-        for m in self._metrics:
-            if isinstance(m, up.model.metrics.MinimizeActionCosts):
-                costs = {new_p.action(a.name): c for a, c in m.costs.items()}
-                new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
-            else:
-                new_p._metrics.append(m)
-        new_p._initial_defaults = self._initial_defaults.copy()
-        new_p._fluents_defaults = self._fluents_defaults.copy()
+
+        # last as it requires actions to be cloned already
+        MetricsMixin._clone_to(self, new_p, new_actions=new_p)
         return new_p
 
     def has_name(self, name: str) -> bool:
@@ -307,80 +299,6 @@ class Problem(
                 if e.fluent.fluent() in static_fluents:
                     static_fluents.remove(e.fluent.fluent())
         return static_fluents
-
-    def set_initial_value(
-        self,
-        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
-        value: Union[
-            "up.model.fnode.FNode",
-            "up.model.fluent.Fluent",
-            "up.model.object.Object",
-            bool,
-            int,
-            float,
-            Fraction,
-        ],
-    ):
-        """
-        Sets the initial value for the given `Fluent`. The given `Fluent` must be grounded, therefore if
-        it's :func:`arity <unified_planning.model.Fluent.arity>` is `> 0`, the `fluent` parameter must be
-        an `FNode` and the method :func:`~unified_planning.model.FNode.is_fluent_exp` must return `True`.
-
-        :param fluent: The grounded `Fluent` of which the initial value must be set.
-        :param value: The `value` assigned in the initial state to the given `fluent`.
-        """
-        fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
-        if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("Initial value assignment has not compatible types!")
-        self._initial_value[fluent_exp] = value_exp
-
-    def initial_value(
-        self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
-    ) -> "up.model.fnode.FNode":
-        """
-        Retrieves the initial value assigned to the given `fluent`.
-
-        :param fluent: The target `fluent` of which the `value` in the initial state must be retrieved.
-        :return: The `value` expression assigned to the given `fluent` in the initial state.
-        """
-        (fluent_exp,) = self._env.expression_manager.auto_promote(fluent)
-        for a in fluent_exp.args:
-            if not a.is_constant():
-                raise UPExpressionDefinitionError(
-                    f"Impossible to return the initial value of a fluent expression with no constant arguments: {fluent_exp}."
-                )
-        if fluent_exp in self._initial_value:
-            return self._initial_value[fluent_exp]
-        elif fluent_exp.fluent() in self._fluents_defaults:
-            return self._fluents_defaults[fluent_exp.fluent()]
-        else:
-            raise UPProblemDefinitionError("Initial value not set!")
-
-    @property
-    def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """
-        Gets the initial value of all the grounded fluents present in the `Problem`.
-
-        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible.
-        """
-        res = self._initial_value
-        for f in self._fluents:
-            for f_exp in get_all_fluent_exp(self, f):
-                res[f_exp] = self.initial_value(f_exp)
-        return res
-
-    @property
-    def explicit_initial_values(
-        self,
-    ) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """
-        Returns the problem's defined initial values; those are only the initial values set with the
-        :func:`~unified_planning.model.Problem.set_initial_value` method.
-
-        IMPORTANT NOTE: For all the initial values of the problem use :func:`initial_values <unified_planning.model.Problem.initial_values>`.
-        """
-        return self._initial_value
 
     def add_timed_goal(
         self,
@@ -617,24 +535,6 @@ class Problem(
         """Removes the trajectory_constraints."""
         self._trajectory_constraints = []
 
-    def add_quality_metric(self, metric: "up.model.metrics.PlanQualityMetric"):
-        """
-        Adds the given `quality metric` to the `Problem`; a `quality metric` defines extra requirements that a :class:`~unified_planning.plans.Plan`
-        must satisfy in order to be valid.
-
-        :param metric: The `quality metric` that a `Plan` of this `Problem` must satisfy in order to be valid.
-        """
-        self._metrics.append(metric)
-
-    @property
-    def quality_metrics(self) -> List["up.model.metrics.PlanQualityMetric"]:
-        """Returns all the `quality metrics` in the `Problem`."""
-        return self._metrics
-
-    def clear_quality_metrics(self):
-        """Removes all the `quality metrics` in the `Problem`."""
-        self._metrics = []
-
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """
@@ -645,8 +545,6 @@ class Problem(
         seldom as possible.
         """
         # Create the needed data structures
-        fluents_to_only_increase: Set["up.model.fluent.Fluent"] = set()
-        fluents_to_only_decrease: Set["up.model.fluent.Fluent"] = set()
         static_fluents: Set["up.model.fluent.Fluent"] = self.get_static_fluents()
 
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
@@ -655,49 +553,9 @@ class Problem(
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class("ACTION_BASED")
         self._kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
-        for metric in self._metrics:
-            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
-                self._kind.set_quality_metrics("FINAL_VALUE")
-                (
-                    is_linear,
-                    fnode_to_only_increase,  # positive fluents in minimize can only be increased
-                    fnode_to_only_decrease,  # negative fluents in minimize can only be decreased
-                ) = linear_checker.get_fluents(metric.expression)
-                if is_linear:
-                    fluents_to_only_increase = {
-                        e.fluent() for e in fnode_to_only_increase
-                    }
-                    fluents_to_only_decrease = {
-                        e.fluent() for e in fnode_to_only_decrease
-                    }
-                else:
-                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
-                self._kind.set_quality_metrics("FINAL_VALUE")
-                (
-                    is_linear,
-                    fnode_to_only_decrease,  # positive fluents in maximize can only be decreased
-                    fnode_to_only_increase,  # negative fluents in maximize can only be increased
-                ) = linear_checker.get_fluents(metric.expression)
-                if is_linear:
-                    fluents_to_only_increase = {
-                        e.fluent() for e in fnode_to_only_increase
-                    }
-                    fluents_to_only_decrease = {
-                        e.fluent() for e in fnode_to_only_decrease
-                    }
-                else:
-                    self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
-                self._kind.set_quality_metrics("ACTIONS_COST")
-            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
-                self._kind.set_quality_metrics("MAKESPAN")
-            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
-                self._kind.set_quality_metrics("PLAN_LENGTH")
-            elif isinstance(metric, up.model.metrics.Oversubscription):
-                self._kind.set_quality_metrics("OVERSUBSCRIPTION")
-            else:
-                assert False, "Unknown quality metric"
+        fluents_to_only_increase, fluents_to_only_decrease = self._update_kind_metric(
+            self._kind, linear_checker
+        )
         for fluent in self._fluents:
             self._update_problem_kind_fluent(fluent)
         for object in self._objects:

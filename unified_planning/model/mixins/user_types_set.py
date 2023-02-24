@@ -108,3 +108,15 @@ class UserTypesSetMixin:
             else:
                 res[f].append(t)
         return res
+
+    def __eq__(self, other):
+        return isinstance(other, UserTypesSetMixin) and set(self._user_types) == set(
+            other._user_types
+        )
+
+    def __hash__(self):
+        return sum(map(hash, self._user_types))
+
+    def _clone_to(self, other: "UserTypesSetMixin"):
+        other._user_types = self._user_types[:]
+        other._user_types_hierarchy = self._user_types_hierarchy.copy()

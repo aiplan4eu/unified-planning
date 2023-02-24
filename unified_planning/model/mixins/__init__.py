@@ -18,6 +18,8 @@ from unified_planning.model.mixins.fluents_set import FluentsSetMixin
 from unified_planning.model.mixins.objects_set import ObjectsSetMixin
 from unified_planning.model.mixins.user_types_set import UserTypesSetMixin
 from unified_planning.model.mixins.agents_set import AgentsSetMixin
+from unified_planning.model.mixins.initial_state import InitialStateMixin
+from unified_planning.model.mixins.metrics import MetricsMixin
 
 __all__ = [
     "ActionsSetMixin",
@@ -25,4 +27,6 @@ __all__ = [
     "ObjectsSetMixin",
     "UserTypesSetMixin",
     "AgentsSetMixin",
+    "InitialStateMixin",
+    "MetricsMixin",
 ]

@@ -414,7 +414,11 @@ class TestProtobufProblems(TestCase):
             problem_up = self.pb_reader.convert(problem_pb)
 
             self.assertEqual(problem, problem_up)
-            self.assertEqual(hash(problem), hash(problem_up))
+            self.assertEqual(
+                hash(problem),
+                hash(problem_up),
+                f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
+            )
 
     def test_all_plans(self):
         for name, example in self.problems.items():

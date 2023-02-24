@@ -22,6 +22,7 @@ from unified_planning.environment import get_environment
 from unified_planning.model import ProblemKind
 from unified_planning.test.pddl import enhsp
 from typing import Optional
+import unified_planning.test.scheduling
 
 
 skipIf = unittest.skipIf

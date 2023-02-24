@@ -50,6 +50,16 @@ class MinimizeActionCosts(PlanQualityMetric):
         costs["default"] = self.default
         return f"minimize actions-cost: {costs}"
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, MinimizeActionCosts)
+            and self.default == other.default
+            and self.costs == other.costs
+        )
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)
+
     def get_action_cost(self, action: "up.model.Action") -> Optional["up.model.FNode"]:
         """
         Returns the cost of the given `Action`.
@@ -67,12 +77,24 @@ class MinimizeSequentialPlanLength(PlanQualityMetric):
     def __repr__(self):
         return "minimize sequential-plan-length"
 
+    def __eq__(self, other):
+        return isinstance(other, MinimizeSequentialPlanLength)
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)
+
 
 class MinimizeMakespan(PlanQualityMetric):
     """This metric means #TODO: explain what that metric means."""
 
     def __repr__(self):
         return "minimize makespan"
+
+    def __eq__(self, other):
+        return isinstance(other, MinimizeMakespan)
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)
 
 
 class MinimizeExpressionOnFinalState(PlanQualityMetric):
@@ -87,6 +109,15 @@ class MinimizeExpressionOnFinalState(PlanQualityMetric):
     def __repr__(self):
         return f"minimize {self.expression}"
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, MinimizeExpressionOnFinalState)
+            and self.expression == other.expression
+        )
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)
+
 
 class MaximizeExpressionOnFinalState(PlanQualityMetric):
     """
@@ -100,6 +131,15 @@ class MaximizeExpressionOnFinalState(PlanQualityMetric):
     def __repr__(self):
         return f"maximize {self.expression}"
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, MaximizeExpressionOnFinalState)
+            and self.expression == other.expression
+        )
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)
+
 
 class Oversubscription(PlanQualityMetric):
     """
@@ -109,7 +149,16 @@ class Oversubscription(PlanQualityMetric):
     """
 
     def __init__(self, goals: Dict["up.model.FNode", Union[Fraction, int]]):
+        goals = dict(
+            (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
+        )
         self.goals = goals
 
     def __repr__(self):
         return f"oversubscription planning goals: {self.goals}"
+
+    def __eq__(self, other):
+        return isinstance(other, Oversubscription) and self.goals == other.goals
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)

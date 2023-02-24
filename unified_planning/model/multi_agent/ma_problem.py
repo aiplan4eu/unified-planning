@@ -35,7 +35,7 @@ from unified_planning.model.mixins import (
 )
 
 
-class MultiAgentProblem(
+class MultiAgentProblem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
     ObjectsSetMixin,
