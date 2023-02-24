@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the conditional effects remover class."""
+"""This module defines the bounded types remover class."""
 
 
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import (
-    UPProblemDefinitionError,
-    UPConflictingEffectsException,
-)
 from unified_planning.model import Problem, ProblemKind, Fluent, FNode
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.types import _RealType

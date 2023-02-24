@@ -3,7 +3,7 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "80a2463c5925a3152ceaa6542be21e70a1a295f7"
+  up_tamer_commit: "33f405d0d1d1df22b43046f9d45463031a9f4c38"
   up_pyperplan_commit: "587a92b6a8198e8259ca9172312927f3e409867e"
   up_fast_downward_commit: "52b08699a8f76bf24884a5fd5100e013b4fca224"
 
@@ -297,7 +297,7 @@ jobs:
 
       - name: Install up-fast-downward
         run: python3 -m pip install up-fast-downward/
-      
+
       - name: Install up-aries
         run: pip3 install up-aries
 
