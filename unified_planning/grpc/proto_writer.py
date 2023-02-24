@@ -20,6 +20,7 @@ from typing import List, Union
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning import model
 import unified_planning.model.htn
+import unified_planning.engines
 import unified_planning.plans
 from unified_planning.plans.hierarchical_plan import *
 import unified_planning.model.walkers as walkers
