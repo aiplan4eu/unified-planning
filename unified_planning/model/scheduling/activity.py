@@ -30,10 +30,12 @@ class Activity(Chronicle):
 
     @property
     def start(self) -> Timing:
+        """Returns a reference to the start time of this activity."""
         return self._start
 
     @property
     def end(self) -> Timing:
+        """Returns a reference to the start time of this activity."""
         return self._end
 
     @property
@@ -41,7 +43,7 @@ class Activity(Chronicle):
         """Returns the `activity` `duration interval`."""
         return self._duration
 
-    def set_fixed_duration(self, value: Union["up.model.fnode.FNode", int, Fraction]):
+    def set_fixed_duration(self, value: Union[int, Fraction, "up.model.fnode.FNode"]):
         """
         Sets the `duration interval` for this `activity` as the interval `[value, value]`.
 
@@ -52,8 +54,8 @@ class Activity(Chronicle):
 
     def set_duration_bounds(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: Union[int, Fraction, "up.model.fnode.FNode"],
+        upper: Union[int, Fraction, "up.model.fnode.FNode"],
     ):
         """
         Sets the `duration interval` for this `activity` as the interval `[lower, upper]`.

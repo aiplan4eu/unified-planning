@@ -161,12 +161,17 @@ class SchedulingProblem(  # type: ignore[misc]
         return name in self._base._parameters
 
     def add_variable(self, name: str, tpe: Type) -> Parameter:
+        """Adds a new decision variable to the problem.
+        Such variables essentially acts as an existentially quantified variable whose scope is
+        the entire problem, which allows referring to them everywhere and access their value in the solution.
+        """
         assert not self.has_name(name)
         param = Parameter(name, tpe)
         self._base._parameters[name] = param
         return param
 
     def add_activity(self, name: str, duration: int = 0) -> "Activity":
+        """Creates a new activity with the given `name` in the problem."""
         act = Activity(name=name, duration=duration)
         self._activities.append(act)
         return act

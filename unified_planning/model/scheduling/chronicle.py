@@ -114,6 +114,10 @@ class Chronicle(TimedCondsEffs):
         return new
 
     def add_parameter(self, name: str, tpe: Type) -> Parameter:
+        """Adds a new decision variable associated to this activity.
+        The resulting parameter's identifier will be prefixed with the activity's name but may be
+        used outside the activity itself. For instance, it could appear in global constraints or
+        constraints involving more than one activity."""
         assert ":" not in name, f"Usage of ':' is forbidden in names: {name}"
         scoped_name = f"{self.name}:{name}"
         if name in self._parameters:
