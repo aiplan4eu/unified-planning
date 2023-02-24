@@ -14,6 +14,7 @@
 #
 
 
+from fractions import Fraction
 from warnings import warn
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder, GrounderHelper
@@ -21,6 +22,8 @@ from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
+from unified_planning.model import FNode, Type, ExpressionManager
+from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import StateEvaluator
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
@@ -80,6 +83,23 @@ class SequentialSimulator(Engine, SimulatorMixin):
         ] = {}
         self._se = StateEvaluator(self._problem)
         self._all_events_grounded: bool = False
+        self._bounded_numeric_types: Dict[
+            Type,
+            Tuple[
+                Optional[Union[int, Fraction]], Optional[Optional[Union[int, Fraction]]]
+            ],
+        ] = {}
+        for f in problem.fluents:
+            if f.type.is_int_type() or f.type.is_real_type():
+                numeric_type = cast(_RealType, f.type)
+                if (
+                    numeric_type.lower_bound is not None
+                    or numeric_type.upper_bound is not None
+                ):
+                    self._bounded_numeric_types[numeric_type] = (
+                        numeric_type.lower_bound,
+                        numeric_type.upper_bound,
+                    )
 
     def _get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
@@ -93,8 +113,6 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :return: The list of all the event conditions that evaluated to `False` or the list containing the first
             condition evaluated to False if the flag `early_termination` is set.
         """
-        # Evaluate every condition and if the condition is False or the condition is not simplified as a
-        # boolean constant in the given state, return False. Return True otherwise
         unsatisfied_conditions = []
         for c in event.conditions:
             evaluated_cond = self._se.evaluate(c, state)
@@ -105,6 +123,29 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 unsatisfied_conditions.append(c)
                 if early_termination:
                     break
+        new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
+        assigned_fluent: Set["up.model.FNode"] = set()
+        em = self._problem.environment.expression_manager
+        for effect in event.effects:
+            lower_bound, upper_bound = self._bounded_numeric_types.get(
+                effect.fluent.type, (None, None)
+            )
+            if lower_bound is not None or upper_bound is not None:
+                fluent, value = self._evaluate_effect(
+                    effect, state, new_bounded_types_values, assigned_fluent, em
+                )
+                if fluent is not None:
+                    assert value is not None
+                    new_bounded_types_values[fluent] = value
+                    if lower_bound is not None and lower_bound > cast(
+                        Fraction, value.constant_value()
+                    ):
+                        unsatisfied_conditions.append(em.LE(lower_bound, fluent))
+                    if upper_bound is not None and upper_bound < cast(
+                        Fraction, value.constant_value()
+                    ):
+                        unsatisfied_conditions.append(em.LE(fluent, upper_bound))
+
         return unsatisfied_conditions
 
     def _apply(
@@ -140,42 +181,13 @@ class SequentialSimulator(Engine, SimulatorMixin):
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
-        for e in event.effects:
-            evaluated_args = tuple(self._se.evaluate(a, state) for a in e.fluent.args)
-            fluent = self._problem.environment.expression_manager.FluentExp(
-                e.fluent.fluent(), evaluated_args
+        for effect in event.effects:
+            fluent, value = self._evaluate_effect(
+                effect, state, updated_values, assigned_fluent, em
             )
-            if (not e.is_conditional()) or self._se.evaluate(
-                e.condition, state
-            ).is_true():
-                if e.is_assignment():
-                    if fluent in updated_values:
-                        raise UPConflictingEffectsException(
-                            f"The fluent {fluent} is modified by 2 assignments in the same event."
-                        )
-                    updated_values[fluent] = self._se.evaluate(e.value, state)
-                    assigned_fluent.add(fluent)
-                else:
-                    if fluent in assigned_fluent:
-                        raise UPConflictingEffectsException(
-                            f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same event."
-                        )
-                    # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
-                    # otherwisee we take it's evaluation in the state as it's value.
-                    f_eval = updated_values.get(
-                        fluent, self._se.evaluate(fluent, state)
-                    )
-                    v_eval = self._se.evaluate(e.value, state)
-                    if e.is_increase():
-                        updated_values[fluent] = em.auto_promote(
-                            f_eval.constant_value() + v_eval.constant_value()
-                        )[0]
-                    elif e.is_decrease():
-                        updated_values[fluent] = em.auto_promote(
-                            f_eval.constant_value() - v_eval.constant_value()
-                        )[0]
-                    else:
-                        raise NotImplementedError
+            if fluent is not None:
+                assert value is not None
+                updated_values[fluent] = value
         if event.simulated_effect is not None:
             for f, v in zip(
                 event.simulated_effect.fluents,
@@ -187,6 +199,56 @@ class SequentialSimulator(Engine, SimulatorMixin):
                     )
                 updated_values[f] = v
         return state.make_child(updated_values)
+
+    def _evaluate_effect(
+        self,
+        effect: "up.model.Effect",
+        state: "up.model.ROState",
+        updated_values: Dict["up.model.FNode", "up.model.FNode"],
+        assigned_fluent: Set["up.model.FNode"],
+        em: ExpressionManager,
+    ) -> Tuple[Optional[FNode], Optional[FNode]]:
+        evaluated_args = tuple(self._se.evaluate(a, state) for a in effect.fluent.args)
+        fluent = self._problem.environment.expression_manager.FluentExp(
+            effect.fluent.fluent(), evaluated_args
+        )
+        if (not effect.is_conditional()) or self._se.evaluate(
+            effect.condition, state
+        ).is_true():
+            if effect.is_assignment():
+                if fluent in updated_values:
+                    raise UPConflictingEffectsException(
+                        f"The fluent {fluent} is modified by 2 assignments in the same event."
+                    )
+                assigned_fluent.add(fluent)
+                return (fluent, self._se.evaluate(effect.value, state))
+            else:
+                if fluent in assigned_fluent:
+                    raise UPConflictingEffectsException(
+                        f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same event."
+                    )
+                # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or deacrease)
+                # otherwisee we take it's evaluation in the state as it's value.
+                f_eval = updated_values.get(fluent, self._se.evaluate(fluent, state))
+                v_eval = self._se.evaluate(effect.value, state)
+                if effect.is_increase():
+                    return (
+                        fluent,
+                        em.auto_promote(
+                            f_eval.constant_value() + v_eval.constant_value()
+                        )[0],
+                    )
+                elif effect.is_decrease():
+                    return (
+                        fluent,
+                        em.auto_promote(
+                            f_eval.constant_value() - v_eval.constant_value()
+                        )[0],
+                    )
+                else:
+                    raise NotImplementedError
+        else:
+            return (None, None)
 
     def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
         """
@@ -279,6 +341,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")  # TODO add support in this engine!!
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")

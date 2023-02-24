@@ -15,6 +15,7 @@
 """This module defines different utility functions for the compilers."""
 
 
+from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
 from unified_planning.model import (
@@ -29,9 +30,25 @@ from unified_planning.model import (
     SimulatedEffect,
     Parameter,
     DurationInterval,
+    TimePointInterval,
+    PlanQualityMetric,
+    MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    MaximizeExpressionOnFinalState,
+    Oversubscription,
 )
 from unified_planning.plans import ActionInstance
-from typing import Dict, Iterable, List, Optional, Tuple, cast
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    OrderedDict,
+    Tuple,
+    Union,
+    cast,
+)
 
 
 def check_and_simplify_conditions(
@@ -50,7 +67,7 @@ def check_and_simplify_conditions(
     """
     # new action conditions
     nac: List[Tuple[TimeInterval, FNode]] = []
-    # t = timing, lc = list condition
+    # i = interval, lc = list condition
     for i, lc in action.conditions.items():
         # conditions (as an And FNode)
         c = problem.environment.expression_manager.And(lc)
@@ -270,3 +287,137 @@ def replace_action(
         return ActionInstance(replaced_action, action_instance.actual_parameters)
     else:
         return None
+
+
+def add_condition_to_all_problem(
+    original_problem: Problem,
+    new_problem: Problem,
+    condition: Optional[FNode] = None,
+    function: Optional[Callable[[FNode], FNode]] = None,
+) -> Dict[Action, Action]:
+    env = new_problem.environment
+    em = env.expression_manager
+    if condition is None:
+        condition = em.TRUE()
+    assert condition is not None
+    if function is None:
+        function = lambda x: x
+    new_to_old: Dict[Action, Action] = {}
+    old_to_new: Dict[Action, Action] = {}
+
+    for constraint in original_problem.trajectory_constraints:
+        new_problem.add_trajectory_constraint(function(constraint))
+
+    for original_action in original_problem.actions:
+        params = OrderedDict(((p.name, p.type) for p in original_action.parameters))
+        if isinstance(original_action, InstantaneousAction):
+            new_action: Union[
+                InstantaneousAction, DurativeAction
+            ] = InstantaneousAction(original_action.name, params, env)
+            assert isinstance(new_action, InstantaneousAction)
+            new_cond = em.And(
+                *map(function, original_action.preconditions), condition
+            ).simplify()
+            if new_cond.is_false():
+                continue
+            elif new_cond.is_and():
+                for arg in new_cond.args:
+                    new_action.add_precondition(arg)
+            else:
+                new_action.add_precondition(new_cond)
+            for effect in original_action.effects:
+                new_action._add_effect_instance(
+                    _apply_function_to_effect(effect, function)
+                )
+        elif isinstance(original_action, DurativeAction):
+            new_action = DurativeAction(original_action.name, params, env)
+            assert isinstance(new_action, DurativeAction)
+            old_duration = original_action.duration
+            new_duration = DurationInterval(
+                function(old_duration.lower),
+                function(old_duration.upper),
+                old_duration.is_left_open(),
+                old_duration.is_right_open(),
+            )
+            new_action.set_duration_constraint(new_duration)
+            for interval, cond_list in original_action.conditions.items():
+                new_cond = em.And(*map(function, cond_list), condition).simplify()
+                if new_cond.is_false():
+                    continue
+                elif new_cond.is_and():
+                    for arg in new_cond.args:
+                        new_action.add_condition(interval, arg)
+                else:
+                    new_action.add_condition(interval, new_cond)
+            for timing, effects in original_action.effects.items():
+                for effect in effects:
+                    new_action._add_effect_instance(
+                        timing, _apply_function_to_effect(effect, function)
+                    )
+                interval = TimePointInterval(timing)
+                if interval not in new_action.conditions:
+                    new_action.add_condition(interval, condition)
+        else:
+            raise NotImplementedError
+        new_problem.add_action(new_action)
+        new_to_old[new_action] = original_action
+        old_to_new[original_action] = new_action
+
+    for interval, goal_list in original_problem.timed_goals.items():
+        new_goal = em.And(*map(function, goal_list), condition).simplify()
+        if new_goal.is_and():
+            for arg in new_goal.args:
+                new_problem.add_timed_goal(interval, arg)
+        else:
+            new_problem.add_timed_goal(interval, new_goal)
+    for timing, effects in original_problem.timed_effects.items():
+        for effect in effects:
+            new_problem._add_effect_instance(
+                timing, _apply_function_to_effect(effect, function)
+            )
+        interval = TimePointInterval(timing)
+        if interval not in new_problem.timed_goals:
+            new_problem.add_timed_goal(interval, condition)
+
+    new_goal = em.And(*map(function, original_problem.goals), condition).simplify()
+    if new_goal.is_and():
+        for arg in new_goal.args:
+            new_problem.add_goal(arg)
+
+    for qm in original_problem.quality_metrics:
+        if isinstance(qm, MinimizeActionCosts):
+            new_costs = {
+                old_to_new[a]: (None if cost is None else function(cost))
+                for a, cost in qm.costs.items()
+                if a in old_to_new
+            }
+            new_qm: PlanQualityMetric = MinimizeActionCosts(new_costs)
+        elif isinstance(qm, MinimizeExpressionOnFinalState):
+            new_qm = MinimizeExpressionOnFinalState(function(qm.expression))
+        elif isinstance(qm, MaximizeExpressionOnFinalState):
+            new_qm = MaximizeExpressionOnFinalState(function(qm.expression))
+        elif isinstance(qm, Oversubscription):
+            new_goals: Dict[FNode, Union[Fraction, int]] = {}
+            for goal, gain in qm.goals.items():
+                new_goal = em.And(goal, condition).simplify()
+                new_goals[new_goal] = new_goals.get(new_goal, 0) + gain
+            new_qm = Oversubscription(new_goals)
+        else:
+            new_qm = qm
+        new_problem.add_quality_metric(new_qm)
+
+    for fluent, value in original_problem.initial_values.items():
+        new_problem.set_initial_value(function(fluent), function(value))
+
+    return new_to_old
+
+
+def _apply_function_to_effect(
+    effect: Effect, function: Callable[[FNode], FNode]
+) -> Effect:
+    return Effect(
+        function(effect.fluent),
+        function(effect.value),
+        function(effect.condition),
+        effect.kind,
+    )

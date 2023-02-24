@@ -19,6 +19,7 @@ from unified_planning.model.walkers.dnf import Dnf, Nnf
 from unified_planning.model.walkers.expression_quantifiers_remover import (
     ExpressionQuantifiersRemover,
 )
+from unified_planning.model.walkers.fluents_substituter import FluentsSubstituter
 from unified_planning.model.walkers.linear_checker import LinearChecker
 from unified_planning.model.walkers.operators_extractor import OperatorsExtractor
 from unified_planning.model.walkers.quantifier_simplifier import QuantifierSimplifier

@@ -156,6 +156,7 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
