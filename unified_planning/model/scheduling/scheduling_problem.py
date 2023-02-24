@@ -65,6 +65,9 @@ class SchedulingProblem(  # type: ignore[misc]
         self._activities: List[Activity] = []
 
         self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
+        print(
+            "WARNING: The SchedulingProblem class is currently unstable and not feature complete."
+        )
 
     def __repr__(self) -> str:
         s = []
@@ -163,7 +166,7 @@ class SchedulingProblem(  # type: ignore[misc]
         self._base._parameters[name] = param
         return param
 
-    def add_activity(self, name: str, duration: Optional[int]) -> "Activity":
+    def add_activity(self, name: str, duration: int = 0) -> "Activity":
         act = Activity(name=name, duration=duration)
         self._activities.append(act)
         return act

@@ -18,7 +18,7 @@ class Activity(Chronicle):
     associated SchedulingProblem"""
 
     def __init__(
-        self, name: str, duration: Optional[int], _env: Optional[Environment] = None
+        self, name: str, duration: int = 0, _env: Optional[Environment] = None
     ):
         Chronicle.__init__(self, name, _env=_env)
         start_tp = Timepoint(TimepointKind.START, container=name)
@@ -26,11 +26,7 @@ class Activity(Chronicle):
         self._start = Timing(0, start_tp)
         self._end = Timing(0, end_tp)
 
-        self._duration = up.model.timing.FixedDuration(
-            self._environment.expression_manager.Int(0)
-        )
-        if duration is not None:
-            self.set_fixed_duration(duration)
+        self.set_fixed_duration(duration)
 
     @property
     def start(self) -> Timing:
@@ -99,12 +95,18 @@ class Activity(Chronicle):
             )
         self._duration = duration
 
-    def uses(self, resource: Fluent, amount: int = 1):
+    def uses(self, resource: Fluent, amount: Union[int, Fraction] = 1):
+        """Asserts that the activity borrows a given amount (1 by default) of the resource.
+        The borrowed resources will be reusable by another activity at the time epoch immediately
+         succeeding the activity end.
+        """
         self.add_decrease_effect(self.start, resource, amount)
         self.add_increase_effect(self.end, resource, amount)
 
     def set_release_date(self, date: int):
+        """Set the earliest date at which the activity can be started."""
         self.add_constraint(get_environment().expression_manager.LE(date, self.start))
 
     def set_deadline(self, date: int):
+        """Set the latest date at which the activity might end."""
         self.add_constraint(get_environment().expression_manager.LE(self.end, date))
