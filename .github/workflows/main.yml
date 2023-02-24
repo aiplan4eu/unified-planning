@@ -42,7 +42,6 @@ jobs:
       - name: Test all packages imports
         run: python3 scripts/test_imports.py
 
-
   run-tests-ubuntu:
     runs-on: ubuntu-latest
     needs: [basic-check]
@@ -90,8 +89,8 @@ jobs:
       - name: Setup java for ENHSP
         uses: actions/setup-java@v2
         with:
-            distribution: 'microsoft'
-            java-version: '17'
+          distribution: "microsoft"
+          java-version: "17"
 
       - name: Download and install ENHSP
         run: |
@@ -106,12 +105,12 @@ jobs:
         run: bash run_tests.sh
 
       - name: "Upload coverage to Codecov"
+        if: ${{ github.repository == 'aiplan4eu/unified-planning' }}
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           fail_ci_if_error: true
-
 
   run-tests-windows:
     runs-on: windows-latest
@@ -155,8 +154,8 @@ jobs:
       - name: Setup java for ENHSP
         uses: actions/setup-java@v2
         with:
-            distribution: 'microsoft'
-            java-version: '17'
+          distribution: "microsoft"
+          java-version: "17"
 
       - name: Download and install ENHSP
         run: |
@@ -166,7 +165,6 @@ jobs:
 
       - name: Run tests
         run: bash run_tests.sh
-
 
   run-tests-macos:
     runs-on: macos-latest
@@ -190,8 +188,7 @@ jobs:
       - name: Install tarski
         run: |
           python3 -m pip install tarski[arithmetic]
-#          brew install gringo -- Commented because not working on github actions
-
+      #          brew install gringo -- Commented because not working on github actions
       - name: Checkout up-tamer
         uses: actions/checkout@v2
         with:
@@ -215,8 +212,8 @@ jobs:
       - name: Setup java for ENHSP
         uses: actions/setup-java@v2
         with:
-            distribution: 'microsoft'
-            java-version: '17'
+          distribution: "microsoft"
+          java-version: "17"
 
       - name: Download and install ENHSP
         run: |
@@ -226,7 +223,6 @@ jobs:
 
       - name: Run tests
         run: bash run_tests.sh
-
 
   check-protobuf:
     runs-on: ubuntu-20.04
@@ -252,10 +248,15 @@ jobs:
           echo "Checking that the committed protobuf bindings are exactly the one generated from the declaration"
           git diff --exit-code
 
-
   run-colab-notebooks:
     runs-on: ubuntu-latest
-    needs: [basic-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf] # We only test colabs if the base tests were succesful
+    needs: [
+        basic-check,
+        run-tests-ubuntu,
+        run-tests-windows,
+        run-tests-macos,
+        check-protobuf,
+      ] # We only test colabs if the base tests were succesful
 
     steps:
       - name: Checkout
@@ -303,29 +304,35 @@ jobs:
       - name: Run colabs
         run: bash scripts/test_colab.sh
 
-
   deploy-pypi:
     runs-on: ubuntu-latest
-    needs: [basic-check, run-tests-ubuntu, run-tests-windows, run-tests-macos, check-protobuf, run-colab-notebooks] # We only deploy if the tests were successful
+    needs: [
+        basic-check,
+        run-tests-ubuntu,
+        run-tests-windows,
+        run-tests-macos,
+        check-protobuf,
+        run-colab-notebooks,
+      ] # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@master
-      with:
-        fetch-depth: 0
+      - name: Checkout repo
+        uses: actions/checkout@master
+        with:
+          fetch-depth: 0
 
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
 
-    - name: Make distrib
-      run: |
-        python3 -m pip install wheel
-        bash scripts/make_distrib.sh
+      - name: Make distrib
+        run: |
+          python3 -m pip install wheel
+          bash scripts/make_distrib.sh
 
-    - name: Upload to PyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
