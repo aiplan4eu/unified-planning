@@ -175,7 +175,7 @@ class QuantifierSimplifier(Simplifier):
             return res
         else:
             raise UPProblemDefinitionError(
-                f"Value of Fluent {str(expression)} not found in {str(self._assignments)}"
+                f"Value of Fluent {str(new_exp)} not found in {str(self._assignments)}"
             )
 
     def walk_variable_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":

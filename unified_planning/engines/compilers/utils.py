@@ -111,14 +111,11 @@ def create_effect_with_given_subs(
     problem: Problem,
     old_effect: Effect,
     simplifier,
-    substituter,
     subs: Dict[Expression, Expression],
 ) -> Optional[Effect]:
-    new_fluent = substituter.substitute(old_effect.fluent, subs)
-    new_value = substituter.substitute(old_effect.value, subs)
-    new_condition = simplifier.simplify(
-        substituter.substitute(old_effect.condition, subs)
-    )
+    new_fluent = old_effect.fluent.substitute(subs)
+    new_value = old_effect.value.substitute(subs)
+    new_condition = simplifier.simplify(old_effect.condition.substitute(subs))
     if new_condition == problem.environment.expression_manager.FALSE():
         return None
     else:
@@ -129,9 +126,9 @@ def create_action_with_given_subs(
     problem: Problem,
     old_action: Action,
     simplifier,
-    substituter,
     subs: Dict[Expression, Expression],
 ) -> Optional[Action]:
+    """This method is used to instantiate the actions parameters to a constant."""
     naming_list: List[str] = []
     for param, value in subs.items():
         assert isinstance(param, Parameter)
@@ -143,11 +140,9 @@ def create_action_with_given_subs(
             get_fresh_name(problem, old_action.name, naming_list)
         )
         for p in old_action.preconditions:
-            new_action.add_precondition(substituter.substitute(p, c_subs))
+            new_action.add_precondition(p.substitute(subs))
         for e in old_action.effects:
-            new_effect = create_effect_with_given_subs(
-                problem, e, simplifier, substituter, subs
-            )
+            new_effect = create_effect_with_given_subs(problem, e, simplifier, subs)
             if new_effect is not None:
                 # We try to add the new effect, but a compiler might generate conflicting effects,
                 # so the action is just considered invalid
@@ -159,7 +154,7 @@ def create_action_with_given_subs(
         if se is not None:
             new_fluents = []
             for f in se.fluents:
-                new_fluents.append(substituter.substitute(f, c_subs))
+                new_fluents.append(f.substitute(subs))
 
             def fun(_problem, _state, _):
                 assert se is not None
@@ -184,20 +179,18 @@ def create_action_with_given_subs(
         )
         old_duration = old_action.duration
         new_duration = DurationInterval(
-            substituter.substitute(old_duration.lower, c_subs),
-            substituter.substitute(old_duration.upper, c_subs),
+            old_duration.lower.substitute(subs),
+            old_duration.upper.substitute(subs),
             old_duration.is_left_open(),
             old_duration.is_right_open(),
         )
         new_durative_action.set_duration_constraint(new_duration)
         for i, cl in old_action.conditions.items():
             for c in cl:
-                new_durative_action.add_condition(i, substituter.substitute(c, c_subs))
+                new_durative_action.add_condition(i, c.substitute(subs))
         for t, el in old_action.effects.items():
             for e in el:
-                new_effect = create_effect_with_given_subs(
-                    problem, e, simplifier, substituter, subs
-                )
+                new_effect = create_effect_with_given_subs(problem, e, simplifier, subs)
                 if new_effect is not None:
                     # We try to add the new simulated effect, but a compiler might generate conflicting effects,
                     # so the action is just considered invalid
@@ -208,7 +201,7 @@ def create_action_with_given_subs(
         for t, se in old_action.simulated_effects.items():
             new_fluents = []
             for f in se.fluents:
-                new_fluents.append(substituter.substitute(f, c_subs))
+                new_fluents.append(f.substitute(subs))
 
             def fun(_problem, _state, _):
                 assert se is not None

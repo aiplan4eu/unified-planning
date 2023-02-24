@@ -38,7 +38,6 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
     def __init__(self, environment):
         self._env = environment
         IdentityDagWalker.__init__(self, self._env, True)
-        self._substituter = walkers.substituter.Substituter(self._env)
 
     def remove_quantifiers(
         self, expression: FNode, objects_set: "ObjectsSetMixin"
@@ -75,7 +74,7 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         subs_results = []
         for o in product(*possible_objects):
             subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
-            subs_results.append(self._substituter.substitute(args[0], subs))
+            subs_results.append(args[0].substitute(subs))
         return subs_results
 
     @walkers.handles(OperatorKind.EXISTS)

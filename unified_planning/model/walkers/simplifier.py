@@ -15,7 +15,7 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
@@ -180,10 +180,46 @@ class Simplifier(walkers.dag.DagWalker):
         free_vars: Set[
             "up.model.variable.Variable"
         ] = self.environment.free_vars_oracle.get_free_variables(args[0])
-        vars = tuple(var for var in expression.variables() if var in free_vars)
-        if len(vars) == 0:
-            return args[0]
-        return self.manager.Exists(args[0], *vars)
+        vars = set(var for var in expression.variables() if var in free_vars)
+        # Here we check if the arg is in the form:
+        # phi(l_i) and l_i == x with phi and x general formulae and l_i a variable
+        # bounded to this Exists.
+        # if it is, it can be simplified with phi(x) and l_i is removed from the free variables.
+        # this process is repeated until there are no more equalities with variables bounded to this
+        # Exists
+        new_arg, check_equality_simplification = args[0], True
+        while check_equality_simplification:
+            check_equality_simplification = False
+            if new_arg.is_and():
+                for i, and_arg in enumerate(new_arg.args):
+                    if and_arg.is_equals():
+                        variable, value = and_arg.args
+                        if (
+                            not variable.is_variable_exp()
+                            or variable.variable() not in vars
+                        ):
+                            variable, value = value, variable
+                        value_free_vars = (
+                            self.environment.free_vars_oracle.get_free_variables(
+                                args[0]
+                            )
+                        )
+                        if (
+                            variable.is_variable_exp()
+                            and variable.variable() in vars
+                            and variable not in value_free_vars
+                        ):
+                            check_equality_simplification = True
+                            new_arg = self.manager.And(
+                                *(a for j, a in enumerate(new_arg.args) if i != j)
+                            )
+                            new_arg = new_arg.substitute({variable: value})
+                            vars.remove(variable.variable())
+                            break
+        if vars:
+            return self.manager.Exists(new_arg, *vars)
+        else:
+            return new_arg
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1

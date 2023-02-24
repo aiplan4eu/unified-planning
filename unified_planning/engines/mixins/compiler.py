@@ -29,6 +29,7 @@ class CompilationKind(Enum):
     NEGATIVE_CONDITIONS_REMOVING = auto()
     QUANTIFIERS_REMOVING = auto()
     TRAJECTORY_CONSTRAINTS_REMOVING = auto()
+    USERTYPE_FLUENTS_REMOVING = auto()
 
 
 class CompilerMixin:

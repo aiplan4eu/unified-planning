@@ -25,7 +25,7 @@ class TestSubstituter(TestCase):
         TestCase.setUp(self)
 
     def test_id_walker(self):
-        s = Substituter(get_environment())
+        s = get_environment().substituter
         # small test on already-done expressions to check the id-dagwalker
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y", IntType()))

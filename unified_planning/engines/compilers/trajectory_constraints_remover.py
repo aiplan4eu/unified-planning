@@ -121,7 +121,6 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         """
         assert isinstance(problem, Problem)
         env = problem.environment
-        substituter = Substituter(env)
         expression_quantifier_remover = ExpressionQuantifiersRemover(env)
         grounding_result = engines.compilers.grounder.Grounder().compile(
             problem, CompilationKind.GROUNDING
@@ -143,7 +142,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
         A_prime: List["up.model.effect.Effect"] = list()
-        I_prime, F_prime = self._get_monitoring_atoms(env, substituter, C, I)
+        I_prime, F_prime = self._get_monitoring_atoms(env, C, I)
         G_prime = env.expression_manager.And(
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]
         )
@@ -290,48 +289,44 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     relevant_constrains.append(c)
         return relevant_constrains
 
-    def _evaluate_constraint(self, env, substituter, constr, init_values):
+    def _evaluate_constraint(self, env, constr, init_values):
         if constr.is_sometime():
-            return HOLD, substituter.substitute(constr.args[0], init_values).simplify()
+            return HOLD, constr.args[0].substitute(init_values).simplify()
         elif constr.is_sometime_after():
             return (
                 HOLD,
                 env.expression_manager.Or(
-                    substituter.substitute(constr.args[1], init_values),
-                    env.expression_manager.Not(
-                        substituter.substitute(constr.args[0], init_values)
-                    ),
+                    constr.args[1].substitute(init_values),
+                    env.expression_manager.Not(constr.args[0].substitute(init_values)),
                 ).simplify(),
             )
         elif constr.is_sometime_before():
             return (
                 SEEN_PSI,
-                substituter.substitute(constr.args[1], init_values).simplify(),
+                constr.args[1].substitute(init_values).simplify(),
             )
         elif constr.is_at_most_once():
             return (
                 SEEN_PHI,
-                substituter.substitute(constr.args[0], init_values).simplify(),
+                constr.args[0].substitute(init_values).simplify(),
             )
         elif constr.is_bool_constant():
-            return None, substituter.substitute(constr)
+            return None, constr
         else:
-            return None, substituter.substitute(constr.args[0], init_values).simplify()
+            return None, constr.args[0].substitute(init_values).simplify()
 
-    def _get_monitoring_atoms(self, env, substituter, C, I):
+    def _get_monitoring_atoms(self, env, C, I):
         monitoring_atoms = []
         monitoring_atoms_counter = 0
         initial_state_prime = []
         for constr in C:
             if constr.is_always():
-                if substituter.substitute(constr.args[0], I).simplify().is_false():
+                if constr.args[0].substitute(I).simplify().is_false():
                     raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: an always is violated in the initial state"
                     )
             else:
-                type, init_state_value = self._evaluate_constraint(
-                    env, substituter, constr, I
-                )
+                type, init_state_value = self._evaluate_constraint(env, constr, I)
                 fluent = up.model.Fluent(
                     f"{type}{SEPARATOR}{monitoring_atoms_counter}",
                     env.type_manager.BoolType(),
@@ -342,7 +337,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 if init_state_value.is_true():
                     initial_state_prime.append(monitoring_atom)
                 if constr.is_sometime_before():
-                    if substituter.substitute(constr.args[0], I).simplify().is_true():
+                    if constr.args[0].substitute(I).simplify().is_true():
                         raise UPProblemDefinitionError(
                             "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
                         )

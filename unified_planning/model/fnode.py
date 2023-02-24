@@ -19,7 +19,7 @@ import unified_planning.model.fluent
 import collections
 from unified_planning.environment import Environment
 from unified_planning.model.operators import OperatorKind
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "payload"])
@@ -153,6 +153,10 @@ class FNode(object):
         """Returns the `Type` of this expression."""
         return self._env.type_checker.get_type(self)
 
+    def get_contained_names(self) -> Set[str]:
+        """Returns all the names contained in this expression."""
+        return self._env.names_extractor.extract_names(self)
+
     def arg(self, idx: int) -> "FNode":
         """
         Return the given subexpression at the given position.
@@ -233,6 +237,25 @@ class FNode(object):
         The simplification is done just by constant propagation by the :class:`~unified_planning.model.walkers.Simplifier`
         """
         return self._env.simplifier.simplify(self)
+
+    def substitute(
+        self,
+        substitutions: Dict[
+            "unified_planning.model.expression.Expression",
+            "unified_planning.model.expression.Expression",
+        ],
+    ):
+        """
+        Returns the version of this expression where every expression that is a key of the substitutions
+        map is substituted with it's value in the map.
+
+        NOTE: check the :class:`~unified_planning.model.walkers.Substituter` documentation for more details!
+
+        :param substitutions: The mapping of expressions that must be substituted.
+        :return: The expression where every instance of a key value in the substitutions map
+            is substituted with it's value.
+        """
+        return self._env.substituter.substitute(self, substitutions)
 
     def is_bool_constant(self) -> bool:
         """Test whether the expression is a `boolean` constant."""

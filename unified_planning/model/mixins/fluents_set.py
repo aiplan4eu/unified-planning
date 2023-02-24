@@ -160,6 +160,13 @@ class FluentsSetMixin:
 
         return fluent
 
+    def clear_fluents(self):
+        """
+        Removes all the Fluent from the current Problem, together with their default.
+        """
+        self._fluents = []
+        self._fluents_defaults = {}
+
     @property
     def fluents_defaults(
         self,
