@@ -19,8 +19,10 @@ from typing import List, Union
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning import model
+import unified_planning.engines
 import unified_planning.model.htn
 import unified_planning.model.walkers as walkers
+import unified_planning.plans
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
@@ -523,7 +525,7 @@ class ProtobufWriter(Converter):
     @handles(model.Problem, model.htn.HierarchicalProblem)
     def _convert_problem(self, problem: model.Problem) -> proto.Problem:
         goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
-        for (t, gs) in problem.timed_goals:
+        for t, gs in problem.timed_goals:
             goals += [
                 proto.Goal(goal=self.convert(g), timing=self.convert(t)) for g in gs
             ]
@@ -724,7 +726,6 @@ class ProtobufWriter(Converter):
             status
             == unified_planning.engines.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
         ):
-
             return proto.PlanGenerationResult.Status.Value("UNSUPPORTED_PROBLEM")
         elif status == unified_planning.engines.PlanGenerationResultStatus.INTERMEDIATE:
             return proto.PlanGenerationResult.Status.Value("INTERMEDIATE")
