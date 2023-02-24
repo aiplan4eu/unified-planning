@@ -289,12 +289,31 @@ def replace_action(
         return None
 
 
-def add_condition_to_all_problem(
+def add_invariant_condition_apply_function_to_problem_expressions(
     original_problem: Problem,
     new_problem: Problem,
     condition: Optional[FNode] = None,
     function: Optional[Callable[[FNode], FNode]] = None,
 ) -> Dict[Action, Action]:
+    """
+    This function takes the original problem, the new problem and adds to the new problem
+    all the fields that involve an expression, applying the given function (the identity if it is None)
+    to all expressions in the problem and adding the condition as an invariant for the whole problem;
+    adding it as a final goal and as a precondition for every action. For the temporal case,
+    whenever there is the possibility that a point in time is relevant, the condition is also added there.
+
+    NOTE: The new_problem field will be modified!
+
+    :param original_problem: The Problem acting as a base that will be modified in the new problem.
+    :param new_problem: The problem created from the original problem; outside of this function the name,
+        the fluents and the objects must be manually added.
+    :param condition: Optionally, the condition to add in every relevant point of the Problem, making
+        it de-facto an invariant.
+    :param function: Optionally, the function that will be called and that creates every expression of the
+        new problem.
+    :return: The mapping from the actions of the new problem to the actions of the original problem;
+        every action is mapped to the action it was generated from.
+    """
     env = new_problem.environment
     em = env.expression_manager
     if condition is None:

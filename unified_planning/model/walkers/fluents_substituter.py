@@ -14,19 +14,17 @@
 #
 
 
-import unified_planning.model.walkers as walkers
-
 import unified_planning.environment
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.model.fnode import FNode
-from unified_planning.model.operators import OperatorKind
-from unified_planning.model.expression import Expression
-from unified_planning.exceptions import UPTypeError
 from typing import List, Dict
 
 
 class FluentsSubstituter(IdentityDagWalker):
-    """Performs substitution into an expression"""
+    """
+    Performs fluents substitution into a expression, maintaining the same args
+    for the fluent.
+    """
 
     def __init__(
         self,
@@ -43,7 +41,15 @@ class FluentsSubstituter(IdentityDagWalker):
         self._fluents = fluents
 
     def substitute_fluents(self, expression: FNode) -> FNode:
-        """ """
+        """
+        Returns the expression where every FluentExp that has as fluent one of
+        the fluents in the mapping given at construction time is substituted with
+        the mapped fluent. The args of the FluentExp are the same.
+
+        :param expression: The expression with the fluents as keys in the mapping.
+        :return: The expression where every key fluent in the mapping is replaced
+            by the fluent representing his value in the mapping.
+        """
         return self.walk(expression)
 
     def walk_fluent_exp(

@@ -123,6 +123,8 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 unsatisfied_conditions.append(c)
                 if early_termination:
                     break
+
+        # check that the assignments will respect the bound typing
         new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
@@ -141,10 +143,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
                         Fraction, value.constant_value()
                     ):
                         unsatisfied_conditions.append(em.LE(lower_bound, fluent))
+                        if early_termination:
+                            break
                     if upper_bound is not None and upper_bound < cast(
                         Fraction, value.constant_value()
                     ):
                         unsatisfied_conditions.append(em.LE(fluent, upper_bound))
+                        if early_termination:
+                            break
 
         return unsatisfied_conditions
 
@@ -341,7 +347,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
-        supported_kind.set_numbers("BOUNDED_TYPES")  # TODO add support in this engine!!
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")

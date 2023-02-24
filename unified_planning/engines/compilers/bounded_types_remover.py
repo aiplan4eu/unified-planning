@@ -28,7 +28,7 @@ from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import FluentsSubstituter
 from unified_planning.engines.compilers.utils import (
-    add_condition_to_all_problem,
+    add_invariant_condition_apply_function_to_problem_expressions,
     replace_action,
 )
 from typing import List, Dict, OrderedDict, Optional, cast
@@ -37,22 +37,19 @@ from functools import partial
 
 class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
     """
-    Conditional effects remover class: this class offers the capability
-    to transform a :class:`~unified_planning.model.Problem` with conditional :class:`Effects <unified_planning.model.Effect>`
-    into a `Problem` without conditional `Effects`. This capability is offered by the :meth:`~unified_planning.engines.compilers.ConditionalEffectsRemover.compile`
+    Bounded types remover class: this class offers the capability
+    to transform a :class:`~unified_planning.model.Problem` with Bounded :class:`Types <unified_planning.model.Type>`
+    into a `Problem` without bounded `Types` (only IntType and RealType can be bounded).
+    This capability is offered by the :meth:`~unified_planning.engines.compilers.BoundedTypesRemover.compile`
     method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
     is the compiled Problem.
 
-    This is done by substituting every conditional :class:`~unified_planning.model.Action` with different
-    actions representing every possible branch of the original action.
+    This is done by changing the type of the fluents to unbounded types, and adding to every action's condition and
+    every goal of the problem the artificial condition that emulates the typing bound.
 
-    Also the conditional :meth:`timed_effects <unified_planning.model.Problem.timed_effects>` are removed maintaining the same
-    semantics.
+    For example, if we have a fluent `F` of type `int[0, 5]`, the added condition would be `0 <= F <= 5`.
 
-    When it is not possible to remove a conditional Effect without changing the semantic of the resulting Problem,
-    an :exc:`~unified_planning.exceptions.UPProblemDefinitionError` is raised.
-
-    This `Compiler` supports only the the `CONDITIONAL_EFFECTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    This `Compiler` supports only the the `BOUNDED_TYPES_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(self):
@@ -122,14 +119,13 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
     ) -> CompilerResult:
         """
         Takes an instance of a :class:`~unified_planning.model.Problem` and the wanted :class:`~unified_planning.engines.CompilationKind`
-        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>` field does not have conditional effects.
+        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>`
+        field does not have bounded types.
 
-        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without conditional effects.
+        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without bounded types.
         :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
-            only :class:`~unified_planning.engines.CompilationKind.CONDITIONAL_EFFECTS_REMOVING` is supported by this compiler
+            only :class:`~unified_planning.engines.CompilationKind.BOUNDED_TYPES_REMOVING` is supported by this compiler
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
-        :raises: :exc:`~unified_planning.exceptions.UPProblemDefinitionError` when the :meth:`condition<unified_planning.model.Effect.condition>` of an
-            :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
         """
         assert isinstance(problem, Problem)
         env = problem.environment
@@ -182,7 +178,7 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_fluent(old_fluent)
 
         fluents_substituter = FluentsSubstituter(new_fluents, env)
-        new_to_old = add_condition_to_all_problem(
+        new_to_old = add_invariant_condition_apply_function_to_problem_expressions(
             problem,
             new_problem,
             em.And(conditions),

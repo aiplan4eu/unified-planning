@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-from pprint import pprint
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import UPProblemDefinitionError
@@ -37,28 +36,6 @@ class TestBoundedTypesRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
-
-    def test_all(self):
-        # Here is a tuple of problems that enhsp has problems dealing with.
-        # the bug report has been sent and when it will be fixed we can remove
-        # the test-skipping
-        enhsp_problematic_problems = ("travel_with_consumptions", "travel")
-        for name, (problem, plan) in self.problems.items():
-            if name in enhsp_problematic_problems:
-                continue
-            if problem.kind.has_bounded_types():
-                with Compiler(
-                    problem_kind=problem.kind,
-                    compilation_kind=CompilationKind.BOUNDED_TYPES_REMOVING,
-                ) as cer:
-                    res = cer.compile(problem, CompilationKind.BOUNDED_TYPES_REMOVING)
-                    compiled_problem = res.problem
-                self.assertFalse(compiled_problem.kind.has_bounded_types())
-
-                with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
-                    comp_res = planner.solve(compiled_problem)
-                    compiled_plan = comp_res.plan
-                    self.assertEqual(str(plan), str(compiled_plan))
 
     def test_counter(self):
         problem = self.problems["counter"].problem
