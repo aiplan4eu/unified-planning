@@ -219,10 +219,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 event.simulated_effect.function(self._problem, state, {}),
             ):
                 old_value = updated_values.get(f, None)
-                if old_value is not None:
+                # If f was already modified and it was modified by an increase/decrease or with an assign
+                # with a different value
+                if old_value is not None and (
+                    f not in assigned_fluent or old_value != v
+                ):
                     if not f.type.is_bool_type():
                         raise UPConflictingEffectsException(
-                            f"The fluent {f} is modified twice in the same event."
+                            f"The fluent {f} is modified with different values in the same event."
                         )
                     elif not old_value.bool_constant_value():
                         updated_values[f] = v
