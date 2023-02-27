@@ -83,23 +83,23 @@ class SequentialSimulator(Engine, SimulatorMixin):
         ] = {}
         self._se = StateEvaluator(self._problem)
         self._all_events_grounded: bool = False
-        self._bounded_numeric_types: Dict[
-            Type,
-            Tuple[
-                Optional[Union[int, Fraction]], Optional[Optional[Union[int, Fraction]]]
-            ],
-        ] = {}
-        for f in problem.fluents:
-            if f.type.is_int_type() or f.type.is_real_type():
-                numeric_type = cast(_RealType, f.type)
-                if (
-                    numeric_type.lower_bound is not None
-                    or numeric_type.upper_bound is not None
-                ):
-                    self._bounded_numeric_types[numeric_type] = (
-                        numeric_type.lower_bound,
-                        numeric_type.upper_bound,
-                    )
+        # self._bounded_numeric_types: Dict[
+        #     Type,
+        #     Tuple[
+        #         Optional[Union[int, Fraction]], Optional[Optional[Union[int, Fraction]]]
+        #     ],
+        # ] = {}
+        # for f in problem.fluents:
+        #     if f.type.is_int_type() or f.type.is_real_type():
+        #         numeric_type = cast(_RealType, f.type)
+        #         if (
+        #             numeric_type.lower_bound is not None
+        #             or numeric_type.upper_bound is not None
+        #         ):
+        #             self._bounded_numeric_types[numeric_type] = (
+        #                 numeric_type.lower_bound,
+        #                 numeric_type.upper_bound,
+        #             )
 
     def _get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
@@ -129,9 +129,10 @@ class SequentialSimulator(Engine, SimulatorMixin):
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
         for effect in event.effects:
-            lower_bound, upper_bound = self._bounded_numeric_types.get(
-                effect.fluent.type, (None, None)
-            )
+            lower_bound, upper_bound = None, None
+            f_type = cast(_RealType, effect.fluent.type)
+            if f_type.is_int_type() or f_type.is_real_type():
+                lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
             if lower_bound is not None or upper_bound is not None:
                 fluent, value = self._evaluate_effect(
                     effect, state, new_bounded_types_values, assigned_fluent, em
@@ -154,7 +155,10 @@ class SequentialSimulator(Engine, SimulatorMixin):
         if event.simulated_effect is not None:
             to_check = False
             for f in event.simulated_effect.fluents:
-                if f.type in self._bounded_numeric_types:
+                f_type = cast(_RealType, f.type)
+                if (f_type.is_int_type() or f_type.is_real_type()) and (
+                    f_type.lower_bound is not None or f_type.upper_bound is not None
+                ):
                     to_check = True
                     break
             if to_check:
@@ -162,17 +166,28 @@ class SequentialSimulator(Engine, SimulatorMixin):
                     event.simulated_effect.fluents,
                     event.simulated_effect.function(self._problem, state, {}),
                 ):
-                    lower_bound, upper_bound = self._bounded_numeric_types.get(
-                        f.type, (None, None)
-                    )
-                    if lower_bound is not None and v < lower_bound:
-                        unsatisfied_conditions.append(em.LE(lower_bound, f))
-                        if early_termination:
-                            break
-                    if upper_bound is not None and v > upper_bound:
-                        unsatisfied_conditions.append(em.LE(f, upper_bound))
-                        if early_termination:
-                            break
+                    lower_bound, upper_bound = None, None
+                    f_type = cast(_RealType, f.type)
+                    if f_type.is_int_type() or f_type.is_real_type():
+                        lower_bound, upper_bound = (
+                            f_type.lower_bound,
+                            f_type.upper_bound,
+                        )
+                    if lower_bound is not None or upper_bound is not None:
+                        if (
+                            lower_bound is not None
+                            and cast(Fraction, v.constant_value()) < lower_bound
+                        ):
+                            unsatisfied_conditions.append(em.LE(lower_bound, f))
+                            if early_termination:
+                                break
+                        if (
+                            upper_bound is not None
+                            and cast(Fraction, v.constant_value()) > upper_bound
+                        ):
+                            unsatisfied_conditions.append(em.LE(f, upper_bound))
+                            if early_termination:
+                                break
         return unsatisfied_conditions
 
     def _apply(

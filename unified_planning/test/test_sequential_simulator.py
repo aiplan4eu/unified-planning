@@ -162,3 +162,26 @@ class TestSimulator(TestCase):
         self.assertIn("cannot establish whether", str(e.exception))
         with Simulator(problem, name="sequential_simulator") as simulator:
             pass
+
+    def test_bounded_types(self):
+        counter = Fluent("counter", IntType(0))
+        increase = InstantaneousAction("increase")
+        increase.add_increase_effect(counter, 1)
+        decrease = InstantaneousAction("decrease")
+        decrease.add_decrease_effect(counter, 1)
+        problem = Problem("simple_counter")
+        problem.add_fluent(counter, default_initial_value=1)
+        problem.add_action(increase)
+        problem.add_action(decrease)
+
+        with Simulator(problem) as simulator:
+            init = UPCOWState(problem.initial_values)
+            inc = simulator.get_events(increase, tuple())[0]
+            dec = simulator.get_events(decrease, tuple())[0]
+            self.assertTrue(simulator.is_applicable(inc, init))
+
+            dec_state = simulator.apply(dec, init)
+            self.assertIsNotNone(dec_state)
+            self.assertFalse(simulator.is_applicable(dec, dec_state))
+            double_dec_state = simulator.apply(dec, dec_state)
+            self.assertIsNone(double_dec_state)
