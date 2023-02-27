@@ -327,3 +327,32 @@ autodoc_default_options = {
     "imported-members": True,
 }
 autodoc_member_order = "bysource"
+
+
+# -- Generating Planning Engine Scripts -------------------------------------------
+
+engines = {
+    "aries": "https://raw.githubusercontent.com/plaans/aries/master/planning/unified/plugin/README.md",
+    "tamer": "https://raw.githubusercontent.com/aiplan4eu/up-tamer/master/README.md",
+    "enhsp": "https://raw.githubusercontent.com/aiplan4eu/up-enhsp/master/README.md",
+    "spiderplan": "https://raw.githubusercontent.com/aiplan4eu/up-spiderplan/master/README.md",
+    "fmap": "https://raw.githubusercontent.com/aiplan4eu/up-fmap/master/README.md",
+    "lpg": "https://raw.githubusercontent.com/aiplan4eu/up-lpg/master/README.md",
+    "pyperplan": "https://raw.githubusercontent.com/aiplan4eu/up-pyperplan/master/README.md",
+    "fast_downward": "https://raw.githubusercontent.com/aiplan4eu/up-fast-downward/main/README.md",
+}
+
+SKIP_ENGINES = []
+for skipped in SKIP_ENGINES:
+    engines.popitem(skipped)
+engines = dict(sorted(engines.items()))
+
+import requests
+
+for i, (name, source) in enumerate(engines.items()):
+    with open(f"./engines/{i+1}-{name}.md", "w") as f:
+        response = requests.get(source)
+        if response.status_code == 200:
+            f.write(response.text)
+        else:
+            Warning(f"Error getting source for planning engine {name}")

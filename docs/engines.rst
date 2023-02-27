@@ -12,4 +12,4 @@ The ``MetaEngine`` class is a child class of ``Engine`` that is defined over a g
     :glob:
     :titlesonly:
 
-    engines/aries
+    engines/*
