@@ -12,8 +12,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import sys
+
+import requests
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -346,8 +348,6 @@ SKIP_ENGINES = []
 for skipped in SKIP_ENGINES:
     engines.popitem(skipped)
 engines = dict(sorted(engines.items()))
-
-import requests
 
 for i, (name, source) in enumerate(engines.items()):
     with open(f"./engines/{i+1}-{name}.md", "w") as f:
