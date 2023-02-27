@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List, Set, Union
+from typing import Optional, Dict, List, Set, Tuple, Union
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
@@ -20,7 +20,8 @@ class TimedCondsEffs:
             "up.model.timing.Timing", "up.model.effect.SimulatedEffect"
         ] = {}
         self._fluents_assigned: Dict[
-            "up.model.timing.Timing", Set["up.model.fnode.FNode"]
+            Tuple["up.model.timing.Timing", "up.model.fnode.FNode"],
+            "up.model.fnode.FNode",
         ] = {}
         self._fluents_inc_dec: Dict[
             "up.model.timing.Timing", Set["up.model.fnode.FNode"]
@@ -80,9 +81,7 @@ class TimedCondsEffs:
         other._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         other._effects = {t: [e.clone() for e in el] for t, el in self._effects.items()}
         other._simulated_effects = {t: se for t, se in self._simulated_effects.items()}
-        other._fluents_assigned = {
-            t: fs.copy() for t, fs in self._fluents_assigned.items()
-        }
+        other._fluents_assigned = self._fluents_assigned.copy()
         other._fluents_inc_dec = {
             t: fs.copy() for t, fs in self._fluents_inc_dec.items()
         }
@@ -301,35 +300,56 @@ class TimedCondsEffs:
         assert (
             self._environment == effect.environment
         ), "effect does not have the same environment of the action"
-        fluents_assigned = self._fluents_assigned.setdefault(timing, set())
+        assigned_value = self._fluents_assigned.get((timing, effect.fluent), None)
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
         simulated_effect = self._simulated_effects.get(timing, None)
         if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
             if effect.is_assignment():
-                if (
-                    effect.fluent in fluents_assigned
-                    or effect.fluent in fluents_inc_dec
+                # if the same fluent has already assigned a different constant value, raise exception
+                if effect.fluent in self._fluents_inc_dec or (
+                    assigned_value is not None
+                    and (
+                        (
+                            assigned_value.is_int_constant()
+                            and effect.value.is_int_constant()
+                        )
+                        or (
+                            assigned_value.is_real_constant()
+                            and effect.value.is_real_constant()
+                        )
+                        or (
+                            assigned_value.is_object_exp()
+                            and effect.value.is_object_exp()
+                        )
+                    )
+                    and assigned_value != effect.value
                 ):
                     raise UPConflictingEffectsException(
                         f"The effect {effect} at timing {timing} is in conflict with the effects already in the action."
                     )
-                fluents_assigned.add(effect.fluent)
+                if (
+                    assigned_value is None
+                    or effect.value.is_int_constant()
+                    or effect.value.is_real_constant()
+                    or effect.value.is_object_exp()
+                ):
+                    self._fluents_assigned[(timing, effect.fluent)] = effect.value
             elif effect.is_increase() or effect.is_decrease():
-                if effect.fluent in fluents_assigned:
+                if (timing, effect.fluent) in self._fluents_assigned:
                     raise UPConflictingEffectsException(
                         f"The effect {effect} at timing {timing} is in conflict with the effects already in the action."
+                    )
+                if (
+                    simulated_effect is not None
+                    and effect.fluent in simulated_effect.fluents
+                ):
+                    raise UPConflictingEffectsException(
+                        f"The effect {effect} is in conflict with the simulated effects already in the action."
                     )
                 fluents_inc_dec.add(effect.fluent)
             else:
                 raise NotImplementedError
-        if (
-            simulated_effect is not None
-            and not effect.fluent.type.is_bool_type()
-            and effect.fluent in simulated_effect.fluents
-        ):
-            raise UPConflictingEffectsException(
-                f"The effect {effect} is in conflict with the simulated effects already in the action."
-            )
+
         self._effects.setdefault(timing, []).append(effect)
 
     @property
@@ -351,9 +371,8 @@ class TimedCondsEffs:
         :param simulated effects: The `simulated effect` that must be applied at the given `timing`.
         """
         for f in simulated_effect.fluents:
-            if not f.type.is_bool_type() and (
-                f in self._fluents_assigned.get(timing, set())
-                or f in self._fluents_inc_dec.get(timing, set())
+            if not f.type.is_bool_type() and f in self._fluents_inc_dec.get(
+                timing, set()
             ):
                 raise UPConflictingEffectsException(
                     f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
