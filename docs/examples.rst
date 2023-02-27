@@ -1,6 +1,9 @@
 Examples
 ========
 
+.. warning::
+   TODO: Fix Notebook links once merged to master
+
 We present here a list of notebooks recommended to start with unified-planning.
 
 Basic Example
