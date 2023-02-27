@@ -83,23 +83,6 @@ class SequentialSimulator(Engine, SimulatorMixin):
         ] = {}
         self._se = StateEvaluator(self._problem)
         self._all_events_grounded: bool = False
-        # self._bounded_numeric_types: Dict[
-        #     Type,
-        #     Tuple[
-        #         Optional[Union[int, Fraction]], Optional[Optional[Union[int, Fraction]]]
-        #     ],
-        # ] = {}
-        # for f in problem.fluents:
-        #     if f.type.is_int_type() or f.type.is_real_type():
-        #         numeric_type = cast(_RealType, f.type)
-        #         if (
-        #             numeric_type.lower_bound is not None
-        #             or numeric_type.upper_bound is not None
-        #         ):
-        #             self._bounded_numeric_types[numeric_type] = (
-        #                 numeric_type.lower_bound,
-        #                 numeric_type.upper_bound,
-        #             )
 
     def _get_unsatisfied_conditions(
         self, event: "Event", state: "up.model.ROState", early_termination: bool = False
@@ -251,7 +234,24 @@ class SequentialSimulator(Engine, SimulatorMixin):
         em: ExpressionManager,
     ) -> Tuple[Optional[FNode], Optional[FNode]]:
         """
-        TODO"""
+        Evaluates the given effect in the state, and returns the fluent affected
+        by this effect and the new value that is assigned to the fluent.
+
+        If the effect is conditional and the condition evaluates to False in the state,
+        (None, None) is returned.
+
+        :param effect: The effect to evaluate.
+        :param state: The state in which the effect is evaluated.
+        :param updated_values: Map from fluents to their value, used to correctly evaluate
+            more than one increase/decrease effect on the same fluent.
+        :param assigned_fluent: The set containing all the fluents already assigned in the
+            event containing this effect.
+        :param em: The current environment expression manager.
+        :return: The Tuple[Fluent, Value], where the fluent is the one affected by the given
+            effect and value is the new value assigned to the fluent.
+        :raises UPConflictingEffectsException: If to the same fluent are assigned 2 different
+            values.
+        """
         evaluated_args = tuple(self._se.evaluate(a, state) for a in effect.fluent.args)
         fluent = self._problem.environment.expression_manager.FluentExp(
             effect.fluent.fluent(), evaluated_args
