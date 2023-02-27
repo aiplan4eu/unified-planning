@@ -348,9 +348,13 @@ SKIP_ENGINES = []
 for skipped in SKIP_ENGINES:
     engines.popitem(skipped)
 engines = dict(sorted(engines.items()))
+ENGINES_DIR = os.path.join(os.path.dirname(__file__), "engines")
+
+if not os.path.exists(ENGINES_DIR):
+    os.makedirs(ENGINES_DIR)
 
 for i, (name, source) in enumerate(engines.items()):
-    with open(f"./engines/{i+1}-{name}.md", "w") as f:
+    with open(f"{ENGINES_DIR}/{i+1}-{name}.md", "w") as f:
         response = requests.get(source)
         if response.status_code == 200:
             f.write(response.text)
