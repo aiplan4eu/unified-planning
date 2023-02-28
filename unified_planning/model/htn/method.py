@@ -105,18 +105,21 @@ class Method(AbstractTaskNetwork):
             s.append(")")
         s.append(" {\n")
         s.append(f"  task = {self._task}\n")
-        s.append("  preconditions = [\n")
-        for c in self.preconditions:
-            s.append(f"    {str(c)}\n")
-        s.append("  ]\n")
-        s.append("  constraints = [\n")
-        for c in self.constraints:
-            s.append(f"    {str(c)}\n")
-        s.append("  ]\n")
-        s.append("  subtasks = [\n")
-        for st in self.subtasks:
-            s.append(f"      {str(st)}\n")
-        s.append("  ]\n")
+        if len(self.preconditions) > 0:
+            s.append("  preconditions = [\n")
+            for c in self.preconditions:
+                s.append(f"    {str(c)}\n")
+            s.append("  ]\n")
+        if len(self.constraints) > 0:
+            s.append("  constraints = [\n")
+            for c in self.constraints:
+                s.append(f"    {str(c)}\n")
+            s.append("  ]\n")
+        if len(self.subtasks) > 0:
+            s.append("  subtasks = [\n")
+            for st in self.subtasks:
+                s.append(f"      {str(st)}\n")
+            s.append("  ]\n")
         s.append("}")
         return "".join(s)
 
