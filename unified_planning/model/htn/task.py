@@ -116,7 +116,11 @@ class Subtask:
             _task_id_counter += 1
             self._ident = f"_t{_task_id_counter}"
         self._args = self._env.expression_manager.auto_promote(*args)
-        assert len(self._args) == len(self._task.parameters)
+
+        if len(self._args) != len(self._task.parameters):
+            raise ValueError(
+                f"Wrong number of arguments. Expected: {self._task.parameters}. Provided: {self._args}"
+            )
 
     def __repr__(self):
         params = ", ".join([str(a) for a in self._args])
