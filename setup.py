@@ -36,7 +36,7 @@ setup(
             "tarski[arithmetic]",
             "up-pyperplan==0.3.0.2.dev1",
             "up-tamer==0.3.1.3.dev1",
-            "up-enhsp==0.0.10",
+            "up-enhsp==0.0.11",
             "up-fast-downward==0.1.2",
             "up-lpg==0.0.4.9",
             "up-fmap==0.0.2",
