@@ -26,7 +26,7 @@ setup(
         "grpc": ["grpcio", "grpcio-tools", "grpc-stubs"],
         "tarski": ["tarski[arithmetic]"],
         "pyperplan": ["up-pyperplan==0.3.0.2.dev1"],
-        "tamer": ["up-tamer==0.3.1.3.dev1"],
+        "tamer": ["up-tamer==0.3.1.4.dev1"],
         "enhsp": ["up-enhsp==0.0.11"],
         "fast-downward": ["up-fast-downward==0.1.2"],
         "lpg": ["up-lpg==0.0.4.9"],
@@ -35,7 +35,7 @@ setup(
         "engines": [
             "tarski[arithmetic]",
             "up-pyperplan==0.3.0.2.dev1",
-            "up-tamer==0.3.1.3.dev1",
+            "up-tamer==0.3.1.4.dev1",
             "up-enhsp==0.0.11",
             "up-fast-downward==0.1.2",
             "up-lpg==0.0.4.9",
