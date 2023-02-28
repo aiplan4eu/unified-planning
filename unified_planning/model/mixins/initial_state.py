@@ -71,7 +71,9 @@ class InitialStateMixin:
         elif fluent_exp.fluent() in self._fluent_set.fluents_defaults:
             return self._fluent_set.fluents_defaults[fluent_exp.fluent()]
         else:
-            raise UPProblemDefinitionError("Initial value not set!")
+            raise UPProblemDefinitionError(
+                f"Initial value not set for fluent: {fluent}"
+            )
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
