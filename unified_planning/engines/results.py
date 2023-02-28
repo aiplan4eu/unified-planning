@@ -170,6 +170,30 @@ class PlanGenerationResult(Result):
             )
         )
 
+    def epsilon_status(
+        self,
+        problem_epsilon: Optional[Fraction],
+        plan_epsilon: Optional[Fraction],
+    ) -> PlanGenerationResultStatus:  # TODO find better name
+        """
+        This method takes the epsilon of the problem, the epsilon of the generated
+        plan and returns the correct PlanGenerationResultStatus.
+
+        :param problem_epsilon: The epsilon defined in the problem.
+        :param plan_epsilon: The epsilon of the returned plan.
+        :return: The PlanGenerationResultStatus that the final result should have.
+        """
+        if problem_epsilon == plan_epsilon:
+            pass
+        elif problem_epsilon is None:
+            if self.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN:
+                return PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+        elif plan_epsilon is None:
+            pass  # Here should be OK every result
+        elif problem_epsilon > plan_epsilon and self.status in POSITIVE_OUTCOMES:
+            return PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
+        return self.status
+
 
 @dataclass
 class ValidationResult(Result):

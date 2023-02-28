@@ -15,6 +15,7 @@
 """This module defines the problem class."""
 
 
+from numbers import Real
 import unified_planning as up
 import unified_planning.model.tamp
 from unified_planning.model.abstract_problem import AbstractProblem
@@ -73,12 +74,14 @@ class Problem(  # type: ignore[misc]
         InitialStateMixin.__init__(self, self, self, self.environment)
         MetricsMixin.__init__(self, self.environment)
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
+        self._epsilon = None
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
         ] = {}
         self._timed_goals: Dict[
             "up.model.timing.TimeInterval", List["up.model.fnode.FNode"]
         ] = {}
+<<<<<<< HEAD
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
         self._fluents_assigned: Dict[
@@ -88,11 +91,17 @@ class Problem(  # type: ignore[misc]
         self._fluents_inc_dec: Dict[
             "up.model.timing.Timing", Set["up.model.fnode.FNode"]
         ] = {}
+=======
+        self._trajectory_constraints: List["up.model.fnode.FNode"] = []
+        self._goals: List["up.model.fnode.FNode"] = []
+>>>>>>> ab29fede (Added epsilon field to problem, a method to extract the epsilon from a plan and a method that takes the epsilon of the plan, the epsilon from the problem and returns the PlanGenerationResultStatus considering also the epsilon difference)
 
     def __repr__(self) -> str:
         s = []
         if self.name is not None:
             s.append(f"problem name = {str(self.name)}\n\n")
+        if self._epsilon is not None:
+            s.append(f"epsilon separation = {self._epsilon}\n\n")
         if len(self.user_types) > 0:
             s.append(f"types = {str(list(self.user_types))}\n\n")
         s.append("fluents = [\n")
@@ -312,6 +321,38 @@ class Problem(  # type: ignore[misc]
                     static_fluents.remove(e.fluent.fluent())
         return static_fluents
 
+    @property
+    def epsilon(self) -> Optional[Fraction]:
+        """
+        This parameter has meaning only in temporal problems: it defines the minimum
+        amount of time that can elapse between 2 temporal events. A temporal event can
+        be, for example, the start of an action, the end of an action, an intermediate
+        step of an action, a timed effect of the problem.
+
+        When None, it means that this minimum step is chosen by the Engine the Problem
+        is given to.
+        """
+        return self._epsilon
+
+    @epsilon.setter
+    def epsilon(self, new_value: Optional[Union[Real, Fraction]]):
+        if new_value is None:
+            pass
+        elif new_value < 0:
+            raise UPProblemDefinitionError(
+                "A negative epsilon is not valid and has no meaning!"
+            )
+        elif not isinstance(new_value, Fraction):
+            new_value = Fraction(float(new_value))
+        self._epsilon = new_value
+
+    @property
+    def timed_goals(
+        self,
+    ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
+        """Returns all the `timed goals` in the `Problem`."""
+        return self._timed_goals
+
     def add_timed_goal(
         self,
         interval: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
@@ -341,16 +382,16 @@ class Problem(  # type: ignore[misc]
         if goal_exp not in goals:
             goals.append(goal_exp)
 
-    @property
-    def timed_goals(
-        self,
-    ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
-        """Returns all the `timed goals` in the `Problem`."""
-        return self._timed_goals
-
     def clear_timed_goals(self):
         """Removes all the `timed goals` from the `Problem`."""
         self._timed_goals = {}
+
+    @property
+    def timed_effects(
+        self,
+    ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
+        """Returns all the `timed effects` in the `Problem`."""
+        return self._timed_effects
 
     def add_timed_effect(
         self,
@@ -480,18 +521,16 @@ class Problem(  # type: ignore[misc]
         )
         self._timed_effects.setdefault(timing, []).append(effect)
 
-    @property
-    def timed_effects(
-        self,
-    ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
-        """Returns all the `timed effects` in the `Problem`."""
-        return self._timed_effects
-
     def clear_timed_effects(self):
         """Removes all the `timed effects` from the `Problem`."""
         self._timed_effects = {}
         self._fluents_assigned = {}
         self._fluents_inc_dec = {}
+
+    @property
+    def goals(self) -> List["up.model.fnode.FNode"]:
+        """Returns all the `goals` in the `Problem`."""
+        return self._goals
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
@@ -509,6 +548,15 @@ class Problem(  # type: ignore[misc]
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
+
+    def clear_goals(self):
+        """Removes all the `goals` from the `Problem`."""
+        self._goals = []
+
+    @property
+    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
+        """Returns the 'trajectory_constraints' in the 'Problem'."""
+        return self._trajectory_constraints
 
     def add_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
         """
@@ -538,20 +586,6 @@ class Problem(  # type: ignore[misc]
                 or constraint.is_always()
             ), "trajectory constraint not in the correct form"
         self._trajectory_constraints.append(constraint.simplify())
-
-    @property
-    def goals(self) -> List["up.model.fnode.FNode"]:
-        """Returns all the `goals` in the `Problem`."""
-        return self._goals
-
-    @property
-    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
-        """Returns the 'trajectory_constraints' in the 'Problem'."""
-        return self._trajectory_constraints
-
-    def clear_goals(self):
-        """Removes all the `goals` from the `Problem`."""
-        self._goals = []
 
     def clear_trajectory_constraints(self):
         """Removes the trajectory_constraints."""
