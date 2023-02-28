@@ -74,7 +74,7 @@ class Problem(  # type: ignore[misc]
         InitialStateMixin.__init__(self, self, self, self.environment)
         MetricsMixin.__init__(self, self.environment)
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
-        self._epsilon = None
+        self._epsilon: Optional[Fraction] = None
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
         ] = {}
