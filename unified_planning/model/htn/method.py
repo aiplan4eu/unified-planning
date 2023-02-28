@@ -205,11 +205,14 @@ class Method(AbstractTaskNetwork):
         return list(self._parameters.values())
 
     def parameter(self, name: str) -> Parameter:
-        """Returns the parameter of the action with the given name."""
+        """Returns the parameter of the method with the given name."""
         for param in self.parameters:
             if param.name == name:
                 return param
         raise UPValueError(f"Unknown parameter name: {name}")
+
+    def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
+        return self.parameter(parameter_name)
 
     @property
     def preconditions(self) -> List["up.model.fnode.FNode"]:
