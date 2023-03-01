@@ -163,6 +163,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
             returned if the plan does not have at least 2 events.
         """
         times: Set[Fraction] = {Fraction(0)}
+        for i in problem.timed_goals.keys():
+            times.add(Fraction(i.lower.delay))
+            times.add(Fraction(i.upper.delay))
         for t in problem.timed_effects.keys():
             times.add(Fraction(t.delay))
         for start, ai, duration in self._actions:

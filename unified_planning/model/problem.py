@@ -231,6 +231,7 @@ class Problem(  # type: ignore[misc]
         FluentsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
 
+        new_p._epsilon = self._epsilon
         new_p._actions = [a.clone() for a in self._actions]
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()

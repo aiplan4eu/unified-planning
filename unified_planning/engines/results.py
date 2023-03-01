@@ -17,9 +17,9 @@
 
 from fractions import Fraction
 import unified_planning as up
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import AbstractProblem, PlanQualityMetric
-from unified_planning.plans import ActionInstance
+from unified_planning.exceptions import UPUsageError, UPValueError
+from unified_planning.model import AbstractProblem, Problem, PlanQualityMetric
+from unified_planning.plans import ActionInstance, TimeTriggeredPlan
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, Dict, Optional, List, Union
@@ -170,29 +170,63 @@ class PlanGenerationResult(Result):
             )
         )
 
-    def epsilon_status(
-        self,
-        problem_epsilon: Optional[Fraction],
-        plan_epsilon: Optional[Fraction],
-    ) -> PlanGenerationResultStatus:  # TODO find better name
-        """
-        This method takes the epsilon of the problem, the epsilon of the generated
-        plan and returns the correct PlanGenerationResultStatus.
 
-        :param problem_epsilon: The epsilon defined in the problem.
-        :param plan_epsilon: The epsilon of the returned plan.
-        :return: The PlanGenerationResultStatus that the final result should have.
-        """
-        if problem_epsilon == plan_epsilon:
-            pass
-        elif problem_epsilon is None:
-            if self.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN:
-                return PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
-        elif plan_epsilon is None:
-            pass  # Here should be OK every result
-        elif problem_epsilon > plan_epsilon and self.status in POSITIVE_OUTCOMES:
-            return PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
-        return self.status
+def new_temporal_plan_generation_result(
+    result: PlanGenerationResult,
+    problem: Problem,
+    engine_epsilon: Optional[Union[int, float, str, Fraction]],
+) -> PlanGenerationResult:
+    """
+    This is a utility method for the Engine developers.
+
+    :param result: The PlanGenerationResult that must be checked.
+    :param problem: The Problem the given PlanGenerationResult refers to.
+    :param engine_epsilon: The epsilon used by the Engine; if None it means that the
+        Engine does not guarantee a minimum separation value.
+    :return: The new PlanGenerationResult that enforces policy of handling different
+        epsilons between the engine and the problem.
+    """
+    assert result.plan is None or isinstance(
+        result.plan, TimeTriggeredPlan
+    ), "This method works only for TimeTriggeredPlans"
+    if not isinstance(engine_epsilon, Fraction) and engine_epsilon is not None:
+        try:
+            engine_epsilon = Fraction(engine_epsilon)
+        except ValueError as e:
+            raise UPValueError(
+                f"Given engine_epsilon is not convertible to Fraction: {str(e)}."
+            )
+    if engine_epsilon == problem.epsilon:
+        return result
+    elif engine_epsilon is None or (
+        problem.epsilon is not None and engine_epsilon < problem.epsilon
+    ):
+        assert problem.epsilon is not None
+        if result.status in POSITIVE_OUTCOMES:
+            # check that the solution fits the problem
+            assert isinstance(result.plan, TimeTriggeredPlan)
+            plan_epsilon = result.plan.extract_epsilon(problem)
+            if plan_epsilon is not None and plan_epsilon < problem.epsilon:
+                return PlanGenerationResult(
+                    PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                    None,
+                    result.engine_name,
+                    result.metrics,
+                    result.log_messages,
+                )
+    elif problem.epsilon is None or (
+        engine_epsilon is not None and problem.epsilon < engine_epsilon
+    ):
+        assert engine_epsilon is not None
+        if result.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN:
+            return PlanGenerationResult(
+                PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                None,
+                result.engine_name,
+                result.metrics,
+                result.log_messages,
+            )
+    return result
 
 
 @dataclass
