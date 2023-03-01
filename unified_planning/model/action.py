@@ -100,10 +100,40 @@ class Action:
         """
         Returns the `parameter` of the `Action` with the given `name`.
 
+        Example
+        -------
+        >>> from unified_planning.shortcuts import *
+        >>> location_type = UserType("Location")
+        >>> move = InstantaneousAction("move", source=location_type, target=location_type)
+        >>> move.parameter("source")  # return the "source" parameter of the action, with type "Location"
+        Location source
+        >>> move.parameter("target")
+        Location target
+
+        If a parameter's name (1) does not conflict with an existing attribute of `Action` and (2) does not start with '_'
+        it can also be accessed as if it was an attribute of the action. For instance:
+
+        >>> move.source
+        Location source
+
         :param name: The `name` of the target `parameter`.
         :return: The `parameter` of the `Action` with the given `name`.
         """
+        if name not in self._parameters:
+            raise ValueError(f"Action '{self.name}' has no parameter '{name}'")
         return self._parameters[name]
+
+    def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
+        if parameter_name.startswith("_"):
+            # guard access as pickling relies on attribute error to be thrown even when
+            # no attributes of the object have been set.
+            # In this case accessing `self._name` or `self._parameters`, would re-invoke __getattr__
+            raise AttributeError(f"Action has no attribute '{parameter_name}'")
+        if parameter_name not in self._parameters:
+            raise AttributeError(
+                f"Action '{self.name}' has no attribute or parameter '{parameter_name}'"
+            )
+        return self._parameters[parameter_name]
 
     def is_conditional(self) -> bool:
         """Returns `True` if the `Action` has `conditional effects`, `False` otherwise."""
@@ -289,7 +319,10 @@ class InstantaneousAction(Action):
         if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            # Value is not assignable to fluent (its type is not a subset of the fluent's type).
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         self._add_effect_instance(
             up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
         )
