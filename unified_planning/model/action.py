@@ -181,7 +181,8 @@ class InstantaneousAction(Action):
         for e in self.effects:
             s.append(f"      {str(e)}\n")
         s.append("    ]\n")
-        s.append(f"    simulated effect = {self._simulated_effect}\n")
+        if self._simulated_effect is not None:
+            s.append(f"    simulated effect = {self._simulated_effect}\n")
         s.append("  }")
         return "".join(s)
 
