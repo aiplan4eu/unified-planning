@@ -182,7 +182,7 @@ class Problem(  # type: ignore[misc]
         return True
 
     def __hash__(self) -> int:
-        res = hash(self._kind) + hash(self._name)
+        res = hash(self._name)
 
         res += FluentsSetMixin.__hash__(self)
         res += ObjectsSetMixin.__hash__(self)
