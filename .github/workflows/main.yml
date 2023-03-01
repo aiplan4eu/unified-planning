@@ -297,6 +297,9 @@ jobs:
 
       - name: Install up-fast-downward
         run: python3 -m pip install up-fast-downward/
+      
+      - name: Install up-aries
+        run: pip3 install up-aries
 
       - name: Install jupyter and ipython3
         run: sudo apt install jupyter; sudo apt install ipython3
