@@ -110,8 +110,8 @@ class Action:
         >>> move.parameter("target")
         Location target
 
-        If a parameter's name does not conflict with an existing attribute of an action, it can also be accessed as
-        if it was an attribute of the action. For instance:
+        If a parameter's name (1) does not conflict with an existing attribute of `Action` and (2) does not start with '_'
+        it can also be accessed as if it was an attribute of the action. For instance:
 
         >>> move.source
         Location source
@@ -124,6 +124,11 @@ class Action:
         return self._parameters[name]
 
     def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
+        if parameter_name.startswith("_"):
+            # guard access as pickling relies on attribute error to be thrown even when
+            # no attributes of the object have been set.
+            # In this case accessing `self._name` or `self._parameters`, would re-invoke __getattr__
+            raise AttributeError(f"Action has no attribute '{parameter_name}'")
         if parameter_name not in self._parameters:
             raise AttributeError(
                 f"Action '{self.name}' has no attribute or parameter '{parameter_name}'"
