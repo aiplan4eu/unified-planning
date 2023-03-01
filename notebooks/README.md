@@ -37,6 +37,16 @@ In this notebook we show how to use the unified planning library to model tempor
 In particular we model the well-known MatchCellar problem and we call a planner to solve it.
 
 
+## Hierarchical Planning
+
+[![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Unified_Planning_Temporal.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Hierarchical_Planning.ipynb)
+
+In this notebook we show how to use the unified planning library to model **hierarchical planning problems**.
+
+In particular, we build a task hierarchy on top of the `logistics` problem.
+
+
 ## Simulated Effects
 
 [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](Simulated_effects.ipynb)
