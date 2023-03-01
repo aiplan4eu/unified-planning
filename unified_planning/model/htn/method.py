@@ -202,11 +202,46 @@ class Method(AbstractTaskNetwork):
         return list(self._parameters.values())
 
     def parameter(self, name: str) -> Parameter:
-        """Returns the parameter of the action with the given name."""
+        """
+        Returns the `parameter` of the `Method` with the given `name`.
+
+        Example
+        -------
+        >>> from unified_planning.shortcuts import *
+        >>> from unified_planning.model.htn import *
+        >>> location_type = UserType("Location")
+        >>> robot_type = UserType("Robot")
+        >>> goto = Method("goto", robot=robot_type, target=location_type)
+        >>> goto.parameter("robot")  # return the "robot" parameter of the method, with type "Robot"
+        Robot robot
+        >>> goto.parameter("target")
+        Location target
+
+        If a parameter's name (1) does not conflict with an existing attribute of `Method` and (2) does not start with '_'
+        it can also be accessed as if it was an attribute of the method. For instance:
+
+        >>> goto.target
+        Location target
+
+        :param name: The `name` of the target `parameter`.
+        :return: The `parameter` of the `Method` with the given `name`.
+        """
         for param in self.parameters:
             if param.name == name:
                 return param
         raise UPValueError(f"Unknown parameter name: {name}")
+
+    def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
+        if parameter_name.startswith("_"):
+            # guard access as pickling relies on attribute error to be thrown even when
+            # no attributes of the object have been set.
+            # In this case accessing `self._name` or `self._parameters`, would re-invoke __getattr__
+            raise AttributeError(f"Method has no attribute '{parameter_name}'")
+        if parameter_name not in self._parameters:
+            raise AttributeError(
+                f"Method '{self.name}' has no attribute or parameter '{parameter_name}'"
+            )
+        return self._parameters[parameter_name]
 
     @property
     def preconditions(self) -> List["up.model.fnode.FNode"]:
