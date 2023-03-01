@@ -124,7 +124,11 @@ class Action:
         return self._parameters[name]
 
     def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
-        return self.parameter(parameter_name)
+        if parameter_name not in self._parameters:
+            raise AttributeError(
+                f"Action '{self.name}' has no attribute or parameter '{parameter_name}'"
+            )
+        return self._parameters[parameter_name]
 
     def is_conditional(self) -> bool:
         """Returns `True` if the `Action` has `conditional effects`, `False` otherwise."""
