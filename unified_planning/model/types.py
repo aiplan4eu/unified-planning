@@ -386,7 +386,8 @@ def is_compatible_type(
         return True
     if t_left.is_user_type() and t_right.is_user_type():
         assert isinstance(t_left, _UserType) and isinstance(t_right, _UserType)
-        return t_right in t_left.ancestors
+        # compatible if t_right is a subclass of t_left
+        return t_left in t_right.ancestors
     if not (
         (t_left.is_int_type() and t_right.is_int_type())
         or (t_left.is_real_type() and t_right.is_real_type())
