@@ -268,7 +268,12 @@ instance when_ predicate_;
             with OneshotPlanner(name="tamer") as tamer:
                 for example in self.problems.values():
                     problem = example.problem
-                    if tamer.supports(problem.kind):
+                    kind = problem.kind
+                    if (
+                        tamer.supports(kind)
+                        and not kind.has_increase_effects()
+                        and not kind.has_decrease_effects()
+                    ):
                         aw = ANMLWriter(problem)
                         aw.write_problem(temp_file_name)
                         tamer_env = pytamer.tamer_env_new()
