@@ -28,7 +28,7 @@ from unified_planning.exceptions import (
     UPConflictingEffectsException,
 )
 from fractions import Fraction
-from typing import List, Set, Union, Optional
+from typing import Dict, List, Set, Union, Optional
 from collections import OrderedDict
 
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
