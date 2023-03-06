@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+from unified_planning.model.scheduling.schedule import Schedule
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
 
@@ -38,7 +39,11 @@ def basic():
     # One worker is unavailable over [17, 25)
     pb.add_decrease_effect(17, workers, 1)
     pb.add_increase_effect(25, workers, 1)
-    return Example(pb, None)
+
+    assignment = {a1.start: 1, a1.end: 4, a2.start: 5, a2.end: 11, a2_r: r1}
+    solution = Schedule(assignment=assignment, activities=[a1, a2])  # type: ignore[arg-type]
+
+    return Example(pb, solution)
 
 
 def resource_set():
@@ -69,3 +74,7 @@ def resource_set():
     use_resource_set(act, resource_set_fluent, resource_set_parameter_type)
 
     return Example(pb, None)
+
+
+if __name__ == "__main__":
+    print(basic())

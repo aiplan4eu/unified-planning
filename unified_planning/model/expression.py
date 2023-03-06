@@ -33,6 +33,7 @@ Expression = Union[
     "up.model.parameter.Parameter",
     "up.model.variable.Variable",
     "up.model.timing.Timing",
+    "up.model.timing.Timepoint",
     bool,
     int,
     float,
@@ -122,6 +123,8 @@ class ExpressionManager(object):
                 res.append(self.ObjectExp(e))
             elif isinstance(e, up.model.timing.Timing):
                 res.append(self.TimingExp(e))
+            elif isinstance(e, up.model.timing.Timepoint):
+                res.append(self.TimingExp(up.model.timing.Timing(delay=0, timepoint=e)))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
             elif isinstance(e, int):

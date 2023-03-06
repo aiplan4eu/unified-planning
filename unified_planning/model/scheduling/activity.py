@@ -21,20 +21,18 @@ class Activity(Chronicle):
         self, name: str, duration: int = 0, _env: Optional[Environment] = None
     ):
         Chronicle.__init__(self, name, _env=_env)
-        start_tp = Timepoint(TimepointKind.START, container=name)
-        end_tp = Timepoint(TimepointKind.END, container=name)
-        self._start = Timing(0, start_tp)
-        self._end = Timing(0, end_tp)
+        self._start = Timepoint(TimepointKind.START, container=name)
+        self._end = Timepoint(TimepointKind.END, container=name)
 
         self.set_fixed_duration(duration)
 
     @property
-    def start(self) -> Timing:
+    def start(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._start
 
     @property
-    def end(self) -> Timing:
+    def end(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._end
 
@@ -102,8 +100,8 @@ class Activity(Chronicle):
         The borrowed resources will be reusable by another activity at the time epoch immediately
          succeeding the activity end.
         """
-        self.add_decrease_effect(self.start, resource, amount)
-        self.add_increase_effect(self.end, resource, amount)
+        self.add_decrease_effect(Timing(0, self.start), resource, amount)
+        self.add_increase_effect(Timing(0, self.end), resource, amount)
 
     def set_release_date(self, date: int):
         """Set the earliest date at which the activity can be started."""

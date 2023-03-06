@@ -101,6 +101,7 @@ class PlanKind(Enum):
     PARTIAL_ORDER_PLAN = auto()
     CONTINGENT_PLAN = auto()
     STN_PLAN = auto()
+    SCHEDULE = auto()
 
 
 class Plan:
