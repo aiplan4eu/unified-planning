@@ -2,7 +2,11 @@ from typing import Optional, Dict, List, Set, Tuple, Union
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import UPConflictingEffectsException, UPTypeError
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPTypeError,
+    UPUsageError,
+)
 
 
 class TimedCondsEffs:
@@ -209,11 +213,16 @@ class TimedCondsEffs:
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_effect must be a Fluent or a FluentExp"
+            )
         if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("DurativeAction effect has not compatible types!")
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         self._add_effect_instance(
             timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
         )
@@ -239,11 +248,16 @@ class TimedCondsEffs:
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_increase_effect must be a Fluent or a FluentExp"
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("DurativeAction effect has not compatible types!")
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Increase effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -277,11 +291,16 @@ class TimedCondsEffs:
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_decrease_effect must be a Fluent or a FluentExp"
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("DurativeAction effect has not compatible types!")
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(

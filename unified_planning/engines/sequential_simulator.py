@@ -357,7 +357,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param parameters: The parameters needed to ground the action
         :return: the List of Events derived from this action with these parameters.
         """
-        # sanity checks
+        # sanity check
         if action not in self._actions:
             raise UPUsageError(
                 "The action given as parameter does not belong to the problem given to the SequentialSimulator."

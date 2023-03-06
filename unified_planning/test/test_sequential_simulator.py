@@ -20,7 +20,7 @@ from unified_planning.engines import SequentialSimulator, SimulatorMixin
 from unified_planning.model import UPCOWState
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
-from unified_planning.exceptions import UPUsageError
+from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from itertools import product
 from typing import cast
 
@@ -185,3 +185,76 @@ class TestSimulator(TestCase):
             self.assertFalse(simulator.is_applicable(dec, dec_state))
             double_dec_state = simulator.apply(dec, dec_state)
             self.assertIsNone(double_dec_state)
+
+    def test_exceptions(self):
+
+        condition1 = Fluent("condition1")
+        condition2 = Fluent("condition2")
+        condition3 = Fluent("condition3")
+        fluent = Fluent("fluent", IntType())
+
+        test_int = InstantaneousAction("test_int")
+        test_int.add_effect(fluent, 5, condition1)
+        test_int.add_effect(fluent, 6, condition2)
+        test_int.add_increase_effect(fluent, 5, condition3)
+        unset_cond_1 = InstantaneousAction("unset_cond_1")
+        unset_cond_1.add_effect(condition1, False)
+        unset_cond_2 = InstantaneousAction("unset_cond_2")
+        unset_cond_2.add_effect(condition2, False)
+        unset_cond_3 = InstantaneousAction("unset_cond_3")
+        unset_cond_3.add_effect(condition3, False)
+
+        problem = Problem("test_problem")
+        problem.add_actions([test_int, unset_cond_1, unset_cond_2, unset_cond_3])
+        problem.add_fluent(condition1, default_initial_value=True)
+        problem.add_fluent(condition2, default_initial_value=True)
+        problem.add_fluent(condition3, default_initial_value=True)
+        problem.add_fluent(fluent, default_initial_value=0)
+
+        with Simulator(problem=problem) as simulator:
+            init = UPCOWState(problem.initial_values)
+            usc2 = simulator.get_events(unset_cond_2, tuple())[0]
+            usc3 = simulator.get_events(unset_cond_3, tuple())[0]
+            ti = simulator.get_events(test_int, tuple())[0]
+
+            self.assertTrue(simulator.is_applicable(ti, init))
+            with self.assertRaises(UPConflictingEffectsException) as conflicting_error:
+                _ = simulator.apply(ti, init)
+            self.assertEqual(
+                str(conflicting_error.exception),
+                f"The fluent {fluent.name} is modified by 2 different assignments in the same event.",
+            )
+
+            new_state = simulator.apply(usc2, init)
+            with self.assertRaises(UPConflictingEffectsException) as conflicting_error:
+                _ = simulator.apply(ti, new_state)
+            self.assertEqual(
+                str(conflicting_error.exception),
+                f"The fluent {fluent.name} is modified by an assignment and an increase/decrease in the same event.",
+            )
+
+            new_state = simulator.apply(usc3, new_state)
+            test_state = simulator.apply(ti, new_state)
+            self.assertIsNotNone(test_state)
+
+    def test_add_after_delete(self):
+        bf = Fluent("bool_fluent")
+
+        act = InstantaneousAction("act")
+        act.add_effect(bf, True)
+        act.add_effect(bf, False)
+
+        problem = Problem("test_add_after_delete")
+        problem.add_fluent(bf, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(bf)
+
+        with Simulator(problem=problem) as simulator:
+            init = UPCOWState(problem.initial_values)
+            act_ev = simulator.get_events(act, tuple())[0]
+
+            self.assertTrue(simulator.is_applicable(act_ev, init))
+
+            goal_state = simulator.apply_unsafe(act_ev, init)
+
+            self.assertTrue(simulator.is_goal(goal_state))

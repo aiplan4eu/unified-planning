@@ -26,6 +26,7 @@ from unified_planning.exceptions import (
     UPUnboundedVariablesError,
     UPProblemDefinitionError,
     UPConflictingEffectsException,
+    UPUsageError,
 )
 from fractions import Fraction
 from typing import Dict, List, Set, Union, Optional
@@ -318,7 +319,10 @@ class InstantaneousAction(Action):
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_effect must be a Fluent or a FluentExp"
+            )
         if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
@@ -349,11 +353,16 @@ class InstantaneousAction(Action):
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_increase_effect must be a Fluent or a FluentExp"
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Increase effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -384,11 +393,16 @@ class InstantaneousAction(Action):
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_decrease_effect must be a Fluent or a FluentExp"
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -447,6 +461,7 @@ class InstantaneousAction(Action):
         if (
             self._simulated_effect is not None
             and not effect.fluent.type.is_bool_type()
+            and effect.fluent in self._fluents_inc_dec
             and effect.fluent in self._simulated_effect.fluents
         ):
             raise UPConflictingEffectsException(
