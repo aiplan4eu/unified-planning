@@ -19,7 +19,6 @@ from unified_planning.model import (
 )
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle
-from unified_planning.model.scheduling.schedule import Variable
 from unified_planning.model.timing import GlobalStartTiming, Timing, Timepoint
 
 
@@ -237,10 +236,10 @@ class SchedulingProblem(  # type: ignore[misc]
         self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
 
     @property
-    def variables(self) -> List[Tuple[Variable, Optional[Activity]]]:
+    def variables(self) -> List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]]:
         """Returns all decision variables (timepoints and parameters) defined in this problem and its activities.
         For each variable, the activity in which it was defined is also given."""
-        vars: List[Tuple[Variable, Optional[Activity]]] = []
+        vars: List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]] = []
         vars += map(lambda param: (param, None), self._base.parameters)
         for activity in self.activities:
             vars.append((activity.start, activity))
