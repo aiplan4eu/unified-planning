@@ -1,6 +1,7 @@
 from fractions import Fraction
 from typing import Optional, Union
 
+from unified_planning.model.fnode import FNode
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
@@ -95,7 +96,7 @@ class Activity(Chronicle):
             )
         self._duration = duration
 
-    def uses(self, resource: Fluent, amount: Union[int, Fraction] = 1):
+    def uses(self, resource: Union[Fluent, FNode], amount: Union[int, Fraction] = 1):
         """Asserts that the activity borrows a given amount (1 by default) of the resource.
         The borrowed resources will be reusable by another activity at the time epoch immediately
          succeeding the activity end.
