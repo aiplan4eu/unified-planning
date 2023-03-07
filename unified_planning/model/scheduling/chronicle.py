@@ -1,6 +1,7 @@
 from fractions import Fraction
 from typing import Optional, List, OrderedDict, Union
 
+from unified_planning.model.fnode import FNode
 import unified_planning as up
 from unified_planning import Environment
 from unified_planning.model import Parameter
@@ -149,3 +150,7 @@ class Chronicle(TimedCondsEffs):
         assert self._environment.type_checker.get_type(constraint_exp).is_bool_type()
         if constraint_exp not in self._constraints:
             self._constraints.append(constraint_exp)
+
+    @property
+    def constraints(self) -> List[FNode]:
+        return self._constraints

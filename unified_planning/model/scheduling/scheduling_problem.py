@@ -1,6 +1,7 @@
 from collections import OrderedDict
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Tuple
 
+from unified_planning.model.effect import Effect
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.mixins import InitialStateMixin, MetricsMixin
 from unified_planning.model.mixins.objects_set import ObjectsSetMixin
@@ -18,7 +19,8 @@ from unified_planning.model import (
 )
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle
-from unified_planning.model.timing import GlobalStartTiming
+from unified_planning.model.scheduling.schedule import Variable
+from unified_planning.model.timing import GlobalStartTiming, Timing, Timepoint
 
 
 class SchedulingProblem(  # type: ignore[misc]
@@ -162,13 +164,17 @@ class SchedulingProblem(  # type: ignore[misc]
 
     def add_variable(self, name: str, tpe: Type) -> Parameter:
         """Adds a new decision variable to the problem.
-        Such variables essentially acts as an existentially quantified variable whose scope is
+        Such variables essentially act as existentially quantified variables whose scope is
         the entire problem, which allows referring to them everywhere and access their value in the solution.
         """
         assert not self.has_name(name)
         param = Parameter(name, tpe)
         self._base._parameters[name] = param
         return param
+
+    @property
+    def activities(self) -> List[Activity]:
+        return self._activities
 
     def add_activity(self, name: str, duration: int = 0) -> "Activity":
         """Creates a new activity with the given `name` in the problem."""
@@ -229,3 +235,48 @@ class SchedulingProblem(  # type: ignore[misc]
         if isinstance(timing, int):
             timing = GlobalStartTiming(timing)
         self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
+
+    @property
+    def variables(self) -> List[Tuple[Variable, Optional[Activity]]]:
+        """Returns all decision variables (timepoints and parameters) defined in this problem and its activities.
+        For each variable, the activity in which it was defined is also given."""
+        vars: List[Tuple[Variable, Optional[Activity]]] = []
+        vars += map(lambda param: (param, None), self._base.parameters)
+        for activity in self.activities:
+            vars.append((activity.start, activity))
+            vars.append((activity.end, activity))
+            vars += map(lambda param: (param, activity), activity.parameters)
+        return vars
+
+    @property
+    def constraints(self) -> List[Tuple[FNode, Optional[Activity]]]:
+        """Returns all constraints enforced in this problem or in any of its activities.
+        For each constraint, the activity in which it was defined is also given."""
+        cs: List[Tuple[FNode, Optional[Activity]]] = list(
+            map(lambda c: (c, None), self._base.constraints)
+        )
+        for a in self.activities:
+            cs += map(lambda c: (c, a), a.constraints)
+        return cs
+
+    def conditions(self) -> List[Tuple[TimeInterval, FNode, Optional[Activity]]]:
+        """Returns all timed conditions enforced in this problem or in any of its activities.
+        For each condition, the activity in which it was defined is also given."""
+        cs: List[Tuple[TimeInterval, FNode, Optional[Activity]]] = []
+        for timing, conds in self._base.conditions.items():
+            cs += list(map(lambda cond: (timing, cond, None), conds))
+        for act in self.activities:
+            for timing, conds in act.conditions.items():
+                cs += map(lambda cond: (timing, cond, act), conds)
+        return cs
+
+    def effects(self) -> List[Tuple[Timing, Effect, Optional[Activity]]]:
+        """Returns all timed effects enforced in this problem or in any of its activities.
+        For each effect, the activity in which it was defined is also given."""
+        es: List[Tuple[Timing, Effect, Optional[Activity]]] = []
+        for timing, effs in self._base.effects.items():
+            es += map(lambda eff: (timing, eff, None), effs)
+        for act in self.activities:
+            for timing, effs in act.effects.items():
+                es += map(lambda eff: (timing, eff, act), effs)
+        return es
