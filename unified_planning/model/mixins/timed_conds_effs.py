@@ -119,6 +119,7 @@ class TimedCondsEffs:
         self._effects = {}
         self._fluents_assigned = {}
         self._fluents_inc_dec = {}
+        self._simulated_effects = {}
 
     @property
     def conditional_effects(
@@ -324,51 +325,40 @@ class TimedCondsEffs:
         simulated_effect = self._simulated_effects.get(timing, None)
         if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
             if effect.is_assignment():
-                # if the same fluent has already assigned a different constant value, raise exception
-                if effect.fluent in self._fluents_inc_dec or (
-                    assigned_value is not None
-                    and (
-                        (
-                            assigned_value.is_int_constant()
-                            and effect.value.is_int_constant()
-                        )
-                        or (
-                            assigned_value.is_real_constant()
-                            and effect.value.is_real_constant()
-                        )
-                        or (
-                            assigned_value.is_object_exp()
-                            and effect.value.is_object_exp()
-                        )
-                    )
-                    and assigned_value != effect.value
-                ):
+                # if the same fluent is involved in an increase/decrease, raise exception
+                if effect.fluent in fluents_inc_dec:
                     raise UPConflictingEffectsException(
-                        f"The effect {effect} at timing {timing} is in conflict with the effects already in the action."
+                        f"The effect {effect} at timing {timing} is in conflict with the increase/decrease effects already in the action."
                     )
-                if (
-                    assigned_value is None
-                    or effect.value.is_int_constant()
-                    or effect.value.is_real_constant()
-                    or effect.value.is_object_exp()
-                ):
+                # the same fluent is involved in another assign
+                elif assigned_value is not None:
+                    # if the 2 values are different, raise exception
+                    if assigned_value != effect.value and not (
+                        assigned_value.is_constant()
+                        and effect.value.is_constant()
+                        and assigned_value.constant_value()
+                        == effect.value.constant_value()
+                    ):
+                        raise UPConflictingEffectsException(
+                            f"The effect {effect} at timing {timing} is in conflict with the effects already in the action."
+                        )
+                else:
                     self._fluents_assigned[(timing, effect.fluent)] = effect.value
             elif effect.is_increase() or effect.is_decrease():
                 if (timing, effect.fluent) in self._fluents_assigned:
                     raise UPConflictingEffectsException(
                         f"The effect {effect} at timing {timing} is in conflict with the effects already in the action."
                     )
-                if (
-                    simulated_effect is not None
-                    and effect.fluent in simulated_effect.fluents
-                ):
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} is in conflict with the simulated effects already in the action."
-                    )
                 fluents_inc_dec.add(effect.fluent)
             else:
                 raise NotImplementedError
-
+            if (
+                simulated_effect is not None
+                and effect.fluent in simulated_effect.fluents
+            ):
+                raise UPConflictingEffectsException(
+                    f"The effect {effect} is in conflict with the simulated effects already in the action."
+                )
         self._effects.setdefault(timing, []).append(effect)
 
     @property

@@ -30,9 +30,10 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
+    UPConflictingEffectsException,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Union, cast
+from typing import Optional, List, Dict, Set, Tuple, Union, cast
 
 
 class Problem(  # type: ignore[misc]
@@ -79,6 +80,13 @@ class Problem(  # type: ignore[misc]
         ] = {}
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
+        self._fluents_assigned: Dict[
+            Tuple["up.model.timing.Timing", "up.model.fnode.FNode"],
+            "up.model.fnode.FNode",
+        ] = {}
+        self._fluents_inc_dec: Dict[
+            "up.model.timing.Timing", Set["up.model.fnode.FNode"]
+        ] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -456,9 +464,38 @@ class Problem(  # type: ignore[misc]
         assert (
             effect.environment == self._env
         ), "effect does not have the same environment of the problem"
-        effects = self._timed_effects.setdefault(timing, [])
-        if effect not in effects:
-            effects.append(effect)
+        assigned_value = self._fluents_assigned.get((timing, effect.fluent), None)
+        fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
+        if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
+            if effect.is_assignment():
+                # if the same fluent is involved in an increase/decrease, raise exception
+                if effect.fluent in fluents_inc_dec:
+                    raise UPConflictingEffectsException(
+                        f"The effect {effect} at timing {timing} is in conflict with the increase/decrease effects already in the problem."
+                    )
+                # the same fluent is involved in another assign
+                elif assigned_value is not None:
+                    # if the 2 values are different, raise exception
+                    if assigned_value != effect.value and not (
+                        assigned_value.is_constant()
+                        and effect.value.is_constant()
+                        and assigned_value.constant_value()
+                        == effect.value.constant_value()
+                    ):
+                        raise UPConflictingEffectsException(
+                            f"The effect {effect} at timing {timing} is in conflict with the effects already in the problem."
+                        )
+                else:
+                    self._fluents_assigned[(timing, effect.fluent)] = effect.value
+            elif effect.is_increase() or effect.is_decrease():
+                if (timing, effect.fluent) in self._fluents_assigned:
+                    raise UPConflictingEffectsException(
+                        f"The effect {effect} at timing {timing} is in conflict with the effects already in the problem."
+                    )
+                fluents_inc_dec.add(effect.fluent)
+            else:
+                raise NotImplementedError
+        self._timed_effects.setdefault(timing, []).append(effect)
 
     @property
     def timed_effects(
@@ -470,6 +507,8 @@ class Problem(  # type: ignore[misc]
     def clear_timed_effects(self):
         """Removes all the `timed effects` from the `Problem`."""
         self._timed_effects = {}
+        self._fluents_assigned = {}
+        self._fluents_inc_dec = {}
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]

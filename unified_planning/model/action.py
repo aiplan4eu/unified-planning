@@ -249,6 +249,7 @@ class InstantaneousAction(Action):
         self._effects = []
         self._fluents_assigned = {}
         self._fluents_inc_dec = set()
+        self._simulated_effect = None
 
     @property
     def conditional_effects(self) -> List["up.model.effect.Effect"]:
@@ -421,34 +422,24 @@ class InstantaneousAction(Action):
         if not effect.is_conditional() and not effect.value.type.is_bool_type():
             if effect.is_assignment():
                 assigned_value = self._fluents_assigned.get(effect.fluent, None)
-                # if the same fluent has already assigned a different constant value, raise exception
-                if effect.fluent in self._fluents_inc_dec or (
-                    assigned_value is not None
-                    and (
-                        (
-                            assigned_value.is_int_constant()
-                            and effect.value.is_int_constant()
-                        )
-                        or (
-                            assigned_value.is_real_constant()
-                            and effect.value.is_real_constant()
-                        )
-                        or (
-                            assigned_value.is_object_exp()
-                            and effect.value.is_object_exp()
-                        )
-                    )
-                    and assigned_value != effect.value
-                ):
+                # if the same fluent is involved in an increase/decrease, raise exception
+                if effect.fluent in self._fluents_inc_dec:
                     raise UPConflictingEffectsException(
-                        f"The effect {effect} is in conflict with the effects already in the action."
+                        f"The effect {effect} is in conflict with the increase/decrease effects already in the action."
                     )
-                if (
-                    assigned_value is None
-                    or effect.value.is_int_constant()
-                    or effect.value.is_real_constant()
-                    or effect.value.is_object_exp()
-                ):
+                # the same fluent is involved in another assign
+                elif assigned_value is not None:
+                    # if the 2 values are different, raise exception
+                    if assigned_value != effect.value and not (
+                        assigned_value.is_constant()
+                        and effect.value.is_constant()
+                        and assigned_value.constant_value()
+                        == effect.value.constant_value()
+                    ):
+                        raise UPConflictingEffectsException(
+                            f"The effect {effect} is in conflict with the effects already in the action."
+                        )
+                else:
                     self._fluents_assigned[effect.fluent] = effect.value
             elif effect.is_increase() or effect.is_decrease():
                 if effect.fluent in self._fluents_assigned:
@@ -458,15 +449,13 @@ class InstantaneousAction(Action):
                 self._fluents_inc_dec.add(effect.fluent)
             else:
                 raise NotImplementedError
-        if (
-            self._simulated_effect is not None
-            and not effect.fluent.type.is_bool_type()
-            and effect.fluent in self._fluents_inc_dec
-            and effect.fluent in self._simulated_effect.fluents
-        ):
-            raise UPConflictingEffectsException(
-                f"The effect {effect} is in conflict with the simulated effects already in the action."
-            )
+            if (
+                self._simulated_effect is not None
+                and effect.fluent in self._simulated_effect.fluents
+            ):
+                raise UPConflictingEffectsException(
+                    f"The effect {effect} is in conflict with the simulated effects already in the action."
+                )
         self._effects.append(effect)
 
     @property
