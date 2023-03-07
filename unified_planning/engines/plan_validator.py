@@ -34,7 +34,6 @@ from unified_planning.engines.results import (
 )
 from unified_planning.engines.sequential_simulator import (
     SequentialSimulator,
-    InstantaneousEvent,
 )
 from unified_planning.plans import SequentialPlan, PlanKind
 from unified_planning.exceptions import UPConflictingEffectsException
@@ -143,7 +142,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
         unsatisfied_goals = simulator.get_unsatisfied_goals(current_state)
-        if len(unsatisfied_goals) == 0:
+        if not unsatisfied_goals:
             return ValidationResult(ValidationResultStatus.VALID, self.name, [])
         else:
             msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."

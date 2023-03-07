@@ -222,12 +222,14 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 # If f was already modified and it was modified by an increase/decrease or with an assign
                 # with a different value
                 if old_value is not None and (
-                    f not in assigned_fluent or old_value != v
+                    f not in assigned_fluent
+                    or old_value.constant_value() != v.constant_value()
                 ):
                     if not f.type.is_bool_type():
                         raise UPConflictingEffectsException(
                             f"The fluent {f} is modified with different values in the same event."
                         )
+                    # solve with add-after-delete logic
                     elif not old_value.bool_constant_value():
                         updated_values[f] = v
                 else:
