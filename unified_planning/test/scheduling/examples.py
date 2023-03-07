@@ -14,25 +14,31 @@ def basic():
     Resource = UserType("Resource")
     r1 = pb.add_object("r1", Resource)
     r2 = pb.add_object("r2", Resource)
-    pb.add_fluent("lvl", IntType(0, 1), default_initial_value=1, r=Resource)
+    g1 = pb.add_object("g1", Resource)
+    # level (in {0,1}) of each `Resource` object
+    lvl = pb.add_fluent("lvl", IntType(0, 1), default_initial_value=1, r=Resource)
 
     red = pb.add_fluent("red", BoolType(), r=Resource)
     pb.set_initial_value(red(r1), True)
     pb.set_initial_value(red(r2), True)
+    pb.set_initial_value(red(g1), False)
 
     workers = pb.add_resource("workers", 4)
     machine1 = pb.add_resource("machine1", 1)
     machine2 = pb.add_resource("machine2", 1)
 
     a1 = pb.add_activity("a1", duration=3)
-    a1.uses(workers)
+    a1.uses(workers)  # translated to a2.uses(workers())
     a1.uses(machine1)
 
     a2 = pb.add_activity("a2", duration=6)
-    a2_r = a2.add_parameter("r", Resource)
-    pb.add_constraint(red(a2_r))
+    a2_r = a2.add_parameter("r", Resource)  # Resource to use: r in {r1, r2, g1}
+    pb.add_constraint(
+        red(a2_r)
+    )  # restrict r to {r1, r2} (resources that satisfy red(_))
     a2.uses(workers)
     a2.uses(machine2)
+    a2.uses(lvl(a2_r))
 
     pb.add_constraint(LT(a1.end, a2.start))
 
