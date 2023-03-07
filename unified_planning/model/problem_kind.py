@@ -213,6 +213,9 @@ general_numeric_kind.set_numbers("DISCRETE_NUMBERS")
 general_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
 general_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
 
+bounded_types_kind = ProblemKind()
+bounded_types_kind.set_numbers("BOUNDED_TYPES")
+
 basic_temporal_kind = ProblemKind()
 basic_temporal_kind.set_problem_class("ACTION_BASED")
 basic_temporal_kind.set_typing("FLAT_TYPING")

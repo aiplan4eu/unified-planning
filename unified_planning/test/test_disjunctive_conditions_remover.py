@@ -19,6 +19,7 @@ from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
     simple_numeric_kind,
+    bounded_types_kind,
     full_classical_kind,
     basic_temporal_kind,
 )
@@ -40,8 +41,12 @@ class TestDisjunctiveConditionsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(simple_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
+    @skipIfNoPlanValidatorForProblemKind(
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
     def test_robot_locations_visited(self):
         problem = self.problems["robot_locations_visited"].problem
 

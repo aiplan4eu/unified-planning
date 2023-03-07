@@ -21,13 +21,13 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import Problem, ProblemKind, Fluent, FNode
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.types import _RealType
+from unified_planning.model.types import _RealType, _IntType
 from unified_planning.model.walkers import FluentsSubstituter
 from unified_planning.engines.compilers.utils import (
     add_invariant_condition_apply_function_to_problem_expressions,
     replace_action,
 )
-from typing import List, Dict, OrderedDict, Optional, cast
+from typing import List, Dict, OrderedDict, Optional, Union, cast
 from functools import partial
 
 
@@ -136,10 +136,14 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
 
         new_fluents: Dict[Fluent, Fluent] = {}
         for old_fluent in problem.fluents:
-            old_fluent_type = cast(_RealType, old_fluent.type)
 
             new_fluent = None
-            if old_fluent_type.is_int_type() and old_fluent_type != int_type:
+            # old_fluent.type != int_type is used to check if the type of the old_fluent
+            # has lower or upper bound
+            if old_fluent.type.is_int_type() and old_fluent.type != int_type:
+                old_fluent_type: Union[_IntType, _RealType] = cast(
+                    _IntType, old_fluent.type
+                )
                 assert (
                     old_fluent_type.lower_bound is not None
                     or old_fluent_type.upper_bound is not None
@@ -148,11 +152,15 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
                     ((p.name, p.type) for p in old_fluent.signature)
                 )
                 new_fluent = Fluent(old_fluent.name, int_type, signature, env)
-            elif old_fluent_type.is_real_type() and old_fluent_type != real_type:
+
+            # old_fluent.type != real_type is used to check if the type of the old_fluent
+            # has lower or upper bound
+            elif old_fluent.type.is_real_type() and old_fluent.type != real_type:
+                old_fluent_type = cast(_RealType, old_fluent.type)
                 assert (
                     old_fluent_type.lower_bound is not None
                     or old_fluent_type.upper_bound is not None
-                ), "Error, old_fluent_type should equal int_type"
+                ), "Error, old_fluent_type should equal real_type"
                 signature = OrderedDict(
                     ((p.name, p.type) for p in old_fluent.signature)
                 )
