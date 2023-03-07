@@ -471,7 +471,9 @@ class InstantaneousAction(Action):
             `simulated effect`.
         """
         for f in simulated_effect.fluents:
-            if not f.type.is_bool_type() and f in self._fluents_inc_dec:
+            if not f.type.is_bool_type() and (
+                f in self._fluents_inc_dec or f in self._fluents_assigned
+            ):
                 raise UPConflictingEffectsException(
                     f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
                 )

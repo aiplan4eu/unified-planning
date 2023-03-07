@@ -380,8 +380,9 @@ class TimedCondsEffs:
         :param simulated effects: The `simulated effect` that must be applied at the given `timing`.
         """
         for f in simulated_effect.fluents:
-            if not f.type.is_bool_type() and f in self._fluents_inc_dec.get(
-                timing, set()
+            if not f.type.is_bool_type() and (
+                f in self._fluents_inc_dec.get(timing, set())
+                or (timing, f) in self._fluents_assigned
             ):
                 raise UPConflictingEffectsException(
                     f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
