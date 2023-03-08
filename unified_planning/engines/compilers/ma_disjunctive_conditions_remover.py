@@ -203,6 +203,7 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
         goal_to_add = self._ma_goals_without_disjunctions_adding_new_elements(
             dnf,
             new_problem,
+            new_ag,
             new_to_old,
             new_fluents,
             problem.goals,
@@ -237,18 +238,19 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
     def _ma_goals_without_disjunctions_adding_new_elements(
         self,
         dnf: Dnf,
+        new_problem: "up.model.Problem",
         new_agent: "up.model.multi_agent.Agent",
         new_to_old: Dict[Action, Optional[Action]],
         new_fluents: List["up.model.Fluent"],
         goals: List["up.model.FNode"],
         timing: Optional["up.model.timing.TimeInterval"] = None,
     ) -> "up.model.FNode":
-        env = new_agent.environment
+        env = new_problem.environment
         new_goal = dnf.get_dnf_expression(env.expression_manager.And(goals))
         if new_goal.is_or():
             new_name = self.name if timing is None else f"{self.name}_timed"
             fake_fluent = up.model.Fluent(
-                self.get_fresh_name_ag(new_agent, f"{new_name}_fake_goal")
+                get_fresh_name(new_problem, f"{new_name}_fake_goal")
             )
             fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
             fake_action.add_effect(fake_fluent, True)
