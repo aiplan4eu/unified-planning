@@ -40,7 +40,11 @@ class Type:
         return False
 
     def is_time_type(self) -> bool:
-        """Returns `True` iff is `time `True`."""
+        """Returns `True` iff is `time Type`."""
+        return False
+
+    def is_undefined_type(self) -> bool:
+        """Returns `True` iff is `undefined Type`."""
         return False
 
     def is_compatible(self, t_right: "Type") -> bool:
@@ -63,6 +67,17 @@ class _BoolType(Type):
 
     def is_bool_type(self) -> bool:
         """Returns true iff is boolean type."""
+        return True
+
+
+class _UndefinedType(Type):
+    """Represents the undefined type."""
+
+    def __repr__(self) -> str:
+        return "undefined"
+
+    def is_undefined_type(self) -> bool:
+        """Returns `True` iff is `undefined Type`."""
         return True
 
 
@@ -206,6 +221,7 @@ class _RealType(Type):
 
 BOOL = _BoolType()
 TIME = _TimeType()
+UNDEFINED = _UndefinedType()
 
 
 class TypeManager:
@@ -213,6 +229,7 @@ class TypeManager:
 
     def __init__(self):
         self._bool = BOOL
+        self._undefined = UNDEFINED
         self._ints: Dict[Tuple[Optional[int], Optional[int]], Type] = {}
         self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
         self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
@@ -226,6 +243,8 @@ class TypeManager:
         """
         if type.is_bool_type():
             return type == self._bool
+        elif type.is_undefined_type():
+            return type == self._undefined
         elif type.is_int_type():
             assert isinstance(type, _IntType)
             return self._ints.get((type.lower_bound, type.upper_bound), None) == type
@@ -243,6 +262,10 @@ class TypeManager:
     def BoolType(self) -> Type:
         """Returns this `Environment's` boolean `Type`."""
         return self._bool
+
+    def UndefinedType(self) -> Type:
+        """Returns this `Environment's` undefined `Type`."""
+        return self._undefined
 
     def IntType(
         self, lower_bound: Optional[int] = None, upper_bound: Optional[int] = None

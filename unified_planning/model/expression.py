@@ -66,6 +66,9 @@ class ExpressionManager(object):
         self.false_expression = self.create_node(
             node_type=OperatorKind.BOOL_CONSTANT, args=tuple(), payload=False
         )
+        self._undefined_expression = self.create_node(
+            node_type=OperatorKind.UNDEFINED, args=tuple(), payload=None
+        )
         return
 
     def _polymorph_args_to_tuple(
@@ -521,6 +524,10 @@ class ExpressionManager(object):
             return self.true_expression
         else:
             return self.false_expression
+
+    def UNDEFINED(self) -> "up.model.fnode.FNode":
+        """Return the constant value `Undefined`."""
+        return self._undefined_expression
 
     def Int(self, value: int) -> "up.model.fnode.FNode":
         """

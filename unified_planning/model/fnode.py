@@ -67,6 +67,8 @@ class FNode(object):
     def __repr__(self) -> str:
         if self.is_bool_constant():
             return "true" if self.is_true() else "false"
+        elif self.is_undefined():
+            return "undefined"
         elif self.is_int_constant():
             return str(self.constant_value())
         elif self.is_real_constant():
@@ -260,6 +262,10 @@ class FNode(object):
     def is_bool_constant(self) -> bool:
         """Test whether the expression is a `boolean` constant."""
         return self.node_type == OperatorKind.BOOL_CONSTANT
+
+    def is_undefined(self) -> bool:
+        """Test whether the expression is `undefined`."""
+        return self.node_type == OperatorKind.UNDEFINED
 
     def is_int_constant(self) -> bool:
         """Test whether the expression is an `integer` constant."""

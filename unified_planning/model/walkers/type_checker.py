@@ -18,7 +18,7 @@ from fractions import Fraction
 import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
-from unified_planning.model.types import BOOL, TIME, _IntType, _RealType
+from unified_planning.model.types import BOOL, UNDEFINED, TIME, _IntType, _RealType
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError
@@ -55,14 +55,23 @@ class TypeChecker(walkers.dag.DagWalker):
         OperatorKind.EXISTS,
         OperatorKind.FORALL,
         OperatorKind.DOT,
+        OperatorKind.ALWAYS,
+        OperatorKind.AT_MOST_ONCE,
+        OperatorKind.SOMETIME,
+        OperatorKind.SOMETIME_BEFORE,
+        OperatorKind.SOMETIME_AFTER,
     )
     def walk_bool_to_bool(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> Optional["unified_planning.model.types.Type"]:
         assert expression is not None
+        error = False
         for x in args:
-            if x is None or x != BOOL:
-                return None
+            if x.is_undefined_type():
+                return x
+            error |= x is None or x != BOOL
+        if error:
+            return None
         return BOOL
 
     def walk_fluent_exp(
@@ -70,11 +79,13 @@ class TypeChecker(walkers.dag.DagWalker):
     ) -> Optional["unified_planning.model.types.Type"]:
         assert expression.is_fluent_exp()
         f = expression.fluent()
-        if len(args) != len(f.signature):
-            return None
+        error = len(args) != len(f.signature)
         for (param, arg) in zip(f.signature, args):
-            if not param.type.is_compatible(arg):
-                return None
+            if arg.is_undefined_type():
+                return arg
+            error |= not param.type.is_compatible(arg)
+        if error:
+            return None
         return f.type
 
     def walk_param_exp(
@@ -83,71 +94,6 @@ class TypeChecker(walkers.dag.DagWalker):
         assert expression is not None
         assert len(args) == 0
         return expression.parameter().type
-
-    def walk_always(
-        self, expression: FNode, args: List["unified_planning.model.types.Type"]
-    ) -> Optional["unified_planning.model.types.Type"]:
-        assert expression is not None
-        assert expression.is_always()
-        assert len(expression.args) == 1
-        if args[0] is None or not args[0].is_bool_type():
-            return None
-        return args[0]
-
-    def walk_sometime(
-        self, expression: FNode, args: List["unified_planning.model.types.Type"]
-    ) -> Optional["unified_planning.model.types.Type"]:
-        assert expression is not None
-        assert expression.is_sometime()
-        assert len(expression.args) == 1
-        if args[0] is None or not args[0].is_bool_type():
-            return None
-        return args[0]
-
-    def walk_at_most_once(
-        self, expression: FNode, args: List["unified_planning.model.types.Type"]
-    ) -> Optional["unified_planning.model.types.Type"]:
-        assert expression is not None
-        assert expression.is_at_most_once()
-        assert len(expression.args) == 1
-        if args[0] is None or not args[0].is_bool_type():
-            return None
-        return args[0]
-
-    def walk_sometime_before(
-        self, expression: FNode, args: List["unified_planning.model.types.Type"]
-    ) -> Optional["unified_planning.model.types.Type"]:
-        assert expression is not None
-        assert expression.is_sometime_before()
-        assert len(expression.args) == 2
-        if (
-            args[0] is None
-            or args[1] is None
-            or not args[0].is_bool_type()
-            or not args[1].is_bool_type()
-            or args[0] != args[1]
-        ):
-            return None
-        else:
-            return args[0]
-
-    def walk_sometime_after(
-        self, expression: FNode, args: List["unified_planning.model.types.Type"]
-    ) -> Optional["unified_planning.model.types.Type"]:
-        assert expression is not None
-        assert expression.is_sometime_after()
-        assert len(expression.args) == 2
-        assert expression.args[0].type == expression.args[1].type
-        if (
-            args[0] is None
-            or args[1] is None
-            or not args[0].is_bool_type()
-            or not args[1].is_bool_type()
-            or args[0] != args[1]
-        ):
-            return None
-        else:
-            return args[0]
 
     def walk_variable_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
@@ -199,14 +145,18 @@ class TypeChecker(walkers.dag.DagWalker):
         lower = None
         upper = None
         is_time = False
+        error = False
         for x in args:
             if x == TIME:
                 is_time = True
-            elif x is None or not (x.is_int_type() or x.is_real_type()):
-                return None
+            elif x == UNDEFINED:
+                return x
+            error |= x is None or not (x.is_int_type() or x.is_real_type())
             if x.is_real_type():
                 has_real = True
-        if is_time:
+        if error:
+            return None
+        elif is_time:
             return TIME
         for x in args:
             if x.lower_bound is None:
@@ -240,14 +190,18 @@ class TypeChecker(walkers.dag.DagWalker):
         lower = None
         upper = None
         is_time = False
+        error = False
         for x in args:
             if x == TIME:
                 is_time = True
-            elif x is None or not (x.is_int_type() or x.is_real_type()):
-                return None
+            elif x == UNDEFINED:
+                return x
+            error |= x is None or not (x.is_int_type() or x.is_real_type())
             if x.is_real_type():
                 has_real = True
-        if is_time:
+        if error:
+            return None
+        elif is_time:
             return TIME
         left = args[0]
         right = args[1]
@@ -270,11 +224,15 @@ class TypeChecker(walkers.dag.DagWalker):
         has_real = False
         lower = None
         upper = None
+        error = False
         for x in args:
-            if x is None or not (x.is_int_type() or x.is_real_type()):
-                return None
-            if x.is_real_type():
+            error |= x is None or not (x.is_int_type() or x.is_real_type())
+            if x == UNDEFINED:
+                return x
+            elif x.is_real_type():
                 has_real = True
+        if error:
+            return None
         for x in args:
             l = -float("inf") if x.lower_bound is None else x.lower_bound
             u = float("inf") if x.upper_bound is None else x.upper_bound
@@ -299,13 +257,17 @@ class TypeChecker(walkers.dag.DagWalker):
         to_skip = False
         lower = None
         upper = None
+        error = False
         for x in args:
-            if x is None or not (x.is_int_type() or x.is_real_type()):
-                return None
-            if x.is_real_type():
+            error |= x is None or not (x.is_int_type() or x.is_real_type())
+            if x == UNDEFINED:
+                return x
+            elif x.is_real_type():
                 has_real = True
             if x.lower_bound is None and x.upper_bound is None:
                 to_skip = True
+        if error:
+            return None
         left = args[0]
         right = args[1]
         if to_skip or right.lower_bound != right.upper_bound:
@@ -327,56 +289,72 @@ class TypeChecker(walkers.dag.DagWalker):
 
     @walkers.handles(OperatorKind.LE, OperatorKind.LT)
     def walk_math_relation(self, expression, args):
+        error = False
         for x in args:
-            if x is None or not (
+            if x.is_undefined_type():
+                return x
+            error |= x is None or not (
                 x.is_int_type() or x.is_real_type() or x.is_time_type()
-            ):
-                return None
+            )
+        if error:
+            return None
         return BOOL
 
     def walk_equals(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> Optional["unified_planning.model.types.Type"]:
-        t = args[0]
-        if t is None:
+        t_right = args[0]
+        t_left = args[0]
+        if t_right == UNDEFINED or t_left == UNDEFINED:
+            return UNDEFINED
+        if t_right is None or t_left is None:
             return None
 
-        if t.is_bool_type():
+        if t_right.is_bool_type() or t_left.is_bool_type():
             raise UPTypeError(
                 "The expression '%s' is not well-formed."
                 "Equality operator is not supported for Boolean"
                 " terms. Use Iff instead." % str(expression)
             )
-        for x in args:
-            if x is None:
-                return None
-            elif (
-                t.is_user_type()
-                and t != x
-                and not t.is_compatible(x)
-                and not x.is_compatible(t)
-            ):
-                return None
-            elif (t.is_int_type() or t.is_real_type()) and not (
-                x.is_int_type() or x.is_real_type()
-            ):
-                return None
+        elif (
+            t_right.is_user_type()
+            and t_right != t_left
+            and not t_right.is_compatible(t_left)
+            and not t_left.is_compatible(t_right)
+        ):
+            return None
+        elif (t_right.is_int_type() or t_right.is_real_type()) and not (
+            t_left.is_int_type() or t_left.is_real_type()
+        ):
+            return None
         return BOOL
 
-    @walkers.handles(OperatorKind.DOT)
     def walk_dot(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> Optional["unified_planning.model.types.Type"]:
         assert expression.is_dot()
-        a = expression.agent()
-        t = expression.args[0]
-        f = t.fluent().name
-        if args[0] is None:
-            return None
         if len(args) != 1:
             return None
-        if not t.is_fluent_exp():
+        t = args[0]
+        if t is None:
             return None
-        if not a.fluent(f):
+        elif t.is_undefined_type():
+            return t
+        fluent_exp = expression.args[0]
+        if not fluent_exp.is_fluent_exp():
             return None
-        return args[0]
+        fluent_name = fluent_exp.fluent().name
+        a = expression.agent()
+        if all(f.name != fluent_name for f in a.fluents):
+            raise UPTypeError(
+                f"The expression {expression} is not well-formed. ",
+                f"The agent {a.name} does not have the fluent {fluent_name}.",
+            )
+        return t
+
+    def walk_undefined(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression is not None
+        assert not args
+        return UNDEFINED

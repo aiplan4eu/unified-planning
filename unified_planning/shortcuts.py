@@ -271,6 +271,11 @@ def FALSE() -> FNode:
     return get_environment().expression_manager.FALSE()
 
 
+def UNDEFINED() -> FNode:
+    """Return the undefined constant."""
+    return get_environment().expression_manager.UNDEFINED()
+
+
 def Bool(value: bool) -> FNode:
     """
     Return a boolean constant.
