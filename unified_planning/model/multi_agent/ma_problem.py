@@ -317,6 +317,10 @@ class MultiAgentProblem(  # type: ignore[misc]
         """Removes all the `goals` from the `MultiAgentProblem`."""
         self._goals = []
 
+    def clear_agents(self):
+        """Removes all the `goals` from the `MultiAgentProblem`."""
+        self._agents = []
+
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """

@@ -98,6 +98,10 @@ DEFAULT_ENGINES = {
         "FastDownwardReachabilityGrounder",
     ),
     "up_grounder": ("unified_planning.engines.compilers.grounder", "Grounder"),
+    "up_ma_disjunctive_conditions_remover": (
+        "unified_planning.engines.compilers.ma_disjunctive_conditions_remover",
+        "MA_DisjunctiveConditionsRemover",
+    ),
 }
 
 DEFAULT_META_ENGINES = {
@@ -125,6 +129,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_bounded_types_remover",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
+    "up_ma_disjunctive_conditions_remover",
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
     "up_usertype_fluents_remover",
