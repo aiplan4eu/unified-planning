@@ -53,12 +53,12 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
     Then, the resulting `OR` is decomposed into multiple `subActions`; every `subAction` has the same :func:`Effects <unified_planning.model.InstantaneousAction.effects>`
     of the original `Action`, and as condition an element of the decomposed `Or`. So, for every element of the `Or`, an `Action` is created.
 
-    For this `Compiler`, only the `MA_DISJUNCTIVE_CONDITIONS_REMOVING` :class:`~unified_planning.engines.CompilationKind` is supported.
+    For this `Compiler`, only the `DISJUNCTIVE_CONDITIONS_REMOVING` :class:`~unified_planning.engines.CompilationKind` is supported.
     """
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
-        CompilerMixin.__init__(self, CompilationKind.MA_DISJUNCTIVE_CONDITIONS_REMOVING)
+        CompilerMixin.__init__(self, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
 
     @property
     def name(self):
@@ -68,7 +68,6 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind()
         supported_kind.set_problem_class("ACTION_BASED_MULTI_AGENT")
-        supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
@@ -105,7 +104,7 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.MA_DISJUNCTIVE_CONDITIONS_REMOVING
+        return compilation_kind == CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
 
     @staticmethod
     def resulting_problem_kind(
@@ -121,12 +120,12 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
         """
-        Takes an instance of a :class:`~unified_planning.model.multi_agent.MultiAgentProblem` and the `MA_DISJUNCTIVE_CONDITIONS_REMOVING` `~unified_planning.engines.CompilationKind`
+        Takes an instance of a :class:`~unified_planning.model.multi_agent.MultiAgentProblem` and the `DISJUNCTIVE_CONDITIONS_REMOVING` `~unified_planning.engines.CompilationKind`
         and returns a `CompilerResult` where the `Problem` does not have `Actions` with disjunctive conditions.
 
         :param problem: The instance of the `MultiAgentProblem` that must be returned without disjunctive conditions.
         :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
-            only `MA_DISJUNCTIVE_CONDITIONS_REMOVING` is supported by this compiler
+            only `DISJUNCTIVE_CONDITIONS_REMOVING` is supported by this compiler
         :return: The resulting `CompilerResult` data structure.
         """
 
