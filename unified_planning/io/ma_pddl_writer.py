@@ -677,21 +677,24 @@ class MAPDDLWriter:
             tmp_name = _get_pddl_name(item)
         # if the ma-pddl valid name is the same of the original one and it does not create conflicts,
         # it can be returned
-        if tmp_name == original_name and tmp_name not in self.nto_renamings:
-            new_name = tmp_name
+        if not isinstance(item, up.model.multi_agent.Agent):
+            if tmp_name == original_name and tmp_name not in self.nto_renamings:
+                new_name = tmp_name
+            else:
+                count = 0
+                new_name = tmp_name
+                while self.problem.has_name(new_name) or new_name in self.nto_renamings:
+                    new_name = f"{tmp_name}_{count}"
+                    count += 1
+            assert (
+                new_name not in self.nto_renamings
+                and new_name not in self.otn_renamings.values()
+            )
+
         else:
-            count = 0
             new_name = tmp_name
-            while self.problem.has_name(new_name) or new_name in self.nto_renamings:
-                new_name = f"{tmp_name}_{count}"
-                count += 1
-        assert (
-            new_name not in self.nto_renamings
-            and new_name not in self.otn_renamings.values()
-        )
         self.otn_renamings[item] = new_name
         self.nto_renamings[new_name] = item
-
         return new_name
 
     def get_item_named(
