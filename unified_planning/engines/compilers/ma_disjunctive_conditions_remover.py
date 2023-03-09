@@ -155,14 +155,14 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                     )
                     if new_precond.is_or():
                         for and_exp in new_precond.args:
-                            na = self._create_new_action_with_given_precond(
+                            na = self._ma_create_new_action_with_given_precond(
                                 new_problem, and_exp, a, dnf
                             )
                             if na is not None:
                                 new_to_old[na] = a
                                 new_ag.add_action(na)
                     else:
-                        na = self._create_new_action_with_given_precond(
+                        na = self._ma_create_new_action_with_given_precond(
                             new_problem, new_precond, a, dnf
                         )
                         if na is not None:
@@ -187,7 +187,7 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                         Tuple[List[FNode], ...], product(*conditions)
                     )
                     for cond_list in conditions_tuple:
-                        nda = self._create_new_durative_action_with_given_conds_at_given_times(
+                        nda = self._ma_create_new_durative_action_with_given_conds_at_given_times(
                             new_ag, interval_list, cond_list, a, dnf
                         )
                         if nda is not None:
@@ -260,7 +260,7 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                 fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
                 fake_action.add_effect(fake_fluent, True)
                 for and_exp in g.args:
-                    na = self._create_new_action_with_given_precond(
+                    na = self._ma_create_new_action_with_given_precond(
                         new_problem, and_exp, fake_action, dnf
                     )
                     if na is not None:
@@ -276,3 +276,97 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                 if new_goal not in new_problem.goals:
                     new_problem.add_goal(new_goal)
         return new_goals
+
+    def _ma_create_new_durative_action_with_given_conds_at_given_times(
+        self,
+        new_problem: "MultiAgentProblem",
+        interval_list: List[TimeInterval],
+        cond_list: List[FNode],
+        original_action: DurativeAction,
+        dnf: Dnf,
+    ) -> Optional[DurativeAction]:
+        new_action = original_action.clone()
+        new_action.name = self.get_fresh_name(new_problem, original_action.name)
+        new_action.clear_conditions()
+        for i, c in zip(interval_list, cond_list):
+            c = c.simplify()
+            if c.is_false():
+                return None
+            elif c.is_and():
+                for co in c.args:
+                    new_action.add_condition(i, co)
+            else:
+                new_action.add_condition(i, c)
+        new_action.clear_effects()
+        for t, el in original_action.effects.items():
+            for e in el:
+                if e.is_conditional():
+                    new_cond = dnf.get_dnf_expression(e.condition).simplify()
+                    if new_cond.is_or():
+                        for and_exp in new_cond.args:
+                            new_e = e.clone()
+                            new_e.set_condition(and_exp)
+                            new_action._add_effect_instance(t, new_e)
+                    elif not new_cond.is_false():
+                        new_e = e.clone()
+                        new_e.set_condition(new_cond)
+                        new_action._add_effect_instance(t, new_e)
+                else:
+                    new_action._add_effect_instance(t, e)
+        if len(new_action.effects) == 0:
+            return None
+        return new_action
+
+    def _ma_create_new_action_with_given_precond(
+        self,
+        new_problem: "MultiAgentProblem",
+        precond: FNode,
+        original_action: InstantaneousAction,
+        dnf: Dnf,
+    ) -> Optional[InstantaneousAction]:
+        new_action = original_action.clone()
+        new_action.name = self.get_fresh_name(new_problem, original_action.name)
+        new_action.clear_preconditions()
+        precond = precond.simplify()
+        if precond.is_false():
+            return None
+        if precond.is_and():
+            for leaf in precond.args:
+                new_action.add_precondition(leaf)
+        else:
+            new_action.add_precondition(precond)
+        new_action.clear_effects()
+        for e in original_action.effects:
+            if e.is_conditional():
+                new_cond = dnf.get_dnf_expression(e.condition).simplify()
+                if new_cond.is_or():
+                    for and_exp in new_cond.args:
+                        new_e = e.clone()
+                        new_e.set_condition(and_exp)
+                        new_action._add_effect_instance(new_e)
+                elif not new_cond.is_false():
+                    new_e = e.clone()
+                    new_e.set_condition(new_cond)
+                    new_action._add_effect_instance(new_e)
+            else:
+                new_action._add_effect_instance(e)
+        if len(new_action.effects) == 0:
+            return None
+        return new_action
+
+    def get_fresh_name(
+        self,
+        problem: MultiAgentProblem,
+        original_name: str,
+        parameters_names: Iterable[str] = [],
+    ) -> str:
+        """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
+        name_list = [original_name]
+        name_list.extend(parameters_names)
+        new_name = "_".join(name_list)
+        base_name = new_name
+        count = 0
+        while problem.has_name(new_name):
+            new_name = f"{base_name}_{str(count)}"
+            count += 1
+        return new_name
