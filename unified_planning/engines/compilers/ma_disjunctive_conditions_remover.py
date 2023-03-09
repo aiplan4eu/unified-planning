@@ -236,6 +236,7 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
 
+    # "def _ma_goals_without_disjunctions_adding_new_elements" not yet adapted to multi-agent case!
     def _ma_goals_without_disjunctions_adding_new_elements(
         self,
         dnf: Dnf,
@@ -267,7 +268,9 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                         new_agent.add_action(na)
                 new_agent.add_fluent(fake_fluent, default_initial_value=False)
                 new_fluents.append(fake_fluent)
-                return env.expression_manager.FluentExp(fake_fluent)
+                if new_goal not in new_problem.goals:
+                    new_problem.add_goal(new_goal)
+                # return env.expression_manager.FluentExp(fake_fluent)
             else:
                 new_goals.append(new_goal)
                 if new_goal not in new_problem.goals:
