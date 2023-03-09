@@ -46,12 +46,16 @@ class StateEvaluator(QuantifierSimplifier):
         assert self._problem is not None
         assert self._assignments is None
         assert self._variable_assignments is None
+        if expression.type.is_undefined_type():
+            return self.manager.UNDEFINED()
         self._variable_assignments: Optional[
             Dict["Expression", "Expression"]
         ] = _variable_assignments
         self._state = state
         r = self.walk(expression)
         self._variable_assignments = None
+        if r.type.is_undefined_type():
+            return self.manager.UNDEFINED()
         assert r.is_constant()
         return r
 
@@ -69,11 +73,13 @@ class StateEvaluator(QuantifierSimplifier):
         copy = self._variable_assignments.copy()
         copy.update(variables_assignments)
         r = new_state_evaluator.evaluate(expression, self._state, copy)
-        assert r.is_constant()
+        assert r.is_constant() or r.type.is_undefined_type()
         return r
 
     def walk_fluent_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
-        new_exp = self.manager.FluentExp(expression.fluent(), tuple(args))
+        if any(arg.type.is_undefined_type() for arg in args):
+            return self.manager.UNDEFINED()
+        new_exp = self.manager.FluentExp(expression.fluent(), args)
         return self._state.get_value(new_exp)
 
     def walk_param_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":

@@ -89,6 +89,9 @@ class IdentityDagWalker(walkers.dag.DagWalker):
     ) -> FNode:
         return self.manager.Bool(expression.bool_constant_value())
 
+    def walk_undefined(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        return self.manager.UNDEFINED()
+
     def walk_int_constant(
         self, expression: FNode, args: List[FNode], **kwargs
     ) -> FNode:

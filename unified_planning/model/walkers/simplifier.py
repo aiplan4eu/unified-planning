@@ -60,6 +60,8 @@ class Simplifier(walkers.dag.DagWalker):
         :param expression: The target expression that must be simplified with constant propagation.
         :return: The simplified expression.
         """
+        if expression.type.is_undefined_type():
+            return self.manager.UNDEFINED()
         return self.walk(expression)
 
     def walk_and(self, expression: FNode, args: List[FNode]) -> FNode:

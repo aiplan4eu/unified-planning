@@ -16,7 +16,8 @@
 
 import unified_planning as up
 import unified_planning.model.walkers as walkers
-from unified_planning.environment import Environment, get_environment
+from unified_planning.environment import get_environment
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model.walkers.dag import DagWalker
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import _IntType, _RealType
@@ -63,6 +64,10 @@ class LinearChecker(DagWalker):
         the `set` of the `fluent_expressions` appearing with a positive sign in the expression
         and the `set` of the `fluent_expressions` appearing with a negative sign in the expression .
         """
+        if expression.type.is_undefined_type():
+            raise UPUsageError(
+                "It makes no sense to check the linearity of an expression containing Undefined"
+            )
         return self.walk(self._simplifier.simplify(expression))
 
     @walkers.handles(

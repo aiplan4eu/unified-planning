@@ -16,7 +16,7 @@
 
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
-from unified_planning.exceptions import UPUnreachableCodeError
+from unified_planning.exceptions import UPUnreachableCodeError, UPUsageError
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 from typing import List, Tuple
@@ -145,6 +145,8 @@ class Dnf(walkers.dag.DagWalker):
         For example, the form: !(a => (b && c)) becomes:
         a && (!b || !c), in NNF form, and then:
         (a && !b) || (a && !c), therefore a DNF expression."""
+        if expression.type.is_undefined_type():
+            raise UPUsageError("UNDEFINED value is not accepted by the Dnf walker")
         nnf_exp = self._nnf.get_nnf_expression(expression)
         tuples = self.walk(nnf_exp)
         return self.manager.Or(self.manager.And(and_args) for and_args in tuples)

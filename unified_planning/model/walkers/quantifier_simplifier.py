@@ -38,7 +38,7 @@ class QuantifierSimplifier(Simplifier):
         problem: "up.model.problem.Problem",
     ):
         DagWalker.__init__(self, True)
-        self._env = environment
+        self.environment = environment
         self.manager = environment.expression_manager
         self._problem = problem
         self._assignments: Optional[Dict["Expression", "Expression"]] = None
@@ -66,9 +66,13 @@ class QuantifierSimplifier(Simplifier):
         assert self._variable_assignments is None
         self._assignments = assignments
         self._variable_assignments = variable_assignments
+        if expression.type.is_undefined_type():
+            return self.manager.UNDEFINED()
         r = self.walk(expression)
         self._assignments = None
         self._variable_assignments = None
+        if r.type.is_undefined_type():
+            return self.manager.UNDEFINED()
         return r
 
     def _push_with_children_to_stack(self, expression: "FNode", **kwargs):
@@ -106,7 +110,7 @@ class QuantifierSimplifier(Simplifier):
         expression: "FNode",
         variables_assignments: Dict["Expression", "Expression"],
     ) -> "FNode":
-        new_qsimplifier = QuantifierSimplifier(self._env, self._problem)
+        new_qsimplifier = QuantifierSimplifier(self.environment, self._problem)
         assert self._variable_assignments is not None
         assert self._assignments is not None
         copy = self._variable_assignments.copy()
@@ -118,8 +122,9 @@ class QuantifierSimplifier(Simplifier):
     def walk_exists(self, expression: "FNode", args: List["FNode"]) -> "FNode":
         assert self._problem is not None
         assert len(args) == 1
-        if args[0].is_bool_constant():
-            if args[0].bool_constant_value():
+        arg_0 = args[0]
+        if arg_0.is_bool_constant():
+            if arg_0.bool_constant_value():
                 return self.manager.TRUE()
             return self.manager.FALSE()
         vars = expression.variables()

@@ -67,6 +67,8 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
             expression, the top level fluent and all the FluentExp that must be True for the 2 expressions to be
             equivalent.
         """
+        if expression.type.is_undefined_type():
+            return (self.manager.UNDEFINED(), None, Set(), None, Set())
         exp, last_var, free_vars, last_fluent, added_fluents = self.walk(expression)
         if last_var is not None:
             assert last_fluent is not None
@@ -85,6 +87,8 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         :param expression: The FNode that must be returned without UsertypeFluents.
         :return: The equivalent expression without Usertype Fluents.
         """
+        if expression.type.is_undefined_type():
+            return (self.manager.UNDEFINED(), None, set(), None, set())
         new_exp, last_var, free_vars, last_fluent, added_fluents = self.walk(expression)
         assert (
             last_var is None and last_fluent is None

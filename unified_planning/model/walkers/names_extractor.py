@@ -76,6 +76,7 @@ class NamesExtractor(walkers.dag.DagWalker):
         op.OperatorKind.IFF,
         op.OperatorKind.TIMING_EXP,
         op.OperatorKind.BOOL_CONSTANT,
+        op.OperatorKind.UNDEFINED,
         op.OperatorKind.INT_CONSTANT,
         op.OperatorKind.REAL_CONSTANT,
         op.OperatorKind.PLUS,

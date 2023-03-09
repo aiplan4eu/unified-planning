@@ -55,6 +55,8 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         Note: The returned expression is not always equivalent to the given expression, but only considering
         the `objects` in the given `problem`.
         """
+        if expression.type.is_undefined_type():
+            return self._env.expression_manager.UNDEFINED()
         self._objects_set = objects_set
         return self.walk(expression)
 
