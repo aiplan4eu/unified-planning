@@ -155,7 +155,7 @@ PDDL I/O
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/01-pddl-usage-example.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/io/01-pddl-usage-example.ipynb
    :alt: Open In Colab
 
 
