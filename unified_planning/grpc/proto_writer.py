@@ -21,6 +21,9 @@ import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning import model
 import unified_planning.engines
 import unified_planning.model.htn
+import unified_planning.engines
+import unified_planning.plans
+from unified_planning.plans.hierarchical_plan import *
 import unified_planning.model.walkers as walkers
 import unified_planning.plans
 from unified_planning.model.types import domain_size, domain_item
@@ -633,14 +636,16 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.plans.ActionInstance)
     def _convert_action_instance(
-        self, a: unified_planning.plans.ActionInstance, start_time=None, end_time=None
+        self,
+        a: unified_planning.plans.ActionInstance,
+        start_time=None,
+        end_time=None,
+        id=None,
     ) -> proto.ActionInstance:
-        parameters = []
-        for param in a.actual_parameters:
-            # The parameters are atoms
-            parameters.append(self.convert(param).atom)
+        parameters = [self.convert(param).atom for param in a.actual_parameters]
 
         return proto.ActionInstance(
+            id=id,
             action_name=a.action.name,
             parameters=parameters,
             start_time=start_time,
@@ -653,25 +658,72 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.plans.SequentialPlan)
     def _convert_sequential_plan(
-        self, plan: unified_planning.plans.SequentialPlan
+        self,
+        plan: unified_planning.plans.SequentialPlan,
+        ids: Dict[ActionInstance, str] = None,
     ) -> proto.Plan:
-        return proto.Plan(actions=[self.convert(a) for a in plan.actions])
+        def id(a: ActionInstance):
+            return ids.get(a) if ids is not None else None
+
+        return proto.Plan(
+            actions=[self._convert_action_instance(a, id=id(a)) for a in plan.actions]
+        )
 
     @handles(unified_planning.plans.TimeTriggeredPlan)
     def _convert_time_triggered_plan(
-        self, plan: unified_planning.plans.TimeTriggeredPlan
+        self,
+        plan: unified_planning.plans.TimeTriggeredPlan,
+        ids: Dict[ActionInstance, str] = None,
     ) -> proto.Plan:
         action_instances = []
 
         for a in plan.timed_actions:
+            id = ids.get(a[1]) if ids else None
             start_time = self.convert(a[0])
             end_time = self.convert(a[0] + a[2])
             instance = self._convert_action_instance(
-                a[1], start_time=start_time, end_time=end_time
+                a[1], start_time=start_time, end_time=end_time, id=id
             )
             action_instances.append(instance)
 
         return proto.Plan(actions=action_instances)
+
+    @handles(unified_planning.plans.HierarchicalPlan)
+    def _convert_hierarchical_plan(
+        self, plan: unified_planning.plans.HierarchicalPlan
+    ) -> proto.Plan:
+        ids = {act: id for id, act in plan.actions()}
+        flat_plan: proto.Plan = self.convert(plan.action_plan, ids)
+
+        def get_subtasks(prefix: str, d: Decomposition) -> Dict[str, str]:
+            mapping = {}
+            for task_id in d.subtasks:
+                instance = d.subtasks[task_id]
+                if isinstance(instance, MethodInstance):
+                    mapping[task_id] = f"{prefix}{task_id}::{instance.method.name}"
+                else:
+                    assert isinstance(instance, ActionInstance)
+                    mapping[task_id] = f"{prefix}{task_id}"
+            return mapping
+
+        methods = []
+        for id, method in plan.methods():
+            parameters = [self.convert(param).atom for param in method.parameters]
+            subtasks = get_subtasks(id + "::", method.decomposition)
+            m = proto.MethodInstance(
+                id=id,
+                method_name=method.method.name,
+                parameters=parameters,
+                subtasks=subtasks,
+            )
+            methods.append(m)
+        root_tasks = get_subtasks("", plan.decomposition)
+
+        plan = proto.Plan(
+            actions=flat_plan.actions,
+            hierarchy=proto.PlanHierarchy(root_tasks=root_tasks, methods=methods),
+        )
+        return plan
 
     @handles(unified_planning.engines.PlanGenerationResult)
     def _convert_plan_generation_result(

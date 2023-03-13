@@ -11,6 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from unified_planning.plans import ActionInstance
+from unified_planning.plans.hierarchical_plan import (
+    MethodInstance,
+    Decomposition,
+    HierarchicalPlan,
+)
 from unified_planning.shortcuts import *
 from unified_planning.model.htn import *
 from collections import namedtuple
@@ -65,19 +72,19 @@ def get_example_problems():
     target = go_recursive.parameter("target")
     go_recursive.add_precondition(Equals(loc, source))
     go_recursive.add_precondition(connected(source, inter))
-    t1 = go_recursive.add_subtask(move, source, inter)
-    t2 = go_recursive.add_subtask(go, target)
+    t1 = go_recursive.add_subtask(move, source, inter, ident="move")
+    t2 = go_recursive.add_subtask(go, target, ident="go-rec")
     go_recursive.set_ordered(t1, t2)
     htn.add_method(go_recursive)
 
-    go1 = htn.task_network.add_subtask(go, l4)
+    go1 = htn.task_network.add_subtask(go, l4, ident="go_l4")
     final_loc = htn.task_network.add_variable("final_loc", Location)
-    go2 = htn.task_network.add_subtask(go, final_loc)
+    go2 = htn.task_network.add_subtask(go, final_loc, ident="go_final")
     htn.task_network.add_constraint(Or(Equals(final_loc, l1), Equals(final_loc, l2)))
     htn.task_network.set_strictly_before(go1, go2)
 
     htn.set_initial_value(loc, l1)
-    plan = up.plans.SequentialPlan(
+    flat_plan = up.plans.SequentialPlan(
         [
             up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
             up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3))),
@@ -86,6 +93,37 @@ def get_example_problems():
             up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l2))),
         ]
     )
+    acts = flat_plan.actions
+
+    # Rebuilds the hierarchy that leads to the sequence of move actions.
+    # Several elements are captured from the environment. Their redefinition allows the function
+    # to be also usable for the temporal variant as well
+    def goto_hier(
+        acts: List[ActionInstance], target: Union[Object, FNode]
+    ) -> MethodInstance:
+        (target,) = get_environment().expression_manager.auto_promote(target)
+        if len(acts) == 0:
+            return MethodInstance(go_noop, parameters=(target,))
+        else:
+            a = acts[0]
+            return MethodInstance(
+                go_recursive,
+                parameters=(a.actual_parameters[0], a.actual_parameters[1], target),
+                decomposition=Decomposition(
+                    {t1.identifier: acts[0], t2.identifier: goto_hier(acts[1:], target)}
+                ),
+            )
+
+    plan = HierarchicalPlan(
+        flat_plan,
+        Decomposition(
+            {
+                go1.identifier: goto_hier(acts[0:3], l4),
+                go2.identifier: goto_hier(acts[3:], acts[-1].actual_parameters[-1]),
+            }
+        ),
+    )
+
     htn_go = Example(problem=htn, plan=plan)
     problems["htn-go"] = htn_go
 
@@ -120,14 +158,14 @@ def get_example_problems():
     htn_temporal.add_action(durative_move)
     go = htn_temporal.add_task("go", target=Location)
 
-    go_noop = Method("go-noop", target=Location)
+    go_noop = Method("go-noop_t", target=Location)
     go_noop.set_task(go)
     target = go_noop.parameter("target")
     go_noop.add_precondition(Equals(loc, target))
     htn_temporal.add_method(go_noop)
 
     go_recursive = Method(
-        "go-recursive", source=Location, inter=Location, target=Location
+        "go-recursive_t", source=Location, inter=Location, target=Location
     )
     go_recursive.set_task(go, go_recursive.parameter("target"))
     source = go_recursive.parameter("source")
@@ -152,7 +190,7 @@ def get_example_problems():
     )
 
     htn_temporal.set_initial_value(loc, l1)
-    plan_temporal = up.plans.TimeTriggeredPlan(
+    flat_plan = up.plans.TimeTriggeredPlan(  # type: ignore
         [
             (
                 Fraction(0, 100),
@@ -179,9 +217,26 @@ def get_example_problems():
                 up.plans.ActionInstance(durative_move, (ObjectExp(l3), ObjectExp(l2))),
                 Fraction(1, 1),
             ),
+            (
+                Fraction(505, 100),
+                up.plans.ActionInstance(durative_move, (ObjectExp(l2), ObjectExp(l1))),
+                Fraction(1, 1),
+            ),
         ]
     )
-    htn_go_temporal = Example(problem=htn_temporal, plan=plan_temporal)
+
+    acts = [a[1] for a in flat_plan.timed_actions]  # type: ignore
+    plan = HierarchicalPlan(
+        flat_plan,
+        Decomposition(
+            {
+                go1.identifier: goto_hier(acts[0:3], l4),
+                go2.identifier: goto_hier(acts[3:], acts[-1].actual_parameters[-1]),
+            }
+        ),
+    )
+
+    htn_go_temporal = Example(problem=htn_temporal, plan=plan)
     problems["htn-go-temporal"] = htn_go_temporal
 
     return problems

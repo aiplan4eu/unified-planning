@@ -210,13 +210,8 @@ message Action {
 // Symbolic reference to an absolute time.
 // It might represent:
 // - the time of the initial/final state, or
-// - the start/end of the containing action.
-//
-// It is currently composed of a single field whose interpretation might be context dependent
-// (e.g. "START" refers to the start of the containing action).
-//
-// In the future, it could be extended to refer, e.g., to the start of a particular action/subtask
-// by adding an additional field with the identifier of an action/subtask.
+// - the start/end of the containing action, or
+// - the start/end of one of the subtask in the context of a method or of a task network.
 message Timepoint {
     enum TimepointKind {
       // Global start of the planning problem. This is context independent and represents the time at which the initial state holds.
@@ -581,16 +576,37 @@ message ActionInstance {
 
 }
 
+message MethodInstance {
+    //  A unique identifier of the method that is used to refer to it in the hierarchy.
+    string id = 1;
+    // name of the method
+    string method_name = 2;
+    // Parameters of the method instance, required to be constants.
+    repeated Atom parameters = 3;
+
+    // A mapping of the IDs of the method's subtasks into the IDs of the action/methods that refine them.
+    map<string, string> subtasks = 6;
+
+}
+
+message PlanHierarchy {
+    // A mapping of the root task IDs into the IDs of the actions and methods that refine them.
+    map<string, string> root_tasks = 1;
+
+    // Instances of all methods used in the plan.
+    repeated MethodInstance methods = 2;
+
+}
+
 message Plan {
     // An ordered sequence of actions that appear in the plan.
     // The order of the actions in the list must be compatible with the partial order of the start times.
     // In case of non-temporal planning, this allows having all start time at 0 and only rely on the order in this sequence.
     repeated ActionInstance actions = 1;
 
-    // TODO: add an optional cost field?
-
-    // TODO: for hierarchical problems, output the decomposition that leads from the initial task network
-    //       into the plan (required for polynomial plan validation, and generally useful for end users)
+    // When the plan is hierarchical, this object provides the decomposition of hte root tasks into the actions of the plan
+    // feature: HIERARCHY
+    PlanHierarchy hierarchy = 2;
 }
 
 
