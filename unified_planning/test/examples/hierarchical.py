@@ -154,7 +154,7 @@ def get_example_problems():
     durative_move.add_condition(StartTiming(), Equals(loc, l_from))
     durative_move.add_condition(overall, connected(l_from, l_to))
     durative_move.add_effect(EndTiming(), loc, l_to)
-    durative_move.set_fixed_duration(10)
+    durative_move.set_fixed_duration(1)
     htn_temporal.add_action(durative_move)
     go = htn_temporal.add_task("go", target=Location)
 
