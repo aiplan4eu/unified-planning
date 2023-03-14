@@ -37,7 +37,7 @@ FEATURES = {
         "DURATION_INEQUALITIES",
     ],
     "EXPRESSION_DURATION": ["STATIC_FLUENTS_IN_DURATION", "FLUENTS_IN_DURATION"],
-    "NUMBERS": ["CONTINUOUS_NUMBERS", "DISCRETE_NUMBERS"],
+    "NUMBERS": ["CONTINUOUS_NUMBERS", "DISCRETE_NUMBERS", "BOUNDED_TYPES"],
     "CONDITIONS_KIND": [
         "NEGATIVE_CONDITIONS",
         "DISJUNCTIVE_CONDITIONS",
@@ -212,6 +212,9 @@ general_numeric_kind.set_typing("FLAT_TYPING")
 general_numeric_kind.set_numbers("DISCRETE_NUMBERS")
 general_numeric_kind.set_numbers("CONTINUOUS_NUMBERS")
 general_numeric_kind.set_fluents_type("NUMERIC_FLUENTS")
+
+bounded_types_kind = ProblemKind()
+bounded_types_kind.set_numbers("BOUNDED_TYPES")
 
 basic_temporal_kind = ProblemKind()
 basic_temporal_kind.set_problem_class("ACTION_BASED")

@@ -135,7 +135,7 @@ class _UserType(Type):
 
 
 class _IntType(Type):
-    """Represents an Integer type. The given bounds are not semantically bounding for the planners."""
+    """Represents an Integer type. The given bounds are semantically bounding for the planners."""
 
     def __init__(
         self, lower_bound: Optional[int] = None, upper_bound: Optional[int] = None
@@ -169,7 +169,7 @@ class _IntType(Type):
 
 
 class _RealType(Type):
-    """Represents a Real type. The given bounds are not semantically bounding for the planners."""
+    """Represents a Real type. The given bounds are semantically bounding for the planners."""
 
     def __init__(
         self,

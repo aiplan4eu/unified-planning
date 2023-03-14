@@ -691,6 +691,15 @@ class Problem(  # type: ignore[misc]
     def _update_problem_kind_fluent(self, fluent: "up.model.fluent.Fluent"):
         self._update_problem_kind_type(fluent.type)
         if fluent.type.is_int_type() or fluent.type.is_real_type():
+            numeric_type = fluent.type
+            assert isinstance(
+                numeric_type, (up.model.types._RealType, up.model.types._IntType)
+            )
+            if (
+                numeric_type.lower_bound is not None
+                or numeric_type.upper_bound is not None
+            ):
+                self._kind.set_numbers("BOUNDED_TYPES")
             self._kind.set_fluents_type("NUMERIC_FLUENTS")
         elif fluent.type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")

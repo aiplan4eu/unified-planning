@@ -14,7 +14,6 @@
 
 import os
 import unified_planning as up
-import unified_planning.engines
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     simple_numeric_kind,

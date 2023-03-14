@@ -20,6 +20,7 @@ from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
     general_numeric_kind,
+    bounded_types_kind,
     quality_metrics_kind,
     oversubscription_kind,
 )
@@ -194,7 +195,9 @@ class TestPlanner(TestCase):
             )
             self.assertEqual(plan, opt_plan)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(general_numeric_kind).union(bounded_types_kind)
+    )
     def test_robot(self):
         problem = self.problems["robot"].problem
         move = problem.action("move")

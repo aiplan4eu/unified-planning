@@ -13,16 +13,11 @@
 # limitations under the License
 
 import os
-import tempfile
-from typing import cast
-import pytest
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
-from unified_planning.io import PDDLWriter, PDDLReader
+from unified_planning.test import TestCase, main
+from unified_planning.io import PDDLReader
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.types import _UserType
-from unified_planning.engines import PlanGenerationResultStatus
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))

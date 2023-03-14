@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+
+from unified_planning.engines.compilers.bounded_types_remover import BoundedTypesRemover
 from unified_planning.engines.compilers.conditional_effects_remover import (
     ConditionalEffectsRemover,
 )
