@@ -32,31 +32,6 @@ from pyparsing.results import ParseResults
 from pyparsing import one_of
 
 
-class CaseInsensitiveToken:
-    """A case-insensitive representation of a string."""
-
-    def __init__(self, name: Union[str, ParseResults]):
-        if isinstance(name, ParseResults):
-            name = name[0]
-        assert isinstance(name, str)
-        self._name = name
-        self._canonical = name.lower()
-
-    def __repr__(self):
-        return self._name
-
-    def __hash__(self):
-        return hash(self._canonical)
-
-    def __eq__(self, other):
-        if isinstance(other, str):
-            return other.lower() == self._canonical
-        elif isinstance(other, CaseInsensitiveToken):
-            return self._canonical == other._canonical
-        else:
-            return False
-
-
 class CustomParseResults:
     def __init__(self, r):
         self.res = r
@@ -85,8 +60,8 @@ class CustomParseResults:
         return col(self.locn_end, complete_str)
 
 
-Object = CaseInsensitiveToken("object")
-TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
+Object = "object"
+TypesMap = Dict[str, unified_planning.model.Type]
 
 
 def nested_expr():
@@ -106,8 +81,6 @@ def nested_expr():
 class PDDLGrammar:
     def __init__(self):
         name = Word(alphas, alphanums + "_" + "-")
-        # Parser for types that convert the string into a token that is case-insensitive
-        tpe = name.copy().add_parse_action(lambda t: CaseInsensitiveToken(t))
         variable = Suppress("?") + name
 
         require_def = (
@@ -125,7 +98,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":types"
             - OneOrMore(
-                Group(Group(OneOrMore(tpe)) + Optional(Suppress("-") + tpe))
+                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
             ).setResultsName("types")
             + Suppress(")")
         )
@@ -134,7 +107,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":constants"
             - ZeroOrMore(
-                Group(Located(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe)))
+                Group(Located(Group(OneOrMore(name)) + Optional(Suppress("-") + name)))
             ).setResultsName("constants")
             + Suppress(")")
         )
@@ -148,7 +121,7 @@ class PDDLGrammar:
                         Group(
                             Located(
                                 Group(OneOrMore(variable))
-                                + Optional(Suppress("-") + tpe)
+                                + Optional(Suppress("-") + name)
                             )
                         )
                     )
@@ -174,7 +147,7 @@ class PDDLGrammar:
         )
 
         parameters = ZeroOrMore(
-            Group(Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe)))
+            Group(Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + name)))
         ).setResultsName("params")
         action_def = Group(
             Suppress("(")
@@ -260,7 +233,7 @@ class PDDLGrammar:
         )
 
         objects = OneOrMore(
-            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
+            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
         ).setResultsName("objects")
 
         htn_def = Group(
@@ -978,17 +951,13 @@ class PDDLReader:
         universal_assignments: Dict["up.model.Action", List[CustomParseResults]] = {}
 
         # extract all type declarations into a dictionary
-        type_declarations: Dict[
-            CaseInsensitiveToken, typing.Optional[CaseInsensitiveToken]
-        ] = {}
+        type_declarations: Dict[str, typing.Optional[str]] = {}
         for type_line in domain_res.get("types", []):
-            father_name = (
-                None if len(type_line) <= 1 else CaseInsensitiveToken(str(type_line[1]))
-            )
+            father_name = None if len(type_line) <= 1 else str(type_line[1])
             if father_name is None and object_type_needed:
                 father_name = Object
             for declared_type in type_line[0]:
-                declared_type = CaseInsensitiveToken(str(declared_type))
+                declared_type = str(declared_type)
                 if declared_type in type_declarations:
                     raise SyntaxError(
                         f"Type {declared_type} is declared more than once"
@@ -998,8 +967,8 @@ class PDDLReader:
         # Processes a type and adds it to the `types_map`.
         # If the father was not previously declared, it will be recursively declared as well.
         def declare_type(
-            type: CaseInsensitiveToken,
-            father_name: typing.Optional[CaseInsensitiveToken],
+            type: str,
+            father_name: typing.Optional[str],
         ):
             if type in types_map:
                 # type was already processed which might happen if it already appeared as the parent of another type
@@ -1019,7 +988,6 @@ class PDDLReader:
                 father = self._env.type_manager.UserType(str(father_name), None)
                 types_map[father_name] = father
             # we identified the father, add the type to our map
-            # note that the type_map allows retrieving the `Type` object in a case-insensitive way
             types_map[type] = self._env.type_manager.UserType(str(type), father)
             # Force declaration of the type in the `Problem`, even if it is not explicitly used yet
             problem._add_user_type(types_map[type])
@@ -1678,11 +1646,11 @@ class PDDLReader:
         :param problem_filename: Optionally the string representing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        domain_str = domain_str.replace("\t", " ")
+        domain_str = domain_str.replace("\t", " ").lower()
         domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
 
         if problem_str is not None:
-            problem_str = problem_str.replace("\t", " ")
+            problem_str = problem_str.replace("\t", " ").lower()
             problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
         else:
             problem_res = None
