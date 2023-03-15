@@ -300,13 +300,21 @@ class SequentialSimulator(Engine, SimulatorMixin):
                     )
                 # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
                 # otherwise we take it's evaluation in the state as it's value.
-                f_eval = updated_values.get(
-                    fluent, self._se.evaluate(fluent, state)
-                )
+                f_eval = updated_values.get(fluent, self._se.evaluate(fluent, state))
                 if effect.is_increase():
-                    return fluent, em.auto_promote(f_eval.constant_value() + new_value.constant_value())[0]
+                    return (
+                        fluent,
+                        em.auto_promote(
+                            f_eval.constant_value() + new_value.constant_value()
+                        )[0],
+                    )
                 elif effect.is_decrease():
-                    return fluent, em.auto_promote(f_eval.constant_value() - new_value.constant_value())[0]
+                    return (
+                        fluent,
+                        em.auto_promote(
+                            f_eval.constant_value() - new_value.constant_value()
+                        )[0],
+                    )
                 else:
                     raise NotImplementedError
         else:
