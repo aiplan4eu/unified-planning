@@ -314,7 +314,9 @@ class PDDLReader:
     """
     Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
 
-    Note: in the error report messages, a tabulation counts as one column.
+    Note: in the error report messages, a tabulation counts as one column; and due to PDDL case-insensitivity, everything in the
+    PDDL files will be turned to lower case, so the names of fluents, actions etc. and the error report
+    will all be in lower-case.
     """
 
     def __init__(self, environment: typing.Optional[Environment] = None):
@@ -1617,7 +1619,11 @@ class PDDLReader:
         Takes in input a filename containing the `PDDL` domain and optionally a filename
         containing the `PDDL` problem and returns the parsed `Problem`.
 
-        Note that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
+        Note: that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
+
+        Note: due to PDDL case-insensitivity, everything in the PDDL files will be turned to
+        lower case, so the names of fluents, actions etc. and the error report will all be
+        in lower-case.
 
         :param domain_filename: The path to the file containing the `PDDL` domain.
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
@@ -1641,6 +1647,10 @@ class PDDLReader:
         representing the `PDDL` problem and returns the parsed `Problem`.
 
         Note that if the `problem_str` is `None`, an incomplete `Problem` will be returned.
+
+        Note: due to PDDL case-insensitivity, everything in the PDDL files will be turned to
+        lower case, so the names of fluents, actions etc. and the error report will all be
+        in lower-case.
 
         :param domain_filename: The string representing the `PDDL` domain.
         :param problem_filename: Optionally the string representing the `PDDL` problem.
