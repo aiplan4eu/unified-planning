@@ -226,17 +226,25 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if isinstance(qm, Oversubscription):
-                args: Dict[
-                    Union[Tuple[TimeInterval, FNode], FNode], Union[Fraction, int]
-                ] = {}
-                for goal, priority in qm.goals.items():
-                    if isinstance(goal, FNode):
+                if qm.goals:
+                    args: Dict[FNode, Union[Fraction, int]] = {}
+                    for goal, priority in qm.goals.items():
                         args[fluent_remover.remove_negative_fluents(goal)] = priority
-                    elif isinstance(goal, tuple):
-                        args[
-                            (goal[0], fluent_remover.remove_negative_fluents(goal[1]))
+                    new_problem.add_quality_metric(Oversubscription(goals=args))
+                elif qm.timed_goals:
+                    timed_args: Dict[
+                        Tuple[TimeInterval, FNode], Union[Fraction, int]
+                    ] = {}
+                    for timed_goal, priority in qm.timed_goals.items():
+                        timed_args[
+                            (
+                                timed_goal[0],
+                                fluent_remover.remove_negative_fluents(timed_goal[1]),
+                            )
                         ] = priority
-                new_problem.add_quality_metric(Oversubscription(args))
+                    new_problem.add_quality_metric(
+                        Oversubscription(timed_goals=timed_args)
+                    )
             else:
                 new_problem.add_quality_metric(qm)
 

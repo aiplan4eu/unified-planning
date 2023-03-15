@@ -210,22 +210,36 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if isinstance(qm, Oversubscription):
-                new_oversubscription: Dict[
-                    Union[Tuple[TimeInterval, FNode], FNode], Union[Fraction, int]
-                ] = {}
-                for goal, priority in qm.goals.items():
-                    if isinstance(goal, FNode):
+                if qm.goals:
+                    new_goal_oversubscription: Dict[FNode, Union[Fraction, int]] = {}
+                    for goal, priority in qm.goals.items():
                         new_goal = self._goals_without_disjunctions_adding_new_elements(
                             dnf, new_problem, new_to_old, new_fluents, [goal]
                         )
-                        new_oversubscription[new_goal] = priority
-                    elif isinstance(goal, tuple):
-                        new_goal = self._goals_without_disjunctions_adding_new_elements(
-                            dnf, new_problem, new_to_old, new_fluents, [goal[1]]
+                        new_goal_oversubscription[new_goal] = priority
+                    new_problem.add_quality_metric(
+                        Oversubscription(goals=new_goal_oversubscription)
+                    )
+                elif qm.timed_goals:
+                    new_timed_goal_oversubscription: Dict[
+                        Tuple[TimeInterval, FNode], Union[Fraction, int]
+                    ] = {}
+                    for timed_goal, priority in qm.timed_goals.items():
+                        new_timed_goal = (
+                            self._goals_without_disjunctions_adding_new_elements(
+                                dnf,
+                                new_problem,
+                                new_to_old,
+                                new_fluents,
+                                [timed_goal[1]],
+                            )
                         )
-                        new_oversubscription[(goal[0], new_goal)] = priority
-
-                new_problem.add_quality_metric(Oversubscription(new_oversubscription))
+                        new_timed_goal_oversubscription[
+                            (timed_goal[0], new_timed_goal)
+                        ] = priority
+                    new_problem.add_quality_metric(
+                        Oversubscription(timed_goals=new_timed_goal_oversubscription)
+                    )
             else:
                 new_problem.add_quality_metric(qm)
         # Every meaningful action must set to False every new fluent added.

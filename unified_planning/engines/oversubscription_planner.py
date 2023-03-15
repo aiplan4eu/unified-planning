@@ -121,7 +121,10 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             assert len(problem.quality_metrics) == 1
             qm = problem.quality_metrics[0]
             assert isinstance(qm, up.model.metrics.Oversubscription)
-            goals = list(qm.goals.items())
+            if qm.goals:
+                goals = list(qm.goals.items())
+            elif qm.timed_goals:
+                goals = list(qm.timed_goals.items())
         q = []
         for l in powerset(goals):
             cost: Union[Fraction, int] = 0

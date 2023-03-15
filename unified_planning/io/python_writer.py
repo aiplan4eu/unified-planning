@@ -359,8 +359,14 @@ class PythonWriter:
                     out.write(f"costs[act_{a.name}] = {converter.convert(ac)}\n")
             elif isinstance(qm, up.model.metrics.Oversubscription):
                 out.write("goals = {}\n")
-                for goal, cost in qm.goals.items():
-                    out.write(f"goals[{converter.convert(goal)}] = {cost}\n")
+                if qm.goals:
+                    for goal, cost in qm.goals.items():
+                        out.write(f"goals[{converter.convert(goal)}] = {cost}\n")
+                elif qm.timed_goals:
+                    for timed_goal, cost in qm.timed_goals.items():
+                        out.write(
+                            f"timed_goal[{converter.convert(timed_goal)}] = {cost}\n"
+                        )
             out.write("problem.add_quality_metric(")
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
                 out.write(f"up.model.metrics.MinimizeActionCosts(costs, {qm.default})")

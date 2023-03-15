@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from fractions import Fraction
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Iterable, Optional, Tuple, Union
 
 
 class PlanQualityMetric:
@@ -143,25 +143,41 @@ class MaximizeExpressionOnFinalState(PlanQualityMetric):
 
 class Oversubscription(PlanQualityMetric):
     """
-    This metric means that only the plans maximizing the total gain of the achieved `goals` is valid.
+    This metric means that only the plans maximizing the total gain of the achieved `goals` or `timed_goals` is valid.
+    The gained value for each fulfilled `goal` or `timed_goal` of the problem is stored in this quality metric.
 
-    The gained value for each fulfilled `goal` of the problem is stored in this quality metric.
+    Oversubscription accepts as input a set of `goals` xor `timed_goals`, in the sense that only one of them is accepted.
+    `goals` is a dictionary of {`FNode`: `Union[Fraction, int]`} while `timed_goals is a dictionary of {`Tuple["up.model.timing.TimeInterval", "up.model.FNode"]`: `Union[Fraction, int]`},
+    where `Union[Fraction, int]` is a weight associated to the goal itself.
     """
 
     def __init__(
         self,
-        goals: Dict[
-            Union[
-                Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+        *,
+        goals: Optional[
+            Dict[
                 "up.model.FNode",
-            ],
-            Union[Fraction, int],
-        ],
+                Union[Fraction, int],
+            ]
+        ] = None,
+        timed_goals: Optional[
+            Dict[
+                Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+                Union[Fraction, int],
+            ]
+        ] = None,
     ):
+        assert (goals is None and timed_goals is not None) or (
+            goals is not None and timed_goals is None
+        )
         goals = dict(
             (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
         )
+        timed_goals = dict(
+            (k, f.numerator if f.denominator == 1 else f) for (k, f) in timed_goals.items()
+        )
         self.goals = goals
+        self.timed_goals = timed_goals
 
     def __repr__(self):
         return f"oversubscription planning goals: {self.goals}"

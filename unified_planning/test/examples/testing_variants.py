@@ -632,7 +632,7 @@ def get_example_problems():
     loc_var = Variable("loc_var", Location)
     problem.add_quality_metric(
         Oversubscription(
-            {
+            goals={
                 visited(l2): 9,
                 visited(l2) | visited(l3): 5,
                 Forall(visited(loc_var) | loc_var.Equals(l2), loc_var)

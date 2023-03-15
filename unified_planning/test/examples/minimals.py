@@ -69,7 +69,7 @@ def get_example_problems():
     problem.add_fluent(x)
     problem.add_action(a)
     problem.set_initial_value(x, False)
-    qm = up.model.metrics.Oversubscription({FluentExp(x): 10})
+    qm = up.model.metrics.Oversubscription(goals={FluentExp(x): 10})
     problem.add_quality_metric(qm)
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
     basic_oversubscription = Example(problem=problem, plan=plan)
