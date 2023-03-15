@@ -268,6 +268,16 @@ def check_conflicting_effects(
                 else:
                     msg = f"The effect {effect} at timing {timing} is in conflict with the increase/decrease effects already in the {name}."
                 raise UPConflictingEffectsException(msg)
+            # if the same fluent is involved in a simulated effect
+            elif (
+                simulated_effect is not None
+                and effect.fluent in simulated_effect.fluents
+            ):
+                if timing is None:
+                    msg = f"The effect {effect} is in conflict with the simulated effects already in the {name}."
+                else:
+                    msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
+                raise UPConflictingEffectsException(msg)
             # the same fluent is involved in another assign
             elif assigned_value is not None:
                 # if the 2 values are different, raise exception
@@ -280,12 +290,6 @@ def check_conflicting_effects(
                         msg = f"The effect {effect} is in conflict with the effects already in the {name}."
                     else:
                         msg = f"The effect {effect} at timing {timing} is in conflict with the effects already in the {name}."
-                    raise UPConflictingEffectsException(msg)
-                elif effect.fluent in simulated_effect.fluents:
-                    if timing is None:
-                        msg = f"The effect {effect} is in conflict with the simulated effects already in the {name}."
-                    else:
-                        msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
                     raise UPConflictingEffectsException(msg)
             else:
                 fluents_assigned[effect.fluent] = effect.value
@@ -301,9 +305,11 @@ def check_conflicting_effects(
                 simulated_effect is not None
                 and effect.fluent in simulated_effect.fluents
             ):
-                raise UPConflictingEffectsException(
-                    f"The effect {effect} is in conflict with the simulated effects already in the {name}."
-                )
+                if timing is None:
+                    msg = f"The effect {effect} is in conflict with the simulated effects already in the {name}."
+                else:
+                    msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
+                raise UPConflictingEffectsException(msg)
         else:
             raise NotImplementedError
 
