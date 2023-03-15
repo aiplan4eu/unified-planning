@@ -30,9 +30,10 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
+    UPConflictingEffectsException,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Union, cast
+from typing import Optional, List, Dict, Set, Tuple, Union, cast
 
 
 class Problem(  # type: ignore[misc]
@@ -79,6 +80,13 @@ class Problem(  # type: ignore[misc]
         ] = {}
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
+        self._fluents_assigned: Dict[
+            "up.model.timing.Timing",
+            Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
+        ] = {}
+        self._fluents_inc_dec: Dict[
+            "up.model.timing.Timing", Set["up.model.fnode.FNode"]
+        ] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -220,6 +228,9 @@ class Problem(  # type: ignore[misc]
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
+        new_p._fluents_assigned = {
+            t: d.copy() for t, d in self._fluents_assigned.items()
+        }
 
         # last as it requires actions to be cloned already
         MetricsMixin._clone_to(self, new_p, new_actions=new_p)
@@ -456,9 +467,17 @@ class Problem(  # type: ignore[misc]
         assert (
             effect.environment == self._env
         ), "effect does not have the same environment of the problem"
-        effects = self._timed_effects.setdefault(timing, [])
-        if effect not in effects:
-            effects.append(effect)
+        fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
+
+        up.model.effect.check_conflicting_effects(
+            effect,
+            timing,
+            None,
+            self._fluents_assigned.setdefault(timing, {}),
+            fluents_inc_dec,
+            "problem",
+        )
+        self._timed_effects.setdefault(timing, []).append(effect)
 
     @property
     def timed_effects(
@@ -470,6 +489,8 @@ class Problem(  # type: ignore[misc]
     def clear_timed_effects(self):
         """Removes all the `timed effects` from the `Problem`."""
         self._timed_effects = {}
+        self._fluents_assigned = {}
+        self._fluents_inc_dec = {}
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
