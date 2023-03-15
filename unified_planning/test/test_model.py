@@ -292,7 +292,7 @@ class TestModel(TestCase):
         effect = Effect(int_fluent(), Int(6), TRUE())
         self.assertEqual(
             str(conf_error.exception),
-            f"The effect {effect} at timing {t} is in conflict with the effects already in the action.",
+            f"The effect {effect} at timing {t} is in conflict with the effects already in the action or problem: test_exceptions.",
         )
 
         # test add_increase_effect exceptions
@@ -324,7 +324,7 @@ class TestModel(TestCase):
         effect = Effect(int_fluent(), Int(6), TRUE(), EffectKind.INCREASE)
         self.assertEqual(
             str(conf_error.exception),
-            f"The effect {effect} at timing {t} is in conflict with the effects already in the action.",
+            f"The effect {effect} at timing {t} is in conflict with the effects already in the action or problem: test_exceptions.",
         )
         test_exceptions.clear_effects()
         test_exceptions.add_increase_effect(t, int_fluent, 6)
@@ -333,7 +333,7 @@ class TestModel(TestCase):
             test_exceptions.set_simulated_effect(t, sim_eff)
         self.assertEqual(
             str(conf_error.exception),
-            f"The simulated effect {sim_eff} is in conflict with the effects already in the action.",
+            f"The simulated effect {sim_eff} at timing {t} is in conflict with the effects already in the action or problem: test_exceptions.",
         )
 
         # test add_decrease_effect exceptions

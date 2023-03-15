@@ -29,7 +29,7 @@ from unified_planning.exceptions import (
     UPUsageError,
 )
 from fractions import Fraction
-from typing import Dict, List, Set, Union, Optional
+from typing import Dict, List, Set, Tuple, Union, Optional, cast
 from collections import OrderedDict
 
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
@@ -419,43 +419,14 @@ class InstantaneousAction(Action):
         assert (
             effect.environment == self._environment
         ), "effect does not have the same environment of the action"
-        if not effect.is_conditional() and not effect.value.type.is_bool_type():
-            if effect.is_assignment():
-                assigned_value = self._fluents_assigned.get(effect.fluent, None)
-                # if the same fluent is involved in an increase/decrease, raise exception
-                if effect.fluent in self._fluents_inc_dec:
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} is in conflict with the increase/decrease effects already in the action."
-                    )
-                # the same fluent is involved in another assign
-                elif assigned_value is not None:
-                    # if the 2 values are different, raise exception
-                    if assigned_value != effect.value and not (
-                        assigned_value.is_constant()
-                        and effect.value.is_constant()
-                        and assigned_value.constant_value()
-                        == effect.value.constant_value()
-                    ):
-                        raise UPConflictingEffectsException(
-                            f"The effect {effect} is in conflict with the effects already in the action."
-                        )
-                else:
-                    self._fluents_assigned[effect.fluent] = effect.value
-            elif effect.is_increase() or effect.is_decrease():
-                if effect.fluent in self._fluents_assigned:
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} is in conflict with the effects already in the action."
-                    )
-                self._fluents_inc_dec.add(effect.fluent)
-            else:
-                raise NotImplementedError
-            if (
-                self._simulated_effect is not None
-                and effect.fluent in self._simulated_effect.fluents
-            ):
-                raise UPConflictingEffectsException(
-                    f"The effect {effect} is in conflict with the simulated effects already in the action."
-                )
+        up.model.effect.check_conflicting_effects(
+            effect,
+            None,
+            self._simulated_effect,
+            self._fluents_assigned,
+            self._fluents_inc_dec,
+            "action",
+        )
         self._effects.append(effect)
 
     @property
@@ -470,13 +441,12 @@ class InstantaneousAction(Action):
         :param simulated_effect: The `SimulatedEffect` instance that must be set as this `action`'s only
             `simulated effect`.
         """
-        for f in simulated_effect.fluents:
-            if not f.type.is_bool_type() and (
-                f in self._fluents_inc_dec or f in self._fluents_assigned
-            ):
-                raise UPConflictingEffectsException(
-                    f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
-                )
+        up.model.effect.check_conflicting_simulated_effects(
+            simulated_effect,
+            None,
+            self._fluents_inc_dec,
+            "action",
+        )
         self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):

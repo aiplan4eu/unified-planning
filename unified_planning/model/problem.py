@@ -81,8 +81,8 @@ class Problem(  # type: ignore[misc]
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
         self._fluents_assigned: Dict[
-            Tuple["up.model.timing.Timing", "up.model.fnode.FNode"],
-            "up.model.fnode.FNode",
+            "up.model.timing.Timing",
+            Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         ] = {}
         self._fluents_inc_dec: Dict[
             "up.model.timing.Timing", Set["up.model.fnode.FNode"]
@@ -228,6 +228,9 @@ class Problem(  # type: ignore[misc]
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
+        new_p._fluents_assigned = {
+            t: d.copy() for t, d in self._fluents_assigned.items()
+        }
 
         # last as it requires actions to be cloned already
         MetricsMixin._clone_to(self, new_p, new_actions=new_p)
@@ -464,37 +467,16 @@ class Problem(  # type: ignore[misc]
         assert (
             effect.environment == self._env
         ), "effect does not have the same environment of the problem"
-        assigned_value = self._fluents_assigned.get((timing, effect.fluent), None)
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
-        if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
-            if effect.is_assignment():
-                # if the same fluent is involved in an increase/decrease, raise exception
-                if effect.fluent in fluents_inc_dec:
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} at timing {timing} is in conflict with the increase/decrease effects already in the problem."
-                    )
-                # the same fluent is involved in another assign
-                elif assigned_value is not None:
-                    # if the 2 values are different, raise exception
-                    if assigned_value != effect.value and not (
-                        assigned_value.is_constant()
-                        and effect.value.is_constant()
-                        and assigned_value.constant_value()
-                        == effect.value.constant_value()
-                    ):
-                        raise UPConflictingEffectsException(
-                            f"The effect {effect} at timing {timing} is in conflict with the effects already in the problem."
-                        )
-                else:
-                    self._fluents_assigned[(timing, effect.fluent)] = effect.value
-            elif effect.is_increase() or effect.is_decrease():
-                if (timing, effect.fluent) in self._fluents_assigned:
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} at timing {timing} is in conflict with the effects already in the problem."
-                    )
-                fluents_inc_dec.add(effect.fluent)
-            else:
-                raise NotImplementedError
+
+        up.model.effect.check_conflicting_effects(
+            effect,
+            timing,
+            None,
+            self._fluents_assigned.setdefault(timing, {}),
+            fluents_inc_dec,
+            "problem",
+        )
         self._timed_effects.setdefault(timing, []).append(effect)
 
     @property
