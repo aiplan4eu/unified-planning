@@ -281,6 +281,12 @@ def check_conflicting_effects(
                     else:
                         msg = f"The effect {effect} at timing {timing} is in conflict with the effects already in the {name}."
                     raise UPConflictingEffectsException(msg)
+                elif effect.fluent in simulated_effect.fluents:
+                    if timing is None:
+                        msg = f"The effect {effect} is in conflict with the simulated effects already in the {name}."
+                    else:
+                        msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
+                    raise UPConflictingEffectsException(msg)
             else:
                 fluents_assigned[effect.fluent] = effect.value
         elif effect.is_increase() or effect.is_decrease():
@@ -305,6 +311,7 @@ def check_conflicting_effects(
 def check_conflicting_simulated_effects(
     simulated_effect: SimulatedEffect,
     timing: Optional["up.model.timing.Timing"],
+    fluents_assigned: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
     fluents_inc_dec: Set["up.model.fnode.FNode"],
     name: str,
 ):
@@ -315,13 +322,15 @@ def check_conflicting_simulated_effects(
     :param simulated_effect: The target simulated_effect to add.
     :param timing: Optionally, the timing at which the simulated_effect is performed; None if the timing
         is not meaningful, like in InstantaneousActions.
+    :param fluents_assigned: The mapping from a fluent to it's value of the effects happening in the
+        same instant of the given simulated_effect.
     :param fluents_inc_dec: The set of fluents being increased or decremented in the same instant
         of the given simulated_effect.
     :param name: string used for better error indexing.
     :raises: UPConflictingException if the given simulated_effect is in conflict with the data structure around it.
     """
     for f in simulated_effect.fluents:
-        if f in fluents_inc_dec:
+        if f in fluents_inc_dec or f in fluents_assigned:
             if timing is None:
                 msg = f"The simulated effect {simulated_effect} is in conflict with the effects already in the {name}."
             else:

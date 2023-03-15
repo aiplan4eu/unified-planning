@@ -356,6 +356,7 @@ class TimedCondsEffs:
         up.model.effect.check_conflicting_simulated_effects(
             simulated_effect,
             timing,
+            self._fluents_assigned.setdefault(timing, {}),
             self._fluents_inc_dec.get(timing, set()),
             f"action or problem: {self.name}",  # type: ignore[attr-defined]
         )

@@ -444,6 +444,7 @@ class InstantaneousAction(Action):
         up.model.effect.check_conflicting_simulated_effects(
             simulated_effect,
             None,
+            self._fluents_assigned,
             self._fluents_inc_dec,
             "action",
         )
