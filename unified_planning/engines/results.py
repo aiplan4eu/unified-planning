@@ -37,6 +37,12 @@ class ValidationResultStatus(Enum):
         auto()
     )  # The plan is invalid for the problem, it does not satisfy all the hard constraints
 
+    def __bool__(self):
+        if self == ValidationResultStatus.VALID:
+            return True
+        else:
+            return False
+
 
 class PlanGenerationResultStatus(Enum):
     """
@@ -167,6 +173,12 @@ class ValidationResult(Result):
 
     def is_definitive_result(self, *args) -> bool:
         return True
+
+    def __bool__(self):
+        if self.status == ValidationResultStatus.VALID:
+            return True
+        else:
+            return False
 
 
 @dataclass
