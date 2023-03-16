@@ -87,6 +87,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")

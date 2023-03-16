@@ -772,12 +772,23 @@ class Problem(  # type: ignore[misc]
                     self._kind.set_expression_duration("FLUENTS_IN_DURATION")
             for i, lc in action.conditions.items():
                 if i.lower.delay != 0 or i.upper.delay != 0:
-                    self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                    for t in [i.lower, i.upper]:
+                        if (t.is_from_start() and t.delay > 0) or (
+                            t.is_from_end() and t.delay < 0
+                        ):
+                            self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                        else:
+                            self._kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for c in lc:
                     self._update_problem_kind_condition(c, linear_checker)
             for t, le in action.effects.items():
                 if t.delay != 0:
-                    self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                    if (t.is_from_start() and t.delay > 0) or (
+                        t.is_from_end() and t.delay < 0
+                    ):
+                        self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                    else:
+                        self._kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for e in le:
                     self._update_problem_kind_effect(
                         e,
