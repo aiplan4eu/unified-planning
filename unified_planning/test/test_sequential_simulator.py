@@ -16,8 +16,8 @@
 import unified_planning as up
 import pytest
 from unified_planning.shortcuts import *
-from unified_planning.engines import SequentialSimulator, SimulatorMixin
-from unified_planning.model import UPCOWState
+from unified_planning.engines import SequentialSimulator, SequentialSimulatorMixin
+from unified_planning.model import State
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
@@ -31,7 +31,7 @@ class TestSimulator(TestCase):
         self.problems = get_example_problems()
 
     def simulate_on_hierarchical_blocks_world(
-        self, simulator: SimulatorMixin, problem: "up.model.Problem"
+        self, simulator: SequentialSimulatorMixin, problem: "up.model.Problem"
     ):
         # This test takes a simulator and the problem and makes some testing.
         self.assertEqual(problem.name, "hierarchical_blocks_world")
@@ -45,7 +45,8 @@ class TestSimulator(TestCase):
         block_1 = problem.object("block_1")
         block_2 = problem.object("block_2")
         block_3 = problem.object("block_3")
-        state = UPCOWState(problem.initial_values)
+        state: Optional[State] = simulator.get_initial_state()
+        assert state is not None
         # The initial state is:
         # ts_1, block_3, block_1, block_2
         # ts_2
@@ -66,41 +67,18 @@ class TestSimulator(TestCase):
         # move(block_1, from block_3, to block_2)
         # move(block_3, from ts_1, to ts_3)
         # move(block_1, from block_2, to ts_1)
-        events = simulator.get_events(move, (block_2, block_1, ts_2))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_2, block_1, ts_2))
+        assert state is not None
 
-        events = simulator.get_events(move, (block_1, block_3, block_2))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_1, block_3, block_2))
+        assert state is not None
 
-        events = simulator.get_events(move, (block_3, ts_1, ts_3))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_3, ts_1, ts_3))
+        assert state is not None
 
-        events = simulator.get_events(move, (block_1, block_2, ts_1))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_1, block_2, ts_1))
+        assert state is not None
+
         # now we check that the state is what we desired
         Movable = problem.user_type("Movable")
         check_on = [(block_1, ts_1), (block_2, ts_2), (block_3, ts_3)]
@@ -111,8 +89,7 @@ class TestSimulator(TestCase):
                 self.assertEqual(state.get_value(on(*obj_tuple)), em.FALSE())
         # Now we want to check if we can apply the action move (block_3, from ts_1, to ts_3),
         # which we know is not because the block_3 is not on the table space 1 (ts_1)
-        event = simulator.get_events(move, (block_3, ts_1, ts_3))[0]
-        self.assertFalse(simulator.is_applicable(event, state))
+        self.assertFalse(simulator.is_applicable(state, move, (block_3, ts_1, ts_3)))
         # Now we check if we reached the goal
         self.assertFalse(simulator.is_goal(state))
         # To reach the goal, which is designed like this:
@@ -126,21 +103,16 @@ class TestSimulator(TestCase):
         # move(block_2, from ts_2, to block_1)
         # move(block_3, from ts_1, to block_2)
         # And then we check if we reached the goal.
-        event = simulator.get_events(move, (block_3, ts_3, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_1, ts_1, ts_3))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_3, block_2, ts_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_2, ts_2, block_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_3, ts_1, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
+        state = simulator.apply(state, move, (block_3, ts_3, block_2))
+        assert state is not None
+        state = simulator.apply(state, move, (block_1, ts_1, ts_3))
+        assert state is not None
+        state = simulator.apply(state, move, (block_3, block_2, ts_1))
+        assert state is not None
+        state = simulator.apply(state, move, (block_2, ts_2, block_1))
+        assert state is not None
+        state = simulator.apply(state, move, (block_3, ts_1, block_2))
+        assert state is not None
 
         self.assertTrue(simulator.is_goal(state))
 
@@ -175,15 +147,13 @@ class TestSimulator(TestCase):
         problem.add_action(decrease)
 
         with Simulator(problem) as simulator:
-            init = UPCOWState(problem.initial_values)
-            inc = simulator.get_events(increase, tuple())[0]
-            dec = simulator.get_events(decrease, tuple())[0]
-            self.assertTrue(simulator.is_applicable(inc, init))
+            init = simulator.get_initial_state()
+            self.assertTrue(simulator.is_applicable(init, increase))
 
-            dec_state = simulator.apply(dec, init)
-            self.assertIsNotNone(dec_state)
-            self.assertFalse(simulator.is_applicable(dec, dec_state))
-            double_dec_state = simulator.apply(dec, dec_state)
+            dec_state = simulator.apply(init, decrease)
+            assert dec_state is not None
+            self.assertFalse(simulator.is_applicable(dec_state, decrease))
+            double_dec_state = simulator.apply(dec_state, decrease)
             self.assertIsNone(double_dec_state)
 
     def test_exceptions(self):
@@ -212,29 +182,26 @@ class TestSimulator(TestCase):
         problem.add_fluent(fluent, default_initial_value=0)
 
         with Simulator(problem=problem) as simulator:
-            init = UPCOWState(problem.initial_values)
-            usc2 = simulator.get_events(unset_cond_2, tuple())[0]
-            usc3 = simulator.get_events(unset_cond_3, tuple())[0]
-            ti = simulator.get_events(test_int, tuple())[0]
+            init = simulator.get_initial_state()
 
-            self.assertTrue(simulator.is_applicable(ti, init))
+            self.assertTrue(simulator.is_applicable(init, test_int))
             with self.assertRaises(UPConflictingEffectsException) as conflicting_error:
-                _ = simulator.apply(ti, init)
+                _ = simulator.apply(init, test_int)
             self.assertEqual(
                 str(conflicting_error.exception),
                 f"The fluent {fluent.name} is modified by 2 different assignments in the same event.",
             )
 
-            new_state = simulator.apply(usc2, init)
+            new_state = simulator.apply(init, unset_cond_2)
             with self.assertRaises(UPConflictingEffectsException) as conflicting_error:
-                _ = simulator.apply(ti, new_state)
+                _ = simulator.apply(new_state, test_int)
             self.assertEqual(
                 str(conflicting_error.exception),
                 f"The fluent {fluent.name} is modified by an assignment and an increase/decrease in the same event.",
             )
 
-            new_state = simulator.apply(usc3, new_state)
-            test_state = simulator.apply(ti, new_state)
+            new_state = simulator.apply(new_state, unset_cond_3)
+            test_state = simulator.apply(new_state, test_int)
             self.assertIsNotNone(test_state)
 
     def test_add_after_delete(self):
@@ -250,11 +217,10 @@ class TestSimulator(TestCase):
         problem.add_goal(bf)
 
         with Simulator(problem=problem) as simulator:
-            init = UPCOWState(problem.initial_values)
-            act_ev = simulator.get_events(act, tuple())[0]
+            init = simulator.get_initial_state()
 
-            self.assertTrue(simulator.is_applicable(act_ev, init))
+            self.assertTrue(simulator.is_applicable(init, act))
 
-            goal_state = simulator.apply_unsafe(act_ev, init)
+            goal_state = simulator.apply_unsafe(init, act)
 
             self.assertTrue(simulator.is_goal(goal_state))

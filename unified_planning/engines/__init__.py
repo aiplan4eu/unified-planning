@@ -33,11 +33,10 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
     CompilerResult,
 )
-from unified_planning.engines.sequential_simulator import (
-    SequentialSimulator,
-    InstantaneousEvent,
+from unified_planning.engines.sequential_simulator import SequentialSimulator
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
 )
-from unified_planning.engines.mixins.simulator import SimulatorMixin, Event
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
@@ -49,7 +48,7 @@ __all__ = [
     "Parallel",
     "PDDLPlanner",
     "SequentialPlanValidator",
-    "SimulatorMixin",
+    "SequentialSimulatorMixin",
     "SequentialSimulator",
     "Event",
     "InstantaneousEvent",

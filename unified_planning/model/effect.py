@@ -166,7 +166,7 @@ class SimulatedEffect:
     This class represents a `simulated effect` over a list of :class:`~unified_planning.model.Fluent` expressions.
     The `fluent's parameters` must be constants or :class:`~unified_planning.model.Action` `parameters`.
     The callable function must return the result of the `simulated effects` applied
-    in the given :class:`~unified_planning.model.ROState` for the specified `fluent` expressions.
+    in the given :class:`~unified_planning.model.State` for the specified `fluent` expressions.
     """
 
     def __init__(
@@ -175,7 +175,7 @@ class SimulatedEffect:
         function: Callable[
             [
                 "up.model.problem.AbstractProblem",
-                "up.model.state.ROState",
+                "up.model.state.State",
                 Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
             ],
             List["up.model.fnode.FNode"],
@@ -220,7 +220,7 @@ class SimulatedEffect:
     ) -> Callable[
         [
             "up.model.problem.AbstractProblem",
-            "up.model.state.ROState",
+            "up.model.state.State",
             Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
         ],
         List["up.model.fnode.FNode"],

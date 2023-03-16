@@ -24,5 +24,7 @@ from unified_planning.engines.mixins.anytime_planner import (
 )
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
-from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
 from unified_planning.engines.mixins.replanner import ReplannerMixin

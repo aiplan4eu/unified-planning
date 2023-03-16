@@ -36,7 +36,7 @@ from unified_planning.model.problem import Problem
 from unified_planning.model.contingent_problem import ContingentProblem
 from unified_planning.model.delta_stn import DeltaSimpleTemporalNetwork
 from unified_planning.model.problem_kind import ProblemKind
-from unified_planning.model.state import ROState, COWState, UPCOWState
+from unified_planning.model.state import State, UPState
 from unified_planning.model.timing import (
     Timepoint,
     TimepointKind,
@@ -95,9 +95,8 @@ __all__ = [
     "AbstractProblem",
     "Problem",
     "ProblemKind",
-    "ROState",
-    "COWState",
-    "UPCOWState",
+    "State",
+    "UPState",
     "Timepoint",
     "TimepointKind",
     "Timing",

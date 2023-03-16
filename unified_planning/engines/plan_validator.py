@@ -23,8 +23,8 @@ from unified_planning.model import (
     AbstractProblem,
     Problem,
     ProblemKind,
-    COWState,
-    UPCOWState,
+    UPState,
+    UPState,
 )
 from unified_planning.engines.results import (
     ValidationResult,
@@ -36,7 +36,7 @@ from unified_planning.engines.sequential_simulator import (
     SequentialSimulator,
 )
 from unified_planning.plans import SequentialPlan, PlanKind
-from unified_planning.exceptions import UPConflictingEffectsException
+from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
 
 
 class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
@@ -115,21 +115,16 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         simulator = SequentialSimulator(problem)
-        current_state: "COWState" = UPCOWState(problem.initial_values)
+        current_state = simulator.get_initial_state()
         for i, ai in enumerate(plan.actions):
-            action = ai.action
-            assert isinstance(action, unified_planning.model.InstantaneousAction)
-            events = simulator.get_events(action, ai.actual_parameters)
-            assert len(events) < 2, f"{str(ai)} + {len(events)}"
-            if not events:
-                msg = f"{str(i)}-th action instance {str(ai)} does not ground to a valid Action."
-                logs = [LogMessage(LogLevel.INFO, msg)]
-                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
-            event = events[0]
             try:
-                unsat_conds = simulator.get_unsatisfied_conditions(event, current_state)
+                unsat_conds = simulator.get_unsatisfied_conditions(current_state, ai)
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
+                logs = [LogMessage(LogLevel.INFO, msg)]
+                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+            except UPUsageError as e:
+                msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
             if unsat_conds:
@@ -137,7 +132,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
             try:
-                current_state = simulator.apply_unsafe(event, current_state)
+                current_state = simulator.apply_unsafe(current_state, ai)
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
                 logs = [LogMessage(LogLevel.INFO, msg)]

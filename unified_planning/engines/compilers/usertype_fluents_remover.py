@@ -42,7 +42,7 @@ from unified_planning.model import (
     Object,
     Expression,
     DurationInterval,
-    UPCOWState,
+    UPState,
 )
 from unified_planning.model.walkers import UsertypeFluentsWalker
 from unified_planning.model.types import _UserType
@@ -350,7 +350,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
 
         def new_fun(
             compiled_problem: "up.model.problem.AbstractProblem",
-            compiled_state: "up.model.state.ROState",
+            compiled_state: "up.model.state.State",
             params: Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
         ) -> List["up.model.fnode.FNode"]:
             # create a the state for the original problem from the state of the
@@ -383,7 +383,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                             assert (
                                 obj_exp == test_value
                             ), "Error, found True Value multiple times in the same state for a boolean fluent used to remove a UserType fluent"
-            state = UPCOWState(original_state)
+            state = UPState(original_state)
             # populate the ret_val list with the default returned value, when a non
             # usertype fluent is returned, while with a series of True and False
             # when a usertype is returned

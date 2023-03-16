@@ -32,7 +32,9 @@ from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
 from unified_planning.engines.mixins.replanner import ReplannerMixin
 from unified_planning.engines.mixins.plan_repairer import PlanRepairerMixin
-from unified_planning.engines.mixins.simulator import SimulatorMixin
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
 from unified_planning.engines.engine import OperationMode
 from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, cast
 from pathlib import PurePath
@@ -637,7 +639,7 @@ class Factory:
                     error_on_failed_checks=error_failed_checks,
                     **params,
                 )
-                assert isinstance(res, SimulatorMixin)
+                assert isinstance(res, SequentialSimulatorMixin)
             elif operation_mode == OperationMode.COMPILER:
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)

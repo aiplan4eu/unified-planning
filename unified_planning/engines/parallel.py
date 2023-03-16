@@ -124,9 +124,7 @@ class Parallel(
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[
-            Callable[["up.model.state.ROState"], Optional[float]]
-        ] = None,
+        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":

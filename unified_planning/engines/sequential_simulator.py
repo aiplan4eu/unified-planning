@@ -19,44 +19,20 @@ from warnings import warn
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
-from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
-from unified_planning.model import FNode, Type, ExpressionManager
+from unified_planning.model import FNode, Type, ExpressionManager, UPState, Problem
 from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import StateEvaluator
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
 
-class InstantaneousEvent(Event):
-    """Implements the Event class for an Instantaneous Action."""
-
-    def __init__(
-        self,
-        conditions: List["up.model.FNode"],
-        effects: List["up.model.Effect"],
-        simulated_effect: Optional["up.model.SimulatedEffect"] = None,
-    ):
-        self._conditions = conditions
-        self._effects = effects
-        self._simulated_effect = simulated_effect
-
-    @property
-    def conditions(self) -> List["up.model.FNode"]:
-        return self._conditions
-
-    @property
-    def effects(self) -> List["up.model.Effect"]:
-        return self._effects
-
-    @property
-    def simulated_effect(self) -> Optional["up.model.SimulatedEffect"]:
-        return self._simulated_effect
-
-
-class SequentialSimulator(Engine, SimulatorMixin):
+class SequentialSimulator(Engine, SequentialSimulatorMixin):
     """
-    Sequential SimulatorMixin implementation.
+    Sequential SequentialSimulatorMixin implementation.
 
     This Simulator, when considering if a state is goal or not, ignores the
     quality metrics.
@@ -67,7 +43,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
     ):
         Engine.__init__(self)
         self.error_on_failed_checks = error_on_failed_checks
-        SimulatorMixin.__init__(self, problem)
+        SequentialSimulatorMixin.__init__(self, problem)
         pk = problem.kind
         if not Grounder.supports(pk):
             msg = f"The Grounder used in the {type(self)} does not support the given problem"
@@ -78,14 +54,32 @@ class SequentialSimulator(Engine, SimulatorMixin):
         assert isinstance(self._problem, up.model.Problem)
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
-        self._events: Dict[
-            Tuple["up.model.Action", Tuple["up.model.FNode", ...]], List[Event]
-        ] = {}
         self._se = StateEvaluator(self._problem)
-        self._all_events_grounded: bool = False
+
+    def _ground_action(
+        self, action: "up.model.Action", params: Tuple["up.model.FNode", ...]
+    ) -> Optional["up.model.InstantaneousAction"]:
+        if action not in self._actions:
+            raise UPUsageError(
+                f"The given action does not belong to the {type(self)} problem."
+            )
+        grounded_act = self._grounder.ground_action(action, params)
+        assert (
+            isinstance(grounded_act, up.model.InstantaneousAction)
+            or grounded_act is None
+        ), "Supported_kind not respected"
+        return grounded_act
+
+    def _get_initial_state(self) -> "up.model.State":
+        assert isinstance(self._problem, Problem), "supported_kind not respected"
+        return UPState(self._problem.initial_values)
 
     def _get_unsatisfied_conditions(
-        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
+        self,
+        state: "up.model.State",
+        action: "up.model.Action",
+        parameters: Tuple["up.model.FNode", ...],
+        early_termination: bool = False,
     ) -> List["up.model.FNode"]:
         """
         Returns the list of unsatisfied event conditions evaluated in the given state.
@@ -96,8 +90,13 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :return: The list of all the event conditions that evaluated to `False` or the list containing the first
             condition evaluated to False if the flag `early_termination` is set.
         """
+        g_action = self._ground_action(action, parameters)
+        if g_action is None:
+            raise UPUsageError(
+                "The given action grounded with the given parameters does not create a valid action."
+            )
         unsatisfied_conditions = []
-        for c in event.conditions:
+        for c in g_action.preconditions:
             evaluated_cond = self._se.evaluate(c, state)
             if (
                 not evaluated_cond.is_bool_constant()
@@ -105,16 +104,17 @@ class SequentialSimulator(Engine, SimulatorMixin):
             ):
                 unsatisfied_conditions.append(c)
                 if early_termination:
-                    break
+                    return unsatisfied_conditions
 
         # check that the assignments will respect the bound typing
         new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
-        for effect in event.effects:
+        for effect in g_action.effects:
             lower_bound, upper_bound = None, None
-            f_type = cast(_RealType, effect.fluent.type)
+            f_type = effect.fluent.type
             if f_type.is_int_type() or f_type.is_real_type():
+                f_type = cast(_RealType, effect.fluent.type)
                 lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
             if lower_bound is not None or upper_bound is not None:
                 fluent, value = self._evaluate_effect(
@@ -128,16 +128,16 @@ class SequentialSimulator(Engine, SimulatorMixin):
                     ):
                         unsatisfied_conditions.append(em.LE(lower_bound, fluent))
                         if early_termination:
-                            break
+                            return unsatisfied_conditions
                     if upper_bound is not None and upper_bound < cast(
                         Fraction, value.constant_value()
                     ):
                         unsatisfied_conditions.append(em.LE(fluent, upper_bound))
                         if early_termination:
-                            break
-        if event.simulated_effect is not None:
+                            return unsatisfied_conditions
+        if g_action.simulated_effect is not None:
             to_check = False
-            for f in event.simulated_effect.fluents:
+            for f in g_action.simulated_effect.fluents:
                 f_type = cast(_RealType, f.type)
                 if (f_type.is_int_type() or f_type.is_real_type()) and (
                     f_type.lower_bound is not None or f_type.upper_bound is not None
@@ -146,12 +146,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
                     break
             if to_check:
                 for f, v in zip(
-                    event.simulated_effect.fluents,
-                    event.simulated_effect.function(self._problem, state, {}),
+                    g_action.simulated_effect.fluents,
+                    g_action.simulated_effect.function(self._problem, state, {}),
                 ):
                     lower_bound, upper_bound = None, None
-                    f_type = cast(_RealType, f.type)
-                    if f_type.is_int_type() or f_type.is_real_type():
+                    if f.type.is_int_type() or f.type.is_real_type():
+                        f_type = cast(_RealType, f.type)
                         lower_bound, upper_bound = (
                             f_type.lower_bound,
                             f_type.upper_bound,
@@ -174,49 +174,64 @@ class SequentialSimulator(Engine, SimulatorMixin):
         return unsatisfied_conditions
 
     def _apply(
-        self, event: "Event", state: "up.model.COWState"
-    ) -> Optional["up.model.COWState"]:
+        self,
+        state: "up.model.State",
+        action: "up.model.Action",
+        parameters: Tuple["up.model.FNode", ...],
+    ) -> Optional["up.model.State"]:
         """
-        Returns `None` if the event is not applicable in the given state, otherwise returns a new COWState,
+        Returns `None` if the event is not applicable in the given state, otherwise returns a new UPState,
         which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
 
         :param state: the state where the event formulas are calculated.
         :param event: the event that has the information about the conditions to check and the effects to apply.
-        :return: None if the event is not applicable in the given state, a new COWState with some updated values
+        :return: None if the event is not applicable in the given state, a new UPState with some updated values
             if the event is applicable.
         """
-        if not self.is_applicable(event, state):
+        if not self.is_applicable(state, action, parameters):
             return None
         else:
-            return self.apply_unsafe(event, state)
+            return self.apply_unsafe(state, action, parameters)
 
     def _apply_unsafe(
-        self, event: "Event", state: "up.model.COWState"
-    ) -> "up.model.COWState":
+        self,
+        state: "up.model.State",
+        action: "up.model.Action",
+        parameters: Tuple["up.model.FNode", ...],
+    ) -> "up.model.State":
         """
-        Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
+        Returns a new UPState, which is a copy of the given state but the applicable effects of the event are applied; therefore
         some fluent values are updated.
         IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
 
         :param state: the state where the event formulas are evaluated.
         :param event: the event that has the information about the effects to apply.
-        :return: A new COWState with some updated values.
+        :return: A new UPState with some updated values.
         """
+        if not isinstance(state, up.model.UPState):
+            raise UPUsageError(
+                f"The SequentialSimulator uses the UPState but {type(state)} is given."
+            )
+        grounded_action = self._ground_action(action, parameters)
+        if grounded_action is None:
+            raise UPUsageError(
+                "The given action grounded with the given parameters does not create a valid action."
+            )
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
-        for effect in event.effects:
+        for effect in grounded_action.effects:
             fluent, value = self._evaluate_effect(
                 effect, state, updated_values, assigned_fluent, em
             )
             if fluent is not None:
                 assert value is not None
                 updated_values[fluent] = value
-        if event.simulated_effect is not None:
+        if grounded_action.simulated_effect is not None:
             for f, v in zip(
-                event.simulated_effect.fluents,
-                event.simulated_effect.function(self._problem, state, {}),
+                grounded_action.simulated_effect.fluents,
+                grounded_action.simulated_effect.function(self._problem, state, {}),
             ):
                 old_value = updated_values.get(f, None)
                 # If f was already modified and it was modified by an increase/decrease or with an assign
@@ -239,7 +254,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
     def _evaluate_effect(
         self,
         effect: "up.model.Effect",
-        state: "up.model.ROState",
+        state: "up.model.State",
         updated_values: Dict["up.model.FNode", "up.model.FNode"],
         assigned_fluent: Set["up.model.FNode"],
         em: ExpressionManager,
@@ -320,7 +335,9 @@ class SequentialSimulator(Engine, SimulatorMixin):
         else:
             return None, None
 
-    def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
+    def _get_applicable_actions(
+        self, state: "up.model.State"
+    ) -> Iterator[Tuple["up.model.Action", Tuple["up.model.FNode", ...]]]:
         """
         Returns a view over all the events that are applicable in the given State;
         an Event is considered applicable in a given State, when all the Event condition
@@ -329,58 +346,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
         :param state: The state where the formulas are evaluated.
         :return: an Iterator of applicable Events.
         """
-        # if the problem was never fully grounded before,
-        # ground it and save all the new events. For every event
-        # that is applicable, yield it.
-        # Otherwise just return all the applicable events
-        if not self._all_events_grounded:
-            # perform total grounding
-            self._all_events_grounded = True
-            # for every grounded action, translate it in an Event
-            for (
-                original_action,
-                params,
-                grounded_action,
-            ) in self._grounder.get_grounded_actions():
-                for event in self._get_or_create_events(
-                    original_action, params, grounded_action
-                ):
-                    if self.is_applicable(event, state):
-                        yield event
-        else:  # the problem has been fully grounded before, just check for event applicability
-            for events in self._events.values():
-                for event in events:
-                    if self.is_applicable(event, state):
-                        yield event
-
-    def _get_events(
-        self,
-        action: "up.model.Action",
-        parameters: Union[
-            Tuple["up.model.Expression", ...], List["up.model.Expression"]
-        ],
-    ) -> List["Event"]:
-        """
-        Returns a list containing all the events derived from the given action, grounded with the given parameters.
-
-        :param action: The action containing the information to create the event.
-        :param parameters: The parameters needed to ground the action
-        :return: the List of Events derived from this action with these parameters.
-        """
-        # sanity check
-        if action not in self._actions:
-            raise UPUsageError(
-                "The action given as parameter does not belong to the problem given to the SequentialSimulator."
-            )
-        params_exp = tuple(
-            self._problem.environment.expression_manager.auto_promote(parameters)
-        )
-        grounded_action = self._grounder.ground_action(action, params_exp)
-        event_list = self._get_or_create_events(action, params_exp, grounded_action)
-        return event_list
+        for original_action, params, _ in self._grounder.get_grounded_actions():
+            if self._is_applicable(state, original_action, params):
+                yield (original_action, params)
 
     def _get_unsatisfied_goals(
-        self, state: "up.model.ROState", early_termination: bool = False
+        self, state: "up.model.State", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
         Returns the list of unsatisfied goals evaluated in the given state.
@@ -436,46 +407,3 @@ class SequentialSimulator(Engine, SimulatorMixin):
     @staticmethod
     def supports(problem_kind):
         return problem_kind <= SequentialSimulator.supported_kind()
-
-    def _get_or_create_events(
-        self,
-        original_action: "up.model.Action",
-        params: Tuple["up.model.FNode", ...],
-        grounded_action: Optional["up.model.Action"],
-    ) -> List[Event]:
-        """
-        Support function that takes the `original Action`, the `parameters` used to ground the `grounded Action` and
-        the `grounded Action` itself, and adds the corresponding `List of Events` to this `Simulator`. If the
-        corresponding `Events` were already created, the same value is returned and no new `Events` are created.
-
-        :param original_action: The `Action` of the :class:`~unified_planning.model.Problem` grounded with the given `params`.
-        :param params: The expressions used to ground the `original_action`.
-        :param grounded_action: The grounded action, result of the `original_action` grounded with the given `parameters`.
-        :return: The retrieved or created `List of Events` corresponding to the `grounded_action`.
-        """
-        if isinstance(original_action, up.model.InstantaneousAction):
-            # check if the event is already cached; if not: create it and cache it
-            key = (original_action, params)
-            event_list = self._events.get(key, None)
-            if event_list is None:
-                if (
-                    grounded_action is None
-                ):  # The grounded action is meaningless, no event associated
-                    event_list = []
-                else:
-                    assert isinstance(grounded_action, up.model.InstantaneousAction)
-                    event_list = [
-                        InstantaneousEvent(
-                            grounded_action.preconditions,
-                            grounded_action.effects,
-                            grounded_action.simulated_effect,
-                        )
-                    ]
-                self._events[key] = event_list
-            # sanity check
-            assert len(event_list) < 2
-            return event_list
-        else:
-            raise NotImplementedError(
-                "The SequentialSimulator currently supports only InstantaneousActions."
-            )

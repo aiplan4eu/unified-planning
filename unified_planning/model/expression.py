@@ -163,12 +163,13 @@ class ExpressionManager(object):
         :param node_type: The OperationKind referring to this expression (like a PLUS, MINUS, FLUENT_EXP, etc.).
         :param args: The direct sons in this expression tree; an iterable of expressions.
         :param payload: In some OperationKind contains the information about the expression; for an INT_EXP
-        contains the integer, for a FLUENT_EXP the fluent etc.
+            contains the integer, for a FLUENT_EXP the fluent etc.
         :return: The created expression.
         """
         content = up.model.fnode.FNodeContent(node_type, args, payload)
-        if content in self.expressions:
-            return self.expressions[content]
+        res = self.expressions.get(content, None)
+        if res is not None:
+            return res
         else:
             assert all(
                 a.environment == self.environment for a in args
