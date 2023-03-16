@@ -85,7 +85,10 @@ class MinimizeSequentialPlanLength(PlanQualityMetric):
 
 
 class MinimizeMakespan(PlanQualityMetric):
-    """This metric means #TODO: explain what that metric means."""
+    """
+    This metric means that the makespan must be minimized.
+    The makespan is the time from the start of the plan to the end of the plan.
+    """
 
     def __repr__(self):
         return "minimize makespan"

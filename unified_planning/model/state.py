@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
 
@@ -48,6 +48,9 @@ class UPState(State):
     def __init__(
         self,
         values: Dict["up.model.FNode", "up.model.FNode"],
+        _actions: Optional[
+            List[Tuple["up.model.InstantaneousAction", Tuple["up.model.FNode", ...]]]
+        ] = None,
         _father: Optional["UPState"] = None,
     ):
         """
@@ -59,6 +62,14 @@ class UPState(State):
             raise UPValueError(
                 f"The max_ancestor field of a class extending UPState must be > 0 or None: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}"
             )
+        if _actions is not None:
+            self._actions = _actions
+        elif _father is not None:
+            raise UPUsageError(
+                "If a State has a father, there must be at least one action transiting from the father to this state."
+            )
+        else:
+            self._actions = []
         self._father = _father
         self._values = values
         if _father is None:
@@ -94,8 +105,22 @@ class UPState(State):
             f"The state {self} does not have a value for the value {fluent}"
         )
 
+    def get_actions(
+        self,
+    ) -> List[Tuple["up.model.InstantaneousAction", Tuple["up.model.FNode", ...]]]:
+        action_lists = []
+        current_instance: Optional[UPState] = self
+        while current_instance is not None:
+            action_lists.append(current_instance._actions)
+            current_instance = current_instance._father
+        action_lists.reverse()
+        return [a for al in action_lists for a in al]
+
     def make_child(
-        self, updated_values: Dict["up.model.FNode", "up.model.FNode"]
+        self,
+        updated_values: Dict["up.model.FNode", "up.model.FNode"],
+        action: "up.model.InstantaneousAction",
+        parameters: Tuple["up.model.FNode", ...],
     ) -> "UPState":
         """
         Returns a different `UPState` in which every value in updated_values.keys() is evaluated as his mapping
@@ -106,7 +131,7 @@ class UPState(State):
         """
         max_ancestors = type(self).MAX_ANCESTORS
         # When max_ancestors is None or this state has already too many ancestors, retrieve every possible
-        # assignment and return a new UPState without any ancestors
+        # assignment, the action path and return a new UPState without any ancestors
         if max_ancestors is None or self._ancestors >= max_ancestors:
             current_instance: Optional[UPState] = self
             complete_values = updated_values.copy()
@@ -114,6 +139,8 @@ class UPState(State):
                 for k, v in current_instance._values.items():
                     complete_values.setdefault(k, v)
                 current_instance = current_instance._father
-            return UPState(complete_values)
+            actions = self.get_actions()
+            actions.append((action, parameters))
+            return UPState(complete_values, actions)
         # Otherwise just return a new UPState with self as ancestor
-        return UPState(updated_values, self)
+        return UPState(updated_values, [(action, parameters)], self)

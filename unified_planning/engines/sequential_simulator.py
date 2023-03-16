@@ -24,7 +24,18 @@ from unified_planning.engines.mixins.sequential_simulator import (
 )
 from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
 from unified_planning.plans import ActionInstance
-from unified_planning.model import FNode, Type, ExpressionManager, UPState, Problem
+from unified_planning.model import (
+    FNode,
+    Type,
+    ExpressionManager,
+    UPState,
+    Problem,
+    MinimizeActionCosts,
+    MinimizeSequentialPlanLength,
+    MinimizeExpressionOnFinalState,
+    MaximizeExpressionOnFinalState,
+    Oversubscription,
+)
 from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import StateEvaluator
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
@@ -249,7 +260,7 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
                         updated_values[f] = v
                 else:
                     updated_values[f] = v
-        return state.make_child(updated_values)
+        return state.make_child(updated_values, action, parameters)
 
     def _evaluate_effect(
         self,
@@ -369,6 +380,43 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
                 if early_termination:
                     break
         return unsatisfied_goals
+
+    def _evaluate_quality_metric(
+        self, state: "up.model.State", quality_metric: "up.model.PlanQualityMetric"
+    ) -> "up.model.FNode":
+        """TODO"""
+        if not isinstance(state, UPState):
+            raise UPUsageError(
+                f"The SequentialSimulator needs an UPState. {type(state)} given."
+            )
+        em = self._problem.environment.expression_manager
+        if isinstance(quality_metric, MinimizeActionCosts):
+            cost_list = []
+            costs = quality_metric.costs
+            for action, params in state.get_actions():
+                subs = dict(zip(action.parameters, params))
+                # TODO NOTE that this does not work when the action cost depends on the state!!
+                cost = costs[action]
+                if cost is not None:
+                    cost_list.append(cost.substitute(subs))
+            return self._se.evaluate(em.Plus(*cost_list), state)
+        elif isinstance(quality_metric, MinimizeSequentialPlanLength):
+            return em.auto_promote(len(state.get_actions()))[0]
+        elif isinstance(
+            quality_metric,
+            (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+        ):
+            return self._se.evaluate(quality_metric.expression, state)
+        elif isinstance(quality_metric, Oversubscription):
+            total_gain = 0
+            for goal, gain in quality_metric.goals.items():
+                if self._se.evaluate(goal, state).bool_constant_value():
+                    total_gain += gain
+            return total_gain
+        else:
+            raise NotImplementedError(
+                f"QualityMetric {quality_metric} not supported by the SequentialSimulator."
+            )
 
     @property
     def name(self) -> str:

@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Iterator, List, Optional, Tuple, Union, Sequence
 from warnings import warn
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
@@ -51,7 +51,9 @@ class SequentialSimulatorMixin:
     def _handle_action_or_action_instance_polymorphism(
         self,
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[Iterable["up.model.Expression"]],
+        parameters: Optional[
+            Union["up.model.Expression", Sequence["up.model.Expression"]]
+        ],
         method_name: str,
     ) -> Tuple["up.model.Action", Tuple["up.model.FNode", ...]]:
         """TODO"""
@@ -65,11 +67,13 @@ class SequentialSimulatorMixin:
             return act, params
         act = action_or_action_instance
         assert isinstance(act, up.model.Action), "Typing not respected"
+        auto_promote = self._problem.environment.expression_manager.auto_promote
         if parameters is None:
             params = tuple()
-        else:
-            auto_promote = self._problem.environment.expression_manager.auto_promote
+        elif isinstance(parameters, Sequence):
             params = tuple(auto_promote(parameters))
+        else:
+            params = tuple(auto_promote([parameters]))
         if len(params) != len(act.parameters) or any(
             not ap.type.is_compatible(p.type) for p, ap in zip(params, act.parameters)
         ):
@@ -91,7 +95,9 @@ class SequentialSimulatorMixin:
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[Iterable["up.model.Expression"]] = None,
+        parameters: Optional[
+            Union["up.model.Expression", Sequence["up.model.Expression"]]
+        ] = None,
     ) -> bool:
         """
         Returns `True` if the given `event conditions` are evaluated as `True` in the given `state`;
@@ -127,7 +133,9 @@ class SequentialSimulatorMixin:
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[Iterable["up.model.Expression"]] = None,
+        parameters: Optional[
+            Union["up.model.Expression", Sequence["up.model.Expression"]]
+        ] = None,
         early_termination: bool = False,
     ) -> List["up.model.FNode"]:
         """
@@ -164,7 +172,9 @@ class SequentialSimulatorMixin:
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[Iterable["up.model.Expression"]] = None,
+        parameters: Optional[
+            Union["up.model.Expression", Sequence["up.model.Expression"]]
+        ] = None,
     ) -> Optional["up.model.State"]:
         """
         Returns `None` if the `event` is not applicable in the given `state`, otherwise returns a new `State`,
@@ -198,7 +208,9 @@ class SequentialSimulatorMixin:
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[Iterable["up.model.Expression"]] = None,
+        parameters: Optional[
+            Union["up.model.Expression", Sequence["up.model.Expression"]]
+        ] = None,
     ) -> "up.model.State":
         """
         Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
@@ -288,4 +300,36 @@ class SequentialSimulatorMixin:
         """
         Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.get_unsatisfied_goals.
         """
+        raise NotImplementedError
+
+    def evaluate_quality_metric(
+        self,
+        state: "up.model.State",
+        quality_metric: Optional["up.model.PlanQualityMetric"] = None,
+    ) -> "up.model.FNode":
+        """TODO"""
+        if quality_metric is None:
+            try:
+                qm = self._problem.quality_metrics  # type: ignore[attr-defined]
+            except AttributeError:
+                raise UPUsageError(
+                    "Can't establish a default metric if the given problem class does not have a quality_metrics field."
+                )
+            if len(qm) == 0:
+                raise UPUsageError(
+                    "Can't establish a default metric if the given problem does not have any quality_metric."
+                )
+            elif len(qm) > 1:
+                raise NotImplementedError(
+                    "UP does not support multiple quality metrics."
+                )
+            else:
+                assert len(qm) == 1
+            quality_metric = qm[0]
+        return self._evaluate_quality_metric(state, quality_metric)
+
+    def _evaluate_quality_metric(
+        self, state: "up.model.State", quality_metric: "up.model.PlanQualityMetric"
+    ) -> "up.model.FNode":
+        """TODO"""
         raise NotImplementedError
