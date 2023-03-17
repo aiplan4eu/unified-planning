@@ -285,11 +285,21 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     new_costs[old_to_new[a]] = cost
                 new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
             elif isinstance(qm, Oversubscription):
-                new_goals = {
-                    utf_remover.remove_usertype_fluents_from_condition(g): v
-                    for g, v in qm.goals.items()
-                }
-                new_problem.add_quality_metric(Oversubscription(new_goals))
+                new_goals = None
+                new_timed_goals = None
+                if qm.goals:
+                    new_goals = {
+                        utf_remover.remove_usertype_fluents_from_condition(g): v
+                        for g, v in qm.goals.items()
+                    }
+                elif qm.timed_goals:
+                    new_timed_goals = {
+                        (t, utf_remover.remove_usertype_fluents_from_condition(g)): v
+                        for (t, g), v in qm.timed_goals.items()
+                    }
+                new_problem.add_quality_metric(
+                    Oversubscription(goals=new_goals, timed_goals=new_timed_goals)
+                )
             else:
                 raise NotImplementedError
 
@@ -577,7 +587,11 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             ):
                 defined_names.update(qm.expression.get_contained_names())
             elif isinstance(qm, Oversubscription):
-                for g in qm.goals:
-                    defined_names.update(g.get_contained_names())
+                if qm.goals:
+                    for g, _ in qm.goals.items():
+                        defined_names.update(g.get_contained_names())
+                elif qm.timed_goals:
+                    for (_, g), _ in qm.timed_goals.items():
+                        defined_names.update(g.get_contained_names())
 
         return defined_names

@@ -416,11 +416,21 @@ def add_invariant_condition_apply_function_to_problem_expressions(
         elif isinstance(qm, MaximizeExpressionOnFinalState):
             new_qm = MaximizeExpressionOnFinalState(function(qm.expression))
         elif isinstance(qm, Oversubscription):
-            new_goals: Dict[FNode, Union[Fraction, int]] = {}
-            for goal, gain in qm.goals.items():
-                new_goal = em.And(goal, condition).simplify()
-                new_goals[new_goal] = new_goals.get(new_goal, 0) + gain
-            new_qm = Oversubscription(new_goals)
+            if qm.goals:
+                new_goals: Dict[FNode, Union[Fraction, int]] = {}
+                for goal, gain in qm.goals.items():
+                    new_goal = em.And(goal, condition).simplify()
+                    new_goals[new_goal] = gain
+                new_qm = Oversubscription(new_goals)
+            elif qm.timed_goals:
+                new_timed_goals: Dict[
+                    Tuple[TimeInterval, FNode], Union[Fraction, int]
+                ] = {}
+                for timed_goal, gain in qm.timed_goals.items():
+                    goal = timed_goal[1]
+                    new_goal = em.And(goal, condition).simplify()
+                    new_timed_goals[(timed_goal[0], new_goal)] = gain
+                new_qm = Oversubscription(timed_goals=new_timed_goals)
         else:
             new_qm = qm
         new_problem.add_quality_metric(new_qm)

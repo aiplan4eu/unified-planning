@@ -170,13 +170,16 @@ class Oversubscription(PlanQualityMetric):
         assert (goals is None and timed_goals is not None) or (
             goals is not None and timed_goals is None
         )
-        goals = dict(
-            (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
-        )
-        timed_goals = dict(
-            (k, f.numerator if f.denominator == 1 else f)
-            for (k, f) in timed_goals.items()
-        )
+        if goals is not None:
+            goals = dict(
+                (k, f.numerator if f.denominator == 1 else f)
+                for (k, f) in goals.items()
+            )
+        if timed_goals is not None:
+            timed_goals = dict(
+                (k, f.numerator if f.denominator == 1 else f)
+                for (k, f) in timed_goals.items()
+            )
         self.goals = goals
         self.timed_goals = timed_goals
 
