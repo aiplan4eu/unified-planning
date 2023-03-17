@@ -358,14 +358,17 @@ class PythonWriter:
                 for a, ac in qm.costs.items():
                     out.write(f"costs[act_{a.name}] = {converter.convert(ac)}\n")
             elif isinstance(qm, up.model.metrics.Oversubscription):
-                out.write("goals = {}\n")
                 if qm.goals:
+                    out.write("goals = {}\n")
+                    out.write("timed_goals = None\n")
                     for goal, cost in qm.goals.items():
                         out.write(f"goals[{converter.convert(goal)}] = {cost}\n")
                 elif qm.timed_goals:
+                    out.write("goals = None\n")
+                    out.write("timed_goals = {}\n")
                     for timed_goal, cost in qm.timed_goals.items():
                         out.write(
-                            f"timed_goal[({_convert_interval(timed_goal[0])}, {converter.convert(timed_goal[1])})] = {cost}\n"
+                            f"timed_goals[({_convert_interval(timed_goal[0])}, {converter.convert(timed_goal[1])})] = {cost}\n"
                         )
             out.write("problem.add_quality_metric(")
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
@@ -383,7 +386,9 @@ class PythonWriter:
                     f"up.model.metrics.MaximizeExpressionOnFinalState({converter.convert(qm.expression)})"
                 )
             elif isinstance(qm, up.model.metrics.Oversubscription):
-                out.write("up.model.metrics.Oversubscription(goals)")
+                out.write(
+                    "up.model.metrics.Oversubscription(goals=goals, timed_goals=timed_goals)"
+                )
             else:
                 raise NotImplementedError
             out.write(")\n")
