@@ -67,3 +67,7 @@ class UPConflictingEffectsException(UPException):
 
 class ANMLSyntaxError(UPException, SyntaxError):
     pass
+
+
+class UPInvalidActionError(UPException):
+    pass

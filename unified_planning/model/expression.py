@@ -24,7 +24,7 @@ import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
-from typing import Optional, Iterable, List, Union, Dict, Tuple
+from typing import Optional, Iterable, List, Union, Dict, Tuple, Iterator
 
 Expression = Union[
     "up.model.fnode.FNode",
@@ -68,9 +68,9 @@ class ExpressionManager(object):
         )
         return
 
-    def _polymorph_args_to_tuple(
+    def _polymorph_args_to_generator(
         self, *args: Union[Expression, Iterable[Expression]]
-    ) -> Tuple[Expression, ...]:
+    ) -> Iterator[Expression]:
         """
         Helper function to return a tuple of arguments from args.
         This function is used to allow N-ary operators to express their arguments
@@ -78,14 +78,12 @@ class ExpressionManager(object):
            And([a,b,c]) and And(a,b,c)
         are both valid, and they are converted into a tuple (a,b,c)
         """
-
-        res = []
-        for p in args:
-            if isinstance(p, Iterable):
-                res.extend(list(p))
+        for a in args:
+            if isinstance(a, Iterable):
+                for p in a:
+                    yield p
             else:
-                res.append(p)
-        return tuple(res)
+                yield a
 
     def auto_promote(
         self, *args: Union[Expression, Iterable[Expression]]
@@ -97,7 +95,7 @@ class ExpressionManager(object):
         :param args: The iterable of expression that must be promoted to FNode.
         :return: The resulting list of FNode.
         """
-        tuple_args = self._polymorph_args_to_tuple(*args)
+        tuple_args = tuple(self._polymorph_args_to_generator(*args))
         res = []
         for e in tuple_args:
             if isinstance(e, up.model.fluent.Fluent):

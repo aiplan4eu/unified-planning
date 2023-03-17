@@ -16,7 +16,7 @@
 from typing import Iterator, List, Optional, Tuple, Union, Sequence
 from warnings import warn
 import unified_planning as up
-from unified_planning.exceptions import UPUsageError
+from unified_planning.exceptions import UPUsageError, UPInvalidActionError
 
 
 class SequentialSimulatorMixin:
@@ -120,14 +120,18 @@ class SequentialSimulatorMixin:
         action: "up.model.Action",
         parameters: Tuple["up.model.FNode", ...],
     ) -> bool:
-        return (
-            len(
-                self.get_unsatisfied_conditions(
-                    state, action, parameters, early_termination=True
+        try:
+            is_applicable = (
+                len(
+                    self.get_unsatisfied_conditions(
+                        state, action, parameters, early_termination=True
+                    )
                 )
+                == 0
             )
-            == 0
-        )
+        except UPInvalidActionError:
+            is_applicable = False
+        return is_applicable
 
     def get_unsatisfied_conditions(
         self,

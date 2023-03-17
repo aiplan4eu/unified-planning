@@ -22,8 +22,11 @@ from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
-from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
-from unified_planning.plans import ActionInstance
+from unified_planning.exceptions import (
+    UPUsageError,
+    UPConflictingEffectsException,
+    UPInvalidActionError,
+)
 from unified_planning.model import (
     FNode,
     Type,
@@ -103,7 +106,7 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
         """
         g_action = self._ground_action(action, parameters)
         if g_action is None:
-            raise UPUsageError(
+            raise UPInvalidActionError(
                 "The given action grounded with the given parameters does not create a valid action."
             )
         unsatisfied_conditions = []
@@ -226,9 +229,11 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
             )
         grounded_action = self._ground_action(action, parameters)
         if grounded_action is None:
-            raise UPUsageError(
-                "The given action grounded with the given parameters does not create a valid action."
+            raise UPInvalidActionError(
+                "The given action grounded with the given parameters does not create a valid action.",
+                "Either it's preconditions are always False or it creates conflicting effects.",
             )
+        assert isinstance(action, up.model.InstantaneousAction)
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
@@ -260,7 +265,7 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
                         updated_values[f] = v
                 else:
                     updated_values[f] = v
-        return state.make_child(updated_values, action, parameters)
+        return state.make_child(updated_values)
 
     def _evaluate_effect(
         self,
@@ -381,43 +386,6 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
                     break
         return unsatisfied_goals
 
-    def _evaluate_quality_metric(
-        self, state: "up.model.State", quality_metric: "up.model.PlanQualityMetric"
-    ) -> "up.model.FNode":
-        """TODO"""
-        if not isinstance(state, UPState):
-            raise UPUsageError(
-                f"The SequentialSimulator needs an UPState. {type(state)} given."
-            )
-        em = self._problem.environment.expression_manager
-        if isinstance(quality_metric, MinimizeActionCosts):
-            cost_list = []
-            costs = quality_metric.costs
-            for action, params in state.get_actions():
-                subs = dict(zip(action.parameters, params))
-                # TODO NOTE that this does not work when the action cost depends on the state!!
-                cost = costs[action]
-                if cost is not None:
-                    cost_list.append(cost.substitute(subs))
-            return self._se.evaluate(em.Plus(*cost_list), state)
-        elif isinstance(quality_metric, MinimizeSequentialPlanLength):
-            return em.auto_promote(len(state.get_actions()))[0]
-        elif isinstance(
-            quality_metric,
-            (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
-        ):
-            return self._se.evaluate(quality_metric.expression, state)
-        elif isinstance(quality_metric, Oversubscription):
-            total_gain = 0
-            for goal, gain in quality_metric.goals.items():
-                if self._se.evaluate(goal, state).bool_constant_value():
-                    total_gain += gain
-            return total_gain
-        else:
-            raise NotImplementedError(
-                f"QualityMetric {quality_metric} not supported by the SequentialSimulator."
-            )
-
     @property
     def name(self) -> str:
         return "sequential_simulator"
@@ -455,3 +423,54 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
     @staticmethod
     def supports(problem_kind):
         return problem_kind <= SequentialSimulator.supported_kind()
+
+
+def evaluate_quality_metric(
+    simulator: SequentialSimulatorMixin,
+    quality_metric: "up.model.PlanQualityMetric",
+    metric_value: "up.model.FNode",
+    state: "up.model.State",
+    action: "up.model.Action",
+    parameters: Tuple["up.model.FNode", ...],
+    next_state: "up.model.State",
+) -> "up.model.FNode":
+    """TODO"""
+    if not isinstance(simulator._problem, up.model.Problem):
+        raise NotImplementedError(
+            "Currently this method is implemented only for classical and numeric problems."
+        )
+    se = StateEvaluator(simulator._problem)
+    em = simulator._problem.environment.expression_manager
+    if not metric_value.is_int_constant() or metric_value.is_real_constant():
+        raise UPUsageError("The given metric value must be a numeric constant")
+    if isinstance(quality_metric, MinimizeActionCosts):
+        action_cost = quality_metric.get_action_cost(action)
+        if action_cost is None:
+            raise UPUsageError(
+                "Can't evaluate Action cost when the cost is not set.",
+                "You can explicitly set a default in the MinimizeActionCost constructor.",
+            )
+        if len(action.parameters) != len(parameters):
+            raise UPUsageError(
+                "The parameters length is different than the action's parameters length."
+            )
+        action_cost = action_cost.substitute(dict(zip(action.parameters, parameters)))
+        assert isinstance(action_cost, up.model.FNode)
+        return se.evaluate(em.Plus(metric_value, action_cost), state)
+    elif isinstance(quality_metric, MinimizeSequentialPlanLength):
+        return em.Plus(metric_value, 1).simplify()
+    elif isinstance(
+        quality_metric,
+        (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+    ):
+        return se.evaluate(quality_metric.expression, next_state)
+    elif isinstance(quality_metric, Oversubscription):
+        total_gain: Union[Fraction, int] = 0
+        for goal, gain in quality_metric.goals.items():
+            if se.evaluate(goal, next_state).bool_constant_value():
+                total_gain += gain
+        return em.auto_promote(total_gain)[0]
+    else:
+        raise NotImplementedError(
+            f"QualityMetric {quality_metric} not supported by the SequentialSimulator."
+        )
