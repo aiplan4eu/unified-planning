@@ -185,25 +185,20 @@ def StartTiming(
     return Timing(delay, Timepoint(TimepointKind.START, container=container))
 
 
-def EndTiming(
-    delay: Union[int, Fraction] = 0, container: Optional[str] = None
-) -> Timing:
+def EndTiming(container: Optional[str] = None) -> Timing:
     """
     Returns the end timing of an :class:`~unified_planning.model.Action`.
-    Created with a delay > 0 represents `delay` time
-    before the end of the `Action`.
 
     For example, `Action` ends at time 10:
     `EndTiming() = 10`
-    `EndTiming(1.5) = 10-Fraction(3, 2) = Fraction(17, 2) = 8.5`.
+    `EndTiming() - 4 = 10 - 4 = 6`.
 
-    :param delay: The delay from the end of an `Action`.
     :param container: Identifier of the container in which the `Timepoint` is defined.
         If not set, then refers to the enclosing `action or method`.
     :return: The created `Timing`.
     """
 
-    return Timing(delay, Timepoint(TimepointKind.END, container=container))
+    return Timing(delay=0, timepoint=Timepoint(TimepointKind.END, container=container))
 
 
 def GlobalStartTiming(delay: Union[int, Fraction] = 0):
@@ -219,7 +214,7 @@ def GlobalStartTiming(delay: Union[int, Fraction] = 0):
     return Timing(delay, Timepoint(TimepointKind.GLOBAL_START))
 
 
-def GlobalEndTiming(delay: Union[int, Fraction] = 0):
+def GlobalEndTiming():
     """
     Represents the end `Timing` of an execution.
     Created with a delay > 0 represents "delay" time
@@ -229,7 +224,7 @@ def GlobalEndTiming(delay: Union[int, Fraction] = 0):
     :return: The created `Timing`.
     """
 
-    return Timing(delay, Timepoint(TimepointKind.GLOBAL_END))
+    return Timing(delay=0, timepoint=Timepoint(TimepointKind.GLOBAL_END))
 
 
 class Interval:

@@ -534,13 +534,13 @@ def _convert_timing(timing: up.model.Timing) -> str:
         if timing.is_from_start():
             return f"up.model.GlobalStartTiming({delay})"
         else:
-            return f"up.model.GlobalEndTiming({delay})"
+            return f"up.model.GlobalEndTiming() + {delay}"
     else:
         container = f'"{tp.container}"' if tp.container is not None else "None"
         if timing.is_from_start():
             return f"up.model.StartTiming({delay}, container={container})"
         else:
-            return f"up.model.EndTiming({delay}, container={container})"
+            return f"up.model.EndTiming(container={container}) + {delay}"
 
 
 def _convert_interval(interval: up.model.TimeInterval) -> str:
