@@ -29,6 +29,7 @@ from unified_planning.model import (
     Timing,
     ProblemKind,
     Oversubscription,
+    TemporalOversubscription,
 )
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
@@ -229,6 +230,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         {
                             fluent_remover.remove_negative_fluents(g): v
                             for g, v in qm.goals.items()
+                        }
+                    )
+                )
+            elif isinstance(qm, TemporalOversubscription):
+                new_problem.add_quality_metric(
+                    TemporalOversubscription(
+                        {
+                            (t, fluent_remover.remove_negative_fluents(g)): v
+                            for (t, g), v in qm.goals.items()
                         }
                     )
                 )
