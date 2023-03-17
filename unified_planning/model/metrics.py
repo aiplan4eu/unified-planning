@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from fractions import Fraction
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Tuple
 
 
 class PlanQualityMetric:
