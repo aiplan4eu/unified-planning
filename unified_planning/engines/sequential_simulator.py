@@ -44,11 +44,11 @@ from unified_planning.model.walkers import StateEvaluator
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
 
-class SequentialSimulator(Engine, SequentialSimulatorMixin):
+class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
     """
     Sequential SequentialSimulatorMixin implementation.
 
-    This Simulator, when considering if a state is goal or not, ignores the
+    This SequentialSimulator, when considering if a state is goal or not, ignores the
     quality metrics.
     """
 
@@ -73,6 +73,14 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
     def _ground_action(
         self, action: "up.model.Action", params: Tuple["up.model.FNode", ...]
     ) -> Optional["up.model.InstantaneousAction"]:
+        """
+        Utility method to ground an action and do the basic checks.
+
+        :param action: The action to ground.
+        :param params: The parameters used to ground the action.
+        :return: The grounded action. None if the action grounds to an
+            invalid action.
+        """
         if action not in self._actions:
             raise UPUsageError(
                 f"The given action does not belong to the {type(self)} problem."
@@ -85,6 +93,12 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
         return grounded_act
 
     def _get_initial_state(self) -> "up.model.State":
+        """
+        Returns the problem's initial state.
+
+        NOTE: Every method that requires a state assumes that it's the same class
+        of the state given here, therefore an up.model.UPState.
+        """
         assert isinstance(self._problem, Problem), "supported_kind not respected"
         return UPState(self._problem.initial_values)
 
@@ -96,13 +110,17 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
         early_termination: bool = False,
     ) -> List["up.model.FNode"]:
         """
-        Returns the list of unsatisfied event conditions evaluated in the given state.
-        If the flag `early_termination` is set, the method ends and returns at the first unsatisfied condition.
+        Returns the list of `unsatisfied action's conditions` evaluated in the given `state`.
+        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
+        Note that the returned list might also contain conditions that were not originally in the action, if this
+        action violates some other semantic bound (for example bounded types).
 
-        :param state: The `State` in which the event conditions are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
-        :return: The list of all the event conditions that evaluated to `False` or the list containing the first
-            condition evaluated to False if the flag `early_termination` is set.
+        :param state: The state in which the given action's conditions are checked.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
+            `condition` evaluated to `False` if the flag `early_termination` is set.
         """
         g_action = self._ground_action(action, parameters)
         if g_action is None:
@@ -194,14 +212,17 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
         parameters: Tuple["up.model.FNode", ...],
     ) -> Optional["up.model.State"]:
         """
-        Returns `None` if the event is not applicable in the given state, otherwise returns a new UPState,
-        which is a copy of the given state but the applicable effects of the event are applied; therefore
-        some fluent values are updated.
+        Returns `None` if the given `action` is not applicable in the given `state`, otherwise returns a new `State`,
+        which is a copy of the given `state` where the `applicable effects` of the `action` are applied; therefore
+        some `fluent values` are updated.
 
-        :param state: the state where the event formulas are calculated.
-        :param event: the event that has the information about the conditions to check and the effects to apply.
-        :return: None if the event is not applicable in the given state, a new UPState with some updated values
-            if the event is applicable.
+        :param state: The state in which the given action's conditions are checked and the effects evaluated.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
+            and effects evaluated.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: `None` if the `action` is not applicable in the given `state`, the new State generated
+            if the action is applicable.
         """
         if not self.is_applicable(state, action, parameters):
             return None
@@ -215,17 +236,21 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
         parameters: Tuple["up.model.FNode", ...],
     ) -> "up.model.State":
         """
-        Returns a new UPState, which is a copy of the given state but the applicable effects of the event are applied; therefore
-        some fluent values are updated.
-        IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
+        Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
+        `action` are applied; therefore some `fluent` values are updated.
+        IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
 
-        :param state: the state where the event formulas are evaluated.
-        :param event: the event that has the information about the effects to apply.
-        :return: A new UPState with some updated values.
+        :param state: The state in which the given action's conditions are checked and the effects evaluated.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
+            and effects evaluated.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The new `State` created by the given action; `None` if the evaluation of the effects
+            creates conflicting effects.
         """
         if not isinstance(state, up.model.UPState):
             raise UPUsageError(
-                f"The SequentialSimulator uses the UPState but {type(state)} is given."
+                f"The UPSequentialSimulator uses the UPState but {type(state)} is given."
             )
         grounded_action = self._ground_action(action, parameters)
         if grounded_action is None:
@@ -355,12 +380,10 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
         self, state: "up.model.State"
     ) -> Iterator[Tuple["up.model.Action", Tuple["up.model.FNode", ...]]]:
         """
-        Returns a view over all the events that are applicable in the given State;
-        an Event is considered applicable in a given State, when all the Event condition
-        simplify as True when evaluated in the State.
+        Returns a view over all the `action + parameters` that are applicable in the given `State`.
 
-        :param state: The state where the formulas are evaluated.
-        :return: an Iterator of applicable Events.
+        :param state: the `state` where the formulas are evaluated.
+        :return: an `Iterator` of applicable actions + parameters.
         """
         for original_action, params, _ in self._grounder.get_grounded_actions():
             if self._is_applicable(state, original_action, params):
@@ -370,12 +393,12 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
         self, state: "up.model.State", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
-        Returns the list of unsatisfied goals evaluated in the given state.
-        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+        Returns the list of `unsatisfied goals` evaluated in the given `state`.
+        If the flag `early_termination` is set, the method ends and returns the first `unsatisfied goal`.
 
-        :param state: The State in which the problem goals are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
-        :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
+        :param state: The `State` in which the `problem goals` are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied goal`.
+        :return: The list of all the `goals` that evaluated to `False` or the list containing the first `goal` evaluated to `False` if the flag `early_termination` is set.
         """
         unsatisfied_goals = []
         for g in cast(up.model.Problem, self._problem).goals:
@@ -422,7 +445,7 @@ class SequentialSimulator(Engine, SequentialSimulatorMixin):
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= SequentialSimulator.supported_kind()
+        return problem_kind <= UPSequentialSimulator.supported_kind()
 
 
 def evaluate_quality_metric(
@@ -434,7 +457,18 @@ def evaluate_quality_metric(
     parameters: Tuple["up.model.FNode", ...],
     next_state: "up.model.State",
 ) -> "up.model.FNode":
-    """TODO"""
+    """
+    Evaluates the value of the given metric.
+
+    :param simulator: A simulator, needed to evaluate the metric.
+    :param quality_metric: The QualityMetric to evaluate.
+    :param metric_value: The value of the metric before applying the given action.
+    :param state: The State before applying the given action.
+    :param action: The action applied.
+    :param parameters: The parameters used to ground the action.
+    :param next_state: The state after applying the given action.
+    :return: The evaluation of the metric.
+    """
     if not isinstance(simulator._problem, up.model.Problem):
         raise NotImplementedError(
             "Currently this method is implemented only for classical and numeric problems."
@@ -472,5 +506,5 @@ def evaluate_quality_metric(
         return em.auto_promote(total_gain)[0]
     else:
         raise NotImplementedError(
-            f"QualityMetric {quality_metric} not supported by the SequentialSimulator."
+            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
         )

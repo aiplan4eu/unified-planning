@@ -23,7 +23,7 @@ class SequentialSimulatorMixin:
     """
     SequentialSimulatorMixin abstract class.
     This class defines the interface that an :class:`~unified_planning.engines.Engine`
-    that is also a `Simulator` must implement.
+    that is also a `SequentialSimulator` must implement.
 
     Important NOTE: The `AbstractProblem` instance is given at the constructor.
     """
@@ -48,7 +48,7 @@ class SequentialSimulatorMixin:
             else:
                 warn(msg)
 
-    def _handle_action_or_action_instance_polymorphism(
+    def _handle_parameters_polymorphism(
         self,
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
         parameters: Optional[
@@ -56,7 +56,17 @@ class SequentialSimulatorMixin:
         ],
         method_name: str,
     ) -> Tuple["up.model.Action", Tuple["up.model.FNode", ...]]:
-        """TODO"""
+        """
+        This is a utility method to handle the methods polymorphism.
+
+        :param action_or_action_instance: The ActionInstance given to the method or the
+            Action.
+        :param parameters: The parameter or the Sequence of parameters. The length of this
+            field must be equal to the len of the action's parameters. If action_or_action_instance
+            is an ActionInstance this param must be None.
+        :param method name: The name of the original method. Used for better error indexing.
+        :return: The couple of the Action together with it's parameters.
+        """
         if isinstance(action_or_action_instance, up.plans.ActionInstance):
             if parameters is not None:
                 raise UPUsageError(
@@ -84,7 +94,12 @@ class SequentialSimulatorMixin:
         return act, params
 
     def get_initial_state(self) -> "up.model.State":
-        """TODO"""
+        """
+        Returns the problem's initial state.
+
+        NOTE: Every different SequentialSimulator might assume that the State class
+        implementation given to it's other methods is the same returned by this method.
+        """
         return self._get_initial_state()
 
     def _get_initial_state(self) -> "up.model.State":
@@ -100,14 +115,17 @@ class SequentialSimulatorMixin:
         ] = None,
     ) -> bool:
         """
-        Returns `True` if the given `event conditions` are evaluated as `True` in the given `state`;
+        Returns `True` if the given `action conditions` are evaluated as `True` in the given `state`;
         returns `False` otherwise.
 
-        :param state: the `state` where the `event conditions` are checked.
-        :param event: the `event` whose `conditions` are checked.
-        :return: Whether or not the `event` is applicable in the given `state`.
+        :param state: The state in which the given action is checked for applicability.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` that must be checked
+            for applicability.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: Whether or not the action is applicable in the given `state`.
         """
-        act, params = self._handle_action_or_action_instance_polymorphism(
+        act, params = self._handle_parameters_polymorphism(
             action_or_action_instance,
             parameters,
             "is_applicable",
@@ -120,6 +138,9 @@ class SequentialSimulatorMixin:
         action: "up.model.Action",
         parameters: Tuple["up.model.FNode", ...],
     ) -> bool:
+        """
+        Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.is_applicable.
+        """
         try:
             is_applicable = (
                 len(
@@ -143,15 +164,19 @@ class SequentialSimulatorMixin:
         early_termination: bool = False,
     ) -> List["up.model.FNode"]:
         """
-        Returns the list of `unsatisfied event conditions` evaluated in the given `state`.
+        Returns the list of `unsatisfied action's conditions` evaluated in the given `state`.
         If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
+        Note that the returned list might also contain conditions that were not originally in the action, if this
+        action violates some other semantic bound (for example bounded types).
 
-        :param state: The `State` in which the `event conditions` are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied condition`.
-        :return: The list of all the `event conditions` that evaluated to `False` or the list containing the first
+        :param state: The state in which the given action's conditions are checked.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
             `condition` evaluated to `False` if the flag `early_termination` is set.
         """
-        act, params = self._handle_action_or_action_instance_polymorphism(
+        act, params = self._handle_parameters_polymorphism(
             action_or_action_instance,
             parameters,
             "get_unsatisfied_conditions",
@@ -181,16 +206,19 @@ class SequentialSimulatorMixin:
         ] = None,
     ) -> Optional["up.model.State"]:
         """
-        Returns `None` if the `event` is not applicable in the given `state`, otherwise returns a new `State`,
-        which is a copy of the given `state` where the `applicable effects` of the `event` are applied; therefore
+        Returns `None` if the given `action` is not applicable in the given `state`, otherwise returns a new `State`,
+        which is a copy of the given `state` where the `applicable effects` of the `action` are applied; therefore
         some `fluent values` are updated.
 
-        :param state: the `state` where the event formulas are calculated.
-        :param event: the `event` that has the information about the `conditions` to check and the `effects` to apply.
-        :return: `None` if the `event` is not applicable in the given `state`, a new `State` with some updated `values`
-            if the `event` is applicable.
+        :param state: The state in which the given action's conditions are checked and the effects evaluated.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
+            and effects evaluated.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: `None` if the `action` is not applicable in the given `state`, the new State generated
+            if the action is applicable.
         """
-        act, params = self._handle_action_or_action_instance_polymorphism(
+        act, params = self._handle_parameters_polymorphism(
             action_or_action_instance,
             parameters,
             "apply",
@@ -215,17 +243,21 @@ class SequentialSimulatorMixin:
         parameters: Optional[
             Union["up.model.Expression", Sequence["up.model.Expression"]]
         ] = None,
-    ) -> "up.model.State":
+    ) -> Optional["up.model.State"]:
         """
         Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
-        `event` are applied; therefore some `fluent` values are updated.
+        `action` are applied; therefore some `fluent` values are updated.
         IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
 
-        :param state: the `state` where the `event formulas` are evaluated.
-        :param event: the `event` that has the information about the `effects` to apply.
-        :return: A new `State` with some updated values.
+        :param state: The state in which the given action's conditions are checked and the effects evaluated.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
+            and effects evaluated.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The new `State` created by the given action; `None` if the evaluation of the effects
+            creates conflicting effects.
         """
-        act, params = self._handle_action_or_action_instance_polymorphism(
+        act, params = self._handle_parameters_polymorphism(
             action_or_action_instance,
             parameters,
             "apply_unsafe",
@@ -247,12 +279,10 @@ class SequentialSimulatorMixin:
         self, state: "up.model.State"
     ) -> Iterator[Tuple["up.model.Action", Tuple["up.model.FNode", ...]]]:
         """
-        Returns a view over all the `events` that are applicable in the given `State`;
-        an `Event` is considered applicable in a given `State`, when all the `Event condition`
-        simplify as `True` when evaluated in the `State`.
+        Returns a view over all the `action + parameters` that are applicable in the given `State`.
 
         :param state: the `state` where the formulas are evaluated.
-        :return: an `Iterator` of applicable `Events`.
+        :return: an `Iterator` of applicable actions + parameters.
         """
         return self._get_applicable_actions(state)
 
@@ -265,7 +295,7 @@ class SequentialSimulatorMixin:
         raise NotImplementedError
 
     @staticmethod
-    def is_simulator():
+    def is_sequential_simulator():
         return True
 
     def is_goal(self, state: "up.model.State") -> bool:
@@ -290,7 +320,7 @@ class SequentialSimulatorMixin:
     ) -> List["up.model.FNode"]:
         """
         Returns the list of `unsatisfied goals` evaluated in the given `state`.
-        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied goal`.
+        If the flag `early_termination` is set, the method ends and returns the first `unsatisfied goal`.
 
         :param state: The `State` in which the `problem goals` are evaluated.
         :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied goal`.
@@ -304,36 +334,4 @@ class SequentialSimulatorMixin:
         """
         Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.get_unsatisfied_goals.
         """
-        raise NotImplementedError
-
-    def evaluate_quality_metric(
-        self,
-        state: "up.model.State",
-        quality_metric: Optional["up.model.PlanQualityMetric"] = None,
-    ) -> "up.model.FNode":
-        """TODO"""
-        if quality_metric is None:
-            try:
-                qm = self._problem.quality_metrics  # type: ignore[attr-defined]
-            except AttributeError:
-                raise UPUsageError(
-                    "Can't establish a default metric if the given problem class does not have a quality_metrics field."
-                )
-            if len(qm) == 0:
-                raise UPUsageError(
-                    "Can't establish a default metric if the given problem does not have any quality_metric."
-                )
-            elif len(qm) > 1:
-                raise NotImplementedError(
-                    "UP does not support multiple quality metrics."
-                )
-            else:
-                assert len(qm) == 1
-            quality_metric = qm[0]
-        return self._evaluate_quality_metric(state, quality_metric)
-
-    def _evaluate_quality_metric(
-        self, state: "up.model.State", quality_metric: "up.model.PlanQualityMetric"
-    ) -> "up.model.FNode":
-        """TODO"""
         raise NotImplementedError

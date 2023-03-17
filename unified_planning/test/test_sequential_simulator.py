@@ -16,7 +16,7 @@
 import unified_planning as up
 import pytest
 from unified_planning.shortcuts import *
-from unified_planning.engines import SequentialSimulator, SequentialSimulatorMixin
+from unified_planning.engines import UPSequentialSimulator, SequentialSimulatorMixin
 from unified_planning.model import State
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
@@ -118,21 +118,21 @@ class TestSimulator(TestCase):
 
     def test_with_sequential_simulator_instance(self):
         problem = self.problems["hierarchical_blocks_world"].problem
-        simulator = SequentialSimulator(problem)
+        simulator = UPSequentialSimulator(problem)
         self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
     def test_with_simulator_from_factory(self):
         problem = self.problems["hierarchical_blocks_world"].problem
-        with Simulator(problem) as simulator:
+        with SequentialSimulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
     @pytest.mark.filterwarnings("ignore:We cannot establish")
     def test_check_disabling(self):
         problem = self.problems["matchcellar"].problem
         with self.assertRaises(UPUsageError) as e:
-            SequentialSimulator(problem)
+            UPSequentialSimulator(problem)
         self.assertIn("cannot establish whether", str(e.exception))
-        with Simulator(problem, name="sequential_simulator") as simulator:
+        with SequentialSimulator(problem, name="sequential_simulator") as simulator:
             pass
 
     def test_bounded_types(self):
@@ -146,7 +146,7 @@ class TestSimulator(TestCase):
         problem.add_action(increase)
         problem.add_action(decrease)
 
-        with Simulator(problem) as simulator:
+        with SequentialSimulator(problem) as simulator:
             init = simulator.get_initial_state()
             self.assertTrue(simulator.is_applicable(init, increase))
 
@@ -181,7 +181,7 @@ class TestSimulator(TestCase):
         problem.add_fluent(condition3, default_initial_value=True)
         problem.add_fluent(fluent, default_initial_value=0)
 
-        with Simulator(problem=problem) as simulator:
+        with SequentialSimulator(problem=problem) as simulator:
             init = simulator.get_initial_state()
 
             self.assertTrue(simulator.is_applicable(init, test_int))
@@ -216,7 +216,7 @@ class TestSimulator(TestCase):
         problem.add_action(act)
         problem.add_goal(bf)
 
-        with Simulator(problem=problem) as simulator:
+        with SequentialSimulator(problem=problem) as simulator:
             init = simulator.get_initial_state()
 
             self.assertTrue(simulator.is_applicable(init, act))

@@ -14,6 +14,7 @@
 #
 
 
+from typing import Optional
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
@@ -23,8 +24,7 @@ from unified_planning.model import (
     AbstractProblem,
     Problem,
     ProblemKind,
-    UPState,
-    UPState,
+    State,
 )
 from unified_planning.engines.results import (
     ValidationResult,
@@ -33,7 +33,7 @@ from unified_planning.engines.results import (
     LogLevel,
 )
 from unified_planning.engines.sequential_simulator import (
-    SequentialSimulator,
+    UPSequentialSimulator,
 )
 from unified_planning.plans import SequentialPlan, PlanKind
 from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
@@ -114,29 +114,26 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         """
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
-        simulator = SequentialSimulator(problem)
-        current_state = simulator.get_initial_state()
+        simulator = UPSequentialSimulator(problem)
+        current_state: Optional[State] = simulator.get_initial_state()
+        msg = None
         for i, ai in enumerate(plan.actions):
+            assert current_state is not None
             try:
                 unsat_conds = simulator.get_unsatisfied_conditions(current_state, ai)
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
-                logs = [LogMessage(LogLevel.INFO, msg)]
-                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
-                logs = [LogMessage(LogLevel.INFO, msg)]
-                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
             if unsat_conds:
                 msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+            current_state = simulator.apply_unsafe(current_state, ai)
+            if current_state is None:
+                msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
+            if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
-            try:
-                current_state = simulator.apply_unsafe(current_state, ai)
-            except UPConflictingEffectsException as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
-                logs = [LogMessage(LogLevel.INFO, msg)]
-                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+        assert current_state is not None
         unsatisfied_goals = simulator.get_unsatisfied_goals(current_state)
         if not unsatisfied_goals:
             return ValidationResult(ValidationResultStatus.VALID, self.name, [])

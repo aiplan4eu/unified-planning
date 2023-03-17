@@ -33,7 +33,10 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
     CompilerResult,
 )
-from unified_planning.engines.sequential_simulator import SequentialSimulator
+from unified_planning.engines.sequential_simulator import (
+    UPSequentialSimulator,
+    evaluate_quality_metric,
+)
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
@@ -49,7 +52,7 @@ __all__ = [
     "PDDLPlanner",
     "SequentialPlanValidator",
     "SequentialSimulatorMixin",
-    "SequentialSimulator",
+    "UPSequentialSimulator",
     "Event",
     "InstantaneousEvent",
     "Engine",
