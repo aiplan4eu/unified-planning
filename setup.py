@@ -31,7 +31,7 @@ setup(
         "fast-downward": ["up-fast-downward==0.1.2"],
         "lpg": ["up-lpg==0.0.4.9"],
         "fmap": ["up-fmap==0.0.2"],
-        "aries": ["up-aries>=0.0.4"],
+        "aries": ["up-aries>=0.0.7"],
         "engines": [
             "tarski[arithmetic]",
             "up-pyperplan==0.3.0.2.dev1",
@@ -40,7 +40,7 @@ setup(
             "up-fast-downward==0.1.2",
             "up-lpg==0.0.4.9",
             "up-fmap==0.0.2",
-            "up-aries>=0.0.4",
+            "up-aries>=0.0.7",
         ],
     },
     license="APACHE",
