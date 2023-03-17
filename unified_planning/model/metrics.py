@@ -162,3 +162,32 @@ class Oversubscription(PlanQualityMetric):
 
     def __hash__(self):
         return hash(self.__class__.__name__)
+
+
+class TemporalOversubscription(PlanQualityMetric):
+    """
+    This metric means that only the plans maximizing the total gain of the achieved `goals` is valid.
+
+    The gained value for each fulfilled `goal` of the problem is stored in this quality metric.
+    """
+
+    def __init__(
+        self,
+        goals: Dict[
+            Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+            Union[Fraction, int],
+        ],
+    ):
+        goals = dict(
+            (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
+        )
+        self.goals = goals
+
+    def __repr__(self):
+        return f"oversubscription planning timed goals: {self.goals}"
+
+    def __eq__(self, other):
+        return isinstance(other, TemporalOversubscription) and self.goals == other.goals
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)

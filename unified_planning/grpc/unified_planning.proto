@@ -422,6 +422,16 @@ message GoalWithCost {
     Real cost = 2;
 }
 
+// Represents a timed goal associated with a cost, used to define temporal oversubscription planning.
+message TimedGoalWithCost {
+    // Goal expression
+    Expression goal = 1;
+    // The time interval
+    TimeInterval timing = 2;
+    // The cost
+    Real cost = 3;
+}
+
 message Metric {
     enum MetricKind {
       // Minimize the action costs expressed in the `action_costs` field
@@ -442,6 +452,9 @@ message Metric {
 
       // Maximize the number of goals reached, weighted by cost
       OVERSUBSCRIPTION = 5;
+
+      // Maximize the number of timed goals reached, weighted by cost
+      TEMPORAL_OVERSUBSCRIPTION = 6;
     }
     MetricKind kind = 1;
 
@@ -462,6 +475,10 @@ message Metric {
     // List of goals used to define the oversubscription planning problem.
     // Empty, if the `kind` is not OVERSUBSCRIPTION
     repeated GoalWithCost goals = 5;
+
+    // List of timed goals used to define the temporal oversubscription planning problem.
+    // Empty, if the `kind` is not TEMPORAL_OVERSUBSCRIPTION
+    repeated TimedGoalWithCost timed_goals = 6;
 }
 
 // features: ACTION_BASED
@@ -544,6 +561,7 @@ enum Feature {
     MAKESPAN = 23;
     PLAN_LENGTH = 24;
     OVERSUBSCRIPTION = 29;
+    TEMPORAL_OVERSUBSCRIPTION = 40;
     // SIMULATED_ENTITIES
     SIMULATED_EFFECTS = 25;
     // HIERARCHICAL

@@ -618,6 +618,24 @@ class ProtobufWriter(Converter):
             goals=goals,
         )
 
+    @handles(model.metrics.TemporalOversubscription)
+    def _convert_temporal_oversubscription_metric(
+        self, metric: model.metrics.TemporalOversubscription
+    ) -> proto.Metric:
+        timed_goals = []
+        for (i, g), c in metric.goals.items():
+            timed_goals.append(
+                proto.TimedGoalWithCost(
+                    timing=self.convert(i),
+                    goal=self.convert(g),
+                    cost=self.convert(fractions.Fraction(c)),
+                )
+            )
+        return proto.Metric(
+            kind=proto.Metric.TEMPORAL_OVERSUBSCRIPTION,
+            timed_goals=timed_goals,
+        )
+
     @handles(model.Parameter)
     def _convert_action_parameter(self, p: model.Parameter) -> proto.Parameter:
         return proto.Parameter(name=p.name, type=proto_type(p.type))

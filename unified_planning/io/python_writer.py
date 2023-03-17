@@ -361,6 +361,12 @@ class PythonWriter:
                 out.write("goals = {}\n")
                 for goal, cost in qm.goals.items():
                     out.write(f"goals[{converter.convert(goal)}] = {cost}\n")
+            elif isinstance(qm, up.model.metrics.TemporalOversubscription):
+                out.write("goals = {}\n")
+                for (i, goal), cost in qm.goals.items():
+                    out.write(
+                        f"goals[({_convert_interval(i)}, {converter.convert(goal)})] = {cost}\n"
+                    )
             out.write("problem.add_quality_metric(")
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):
                 out.write(f"up.model.metrics.MinimizeActionCosts(costs, {qm.default})")
@@ -378,6 +384,8 @@ class PythonWriter:
                 )
             elif isinstance(qm, up.model.metrics.Oversubscription):
                 out.write("up.model.metrics.Oversubscription(goals)")
+            elif isinstance(qm, up.model.metrics.TemporalOversubscription):
+                out.write("up.model.metrics.TemporalOversubscription(goals)")
             else:
                 raise NotImplementedError
             out.write(")\n")
