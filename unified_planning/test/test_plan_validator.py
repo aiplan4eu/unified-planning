@@ -63,3 +63,29 @@ class TestProblem(TestCase):
                     self.assertEqual(
                         validation_result.status, ValidationResultStatus.VALID
                     )
+
+    def test_quality_metric(self):
+        pv = SequentialPlanValidator()
+        problem, plan = self.problems["basic"]
+        problem = problem.clone()
+        problem.add_quality_metric(MinimizeSequentialPlanLength())
+        res = pv.validate(problem, plan)
+        self.assertIn(
+            "Evaluation of metric: minimize sequential-plan-length -> 1", str(res)
+        )
+
+        problem, plan = self.problems["locations_connected_visited_oversubscription"]
+        res = pv.validate(problem, plan)
+        self.assertIn(
+            "Evaluation of metric: oversubscription planning goals: {visited(l2): 9, (visited(l2)"
+            + " or visited(l3)): 5, (Forall (Location loc_var) (visited(loc_var) or (loc_var == l2))"
+            + " and (not visited(l2))): 10} -> 15",
+            str(res),
+        )
+
+        problem, plan = self.problems["locations_connected_cost_minimize"]
+        res = pv.validate(problem, plan)
+        self.assertIn(
+            "Evaluation of metric: minimize actions-cost: {'move': distance(l_from, l_to), 'default': None} -> 10",
+            str(res),
+        )

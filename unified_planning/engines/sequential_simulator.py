@@ -508,3 +508,42 @@ def evaluate_quality_metric(
         raise NotImplementedError(
             f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
         )
+
+
+def evaluate_quality_metric_in_initial_state(
+    simulator: SequentialSimulatorMixin,
+    quality_metric: "up.model.PlanQualityMetric",
+) -> "up.model.FNode":
+    """
+    Returns the evaluation of the given metric in the initial state.
+
+    :param simulator: The simulator used to evaluate the metric.
+    :param quality_metric: The QUalityMetric tto evaluate.
+    :return: The evaluation of the metric in the initial state.
+    """
+    if not isinstance(simulator._problem, up.model.Problem):
+        raise NotImplementedError(
+            "Currently this method is implemented only for classical and numeric problems."
+        )
+    se = StateEvaluator(simulator._problem)
+    em = simulator._problem.environment.expression_manager
+    initial_state = simulator.get_initial_state()
+    if isinstance(quality_metric, MinimizeActionCosts):
+        return em.auto_promote(0)[0]
+    elif isinstance(quality_metric, MinimizeSequentialPlanLength):
+        return em.auto_promote(0)[0]
+    elif isinstance(
+        quality_metric,
+        (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+    ):
+        return se.evaluate(quality_metric.expression, initial_state)
+    elif isinstance(quality_metric, Oversubscription):
+        total_gain: Union[Fraction, int] = 0
+        for goal, gain in quality_metric.goals.items():
+            if se.evaluate(goal, initial_state).bool_constant_value():
+                total_gain += gain
+        return em.auto_promote(total_gain)[0]
+    else:
+        raise NotImplementedError(
+            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
+        )

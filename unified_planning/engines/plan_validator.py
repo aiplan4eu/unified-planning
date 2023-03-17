@@ -34,9 +34,15 @@ from unified_planning.engines.results import (
 )
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
+    evaluate_quality_metric,
+    evaluate_quality_metric_in_initial_state,
 )
 from unified_planning.plans import SequentialPlan, PlanKind
-from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPUsageError,
+    UPProblemDefinitionError,
+)
 
 
 class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
@@ -114,29 +120,56 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         """
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
+        metric = None
+        if len(problem.quality_metrics) > 0:
+            if len(problem.quality_metrics) == 1:
+                metric = problem.quality_metrics[0]
+            else:
+                raise UPProblemDefinitionError(
+                    "The UP does not support more than one quality metric in the problem."
+                )
         simulator = UPSequentialSimulator(problem)
-        current_state: Optional[State] = simulator.get_initial_state()
+        prev_state: Optional[State] = simulator.get_initial_state()
+        if metric is not None:
+            metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
         msg = None
         for i, ai in enumerate(plan.actions):
-            assert current_state is not None
+            assert prev_state is not None
             try:
-                unsat_conds = simulator.get_unsatisfied_conditions(current_state, ai)
+                unsat_conds = simulator.get_unsatisfied_conditions(prev_state, ai)
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
             if unsat_conds:
                 msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
-            current_state = simulator.apply_unsafe(current_state, ai)
-            if current_state is None:
+            next_state = simulator.apply_unsafe(prev_state, ai)
+            if next_state is None:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
-        assert current_state is not None
-        unsatisfied_goals = simulator.get_unsatisfied_goals(current_state)
+            assert next_state is not None
+            if metric is not None:
+                metric_value = evaluate_quality_metric(
+                    simulator,
+                    metric,
+                    metric_value,
+                    prev_state,
+                    ai.action,
+                    ai.actual_parameters,
+                    next_state,
+                )
+            prev_state = next_state
+        assert next_state is not None
+        unsatisfied_goals = simulator.get_unsatisfied_goals(next_state)
         if not unsatisfied_goals:
-            return ValidationResult(ValidationResultStatus.VALID, self.name, [])
+            if not metric is None:
+                msg = f"Evaluation of metric: {metric} -> {metric_value}"
+                logs = [LogMessage(LogLevel.INFO, msg)]
+            else:
+                logs = []
+            return ValidationResult(ValidationResultStatus.VALID, self.name, logs)
         else:
             msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
             logs = [LogMessage(LogLevel.INFO, msg)]
