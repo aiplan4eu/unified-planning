@@ -153,13 +153,13 @@ class Oversubscription(PlanQualityMetric):
 
     def __init__(
         self,
-        *,
         goals: Optional[
             Dict[
                 "up.model.FNode",
                 Union[Fraction, int],
             ]
         ] = None,
+        *,
         timed_goals: Optional[
             Dict[
                 Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
