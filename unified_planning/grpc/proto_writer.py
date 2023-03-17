@@ -606,17 +606,32 @@ class ProtobufWriter(Converter):
     def _convert_oversubscription_metric(
         self, metric: model.metrics.Oversubscription
     ) -> proto.Metric:
-        goals = []
-        for g, c in metric.goals.items():
-            goals.append(
-                proto.GoalWithCost(
-                    goal=self.convert(g), cost=self.convert(fractions.Fraction(c))
+        if metric.goals:
+            goals = []
+            for g, c in metric.goals.items():
+                goals.append(
+                    proto.GoalWithCost(
+                        goal=self.convert(g), cost=self.convert(fractions.Fraction(c))
+                    )
                 )
+            return proto.Metric(
+                kind=proto.Metric.OVERSUBSCRIPTION,
+                goals=goals,
             )
-        return proto.Metric(
-            kind=proto.Metric.OVERSUBSCRIPTION,
-            goals=goals,
-        )
+        elif metric.timed_goals:
+            timed_goals = []
+            for g, c in metric.timed_goals.items():
+                timed_goals.append(
+                    proto.TimedGoalWithCost(
+                        goal=self.convert(g[1]),
+                        timing=self.convert(g[0]),
+                        cost=self.convert(fractions.Fraction(c)),
+                    )
+                )
+            return proto.Metric(
+                kind=proto.Metric.OVERSUBSCRIPTION,
+                timed_goals=timed_goals,
+            )
 
     @handles(model.Parameter)
     def _convert_action_parameter(self, p: model.Parameter) -> proto.Parameter:

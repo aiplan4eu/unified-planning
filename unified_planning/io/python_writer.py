@@ -365,7 +365,7 @@ class PythonWriter:
                 elif qm.timed_goals:
                     for timed_goal, cost in qm.timed_goals.items():
                         out.write(
-                            f"timed_goal[{converter.convert(timed_goal)}] = {cost}\n"
+                            f"timed_goal[({_convert_interval(timed_goal[0])}, {converter.convert(timed_goal[1])})] = {cost}\n"
                         )
             out.write("problem.add_quality_metric(")
             if isinstance(qm, up.model.metrics.MinimizeActionCosts):

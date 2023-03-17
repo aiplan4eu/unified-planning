@@ -174,16 +174,24 @@ class Oversubscription(PlanQualityMetric):
             (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
         )
         timed_goals = dict(
-            (k, f.numerator if f.denominator == 1 else f) for (k, f) in timed_goals.items()
+            (k, f.numerator if f.denominator == 1 else f)
+            for (k, f) in timed_goals.items()
         )
         self.goals = goals
         self.timed_goals = timed_goals
 
     def __repr__(self):
-        return f"oversubscription planning goals: {self.goals}"
+        if self.goals:
+            return f"oversubscription planning goals: {self.goals}"
+        elif self.timed_goals:
+            return f"oversubscription planning timed goals: {self.timed_goals}"
 
     def __eq__(self, other):
-        return isinstance(other, Oversubscription) and self.goals == other.goals
+        return (
+            isinstance(other, Oversubscription)
+            and self.goals == other.goals
+            and self.timed_goals == other.timed_goals
+        )
 
     def __hash__(self):
         return hash(self.__class__.__name__)

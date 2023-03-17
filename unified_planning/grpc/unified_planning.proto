@@ -422,6 +422,15 @@ message GoalWithCost {
     Real cost = 2;
 }
 
+message TimedGoalWithCost {
+    // Goal expression
+    Expression goal = 1;
+    // The time interval
+    TimeInterval timing = 2;
+    // The cost
+    Real cost = 3;
+}
+
 message Metric {
     enum MetricKind {
       // Minimize the action costs expressed in the `action_costs` field
@@ -462,6 +471,7 @@ message Metric {
     // List of goals used to define the oversubscription planning problem.
     // Empty, if the `kind` is not OVERSUBSCRIPTION
     repeated GoalWithCost goals = 5;
+    repeated TimedGoalWithCost timed_goals = 6;
 }
 
 // features: ACTION_BASED
