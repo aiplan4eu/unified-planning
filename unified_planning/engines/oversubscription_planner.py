@@ -55,7 +55,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
-        return engine.is_oneshot_planner() and engine.supports(ProblemKind({"ACTION_BASED"}))  # type: ignore
+        return engine.is_oneshot_planner() and engine.supports(ProblemKind({"ACTION_BASED", "NEGATIVE_CONDITIONS"}))  # type: ignore
 
     @staticmethod
     def _supported_kind(engine: Type[Engine]) -> "ProblemKind":
@@ -88,6 +88,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         final_supported_kind = supported_kind.intersection(engine.supported_kind())
         final_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        final_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         return final_supported_kind
 
     @staticmethod
@@ -105,12 +106,15 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     ) -> "PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
+        em = problem.environment.expression_manager
         if len(problem.quality_metrics) == 0:
-            goals: List[Tuple["up.model.FNode", Union[Fraction, int]]] = []
+            goals: List = []
         else:
             assert len(problem.quality_metrics) == 1
             qm = problem.quality_metrics[0]
-            assert isinstance(qm, up.model.metrics.Oversubscription)
+            assert isinstance(qm, up.model.metrics.Oversubscription) or isinstance(
+                qm, up.model.metrics.TemporalOversubscription
+            )
             goals = list(qm.goals.items())
         q = []
         for l in powerset(goals):
@@ -125,8 +129,13 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         for t in q:
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
-            for g in t[1]:
-                new_problem.add_goal(g)
+            for g, _ in goals:
+                if isinstance(g, tuple):
+                    goal = g[1] if g[1] in t[1] else em.Not(g[1])
+                    new_problem.add_timed_goal(g[0], goal)
+                else:
+                    goal = g if g in t[1] else em.Not(g)
+                    new_problem.add_goal(goal)
             start = time.time()
             res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
             if timeout is not None:
