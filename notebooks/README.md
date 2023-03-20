@@ -14,9 +14,7 @@ In particular we will go through the following steps:
 * create a classical planning problem;
 * call a planner to solve the problem;
 * go beyond plan generation showing how to validate a plan and how to ground a planning problem;
-* call multiple planners in parallel;
-* read and write PDDL problems.
-
+* call multiple planners in parallel.
 
 ## PDDL I/O
 
