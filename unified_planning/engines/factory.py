@@ -50,6 +50,7 @@ DEFAULT_ENGINES = {
     "lpg-anytime": ("up_lpg.lpg_planner", "LPGAnytimeEngine"),
     "fmap": ("up_fmap.fmap_planner", "FMAPsolver"),
     "aries": ("up_aries", "Aries"),
+    "aries-val": ("up_aries", "AriesVal"),
     "sequential_plan_validator": (
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
@@ -129,6 +130,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "lpg-anytime",
     "fmap",
     "aries",
+    "aries-val",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
