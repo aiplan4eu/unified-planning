@@ -46,8 +46,8 @@ def get_example_problems():
     # configurations in the map
     # map and RobotConfig added for consistency check
     # e.g., `c1` is a configuration expressed via 5 variables and is a collision free configuration in `map`
-    c1 = ConfigurationObject("c1", RobotConfig, (4.0, 4.0, 0.0))
-    c2 = ConfigurationObject("c2", RobotConfig, (26.0, 4.0, 0.0))
+    c1 = ConfigurationObject("c1", RobotConfig, (4.0, 26.0, 3.0))
+    c2 = ConfigurationObject("c2", RobotConfig, (26.0, 26.0, 0.0))
 
     r1 = MovableObject(
         "r1",
