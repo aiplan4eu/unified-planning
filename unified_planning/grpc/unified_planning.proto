@@ -474,11 +474,11 @@ message Metric {
 
     // List of goals used to define the oversubscription planning problem.
     // Empty, if the `kind` is not OVERSUBSCRIPTION
-    repeated GoalWithCost goals = 5;
+    repeated GoalWithWeight goals = 5;
 
     // List of timed goals used to define the temporal oversubscription planning problem.
     // Empty, if the `kind` is not TEMPORAL_OVERSUBSCRIPTION
-    repeated TimedGoalWithCost timed_goals = 6;
+    repeated TimedGoalWithWeight timed_goals = 6;
 }
 
 // features: ACTION_BASED
