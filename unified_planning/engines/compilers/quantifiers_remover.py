@@ -26,6 +26,7 @@ from unified_planning.model import (
     Action,
     ProblemKind,
     Oversubscription,
+    TemporalOversubscription,
 )
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
@@ -216,6 +217,20 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                                 g, problem
                             ): v
                             for g, v in qm.goals.items()
+                        }
+                    )
+                )
+            elif isinstance(qm, TemporalOversubscription):
+                new_problem.add_quality_metric(
+                    TemporalOversubscription(
+                        {
+                            (
+                                i,
+                                expression_quantifier_remover.remove_quantifiers(
+                                    g, problem
+                                ),
+                            ): v
+                            for (i, g), v in qm.goals.items()
                         }
                     )
                 )

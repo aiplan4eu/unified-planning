@@ -30,6 +30,7 @@ from unified_planning.model import (
     Action,
     ProblemKind,
     Oversubscription,
+    TemporalOversubscription,
 )
 from unified_planning.model.walkers import Dnf
 from typing import List, Optional, Tuple, Dict, cast
@@ -216,6 +217,16 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                     )
                     new_oversubscription[new_goal] = v
                 new_problem.add_quality_metric(Oversubscription(new_oversubscription))
+            elif isinstance(qm, TemporalOversubscription):
+                new_temporal_oversubscription = {}
+                for (t, g), v in qm.goals.items():
+                    new_goal = self._goals_without_disjunctions_adding_new_elements(
+                        dnf, new_problem, new_to_old, new_fluents, [g]
+                    )
+                    new_temporal_oversubscription[(t, new_goal)] = v
+                new_problem.add_quality_metric(
+                    TemporalOversubscription(new_temporal_oversubscription)
+                )
             else:
                 new_problem.add_quality_metric(qm)
         # Every meaningful action must set to False every new fluent added.

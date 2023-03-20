@@ -38,6 +38,7 @@ from unified_planning.model import (
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
     Oversubscription,
+    TemporalOversubscription,
     Object,
     Expression,
     DurationInterval,
@@ -290,6 +291,14 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     for g, v in qm.goals.items()
                 }
                 new_problem.add_quality_metric(Oversubscription(new_goals))
+            elif isinstance(qm, TemporalOversubscription):
+                new_temporal_goals = {
+                    (i, utf_remover.remove_usertype_fluents_from_condition(g)): v
+                    for (i, g), v in qm.goals.items()
+                }
+                new_problem.add_quality_metric(
+                    TemporalOversubscription(new_temporal_goals)
+                )
             else:
                 raise NotImplementedError
 
@@ -578,6 +587,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 defined_names.update(qm.expression.get_contained_names())
             elif isinstance(qm, Oversubscription):
                 for g in qm.goals:
+                    defined_names.update(g.get_contained_names())
+            elif isinstance(qm, TemporalOversubscription):
+                for _, g in qm.goals:
                     defined_names.update(g.get_contained_names())
 
         return defined_names

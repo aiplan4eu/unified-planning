@@ -72,6 +72,7 @@ from unified_planning.model.metrics import (
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
     Oversubscription,
+    TemporalOversubscription,
 )
 import unified_planning.model.multi_agent
 import unified_planning.model.scheduling
@@ -127,5 +128,6 @@ __all__ = [
     "MinimizeExpressionOnFinalState",
     "MaximizeExpressionOnFinalState",
     "Oversubscription",
+    "TemporalOversubscription",
     "DeltaSimpleTemporalNetwork",
 ]

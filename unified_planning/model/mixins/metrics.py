@@ -105,6 +105,8 @@ class MetricsMixin:
                 kind.set_quality_metrics("PLAN_LENGTH")
             elif isinstance(metric, up.model.metrics.Oversubscription):
                 kind.set_quality_metrics("OVERSUBSCRIPTION")
+            elif isinstance(metric, up.model.metrics.TemporalOversubscription):
+                kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
             else:
                 assert False, "Unknown quality metric"
         return fluents_to_only_increase, fluents_to_only_decrease

@@ -414,12 +414,22 @@ message Assignment {
     Expression value = 2;
 }
 
-// Represents a goal associated with a cost, used to define oversubscription planning.
-message GoalWithCost {
+// Represents a goal associated with a weight, used to define oversubscription planning.
+message GoalWithWeight {
     // Goal expression
     Expression goal = 1;
-    // The cost
-    Real cost = 2;
+    // The weight
+    Real weight = 2;
+}
+
+// Represents a timed goal associated with a weight, used to define temporal oversubscription planning.
+message TimedGoalWithWeight {
+    // Goal expression
+    Expression goal = 1;
+    // The time interval
+    TimeInterval timing = 2;
+    // The weight
+    Real weight = 3;
 }
 
 message Metric {
@@ -440,8 +450,11 @@ message Metric {
       // Maximize the value of the expression defined in the `expression` field
       MAXIMIZE_EXPRESSION_ON_FINAL_STATE = 4;
 
-      // Maximize the number of goals reached, weighted by cost
+      // Maximize the weighted number of goals reached
       OVERSUBSCRIPTION = 5;
+
+      // Maximize the weighted number of timed goals reached
+      TEMPORAL_OVERSUBSCRIPTION = 6;
     }
     MetricKind kind = 1;
 
@@ -461,7 +474,11 @@ message Metric {
 
     // List of goals used to define the oversubscription planning problem.
     // Empty, if the `kind` is not OVERSUBSCRIPTION
-    repeated GoalWithCost goals = 5;
+    repeated GoalWithWeight goals = 5;
+
+    // List of timed goals used to define the temporal oversubscription planning problem.
+    // Empty, if the `kind` is not TEMPORAL_OVERSUBSCRIPTION
+    repeated TimedGoalWithWeight timed_goals = 6;
 }
 
 // features: ACTION_BASED
@@ -544,6 +561,7 @@ enum Feature {
     MAKESPAN = 23;
     PLAN_LENGTH = 24;
     OVERSUBSCRIPTION = 29;
+    TEMPORAL_OVERSUBSCRIPTION = 40;
     // SIMULATED_ENTITIES
     SIMULATED_EFFECTS = 25;
     // HIERARCHICAL
