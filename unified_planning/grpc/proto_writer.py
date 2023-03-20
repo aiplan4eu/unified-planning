@@ -609,8 +609,8 @@ class ProtobufWriter(Converter):
         goals = []
         for g, c in metric.goals.items():
             goals.append(
-                proto.GoalWithCost(
-                    goal=self.convert(g), cost=self.convert(fractions.Fraction(c))
+                proto.GoalWithWeight(
+                    goal=self.convert(g), weight=self.convert(fractions.Fraction(c))
                 )
             )
         return proto.Metric(
@@ -625,10 +625,10 @@ class ProtobufWriter(Converter):
         timed_goals = []
         for (i, g), c in metric.goals.items():
             timed_goals.append(
-                proto.TimedGoalWithCost(
+                proto.TimedGoalWithWeight(
                     timing=self.convert(i),
                     goal=self.convert(g),
-                    cost=self.convert(fractions.Fraction(c)),
+                    weight=self.convert(fractions.Fraction(c)),
                 )
             )
         return proto.Metric(
