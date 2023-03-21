@@ -42,9 +42,9 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
 
 The documentation is available [here](https://unified-planning.readthedocs.io/en/latest/)
 
-## Notebooks
+## Examples
 
-More complex live demos are available as notebooks [here](notebooks/README.md).
+More complex examples are available as notebooks [here](https://unified-planning.readthedocs.io/en/latest/examples.html).
 
 
 ## Acknowledgments

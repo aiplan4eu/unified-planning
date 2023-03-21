@@ -1,13 +1,15 @@
-.. _engines:
-
-================
 Planning Engines
 ================
 
-.. contents::
-   :local:
 
-The `unified_planning` library provides the functionality needed to model and to transform planning problems and organizes the possible queries to the planning engines in a series of Operation Modes. An operation mode defines how the user can interact with a certain planning engine in an abstract way: each planning engine must define which is the subset of operation modes that it is able to support. In this way, the library is capable of automatically selecting a planning engine for a certain operational mode taking into account the specific characteristics of the problem formulated by the user.
-The planning engines themselves are not included in the UP Library, but it is possible to add planning engines externally by means of a plugin system offered by the `unified_planning`.engines package. Moreover, the installation system of the UP library allows the automated installation of several commonly used engines.
-The UP library defines the set of Operation Modes as a set of interfaces to be instantiated by each engine.
+The ``Engine`` class is the class interface that has to be implemented in order to define an engine that exposes one or more operative modes. It has some methods that implements that operation modes and other methods that can be called to know if the engine is suitable for a given problem kind.
 
+The ``MetaEngine`` class is a child class of ``Engine`` that is defined over a generic engine implementation. The implementation of a meta engine can be used with all the compatible engines available on the system.
+
+
+.. toctree::
+    :hidden:
+    :glob:
+    :titlesonly:
+
+    engines/*

@@ -12,14 +12,18 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import sys
+
+import requests
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# TODO: Remove the below configs one done with the docs
+nbsphinx_allow_errors = True
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -29,6 +33,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
+    "sphinx_rtd_theme",
+    "nbsphinx",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "nbsphinx_link",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
     "sphinx.ext.autodoc",
     "sphinx.ext.coverage",
     "sphinx.ext.mathjax",
@@ -39,7 +52,10 @@ extensions = [
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -80,7 +96,7 @@ except ImportError:
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md", "readme.rst"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -111,15 +127,27 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "default"
-
+# html_theme = "sphinx_rtd_theme"
+html_theme = "otc_tcs_sphinx_theme"
+html_theme_path = ["_themes"]
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
-
-# Add any paths that contain custom themes here, relative to this directory.
-# html_theme_path = []
+html_theme_options = {
+    "logo_only": False,
+    "display_version": True,
+    "prev_next_buttons_location": "bottom",
+    "style_external_links": False,
+    "vcs_pageview_mode": "",
+    "style_nav_header_background": "#2980B9",
+    # 'github_url': '',
+    # Toc options
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
+}
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -140,7 +168,6 @@ html_theme = "default"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -191,6 +218,14 @@ html_theme = "default"
 # Output file base name for HTML help builder.
 htmlhelp_basename = "unified_planning_doc"
 
+
+# -- Options for MystParser --------------------------------------------------
+
+# REFERENCE: https://myst-parser.readthedocs.io/en/latest/syntax/optional.html?highlight=anchor#auto-generated-header-anchors
+myst_heading_anchors = 3
+myst_enable_extensions = [
+    "linkify",
+]
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -294,3 +329,34 @@ autodoc_default_options = {
     "imported-members": True,
 }
 autodoc_member_order = "bysource"
+
+
+# -- Generating Planning Engine Scripts -------------------------------------------
+
+engines = {
+    "aries": "https://raw.githubusercontent.com/plaans/aries/master/planning/unified/plugin/README.md",
+    "tamer": "https://raw.githubusercontent.com/aiplan4eu/up-tamer/master/README.md",
+    "enhsp": "https://raw.githubusercontent.com/aiplan4eu/up-enhsp/master/README.md",
+    "spiderplan": "https://raw.githubusercontent.com/aiplan4eu/up-spiderplan/master/README.md",
+    "fmap": "https://raw.githubusercontent.com/aiplan4eu/up-fmap/master/README.md",
+    "lpg": "https://raw.githubusercontent.com/aiplan4eu/up-lpg/master/README.md",
+    "pyperplan": "https://raw.githubusercontent.com/aiplan4eu/up-pyperplan/master/README.md",
+    "fast_downward": "https://raw.githubusercontent.com/aiplan4eu/up-fast-downward/main/README.md",
+}
+
+SKIP_ENGINES = []
+for skipped in SKIP_ENGINES:
+    engines.popitem(skipped)
+engines = dict(sorted(engines.items()))
+ENGINES_DIR = os.path.join(os.path.dirname(__file__), "engines")
+
+if not os.path.exists(ENGINES_DIR):
+    os.makedirs(ENGINES_DIR)
+
+for i, (name, source) in enumerate(engines.items()):
+    with open(f"{ENGINES_DIR}/{i+1}-{name}.md", "w") as f:
+        response = requests.get(source)
+        if response.status_code == 200:
+            f.write(response.text)
+        else:
+            Warning(f"Error getting source for planning engine {name}")
