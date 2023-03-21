@@ -1,9 +1,6 @@
 Examples
 ========
 
-.. warning::
-   TODO: Check Notebook links once merged to master
-
 We present here a list of notebooks recommended to start with unified-planning.
 
 Basic Example
@@ -28,8 +25,7 @@ In particular we will go through the following steps:
 * create a classical planning problem;
 * call a planner to solve the problem;
 * go beyond plan generation showing how to validate a plan and how to ground a planning problem;
-* call multiple planners in parallel;
-* read and write PDDL problems.
+* call multiple planners in parallel.
 
 Optimal Planning
 ----------------
@@ -43,6 +39,9 @@ Optimal Planning
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/02-optimal-planning.ipynb
    :alt: Open In Colab
+
+
+In this notebook we show how to define a problem with an Optimality metric and how to get a solver that gives the optimal solution regarding the given metric.
 
 Temporal Planning
 -----------------
@@ -143,7 +142,7 @@ Planning Engine Integration
    :alt: Open In Colab
 
 
-In this notebook we create a new planning engine for the "Oneshot" operation mode, we register the new planner in the UP library and we test it on a simple problem.
+In this notebook we create a new planning engine for the "OneshotPlanner" operation mode, we register the new planner in the UP library and we test it on a simple problem.
 
 PDDL I/O
 --------
