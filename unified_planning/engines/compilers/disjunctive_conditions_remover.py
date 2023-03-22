@@ -29,6 +29,7 @@ from unified_planning.model import (
     Timing,
     Action,
     ProblemKind,
+    MinimizeActionCosts,
     Oversubscription,
     TemporalOversubscription,
 )
@@ -209,7 +210,14 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem.add_timed_goal(t, goal_to_add)
 
         for qm in problem.quality_metrics:
-            if isinstance(qm, Oversubscription):
+            if isinstance(qm, MinimizeActionCosts):
+                new_costs = {
+                    new_act: qm.get_action_cost(old_act)
+                    for new_act, old_act in new_to_old.items()
+                    if old_act is not None
+                }
+                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+            elif isinstance(qm, Oversubscription):
                 new_oversubscription = {}
                 for g, v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(

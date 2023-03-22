@@ -406,11 +406,12 @@ def add_invariant_condition_apply_function_to_problem_expressions(
 
     for qm in original_problem.quality_metrics:
         if isinstance(qm, MinimizeActionCosts):
-            new_costs = {
-                old_to_new[a]: (None if cost is None else function(cost))
-                for a, cost in qm.costs.items()
-                if a in old_to_new
-            }
+            new_costs = {}
+            for old_a, new_a in old_to_new.items():
+                cost = qm.get_action_cost(old_a)
+                if cost is not None:
+                    cost = function(cost)
+                new_costs[new_a] = cost
             new_qm: PlanQualityMetric = MinimizeActionCosts(new_costs)
         elif isinstance(qm, MinimizeExpressionOnFinalState):
             new_qm = MinimizeExpressionOnFinalState(function(qm.expression))

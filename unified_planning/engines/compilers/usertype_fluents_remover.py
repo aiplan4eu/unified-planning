@@ -151,7 +151,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         em = env.expression_manager
 
         new_to_old: Dict[Action, Action] = {}
-        old_to_new: Dict[Action, Action] = {}
 
         new_problem = Problem(f"{self.name}_{problem.name}", env)
         new_problem.add_objects(problem.all_objects)
@@ -233,7 +232,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 )
             new_problem.add_action(new_action)
             new_to_old[new_action] = old_action
-            old_to_new[old_action] = new_action
 
         for g in problem.goals:
             new_problem.add_goal(utf_remover.remove_usertype_fluents_from_condition(g))
@@ -279,11 +277,11 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 )
             elif isinstance(qm, MinimizeActionCosts):
                 new_costs = {}
-                for a in problem.actions:
-                    cost = qm.get_action_cost(a)
+                for new_act, old_act in new_to_old.items():
+                    cost = qm.get_action_cost(old_act)
                     if cost is not None:
                         cost = utf_remover.remove_usertype_fluents_from_condition(cost)
-                    new_costs[old_to_new[a]] = cost
+                    new_costs[new_act] = cost
                 new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
             elif isinstance(qm, Oversubscription):
                 new_goals = {

@@ -21,7 +21,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import InstantaneousAction, Action, FNode, Fluent
 from unified_planning.model.walkers import Substituter, ExpressionQuantifiersRemover
-from unified_planning.model import Problem, ProblemKind
+from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
 from unified_planning.model.operators import OperatorKind
 from functools import partial
 from unified_planning.engines.compilers.utils import (
@@ -121,14 +121,14 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             problem, CompilationKind.GROUNDING
         )
         assert isinstance(grounding_result.problem, Problem)
-        problem = grounding_result.problem.clone()
-        assert isinstance(problem, Problem)
-        problem.name = f"{self.name}_{problem.name}"
-        A = problem.actions
-        I = problem.initial_values
+        grounded_problem = grounding_result.problem
+        new_problem = grounded_problem.clone()
+        assert isinstance(new_problem, Problem)
+        new_problem.name = f"{self.name}_{problem.name}"
+        I = new_problem.initial_values
         C = []
-        for c in problem.trajectory_constraints:
-            new_c = expression_quantifier_remover.remove_quantifiers(c, problem)
+        for c in new_problem.trajectory_constraints:
+            new_c = expression_quantifier_remover.remove_quantifiers(c, new_problem)
             if new_c.is_and():
                 C.extend(new_c.args)
             else:
@@ -144,7 +144,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
         assert isinstance(grounding_result.map_back_action_instance, partial)
         map_grounded_action = grounding_result.map_back_action_instance.keywords["map"]
-        for a in A:
+        for a in new_problem.actions:
             map_value = map_grounded_action[a]
             assert isinstance(a, InstantaneousAction)
             E: List["up.model.effect.Effect"] = list()
@@ -186,21 +186,33 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             trace_back_map[a] = map_value
         # create new problem to return
         # adding new fluents, goal, initial values and actions
-        G_new = (env.expression_manager.And(problem.goals, G_prime)).simplify()
-        problem.clear_goals()
-        problem.add_goal(G_new)
-        problem.clear_trajectory_constraints()
+        G_new = (env.expression_manager.And(new_problem.goals, G_prime)).simplify()
+        new_problem.clear_goals()
+        new_problem.add_goal(G_new)
+        new_problem.clear_trajectory_constraints()
         for fluent in F_prime:
-            problem.add_fluent(fluent)
-        problem.clear_actions()
+            new_problem.add_fluent(fluent)
+        new_problem.clear_actions()
         for action in A_prime:
-            problem.add_action(action)
+            new_problem.add_action(action)
         for init_val in I_prime:
-            problem.set_initial_value(
+            new_problem.set_initial_value(
                 up.model.Fluent(f"{init_val}", env.type_manager.BoolType()), True
             )
+
+        new_problem.clear_quality_metrics()
+        for qm in grounded_problem.quality_metrics:
+            if isinstance(qm, MinimizeActionCosts):
+                new_costs = {
+                    na: qm.get_action_cost(grounded_problem.action(na.name))
+                    for na in new_problem.actions
+                }
+                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+            else:
+                new_problem.add_quality_metric(qm)
+
         return CompilerResult(
-            problem, partial(lift_action_instance, map=trace_back_map), self.name
+            new_problem, partial(lift_action_instance, map=trace_back_map), self.name
         )
 
     def _manage_sa_compilation(self, env, phi, psi, m_atom, a, E):
