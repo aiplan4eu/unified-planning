@@ -65,8 +65,10 @@ class MinimizeActionCosts(PlanQualityMetric):
         Returns the cost of the given `Action`.
 
         :param action: The action of which cost must be retrieved.
-        :return: The expression representing the cost of the given action. The retrieved cost might be `None`,
-            meaning that `#TODO: add meaning of a None action cost`.
+        :return: The expression representing the cost of the given action.
+            If the retrieved cost is `None` it means it is not set and therefore
+            it's invalid; every action cost MUST be set, either with the cost mapping
+            or with the default.
         """
         return self.costs.get(action, self.default)
 

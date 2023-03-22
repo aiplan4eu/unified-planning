@@ -234,7 +234,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         state: "up.model.State",
         action: "up.model.Action",
         parameters: Tuple["up.model.FNode", ...],
-    ) -> "up.model.State":
+    ) -> Optional["up.model.State"]:
         """
         Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
         `action` are applied; therefore some `fluent` values are updated.
@@ -254,18 +254,18 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             )
         grounded_action = self._ground_action(action, parameters)
         if grounded_action is None:
-            raise UPInvalidActionError(
-                "The given action grounded with the given parameters does not create a valid action.",
-                "Either it's preconditions are always False or it creates conflicting effects.",
-            )
+            return None
         assert isinstance(action, up.model.InstantaneousAction)
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
         for effect in grounded_action.effects:
-            fluent, value = self._evaluate_effect(
-                effect, state, updated_values, assigned_fluent, em
-            )
+            try:
+                fluent, value = self._evaluate_effect(
+                    effect, state, updated_values, assigned_fluent, em
+                )
+            except UPConflictingEffectsException:
+                return None
             if fluent is not None:
                 assert value is not None
                 updated_values[fluent] = value
@@ -282,9 +282,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     or old_value.constant_value() != v.constant_value()
                 ):
                     if not f.type.is_bool_type():
-                        raise UPConflictingEffectsException(
-                            f"The fluent {f} is modified with different values in the same event."
-                        )
+                        return None
                     # solve with add-after-delete logic
                     elif not old_value.bool_constant_value():
                         updated_values[f] = v

@@ -164,12 +164,14 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert next_state is not None
         unsatisfied_goals = simulator.get_unsatisfied_goals(next_state)
         if not unsatisfied_goals:
-            if not metric is None:
-                msg = f"Evaluation of metric: {metric} -> {metric_value}"
-                logs = [LogMessage(LogLevel.INFO, msg)]
-            else:
-                logs = []
-            return ValidationResult(ValidationResultStatus.VALID, self.name, logs)
+            metric_evalutations = None
+            if metric is not None:
+                assert metric_value.is_int_constant() or metric_value.is_real_constant()
+                metric_evalutations = {metric: metric_value.constant_value()}
+            logs = []
+            return ValidationResult(
+                ValidationResultStatus.VALID, self.name, logs, metric_evalutations
+            )
         else:
             msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
             logs = [LogMessage(LogLevel.INFO, msg)]

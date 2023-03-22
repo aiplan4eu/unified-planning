@@ -269,7 +269,7 @@ class SequentialSimulatorMixin:
         state: "up.model.State",
         action: "up.model.Action",
         parameters: Tuple["up.model.FNode", ...],
-    ) -> "up.model.State":
+    ) -> Optional["up.model.State"]:
         """
         Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.apply_unsafe.
         """

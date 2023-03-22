@@ -70,22 +70,27 @@ class TestProblem(TestCase):
         problem = problem.clone()
         problem.add_quality_metric(MinimizeSequentialPlanLength())
         res = pv.validate(problem, plan)
-        self.assertIn(
-            "Evaluation of metric: minimize sequential-plan-length -> 1", str(res)
-        )
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeSequentialPlanLength)
+            self.assertEqual(val, 1)
 
         problem, plan = self.problems["locations_connected_visited_oversubscription"]
         res = pv.validate(problem, plan)
-        self.assertIn(
-            "Evaluation of metric: oversubscription planning goals: {visited(l2): 9, (visited(l2)"
-            + " or visited(l3)): 5, (Forall (Location loc_var) (visited(loc_var) or (loc_var == l2))"
-            + " and (not visited(l2))): 10} -> 15",
-            str(res),
-        )
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, Oversubscription)
+            self.assertEqual(val, 15)
 
         problem, plan = self.problems["locations_connected_cost_minimize"]
         res = pv.validate(problem, plan)
-        self.assertIn(
-            "Evaluation of metric: minimize actions-cost: {'move': distance(l_from, l_to), 'default': None} -> 10",
-            str(res),
-        )
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeActionCosts)
+            self.assertEqual(val, 10)

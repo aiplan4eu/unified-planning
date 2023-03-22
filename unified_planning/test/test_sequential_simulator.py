@@ -185,20 +185,10 @@ class TestSimulator(TestCase):
             init = simulator.get_initial_state()
 
             self.assertTrue(simulator.is_applicable(init, test_int))
-            with self.assertRaises(UPConflictingEffectsException) as conflicting_error:
-                _ = simulator.apply(init, test_int)
-            self.assertEqual(
-                str(conflicting_error.exception),
-                f"The fluent {fluent.name} is modified by 2 different assignments in the same event.",
-            )
+            self.assertIsNone(simulator.apply(init, test_int))
 
             new_state = simulator.apply(init, unset_cond_2)
-            with self.assertRaises(UPConflictingEffectsException) as conflicting_error:
-                _ = simulator.apply(new_state, test_int)
-            self.assertEqual(
-                str(conflicting_error.exception),
-                f"The fluent {fluent.name} is modified by an assignment and an increase/decrease in the same event.",
-            )
+            self.assertIsNone(simulator.apply(new_state, test_int))
 
             new_state = simulator.apply(new_state, unset_cond_3)
             test_state = simulator.apply(new_state, test_int)
