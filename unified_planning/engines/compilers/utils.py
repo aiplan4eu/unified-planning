@@ -323,7 +323,6 @@ def add_invariant_condition_apply_function_to_problem_expressions(
     if function is None:
         function = lambda x: x
     new_to_old: Dict[Action, Action] = {}
-    old_to_new: Dict[Action, Action] = {}
 
     for constraint in original_problem.trajectory_constraints:
         new_problem.add_trajectory_constraint(function(constraint))
@@ -381,7 +380,6 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             raise NotImplementedError
         new_problem.add_action(new_action)
         new_to_old[new_action] = original_action
-        old_to_new[original_action] = new_action
 
     for interval, goal_list in original_problem.timed_goals.items():
         new_goal = em.And(*map(function, goal_list), condition).simplify()
@@ -407,7 +405,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
     for qm in original_problem.quality_metrics:
         if isinstance(qm, MinimizeActionCosts):
             new_costs = {}
-            for old_a, new_a in old_to_new.items():
+            for new_a, old_a in new_to_old.items():
                 cost = qm.get_action_cost(old_a)
                 if cost is not None:
                     cost = function(cost)
