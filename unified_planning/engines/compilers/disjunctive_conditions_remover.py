@@ -209,6 +209,27 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             )
             new_problem.add_timed_goal(t, goal_to_add)
 
+        # Every meaningful action must set to False every new fluent added.
+        # For the DurativeActions this must happen every time the action modifies something
+        em = env.expression_manager
+        # new_effects is the List of effects that must be added to every meaningful action
+        new_effects: List["up.model.Effect"] = [
+            up.model.Effect(em.FluentExp(f), em.FALSE(), em.TRUE()) for f in new_fluents
+        ]
+        for a in meaningful_actions:
+            # Since we modify the action that is a key in the Dict, we must update the mapping
+            old_action = new_to_old.pop(a)
+            if isinstance(a, InstantaneousAction):
+                for e in new_effects:
+                    a._add_effect_instance(e)
+            elif isinstance(a, DurativeAction):
+                for tim in a.effects:
+                    for e in new_effects:
+                        a._add_effect_instance(tim, e)
+            else:
+                raise NotImplementedError
+            new_to_old[a] = old_action
+
         for qm in problem.quality_metrics:
             if isinstance(qm, MinimizeActionCosts):
                 new_costs = {}
@@ -238,26 +259,6 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                 )
             else:
                 new_problem.add_quality_metric(qm)
-        # Every meaningful action must set to False every new fluent added.
-        # For the DurativeActions this must happen every time the action modifies something
-        em = env.expression_manager
-        # new_effects is the List of effects that must be added to every meaningful action
-        new_effects: List["up.model.Effect"] = [
-            up.model.Effect(em.FluentExp(f), em.FALSE(), em.TRUE()) for f in new_fluents
-        ]
-        for a in meaningful_actions:
-            # Since we modify the action that is a key in the Dict, we must update the mapping
-            old_action = new_to_old.pop(a)
-            if isinstance(a, InstantaneousAction):
-                for e in new_effects:
-                    a._add_effect_instance(e)
-            elif isinstance(a, DurativeAction):
-                for tim in a.effects:
-                    for e in new_effects:
-                        a._add_effect_instance(tim, e)
-            else:
-                raise NotImplementedError
-            new_to_old[a] = old_action
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
