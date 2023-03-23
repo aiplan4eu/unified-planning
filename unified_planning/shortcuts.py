@@ -641,19 +641,21 @@ def PlanRepairer(
     name: Optional[str] = None,
     params: Optional[Dict[str, Any]] = None,
     problem_kind: ProblemKind = ProblemKind(),
+    plan_kind: Optional[Union["PlanKind", str]] = None,
     optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a plan repairer. There are two ways to call this method:
     - using 'name' (the name of a plan repairer) and eventually 'params'.
       e.g. PlanRepairer(name='xxx')
-    - using 'problem_kind' and 'optimality_guarantee'.
-      e.g. PlanRepairer(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+    - using 'problem_kind', 'plan_kind' and 'optimality_guarantee'.
+      e.g. PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)
     """
     return get_environment().factory.PlanRepairer(
         name=name,
         params=params,
         problem_kind=problem_kind,
+        plan_kind=plan_kind,
         optimality_guarantee=optimality_guarantee,
     )
 
