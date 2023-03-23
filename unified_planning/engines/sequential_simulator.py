@@ -41,7 +41,7 @@ from unified_planning.model import (
 )
 from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import StateEvaluator
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union, cast
 
 
 class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
@@ -102,108 +102,35 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         assert isinstance(self._problem, Problem), "supported_kind not respected"
         return UPState(self._problem.initial_values)
 
-    def _get_unsatisfied_conditions(
+    def _is_applicable(
         self,
         state: "up.model.State",
         action: "up.model.Action",
         parameters: Tuple["up.model.FNode", ...],
-        early_termination: bool = False,
-    ) -> List["up.model.FNode"]:
+    ) -> bool:
         """
-        Returns the list of `unsatisfied action's conditions` evaluated in the given `state`.
-        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
-        Note that the returned list might also contain conditions that were not originally in the action, if this
-        action violates some other semantic bound (for example bounded types).
+        Returns `True` if the given `action conditions` are evaluated as `True` in the given `state`;
+        returns `False` otherwise.
 
-        :param state: The state in which the given action's conditions are checked.
-        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
+        :param state: The state in which the given action is checked for applicability.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` that must be checked
+            for applicability.
         :param parameters: The parameters to ground the given `Action`. This param must be `None` if
             an `ActionInstance` is given instead.
-        :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
-            `condition` evaluated to `False` if the flag `early_termination` is set.
+        :return: Whether or not the action is applicable in the given `state`.
         """
-        g_action = self._ground_action(action, parameters)
-        if g_action is None:
-            raise UPInvalidActionError(
-                "The given action grounded with the given parameters does not create a valid action."
-            )
-        unsatisfied_conditions = []
-        for c in g_action.preconditions:
-            evaluated_cond = self._se.evaluate(c, state)
-            if (
-                not evaluated_cond.is_bool_constant()
-                or not evaluated_cond.bool_constant_value()
-            ):
-                unsatisfied_conditions.append(c)
-                if early_termination:
-                    return unsatisfied_conditions
-
-        # check that the assignments will respect the bound typing
-        new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
-        assigned_fluent: Set["up.model.FNode"] = set()
-        em = self._problem.environment.expression_manager
-        for effect in g_action.effects:
-            lower_bound, upper_bound = None, None
-            f_type = effect.fluent.type
-            if f_type.is_int_type() or f_type.is_real_type():
-                f_type = cast(_RealType, effect.fluent.type)
-                lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
-            if lower_bound is not None or upper_bound is not None:
-                fluent, value = self._evaluate_effect(
-                    effect, state, new_bounded_types_values, assigned_fluent, em
+        try:
+            is_applicable = (
+                len(
+                    self.get_unsatisfied_conditions(
+                        state, action, parameters, early_termination=True
+                    )
                 )
-                if fluent is not None:
-                    assert value is not None
-                    new_bounded_types_values[fluent] = value
-                    if lower_bound is not None and lower_bound > cast(
-                        Fraction, value.constant_value()
-                    ):
-                        unsatisfied_conditions.append(em.LE(lower_bound, fluent))
-                        if early_termination:
-                            return unsatisfied_conditions
-                    if upper_bound is not None and upper_bound < cast(
-                        Fraction, value.constant_value()
-                    ):
-                        unsatisfied_conditions.append(em.LE(fluent, upper_bound))
-                        if early_termination:
-                            return unsatisfied_conditions
-        if g_action.simulated_effect is not None:
-            to_check = False
-            for f in g_action.simulated_effect.fluents:
-                f_type = cast(_RealType, f.type)
-                if (f_type.is_int_type() or f_type.is_real_type()) and (
-                    f_type.lower_bound is not None or f_type.upper_bound is not None
-                ):
-                    to_check = True
-                    break
-            if to_check:
-                for f, v in zip(
-                    g_action.simulated_effect.fluents,
-                    g_action.simulated_effect.function(self._problem, state, {}),
-                ):
-                    lower_bound, upper_bound = None, None
-                    if f.type.is_int_type() or f.type.is_real_type():
-                        f_type = cast(_RealType, f.type)
-                        lower_bound, upper_bound = (
-                            f_type.lower_bound,
-                            f_type.upper_bound,
-                        )
-                    if lower_bound is not None or upper_bound is not None:
-                        if (
-                            lower_bound is not None
-                            and cast(Fraction, v.constant_value()) < lower_bound
-                        ):
-                            unsatisfied_conditions.append(em.LE(lower_bound, f))
-                            if early_termination:
-                                break
-                        if (
-                            upper_bound is not None
-                            and cast(Fraction, v.constant_value()) > upper_bound
-                        ):
-                            unsatisfied_conditions.append(em.LE(f, upper_bound))
-                            if early_termination:
-                                break
-        return unsatisfied_conditions
+                == 0
+            )
+        except UPInvalidActionError:
+            is_applicable = False
+        return is_applicable
 
     def _apply(
         self,
@@ -229,11 +156,11 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         else:
             return self.apply_unsafe(state, action, parameters)
 
-    def _apply_unsafe(
+    def apply_unsafe(
         self,
         state: "up.model.State",
-        action: "up.model.Action",
-        parameters: Tuple["up.model.FNode", ...],
+        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
     ) -> Optional["up.model.State"]:
         """
         Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
@@ -248,11 +175,14 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :return: The new `State` created by the given action; `None` if the evaluation of the effects
             creates conflicting effects.
         """
+        action, params = self._get_action_and_parameters(
+            action_or_action_instance, parameters
+        )
         if not isinstance(state, up.model.UPState):
             raise UPUsageError(
                 f"The UPSequentialSimulator uses the UPState but {type(state)} is given."
             )
-        grounded_action = self._ground_action(action, parameters)
+        grounded_action = self._ground_action(action, params)
         if grounded_action is None:
             return None
         assert isinstance(action, up.model.InstantaneousAction)
@@ -387,7 +317,114 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             if self._is_applicable(state, original_action, params):
                 yield (original_action, params)
 
-    def _get_unsatisfied_goals(
+    def get_unsatisfied_conditions(
+        self,
+        state: "up.model.State",
+        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
+        early_termination: bool = False,
+    ) -> List["up.model.FNode"]:
+        """
+        Returns the list of `unsatisfied action's conditions` evaluated in the given `state`.
+        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
+        Note that the returned list might also contain conditions that were not originally in the action, if this
+        action violates some other semantic bound (for example bounded types).
+
+        :param state: The state in which the given action's conditions are checked.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
+            `condition` evaluated to `False` if the flag `early_termination` is set.
+        """
+        action, params = self._get_action_and_parameters(
+            action_or_action_instance,
+            parameters,
+        )
+        g_action = self._ground_action(action, params)
+        if g_action is None:
+            raise UPInvalidActionError(
+                "The given action grounded with the given parameters does not create a valid action."
+            )
+        unsatisfied_conditions = []
+        for c in g_action.preconditions:
+            evaluated_cond = self._se.evaluate(c, state)
+            if (
+                not evaluated_cond.is_bool_constant()
+                or not evaluated_cond.bool_constant_value()
+            ):
+                unsatisfied_conditions.append(c)
+                if early_termination:
+                    return unsatisfied_conditions
+
+        # check that the assignments will respect the bound typing
+        new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
+        assigned_fluent: Set["up.model.FNode"] = set()
+        em = self._problem.environment.expression_manager
+        for effect in g_action.effects:
+            lower_bound, upper_bound = None, None
+            f_type = effect.fluent.type
+            if f_type.is_int_type() or f_type.is_real_type():
+                f_type = cast(_RealType, effect.fluent.type)
+                lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
+            if lower_bound is not None or upper_bound is not None:
+                fluent, value = self._evaluate_effect(
+                    effect, state, new_bounded_types_values, assigned_fluent, em
+                )
+                if fluent is not None:
+                    assert value is not None
+                    new_bounded_types_values[fluent] = value
+                    if lower_bound is not None and lower_bound > cast(
+                        Fraction, value.constant_value()
+                    ):
+                        unsatisfied_conditions.append(em.LE(lower_bound, fluent))
+                        if early_termination:
+                            return unsatisfied_conditions
+                    if upper_bound is not None and upper_bound < cast(
+                        Fraction, value.constant_value()
+                    ):
+                        unsatisfied_conditions.append(em.LE(fluent, upper_bound))
+                        if early_termination:
+                            return unsatisfied_conditions
+        if g_action.simulated_effect is not None:
+            to_check = False
+            for f in g_action.simulated_effect.fluents:
+                f_type = cast(_RealType, f.type)
+                if (f_type.is_int_type() or f_type.is_real_type()) and (
+                    f_type.lower_bound is not None or f_type.upper_bound is not None
+                ):
+                    to_check = True
+                    break
+            if to_check:
+                for f, v in zip(
+                    g_action.simulated_effect.fluents,
+                    g_action.simulated_effect.function(self._problem, state, {}),
+                ):
+                    lower_bound, upper_bound = None, None
+                    if f.type.is_int_type() or f.type.is_real_type():
+                        f_type = cast(_RealType, f.type)
+                        lower_bound, upper_bound = (
+                            f_type.lower_bound,
+                            f_type.upper_bound,
+                        )
+                    if lower_bound is not None or upper_bound is not None:
+                        if (
+                            lower_bound is not None
+                            and cast(Fraction, v.constant_value()) < lower_bound
+                        ):
+                            unsatisfied_conditions.append(em.LE(lower_bound, f))
+                            if early_termination:
+                                break
+                        if (
+                            upper_bound is not None
+                            and cast(Fraction, v.constant_value()) > upper_bound
+                        ):
+                            unsatisfied_conditions.append(em.LE(f, upper_bound))
+                            if early_termination:
+                                break
+        return unsatisfied_conditions
+
+    def get_unsatisfied_goals(
         self, state: "up.model.State", early_termination: bool = False
     ) -> List["up.model.FNode"]:
         """
@@ -406,6 +443,12 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 if early_termination:
                     break
         return unsatisfied_goals
+
+    def _is_goal(self, state: "up.model.State") -> bool:
+        """
+        is_goal implementation
+        """
+        return len(self.get_unsatisfied_goals(state, early_termination=True)) == 0
 
     @property
     def name(self) -> str:

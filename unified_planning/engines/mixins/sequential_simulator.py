@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import inspect
 from typing import Iterator, List, Optional, Tuple, Union, Sequence
 from warnings import warn
 import unified_planning as up
@@ -48,13 +49,10 @@ class SequentialSimulatorMixin:
             else:
                 warn(msg)
 
-    def _handle_parameters_polymorphism(
+    def _get_action_and_parameters(
         self,
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[
-            Union["up.model.Expression", Sequence["up.model.Expression"]]
-        ],
-        method_name: str,
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
     ) -> Tuple["up.model.Action", Tuple["up.model.FNode", ...]]:
         """
         This is a utility method to handle the methods polymorphism.
@@ -69,8 +67,10 @@ class SequentialSimulatorMixin:
         """
         if isinstance(action_or_action_instance, up.plans.ActionInstance):
             if parameters is not None:
+                method_name = inspect.stack()[1].function
+                assert isinstance(self, up.engines.engine.Engine)
                 raise UPUsageError(
-                    f"{type(self)}.{method_name} method does not accept an ActionInstance and also the parameters."
+                    f"{self.name}.{method_name} method does not accept an ActionInstance and also the parameters."
                 )
             act = action_or_action_instance.action
             params = action_or_action_instance.actual_parameters
@@ -80,15 +80,16 @@ class SequentialSimulatorMixin:
         auto_promote = self._problem.environment.expression_manager.auto_promote
         if parameters is None:
             params = tuple()
-        elif isinstance(parameters, Sequence):
-            params = tuple(auto_promote(parameters))
         else:
-            params = tuple(auto_promote([parameters]))
+            assert isinstance(parameters, Sequence), "Typing not respected"
+            params = tuple(auto_promote(parameters))
         if len(params) != len(act.parameters) or any(
             not ap.type.is_compatible(p.type) for p, ap in zip(params, act.parameters)
         ):
+            method_name = inspect.stack()[1].function
+            assert isinstance(self, up.engines.engine.Engine)
             raise UPUsageError(
-                f"The parameters given to the {type(self)}.{method_name} method are ",
+                f"The parameters given to the {self.name}.{method_name} method are ",
                 "not compatible with the given action's parameters.",
             )
         return act, params
@@ -110,9 +111,7 @@ class SequentialSimulatorMixin:
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[
-            Union["up.model.Expression", Sequence["up.model.Expression"]]
-        ] = None,
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
     ) -> bool:
         """
         Returns `True` if the given `action conditions` are evaluated as `True` in the given `state`;
@@ -125,10 +124,9 @@ class SequentialSimulatorMixin:
             an `ActionInstance` is given instead.
         :return: Whether or not the action is applicable in the given `state`.
         """
-        act, params = self._handle_parameters_polymorphism(
+        act, params = self._get_action_and_parameters(
             action_or_action_instance,
             parameters,
-            "is_applicable",
         )
         return self._is_applicable(state, act, params)
 
@@ -141,69 +139,13 @@ class SequentialSimulatorMixin:
         """
         Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.is_applicable.
         """
-        try:
-            is_applicable = (
-                len(
-                    self.get_unsatisfied_conditions(
-                        state, action, parameters, early_termination=True
-                    )
-                )
-                == 0
-            )
-        except UPInvalidActionError:
-            is_applicable = False
-        return is_applicable
-
-    def get_unsatisfied_conditions(
-        self,
-        state: "up.model.State",
-        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[
-            Union["up.model.Expression", Sequence["up.model.Expression"]]
-        ] = None,
-        early_termination: bool = False,
-    ) -> List["up.model.FNode"]:
-        """
-        Returns the list of `unsatisfied action's conditions` evaluated in the given `state`.
-        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
-        Note that the returned list might also contain conditions that were not originally in the action, if this
-        action violates some other semantic bound (for example bounded types).
-
-        :param state: The state in which the given action's conditions are checked.
-        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
-        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
-            an `ActionInstance` is given instead.
-        :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
-            `condition` evaluated to `False` if the flag `early_termination` is set.
-        """
-        act, params = self._handle_parameters_polymorphism(
-            action_or_action_instance,
-            parameters,
-            "get_unsatisfied_conditions",
-        )
-        return self._get_unsatisfied_conditions(
-            state, act, params, early_termination=early_termination
-        )
-
-    def _get_unsatisfied_conditions(
-        self,
-        state: "up.model.State",
-        action: "up.model.Action",
-        parameters: Tuple["up.model.FNode", ...],
-        early_termination: bool = False,
-    ) -> List["up.model.FNode"]:
-        """
-        Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.get_unsatisfied_conditions.
-        """
         raise NotImplementedError
 
     def apply(
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[
-            Union["up.model.Expression", Sequence["up.model.Expression"]]
-        ] = None,
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
     ) -> Optional["up.model.State"]:
         """
         Returns `None` if the given `action` is not applicable in the given `state`, otherwise returns a new `State`,
@@ -218,10 +160,9 @@ class SequentialSimulatorMixin:
         :return: `None` if the `action` is not applicable in the given `state`, the new State generated
             if the action is applicable.
         """
-        act, params = self._handle_parameters_polymorphism(
+        act, params = self._get_action_and_parameters(
             action_or_action_instance,
             parameters,
-            "apply",
         )
         return self._apply(state, act, params)
 
@@ -233,45 +174,6 @@ class SequentialSimulatorMixin:
     ) -> Optional["up.model.State"]:
         """
         Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.apply.
-        """
-        raise NotImplementedError
-
-    def apply_unsafe(
-        self,
-        state: "up.model.State",
-        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[
-            Union["up.model.Expression", Sequence["up.model.Expression"]]
-        ] = None,
-    ) -> Optional["up.model.State"]:
-        """
-        Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
-        `action` are applied; therefore some `fluent` values are updated.
-        IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
-
-        :param state: The state in which the given action's conditions are checked and the effects evaluated.
-        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
-            and effects evaluated.
-        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
-            an `ActionInstance` is given instead.
-        :return: The new `State` created by the given action; `None` if the evaluation of the effects
-            creates conflicting effects.
-        """
-        act, params = self._handle_parameters_polymorphism(
-            action_or_action_instance,
-            parameters,
-            "apply_unsafe",
-        )
-        return self._apply_unsafe(state, act, params)
-
-    def _apply_unsafe(
-        self,
-        state: "up.model.State",
-        action: "up.model.Action",
-        parameters: Tuple["up.model.FNode", ...],
-    ) -> Optional["up.model.State"]:
-        """
-        Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.apply_unsafe.
         """
         raise NotImplementedError
 
@@ -312,26 +214,5 @@ class SequentialSimulatorMixin:
     def _is_goal(self, state: "up.model.State") -> bool:
         """
         Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.is_goal.
-        """
-        return len(self.get_unsatisfied_goals(state, early_termination=True)) == 0
-
-    def get_unsatisfied_goals(
-        self, state: "up.model.State", early_termination: bool = False
-    ) -> List["up.model.FNode"]:
-        """
-        Returns the list of `unsatisfied goals` evaluated in the given `state`.
-        If the flag `early_termination` is set, the method ends and returns the first `unsatisfied goal`.
-
-        :param state: The `State` in which the `problem goals` are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied goal`.
-        :return: The list of all the `goals` that evaluated to `False` or the list containing the first `goal` evaluated to `False` if the flag `early_termination` is set.
-        """
-        return self._get_unsatisfied_goals(state, early_termination)
-
-    def _get_unsatisfied_goals(
-        self, state: "up.model.State", early_termination: bool = False
-    ) -> List["up.model.FNode"]:
-        """
-        Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.get_unsatisfied_goals.
         """
         raise NotImplementedError

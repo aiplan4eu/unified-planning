@@ -15,14 +15,14 @@
 
 import unified_planning as up
 import pytest
+from itertools import product
 from unified_planning.shortcuts import *
 from unified_planning.engines import UPSequentialSimulator, SequentialSimulatorMixin
 from unified_planning.model import State
+from unified_planning.plans import ActionInstance
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
-from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
-from itertools import product
-from typing import cast
+from unified_planning.exceptions import UPUsageError
 
 
 class TestSimulator(TestCase):
@@ -115,6 +115,14 @@ class TestSimulator(TestCase):
         assert state is not None
 
         self.assertTrue(simulator.is_goal(state))
+
+        with self.assertRaises(UPUsageError):
+            _ = simulator.apply(state, move, (ts_1, block_3, block_2))
+        with self.assertRaises(UPUsageError):
+            ai = ActionInstance(
+                move, (ObjectExp(ts_1), ObjectExp(block_3), ObjectExp(block_2))
+            )
+            _ = simulator.apply(state, ai, (ts_1, block_3, block_2))
 
     def test_with_sequential_simulator_instance(self):
         problem = self.problems["hierarchical_blocks_world"].problem
