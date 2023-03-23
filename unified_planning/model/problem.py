@@ -679,6 +679,7 @@ class Problem(  # type: ignore[misc]
                 self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_assignment():
             value_type = value.type
+            value = e.value
             if (
                 value_type.is_int_type() or value_type.is_real_type()
             ):  # the value is a number
@@ -689,6 +690,10 @@ class Problem(  # type: ignore[misc]
                     or not value.is_constant()
                 ):
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                if not value.is_int_constant() and not value.is_real_constant():
+                    self._kind.set_effects_kind("NON_CONSTANT_NUMERIC_ASSIGNMENT")
+            elif value.is_bool_type() and not value.is_bool_constant():
+                self._kind.set_effects_kind("NON_CONSTANT_BOOLEAN_ASSIGNMENT")
 
     def _update_problem_kind_condition(
         self,

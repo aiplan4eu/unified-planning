@@ -31,6 +31,8 @@ from unified_planning.model import (
     Parameter,
     Problem,
     Object,
+    Effect,
+    Timing,
 )
 from unified_planning.exceptions import (
     UPTypeError,
@@ -318,10 +320,16 @@ class ConverterToPDDLString(walkers.DagWalker):
 class PDDLWriter:
     """This class can be used to write a :class:`~unified_planning.model.Problem` in `PDDL`."""
 
-    def __init__(self, problem: "up.model.Problem", needs_requirements: bool = True):
+    def __init__(
+        self,
+        problem: "up.model.Problem",
+        needs_requirements: bool = True,
+        write_non_constant_bool_assignment: bool = False,
+    ):
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
+        self.write_non_constant_bool_assignment = write_non_constant_bool_assignment
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
             Union[
@@ -528,29 +536,13 @@ class PDDLWriter:
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
-                        simplified_cond = e.condition.simplify()
-                        if not simplified_cond.is_true():
-                            if simplified_cond.is_false():
-                                continue
-                            out.write(f" (when {converter.convert(simplified_cond)}")
-                        if e.value.is_true():
-                            out.write(f" {converter.convert(e.fluent)}")
-                        elif e.value.is_false():
-                            out.write(f" (not {converter.convert(e.fluent)})")
-                        elif e.is_increase():
-                            out.write(
-                                f" (increase {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                            )
-                        elif e.is_decrease():
-                            out.write(
-                                f" (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                            )
-                        else:
-                            out.write(
-                                f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                            )
-                        if not simplified_cond.is_true():
-                            out.write(f")")
+                        _write_effect(
+                            e,
+                            None,
+                            out,
+                            converter,
+                            self.write_non_constant_bool_assignment,
+                        )
 
                     if a in costs:
                         out.write(
@@ -609,35 +601,13 @@ class PDDLWriter:
                     out.write("\n  :effect (and")
                     for t, el in a.effects.items():
                         for e in el:
-                            simplified_cond = e.condition.simplify()
-                            if simplified_cond.is_false():
-                                continue
-                            if t.is_from_start():
-                                out.write(f" (at start")
-                            else:
-                                out.write(f" (at end")
-                            if not simplified_cond.is_true():
-                                out.write(f" (when {converter.convert(e.condition)}")
-                            simplified_value = e.value.simplify()
-                            if simplified_value.is_true():
-                                out.write(f" {converter.convert(e.fluent)}")
-                            elif simplified_value.is_false():
-                                out.write(f" (not {converter.convert(e.fluent)})")
-                            elif e.is_increase():
-                                out.write(
-                                    f" (increase {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
-                                )
-                            elif e.is_decrease():
-                                out.write(
-                                    f" (decrease {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
-                                )
-                            else:
-                                out.write(
-                                    f" (assign {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
-                                )
-                            if not simplified_cond.is_true():
-                                out.write(")")
-                            out.write(")")
+                            _write_effect(
+                                e,
+                                t,
+                                out,
+                                converter,
+                                self.write_non_constant_bool_assignment,
+                            )
                     if a in costs:
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
@@ -924,3 +894,91 @@ def _update_domain_objects(
     for ut, os in values.items():
         os_to_update = dict_to_update.setdefault(ut, set())
         os_to_update |= os
+
+
+def _write_effect(
+    effect: Effect,
+    timing: Optional[Timing],
+    out: IO[str],
+    converter: ConverterToPDDLString,
+    write_non_constant_bool_assignment: bool,
+):
+    simplified_cond = effect.condition.simplify()
+    # check for non-constant-bool-assignment
+    non_const_bool_ass = (
+        effect.value.type.is_bool_type()
+        and not effect.value.is_true()
+        and not effect.value.is_false()
+    )
+    if non_const_bool_ass and not write_non_constant_bool_assignment:
+        raise UPProblemDefinitionError(
+            "The problem has non-constant boolean assignments.This can't be directly written ",
+            "in PDDL, but it can be translated into a conditional effect maintaining the ",
+            "semantic. To enable this feature, set the flag write_non_constant_bool_assignment",
+            " to True in the PDDLWriter constructor.",
+        )
+    simplified_cond = effect.condition.simplify()
+    if non_const_bool_ass:
+        assert effect.is_assignment()
+        positive_cond = (simplified_cond & effect.value).simplify()
+        if not positive_cond.is_false():
+            if timing is not None:
+                if timing.is_from_start():
+                    out.write(f" (at start")
+                else:
+                    out.write(f" (at end")
+            if positive_cond.is_true():
+                out.write(f" {converter.convert(effect.fluent)}")
+            else:
+                out.write(
+                    f" (when {converter.convert(positive_cond)} {converter.convert(effect.fluent)})"
+                )
+            if timing is not None:
+                out.write(")")
+        negative_cond = (simplified_cond & effect.value.Not()).simplify()
+        if not negative_cond.is_false():
+            if timing is not None:
+                if timing.is_from_start():
+                    out.write(f" (at start")
+                else:
+                    out.write(f" (at end")
+            if negative_cond.is_true():
+                out.write(f" {converter.convert(effect.fluent)}")
+            else:
+                out.write(
+                    f" (when {converter.convert(negative_cond)} (not {converter.convert(effect.fluent)}))"
+                )
+            if timing is not None:
+                out.write(")")
+        return
+
+    if simplified_cond.is_false():
+        return
+    if timing is not None:
+        if timing.is_from_start():
+            out.write(f" (at start")
+        else:
+            out.write(f" (at end")
+    if not simplified_cond.is_true():
+        out.write(f" (when {converter.convert(effect.condition)}")
+    simplified_value = effect.value.simplify()
+    if simplified_value.is_true():
+        out.write(f" {converter.convert(effect.fluent)}")
+    elif simplified_value.is_false():
+        out.write(f" (not {converter.convert(effect.fluent)})")
+    elif effect.is_increase():
+        out.write(
+            f" (increase {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
+        )
+    elif effect.is_decrease():
+        out.write(
+            f" (decrease {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
+        )
+    else:
+        out.write(
+            f" (assign {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
+        )
+    if not simplified_cond.is_true():
+        out.write(")")
+    if timing is not None:
+        out.write(")")

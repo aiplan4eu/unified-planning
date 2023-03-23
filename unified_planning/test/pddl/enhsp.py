@@ -168,6 +168,8 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("NON_CONSTANT_BOOLEAN_ASSIGNMENT")
+        supported_kind.set_effects_kind("NON_CONSTANT_NUMERIC_ASSIGNMENT")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_quality_metrics("FINAL_VALUE")

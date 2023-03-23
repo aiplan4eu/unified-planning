@@ -46,6 +46,7 @@ from unified_planning.io.pddl_writer import (
     ConverterToPDDLString,
     PDDL_KEYWORDS,
     INITIAL_LETTER,
+    _write_effect,
 )
 
 
@@ -93,11 +94,13 @@ class MAPDDLWriter:
         self,
         problem: "up.model.multi_agent.MultiAgentProblem",
         needs_requirements: bool = True,
+        write_non_constant_bool_assignment: bool = False,
     ):
         self._env = problem.environment
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
+        self.write_non_constant_bool_assignment = write_non_constant_bool_assignment
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
             Union[
@@ -431,26 +434,13 @@ class MAPDDLWriter:
                     if len(a.effects) > 0:
                         out.write("\n  :effect (and\n")
                         for e in a.effects:
-                            if e.is_conditional():
-                                out.write(f"   (when {converter.convert(e.condition)}")
-                            if e.value.is_true():
-                                out.write(f"   {converter.convert(e.fluent)}\n")
-                            elif e.value.is_false():
-                                out.write(f"   (not {converter.convert(e.fluent)})\n")
-                            elif e.is_increase():
-                                out.write(
-                                    f"   (increase {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
-                                )
-                            elif e.is_decrease():
-                                out.write(
-                                    f"   (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
-                                )
-                            else:
-                                out.write(
-                                    f"   (assign {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
-                                )
-                            if e.is_conditional():
-                                out.write(f")\n")
+                            _write_effect(
+                                e,
+                                None,
+                                out,
+                                converter,
+                                self.write_non_constant_bool_assignment,
+                            )
 
                         if a in costs:
                             out.write(
@@ -505,33 +495,13 @@ class MAPDDLWriter:
                         out.write("\n  :effect (and")
                         for t, el in a.effects.items():
                             for e in el:
-                                if t.is_from_start():
-                                    out.write(f" (at start")
-                                else:
-                                    out.write(f" (at end")
-                                if e.is_conditional():
-                                    out.write(
-                                        f" (when {converter.convert(e.condition)}"
-                                    )
-                                if e.value.is_true():
-                                    out.write(f" {converter.convert(e.fluent)}")
-                                elif e.value.is_false():
-                                    out.write(f" (not {converter.convert(e.fluent)})")
-                                elif e.is_increase():
-                                    out.write(
-                                        f" (increase {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                                    )
-                                elif e.is_decrease():
-                                    out.write(
-                                        f" (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                                    )
-                                else:
-                                    out.write(
-                                        f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                                    )
-                                if e.is_conditional():
-                                    out.write(f")")
-                                out.write(")")
+                                _write_effect(
+                                    e,
+                                    t,
+                                    out,
+                                    converter,
+                                    self.write_non_constant_bool_assignment,
+                                )
                         if a in costs:
                             out.write(
                                 f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
