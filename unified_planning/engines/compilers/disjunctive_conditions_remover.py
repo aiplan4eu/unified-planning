@@ -29,6 +29,7 @@ from unified_planning.model import (
     Timing,
     Action,
     ProblemKind,
+    MinimizeActionCosts,
     Oversubscription,
     TemporalOversubscription,
 )
@@ -208,27 +209,6 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             )
             new_problem.add_timed_goal(t, goal_to_add)
 
-        for qm in problem.quality_metrics:
-            if isinstance(qm, Oversubscription):
-                new_oversubscription = {}
-                for g, v in qm.goals.items():
-                    new_goal = self._goals_without_disjunctions_adding_new_elements(
-                        dnf, new_problem, new_to_old, new_fluents, [g]
-                    )
-                    new_oversubscription[new_goal] = v
-                new_problem.add_quality_metric(Oversubscription(new_oversubscription))
-            elif isinstance(qm, TemporalOversubscription):
-                new_temporal_oversubscription = {}
-                for (t, g), v in qm.goals.items():
-                    new_goal = self._goals_without_disjunctions_adding_new_elements(
-                        dnf, new_problem, new_to_old, new_fluents, [g]
-                    )
-                    new_temporal_oversubscription[(t, new_goal)] = v
-                new_problem.add_quality_metric(
-                    TemporalOversubscription(new_temporal_oversubscription)
-                )
-            else:
-                new_problem.add_quality_metric(qm)
         # Every meaningful action must set to False every new fluent added.
         # For the DurativeActions this must happen every time the action modifies something
         em = env.expression_manager
@@ -249,6 +229,36 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
             new_to_old[a] = old_action
+
+        for qm in problem.quality_metrics:
+            if isinstance(qm, MinimizeActionCosts):
+                new_costs = {}
+                for new_act, old_act in new_to_old.items():
+                    if old_act is not None:
+                        new_costs[new_act] = qm.get_action_cost(old_act)
+                    else:
+                        new_costs[new_act] = em.Int(0)
+                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+            elif isinstance(qm, Oversubscription):
+                new_oversubscription = {}
+                for g, v in qm.goals.items():
+                    new_goal = self._goals_without_disjunctions_adding_new_elements(
+                        dnf, new_problem, new_to_old, new_fluents, [g]
+                    )
+                    new_oversubscription[new_goal] = v
+                new_problem.add_quality_metric(Oversubscription(new_oversubscription))
+            elif isinstance(qm, TemporalOversubscription):
+                new_temporal_oversubscription = {}
+                for (t, g), v in qm.goals.items():
+                    new_goal = self._goals_without_disjunctions_adding_new_elements(
+                        dnf, new_problem, new_to_old, new_fluents, [g]
+                    )
+                    new_temporal_oversubscription[(t, new_goal)] = v
+                new_problem.add_quality_metric(
+                    TemporalOversubscription(new_temporal_oversubscription)
+                )
+            else:
+                new_problem.add_quality_metric(qm)
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name

@@ -23,7 +23,7 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPConflictingEffectsException,
 )
-from unified_planning.model import Problem, ProblemKind
+from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     check_and_simplify_preconditions,
@@ -257,6 +257,17 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             new_problem.add_action(new_action)
             else:
                 raise NotImplementedError
+
+        new_problem.clear_quality_metrics()
+        for qm in problem.quality_metrics:
+            if isinstance(qm, MinimizeActionCosts):
+                new_costs = {
+                    new_act: qm.get_action_cost(old_act)
+                    for new_act, old_act in new_to_old.items()
+                }
+                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+            else:
+                new_problem.add_quality_metric(qm)
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
