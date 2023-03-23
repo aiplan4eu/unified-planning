@@ -415,13 +415,11 @@ class Factory:
                 if (
                     operation_mode == OperationMode.ONESHOT_PLANNER
                     or operation_mode == OperationMode.REPLANNER
-                    or operation_mode == OperationMode.PLAN_REPAIRER
                     or operation_mode == OperationMode.PORTFOLIO_SELECTOR
                 ):
                     assert (
                         issubclass(EngineClass, OneshotPlannerMixin)
                         or issubclass(EngineClass, ReplannerMixin)
-                        or issubclass(EngineClass, PlanRepairerMixin)
                         or issubclass(EngineClass, PortfolioSelectorMixin)
                     )
                     assert anytime_guarantee is None
@@ -457,6 +455,18 @@ class Factory:
                     assert plan_kind is None
                     if anytime_guarantee is not None and not EngineClass.ensures(
                         anytime_guarantee
+                    ):
+                        continue
+                elif operation_mode == OperationMode.PLAN_REPAIRER:
+                    assert issubclass(EngineClass, PlanRepairerMixin)
+                    assert anytime_guarantee is None
+                    assert compilation_kind is None
+                    if plan_kind is not None and not EngineClass.supports_plan(
+                        plan_kind
+                    ):
+                        continue
+                    if optimality_guarantee is not None and not EngineClass.satisfies(
+                        optimality_guarantee
                     ):
                         continue
                 else:
@@ -866,15 +876,18 @@ class Factory:
         name: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
         problem_kind: ProblemKind = ProblemKind(),
+        plan_kind: Optional[Union["PlanKind", str]] = None,
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
         """
         Returns a plan repairer. There are two ways to call this method:
         - using 'name' (the name of a plan repairer) and eventually 'params'.
           e.g. PlanRepairer(name='xxx')
-        - using 'problem_kind' and 'optimality_guarantee'.
-          e.g. PlanRepairer(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+        - using 'problem_kind', 'plan_kind' and 'optimality_guarantee'.
+          e.g. PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
+        if isinstance(plan_kind, str):
+            plan_kind = PlanKind[plan_kind]
         if isinstance(optimality_guarantee, str):
             optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
         return self._get_engine(
@@ -882,6 +895,7 @@ class Factory:
             name=name,
             params=params,
             problem_kind=problem_kind,
+            plan_kind=plan_kind,
             optimality_guarantee=optimality_guarantee,
         )
 
