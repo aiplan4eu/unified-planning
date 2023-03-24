@@ -83,7 +83,6 @@ class Problem(  # type: ignore[misc]
         self._timed_goals: Dict[
             "up.model.timing.TimeInterval", List["up.model.fnode.FNode"]
         ] = {}
-<<<<<<< HEAD
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
         self._fluents_assigned: Dict[
@@ -93,10 +92,6 @@ class Problem(  # type: ignore[misc]
         self._fluents_inc_dec: Dict[
             "up.model.timing.Timing", Set["up.model.fnode.FNode"]
         ] = {}
-=======
-        self._trajectory_constraints: List["up.model.fnode.FNode"] = []
-        self._goals: List["up.model.fnode.FNode"] = []
->>>>>>> ab29fede (Added epsilon field to problem, a method to extract the epsilon from a plan and a method that takes the epsilon of the plan, the epsilon from the problem and returns the PlanGenerationResultStatus considering also the epsilon difference)
 
     def __repr__(self) -> str:
         s = []
