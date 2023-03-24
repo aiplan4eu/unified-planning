@@ -21,6 +21,7 @@ import unified_planning.model.tamp
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
+    EpsilonSeparationMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
@@ -41,6 +42,7 @@ from typing import Optional, List, Dict, Set, Tuple, Union, cast
 class Problem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
+    EpsilonSeparationMixin,
     FluentsSetMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
@@ -62,6 +64,7 @@ class Problem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
+        EpsilonSeparationMixin.__init__(self, default=None)
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
@@ -74,7 +77,6 @@ class Problem(  # type: ignore[misc]
         InitialStateMixin.__init__(self, self, self, self.environment)
         MetricsMixin.__init__(self, self.environment)
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
-        self._epsilon: Optional[Fraction] = None
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
         ] = {}
@@ -230,8 +232,8 @@ class Problem(  # type: ignore[misc]
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
+        EpsilonSeparationMixin._clone_to(self, new_p)
 
-        new_p._epsilon = self._epsilon
         new_p._actions = [a.clone() for a in self._actions]
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
@@ -321,31 +323,6 @@ class Problem(  # type: ignore[misc]
                 if e.fluent.fluent() in static_fluents:
                     static_fluents.remove(e.fluent.fluent())
         return static_fluents
-
-    @property
-    def epsilon(self) -> Optional[Fraction]:
-        """
-        This parameter has meaning only in temporal problems: it defines the minimum
-        amount of time that can elapse between 2 temporal events. A temporal event can
-        be, for example, the start of an action, the end of an action, an intermediate
-        step of an action, a timed effect of the problem.
-
-        When None, it means that this minimum step is chosen by the Engine the Problem
-        is given to.
-        """
-        return self._epsilon
-
-    @epsilon.setter
-    def epsilon(self, new_value: Optional[Union[Real, Fraction]]):
-        if new_value is None:
-            pass
-        elif new_value < 0:
-            raise UPProblemDefinitionError(
-                "A negative epsilon is not valid and has no meaning!"
-            )
-        elif not isinstance(new_value, Fraction):
-            new_value = Fraction(float(new_value))
-        self._epsilon = new_value
 
     @property
     def timed_goals(
