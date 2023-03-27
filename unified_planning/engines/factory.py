@@ -45,6 +45,8 @@ DEFAULT_ENGINES = {
     "pyperplan-opt": ("up_pyperplan.engine", "OptEngineImpl"),
     "enhsp": ("up_enhsp.enhsp_planner", "ENHSPSatEngine"),
     "enhsp-opt": ("up_enhsp.enhsp_planner", "ENHSPOptEngine"),
+    "enhsp-any": ("up_enhsp.enhsp_planner", "ENHSPAnytimeEngine"),
+
     "tamer": ("up_tamer.engine", "EngineImpl"),
     "lpg": ("up_lpg.lpg_planner", "LPGEngine"),
     "lpg-anytime": ("up_lpg.lpg_planner", "LPGAnytimeEngine"),
@@ -113,6 +115,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "pyperplan-opt",
     "enhsp",
     "enhsp-opt",
+    "enhsp-any",
     "tamer",
     "sequential_plan_validator",
     "sequential_simulator",
