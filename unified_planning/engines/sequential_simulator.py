@@ -492,12 +492,12 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
 def evaluate_quality_metric(
     simulator: SequentialSimulatorMixin,
     quality_metric: "up.model.PlanQualityMetric",
-    metric_value: "up.model.FNode",
+    metric_value: Union[Fraction, int],
     state: "up.model.State",
     action: "up.model.Action",
     parameters: Tuple["up.model.FNode", ...],
     next_state: "up.model.State",
-) -> "up.model.FNode":
+) -> Union[Fraction, int]:
     """
     Evaluates the value of the given metric.
 
@@ -516,8 +516,6 @@ def evaluate_quality_metric(
         )
     se = StateEvaluator(simulator._problem)
     em = simulator._problem.environment.expression_manager
-    if not metric_value.is_int_constant() or metric_value.is_real_constant():
-        raise UPUsageError("The given metric value must be a numeric constant")
     if isinstance(quality_metric, MinimizeActionCosts):
         action_cost = quality_metric.get_action_cost(action)
         if action_cost is None:
@@ -531,20 +529,20 @@ def evaluate_quality_metric(
             )
         action_cost = action_cost.substitute(dict(zip(action.parameters, parameters)))
         assert isinstance(action_cost, up.model.FNode)
-        return se.evaluate(em.Plus(metric_value, action_cost), state)
+        return se.evaluate(action_cost, state).constant_value() + metric_value
     elif isinstance(quality_metric, MinimizeSequentialPlanLength):
-        return em.Plus(metric_value, 1).simplify()
+        return metric_value + 1
     elif isinstance(
         quality_metric,
         (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
     ):
-        return se.evaluate(quality_metric.expression, next_state)
+        return se.evaluate(quality_metric.expression, next_state).constant_value()
     elif isinstance(quality_metric, Oversubscription):
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, next_state).bool_constant_value():
                 total_gain += gain
-        return em.auto_promote(total_gain)[0]
+        return total_gain
     else:
         raise NotImplementedError(
             f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
@@ -554,7 +552,7 @@ def evaluate_quality_metric(
 def evaluate_quality_metric_in_initial_state(
     simulator: SequentialSimulatorMixin,
     quality_metric: "up.model.PlanQualityMetric",
-) -> "up.model.FNode":
+) -> Union[Fraction, int]:
     """
     Returns the evaluation of the given metric in the initial state.
 
@@ -570,20 +568,20 @@ def evaluate_quality_metric_in_initial_state(
     em = simulator._problem.environment.expression_manager
     initial_state = simulator.get_initial_state()
     if isinstance(quality_metric, MinimizeActionCosts):
-        return em.auto_promote(0)[0]
+        return 0
     elif isinstance(quality_metric, MinimizeSequentialPlanLength):
-        return em.auto_promote(0)[0]
+        return 0
     elif isinstance(
         quality_metric,
         (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
     ):
-        return se.evaluate(quality_metric.expression, initial_state)
+        return se.evaluate(quality_metric.expression, initial_state).constant_value()
     elif isinstance(quality_metric, Oversubscription):
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, initial_state).bool_constant_value():
                 total_gain += gain
-        return em.auto_promote(total_gain)[0]
+        return total_gain
     else:
         raise NotImplementedError(
             f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."

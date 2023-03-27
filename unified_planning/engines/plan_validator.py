@@ -166,8 +166,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         if not unsatisfied_goals:
             metric_evalutations = None
             if metric is not None:
-                assert metric_value.is_int_constant() or metric_value.is_real_constant()
-                metric_evalutations = {metric: metric_value.constant_value()}
+                metric_evalutations = {metric: metric_value}
             logs = []
             return ValidationResult(
                 ValidationResultStatus.VALID, self.name, logs, metric_evalutations
