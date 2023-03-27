@@ -68,15 +68,15 @@ class ExpressionManager(object):
         )
         return
 
-    def _polymorph_args_to_generator(
+    def _polymorph_args_to_iterator(
         self, *args: Union[Expression, Iterable[Expression]]
     ) -> Iterator[Expression]:
         """
-        Helper function to return a tuple of arguments from args.
+        Helper function to return an Iterator of arguments from args.
         This function is used to allow N-ary operators to express their arguments
         both as a list of arguments or as a tuple of arguments: e.g.,
            And([a,b,c]) and And(a,b,c)
-        are both valid, and they are converted into a tuple (a,b,c)
+        are both valid, and they are converted into (a,b,c)
         """
         for a in args:
             if isinstance(a, Iterable):
@@ -95,9 +95,8 @@ class ExpressionManager(object):
         :param args: The iterable of expression that must be promoted to FNode.
         :return: The resulting list of FNode.
         """
-        tuple_args = tuple(self._polymorph_args_to_generator(*args))
         res = []
-        for e in tuple_args:
+        for e in self._polymorph_args_to_iterator(*args):
             if isinstance(e, up.model.fluent.Fluent):
                 assert (
                     e.environment == self.environment
