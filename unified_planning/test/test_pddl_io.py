@@ -21,10 +21,10 @@ from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.model.types import _UserType
-from unified_planning.engines import PlanGenerationResultStatus
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -52,6 +52,34 @@ class TestPddlIO(TestCase):
         pddl_problem = w.get_problem()
         self.assertIn("(:domain basic-domain)", pddl_problem)
         self.assertIn("(:init)", pddl_problem)
+        self.assertIn("(:goal (and (x)))", pddl_problem)
+
+    def test_basic_non_constant_boolean_assignment(self):
+        problem = self.problems["basic"].problem.clone()
+        x = problem.fluent("x")
+        y = problem.add_fluent("y", default_initial_value=True)
+        a = problem.action("a")
+        a.clear_effects()
+        a.add_effect(x, y)
+
+        w = PDDLWriter(problem)
+        with self.assertRaises(UPProblemDefinitionError) as e:
+            _ = w.get_domain()
+
+        w = PDDLWriter(problem, write_non_constant_bool_assignment=True)
+        pddl_domain = w.get_domain()
+        self.assertIn("(:requirements :strips :negative-preconditions)", pddl_domain)
+        self.assertIn("(:predicates (x) (y))", pddl_domain)
+        self.assertIn("(:action a", pddl_domain)
+        self.assertIn(":parameters ()", pddl_domain)
+        self.assertIn(":precondition (and (not (x)))", pddl_domain)
+        self.assertIn(
+            ":effect (and (when (y) (x)) (when (not (y)) (not (x)))))", pddl_domain
+        )
+
+        pddl_problem = w.get_problem()
+        self.assertIn("(:domain basic-domain)", pddl_problem)
+        self.assertIn("(:init (y))", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
 
     def test_basic_conditional_writer(self):

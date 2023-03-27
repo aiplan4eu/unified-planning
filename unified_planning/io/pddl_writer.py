@@ -318,7 +318,13 @@ class ConverterToPDDLString(walkers.DagWalker):
 
 
 class PDDLWriter:
-    """This class can be used to write a :class:`~unified_planning.model.Problem` in `PDDL`."""
+    """
+    This class can be used to write a :class:`~unified_planning.model.Problem` in `PDDL`.
+    The constructor of this class takes the problem to write and 2 flags:
+    needs_requirements determines if the printed problem must have the :requirements,
+    write_non_constant_bool_assignment determines if this writer will write
+    non constant boolean assignment as conditional effects.
+    """
 
     def __init__(
         self,
