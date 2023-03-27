@@ -21,7 +21,10 @@ from typing import Optional, Union
 
 class EpsilonSeparationMixin:
     """
-    #TODO
+    This class defines the problem's mixin for the epsilon separation.
+
+    When this mixin is initialized, a default must be set.
+    Then, the epsilon value can be changed based on the user's request.
     """
 
     def __init__(
@@ -54,9 +57,7 @@ class EpsilonSeparationMixin:
                         "The epsilon of a problem must be convertible to a Fraction."
                     )
             if new_value < 0:
-                raise UPProblemDefinitionError(
-                    "A negative epsilon is not valid and has no meaning!"
-                )
+                raise UPProblemDefinitionError("The epsilon must be a positive value!")
         self._epsilon = new_value
 
     def _clone_to(self, other: "EpsilonSeparationMixin"):
