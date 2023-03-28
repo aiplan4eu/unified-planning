@@ -96,6 +96,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
@@ -107,9 +113,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     ) -> CompilerResult:
         """
         Takes an instance of a :class:`~unified_planning.model.Problem` and the `TRAJECTORY_CONSTRAINTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`
-        and returns a `CompilerResult` where the problem whitout trajectory_constraints.
+        and returns a `CompilerResult` where the problem without trajectory_constraints.
 
-        :param problem: The instance of the `Problem` that contains the trajecotry constraints.
+        :param problem: The instance of the `Problem` that contains the trajectory constraints.
         :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
             only `TRAJECTORY_CONSTRAINTS_REMOVING` is supported by this compiler
         :return: The resulting `CompilerResult` data structure.

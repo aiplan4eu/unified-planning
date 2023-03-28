@@ -104,6 +104,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
