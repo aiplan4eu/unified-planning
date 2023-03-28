@@ -368,7 +368,7 @@ class PDDLWriter:
             raise UPProblemDefinitionError(
                 "PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0)."
             )
-        if self.problem_kind.has_timed_effect() or self.problem_kind.has_timed_goals():
+        if self.problem_kind.has_timed_effects() or self.problem_kind.has_timed_goals():
             raise UPProblemDefinitionError(
                 "PDDL2.1 does not support timed effects or timed goals."
             )
@@ -388,7 +388,7 @@ class PDDLWriter:
                 out.write(" :negative-preconditions")
             if self.problem_kind.has_disjunctive_conditions():
                 out.write(" :disjunctive-preconditions")
-            if self.problem_kind.has_equality():
+            if self.problem_kind.has_equalities():
                 out.write(" :equality")
             if (
                 self.problem_kind.has_continuous_numbers()

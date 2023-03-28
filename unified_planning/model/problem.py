@@ -600,7 +600,7 @@ class Problem(  # type: ignore[misc]
             )
         if len(self._timed_effects) > 0:
             self._kind.set_time("CONTINUOUS_TIME")
-            self._kind.set_time("TIMED_EFFECT")
+            self._kind.set_time("TIMED_EFFECTS")
         for effect_list in self._timed_effects.values():
             for effect in effect_list:
                 self._update_problem_kind_effect(
@@ -691,9 +691,9 @@ class Problem(  # type: ignore[misc]
                 ):
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
                 if not value.is_int_constant() and not value.is_real_constant():
-                    self._kind.set_effects_kind("NON_CONSTANT_NUMERIC_ASSIGNMENT")
+                    self._kind.set_effects_kind("NON_CONSTANT_NUMERIC_ASSIGNMENTS")
             elif value.type.is_bool_type() and not value.is_bool_constant():
-                self._kind.set_effects_kind("NON_CONSTANT_BOOLEAN_ASSIGNMENT")
+                self._kind.set_effects_kind("NON_CONSTANT_BOOLEAN_ASSIGNMENTS")
 
     def _update_problem_kind_condition(
         self,
@@ -702,7 +702,7 @@ class Problem(  # type: ignore[misc]
     ):
         ops = self._operators_extractor.get(exp)
         if OperatorKind.EQUALS in ops:
-            self._kind.set_conditions_kind("EQUALITY")
+            self._kind.set_conditions_kind("EQUALITIES")
         if OperatorKind.NOT in ops:
             self._kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         if OperatorKind.OR in ops:
@@ -786,7 +786,7 @@ class Problem(  # type: ignore[misc]
                         only_static = False
                         break
                 if only_static:
-                    self._kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
+                    self._kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
                 else:
                     self._kind.set_expression_duration("FLUENTS_IN_DURATION")
             for i, lc in action.conditions.items():
