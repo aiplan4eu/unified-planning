@@ -607,6 +607,7 @@ class Problem(  # type: ignore[misc]
                     effect,
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
+                    static_fluents,
                     simplifier,
                     linear_checker,
                 )
@@ -638,6 +639,7 @@ class Problem(  # type: ignore[misc]
         e: "up.model.effect.Effect",
         fluents_to_only_increase: Set["up.model.fluent.Fluent"],
         fluents_to_only_decrease: Set["up.model.fluent.Fluent"],
+        static_fluents: Set["up.model.fluent.Fluent"],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
@@ -680,6 +682,7 @@ class Problem(  # type: ignore[misc]
         elif e.is_assignment():
             value_type = value.type
             value = e.value
+            fluents_in_value = self._env.free_vars_extractor.get(value)
             if (
                 value_type.is_int_type() or value_type.is_real_type()
             ):  # the value is a number
@@ -690,10 +693,15 @@ class Problem(  # type: ignore[misc]
                     or not value.is_constant()
                 ):
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                if not value.is_int_constant() and not value.is_real_constant():
-                    self._kind.set_effects_kind("NON_CONSTANT_NUMERIC_ASSIGNMENTS")
-            elif value.type.is_bool_type() and not value.is_bool_constant():
-                self._kind.set_effects_kind("NON_CONSTANT_BOOLEAN_ASSIGNMENTS")
+            if any(f in static_fluents for f in fluents_in_value):
+                self._kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+            if any(f not in static_fluents for f in fluents_in_value):
+                self._kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+            elif value.type.is_bool_type():
+                if any(f in static_fluents for f in fluents_in_value):
+                    self._kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+                if any(f not in static_fluents for f in fluents_in_value):
+                    self._kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
 
     def _update_problem_kind_condition(
         self,
@@ -767,6 +775,7 @@ class Problem(  # type: ignore[misc]
                     e,
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
+                    static_fluents,
                     simplifier,
                     linear_checker,
                 )
@@ -813,6 +822,7 @@ class Problem(  # type: ignore[misc]
                         e,
                         fluents_to_only_increase,
                         fluents_to_only_decrease,
+                        static_fluents,
                         simplifier,
                         linear_checker,
                     )

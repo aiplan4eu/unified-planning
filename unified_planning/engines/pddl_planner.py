@@ -201,7 +201,9 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         output_stream: Optional[Union[Tuple[IO[str], IO[str]], IO[str]]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
-        self._writer = PDDLWriter(problem, self._needs_requirements)
+        self._writer = PDDLWriter(
+            problem, self._needs_requirements, write_non_constant_bool_assignment=True
+        )
         plan = None
         logs: List["up.engines.results.LogMessage"] = []
         with tempfile.TemporaryDirectory() as tempdir:
@@ -228,7 +230,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 retval = process.returncode
             else:
                 if sys.platform == "win32":
-                    # On windows we have to use asyncio (does not work inside notebooks)
+                    # On wsupportindows we have to use asyncio (does not work inside notebooks)
                     try:
                         loop = asyncio.ProactorEventLoop()
                         exec_res = loop.run_until_complete(
