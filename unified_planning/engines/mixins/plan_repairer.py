@@ -22,6 +22,10 @@ class PlanRepairerMixin:
         self.optimality_metric_required = False
 
     @staticmethod
+    def is_plan_repairer() -> bool:
+        return True
+
+    @staticmethod
     def satisfies(
         optimality_guarantee: "up.engines.mixins.oneshot_planner.OptimalityGuarantee",
     ) -> bool:
