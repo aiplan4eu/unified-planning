@@ -13,7 +13,7 @@ Basic Example
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/01-basic-example.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/01-basic-example.ipynb
    :alt: Open In Colab
 
 
@@ -37,7 +37,7 @@ Optimal Planning
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/02-optimal-planning.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/02-optimal-planning.ipynb
    :alt: Open In Colab
 
 
@@ -53,7 +53,7 @@ Temporal Planning
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/03-temporal-planning.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/03-temporal-planning.ipynb
    :alt: Open In Colab
 
 
@@ -71,7 +71,7 @@ Simulated Effects
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/04-simulated-effects.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/04-simulated-effects.ipynb
    :alt: Open In Colab
 
 
@@ -89,7 +89,7 @@ Compilers
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/05-compilers.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/05-compilers.ipynb
    :alt: Open In Colab
 
 
@@ -105,7 +105,7 @@ Oversubscription Planning and MetaEngine Usage
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/06-oversubscription-with-metaengine.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/06-oversubscription-with-metaengine.ipynb
    :alt: Open In Colab
 
 
@@ -122,7 +122,7 @@ Hierrachical Planning
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/07-hierrachical-planning.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierrachical-planning.ipynb
    :alt: Open In Colab
 
 
@@ -138,7 +138,7 @@ Planning Engine Integration
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/planner-integration.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/planner-integration.ipynb
    :alt: Open In Colab
 
 
@@ -154,15 +154,12 @@ PDDL I/O
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/io/01-pddl-usage-example.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/01-pddl-usage-example.ipynb
    :alt: Open In Colab
 
 
 In this notebook we show how to parse a problem from PDDL in the unified_planning and how to write
 a unified_planning problem in PDDL.
-
-In this notebook we show how to define a problem with an Optimality metric and how to get a solver that
-gives the optimal solution regarding the given metric.
 
 .. toctree::
    :maxdepth: 2
