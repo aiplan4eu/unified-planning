@@ -788,7 +788,7 @@ class Problem(  # type: ignore[misc]
                 if only_static:
                     self._kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
                 else:
-                    self._kind.set_expression_duration("FLUENTS_IN_DURATION")
+                    self._kind.set_expression_duration("FLUENTS_IN_DURATIONS")
             for i, lc in action.conditions.items():
                 if i.lower.delay != 0 or i.upper.delay != 0:
                     for t in [i.lower, i.upper]:
