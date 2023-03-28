@@ -29,7 +29,7 @@ setup(
         "tamer": ["up-tamer==0.3.1.13.dev1"],
         "enhsp": ["up-enhsp==0.0.12"],
         "fast-downward": ["up-fast-downward==0.1.2"],
-        "lpg": ["up-lpg==0.0.4.9"],
+        "lpg": ["up-lpg==0.0.6"],
         "fmap": ["up-fmap==0.0.2"],
         "aries": ["up-aries>=0.0.7"],
         "engines": [
@@ -38,7 +38,7 @@ setup(
             "up-tamer==0.3.1.13.dev1",
             "up-enhsp==0.0.12",
             "up-fast-downward==0.1.2",
-            "up-lpg==0.0.4.9",
+            "up-lpg==0.0.6",
             "up-fmap==0.0.2",
             "up-aries>=0.0.7",
         ],
