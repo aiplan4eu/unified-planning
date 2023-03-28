@@ -25,7 +25,7 @@ setup(
         "dev": ["tarski[arithmetic]", "pytest", "pytest-cov", "mypy"],
         "grpc": ["grpcio", "grpcio-tools", "grpc-stubs"],
         "tarski": ["tarski[arithmetic]"],
-        "pyperplan": ["up-pyperplan==0.3.0.2.dev1"],
+        "pyperplan": ["up-pyperplan==0.3.0.4.dev1"],
         "tamer": ["up-tamer==0.3.1.9.dev1"],
         "enhsp": ["up-enhsp==0.0.12"],
         "fast-downward": ["up-fast-downward==0.1.2"],
@@ -34,7 +34,7 @@ setup(
         "aries": ["up-aries>=0.0.7"],
         "engines": [
             "tarski[arithmetic]",
-            "up-pyperplan==0.3.0.2.dev1",
+            "up-pyperplan==0.3.0.4.dev1",
             "up-tamer==0.3.1.9.dev1",
             "up-enhsp==0.0.12",
             "up-fast-downward==0.1.2",
