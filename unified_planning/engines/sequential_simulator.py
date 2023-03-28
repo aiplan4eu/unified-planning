@@ -19,46 +19,36 @@ from warnings import warn
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
-from unified_planning.engines.mixins.simulator import Event, SimulatorMixin
-from unified_planning.exceptions import UPUsageError, UPConflictingEffectsException
-from unified_planning.plans import ActionInstance
-from unified_planning.model import FNode, Type, ExpressionManager
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
+from unified_planning.exceptions import (
+    UPUsageError,
+    UPConflictingEffectsException,
+    UPInvalidActionError,
+)
+from unified_planning.model import (
+    FNode,
+    Type,
+    ExpressionManager,
+    UPState,
+    Problem,
+    MinimizeActionCosts,
+    MinimizeSequentialPlanLength,
+    MinimizeExpressionOnFinalState,
+    MaximizeExpressionOnFinalState,
+    Oversubscription,
+)
 from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import StateEvaluator
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union, cast
 
 
-class InstantaneousEvent(Event):
-    """Implements the Event class for an Instantaneous Action."""
-
-    def __init__(
-        self,
-        conditions: List["up.model.FNode"],
-        effects: List["up.model.Effect"],
-        simulated_effect: Optional["up.model.SimulatedEffect"] = None,
-    ):
-        self._conditions = conditions
-        self._effects = effects
-        self._simulated_effect = simulated_effect
-
-    @property
-    def conditions(self) -> List["up.model.FNode"]:
-        return self._conditions
-
-    @property
-    def effects(self) -> List["up.model.Effect"]:
-        return self._effects
-
-    @property
-    def simulated_effect(self) -> Optional["up.model.SimulatedEffect"]:
-        return self._simulated_effect
-
-
-class SequentialSimulator(Engine, SimulatorMixin):
+class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
     """
-    Sequential SimulatorMixin implementation.
+    Sequential SequentialSimulatorMixin implementation.
 
-    This Simulator, when considering if a state is goal or not, ignores the
+    This SequentialSimulator, when considering if a state is goal or not, ignores the
     quality metrics.
     """
 
@@ -67,7 +57,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
     ):
         Engine.__init__(self)
         self.error_on_failed_checks = error_on_failed_checks
-        SimulatorMixin.__init__(self, problem)
+        SequentialSimulatorMixin.__init__(self, problem)
         pk = problem.kind
         if not Grounder.supports(pk):
             msg = f"The Grounder used in the {type(self)} does not support the given problem"
@@ -78,145 +68,141 @@ class SequentialSimulator(Engine, SimulatorMixin):
         assert isinstance(self._problem, up.model.Problem)
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
-        self._events: Dict[
-            Tuple["up.model.Action", Tuple["up.model.FNode", ...]], List[Event]
-        ] = {}
         self._se = StateEvaluator(self._problem)
-        self._all_events_grounded: bool = False
 
-    def _get_unsatisfied_conditions(
-        self, event: "Event", state: "up.model.ROState", early_termination: bool = False
-    ) -> List["up.model.FNode"]:
+    def _ground_action(
+        self, action: "up.model.Action", params: Tuple["up.model.FNode", ...]
+    ) -> Optional["up.model.InstantaneousAction"]:
         """
-        Returns the list of unsatisfied event conditions evaluated in the given state.
-        If the flag `early_termination` is set, the method ends and returns at the first unsatisfied condition.
+        Utility method to ground an action and do the basic checks.
 
-        :param state: The `State` in which the event conditions are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied condition.
-        :return: The list of all the event conditions that evaluated to `False` or the list containing the first
-            condition evaluated to False if the flag `early_termination` is set.
+        :param action: The action to ground.
+        :param params: The parameters used to ground the action.
+        :return: The grounded action. None if the action grounds to an
+            invalid action.
         """
-        unsatisfied_conditions = []
-        for c in event.conditions:
-            evaluated_cond = self._se.evaluate(c, state)
-            if (
-                not evaluated_cond.is_bool_constant()
-                or not evaluated_cond.bool_constant_value()
-            ):
-                unsatisfied_conditions.append(c)
-                if early_termination:
-                    break
+        if action not in self._actions:
+            raise UPUsageError(
+                f"The given action does not belong to the {type(self)} problem."
+            )
+        grounded_act = self._grounder.ground_action(action, params)
+        assert (
+            isinstance(grounded_act, up.model.InstantaneousAction)
+            or grounded_act is None
+        ), "Supported_kind not respected"
+        return grounded_act
 
-        # check that the assignments will respect the bound typing
-        new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
-        assigned_fluent: Set["up.model.FNode"] = set()
-        em = self._problem.environment.expression_manager
-        for effect in event.effects:
-            lower_bound, upper_bound = None, None
-            f_type = cast(_RealType, effect.fluent.type)
-            if f_type.is_int_type() or f_type.is_real_type():
-                lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
-            if lower_bound is not None or upper_bound is not None:
-                fluent, value = self._evaluate_effect(
-                    effect, state, new_bounded_types_values, assigned_fluent, em
+    def _get_initial_state(self) -> "up.model.State":
+        """
+        Returns the problem's initial state.
+
+        NOTE: Every method that requires a state assumes that it's the same class
+        of the state given here, therefore an up.model.UPState.
+        """
+        assert isinstance(self._problem, Problem), "supported_kind not respected"
+        return UPState(self._problem.initial_values)
+
+    def _is_applicable(
+        self,
+        state: "up.model.State",
+        action: "up.model.Action",
+        parameters: Tuple["up.model.FNode", ...],
+    ) -> bool:
+        """
+        Returns `True` if the given `action conditions` are evaluated as `True` in the given `state`;
+        returns `False` otherwise.
+
+        :param state: The state in which the given action is checked for applicability.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` that must be checked
+            for applicability.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: Whether or not the action is applicable in the given `state`.
+        """
+        try:
+            is_applicable = (
+                len(
+                    self.get_unsatisfied_conditions(
+                        state, action, parameters, early_termination=True
+                    )
                 )
-                if fluent is not None:
-                    assert value is not None
-                    new_bounded_types_values[fluent] = value
-                    if lower_bound is not None and lower_bound > cast(
-                        Fraction, value.constant_value()
-                    ):
-                        unsatisfied_conditions.append(em.LE(lower_bound, fluent))
-                        if early_termination:
-                            break
-                    if upper_bound is not None and upper_bound < cast(
-                        Fraction, value.constant_value()
-                    ):
-                        unsatisfied_conditions.append(em.LE(fluent, upper_bound))
-                        if early_termination:
-                            break
-        if event.simulated_effect is not None:
-            to_check = False
-            for f in event.simulated_effect.fluents:
-                f_type = cast(_RealType, f.type)
-                if (f_type.is_int_type() or f_type.is_real_type()) and (
-                    f_type.lower_bound is not None or f_type.upper_bound is not None
-                ):
-                    to_check = True
-                    break
-            if to_check:
-                for f, v in zip(
-                    event.simulated_effect.fluents,
-                    event.simulated_effect.function(self._problem, state, {}),
-                ):
-                    lower_bound, upper_bound = None, None
-                    f_type = cast(_RealType, f.type)
-                    if f_type.is_int_type() or f_type.is_real_type():
-                        lower_bound, upper_bound = (
-                            f_type.lower_bound,
-                            f_type.upper_bound,
-                        )
-                    if lower_bound is not None or upper_bound is not None:
-                        if (
-                            lower_bound is not None
-                            and cast(Fraction, v.constant_value()) < lower_bound
-                        ):
-                            unsatisfied_conditions.append(em.LE(lower_bound, f))
-                            if early_termination:
-                                break
-                        if (
-                            upper_bound is not None
-                            and cast(Fraction, v.constant_value()) > upper_bound
-                        ):
-                            unsatisfied_conditions.append(em.LE(f, upper_bound))
-                            if early_termination:
-                                break
-        return unsatisfied_conditions
+                == 0
+            )
+        except UPInvalidActionError:
+            is_applicable = False
+        return is_applicable
 
     def _apply(
-        self, event: "Event", state: "up.model.COWState"
-    ) -> Optional["up.model.COWState"]:
+        self,
+        state: "up.model.State",
+        action: "up.model.Action",
+        parameters: Tuple["up.model.FNode", ...],
+    ) -> Optional["up.model.State"]:
         """
-        Returns `None` if the event is not applicable in the given state, otherwise returns a new COWState,
-        which is a copy of the given state but the applicable effects of the event are applied; therefore
-        some fluent values are updated.
+        Returns `None` if the given `action` is not applicable in the given `state`, otherwise returns a new `State`,
+        which is a copy of the given `state` where the `applicable effects` of the `action` are applied; therefore
+        some `fluent values` are updated.
 
-        :param state: the state where the event formulas are calculated.
-        :param event: the event that has the information about the conditions to check and the effects to apply.
-        :return: None if the event is not applicable in the given state, a new COWState with some updated values
-            if the event is applicable.
+        :param state: The state in which the given action's conditions are checked and the effects evaluated.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
+            and effects evaluated.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: `None` if the `action` is not applicable in the given `state`, the new State generated
+            if the action is applicable.
         """
-        if not self.is_applicable(event, state):
+        if not self.is_applicable(state, action, parameters):
             return None
         else:
-            return self.apply_unsafe(event, state)
+            return self.apply_unsafe(state, action, parameters)
 
-    def _apply_unsafe(
-        self, event: "Event", state: "up.model.COWState"
-    ) -> "up.model.COWState":
+    def apply_unsafe(
+        self,
+        state: "up.model.State",
+        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
+    ) -> Optional["up.model.State"]:
         """
-        Returns a new COWState, which is a copy of the given state but the applicable effects of the event are applied; therefore
-        some fluent values are updated.
-        IMPORTANT NOTE: Assumes that self.is_applicable(state, event) returns True
+        Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
+        `action` are applied; therefore some `fluent` values are updated.
+        IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
 
-        :param state: the state where the event formulas are evaluated.
-        :param event: the event that has the information about the effects to apply.
-        :return: A new COWState with some updated values.
+        :param state: The state in which the given action's conditions are checked and the effects evaluated.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
+            and effects evaluated.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The new `State` created by the given action; `None` if the evaluation of the effects
+            creates conflicting effects.
         """
+        action, params = self._get_action_and_parameters(
+            action_or_action_instance, parameters
+        )
+        if not isinstance(state, up.model.UPState):
+            raise UPUsageError(
+                f"The UPSequentialSimulator uses the UPState but {type(state)} is given."
+            )
+        grounded_action = self._ground_action(action, params)
+        if grounded_action is None:
+            return None
+        assert isinstance(action, up.model.InstantaneousAction)
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
-        for effect in event.effects:
-            fluent, value = self._evaluate_effect(
-                effect, state, updated_values, assigned_fluent, em
-            )
+        for effect in grounded_action.effects:
+            try:
+                fluent, value = self._evaluate_effect(
+                    effect, state, updated_values, assigned_fluent, em
+                )
+            except UPConflictingEffectsException:
+                return None
             if fluent is not None:
                 assert value is not None
                 updated_values[fluent] = value
-        if event.simulated_effect is not None:
+        if grounded_action.simulated_effect is not None:
             for f, v in zip(
-                event.simulated_effect.fluents,
-                event.simulated_effect.function(self._problem, state, {}),
+                grounded_action.simulated_effect.fluents,
+                grounded_action.simulated_effect.function(self._problem, state, {}),
             ):
                 old_value = updated_values.get(f, None)
                 # If f was already modified and it was modified by an increase/decrease or with an assign
@@ -226,9 +212,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
                     or old_value.constant_value() != v.constant_value()
                 ):
                     if not f.type.is_bool_type():
-                        raise UPConflictingEffectsException(
-                            f"The fluent {f} is modified with different values in the same event."
-                        )
+                        return None
                     # solve with add-after-delete logic
                     elif not old_value.bool_constant_value():
                         updated_values[f] = v
@@ -239,7 +223,7 @@ class SequentialSimulator(Engine, SimulatorMixin):
     def _evaluate_effect(
         self,
         effect: "up.model.Effect",
-        state: "up.model.ROState",
+        state: "up.model.State",
         updated_values: Dict["up.model.FNode", "up.model.FNode"],
         assigned_fluent: Set["up.model.FNode"],
         em: ExpressionManager,
@@ -320,75 +304,136 @@ class SequentialSimulator(Engine, SimulatorMixin):
         else:
             return None, None
 
-    def _get_applicable_events(self, state: "up.model.ROState") -> Iterator["Event"]:
+    def _get_applicable_actions(
+        self, state: "up.model.State"
+    ) -> Iterator[Tuple["up.model.Action", Tuple["up.model.FNode", ...]]]:
         """
-        Returns a view over all the events that are applicable in the given State;
-        an Event is considered applicable in a given State, when all the Event condition
-        simplify as True when evaluated in the State.
+        Returns a view over all the `action + parameters` that are applicable in the given `State`.
 
-        :param state: The state where the formulas are evaluated.
-        :return: an Iterator of applicable Events.
+        :param state: the `state` where the formulas are evaluated.
+        :return: an `Iterator` of applicable actions + parameters.
         """
-        # if the problem was never fully grounded before,
-        # ground it and save all the new events. For every event
-        # that is applicable, yield it.
-        # Otherwise just return all the applicable events
-        if not self._all_events_grounded:
-            # perform total grounding
-            self._all_events_grounded = True
-            # for every grounded action, translate it in an Event
-            for (
-                original_action,
-                params,
-                grounded_action,
-            ) in self._grounder.get_grounded_actions():
-                for event in self._get_or_create_events(
-                    original_action, params, grounded_action
-                ):
-                    if self.is_applicable(event, state):
-                        yield event
-        else:  # the problem has been fully grounded before, just check for event applicability
-            for events in self._events.values():
-                for event in events:
-                    if self.is_applicable(event, state):
-                        yield event
+        for original_action, params, _ in self._grounder.get_grounded_actions():
+            if self._is_applicable(state, original_action, params):
+                yield (original_action, params)
 
-    def _get_events(
+    def get_unsatisfied_conditions(
         self,
-        action: "up.model.Action",
-        parameters: Union[
-            Tuple["up.model.Expression", ...], List["up.model.Expression"]
-        ],
-    ) -> List["Event"]:
-        """
-        Returns a list containing all the events derived from the given action, grounded with the given parameters.
-
-        :param action: The action containing the information to create the event.
-        :param parameters: The parameters needed to ground the action
-        :return: the List of Events derived from this action with these parameters.
-        """
-        # sanity check
-        if action not in self._actions:
-            raise UPUsageError(
-                "The action given as parameter does not belong to the problem given to the SequentialSimulator."
-            )
-        params_exp = tuple(
-            self._problem.environment.expression_manager.auto_promote(parameters)
-        )
-        grounded_action = self._grounder.ground_action(action, params_exp)
-        event_list = self._get_or_create_events(action, params_exp, grounded_action)
-        return event_list
-
-    def _get_unsatisfied_goals(
-        self, state: "up.model.ROState", early_termination: bool = False
+        state: "up.model.State",
+        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
+        early_termination: bool = False,
     ) -> List["up.model.FNode"]:
         """
-        Returns the list of unsatisfied goals evaluated in the given state.
-        If the flag "early_termination" is set, the method ends and returns at the first unsatisfied goal.
+        Returns the list of `unsatisfied action's conditions` evaluated in the given `state`.
+        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
+        Note that the returned list might also contain conditions that were not originally in the action, if this
+        action violates some other semantic bound (for example bounded types).
 
-        :param state: The State in which the problem goals are evaluated.
-        :param early_termination: Flag deciding if the method ends and returns at the first unsatisfied goal.
-        :return: The list of all the goals that evaluated to False or the list containing the first goal evaluated to False if the flag "early_termination" is set.
+        :param state: The state in which the given action's conditions are checked.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
+            `condition` evaluated to `False` if the flag `early_termination` is set.
+        """
+        action, params = self._get_action_and_parameters(
+            action_or_action_instance,
+            parameters,
+        )
+        g_action = self._ground_action(action, params)
+        if g_action is None:
+            raise UPInvalidActionError(
+                "The given action grounded with the given parameters does not create a valid action."
+            )
+        unsatisfied_conditions = []
+        for c in g_action.preconditions:
+            evaluated_cond = self._se.evaluate(c, state)
+            if (
+                not evaluated_cond.is_bool_constant()
+                or not evaluated_cond.bool_constant_value()
+            ):
+                unsatisfied_conditions.append(c)
+                if early_termination:
+                    return unsatisfied_conditions
+
+        # check that the assignments will respect the bound typing
+        new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
+        assigned_fluent: Set["up.model.FNode"] = set()
+        em = self._problem.environment.expression_manager
+        for effect in g_action.effects:
+            lower_bound, upper_bound = None, None
+            f_type = effect.fluent.type
+            if f_type.is_int_type() or f_type.is_real_type():
+                f_type = cast(_RealType, effect.fluent.type)
+                lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
+            if lower_bound is not None or upper_bound is not None:
+                fluent, value = self._evaluate_effect(
+                    effect, state, new_bounded_types_values, assigned_fluent, em
+                )
+                if fluent is not None:
+                    assert value is not None
+                    new_bounded_types_values[fluent] = value
+                    if lower_bound is not None and lower_bound > cast(
+                        Fraction, value.constant_value()
+                    ):
+                        unsatisfied_conditions.append(em.LE(lower_bound, fluent))
+                        if early_termination:
+                            return unsatisfied_conditions
+                    if upper_bound is not None and upper_bound < cast(
+                        Fraction, value.constant_value()
+                    ):
+                        unsatisfied_conditions.append(em.LE(fluent, upper_bound))
+                        if early_termination:
+                            return unsatisfied_conditions
+        if g_action.simulated_effect is not None:
+            to_check = False
+            for f in g_action.simulated_effect.fluents:
+                f_type = cast(_RealType, f.type)
+                if (f_type.is_int_type() or f_type.is_real_type()) and (
+                    f_type.lower_bound is not None or f_type.upper_bound is not None
+                ):
+                    to_check = True
+                    break
+            if to_check:
+                for f, v in zip(
+                    g_action.simulated_effect.fluents,
+                    g_action.simulated_effect.function(self._problem, state, {}),
+                ):
+                    lower_bound, upper_bound = None, None
+                    if f.type.is_int_type() or f.type.is_real_type():
+                        f_type = cast(_RealType, f.type)
+                        lower_bound, upper_bound = (
+                            f_type.lower_bound,
+                            f_type.upper_bound,
+                        )
+                    if lower_bound is not None or upper_bound is not None:
+                        if (
+                            lower_bound is not None
+                            and cast(Fraction, v.constant_value()) < lower_bound
+                        ):
+                            unsatisfied_conditions.append(em.LE(lower_bound, f))
+                            if early_termination:
+                                break
+                        if (
+                            upper_bound is not None
+                            and cast(Fraction, v.constant_value()) > upper_bound
+                        ):
+                            unsatisfied_conditions.append(em.LE(f, upper_bound))
+                            if early_termination:
+                                break
+        return unsatisfied_conditions
+
+    def get_unsatisfied_goals(
+        self, state: "up.model.State", early_termination: bool = False
+    ) -> List["up.model.FNode"]:
+        """
+        Returns the list of `unsatisfied goals` evaluated in the given `state`.
+        If the flag `early_termination` is set, the method ends and returns the first `unsatisfied goal`.
+
+        :param state: The `State` in which the `problem goals` are evaluated.
+        :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied goal`.
+        :return: The list of all the `goals` that evaluated to `False` or the list containing the first `goal` evaluated to `False` if the flag `early_termination` is set.
         """
         unsatisfied_goals = []
         for g in cast(up.model.Problem, self._problem).goals:
@@ -398,6 +443,12 @@ class SequentialSimulator(Engine, SimulatorMixin):
                 if early_termination:
                     break
         return unsatisfied_goals
+
+    def _is_goal(self, state: "up.model.State") -> bool:
+        """
+        is_goal implementation
+        """
+        return len(self.get_unsatisfied_goals(state, early_termination=True)) == 0
 
     @property
     def name(self) -> str:
@@ -435,47 +486,103 @@ class SequentialSimulator(Engine, SimulatorMixin):
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= SequentialSimulator.supported_kind()
+        return problem_kind <= UPSequentialSimulator.supported_kind()
 
-    def _get_or_create_events(
-        self,
-        original_action: "up.model.Action",
-        params: Tuple["up.model.FNode", ...],
-        grounded_action: Optional["up.model.Action"],
-    ) -> List[Event]:
-        """
-        Support function that takes the `original Action`, the `parameters` used to ground the `grounded Action` and
-        the `grounded Action` itself, and adds the corresponding `List of Events` to this `Simulator`. If the
-        corresponding `Events` were already created, the same value is returned and no new `Events` are created.
 
-        :param original_action: The `Action` of the :class:`~unified_planning.model.Problem` grounded with the given `params`.
-        :param params: The expressions used to ground the `original_action`.
-        :param grounded_action: The grounded action, result of the `original_action` grounded with the given `parameters`.
-        :return: The retrieved or created `List of Events` corresponding to the `grounded_action`.
-        """
-        if isinstance(original_action, up.model.InstantaneousAction):
-            # check if the event is already cached; if not: create it and cache it
-            key = (original_action, params)
-            event_list = self._events.get(key, None)
-            if event_list is None:
-                if (
-                    grounded_action is None
-                ):  # The grounded action is meaningless, no event associated
-                    event_list = []
-                else:
-                    assert isinstance(grounded_action, up.model.InstantaneousAction)
-                    event_list = [
-                        InstantaneousEvent(
-                            grounded_action.preconditions,
-                            grounded_action.effects,
-                            grounded_action.simulated_effect,
-                        )
-                    ]
-                self._events[key] = event_list
-            # sanity check
-            assert len(event_list) < 2
-            return event_list
-        else:
-            raise NotImplementedError(
-                "The SequentialSimulator currently supports only InstantaneousActions."
+def evaluate_quality_metric(
+    simulator: SequentialSimulatorMixin,
+    quality_metric: "up.model.PlanQualityMetric",
+    metric_value: Union[Fraction, int],
+    state: "up.model.State",
+    action: "up.model.Action",
+    parameters: Tuple["up.model.FNode", ...],
+    next_state: "up.model.State",
+) -> Union[Fraction, int]:
+    """
+    Evaluates the value of the given metric.
+
+    :param simulator: A simulator, needed to evaluate the metric.
+    :param quality_metric: The QualityMetric to evaluate.
+    :param metric_value: The value of the metric before applying the given action.
+    :param state: The State before applying the given action.
+    :param action: The action applied.
+    :param parameters: The parameters used to ground the action.
+    :param next_state: The state after applying the given action.
+    :return: The evaluation of the metric.
+    """
+    if not isinstance(simulator._problem, up.model.Problem):
+        raise NotImplementedError(
+            "Currently this method is implemented only for classical and numeric problems."
+        )
+    se = StateEvaluator(simulator._problem)
+    em = simulator._problem.environment.expression_manager
+    if isinstance(quality_metric, MinimizeActionCosts):
+        action_cost = quality_metric.get_action_cost(action)
+        if action_cost is None:
+            raise UPUsageError(
+                "Can't evaluate Action cost when the cost is not set.",
+                "You can explicitly set a default in the MinimizeActionCost constructor.",
             )
+        if len(action.parameters) != len(parameters):
+            raise UPUsageError(
+                "The parameters length is different than the action's parameters length."
+            )
+        action_cost = action_cost.substitute(dict(zip(action.parameters, parameters)))
+        assert isinstance(action_cost, up.model.FNode)
+        return se.evaluate(action_cost, state).constant_value() + metric_value
+    elif isinstance(quality_metric, MinimizeSequentialPlanLength):
+        return metric_value + 1
+    elif isinstance(
+        quality_metric,
+        (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+    ):
+        return se.evaluate(quality_metric.expression, next_state).constant_value()
+    elif isinstance(quality_metric, Oversubscription):
+        total_gain: Union[Fraction, int] = 0
+        for goal, gain in quality_metric.goals.items():
+            if se.evaluate(goal, next_state).bool_constant_value():
+                total_gain += gain
+        return total_gain
+    else:
+        raise NotImplementedError(
+            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
+        )
+
+
+def evaluate_quality_metric_in_initial_state(
+    simulator: SequentialSimulatorMixin,
+    quality_metric: "up.model.PlanQualityMetric",
+) -> Union[Fraction, int]:
+    """
+    Returns the evaluation of the given metric in the initial state.
+
+    :param simulator: The simulator used to evaluate the metric.
+    :param quality_metric: The QUalityMetric tto evaluate.
+    :return: The evaluation of the metric in the initial state.
+    """
+    if not isinstance(simulator._problem, up.model.Problem):
+        raise NotImplementedError(
+            "Currently this method is implemented only for classical and numeric problems."
+        )
+    se = StateEvaluator(simulator._problem)
+    em = simulator._problem.environment.expression_manager
+    initial_state = simulator.get_initial_state()
+    if isinstance(quality_metric, MinimizeActionCosts):
+        return 0
+    elif isinstance(quality_metric, MinimizeSequentialPlanLength):
+        return 0
+    elif isinstance(
+        quality_metric,
+        (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+    ):
+        return se.evaluate(quality_metric.expression, initial_state).constant_value()
+    elif isinstance(quality_metric, Oversubscription):
+        total_gain: Union[Fraction, int] = 0
+        for goal, gain in quality_metric.goals.items():
+            if se.evaluate(goal, initial_state).bool_constant_value():
+                total_gain += gain
+        return total_gain
+    else:
+        raise NotImplementedError(
+            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
+        )

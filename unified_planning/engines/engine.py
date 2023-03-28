@@ -30,7 +30,7 @@ class OperationMode(Enum):
     PLAN_VALIDATOR = "plan_validator"
     PORTFOLIO_SELECTOR = "portfolio_selector"
     COMPILER = "compiler"
-    SIMULATOR = "simulator"
+    SEQUENTIAL_SIMULATOR = "sequential_simulator"
     REPLANNER = "replanner"
     PLAN_REPAIRER = "plan_repairer"
 

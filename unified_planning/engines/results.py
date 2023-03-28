@@ -15,13 +15,14 @@
 """This module defines the PlanGenerationResult class."""
 
 
+from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import AbstractProblem
+from unified_planning.model import AbstractProblem, PlanQualityMetric
 from unified_planning.plans import ActionInstance
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Dict, Optional, List
+from typing import Callable, Dict, Optional, List, Union
 
 
 class ValidationResultStatus(Enum):
@@ -170,6 +171,9 @@ class ValidationResult(Result):
     status: ValidationResultStatus
     engine_name: str
     log_messages: Optional[List[LogMessage]] = field(default=None)
+    metric_evaluations: Optional[Dict[PlanQualityMetric, Union[int, Fraction]]] = field(
+        default=None
+    )
 
     def is_definitive_result(self, *args) -> bool:
         return True

@@ -594,21 +594,21 @@ def Compiler(
     )
 
 
-def Simulator(
+def SequentialSimulator(
     problem: "up.model.AbstractProblem",
     *,
     name: Optional[str] = None,
     params: Optional[Dict[str, str]] = None,
 ) -> "up.engines.engine.Engine":
     """
-    Returns a Simulator. There are two ways to call this method:
+    Returns a SequentialSimulator. There are two ways to call this method:
     - using 'problem_kind' through the problem field.
-        e.g. Simulator(problem)
+        e.g. SequentialSimulator(problem)
     - using 'name' (the name of a specific simulator) and eventually some 'params'
         (simulator dependent options).
-        e.g. Simulator(problem, name='sequential_simulator')
+        e.g. SequentialSimulator(problem, name='sequential_simulator')
     """
-    return get_environment().factory.Simulator(
+    return get_environment().factory.SequentialSimulator(
         problem=problem, name=name, params=params
     )
 

@@ -32,7 +32,9 @@ from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
 from unified_planning.engines.mixins.replanner import ReplannerMixin
 from unified_planning.engines.mixins.plan_repairer import PlanRepairerMixin
-from unified_planning.engines.mixins.simulator import SimulatorMixin
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
 from unified_planning.engines.engine import OperationMode
 from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, cast
 from pathlib import PurePath
@@ -58,7 +60,7 @@ DEFAULT_ENGINES = {
     ),
     "sequential_simulator": (
         "unified_planning.engines.sequential_simulator",
-        "SequentialSimulator",
+        "UPSequentialSimulator",
     ),
     "up_bounded_types_remover": (
         "unified_planning.engines.compilers.bounded_types_remover",
@@ -630,14 +632,14 @@ class Factory:
                     msg = f"The problem has no quality metrics but the engine is required to be optimal!"
                     raise up.exceptions.UPUsageError(msg)
                 res = EngineClass(problem=problem, **params)
-            elif operation_mode == OperationMode.SIMULATOR:
+            elif operation_mode == OperationMode.SEQUENTIAL_SIMULATOR:
                 assert problem is not None
                 res = EngineClass(
                     problem=problem,
                     error_on_failed_checks=error_failed_checks,
                     **params,
                 )
-                assert isinstance(res, SimulatorMixin)
+                assert isinstance(res, SequentialSimulatorMixin)
             elif operation_mode == OperationMode.COMPILER:
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)
@@ -825,7 +827,7 @@ class Factory:
             compilation_kinds=kinds,
         )
 
-    def Simulator(
+    def SequentialSimulator(
         self,
         problem: "up.model.AbstractProblem",
         *,
@@ -833,15 +835,20 @@ class Factory:
         params: Optional[Dict[str, str]] = None,
     ) -> "up.engines.engine.Engine":
         """
-        Returns a Simulator. There are two ways to call this method:
+        Returns a SequentialSimulator. There are two ways to call this method:
         - using 'problem_kind' through the problem field.
-          e.g. Simulator(problem)
+          e.g. SequentialSimulator(problem)
         - using 'name' (the name of a specific simulator) and eventually some 'params'
           (simulator dependent options).
-          e.g. Simulator(problem, name='sequential_simulator')
+          e.g. SequentialSimulator(problem, name='sequential_simulator')
         """
         return self._get_engine(
-            OperationMode.SIMULATOR, name, None, params, problem.kind, problem=problem
+            OperationMode.SEQUENTIAL_SIMULATOR,
+            name,
+            None,
+            params,
+            problem.kind,
+            problem=problem,
         )
 
     def Replanner(
