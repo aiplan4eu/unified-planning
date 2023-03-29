@@ -230,7 +230,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 retval = process.returncode
             else:
                 if sys.platform == "win32":
-                    # On wsupportindows we have to use asyncio (does not work inside notebooks)
+                    # On windows we have to use asyncio (does not work inside notebooks)
                     try:
                         loop = asyncio.ProactorEventLoop()
                         exec_res = loop.run_until_complete(

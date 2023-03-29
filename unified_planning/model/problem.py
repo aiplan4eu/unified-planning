@@ -301,17 +301,14 @@ class Problem(  # type: ignore[misc]
         fve = self._env.free_vars_extractor
         # function that takes an FNode and removes all the fluents contained in the given FNode
         # from the unused_fluents  set.
-        remove_used_fluents = lambda exp: unused_fluents.difference_update(
-            (f.fluent() for f in fve.get(exp))
+        remove_used_fluents = lambda *exps: unused_fluents.difference_update(
+            (f.fluent() for e in exps for f in fve.get(e))
         )
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
-                for c in a.preconditions:
-                    remove_used_fluents(c)
+                remove_used_fluents(*a.preconditions)
                 for e in a.effects:
-                    remove_used_fluents(e.fluent)
-                    remove_used_fluents(e.value)
-                    remove_used_fluents(e.condition)
+                    remove_used_fluents(e.fluent, e.value, e.condition)
                     static_fluents.discard(e.fluent.fluent())
                 if a.simulated_effect is not None:
                     # empty the set because a simulated effect reads all the fluents
@@ -319,36 +316,26 @@ class Problem(  # type: ignore[misc]
                     for f in a.simulated_effect.fluents:
                         static_fluents.discard(f.fluent())
             elif isinstance(a, up.model.action.DurativeAction):
-                remove_used_fluents(a.duration.lower)
-                remove_used_fluents(a.duration.upper)
                 for cl in a.conditions.values():
-                    for c in cl:
-                        remove_used_fluents(c)
+                    remove_used_fluents(*cl)
                 for el in a.effects.values():
                     for e in el:
-                        remove_used_fluents(e.fluent)
-                        remove_used_fluents(e.value)
-                        remove_used_fluents(e.condition)
+                        remove_used_fluents(e.fluent, e.value, e.condition)
                         static_fluents.discard(e.fluent.fluent())
                 for se in a.simulated_effects.values():
-                    unused_fluents.difference_update(unused_fluents)
+                    unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
             else:
                 raise NotImplementedError
         for el in self._timed_effects.values():
             for e in el:
-                remove_used_fluents(e.fluent)
-                remove_used_fluents(e.value)
-                remove_used_fluents(e.condition)
+                remove_used_fluents(e.fluent, e.value, e.condition)
                 static_fluents.discard(e.fluent.fluent())
         for gl in self._timed_goals.values():
-            for g in gl:
-                remove_used_fluents(g)
-        for traj in self._trajectory_constraints:
-            remove_used_fluents(traj)
-        for g in self._goals:
-            remove_used_fluents(g)
+            remove_used_fluents(*gl)
+        remove_used_fluents(*self._trajectory_constraints)
+        remove_used_fluents(*self._goals)
         for qm in self.quality_metrics:
             if isinstance(
                 qm,
@@ -359,8 +346,7 @@ class Problem(  # type: ignore[misc]
             ):
                 remove_used_fluents(qm.expression)
             elif isinstance(qm, up.model.metrics.Oversubscription):
-                for g in qm.goals.keys():
-                    remove_used_fluents(g)
+                remove_used_fluents(*qm.goals.keys())
             elif isinstance(qm, up.model.metrics.TemporalOversubscription):
                 for _, g in qm.goals.keys():
                     remove_used_fluents(g)
