@@ -312,7 +312,7 @@ class Problem(  # type: ignore[misc]
                     static_fluents.discard(e.fluent.fluent())
                 if a.simulated_effect is not None:
                     # empty the set because a simulated effect reads all the fluents
-                    unused_fluents.difference_update(unused_fluents)
+                    unused_fluents.clear()
                     for f in a.simulated_effect.fluents:
                         static_fluents.discard(f.fluent())
             elif isinstance(a, up.model.action.DurativeAction):
