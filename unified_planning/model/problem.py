@@ -16,6 +16,7 @@
 
 
 import unified_planning as up
+import unified_planning.model.tamp
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
@@ -740,6 +741,9 @@ class Problem(  # type: ignore[misc]
             self._update_problem_kind_type(p.type)
         if isinstance(action, up.model.action.SensingAction):
             self._kind.set_problem_class("CONTINGENT")
+        if isinstance(action, up.model.tamp.InstantaneousMotionAction):
+            if len(action.motion_constraints) > 0:
+                self._kind.set_problem_class("TAMP")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self._update_problem_kind_condition(c, linear_checker)

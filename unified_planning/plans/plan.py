@@ -17,7 +17,7 @@
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model import AbstractProblem
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Dict
 from enum import Enum, auto
 
 
@@ -37,11 +37,15 @@ class ActionInstance:
         action: "up.model.Action",
         params: Tuple["up.model.FNode", ...] = tuple(),
         agent: Optional["up.model.multi_agent.Agent"] = None,
+        motion_paths: Optional[
+            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
+        ] = None,
     ):
         assert len(action.parameters) == len(params)
         self._agent = agent
         self._action = action
         self._params = tuple(params)
+        self._motion_paths = motion_paths
 
     def __repr__(self) -> str:
         s = []
@@ -64,6 +68,13 @@ class ActionInstance:
     def agent(self) -> Optional["up.model.multi_agent.Agent"]:
         """Returns the `Agent` of this `ActionInstance`."""
         return self._agent
+
+    @property
+    def motion_paths(
+        self,
+    ) -> Optional[Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]]:
+        """Returns the motion paths of this `ActionInstance`."""
+        return self._motion_paths
 
     @property
     def action(self) -> "up.model.Action":

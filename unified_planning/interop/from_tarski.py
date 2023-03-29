@@ -220,7 +220,7 @@ def _check_if_tarski_problem_uses_object_type(
 def _convert_type_and_update_dict(
     sort: tarski.syntax.Sort,
     types_dict: Dict[str, Optional["unified_planning.model.Type"]],
-    tm: "unified_planning.model.TypeManager",
+    tm: "unified_planning.model.type_manager.TypeManager",
     lang: "tarski.fol.FirstOrderLanguage",
 ) -> Optional["unified_planning.model.Type"]:
     """Converts a tarski type in a unified_planning type and inserts it into the types_dict.

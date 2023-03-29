@@ -16,7 +16,7 @@
 
 import unified_planning
 from fractions import Fraction
-from typing import Iterator, Optional, Dict, Tuple, Union, cast
+from typing import Iterator, Optional, cast
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
@@ -40,7 +40,15 @@ class Type:
         return False
 
     def is_time_type(self) -> bool:
-        """Returns `True` iff is `time `True`."""
+        """Returns `True` iff is `time Type`."""
+        return False
+
+    def is_movable_type(self) -> bool:
+        """Returns `True` iff is `movable Type`."""
+        return False
+
+    def is_configuration_type(self) -> bool:
+        """Returns `True` iff is `configuration Type`."""
         return False
 
     def is_compatible(self, t_right: "Type") -> bool:
@@ -206,112 +214,6 @@ class _RealType(Type):
 
 BOOL = _BoolType()
 TIME = _TimeType()
-
-
-class TypeManager:
-    """Class that manages the :class:`Types <unified_planning.model.Type>` in the :class:`~unified_planning.Environment`."""
-
-    def __init__(self):
-        self._bool = BOOL
-        self._ints: Dict[Tuple[Optional[int], Optional[int]], Type] = {}
-        self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
-        self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
-
-    def has_type(self, type: Type) -> bool:
-        """
-        Returns `True` if the given type is already defined in this :class:`~unified_planning.Environment`.
-
-        :param type: The type searched in this `Environment`.
-        :return: `True` if the given `type` is found, `False` otherwise.
-        """
-        if type.is_bool_type():
-            return type == self._bool
-        elif type.is_int_type():
-            assert isinstance(type, _IntType)
-            return self._ints.get((type.lower_bound, type.upper_bound), None) == type
-        elif type.is_real_type():
-            assert isinstance(type, _RealType)
-            return self._reals.get((type.lower_bound, type.upper_bound), None) == type
-        elif type.is_time_type():
-            return type == TIME
-        elif type.is_user_type():
-            assert isinstance(type, _UserType)
-            return self._user_types.get((type.name, type.father), None) == type
-        else:
-            raise NotImplementedError
-
-    def BoolType(self) -> Type:
-        """Returns this `Environment's` boolean `Type`."""
-        return self._bool
-
-    def IntType(
-        self, lower_bound: Optional[int] = None, upper_bound: Optional[int] = None
-    ) -> Type:
-        """
-        Returns the `integer type` defined in this :class:`~unified_planning.Environment` with the given bounds.
-        If the `Type` already exists, it is returned, otherwise it is created and returned.
-
-        :param lower_bound: The integer used as this type's lower bound.
-        :param upper_bound: The integer used as this type's upper bound.
-        :return: The retrieved or created `Type`.
-        """
-        k = (lower_bound, upper_bound)
-        if k in self._ints:
-            return self._ints[k]
-        else:
-            it = _IntType(lower_bound, upper_bound)
-            self._ints[k] = it
-            return it
-
-    def RealType(
-        self,
-        lower_bound: Optional[Union[Fraction, int]] = None,
-        upper_bound: Optional[Union[Fraction, int]] = None,
-    ) -> Type:
-        """
-        Returns the `real type` defined in this :class:`~unified_planning.Environment` with the given bounds.
-        If the type already exists, it is returned, otherwise it is created and returned.
-
-        :param lower_bound: The Fraction or int used as this type's lower bound.
-        :param upper_bound: The Fraction or int used as this type's upper bound.
-        :return: The retrieved or created `Type`.
-        """
-        if isinstance(lower_bound, int):
-            lower_bound = Fraction(lower_bound)
-        if isinstance(upper_bound, int):
-            upper_bound = Fraction(upper_bound)
-        k = (lower_bound, upper_bound)
-        if k in self._reals:
-            return self._reals[k]
-        else:
-            rt = _RealType(lower_bound, upper_bound)
-            self._reals[k] = rt
-            return rt
-
-    def UserType(self, name: str, father: Optional[Type] = None) -> Type:
-        """
-        Returns the user type defined in this :class:`~unified_planning.Environment` with the given `name` and `father`.
-        If the type already exists, it is returned, otherwise it is created and returned.
-
-        :param name: The name of this user type.
-        :param father: The user type that must be set as the father for this type.
-        :return: The retrieved or created `Type`.
-        """
-        if (name, father) in self._user_types:
-            return self._user_types[(name, father)]
-        else:
-            if father is not None:
-                assert isinstance(father, _UserType)
-                if any(
-                    cast(_UserType, ancestor).name == name
-                    for ancestor in father.ancestors
-                ):
-                    raise UPTypeError(
-                        f"The name: {name} is already used. A UserType and one of his ancestors can not share the name."
-                    )
-            ut = _UserType(name, father)
-            self._user_types[(name, father)] = ut
-            return ut
 
 
 def domain_size(
