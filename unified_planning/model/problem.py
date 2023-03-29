@@ -288,6 +288,84 @@ class Problem(  # type: ignore[misc]
                 raise NotImplementedError
         return up.plans.ActionInstance(new_a, tuple(params))
 
+    def _get_static_and_unused_fluents(
+        self,
+    ) -> Tuple[Set["up.model.fluent.Fluent"], Set["up.model.fluent.Fluent"]]:
+        """
+        Support method to calculate the set of static fluents (The fluents that are never modified in the problem)
+        and the set of the unused fluents (The fluents that are never red in the problem.
+        NOTE: The fluents used only in the ActionCost quality metric are in the unused_fluents set anyway).
+        """
+        static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
+        unused_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
+        fve = self._env.free_vars_extractor
+        # function that takes an FNode and removes all the fluents contained in the given FNode
+        # from the unused_fluents  set.
+        remove_used_fluents = lambda exp: unused_fluents.difference_update(
+            (f.fluent() for f in fve.get(exp))
+        )
+        for a in self._actions:
+            if isinstance(a, up.model.action.InstantaneousAction):
+                for c in a.preconditions:
+                    remove_used_fluents(c)
+                for e in a.effects:
+                    remove_used_fluents(e.fluent)
+                    remove_used_fluents(e.value)
+                    remove_used_fluents(e.condition)
+                    static_fluents.discard(e.fluent.fluent())
+                if a.simulated_effect is not None:
+                    # empty the set because a simulated effect reads all the fluents
+                    unused_fluents.difference_update(unused_fluents)
+                    for f in a.simulated_effect.fluents:
+                        static_fluents.discard(f.fluent())
+            elif isinstance(a, up.model.action.DurativeAction):
+                remove_used_fluents(a.duration.lower)
+                remove_used_fluents(a.duration.upper)
+                for cl in a.conditions.values():
+                    for c in cl:
+                        remove_used_fluents(c)
+                for el in a.effects.values():
+                    for e in el:
+                        remove_used_fluents(e.fluent)
+                        remove_used_fluents(e.value)
+                        remove_used_fluents(e.condition)
+                        static_fluents.discard(e.fluent.fluent())
+                for se in a.simulated_effects.values():
+                    unused_fluents.difference_update(unused_fluents)
+                    for f in se.fluents:
+                        static_fluents.discard(f.fluent())
+            else:
+                raise NotImplementedError
+        for el in self._timed_effects.values():
+            for e in el:
+                remove_used_fluents(e.fluent)
+                remove_used_fluents(e.value)
+                remove_used_fluents(e.condition)
+                static_fluents.discard(e.fluent.fluent())
+        for gl in self._timed_goals.values():
+            for g in gl:
+                remove_used_fluents(g)
+        for traj in self._trajectory_constraints:
+            remove_used_fluents(traj)
+        for g in self._goals:
+            remove_used_fluents(g)
+        for qm in self.quality_metrics:
+            if isinstance(
+                qm,
+                (
+                    up.model.metrics.MinimizeExpressionOnFinalState,
+                    up.model.metrics.MaximizeExpressionOnFinalState,
+                ),
+            ):
+                remove_used_fluents(qm.expression)
+            elif isinstance(qm, up.model.metrics.Oversubscription):
+                for g in qm.goals.keys():
+                    remove_used_fluents(g)
+            elif isinstance(qm, up.model.metrics.TemporalOversubscription):
+                for _, g in qm.goals.keys():
+                    remove_used_fluents(g)
+        return static_fluents, unused_fluents
+
     def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
         """
         Returns the set of the `static fluents`.
@@ -296,28 +374,7 @@ class Problem(  # type: ignore[misc]
         appear in the :func:`fluent <unified_planning.model.Effect.fluent>` field of an `Effect`, therefore there are no :func:`Actions <unified_planning.model.Problem.actions>`
         in the `Problem` that can change their value.
         """
-        static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
-        for a in self._actions:
-            if isinstance(a, up.model.action.InstantaneousAction):
-                for e in a.effects:
-                    static_fluents.discard(e.fluent.fluent())
-                if a.simulated_effect is not None:
-                    for f in a.simulated_effect.fluents:
-                        static_fluents.discard(f.fluent())
-            elif isinstance(a, up.model.action.DurativeAction):
-                for el in a.effects.values():
-                    for e in el:
-                        static_fluents.discard(e.fluent.fluent())
-                for _, se in a.simulated_effects.items():
-                    for f in se.fluents:
-                        static_fluents.discard(f.fluent())
-            else:
-                raise NotImplementedError
-        for el in self._timed_effects.values():
-            for e in el:
-                if e.fluent.fluent() in static_fluents:
-                    static_fluents.remove(e.fluent.fluent())
-        return static_fluents
+        return self._get_static_and_unused_fluents()[0]
 
     @property
     def timed_goals(
@@ -574,7 +631,7 @@ class Problem(  # type: ignore[misc]
         seldom as possible.
         """
         # Create the needed data structures
-        static_fluents: Set["up.model.fluent.Fluent"] = self.get_static_fluents()
+        static_fluents, unused_fluents = self._get_static_and_unused_fluents()
 
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
         simplifier = up.model.walkers.simplifier.Simplifier(self._env, self)
@@ -583,10 +640,10 @@ class Problem(  # type: ignore[misc]
         self._kind.set_problem_class("ACTION_BASED")
         self._kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         fluents_to_only_increase, fluents_to_only_decrease = self._update_kind_metric(
-            self._kind, linear_checker
+            self._kind, linear_checker, static_fluents
         )
         for fluent in self._fluents:
-            self._update_problem_kind_fluent(fluent)
+            self._update_problem_kind_fluent(fluent, unused_fluents)
         for object in self._objects:
             self._update_problem_kind_type(object.type)
         for action in self._actions:
@@ -733,10 +790,18 @@ class Problem(  # type: ignore[misc]
         elif type.is_real_type():
             self._kind.set_numbers("CONTINUOUS_NUMBERS")
 
-    def _update_problem_kind_fluent(self, fluent: "up.model.fluent.Fluent"):
-        self._update_problem_kind_type(fluent.type)
-        if fluent.type.is_int_type() or fluent.type.is_real_type():
-            numeric_type = fluent.type
+    def _update_problem_kind_fluent(
+        self,
+        fluent: "up.model.fluent.Fluent",
+        unused_fluents: Set["up.model.fluent.Fluent"],
+    ):
+        type = fluent.type
+        if fluent not in unused_fluents or (
+            not type.is_int_type() and not type.is_real_type()
+        ):
+            self._update_problem_kind_type(type)
+        if fluent.type.is_int_type() or type.is_real_type():
+            numeric_type = type
             assert isinstance(
                 numeric_type, (up.model.types._RealType, up.model.types._IntType)
             )
@@ -745,10 +810,12 @@ class Problem(  # type: ignore[misc]
                 or numeric_type.upper_bound is not None
             ):
                 self._kind.set_numbers("BOUNDED_TYPES")
-            self._kind.set_fluents_type("NUMERIC_FLUENTS")
-        elif fluent.type.is_user_type():
+            if fluent not in unused_fluents:
+                self._kind.set_fluents_type("NUMERIC_FLUENTS")
+        elif type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")
         for p in fluent.signature:
+            # TODO understant if here we need a check that the fluent is not unused
             self._update_problem_kind_type(p.type)
 
     def _update_problem_kind_action(

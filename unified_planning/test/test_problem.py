@@ -527,7 +527,6 @@ class TestProblem(TestCase):
             "robot_with_durative_action",
             "robot_fluent_of_user_type_with_int_id",
             "matchcellar_static_duration",
-            "locations_connected_cost_minimize",
         ]
         for problem, _ in self.problems.values():
             if problem.name in names_of_SNP_problems:
@@ -557,6 +556,7 @@ class TestProblem(TestCase):
         problem.add_fluent(total_distance, default_initial_value=0)
         problem.set_initial_value(distance(l1, l2), 5)
         problem.add_action(move)
+        problem.add_goal(distance(l1, l2) < 6)
 
         # This problem is not SNP because of the increase of 2*distance(l_from, l_to)
         # by grounding, this distance(l_from, l_to) becomes distance(l1, l2), so it can be seen as a constant.

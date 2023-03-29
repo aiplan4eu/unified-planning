@@ -68,6 +68,7 @@ class MetricsMixin:
         self,
         kind: ProblemKind,
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
+        static_fluents: Set["up.model.Fluent"],
     ) -> Tuple[Set["up.model.Fluent"], Set["up.model.Fluent"]]:
         """Updates the kind object passed as parameter to account for given metrics.
         Return a pair for fluent sets that should respectively be only increased/decreased
@@ -75,6 +76,7 @@ class MetricsMixin:
         """
         fluents_to_only_increase = set()
         fluents_to_only_decrease = set()
+        fve = self._env.free_vars_extractor
         for metric in self._metrics:
             if metric.is_minimize_expression_on_final_state():
                 assert isinstance(
@@ -116,6 +118,12 @@ class MetricsMixin:
                     kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif metric.is_minimize_action_costs():
                 kind.set_quality_metrics("ACTIONS_COST")
+                for cost in metric.costs.values():
+                    for f in fve.get(cost):
+                        if f.fluent() in static_fluents:
+                            kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+                        else:
+                            kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
             elif metric.is_minimize_makespan():
                 kind.set_quality_metrics("MAKESPAN")
             elif metric.is_minimize_sequential_plan_length():
