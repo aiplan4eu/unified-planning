@@ -212,4 +212,4 @@ def _absolute_time(
     if relative_time.is_from_start():
         return start + relative_time.delay
     else:
-        return start + duration - relative_time.delay
+        return start + duration + relative_time.delay

@@ -201,6 +201,11 @@ def new_temporal_plan_generation_result(
     elif engine_epsilon is None or (
         problem.epsilon is not None and engine_epsilon < problem.epsilon
     ):
+        # if engine_epsilon is not specified or it's smaller than the problem's
+        # requested epsilon, if the plan is not found the result is fine.
+        # If the plan is found, it must be checked for the plan's epsilon.
+        # if the plan epsilon is smaller than the one requested by the problem,
+        # the result is not valid.
         assert problem.epsilon is not None
         if result.status in POSITIVE_OUTCOMES:
             # check that the solution fits the problem
@@ -217,10 +222,21 @@ def new_temporal_plan_generation_result(
     elif problem.epsilon is None or (
         engine_epsilon is not None and problem.epsilon < engine_epsilon
     ):
+        # If the problem's epsilon is not specified or it's smaller than the
+        # epsilon specified by the Engine, the given solution might not be
+        # final, therefore unsatisfiability or optimality can't be proven
         assert engine_epsilon is not None
         if result.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN:
             return PlanGenerationResult(
                 PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                None,
+                result.engine_name,
+                result.metrics,
+                result.log_messages,
+            )
+        elif result.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY:
+            return PlanGenerationResult(
+                PlanGenerationResultStatus.SOLVED_SATISFICING,
                 None,
                 result.engine_name,
                 result.metrics,
