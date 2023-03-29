@@ -1,10 +1,11 @@
 from typing import Dict, List, Optional, Set, Tuple
 
-from unified_planning.model.metrics import PlanQualityMetric
-from unified_planning.model.problem_kind import ProblemKind
 
 import unified_planning as up
+from unified_planning.model.metrics import PlanQualityMetric
+from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.mixins import ActionsSetMixin
+from unified_planning.exceptions import UPProblemDefinitionError
 
 
 class MetricsMixin:
@@ -119,6 +120,18 @@ class MetricsMixin:
             elif metric.is_minimize_action_costs():
                 kind.set_quality_metrics("ACTIONS_COST")
                 for cost in metric.costs.values():
+                    if cost is None:
+                        raise UPProblemDefinitionError(
+                            "The cost of an Action can't be None."
+                        )
+                    if metric.default is not None:
+                        for f in fve.get(metric.default):
+                            if f.fluent() in static_fluents:
+                                kind.set_actions_cost_kind(
+                                    "STATIC_FLUENTS_IN_ACTIONS_COST"
+                                )
+                            else:
+                                kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
                     for f in fve.get(cost):
                         if f.fluent() in static_fluents:
                             kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
