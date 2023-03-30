@@ -21,7 +21,7 @@ import unified_planning.model.tamp
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
-    EpsilonSeparationMixin,
+    TimeModelMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
@@ -42,7 +42,7 @@ from typing import Optional, List, Dict, Set, Tuple, Union, cast
 class Problem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
-    EpsilonSeparationMixin,
+    TimeModelMixin,
     FluentsSetMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
@@ -64,7 +64,7 @@ class Problem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
-        EpsilonSeparationMixin.__init__(self, default=None)
+        TimeModelMixin.__init__(self, epsilon_default=None, discrete_time=False)
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
@@ -227,7 +227,7 @@ class Problem(  # type: ignore[misc]
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
-        EpsilonSeparationMixin._clone_to(self, new_p)
+        TimeModelMixin._clone_to(self, new_p)
 
         new_p._actions = [a.clone() for a in self._actions]
         new_p._timed_effects = {
@@ -628,13 +628,9 @@ class Problem(  # type: ignore[misc]
         else:
             if not self._kind.has_simple_numeric_planning():
                 self._kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
-        if self.epsilon is not None:
-            if (
-                self._kind.has_continuous_time()
-                and self.epsilon.as_integer_ratio()[0] == 1
-            ):
-                self._kind.set_time("DISCRETE_TIME")
-                self._kind.unset_time("CONTINUOUS_TIME")
+        if self._kind.has_continuous_time() and self.discrete_time:
+            self._kind.set_time("DISCRETE_TIME")
+            self._kind.unset_time("CONTINUOUS_TIME")
         return self._kind
 
     def _update_problem_kind_effect(

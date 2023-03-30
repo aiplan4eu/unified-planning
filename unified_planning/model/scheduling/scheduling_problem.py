@@ -6,7 +6,7 @@ from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.mixins import (
     InitialStateMixin,
     MetricsMixin,
-    EpsilonSeparationMixin,
+    TimeModelMixin,
 )
 from unified_planning.model.mixins.objects_set import ObjectsSetMixin
 from unified_planning.model.mixins.fluents_set import FluentsSetMixin
@@ -29,7 +29,7 @@ from unified_planning.model.timing import GlobalStartTiming
 class SchedulingProblem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
-    EpsilonSeparationMixin,
+    TimeModelMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
@@ -57,7 +57,7 @@ class SchedulingProblem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
-        EpsilonSeparationMixin.__init__(self, default=Fraction(1))
+        TimeModelMixin.__init__(self, epsilon_default=Fraction(1), discrete_time=True)
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
@@ -157,7 +157,7 @@ class SchedulingProblem(  # type: ignore[misc]
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
-        EpsilonSeparationMixin._clone_to(self, new_p)
+        TimeModelMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
         MetricsMixin._clone_to(self, new_p, new_actions=None)
 

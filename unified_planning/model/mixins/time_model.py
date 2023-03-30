@@ -19,7 +19,7 @@ from unified_planning.exceptions import UPProblemDefinitionError
 from typing import Optional, Union
 
 
-class EpsilonSeparationMixin:
+class TimeModelMixin:
     """
     This class defines the problem's mixin for the epsilon separation.
 
@@ -29,9 +29,11 @@ class EpsilonSeparationMixin:
 
     def __init__(
         self,
-        default: Optional[Fraction],
+        epsilon_default: Optional[Fraction],
+        discrete_time: bool,
     ):
-        self._epsilon = default
+        self._epsilon = epsilon_default
+        self._discrete_time = discrete_time
 
     @property
     def epsilon(self) -> Optional[Fraction]:
@@ -60,5 +62,15 @@ class EpsilonSeparationMixin:
                 raise UPProblemDefinitionError("The epsilon must be a positive value!")
         self._epsilon = new_value
 
-    def _clone_to(self, other: "EpsilonSeparationMixin"):
+    @property
+    def discrete_time(self) -> bool:
+        """Returns True if the problem time is discrete, False if it is continuous."""
+        return self._discrete_time
+
+    @discrete_time.setter
+    def discrete_time(self, new_value: bool):
+        self._discrete_time = new_value
+
+    def _clone_to(self, other: "TimeModelMixin"):
         other.epsilon = self._epsilon
+        other.discrete_time = self._discrete_time
