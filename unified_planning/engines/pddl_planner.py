@@ -209,7 +209,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     ) -> "up.engines.results.PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         self._writer = PDDLWriter(
-            problem, self._needs_requirements, rewrite_bool_assignment=True
+            problem, self._needs_requirements, self._rewrite_bool_assignment
         )
         plan = None
         logs: List["up.engines.results.LogMessage"] = []
