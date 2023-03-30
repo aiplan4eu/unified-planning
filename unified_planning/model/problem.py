@@ -628,6 +628,13 @@ class Problem(  # type: ignore[misc]
         else:
             if not self._kind.has_simple_numeric_planning():
                 self._kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        if self.epsilon is not None:
+            if (
+                self._kind.has_continuous_time()
+                and self.epsilon.as_integer_ratio()[0] == 1
+            ):
+                self._kind.set_time("DISCRETE_TIME")
+                self._kind.unset_time("CONTINUOUS_TIME")
         return self._kind
 
     def _update_problem_kind_effect(
