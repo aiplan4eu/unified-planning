@@ -26,7 +26,7 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
     def __init__(self):
-        up.engines.PDDLPlanner.__init__(self, False)
+        up.engines.PDDLPlanner.__init__(self, False, True)
         self._options = ["-planner", "opt-hrmax"]
 
     @property

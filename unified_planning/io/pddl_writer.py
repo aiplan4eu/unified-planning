@@ -322,7 +322,7 @@ class PDDLWriter:
     This class can be used to write a :class:`~unified_planning.model.Problem` in `PDDL`.
     The constructor of this class takes the problem to write and 2 flags:
     needs_requirements determines if the printed problem must have the :requirements,
-    write_non_constant_bool_assignment determines if this writer will write
+    rewrite_bool_assignment determines if this writer will write
     non constant boolean assignment as conditional effects.
     """
 
@@ -330,12 +330,12 @@ class PDDLWriter:
         self,
         problem: "up.model.Problem",
         needs_requirements: bool = True,
-        write_non_constant_bool_assignment: bool = False,
+        rewrite_bool_assignment: bool = False,
     ):
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
-        self.write_non_constant_bool_assignment = write_non_constant_bool_assignment
+        self.rewrite_bool_assignment = rewrite_bool_assignment
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
             Union[
@@ -549,7 +549,7 @@ class PDDLWriter:
                             None,
                             out,
                             converter,
-                            self.write_non_constant_bool_assignment,
+                            self.rewrite_bool_assignment,
                         )
 
                     if a in costs:
@@ -614,7 +614,7 @@ class PDDLWriter:
                                 t,
                                 out,
                                 converter,
-                                self.write_non_constant_bool_assignment,
+                                self.rewrite_bool_assignment,
                             )
                     if a in costs:
                         out.write(
@@ -909,7 +909,7 @@ def _write_effect(
     timing: Optional[Timing],
     out: IO[str],
     converter: ConverterToPDDLString,
-    write_non_constant_bool_assignment: bool,
+    rewrite_bool_assignment: bool,
 ):
     simplified_cond = effect.condition.simplify()
     # check for non-constant-bool-assignment
@@ -918,11 +918,11 @@ def _write_effect(
         and not effect.value.is_true()
         and not effect.value.is_false()
     )
-    if non_const_bool_ass and not write_non_constant_bool_assignment:
+    if non_const_bool_ass and not rewrite_bool_assignment:
         raise UPProblemDefinitionError(
             "The problem has non-constant boolean assignments.This can't be directly written ",
             "in PDDL, but it can be translated into a conditional effect maintaining the ",
-            "semantic. To enable this feature, set the flag write_non_constant_bool_assignment",
+            "semantic. To enable this feature, set the flag rewrite_bool_assignment",
             " to True in the PDDLWriter constructor.",
         )
     simplified_cond = effect.condition.simplify()
