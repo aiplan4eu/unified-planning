@@ -171,13 +171,16 @@ class PlanGenerationResult(Result):
         )
 
 
-def new_temporal_plan_generation_result(
+def correct_plan_generation_result(
     result: PlanGenerationResult,
     problem: Problem,
     engine_epsilon: Optional[Union[int, float, str, Fraction]],
 ) -> PlanGenerationResult:
     """
-    This is a utility method for the Engine developers.
+    This function takes a PlanGenerationResult of a temporal problem and
+    corrects it considering the epsilon requested by the problem.
+
+    This method works only with TimeTriggeredPlans when the result contains a Plan.
 
     :param result: The PlanGenerationResult that must be checked.
     :param problem: The Problem the given PlanGenerationResult refers to.
