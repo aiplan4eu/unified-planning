@@ -66,7 +66,7 @@ class TestPddlIO(TestCase):
         with self.assertRaises(UPProblemDefinitionError) as e:
             _ = w.get_domain()
 
-        w = PDDLWriter(problem, rewrite_bool_assignment=True)
+        w = PDDLWriter(problem, rewrite_bool_assignments=True)
         pddl_domain = w.get_domain()
         self.assertIn("(:requirements :strips :negative-preconditions)", pddl_domain)
         self.assertIn("(:predicates (x) (y))", pddl_domain)

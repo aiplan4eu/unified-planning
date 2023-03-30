@@ -65,17 +65,17 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     that can be invocated through a subprocess call.
     """
 
-    def __init__(self, needs_requirements=True, rewrite_bool_assignment=False):
+    def __init__(self, needs_requirements=True, rewrite_bool_assignments=False):
         """
         :param self: The PDDLEngine instance.
         :param needs_requirements: Flag defining if the Engine needs the PDDL requirements.
-        :param rewrite_bool_assignment: Flag defining if the non-constant boolean assignments
+        :param rewrite_bool_assignments: Flag defining if the non-constant boolean assignments
             will be rewritten as conditional effects in the PDDL file submitted to the Engine.
         """
         engines.engine.Engine.__init__(self)
         mixins.OneshotPlannerMixin.__init__(self)
         self._needs_requirements = needs_requirements
-        self._rewrite_bool_assignment = rewrite_bool_assignment
+        self._rewrite_bool_assignments = rewrite_bool_assignments
         self._process = None
         self._writer = None
 
@@ -209,7 +209,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
     ) -> "up.engines.results.PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         self._writer = PDDLWriter(
-            problem, self._needs_requirements, self._rewrite_bool_assignment
+            problem, self._needs_requirements, self._rewrite_bool_assignments
         )
         plan = None
         logs: List["up.engines.results.LogMessage"] = []

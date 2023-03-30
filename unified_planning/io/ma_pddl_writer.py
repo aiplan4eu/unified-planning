@@ -92,7 +92,7 @@ class MAPDDLWriter:
     This class can be used to write a :class:`~unified_planning.model.MultiAgentProblem` in `MA-PDDL`.
     The constructor of this class takes the problem to write and 2 flags:
     needs_requirements determines if the printed problem must have the :requirements,
-    rewrite_bool_assignment determines if this writer will write
+    rewrite_bool_assignments determines if this writer will write
     non constant boolean assignment as conditional effects.
     """
 
@@ -100,13 +100,13 @@ class MAPDDLWriter:
         self,
         problem: "up.model.multi_agent.MultiAgentProblem",
         needs_requirements: bool = True,
-        rewrite_bool_assignment: bool = False,
+        rewrite_bool_assignments: bool = False,
     ):
         self._env = problem.environment
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
-        self.rewrite_bool_assignment = rewrite_bool_assignment
+        self.rewrite_bool_assignments = rewrite_bool_assignments
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
             Union[
@@ -445,7 +445,7 @@ class MAPDDLWriter:
                                 None,
                                 out,
                                 converter,
-                                self.rewrite_bool_assignment,
+                                self.rewrite_bool_assignments,
                             )
 
                         if a in costs:
@@ -506,7 +506,7 @@ class MAPDDLWriter:
                                     t,
                                     out,
                                     converter,
-                                    self.rewrite_bool_assignment,
+                                    self.rewrite_bool_assignments,
                                 )
                         if a in costs:
                             out.write(
