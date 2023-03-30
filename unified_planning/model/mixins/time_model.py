@@ -21,10 +21,12 @@ from typing import Optional, Union
 
 class TimeModelMixin:
     """
-    This class defines the problem's mixin for the epsilon separation.
+    This class defines the problem's mixin for the epsilon separation and the
+    time-kind, that can be continuous or discrete.
 
-    When this mixin is initialized, a default must be set.
-    Then, the epsilon value can be changed based on the user's request.
+    When this mixin is initialized, a default for both fields must be set.
+    Then, the epsilon value or the time_kind can be changed based on the user's
+    request.
     """
 
     def __init__(
