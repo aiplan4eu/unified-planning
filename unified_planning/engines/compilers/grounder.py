@@ -333,21 +333,10 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():
                 assert isinstance(qm, MinimizeActionCosts)
-                simplifier = grounder_helper.simplifier
-                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
-                for new_action, (old_action, params) in trace_back_map.items():
-                    subs = cast(
-                        Dict[Expression, Expression],
-                        dict(zip(old_action.parameters, params)),
-                    )
-                    old_cost = qm.get_action_cost(old_action)
-                    if old_cost is not None:
-                        new_costs[new_action] = simplifier.simplify(
-                            old_cost.substitute(subs)
-                        )
-                new_problem.add_quality_metric(
-                    MinimizeActionCosts(new_costs, environment=new_problem.environment)
+                new_metric = ground_minimize_action_costs_metric(
+                    qm, trace_back_map, grounder_helper.simplifier
                 )
+                new_problem.add_quality_metric(new_metric)
             else:
                 new_problem.add_quality_metric(qm)
 
@@ -356,3 +345,33 @@ class Grounder(engines.engine.Engine, CompilerMixin):
             partial(lift_action_instance, map=trace_back_map),
             self.name,
         )
+
+
+def ground_minimize_action_costs_metric(
+    metric: MinimizeActionCosts,
+    trace_back_map: Dict[Action, Tuple[Action, List[FNode]]],
+    simplifier: Simplifier,
+) -> MinimizeActionCosts:
+    """
+    Support method for a grounder to handle the MinimizeActionCosts metric.
+
+    :param metric: The metric to convert.
+    :param trace_back_map: The grounding map from a grounded Action to the Action
+        and parameters that created the grounded action.
+    :param simplifier: The simplifier used to evaluate the cost; if this simplifier
+        has the Instance of the problem at construction time, it will also substitute
+        the static fluents in the action cost with their value.
+    :return: The equivalent MinimizeActionCosts metric for the grounded problem.
+    """
+    new_costs: Dict[Action, Optional[FNode]] = {}
+    for new_action, (old_action, params) in trace_back_map.items():
+        subs = cast(
+            Dict[Expression, Expression],
+            dict(zip(old_action.parameters, params)),
+        )
+        old_cost = metric.get_action_cost(old_action)
+        if old_cost is None:
+            new_costs[new_action] = None
+        else:
+            new_costs[new_action] = simplifier.simplify(old_cost.substitute(subs))
+    return MinimizeActionCosts(new_costs)

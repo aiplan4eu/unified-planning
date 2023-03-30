@@ -393,6 +393,8 @@ class PDDLWriter:
             if (
                 self.problem_kind.has_continuous_numbers()
                 or self.problem_kind.has_discrete_numbers()
+                or self.problem_kind.has_static_fluents_in_actions_cost()
+                or self.problem_kind.has_fluents_in_actions_cost()
             ):
                 out.write(" :numeric-fluents")
             if self.problem_kind.has_conditional_effects():
