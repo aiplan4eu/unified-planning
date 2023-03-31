@@ -35,7 +35,7 @@ from pyparsing import oneOf
 class Located(ParseElementEnhance):
     def parseImpl(self, instring, loc, doActions=True):
         start = loc
-        loc, tokens = self.expr._parse(instring, start, doActions, callPreParse=False)
+        loc, tokens = self.expr._parse(instring, start, doActions, callPreParse=False)  # type: ignore
         ret_tokens = ParseResults([start, tokens, loc])
         ret_tokens["locn_start"] = start
         ret_tokens["value"] = tokens
