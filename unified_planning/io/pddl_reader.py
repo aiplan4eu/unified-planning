@@ -26,10 +26,24 @@ from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
 
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
-from pyparsing import CharsNotIn, Empty, Located, col, lineno
-from pyparsing.results import ParseResults
-from pyparsing import one_of
+from pyparsing import Suppress, Group, restOfLine, Optional, Forward
+from pyparsing import CharsNotIn, Empty, col, lineno
+from pyparsing import ParseResults, ParseElementEnhance
+from pyparsing import oneOf
+
+
+class Located(ParseElementEnhance):
+    def parseImpl(self, instring, loc, doActions=True):
+        start = loc
+        loc, tokens = self.expr._parse(instring, start, doActions, callPreParse=False)
+        ret_tokens = ParseResults([start, tokens, loc])
+        ret_tokens["locn_start"] = start
+        ret_tokens["value"] = tokens
+        ret_tokens["locn_end"] = loc
+        if self.resultsName:
+            return loc, [ret_tokens]
+        else:
+            return loc, ret_tokens
 
 
 class CustomParseResults:
@@ -87,7 +101,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":requirements"
             + OneOrMore(
-                one_of(
+                oneOf(
                     ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
                 )
             )
@@ -203,11 +217,11 @@ class PDDLGrammar:
             - nested_expr().setResultsName("task")
             + Optional(":precondition" - nested_expr().setResultsName("precondition"))
             + Optional(
-                one_of(":ordered-subtasks :ordered-tasks")
+                oneOf(":ordered-subtasks :ordered-tasks")
                 - nested_expr().setResultsName("ordered-subtasks")
             )
             + Optional(
-                one_of(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
+                oneOf(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
             )
             + Optional(":ordering" - nested_expr().setResultsName("ordering"))
             + Optional(":constraints" - nested_expr().setResultsName("constraints"))
@@ -241,11 +255,11 @@ class PDDLGrammar:
             + ":htn"
             - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
             + Optional(
-                one_of(":ordered-tasks :ordered-subtasks")
+                oneOf(":ordered-tasks :ordered-subtasks")
                 - nested_expr().setResultsName("ordered-tasks")
             )
             + Optional(
-                one_of(":tasks :subtasks") - nested_expr().setResultsName("tasks")
+                oneOf(":tasks :subtasks") - nested_expr().setResultsName("tasks")
             )
             + Optional(":ordering" - nested_expr().setResultsName("ordering"))
             + Optional(":constraints" - nested_expr().setResultsName("constraints"))
@@ -290,8 +304,8 @@ class PDDLGrammar:
             + Suppress(")")
         )
 
-        domain.ignore(";" + rest_of_line)
-        problem.ignore(";" + rest_of_line)
+        domain.ignore(";" + restOfLine)
+        problem.ignore(";" + restOfLine)
 
         self._domain = domain
         self._problem = problem
@@ -1657,11 +1671,11 @@ class PDDLReader:
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
         domain_str = domain_str.replace("\t", " ").lower()
-        domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
+        domain_res = self._pp_domain.parseString(domain_str, parseAll=True)
 
         if problem_str is not None:
             problem_str = problem_str.replace("\t", " ").lower()
-            problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
+            problem_res = self._pp_problem.parseString(problem_str, parseAll=True)
         else:
             problem_res = None
 

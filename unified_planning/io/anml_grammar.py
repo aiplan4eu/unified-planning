@@ -21,18 +21,18 @@ from pyparsing import (
     Optional,
     Suppress,
     Group,
-    rest_of_line,
+    restOfLine,
     Combine,
     Forward,
-    infix_notation,
-    OpAssoc,
+    infixNotation,
+    opAssoc,
     ParserElement,
     Literal,
-    one_of,
+    oneOf,
 )
-from pyparsing.results import ParseResults
+from pyparsing import ParseResults
 
-ParserElement.enable_packrat()
+ParserElement.enablePackrat()
 
 # ANMl keywords definition as tokens
 TK_COMMA = ","
@@ -79,7 +79,7 @@ TK_GOAL = "goal"
 TK_CONTAINS = "contains"
 TK_BOOLEAN = "boolean"
 TK_INTEGER = "integer"
-TK_FLOAT = one_of(["float", "rational"])  # NOTE both are possible here
+TK_FLOAT = oneOf(["float", "rational"])  # NOTE both are possible here
 TK_SET = "set"
 TK_ALL = "all"
 TK_START = "start"
@@ -120,7 +120,7 @@ class ANMLGrammar:
         integer = Word(nums)
         real = Combine(Word(nums) + "." + Word(nums))
         float_const = real | integer
-        boolean_const = one_of([TK_TRUE, TK_FALSE])
+        boolean_const = oneOf([TK_TRUE, TK_FALSE])
 
         # Expression definitions
         interval = Forward()
@@ -141,34 +141,34 @@ class ANMLGrammar:
             )
         )
 
-        arithmetic_expression = infix_notation(
+        arithmetic_expression = infixNotation(
             boolean_const | float_const | fluent_ref,
             [
-                (one_of([TK_PLUS, TK_MINUS]), 1, OpAssoc.RIGHT),
-                (one_of([TK_TIMES, TK_DIV]), 2, OpAssoc.LEFT, group_binary),
-                (one_of([TK_PLUS, TK_MINUS]), 2, OpAssoc.LEFT, group_binary),
+                (oneOf([TK_PLUS, TK_MINUS]), 1, opAssoc.RIGHT),
+                (oneOf([TK_TIMES, TK_DIV]), 2, opAssoc.LEFT, group_binary),
+                (oneOf([TK_PLUS, TK_MINUS]), 2, opAssoc.LEFT, group_binary),
             ],
         )
-        relations_expression = infix_notation(
+        relations_expression = infixNotation(
             arithmetic_expression,
             [
                 (
-                    one_of([TK_LT, TK_LE, TK_GT, TK_GE, TK_EQUALS, TK_NOT_EQUALS]),
+                    oneOf([TK_LT, TK_LE, TK_GT, TK_GE, TK_EQUALS, TK_NOT_EQUALS]),
                     2,
-                    OpAssoc.LEFT,
+                    opAssoc.LEFT,
                     group_binary,
                 ),
             ],
         )
-        boolean_expression <<= infix_notation(
+        boolean_expression <<= infixNotation(
             quantified_expression | relations_expression | boolean_const,
             [
-                (TK_NOT, 1, OpAssoc.RIGHT),
-                (one_of([TK_AND, TK_OR, TK_XOR]), 2, OpAssoc.LEFT, group_binary),
+                (TK_NOT, 1, opAssoc.RIGHT),
+                (oneOf([TK_AND, TK_OR, TK_XOR]), 2, opAssoc.LEFT, group_binary),
                 (
-                    one_of([TK_ASSIGN, TK_INCREASE, TK_DECREASE]),
+                    oneOf([TK_ASSIGN, TK_INCREASE, TK_DECREASE]),
                     2,
-                    OpAssoc.LEFT,
+                    opAssoc.LEFT,
                     group_binary,
                 ),
             ],
@@ -202,7 +202,7 @@ class ANMLGrammar:
         temporal_expression = Optional(arithmetic_expression)
 
         in_assignment_expression = (
-            one_of((TK_DURATION,))
+            oneOf((TK_DURATION,))
             - Literal(TK_IN_ASSIGN)
             - Suppress(TK_L_BRACKET)
             - Group(temporal_expression).setResultsName("left_bound")
@@ -264,7 +264,7 @@ class ANMLGrammar:
             Suppress(TK_COMMA) - Group(Group(type_ref) - identifier)
         )
         fluent_decl = (
-            Suppress(one_of([TK_FLUENT, TK_CONSTANT]))
+            Suppress(oneOf([TK_FLUENT, TK_CONSTANT]))
             - type_ref.setResultsName("type")
             - identifier.setResultsName("name")
             - Group(
@@ -289,17 +289,17 @@ class ANMLGrammar:
         )
         action_decl.setParseAction(self.actions.append)
         interval <<= (
-            one_of([TK_L_BRACKET, TK_L_PARENTHESIS])
+            oneOf([TK_L_BRACKET, TK_L_PARENTHESIS])
             + (
                 (
                     Group(temporal_expression)
                     + Optional(Suppress(TK_COMMA) + Group(temporal_expression))
                 )
             )
-            + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
+            + oneOf([TK_R_BRACKET, TK_R_PARENTHESIS])
         )
         quantified_expression <<= Group(
-            one_of([TK_FORALL, TK_EXISTS])
+            oneOf([TK_FORALL, TK_EXISTS])
             - Suppress(TK_L_PARENTHESIS)
             - Group(parameter_list).setResultsName("quantifier_variables")
             - Suppress(TK_R_PARENTHESIS)
@@ -339,7 +339,7 @@ class ANMLGrammar:
         )
 
         anml_body = OneOrMore(Group(anml_stmt - Suppress(TK_SEMI)))
-        anml_body.ignore(TK_COMMENT - rest_of_line)
+        anml_body.ignore(TK_COMMENT - restOfLine)
 
         self._problem = anml_body
 
@@ -362,7 +362,7 @@ def operatorOperands(tokenlist):
 def group_binary(parse_res: ParseResults):
     """
     Helper function that organizes the parsed expression's flat tree, parsed by the
-    pyparsing.infix_notation, in a binary tree.
+    pyparsing.infixNotation, in a binary tree.
 
     ES: 3 + 2 - (5 - 4)
     is parsed as: [[[['3', '+', '2'], '-', ['5', '-', '4']]]

@@ -74,7 +74,7 @@ from unified_planning.model import (
 )
 from fractions import Fraction
 from typing import Dict, Set, Tuple, Union, Callable, List, Optional
-from pyparsing.results import ParseResults
+from pyparsing import ParseResults
 
 
 class ANMLReader:
