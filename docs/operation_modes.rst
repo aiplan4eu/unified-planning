@@ -13,18 +13,17 @@ We currently support the following operation modes:
 The solving interface also features a powerful automatic filtering of planning engines. In fact, the input planning problem is automatically analysed in order to determine the features needed to tackle the problem itself. The planning engines available on the system where the library is executed are then filtered, and only the ones that are capable of tackling the problem are left for the user to select from. This mechanism simplifies the job of the user in the selection of the right planning engine to be used.
 All the functionalities of the solving interface are collected under the ``unified_planning.engines`` package.
 
-Example
+Compiler Example
 -------
 The following example shows how to create a compiler to remove negative conditions from a problem and to retrieve the plan for the original problem from a plan of the transformed problem. If the planner does not support negative conditions, the original problem could not be solved, while the compiler allows us to solve the problem anyway.
 
 .. literalinclude:: ./code_snippets/robot_battery.py
     :lines: 42-76
 
-Example
+OneshotPlanner Example
 -------
 
 The following example shows how to get a planner and solve a problem.
 
 .. literalinclude:: ./code_snippets/robot_battery.py
     :lines: 80-86
-
