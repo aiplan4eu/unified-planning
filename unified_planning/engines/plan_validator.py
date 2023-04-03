@@ -133,6 +133,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         if metric is not None:
             metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
         msg = None
+        last_executed_action = None
         for i, ai in enumerate(plan.actions):
             assert prev_state is not None
             try:
@@ -148,7 +149,13 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
-                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+                return ValidationResult(
+                    ValidationResultStatus.INVALID,
+                    self.name,
+                    logs,
+                    None,
+                    last_executed_action,
+                )
             assert next_state is not None
             if metric is not None:
                 metric_value = evaluate_quality_metric(
@@ -160,6 +167,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     ai.actual_parameters,
                     next_state,
                 )
+            last_executed_action = ai
             prev_state = next_state
         assert next_state is not None
         unsatisfied_goals = simulator.get_unsatisfied_goals(next_state)
@@ -174,4 +182,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         else:
             msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
             logs = [LogMessage(LogLevel.INFO, msg)]
-            return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+            return ValidationResult(
+                ValidationResultStatus.INVALID,
+                self.name,
+                logs,
+                None,
+                last_executed_action,
+            )

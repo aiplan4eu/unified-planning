@@ -174,6 +174,7 @@ class ValidationResult(Result):
     metric_evaluations: Optional[Dict[PlanQualityMetric, Union[int, Fraction]]] = field(
         default=None
     )
+    last_executed_action: Optional[up.plans.ActionInstance] = field(default=None)
 
     def is_definitive_result(self, *args) -> bool:
         return True
