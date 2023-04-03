@@ -36,6 +36,7 @@ from unified_planning.engines.results import (
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
     evaluate_quality_metric,
+    evaluate_quality_metric_in_initial_state,
 )
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
