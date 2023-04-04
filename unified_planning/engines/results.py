@@ -45,6 +45,13 @@ class ValidationResultStatus(Enum):
             return False
 
 
+class FailedValidationReasons(Enum):
+    """Enum representing the possible reasons the plan validation failed."""
+
+    INAPPLICABLE_ACTION = auto()
+    UNSATISFIED_GOALS = auto()
+
+
 class PlanGenerationResultStatus(Enum):
     """
     Enum representing the 9 possible values in the status field of a :class:`~unified_planning.engines.PlanGenerationResult`:
@@ -174,7 +181,14 @@ class ValidationResult(Result):
     metric_evaluations: Optional[Dict[PlanQualityMetric, Union[int, Fraction]]] = field(
         default=None
     )
-    last_executed_action: Optional[up.plans.ActionInstance] = field(default=None)
+    reason: Optional[FailedValidationReasons] = field(default=None)
+    inapplicable_action: Optional[up.plans.ActionInstance] = field(default=None)
+
+    def __post_init__(self):
+        assert (
+            self.inapplicable_action is None
+            or self.reason == FailedValidationReasons.INAPPLICABLE_ACTION
+        ), "The inapplicable_action can be set only if the reason of the failed plan is an inapplicable action."
 
     def is_definitive_result(self, *args) -> bool:
         return True

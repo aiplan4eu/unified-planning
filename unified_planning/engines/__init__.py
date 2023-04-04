@@ -32,6 +32,7 @@ from unified_planning.engines.results import (
     ValidationResult,
     ValidationResultStatus,
     CompilerResult,
+    FailedValidationReasons,
 )
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,

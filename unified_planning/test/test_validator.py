@@ -14,6 +14,8 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
+from unified_planning.engines import SequentialPlanValidator, FailedValidationReasons
+from unified_planning.plans import SequentialPlan, ActionInstance
 from unified_planning.model.problem_kind import (
     classical_kind,
     general_numeric_kind,
@@ -85,6 +87,27 @@ class TestPlanValidator(TestCase):
             plan = up.plans.SequentialPlan([])
             res = validator.validate(problem, plan)
             self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
+
+    def test_invalid_report(self):
+        problem, plan = self.problems["travel"]
+        up_validator = SequentialPlanValidator()
+
+        # without the last action the goal fails.
+        failed_goal_plan = SequentialPlan([*plan.actions[:-1]])
+        res = up_validator.validate(problem, failed_goal_plan)
+        self.assertEqual(res.reason, FailedValidationReasons.UNSATISFIED_GOALS)
+
+        # add an invalid action to the plan
+        move = problem.action("move")
+        l1 = problem.object("l1")
+        l2 = problem.object("l2")
+        invalid_action = ActionInstance(move, (ObjectExp(l2), ObjectExp(l1)))
+        actions = [*plan.actions]
+        actions.append(invalid_action)
+        invalid_action_plan = SequentialPlan(actions)
+        res = up_validator.validate(problem, invalid_action_plan)
+        self.assertEqual(res.reason, FailedValidationReasons.INAPPLICABLE_ACTION)
+        self.assertEqual(res.inapplicable_action, invalid_action)
 
 
 if __name__ == "__main__":

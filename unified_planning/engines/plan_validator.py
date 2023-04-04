@@ -31,6 +31,7 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
     LogMessage,
     LogLevel,
+    FailedValidationReasons,
 )
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
@@ -42,6 +43,7 @@ from unified_planning.exceptions import (
     UPConflictingEffectsException,
     UPUsageError,
     UPProblemDefinitionError,
+    UPInvalidActionError,
 )
 
 
@@ -133,7 +135,6 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         if metric is not None:
             metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
         msg = None
-        last_executed_action = None
         for i, ai in enumerate(plan.actions):
             assert prev_state is not None
             try:
@@ -142,6 +143,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
+            except UPInvalidActionError as e:
+                msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
             if unsat_conds:
                 msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
             next_state = simulator.apply_unsafe(prev_state, ai)
@@ -154,7 +157,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     self.name,
                     logs,
                     None,
-                    last_executed_action,
+                    FailedValidationReasons.INAPPLICABLE_ACTION,
+                    ai,
                 )
             assert next_state is not None
             if metric is not None:
@@ -167,7 +171,6 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     ai.actual_parameters,
                     next_state,
                 )
-            last_executed_action = ai
             prev_state = next_state
         assert next_state is not None
         unsatisfied_goals = simulator.get_unsatisfied_goals(next_state)
@@ -187,5 +190,5 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 self.name,
                 logs,
                 None,
-                last_executed_action,
+                FailedValidationReasons.UNSATISFIED_GOALS,
             )
