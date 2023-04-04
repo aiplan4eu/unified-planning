@@ -15,6 +15,7 @@
 
 
 import unified_planning as up
+from unified_planning.io.utils import set_results_name, set_parse_action
 from typing import List
 
 import pyparsing
@@ -36,20 +37,6 @@ else:
     from pyparsing import OpAssoc
 
     ParserElement.enable_packrat()
-
-
-def set_results_name(obj, name):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.setResultsName(name)
-    else:
-        return obj.set_results_name(name)
-
-
-def set_parse_action(obj, fun):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.setParseAction(fun)
-    else:
-        return obj.set_parse_action(fun)
 
 
 # ANMl keywords definition as tokens

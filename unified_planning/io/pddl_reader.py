@@ -21,6 +21,7 @@ import typing
 from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPUsageError
+from unified_planning.io.utils import parse_string, set_results_name, Located
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
@@ -32,27 +33,11 @@ from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
 from pyparsing import Suppress, Group, Optional, Forward
 
 if pyparsing.__version__ < "3.0.0":
-    from pyparsing import ParseElementEnhance
     from pyparsing import oneOf as one_of
     from pyparsing import restOfLine as rest_of_line
-
-    class Located(ParseElementEnhance):
-        def parseImpl(self, instring, loc, doActions=True):
-            start = loc
-            loc, tokens = self.expr._parse(instring, start, doActions, callPreParse=False)  # type: ignore
-            ret_tokens = ParseResults([start, tokens, loc])
-            ret_tokens["locn_start"] = start
-            ret_tokens["value"] = tokens
-            ret_tokens["locn_end"] = loc
-            if self.resultsName:
-                return loc, [ret_tokens]
-            else:
-                return loc, ret_tokens
-
 else:
     from pyparsing import one_of
     from pyparsing import rest_of_line
-    from pyparsing import Located  # type: ignore
 
 
 class CustomParseResults:
@@ -99,20 +84,6 @@ def nested_expr():
         )
     )
     return nested
-
-
-def parse_string(obj, domain_str, parse_all):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.parseString(domain_str, parseAll=parse_all)
-    else:
-        return obj.parse_string(domain_str, parse_all=parse_all)
-
-
-def set_results_name(obj, name):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.setResultsName(name)
-    else:
-        return obj.set_results_name(name)
 
 
 class PDDLGrammar:

@@ -17,7 +17,6 @@
 from collections import OrderedDict
 import unified_planning as up
 import networkx as nx
-import pyparsing
 from unified_planning.io.anml_grammar import (
     TK_ALL,
     TK_AND,
@@ -76,20 +75,7 @@ from unified_planning.model import (
 from fractions import Fraction
 from typing import Dict, Set, Tuple, Union, Callable, List, Optional
 from pyparsing import ParseResults
-
-
-def parse_string(obj, problem_str, parse_all):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.parseString(problem_str, parseAll=parse_all)
-    else:
-        return obj.parse_string(problem_str, parse_all=parse_all)
-
-
-def parse_file(obj, problem_str, parse_all):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.parseFile(problem_str, parseAll=parse_all)
-    else:
-        return obj.parse_file(problem_str, parse_all=parse_all)
+from unified_planning.io.utils import parse_string, parse_file
 
 
 class ANMLReader:
