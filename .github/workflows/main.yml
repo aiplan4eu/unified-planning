@@ -55,6 +55,9 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install pyparsing version used in ROS1
+        run: python3 -m pip install pyparsing==2.4.6
+
       - name: Install Python dependencies
         run: python3 -m pip install -r requirements.txt
 
