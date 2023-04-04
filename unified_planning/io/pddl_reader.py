@@ -25,25 +25,33 @@ from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
 
-from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, Group, restOfLine, Optional, Forward
+import pyparsing
+from pyparsing import ParseResults
 from pyparsing import CharsNotIn, Empty, col, lineno
-from pyparsing import ParseResults, ParseElementEnhance
-from pyparsing import oneOf
+from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
+from pyparsing import Suppress, Group, Optional, Forward
 
+if pyparsing.__version__ < "3.0.0":
+    from pyparsing import ParseElementEnhance
+    from pyparsing import oneOf as one_of
+    from pyparsing import restOfLine as rest_of_line
 
-class Located(ParseElementEnhance):
-    def parseImpl(self, instring, loc, doActions=True):
-        start = loc
-        loc, tokens = self.expr._parse(instring, start, doActions, callPreParse=False)  # type: ignore
-        ret_tokens = ParseResults([start, tokens, loc])
-        ret_tokens["locn_start"] = start
-        ret_tokens["value"] = tokens
-        ret_tokens["locn_end"] = loc
-        if self.resultsName:
-            return loc, [ret_tokens]
-        else:
-            return loc, ret_tokens
+    class Located(ParseElementEnhance):
+        def parseImpl(self, instring, loc, doActions=True):
+            start = loc
+            loc, tokens = self.expr._parse(instring, start, doActions, callPreParse=False)  # type: ignore
+            ret_tokens = ParseResults([start, tokens, loc])
+            ret_tokens["locn_start"] = start
+            ret_tokens["value"] = tokens
+            ret_tokens["locn_end"] = loc
+            if self.resultsName:
+                return loc, [ret_tokens]
+            else:
+                return loc, ret_tokens
+
+else:
+    from pyparsing import one_of
+    from pyparsing import rest_of_line
 
 
 class CustomParseResults:
@@ -101,7 +109,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":requirements"
             + OneOrMore(
-                oneOf(
+                one_of(
                     ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
                 )
             )
@@ -217,11 +225,11 @@ class PDDLGrammar:
             - nested_expr().setResultsName("task")
             + Optional(":precondition" - nested_expr().setResultsName("precondition"))
             + Optional(
-                oneOf(":ordered-subtasks :ordered-tasks")
+                one_of(":ordered-subtasks :ordered-tasks")
                 - nested_expr().setResultsName("ordered-subtasks")
             )
             + Optional(
-                oneOf(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
+                one_of(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
             )
             + Optional(":ordering" - nested_expr().setResultsName("ordering"))
             + Optional(":constraints" - nested_expr().setResultsName("constraints"))
@@ -255,11 +263,11 @@ class PDDLGrammar:
             + ":htn"
             - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
             + Optional(
-                oneOf(":ordered-tasks :ordered-subtasks")
+                one_of(":ordered-tasks :ordered-subtasks")
                 - nested_expr().setResultsName("ordered-tasks")
             )
             + Optional(
-                oneOf(":tasks :subtasks") - nested_expr().setResultsName("tasks")
+                one_of(":tasks :subtasks") - nested_expr().setResultsName("tasks")
             )
             + Optional(":ordering" - nested_expr().setResultsName("ordering"))
             + Optional(":constraints" - nested_expr().setResultsName("constraints"))
@@ -304,8 +312,8 @@ class PDDLGrammar:
             + Suppress(")")
         )
 
-        domain.ignore(";" + restOfLine)
-        problem.ignore(";" + restOfLine)
+        domain.ignore(";" + rest_of_line)
+        problem.ignore(";" + rest_of_line)
 
         self._domain = domain
         self._problem = problem
