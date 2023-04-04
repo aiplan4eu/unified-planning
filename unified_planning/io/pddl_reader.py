@@ -21,15 +21,23 @@ import typing
 from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPUsageError
+from unified_planning.io.utils import parse_string, set_results_name, Located
 from collections import OrderedDict
 from fractions import Fraction
 from typing import Dict, Union, Callable, List, cast
 
+import pyparsing
+from pyparsing import ParseResults
+from pyparsing import CharsNotIn, Empty, col, lineno
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
-from pyparsing import CharsNotIn, Empty, Located, col, lineno
-from pyparsing.results import ParseResults
-from pyparsing import one_of
+from pyparsing import Suppress, Group, Optional, Forward
+
+if pyparsing.__version__ < "3.0.0":
+    from pyparsing import oneOf as one_of
+    from pyparsing import restOfLine as rest_of_line
+else:
+    from pyparsing import one_of
+    from pyparsing import rest_of_line
 
 
 class CustomParseResults:
@@ -97,18 +105,26 @@ class PDDLGrammar:
         types_def = (
             Suppress("(")
             + ":types"
-            - OneOrMore(
-                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
-            ).setResultsName("types")
+            - set_results_name(
+                OneOrMore(
+                    Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+                ),
+                "types",
+            )
             + Suppress(")")
         )
 
         constants_def = (
             Suppress("(")
             + ":constants"
-            - ZeroOrMore(
-                Group(Located(Group(OneOrMore(name)) + Optional(Suppress("-") + name)))
-            ).setResultsName("constants")
+            - set_results_name(
+                ZeroOrMore(
+                    Group(
+                        Located(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+                    )
+                ),
+                "constants",
+            )
             + Suppress(")")
         )
 
@@ -133,57 +149,63 @@ class PDDLGrammar:
         predicates_def = (
             Suppress("(")
             + ":predicates"
-            - Group(OneOrMore(predicate)).setResultsName("predicates")
+            - set_results_name(Group(OneOrMore(predicate)), "predicates")
             + Suppress(")")
         )
 
         functions_def = (
             Suppress("(")
             + ":functions"
-            - Group(
-                OneOrMore(predicate + Optional(Suppress("- number")))
-            ).setResultsName("functions")
+            - set_results_name(
+                Group(OneOrMore(predicate + Optional(Suppress("- number")))),
+                "functions",
+            )
             + Suppress(")")
         )
 
-        parameters = ZeroOrMore(
-            Group(Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + name)))
-        ).setResultsName("params")
+        parameters = set_results_name(
+            ZeroOrMore(
+                Group(
+                    Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + name))
+                )
+            ),
+            "params",
+        )
         action_def = Group(
             Suppress("(")
             + ":action"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
             + Suppress(")")
-            + Optional(":precondition" - nested_expr().setResultsName("pre"))
-            + Optional(":effect" - nested_expr().setResultsName("eff"))
-            + Optional(":observe" - nested_expr().setResultsName("obs"))
+            + Optional(":precondition" - set_results_name(nested_expr(), "pre"))
+            + Optional(":effect" - set_results_name(nested_expr(), "eff"))
+            + Optional(":observe" - set_results_name(nested_expr(), "obs"))
             + Suppress(")")
         )
 
         dur_action_def = Group(
             Suppress("(")
             + ":durative-action"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
             + Suppress(")")
             + ":duration"
-            - nested_expr().setResultsName("duration")
+            - set_results_name(nested_expr(), "duration")
             + ":condition"
-            - nested_expr().setResultsName("cond")
+            - set_results_name(nested_expr(), "cond")
             + ":effect"
-            - nested_expr().setResultsName("eff")
+            - set_results_name(nested_expr(), "eff")
             + Suppress(")")
         )
 
         task_def = Group(
             Suppress("(")
             + ":task"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
@@ -194,23 +216,25 @@ class PDDLGrammar:
         method_def = Group(
             Suppress("(")
             + ":method"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
             + Suppress(")")
             + ":task"
-            - nested_expr().setResultsName("task")
-            + Optional(":precondition" - nested_expr().setResultsName("precondition"))
+            - set_results_name(nested_expr(), "task")
+            + Optional(
+                ":precondition" - set_results_name(nested_expr(), "precondition")
+            )
             + Optional(
                 one_of(":ordered-subtasks :ordered-tasks")
-                - nested_expr().setResultsName("ordered-subtasks")
+                - set_results_name(nested_expr(), "ordered-subtasks")
             )
             + Optional(
-                one_of(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
+                one_of(":subtasks :tasks") - set_results_name(nested_expr(), "subtasks")
             )
-            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
-            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
+            + Optional(":ordering" - set_results_name(nested_expr(), "ordering"))
+            + Optional(":constraints" - set_results_name(nested_expr(), "constraints"))
             + Suppress(")")
         )
 
@@ -219,22 +243,25 @@ class PDDLGrammar:
             + "define"
             + Suppress("(")
             + "domain"
-            + name.setResultsName("name")
+            + set_results_name(name, "name")
             + Suppress(")")
-            + Optional(require_def).setResultsName("features")
+            + set_results_name(Optional(require_def), "features")
             + Optional(types_def)
             + Optional(constants_def)
             + Optional(predicates_def)
             + Optional(functions_def)
-            + Group(ZeroOrMore(task_def)).setResultsName("tasks")
-            + Group(ZeroOrMore(method_def)).setResultsName("methods")
-            + Group(ZeroOrMore(action_def | dur_action_def)).setResultsName("actions")
+            + set_results_name(Group(ZeroOrMore(task_def)), "tasks")
+            + set_results_name(Group(ZeroOrMore(method_def)), "methods")
+            + set_results_name(
+                Group(ZeroOrMore(action_def | dur_action_def)), "actions"
+            )
             + Suppress(")")
         )
 
-        objects = OneOrMore(
-            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
-        ).setResultsName("objects")
+        objects = set_results_name(
+            OneOrMore(Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))),
+            "objects",
+        )
 
         htn_def = Group(
             Suppress("(")
@@ -242,26 +269,26 @@ class PDDLGrammar:
             - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
             + Optional(
                 one_of(":ordered-tasks :ordered-subtasks")
-                - nested_expr().setResultsName("ordered-tasks")
+                - set_results_name(nested_expr(), "ordered-tasks")
             )
             + Optional(
-                one_of(":tasks :subtasks") - nested_expr().setResultsName("tasks")
+                one_of(":tasks :subtasks") - set_results_name(nested_expr(), "tasks")
             )
-            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
-            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
+            + Optional(":ordering" - set_results_name(nested_expr(), "ordering"))
+            + Optional(":constraints" - set_results_name(nested_expr(), "constraints"))
             + Suppress(")")
         )
 
-        metric = (Keyword("minimize") | Keyword("maximize")).setResultsName(
-            "optimization"
-        ) + (name | nested_expr()).setResultsName("metric")
+        metric = set_results_name(
+            (Keyword("minimize") | Keyword("maximize")), "optimization"
+        ) + set_results_name((name | nested_expr()), "metric")
 
         problem = (
             Suppress("(")
             + "define"
             + Suppress("(")
             + "problem"
-            + name.setResultsName("name")
+            + set_results_name(name, "name")
             + Suppress(")")
             + Suppress("(")
             + ":domain"
@@ -269,21 +296,21 @@ class PDDLGrammar:
             + Suppress(")")
             + Optional(require_def)
             + Optional(Suppress("(") + ":objects" + objects + Suppress(")"))
-            + Optional(htn_def.setResultsName("htn"))
+            + Optional(set_results_name(htn_def, "htn"))
             + Suppress("(")
             + ":init"
-            + ZeroOrMore(nested_expr()).setResultsName("init")
+            + set_results_name(ZeroOrMore(nested_expr()), "init")
             + Suppress(")")
             + Optional(
                 Suppress("(")
                 + ":goal"
-                + nested_expr().setResultsName("goal")
+                + set_results_name(nested_expr(), "goal")
                 + Suppress(")")
             )
             + Optional(
                 Suppress("(")
                 + ":constraints"
-                + nested_expr().setResultsName("constraints")
+                + set_results_name(nested_expr(), "constraints")
                 + Suppress(")")
             )
             + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
@@ -1657,11 +1684,11 @@ class PDDLReader:
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
         domain_str = domain_str.replace("\t", " ").lower()
-        domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
+        domain_res = parse_string(self._pp_domain, domain_str, parse_all=True)
 
         if problem_str is not None:
             problem_str = problem_str.replace("\t", " ").lower()
-            problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
+            problem_res = parse_string(self._pp_problem, problem_str, parse_all=True)
         else:
             problem_res = None
 

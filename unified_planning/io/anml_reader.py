@@ -74,7 +74,8 @@ from unified_planning.model import (
 )
 from fractions import Fraction
 from typing import Dict, Set, Tuple, Union, Callable, List, Optional
-from pyparsing.results import ParseResults
+from pyparsing import ParseResults
+from unified_planning.io.utils import parse_string, parse_file
 
 
 class ANMLReader:
@@ -209,7 +210,7 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        grammar.problem.parse_file(problem_filename, parse_all=True)
+        parse_file(grammar.problem, problem_filename, parse_all=True)
         if problem_name is None:
             problem_name = problem_filename
         self._problem = self._parse_problem(grammar, problem_name)
@@ -230,7 +231,7 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        grammar.problem.parse_string(problem_str, parse_all=True)
+        parse_string(grammar.problem, problem_str, parse_all=True)
 
         self._problem = self._parse_problem(grammar, problem_name)
         return self._problem

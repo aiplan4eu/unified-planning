@@ -15,24 +15,29 @@
 
 
 import unified_planning as up
+from unified_planning.io.utils import set_results_name, set_parse_action
 from typing import List
-from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
-from pyparsing import (
-    Optional,
-    Suppress,
-    Group,
-    rest_of_line,
-    Combine,
-    Forward,
-    infix_notation,
-    OpAssoc,
-    ParserElement,
-    Literal,
-    one_of,
-)
-from pyparsing.results import ParseResults
 
-ParserElement.enable_packrat()
+import pyparsing
+from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
+from pyparsing import Optional, Suppress, Group, Combine, Forward, Literal
+from pyparsing import ParseResults, ParserElement
+
+if pyparsing.__version__ < "3.0.0":
+    from pyparsing import infixNotation as infix_notation
+    from pyparsing import restOfLine as rest_of_line
+    from pyparsing import oneOf as one_of
+    from pyparsing import opAssoc as OpAssoc
+
+    ParserElement.enablePackrat()
+else:
+    from pyparsing import infix_notation
+    from pyparsing import rest_of_line
+    from pyparsing import one_of
+    from pyparsing import OpAssoc
+
+    ParserElement.enable_packrat()
+
 
 # ANMl keywords definition as tokens
 TK_COMMA = ","
@@ -176,28 +181,28 @@ class ANMLGrammar:
         conditional_expression = Forward()
         expression = conditional_expression | boolean_expression
 
-        timed_expression = Group(Optional(interval)).setResultsName("interval") + Group(
-            expression
-        ).setResultsName("expression")
+        timed_expression = set_results_name(
+            Group(Optional(interval)), "interval"
+        ) + set_results_name(Group(expression), "expression")
 
         conditional_expression <<= (
             TK_WHEN
-            - Group(timed_expression).set_results_name("condition")
+            - set_results_name(Group(timed_expression), "condition")
             - Suppress(TK_L_BRACE)
-            - Group(OneOrMore(timed_expression - Suppress(TK_SEMI))).set_results_name(
-                "assignments"
+            - set_results_name(
+                Group(OneOrMore(timed_expression - Suppress(TK_SEMI))), "assignments"
             )
             - Suppress(TK_R_BRACE)
         )
 
         expression_block_body = OneOrMore(Group(expression) - Suppress(TK_SEMI))
         expression_block = Group(
-            Group(interval).setResultsName("interval")
+            set_results_name(Group(interval), "interval")
             + Suppress(TK_L_BRACE)
-            + Group(expression_block_body).setResultsName("body")
+            + set_results_name(Group(expression_block_body), "body")
             + Suppress(TK_R_BRACE)
         )
-        expression_block.setParseAction(parse_exp_block_as_exp_sequence)
+        set_parse_action(expression_block, parse_exp_block_as_exp_sequence)
 
         temporal_expression = Optional(arithmetic_expression)
 
@@ -205,48 +210,48 @@ class ANMLGrammar:
             one_of((TK_DURATION,))
             - Literal(TK_IN_ASSIGN)
             - Suppress(TK_L_BRACKET)
-            - Group(temporal_expression).setResultsName("left_bound")
+            - set_results_name(Group(temporal_expression), "left_bound")
             - Suppress(TK_COMMA)
-            - Group(temporal_expression).setResultsName("right_bound")
+            - set_results_name(Group(temporal_expression), "right_bound")
             - Suppress(TK_R_BRACKET)
         )
         action_body = ZeroOrMore(
             Group((expression_block | timed_expression | in_assignment_expression))
             - Suppress(TK_SEMI)
         )
-        action_body.setParseAction(restore_tagged_exp_block)
+        set_parse_action(action_body, restore_tagged_exp_block)
 
         type_decl = (
             Suppress(TK_TYPE)
-            - identifier.setResultsName("name")
-            - Group(ZeroOrMore(Suppress(TK_LT) - identifier)).setResultsName(
-                "supertypes"
+            - set_results_name(identifier, "name")
+            - set_results_name(
+                Group(ZeroOrMore(Suppress(TK_LT) - identifier)), "supertypes"
             )
         )
-        type_decl.setParseAction(self.types.append)
+        set_parse_action(type_decl, self.types.append)
         identifier_list = identifier - ZeroOrMore(Suppress(TK_COMMA) - identifier)
         primitive_type = (
-            Literal(TK_BOOLEAN).setResultsName("name")
+            set_results_name(Literal(TK_BOOLEAN), "name")
             | (
-                Literal(TK_INTEGER).setResultsName("name")
+                set_results_name(Literal(TK_INTEGER), "name")
                 - Optional(
                     Group(
                         Suppress(TK_L_BRACKET)
-                        - integer.setResultsName("left_bound")
+                        - set_results_name(integer, "left_bound")
                         - Suppress(TK_COMMA)
-                        - integer.setResultsName("right_bound")
+                        - set_results_name(integer, "right_bound")
                         - Suppress(TK_R_BRACKET)
                     )
                 )
             )
             | (
-                TK_FLOAT.setResultsName("name")
+                set_results_name(TK_FLOAT, "name")
                 - Optional(
                     Group(
                         Suppress(TK_L_BRACKET)
-                        - real.setResultsName("left_bound")
+                        - set_results_name(real, "left_bound")
                         - Suppress(TK_COMMA)
-                        - real.setResultsName("right_bound")
+                        - set_results_name(real, "right_bound")
                         - Suppress(TK_R_BRACKET)
                     )
                 )
@@ -255,39 +260,44 @@ class ANMLGrammar:
         type_ref = primitive_type | identifier
         instance_decl = (
             Suppress(TK_INSTANCE)
-            - type_ref.setResultsName("type")
-            - Group(identifier_list).setResultsName("names")
+            - set_results_name(type_ref, "type")
+            - set_results_name(Group(identifier_list), "names")
         )
-        instance_decl.setParseAction(self.objects.append)
+        set_parse_action(instance_decl, self.objects.append)
 
         parameter_list = Optional(Group(Group(type_ref) - identifier)) - ZeroOrMore(
             Suppress(TK_COMMA) - Group(Group(type_ref) - identifier)
         )
         fluent_decl = (
             Suppress(one_of([TK_FLUENT, TK_CONSTANT]))
-            - type_ref.setResultsName("type")
-            - identifier.setResultsName("name")
-            - Group(
-                Optional(
-                    Suppress(TK_L_PARENTHESIS)
-                    - parameter_list
-                    - Suppress(TK_R_PARENTHESIS)
-                )
-            ).setResultsName("parameters")
-            - Optional(Suppress(TK_ASSIGN) - Group(expression)).setResultsName("init")
+            - set_results_name(type_ref, "type")
+            - set_results_name(identifier, "name")
+            - set_results_name(
+                Group(
+                    Optional(
+                        Suppress(TK_L_PARENTHESIS)
+                        - parameter_list
+                        - Suppress(TK_R_PARENTHESIS)
+                    )
+                ),
+                "parameters",
+            )
+            - set_results_name(
+                Optional(Suppress(TK_ASSIGN) - Group(expression)), "init"
+            )
         )
-        fluent_decl.setParseAction(self.fluents.append)
+        set_parse_action(fluent_decl, self.fluents.append)
         action_decl = (
             Suppress("action")
-            - identifier.setResultsName("name")
+            - set_results_name(identifier, "name")
             - Suppress(TK_L_PARENTHESIS)
-            - Group(parameter_list).setResultsName("parameters")
+            - set_results_name(Group(parameter_list), "parameters")
             - Suppress(TK_R_PARENTHESIS)
             - Suppress(TK_L_BRACE)
-            - Group(action_body).setResultsName("body")
+            - set_results_name(Group(action_body), "body")
             - Suppress(TK_R_BRACE)
         )
-        action_decl.setParseAction(self.actions.append)
+        set_parse_action(action_decl, self.actions.append)
         interval <<= (
             one_of([TK_L_BRACKET, TK_L_PARENTHESIS])
             + (
@@ -301,11 +311,12 @@ class ANMLGrammar:
         quantified_expression <<= Group(
             one_of([TK_FORALL, TK_EXISTS])
             - Suppress(TK_L_PARENTHESIS)
-            - Group(parameter_list).setResultsName("quantifier_variables")
+            - set_results_name(Group(parameter_list), "quantifier_variables")
             - Suppress(TK_R_PARENTHESIS)
             - Suppress(TK_L_BRACE)
-            - Group(OneOrMore(boolean_expression - Suppress(TK_SEMI))).setResultsName(
-                "quantifier_body"
+            - set_results_name(
+                Group(OneOrMore(boolean_expression - Suppress(TK_SEMI))),
+                "quantifier_body",
             )
             - Suppress(TK_R_BRACE)
         )
@@ -313,10 +324,12 @@ class ANMLGrammar:
         # Standalone expressions are defined to handle differently expressions
         # defined inside an action from the expressions defined outside an action
         standalone_timed_expression = timed_expression.copy()
-        standalone_timed_expression.setParseAction(self.timed_assignment_or_goal.append)
+        set_parse_action(
+            standalone_timed_expression, self.timed_assignment_or_goal.append
+        )
         standalone_expression_block = expression_block.copy()
-        standalone_expression_block.setParseAction(
-            self.timed_assignments_or_goals.append
+        set_parse_action(
+            standalone_expression_block, self.timed_assignments_or_goals.append
         )
 
         goal_body = OneOrMore(
@@ -370,7 +383,10 @@ def group_binary(parse_res: ParseResults):
     """
     parsed_tokens = parse_res[0]
     assert len(parsed_tokens) % 2 == 1, "expected an odd number of tokens"
-    tokens_list = [t for t in parsed_tokens.as_list()]
+    if pyparsing.__version__ < "3.0.0":
+        tokens_list = [t for t in parsed_tokens.asList()]
+    else:
+        tokens_list = [t for t in parsed_tokens.as_list()]
     first_element = tokens_list[0]
     for operator, operand in operatorOperands(tokens_list[1:]):
         first_element = ParseResults([first_element, operator, operand])
