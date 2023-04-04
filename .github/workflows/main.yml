@@ -42,8 +42,8 @@ jobs:
       - name: Test all packages imports
         run: python3 scripts/test_imports.py
 
-  run-tests-ubuntu-2004:
-    runs-on: ubuntu-latest
+  run-tests-ubuntu-20-04:
+    runs-on: ubuntu-20.04
     needs: [basic-check]
 
     steps:

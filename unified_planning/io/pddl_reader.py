@@ -52,6 +52,7 @@ if pyparsing.__version__ < "3.0.0":
 else:
     from pyparsing import one_of
     from pyparsing import rest_of_line
+    from pyparsing import Located  # type: ignore
 
 
 class CustomParseResults:
@@ -1679,11 +1680,17 @@ class PDDLReader:
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
         domain_str = domain_str.replace("\t", " ").lower()
-        domain_res = self._pp_domain.parseString(domain_str, parseAll=True)
+        if pyparsing.__version__ < "3.0.0":
+            domain_res = self._pp_domain.parseString(domain_str, parseAll=True)
+        else:
+            domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
 
         if problem_str is not None:
             problem_str = problem_str.replace("\t", " ").lower()
-            problem_res = self._pp_problem.parseString(problem_str, parseAll=True)
+            if pyparsing.__version__ < "3.0.0":
+                problem_res = self._pp_problem.parseString(problem_str, parseAll=True)
+            else:
+                problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
         else:
             problem_res = None
 
