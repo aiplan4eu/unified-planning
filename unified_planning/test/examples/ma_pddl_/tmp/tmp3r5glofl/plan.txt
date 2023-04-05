@@ -1,0 +1,3 @@
+The selected heuristic function is not available for multi-agent tasks
+; Stopping...
+

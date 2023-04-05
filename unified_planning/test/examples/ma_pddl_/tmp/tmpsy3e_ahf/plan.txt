@@ -1,0 +1,64 @@
+; Hdtg = 0, Hlan = 0
+; Hdtg = 5, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 5, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 5, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 5, Hlan = 2
+; Hdtg = 6, Hlan = 2
+; Hdtg = 5, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 3, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 6, Hlan = 2
+; Hdtg = 5, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 3, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 6, Hlan = 2
+; Hdtg = 5, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 4, Hlan = 1
+; Hdtg = 4, Hlan = 2
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 6, Hlan = 2
+; Hdtg = 5, Hlan = 2
+; Hdtg = 4, Hlan = 2
+; Hdtg = 4, Hlan = 1
+; Hdtg = 4, Hlan = 2
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 4, Hlan = 1
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 4, Hlan = 1
+; Hdtg = 3, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 2, Hlan = 1
+; Hdtg = 1, Hlan = 0
+; Hdtg = 0, Hlan = 0
+
+; Solution plan - CoDMAP Distributed format
+; -----------------------------------------
+6: (enter_p person1 t2 h1)
+8: (exit_p person1 t2 c)
+2: (enter_p person2 t2 h2)
+4: (exit_p person2 t2 c)
+0: (drive_t taxi2 t2 g2 c)
+1: (drive_t taxi2 t2 c h2)
+3: (drive_t taxi2 t2 h2 c)
+5: (drive_t taxi2 t2 c h1)
+7: (drive_t taxi2 t2 h1 c)
+9: (drive_t taxi2 t2 c g2)
+; Stopping...
+

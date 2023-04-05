@@ -1,0 +1,11 @@
+(define (problem simple_ma-problem)
+ (:domain simple_ma-domain)
+ (:objects
+   open20 close20 - door
+   robot_a - robot_a_type
+   scale_a - scale_a_type
+ )
+ (:init
+  (pos robot_a office))
+ (:goal (and (pos robot_a home) (open scale_a open20)))
+)

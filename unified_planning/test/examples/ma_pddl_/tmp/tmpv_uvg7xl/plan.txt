@@ -1,0 +1,21 @@
+; Waiting to start
+; Grounding time: 0,005 sec.
+java.lang.IndexOutOfBoundsException: Index -1 out of bounds for length 1
+java.lang.IndexOutOfBoundsException: Index -1 out of bounds for length 1
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:64)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:70)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:266)
+	at java.base/java.util.Objects.checkIndex(Objects.java:359)
+	at java.base/java.util.ArrayList.get(ArrayList.java:427)
+	at org.agreement_technologies.service.map_landmarks.SALandmarkGraph.<init>(SALandmarkGraph.java:95)
+	at org.agreement_technologies.service.map_landmarks.LandmarksImp.<init>(LandmarksImp.java:56)
+	at org.agreement_technologies.service.map_heuristic.LandmarksHeuristic.initializeLandmarks(LandmarksHeuristic.java:144)
+	at org.agreement_technologies.service.map_heuristic.LandmarksHeuristic.<init>(LandmarksHeuristic.java:133)
+	at org.agreement_technologies.service.map_heuristic.HeuristicFactoryImp.getHeuristic(HeuristicFactoryImp.java:59)
+	at org.agreement_technologies.agents.PlanningAlgorithm.planningStage(PlanningAlgorithm.java:277)
+	at org.agreement_technologies.agents.PlanningAlgorithm.executeWithAsynchronousStart(PlanningAlgorithm.java:399)
+	at org.agreement_technologies.agents.PlanningAlgorithm.execute(PlanningAlgorithm.java:192)
+	at org.agreement_technologies.agents.PlanningAgent.run(PlanningAgent.java:70)
+
+; Stopping...
+

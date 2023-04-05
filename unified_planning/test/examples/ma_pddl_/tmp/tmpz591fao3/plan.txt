@@ -1,0 +1,26 @@
+java.lang.AssertionError: Goal not achieved: a_at_ robot_b home true
+java.lang.AssertionError: Goal not achieved: a_at_ robot_b home true
+	at org.agreement_technologies.service.map_landmarks.MALandmarkGraph.<init>(MALandmarkGraph.java:119)
+	at org.agreement_technologies.service.map_landmarks.LandmarksImp.<init>(LandmarksImp.java:56)
+	at org.agreement_technologies.service.map_heuristic.LandmarksHeuristic.initializeLandmarks(LandmarksHeuristic.java:144)
+	at org.agreement_technologies.service.map_heuristic.LandmarksHeuristic.<init>(LandmarksHeuristic.java:133)
+	at org.agreement_technologies.service.map_heuristic.HeuristicFactoryImp.getHeuristic(HeuristicFactoryImp.java:59)
+	at org.agreement_technologies.agents.PlanningAlgorithm.planningStage(PlanningAlgorithm.java:277)
+	at org.agreement_technologies.agents.PlanningAlgorithm.executeWithSynchronousStart(PlanningAlgorithm.java:370)
+	at org.agreement_technologies.agents.PlanningAlgorithm.execute(PlanningAlgorithm.java:194)
+	at org.agreement_technologies.agents.PlanningAgent.run(PlanningAgent.java:70)
+
+java.lang.AssertionError: Goal not achieved: a_at_ robot_a home true
+java.lang.AssertionError: Goal not achieved: a_at_ robot_a home true
+	at org.agreement_technologies.service.map_landmarks.MALandmarkGraph.<init>(MALandmarkGraph.java:119)
+	at org.agreement_technologies.service.map_landmarks.LandmarksImp.<init>(LandmarksImp.java:56)
+	at org.agreement_technologies.service.map_heuristic.LandmarksHeuristic.initializeLandmarks(LandmarksHeuristic.java:144)
+	at org.agreement_technologies.service.map_heuristic.LandmarksHeuristic.<init>(LandmarksHeuristic.java:133)
+	at org.agreement_technologies.service.map_heuristic.HeuristicFactoryImp.getHeuristic(HeuristicFactoryImp.java:59)
+	at org.agreement_technologies.agents.PlanningAlgorithm.planningStage(PlanningAlgorithm.java:277)
+	at org.agreement_technologies.agents.PlanningAlgorithm.executeWithSynchronousStart(PlanningAlgorithm.java:370)
+	at org.agreement_technologies.agents.PlanningAlgorithm.execute(PlanningAlgorithm.java:194)
+	at org.agreement_technologies.agents.PlanningAgent.run(PlanningAgent.java:70)
+
+; Stopping...
+

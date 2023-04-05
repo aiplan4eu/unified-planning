@@ -1,0 +1,120 @@
+; Hdtg = 0, Hlan = 0
+; Hdtg = 8, Hlan = 18
+; Hdtg = 8, Hlan = 17
+; Hdtg = 7, Hlan = 17
+; Hdtg = 9, Hlan = 16
+; Hdtg = 8, Hlan = 18
+; Hdtg = 8, Hlan = 15
+; Hdtg = 7, Hlan = 17
+; Hdtg = 8, Hlan = 14
+; Hdtg = 8, Hlan = 18
+; Hdtg = 7, Hlan = 13
+; Hdtg = 4, Hlan = 13
+; Hdtg = 6, Hlan = 12
+; Hdtg = 7, Hlan = 17
+; Hdtg = 6, Hlan = 11
+; Hdtg = 4, Hlan = 13
+; Hdtg = 6, Hlan = 10
+; Hdtg = 8, Hlan = 18
+; Hdtg = 6, Hlan = 9
+; Hdtg = 4, Hlan = 13
+; Hdtg = 6, Hlan = 8
+; Hdtg = 4, Hlan = 12
+; Hdtg = 6, Hlan = 7
+; Hdtg = 4, Hlan = 12
+; Hdtg = 5, Hlan = 6
+; Hdtg = 4, Hlan = 13
+; Hdtg = 5, Hlan = 5
+; Hdtg = 4, Hlan = 12
+; Hdtg = 5, Hlan = 4
+; Hdtg = 8, Hlan = 17
+; Hdtg = 5, Hlan = 3
+; Hdtg = 4, Hlan = 13
+; Hdtg = 3, Hlan = 2
+; Hdtg = 4, Hlan = 12
+; Hdtg = 6, Hlan = 6
+; Hdtg = 4, Hlan = 12
+; Hdtg = 6, Hlan = 5
+; Hdtg = 4, Hlan = 13
+; Hdtg = 6, Hlan = 4
+; Hdtg = 4, Hlan = 12
+; Hdtg = 4, Hlan = 3
+; Hdtg = 8, Hlan = 18
+; Hdtg = 6, Hlan = 7
+; Hdtg = 8, Hlan = 16
+; Hdtg = 6, Hlan = 6
+; Hdtg = 8, Hlan = 16
+; Hdtg = 6, Hlan = 5
+; Hdtg = 8, Hlan = 18
+; Hdtg = 4, Hlan = 4
+; Hdtg = 4, Hlan = 13
+; Hdtg = 6, Hlan = 8
+; Hdtg = 4, Hlan = 12
+; Hdtg = 6, Hlan = 7
+; Hdtg = 4, Hlan = 12
+; Hdtg = 6, Hlan = 6
+; Hdtg = 4, Hlan = 13
+; Hdtg = 4, Hlan = 5
+; Hdtg = 4, Hlan = 12
+; Hdtg = 6, Hlan = 9
+; Hdtg = 8, Hlan = 16
+; Hdtg = 6, Hlan = 8
+; Hdtg = 7, Hlan = 16
+; Hdtg = 6, Hlan = 7
+; Hdtg = 4, Hlan = 12
+; Hdtg = 4, Hlan = 6
+; Hdtg = 8, Hlan = 18
+; Hdtg = 6, Hlan = 10
+; Hdtg = 4, Hlan = 12
+; Hdtg = 6, Hlan = 9
+; Hdtg = 4, Hlan = 11
+; Hdtg = 6, Hlan = 8
+; Hdtg = 4, Hlan = 12
+; Hdtg = 5, Hlan = 7
+; Hdtg = 4, Hlan = 11
+; Hdtg = 4, Hlan = 10
+; Hdtg = 4, Hlan = 12
+; Hdtg = 4, Hlan = 9
+; Hdtg = 9, Hlan = 19
+; Hdtg = 4, Hlan = 8
+; Hdtg = 8, Hlan = 16
+; Hdtg = 3, Hlan = 7
+; Hdtg = 7, Hlan = 16
+; Hdtg = 2, Hlan = 6
+; Hdtg = 6, Hlan = 15
+; Hdtg = 2, Hlan = 5
+; Hdtg = 4, Hlan = 14
+; Hdtg = 2, Hlan = 4
+; Hdtg = 4, Hlan = 14
+; Hdtg = 2, Hlan = 3
+; Hdtg = 4, Hlan = 13
+; Hdtg = 2, Hlan = 2
+; Hdtg = 4, Hlan = 13
+; Hdtg = 1, Hlan = 1
+; Hdtg = 4, Hlan = 14
+; Hdtg = 0, Hlan = 0
+
+; Solution plan - CoDMAP Distributed format
+; -----------------------------------------
+4: (load_airplane airplane apt2 obj23)
+5: (load_airplane airplane apt2 obj21)
+6: (fly_airplane airplane apt2 apt1)
+7: (unload_airplane airplane apt1 obj23)
+8: (unload_airplane airplane apt1 obj21)
+0: (load_truck truck1 pos1 obj11)
+1: (load_truck truck1 pos1 obj13)
+2: (drive_truck truck1 pos1 apt1 cit1)
+3: (unload_truck truck1 obj11 apt1)
+4: (unload_truck truck1 obj13 apt1)
+8: (load_truck truck1 apt1 obj23)
+9: (load_truck truck1 apt1 obj21)
+10: (drive_truck truck1 apt1 pos1 cit1)
+11: (unload_truck truck1 obj23 pos1)
+12: (unload_truck truck1 obj21 pos1)
+0: (load_truck truck2 pos2 obj23)
+1: (load_truck truck2 pos2 obj21)
+2: (drive_truck truck2 pos2 apt2 cit2)
+3: (unload_truck truck2 obj23 apt2)
+4: (unload_truck truck2 obj21 apt2)
+; Stopping...
+

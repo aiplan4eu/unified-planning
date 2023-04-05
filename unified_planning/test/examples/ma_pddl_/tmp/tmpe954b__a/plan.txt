@@ -1,0 +1,13 @@
+; Hdtg = 0, Hlan = 0
+; Hdtg = 0, Hlan = 0
+; Hdtg = 1, Hlan = 0
+; Hdtg = 0, Hlan = 0
+; Hdtg = 0, Hlan = 0
+
+; Solution plan - CoDMAP Distributed format
+; -----------------------------------------
+0: (movegripper_activate robot_a)
+1: (movegripper_move robot_a)
+0: (open_door scale_a)
+; Stopping...
+

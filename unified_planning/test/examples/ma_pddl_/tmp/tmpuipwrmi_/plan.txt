@@ -1,0 +1,14 @@
+Invalid number of parameters.
+Usage:
+  java -jar FMAP.jar [<agent-name> <domain-file> <problem-file>]+ <agent-list-file>
+Optional parameters:
+  -s N		Chooses the search method. Valid values of N are:
+			0: A Search -> default
+  -h N		Chooses the heuristic function. Valid values of N are:
+			0: FF
+			1: DTG
+			2: DTG + Landmarks -> default
+			3: Inc. DTG + Landmarks
+  -help		Displays this help and exits
+; Stopping...
+

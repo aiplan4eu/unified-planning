@@ -31,6 +31,14 @@ Temporal Planning
 
 Multi-agent Planning
 --------------------
+- In this notebook shows how to use the unified planning library to model simple multi-agent problems and what heuristics the planner supports.
+
+  [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](../09-multiagent-planning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning.ipynb)
+
+- In this notebook we show how to use the unified planning library to model multi-agent problems. In particular we model the well-known Depot problem and we call a planner to solve it.
+
+  [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](../09-multiagent-planning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning.ipynb)
+
 
 
 Refinement Planning
