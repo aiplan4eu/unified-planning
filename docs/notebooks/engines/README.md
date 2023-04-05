@@ -40,7 +40,6 @@ Multi-agent Planning
   [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](../09-multiagent-planning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning.ipynb)
 
 
-
 Refinement Planning
 -------------------
 - In this notebook, we show how to use unified planning library to define hierrachical planning problem.

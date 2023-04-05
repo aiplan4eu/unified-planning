@@ -61,36 +61,6 @@ In this notebook we show how to use the unified planning library to model tempor
 
 In particular we model the well-known MatchCellar problem and we call a planner to solve it.
 
-Multi-agent Planning
------------------
-- In this notebook shows how to use the unified planning library to model simple multi-agent problems and what heuristics the planner supports.
-
-    .. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
-       :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/08-multiagent-planning-simple.ipynb
-       :alt: Open In GitHub
-
-
-    .. image:: https://colab.research.google.com/assets/colab-badge.svg
-       :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/08-multiagent-planning-simple.ipynb
-       :alt: Open In Colab
-
-
-- In this notebook we show how to use the unified planning library to model multi-agent problems.
-
-  In particular we model the well-known Depot problem and we call a planner to solve it.
-
-    .. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
-       :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning.ipynb
-       :alt: Open In GitHub
-
-
-    .. image:: https://colab.research.google.com/assets/colab-badge.svg
-       :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning.ipynb
-       :alt: Open In Colab
-
-
-
-
 Simulated Effects
 -----------------
 
@@ -190,33 +160,6 @@ PDDL I/O
 
 In this notebook we show how to parse a problem from PDDL in the unified_planning and how to write
 a unified_planning problem in PDDL.
-
-.. toctree::
-   :maxdepth: 2
-   :numbered:
-   :glob:
-   :titlesonly:
-   :caption: Examples
-   :hidden:
-
-   ./notebooks/*
-   ./notebooks/io/*
-
-MA-PDDL Writer
---------
-
-
-.. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
-   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer-example.ipynb
-   :alt: Open In GitHub
-
-
-.. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer-example.ipynb
-   :alt: Open In Colab
-
-
-In this notebook we show how to write a unified_planning problem in MA-PDDL.
 
 .. toctree::
    :maxdepth: 2

@@ -1,7 +1,0 @@
-; Waiting to start
-; Grounding time: 0,006 sec.
-; Hdtg = 0, Hlan = 0
-; Planning time: 0,007 sec.
-; No plan found
-; Stopping...
-

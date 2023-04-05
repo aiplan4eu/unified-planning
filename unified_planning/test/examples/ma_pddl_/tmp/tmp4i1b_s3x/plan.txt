@@ -1,6 +1,0 @@
-Parser error: Predicate 'at_' undefined, at line 12 (ma_pddl_/tmp/tmp4i1b_s3x/problem_pddl/robot_a_problem.pddl)
-; Waiting to start
-; Planning time: 0,000 sec.
-; No plan found
-; Stopping...
-
