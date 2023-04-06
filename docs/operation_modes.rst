@@ -66,7 +66,7 @@ This OM defines an interactive simulator for exploring the planning space of a g
 
 .. literalinclude:: ./code_snippets/simulator.py
     :caption: Simulate a SequentialPlan and inspect the value of a fluent during plan execution
-    :lines: 48-63
+    :lines: 51-66
 
 Each method of the `SequentialSimulator` is stateless, meaning that it is not required to simulate a sequence of states in order, but it is possible to “jump” among different states of the same problem.
 
@@ -99,7 +99,7 @@ Also the ``Compiler`` OM can be used either by specifying a certain engine by na
 
 .. literalinclude:: ./code_snippets/compiler.py
     :caption: Remove Quantifiers from a Problem and solve it
-    :lines: 23-41
+    :lines: 25-43
 
 Instead of just returning the transformed problem, the OM (which defines a single compile method) returns an object containing also a ``map_back_action_instance`` field, which is a function taking an ``ActionInstance`` for the transformed problem and returning the corresponding ``ActionInstance`` in the original problem (if any). In this way, it is possible to transform back plans generated for the target problems into plans generated for the original one. To simplify this process, all UP ``Plans`` offer a ``replace_action_instances`` method (shown in the example above) which applies this reverse transformation to all the actions in the plan.
 

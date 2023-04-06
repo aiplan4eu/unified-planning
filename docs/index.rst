@@ -28,6 +28,7 @@ Welcome to Unified-Planning documentation!
    :hidden:
 
    engines
+   optimality
    examples
    getting_involved
    contributions
