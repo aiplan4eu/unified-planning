@@ -11,9 +11,22 @@ Welcome to Unified-Planning documentation!
    :hidden:
 
    getting_started
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :hidden:
+
    problem_representation
    operation_modes
    interoperability
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :titlesonly:
+   :hidden:
+
    engines
    examples
    getting_involved
