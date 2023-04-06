@@ -31,6 +31,7 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
     LogMessage,
     LogLevel,
+    FailedValidationReason,
 )
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
@@ -42,6 +43,7 @@ from unified_planning.exceptions import (
     UPConflictingEffectsException,
     UPUsageError,
     UPProblemDefinitionError,
+    UPInvalidActionError,
 )
 
 
@@ -137,18 +139,27 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             assert prev_state is not None
             try:
                 unsat_conds = simulator.get_unsatisfied_conditions(prev_state, ai)
+                if unsat_conds:
+                    msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
-            if unsat_conds:
-                msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+            except UPInvalidActionError as e:
+                msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
             next_state = simulator.apply_unsafe(prev_state, ai)
             if next_state is None:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
-                return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+                return ValidationResult(
+                    ValidationResultStatus.INVALID,
+                    self.name,
+                    logs,
+                    None,
+                    FailedValidationReason.INAPPLICABLE_ACTION,
+                    ai,
+                )
             assert next_state is not None
             if metric is not None:
                 metric_value = evaluate_quality_metric(
@@ -174,4 +185,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         else:
             msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
             logs = [LogMessage(LogLevel.INFO, msg)]
-            return ValidationResult(ValidationResultStatus.INVALID, self.name, logs)
+            return ValidationResult(
+                ValidationResultStatus.INVALID,
+                self.name,
+                logs,
+                None,
+                FailedValidationReason.UNSATISFIED_GOALS,
+            )

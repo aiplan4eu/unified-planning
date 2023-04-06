@@ -32,6 +32,7 @@ from unified_planning.engines.results import (
     ValidationResult,
     ValidationResultStatus,
     CompilerResult,
+    FailedValidationReason,
 )
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
@@ -66,6 +67,7 @@ __all__ = [
     "PlanGenerationResultStatus",
     "ValidationResult",
     "ValidationResultStatus",
+    "FailedValidationReason",
     "CompilerResult",
     "PortfolioSelectorMixin",
     "OperationMode",
