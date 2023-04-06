@@ -48,7 +48,7 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
 assert str(result.plan) == "[move(l1, l2), load(l2), move(l2, l1), unload(l1)]"
 
 with OneshotPlanner(
-    names=["tamer", "fast-downward"],
+    names=["tamer", "enhsp"],
     params=[{"heuristic": "hadd", "weight": 0.8}, {}],
 ) as planner:
     result = planner.solve(problem)
