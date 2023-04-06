@@ -14,7 +14,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.engines import SequentialPlanValidator, FailedValidationReasons
+from unified_planning.engines import SequentialPlanValidator, FailedValidationReason
 from unified_planning.plans import SequentialPlan, ActionInstance
 from unified_planning.model.problem_kind import (
     classical_kind,
@@ -95,7 +95,7 @@ class TestPlanValidator(TestCase):
         # without the last action the goal fails.
         failed_goal_plan = SequentialPlan([*plan.actions[:-1]])
         res = up_validator.validate(problem, failed_goal_plan)
-        self.assertEqual(res.reason, FailedValidationReasons.UNSATISFIED_GOALS)
+        self.assertEqual(res.reason, FailedValidationReason.UNSATISFIED_GOALS)
 
         # add an invalid action to the plan
         move = problem.action("move")
@@ -106,7 +106,7 @@ class TestPlanValidator(TestCase):
         actions.append(invalid_action)
         invalid_action_plan = SequentialPlan(actions)
         res = up_validator.validate(problem, invalid_action_plan)
-        self.assertEqual(res.reason, FailedValidationReasons.INAPPLICABLE_ACTION)
+        self.assertEqual(res.reason, FailedValidationReason.INAPPLICABLE_ACTION)
         self.assertEqual(res.inapplicable_action, invalid_action)
 
 

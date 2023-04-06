@@ -31,7 +31,7 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
     LogMessage,
     LogLevel,
-    FailedValidationReasons,
+    FailedValidationReason,
 )
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
@@ -139,14 +139,14 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             assert prev_state is not None
             try:
                 unsat_conds = simulator.get_unsatisfied_conditions(prev_state, ai)
+                if unsat_conds:
+                    msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
             except UPInvalidActionError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
-            if unsat_conds:
-                msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
             next_state = simulator.apply_unsafe(prev_state, ai)
             if next_state is None:
                 msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
@@ -157,7 +157,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     self.name,
                     logs,
                     None,
-                    FailedValidationReasons.INAPPLICABLE_ACTION,
+                    FailedValidationReason.INAPPLICABLE_ACTION,
                     ai,
                 )
             assert next_state is not None
@@ -190,5 +190,5 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 self.name,
                 logs,
                 None,
-                FailedValidationReasons.UNSATISFIED_GOALS,
+                FailedValidationReason.UNSATISFIED_GOALS,
             )
