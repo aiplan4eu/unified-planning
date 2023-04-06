@@ -214,17 +214,6 @@ PDDL I/O
 In this notebook we show how to parse a problem from PDDL in the unified_planning and how to write
 a unified_planning problem in PDDL.
 
-.. toctree::
-   :maxdepth: 2
-   :numbered:
-   :glob:
-   :titlesonly:
-   :caption: Examples
-   :hidden:
-
-   ./notebooks/*
-   ./notebooks/io/*
-
 MA-PDDL Writer
 --------
 
