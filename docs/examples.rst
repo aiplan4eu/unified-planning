@@ -67,27 +67,25 @@ Multi-agent Planning
 - In this notebook shows how to use the unified planning library to model simple multi-agent problems and what heuristics the planner supports.
 
     .. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
-       :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/08-multiagent-planning-simple.ipynb
+       :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning-simple.ipynb
        :alt: Open In GitHub
 
 
     .. image:: https://colab.research.google.com/assets/colab-badge.svg
-       :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/08-multiagent-planning-simple.ipynb
+       :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning-simple.ipynb
        :alt: Open In Colab
 
 - In this notebook we show how to use the unified planning library to model multi-agent problems. In particular we model the well-known Depot problem and we call a planner to solve it.
 
 
     .. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
-       :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning.ipynb
+       :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/10-multiagent-planning.ipynb
        :alt: Open In GitHub
 
 
     .. image:: https://colab.research.google.com/assets/colab-badge.svg
-       :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning.ipynb
+       :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/10-multiagent-planning.ipynb
        :alt: Open In Colab
-
-
 
 
 Simulated Effects
@@ -219,12 +217,12 @@ MA-PDDL Writer
 
 
 .. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
-   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer.ipynb
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer-example.ipynb
    :alt: Open In GitHub
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer-example.ipynb
    :alt: Open In Colab
 
 
