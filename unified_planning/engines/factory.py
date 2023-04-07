@@ -21,6 +21,7 @@ import inspect
 import configparser
 import unified_planning as up
 from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model import ProblemKind
 from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
@@ -699,7 +700,12 @@ class Factory:
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.ONESHOT_PLANNER,
             name,
@@ -870,7 +876,12 @@ class Factory:
           e.g. Replanner(problem, name='replanner[tamer]')
         """
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.REPLANNER,
             name,
@@ -900,7 +911,12 @@ class Factory:
         if isinstance(plan_kind, str):
             plan_kind = PlanKind[plan_kind]
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.PLAN_REPAIRER,
             name=name,
@@ -927,7 +943,12 @@ class Factory:
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.PORTFOLIO_SELECTOR,
             name=name,
