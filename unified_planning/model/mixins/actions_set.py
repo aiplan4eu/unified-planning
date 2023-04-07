@@ -16,7 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List
+from typing import Iterator, List, Iterable
 
 
 class ActionsSetMixin:
@@ -149,11 +149,11 @@ class ActionsSetMixin:
             if param.type.is_user_type():
                 self._add_user_type_method(param.type)
 
-    def add_actions(self, actions: List["up.model.action.Action"]):
+    def add_actions(self, actions: Iterable["up.model.action.Action"]):
         """
         Adds the given `actions` to the `problem`.
 
-        :param actions: The `list` of `actions` that must be added to the `problem`.
+        :param actions: The `actions` that must be added to the `problem`.
         """
         for action in actions:
             self.add_action(action)

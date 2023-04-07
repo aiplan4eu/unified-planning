@@ -31,7 +31,7 @@ from unified_planning.engines import (
     OperationMode,
 )
 from unified_planning.plans import PlanKind
-from typing import IO, Any, Iterable, List, Union, Dict, Tuple, Optional
+from typing import IO, Any, Iterable, Union, Dict, Optional, Sequence
 from fractions import Fraction
 
 
@@ -153,7 +153,7 @@ def Forall(
 
 
 def FluentExp(
-    fluent: "unified_planning.model.Fluent", params: Iterable[Expression] = tuple()
+    fluent: "unified_planning.model.Fluent", params: Sequence[Expression] = tuple()
 ) -> FNode:
     """
     Creates an expression for the given `fluent` and `parameters`.
@@ -502,8 +502,8 @@ def ConfigurationType(
 def OneshotPlanner(
     *,
     name: Optional[str] = None,
-    names: Optional[List[str]] = None,
-    params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    names: Optional[Sequence[str]] = None,
+    params: Optional[Union[Dict[str, Any], Sequence[Dict[str, Any]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> Engine:
@@ -561,8 +561,8 @@ def AnytimePlanner(
 def PlanValidator(
     *,
     name: Optional[str] = None,
-    names: Optional[List[str]] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    names: Optional[Sequence[str]] = None,
+    params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     plan_kind: Optional[Union["up.plans.PlanKind", str]] = None,
 ) -> Engine:
@@ -590,11 +590,13 @@ def PlanValidator(
 def Compiler(
     *,
     name: Optional[str] = None,
-    names: Optional[List[str]] = None,
-    params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    names: Optional[Sequence[str]] = None,
+    params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
     problem_kind: ProblemKind = ProblemKind(),
     compilation_kind: Optional[Union["up.engines.CompilationKind", str]] = None,
-    compilation_kinds: Optional[List[Union["up.engines.CompilationKind", str]]] = None,
+    compilation_kinds: Optional[
+        Sequence[Union["up.engines.CompilationKind", str]]
+    ] = None,
 ) -> "up.engines.engine.Engine":
     """
     Returns a Compiler or a pipeline of Compilers.

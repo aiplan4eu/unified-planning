@@ -27,8 +27,7 @@ from unified_planning.engines.results import (
     ValidationResult,
     PlanGenerationResult,
 )
-from typing import IO, Dict, List, Optional, Tuple, Type, Callable, cast
-from fractions import Fraction
+from typing import IO, Dict, List, Optional, Tuple, Callable, cast
 from multiprocessing import Process, Queue
 
 

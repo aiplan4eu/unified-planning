@@ -1,4 +1,4 @@
-from typing import List, Set, Optional, Tuple
+from typing import List, Set, Optional, Tuple, Iterable
 
 from unified_planning.environment import get_environment
 from unified_planning.model import FNode, TimepointKind, Timing, StartTiming, EndTiming
@@ -47,7 +47,9 @@ class TotalOrder(PartialOrder):
         return f"[{', '.join(self.order)}]"
 
 
-def ordering(task_ids: List[str], time_constraints: List[FNode]) -> TemporalConstraints:
+def ordering(
+    task_ids: Iterable[str], time_constraints: List[FNode]
+) -> TemporalConstraints:
     has_time = AnyChecker(predicate=lambda e: e.is_timing_exp())
     assert all(
         has_time.any(c) for c in time_constraints

@@ -14,7 +14,7 @@
 #
 
 from enum import Enum, auto
-from typing import Dict, Optional, Any, Tuple, Iterable
+from typing import Dict, Optional, Any, Tuple, List
 from unified_planning.model import Object
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
@@ -47,7 +47,7 @@ class MovableObject(Object):
         name: str,
         typename: "unified_planning.model.types.Type",
         *,
-        footprint: Optional[Iterable[Tuple[float, float]]] = None,
+        footprint: Optional[List[Tuple[float, float]]] = None,
         model: Optional[str] = None,
         motion_model: MotionModels,
         parameters: Dict[str, Any],
@@ -69,7 +69,7 @@ class MovableObject(Object):
         return self._model
 
     @property
-    def footprint(self) -> Optional[Iterable[Tuple[float, float]]]:
+    def footprint(self) -> Optional[List[Tuple[float, float]]]:
         """Returns the footprint of this `MovableObject`."""
         return self._footprint
 

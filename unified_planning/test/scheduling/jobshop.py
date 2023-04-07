@@ -1,6 +1,7 @@
 import unified_planning.test.scheduling.examples
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
+from typing import List
 
 # Text representation of the FT-O6 instance (Fisher and Thompson)
 FT06 = """nb_jobs nb_machines

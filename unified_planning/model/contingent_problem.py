@@ -107,15 +107,13 @@ class ContingentProblem(Problem):
         """
         Adds a oneof initial constraint on some hidden fluents.
 
-        :param fluents: a list of fluent expressions, exatly one of them must hold in the initial state.
+        :param fluents: a sequence of fluents expressions, exactly one of them must hold in the initial state.
         """
         em = self._env.expression_manager
-        c = []
-        for f in fluents:
-            (f_exp,) = em.auto_promote(f)
+        constraints: List["up.model.fnode.FNode"] = em.auto_promote(fluents)
+        for f_exp in constraints:
             self._hidden_fluents.add(f_exp)
-            c.append(f_exp)
-        self._oneof_initial_constraints.append(c)
+        self._oneof_initial_constraints.append(constraints)
 
     def add_or_initial_constraint(
         self, fluents: Iterable[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]]
@@ -126,12 +124,10 @@ class ContingentProblem(Problem):
         :param fluents: a list of fluent expressions, at least one of them must hold in the initial state.
         """
         em = self._env.expression_manager
-        c = []
-        for f in fluents:
-            (f_exp,) = em.auto_promote(f)
+        constraints: List["up.model.fnode.FNode"] = em.auto_promote(fluents)
+        for f_exp in constraints:
             self._hidden_fluents.add(f_exp)
-            c.append(f_exp)
-        self._or_initial_constraints.append(c)
+        self._or_initial_constraints.append(constraints)
 
     def add_unknown_initial_constraint(
         self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]

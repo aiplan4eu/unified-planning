@@ -17,7 +17,7 @@ from warnings import warn
 import unified_planning as up
 from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Union, Optional, cast
+from typing import Iterator, List, Union, Optional, cast, Iterable
 
 
 class ObjectsSetMixin:
@@ -85,11 +85,11 @@ class ObjectsSetMixin:
             self._add_user_type_method(obj.type)
         return obj
 
-    def add_objects(self, objects: List["up.model.object.Object"]):
+    def add_objects(self, objects: Iterable["up.model.object.Object"]):
         """
         Adds the given `objects` to the `problem`.
 
-        :param objects: The `list` of `objects` that must be added to the `problem`.
+        :param objects: The `objects` that must be added to the `problem`.
         """
         for obj in objects:
             self.add_object(obj)

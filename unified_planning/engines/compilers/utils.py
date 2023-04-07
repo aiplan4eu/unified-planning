@@ -46,6 +46,7 @@ from typing import (
     List,
     Optional,
     OrderedDict,
+    Sequence,
     Tuple,
     Union,
     cast,
@@ -247,7 +248,7 @@ def create_action_with_given_subs(
 
 
 def get_fresh_name(
-    problem: Problem, original_name: str, parameters_names: Iterable[str] = []
+    problem: Problem, original_name: str, parameters_names: Sequence[str] = tuple()
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
     name_list = [original_name]
