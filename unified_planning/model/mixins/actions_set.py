@@ -137,7 +137,7 @@ class ActionsSetMixin:
             action.environment == self._env
         ), "Action does not have the same environment of the problem"
         if self._has_name_method(action.name):
-            msg = f"Name {action.name} already defined!"
+            msg = f"Name {action.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 action.name == a.name for a in self._actions
             ):

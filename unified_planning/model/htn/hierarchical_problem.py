@@ -181,7 +181,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         else:
             assert len(kwargs) == 0
         if self.has_name(task.name):
-            msg = f"Name of task {task.name} already defined!"
+            msg = f"Name of task {task.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 task.name == t for t in self._abstract_tasks
             ):
@@ -206,7 +206,7 @@ class HierarchicalProblem(up.model.problem.Problem):
             method.achieved_task is not None
         ), f"No achieved task was specified for this method."
         if self.has_name(method.name):
-            msg = f"Name of method {method.name} already defined!"
+            msg = f"Name of method {method.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 method.name == m for m in self._methods
             ):

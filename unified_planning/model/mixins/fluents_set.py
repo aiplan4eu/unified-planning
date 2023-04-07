@@ -137,7 +137,7 @@ class FluentsSetMixin:
                 fluent_or_name, typename, None, environment=self.environment, **kwargs
             )
         if self._has_name_method(fluent.name):
-            msg = f"Name {fluent.name} already defined!"
+            msg = f"Name {fluent.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 fluent.name == f.name for f in self._fluents
             ):

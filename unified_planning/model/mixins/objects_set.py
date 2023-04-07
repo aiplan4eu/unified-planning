@@ -72,7 +72,7 @@ class ObjectsSetMixin:
             assert typename is not None, "Missing type of the object"
             obj = up.model.object.Object(obj_or_name, typename, self._env)
         if self._has_name_method(obj.name):
-            msg = f"Name {obj.name} already defined!"
+            msg = f"Name {obj.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 obj.name == o.name for o in self._objects
             ):
