@@ -87,23 +87,22 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
 
 # ============  Getting started import number 4  ============
 
-# Importing the PDDLReader and PDDLWriter
-from unified_planning.io import PDDLReader, PDDLWriter
+from unified_planning.io import PDDLReader, PDDLWriter  # or ANMLWriter, ANMLReader
 
 # Creating a PDDL reader
-reader = PDDLReader()
+reader = PDDLReader()  # or ANMLReader()
 
 # Parsing a PDDL problem from file
 problem = reader.parse_problem(
-    "./unified_planning/test/pddl/counters/domain.pddl",
+    "./unified_planning/test/pddl/counters/domain.pddl",  # only needed for PDDl
     "./unified_planning/test/pddl/counters/problem.pddl",
 )
 
 # Creating a PDDL writer
-writer = PDDLWriter(problem)
+writer = PDDLWriter(problem)  # or ANMLWriter(problem)
 
 # Writing the PDDL domain and problem in new files
-writer.write_domain("new_domain.pddl")
+writer.write_domain("new_domain.pddl")  # only if PDDLWriter
 writer.write_problem("new_problem.pddl")
 
 import os
