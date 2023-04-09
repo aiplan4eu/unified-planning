@@ -102,6 +102,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.ma_disjunctive_conditions_remover",
         "MA_DisjunctiveConditionsRemover",
     ),
+    "up_ma_conditional_effects_remover": (
+        "unified_planning.engines.compilers.ma_conditional_effects_remover",
+        "MA_ConditionalEffectsRemover",
+    ),
 }
 
 DEFAULT_META_ENGINES = {
@@ -130,6 +134,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
     "up_ma_disjunctive_conditions_remover",
+    "up_ma_conditional_effects_remover",
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
     "up_usertype_fluents_remover",
