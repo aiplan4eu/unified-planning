@@ -32,37 +32,49 @@ from unified_planning.model import (
     Oversubscription,
 )
 from unified_planning.model.walkers import Dnf
-from typing import List, Optional, Tuple, Dict, cast
 from itertools import product
 from functools import partial
-from unified_planning.engines.compilers.disjunctive_conditions_remover import (
-    DisjunctiveConditionsRemover,
+from unified_planning.engines.compilers.conditional_effects_remover import (
+    ConditionalEffectsRemover,
 )
 from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 from unified_planning.model.multi_agent.agent import Agent
 from typing import Dict, Iterable, List, Optional, Tuple, cast
 
+from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+    check_and_simplify_preconditions,
+    check_and_simplify_conditions,
+    replace_action,
+)
+from unified_planning.utils import powerset
 
-class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
+
+class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
     """
-    DisjunctiveConditions remover class: this class offers the capability
-    to transform a :class:`~unified_planning.model.multi_agent.MultiAgentProblem` with `MA_DisjunctiveConditions` into a semantically equivalent `MultiAgentProblem`
-    where the :class:`Actions <unified_planning.model.Action>` `conditions <unified_planning.model.InstantaneousAction.preconditions>` don't contain the `Or` operand.
+    Conditional effects remover class: this class offers the capability
+    to transform a :class:`~unified_planning.model.MultiAgentProblem` with conditional :class:`Effects <unified_planning.model.Effect>`
+    into a `Problem` without conditional `Effects`. This capability is offered by the :meth:`~unified_planning.engines.compilers.MA_ConditionalEffectsRemover.compile`
+    method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
+    is the compiled Problem.
 
-    This is done by taking all the `Actions conditions` that are not in the `DNF` form (an `OR` of `ANDs`) and calculate the equivalent `DNF`.
-    Then, the resulting `OR` is decomposed into multiple `subActions`; every `subAction` has the same :func:`Effects <unified_planning.model.InstantaneousAction.effects>`
-    of the original `Action`, and as condition an element of the decomposed `Or`. So, for every element of the `Or`, an `Action` is created.
+    This is done by substituting every conditional :class:`~unified_planning.model.Action` with different
+    actions representing every possible branch of the original action.
 
-    For this `Compiler`, only the `DISJUNCTIVE_CONDITIONS_REMOVING` :class:`~unified_planning.engines.CompilationKind` is supported.
+    When it is not possible to remove a conditional Effect without changing the semantic of the resulting Problem,
+    an :exc:`~unified_planning.exceptions.UPProblemDefinitionError` is raised.
+
+    This `Compiler` supports only the the `CONDITIONAL_EFFECTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
-        CompilerMixin.__init__(self, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        CompilerMixin.__init__(self, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
 
     @property
     def name(self):
-        return "ma_dcrm"
+        return "ma_cerm"
 
     @staticmethod
     def supported_kind() -> ProblemKind:
@@ -72,6 +84,7 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
@@ -87,6 +100,7 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         supported_kind.set_time("TIMED_EFFECT")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
@@ -94,24 +108,27 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= MA_DisjunctiveConditionsRemover.supported_kind()
+        return problem_kind <= MA_ConditionalEffectsRemover.supported_kind()
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+        return compilation_kind == CompilationKind.CONDITIONAL_EFFECTS_REMOVING
 
     @staticmethod
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
-        new_kind.unset_conditions_kind("MA_DISJUNCTIVE_CONDITIONS")
+        if new_kind.has_conditional_effects():
+            new_kind.unset_effects_kind("MA_CONDITIONAL_EFFECTS")
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         return new_kind
 
     def _compile(
@@ -120,252 +137,157 @@ class MA_DisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
         """
-        Takes an instance of a :class:`~unified_planning.model.multi_agent.MultiAgentProblem` and the `DISJUNCTIVE_CONDITIONS_REMOVING` `~unified_planning.engines.CompilationKind`
-        and returns a `CompilerResult` where the `Problem` does not have `Actions` with disjunctive conditions.
+        Takes an instance of a :class:`~unified_planning.model.MultiAgentProblem` and the wanted :class:`~unified_planning.engines.CompilationKind`
+        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>` field does not have conditional effects.
 
-        :param problem: The instance of the `MultiAgentProblem` that must be returned without disjunctive conditions.
-        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
-            only `DISJUNCTIVE_CONDITIONS_REMOVING` is supported by this compiler
-        :return: The resulting `CompilerResult` data structure.
+        :param problem: The instance of the :class:`~unified_planning.model.MultiAgentProblem` that must be returned without conditional effects.
+        :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
+            only :class:`~unified_planning.engines.CompilationKind.CONDITIONAL_EFFECTS_REMOVING` is supported by this compiler
+        :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
+        :raises: :exc:`~unified_planning.exceptions.UPProblemDefinitionError` when the :meth:`condition<unified_planning.model.Effect.condition>` of an
+            :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
         """
-
         assert isinstance(problem, MultiAgentProblem)
-
         env = problem.environment
+        simplifier = env.simplifier
 
-        new_to_old: Dict[Action, Optional[Action]] = {}
-        new_fluents: List["up.model.Fluent"] = []
+        new_to_old = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
-        # new_problem.clear_agents()
-        new_problem.clear_goals()
-
-        dnf = Dnf(env)
-        meaningful_actions: List["up.model.Action"] = []
-        for ag in problem.agents:
-            new_problem.agent(ag.name).clear_actions()
-            new_ag = new_problem.agent(ag.name)
-            # new_ag = up.model.multi_agent.Agent(ag.name, problem.clone())
-            for a in ag.actions:
-                if isinstance(a, InstantaneousAction):
-                    new_precond = dnf.get_dnf_expression(
-                        env.expression_manager.And(a.preconditions)
-                    )
-                    if new_precond.is_or():
-                        for and_exp in new_precond.args:
-                            na = self._ma_create_new_action_with_given_precond(
-                                new_problem, and_exp, a, dnf
-                            )
-                            if na is not None:
-                                new_to_old[na] = a
-                                new_ag.add_action(na)
+        """new_problem.clear_timed_effects()
+        for t, el in problem.timed_effects.items():
+            for e in el:
+                if e.is_conditional():
+                    f, v = e.fluent.fluent(), e.value
+                    if not f.type.is_bool_type():
+                        raise UPProblemDefinitionError(
+                            f"The condition of effect: {e}\ncould not be removed without changing the problem."
+                        )
                     else:
-                        na = self._ma_create_new_action_with_given_precond(
-                            new_problem, new_precond, a, dnf
+                        em = env.expression_manager
+                        c = e.condition
+                        nv = simplifier.simplify(
+                            em.Or(em.And(c, v), em.And(em.Not(c), f))
                         )
-                        if na is not None:
-                            new_to_old[na] = a
-                            new_ag.add_action(na)
-                elif isinstance(a, DurativeAction):
-                    interval_list: List[TimeInterval] = []
-                    conditions: List[List[FNode]] = []
-                    # save the timing, calculate the dnf of the and of all the conditions at the same time
-                    # and then save it in conditions.
-                    # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
-                    for i, cl in a.conditions.items():
-                        interval_list.append(i)
-                        new_cond = dnf.get_dnf_expression(
-                            env.expression_manager.And(cl)
-                        )
-                        if new_cond.is_or():
-                            conditions.append(new_cond.args)
-                        else:
-                            conditions.append([new_cond])
-                    conditions_tuple = cast(
-                        Tuple[List[FNode], ...], product(*conditions)
-                    )
-                    for cond_list in conditions_tuple:
-                        nda = self._ma_create_new_durative_action_with_given_conds_at_given_times(
-                            new_ag, interval_list, cond_list, a, dnf
-                        )
-                        if nda is not None:
-                            new_to_old[nda] = a
-                            new_ag.add_action(nda)
+                        new_problem.add_timed_effect(t, e.fluent, nv)
+                else:
+                    new_problem._add_effect_instance(t, e.clone()))"""
+
+        for ag in problem.agents:
+            new_ag = new_problem.agent(ag.name)
+            new_ag.clear_actions()
+            for ua in ag.unconditional_actions:
+                new_uncond_action = ua.clone()
+                new_ag.add_action(new_uncond_action)
+                new_to_old[new_uncond_action] = ua
+            for action in ag.conditional_actions:
+                if isinstance(action, up.model.InstantaneousAction):
+                    cond_effects = action.conditional_effects
+                    for p in powerset(range(len(cond_effects))):
+                        new_action = action.clone()
+                        new_action.name = get_fresh_name(new_problem, action.name)
+                        new_action.clear_effects()
+                        for e in action.unconditional_effects:
+                            new_action._add_effect_instance(e.clone())
+                        for i, e in enumerate(cond_effects):
+                            if i in p:
+                                # positive precondition
+                                new_action.add_precondition(e.condition)
+                                ne = up.model.Effect(
+                                    e.fluent,
+                                    e.value,
+                                    env.expression_manager.TRUE(),
+                                    e.kind,
+                                )
+                                # We try to add the new effect, but it might be in conflict with exising effects,
+                                # so the action is not added to the problem
+                                try:
+                                    new_action._add_effect_instance(ne)
+                                except UPConflictingEffectsException:
+                                    continue
+                            else:
+                                # negative precondition
+                                new_action.add_precondition(
+                                    env.expression_manager.Not(e.condition)
+                                )
+                        # new action is created, then is checked if it has any impact and if it can be simplified
+                        if len(new_action.effects) > 0:
+                            (
+                                action_is_feasible,
+                                simplified_preconditions,
+                            ) = check_and_simplify_preconditions(
+                                new_problem, new_action, simplifier
+                            )
+                            if action_is_feasible:
+                                new_action._set_preconditions(simplified_preconditions)
+                                new_to_old[new_action] = action
+                                new_ag.add_action(new_action)
+                                # new_problem.add_action(new_action)
+                elif isinstance(action, up.model.DurativeAction):
+                    timing_cond_effects: Dict[
+                        "up.model.Timing", List["up.model.Effect"]
+                    ] = action.conditional_effects
+                    cond_effects_timing: List[
+                        Tuple["up.model.Effect", "up.model.Timing"]
+                    ] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
+                    for p in powerset(range(len(cond_effects_timing))):
+                        new_action = action.clone()
+                        new_action.name = get_fresh_name(new_problem, action.name)
+                        new_action.clear_effects()
+                        for t, el in action.unconditional_effects.items():
+                            for e in el:
+                                new_action._add_effect_instance(t, e.clone())
+                        for i, (e, t) in enumerate(cond_effects_timing):
+                            if i in p:
+                                # positive precondition
+                                new_action.add_condition(t, e.condition)
+                                ne = up.model.Effect(
+                                    e.fluent,
+                                    e.value,
+                                    env.expression_manager.TRUE(),
+                                    e.kind,
+                                )
+                                # We try to add the new effect, but it might be in conflict with exising effects,
+                                # so the action is not added to the problem
+                                try:
+                                    new_action._add_effect_instance(t, ne)
+                                except UPConflictingEffectsException:
+                                    continue
+                            else:
+                                # negative precondition
+                                new_action.add_condition(
+                                    t, env.expression_manager.Not(e.condition)
+                                )
+                        # new action is created, then is checked if it has any impact and if it can be simplified
+                        if len(new_action.effects) > 0:
+                            (
+                                action_is_feasible,
+                                simplified_conditions,
+                            ) = check_and_simplify_conditions(
+                                new_problem, new_action, simplifier
+                            )
+                            if action_is_feasible:
+                                new_action.clear_conditions()
+                                for interval, c in simplified_conditions:
+                                    new_action.add_condition(interval, c)
+                                new_to_old[new_action] = action
+                                new_ag.add_action(new_action)
                 else:
                     raise NotImplementedError
             new_problem.add_agent(new_ag)
 
-            # Meaningful action is the list of the actions that modify fluents that are not added
-            # just to remove the disjunction from goals
-            ag_actions: List["up.model.Action"] = new_ag.actions[:]
-            meaningful_actions.extend(ag_actions)
-
-            self._ma_goals_without_disjunctions_adding_new_elements(
-                dnf,
-                new_problem,
-                new_ag,
-                new_to_old,
-                new_fluents,
-                problem.goals,
-            )
-
-        # Every meaningful action must set to False every new fluent added.
-        # For the DurativeActions this must happen every time the action modifies something
-        em = env.expression_manager
-        # new_effects is the List of effects that must be added to every meaningful action
-        new_effects: List["up.model.Effect"] = [
-            up.model.Effect(em.FluentExp(f), em.FALSE(), em.TRUE()) for f in new_fluents
-        ]
-        for a in meaningful_actions:
-            # Since we modify the action that is a key in the Dict, we must update the mapping
-            old_action = new_to_old.pop(a)
-            if isinstance(a, InstantaneousAction):
-                for e in new_effects:
-                    a._add_effect_instance(e)
-            elif isinstance(a, DurativeAction):
-                for tim in a.effects:
-                    for e in new_effects:
-                        a._add_effect_instance(tim, e)
+        """new_problem.clear_quality_metrics()
+        for qm in problem.quality_metrics:
+            if isinstance(qm, MinimizeActionCosts):
+                new_costs = {
+                    new_act: qm.get_action_cost(old_act)
+                    for new_act, old_act in new_to_old.items()
+                }
+                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
             else:
-                raise NotImplementedError
-            new_to_old[a] = old_action
+                new_problem.add_quality_metric(qm)"""
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
-
-    # "def _ma_goals_without_disjunctions_adding_new_elements" not yet adapted to multi-agent case!
-    def _ma_goals_without_disjunctions_adding_new_elements(
-        self,
-        dnf: Dnf,
-        new_problem: "MultiAgentProblem",
-        new_agent: "up.model.multi_agent.Agent",
-        new_to_old: Dict[Action, Optional[Action]],
-        new_fluents: List["up.model.Fluent"],
-        goals: List["up.model.FNode"],
-        timing: Optional["up.model.timing.TimeInterval"] = None,
-    ) -> List["up.model.FNode"]:
-        env = new_problem.environment
-        # new_goal = dnf.get_dnf_expression(env.expression_manager.And(goals))
-        new_goals: List["up.model.FNode"] = []
-        for g in goals:
-            new_goal = dnf.get_dnf_expression(g)
-            if new_goal.is_or():
-                new_name = self.name if timing is None else f"{self.name}_timed"
-                fake_fluent = up.model.Fluent(
-                    self.get_fresh_name(new_problem, f"{new_name}_fake_goal")
-                )
-                fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
-                fake_action.add_effect(fake_fluent, True)
-                for and_exp in g.args:
-                    na = self._ma_create_new_action_with_given_precond(
-                        new_problem, and_exp, fake_action, dnf
-                    )
-                    if na is not None:
-                        new_to_old[na] = None
-                        new_agent.add_action(na)
-                new_agent.add_fluent(fake_fluent, default_initial_value=False)
-                new_fluents.append(fake_fluent)
-                if new_goal not in new_problem.goals:
-                    new_problem.add_goal(new_goal)
-                # return env.expression_manager.FluentExp(fake_fluent)
-            else:
-                new_goals.append(new_goal)
-                if new_goal not in new_problem.goals:
-                    new_problem.add_goal(new_goal)
-        return new_goals
-
-    def _ma_create_new_durative_action_with_given_conds_at_given_times(
-        self,
-        new_problem: "MultiAgentProblem",
-        interval_list: List[TimeInterval],
-        cond_list: List[FNode],
-        original_action: DurativeAction,
-        dnf: Dnf,
-    ) -> Optional[DurativeAction]:
-        new_action = original_action.clone()
-        new_action.name = self.get_fresh_name(new_problem, original_action.name)
-        new_action.clear_conditions()
-        for i, c in zip(interval_list, cond_list):
-            c = c.simplify()
-            if c.is_false():
-                return None
-            elif c.is_and():
-                for co in c.args:
-                    new_action.add_condition(i, co)
-            else:
-                new_action.add_condition(i, c)
-        new_action.clear_effects()
-        for t, el in original_action.effects.items():
-            for e in el:
-                if e.is_conditional():
-                    new_cond = dnf.get_dnf_expression(e.condition).simplify()
-                    if new_cond.is_or():
-                        for and_exp in new_cond.args:
-                            new_e = e.clone()
-                            new_e.set_condition(and_exp)
-                            new_action._add_effect_instance(t, new_e)
-                    elif not new_cond.is_false():
-                        new_e = e.clone()
-                        new_e.set_condition(new_cond)
-                        new_action._add_effect_instance(t, new_e)
-                else:
-                    new_action._add_effect_instance(t, e)
-        if len(new_action.effects) == 0:
-            return None
-        return new_action
-
-    def _ma_create_new_action_with_given_precond(
-        self,
-        new_problem: "MultiAgentProblem",
-        precond: FNode,
-        original_action: InstantaneousAction,
-        dnf: Dnf,
-    ) -> Optional[InstantaneousAction]:
-        new_action = original_action.clone()
-        new_action.name = self.get_fresh_name(new_problem, original_action.name)
-        new_action.clear_preconditions()
-        precond = precond.simplify()
-        if precond.is_false():
-            return None
-        if precond.is_and():
-            for leaf in precond.args:
-                new_action.add_precondition(leaf)
-        else:
-            new_action.add_precondition(precond)
-        new_action.clear_effects()
-        for e in original_action.effects:
-            if e.is_conditional():
-                new_cond = dnf.get_dnf_expression(e.condition).simplify()
-                if new_cond.is_or():
-                    for and_exp in new_cond.args:
-                        new_e = e.clone()
-                        new_e.set_condition(and_exp)
-                        new_action._add_effect_instance(new_e)
-                elif not new_cond.is_false():
-                    new_e = e.clone()
-                    new_e.set_condition(new_cond)
-                    new_action._add_effect_instance(new_e)
-            else:
-                new_action._add_effect_instance(e)
-        if len(new_action.effects) == 0:
-            return None
-        return new_action
-
-    def get_fresh_name(
-        self,
-        problem: MultiAgentProblem,
-        original_name: str,
-        parameters_names: Iterable[str] = [],
-    ) -> str:
-        """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
-        name_list = [original_name]
-        name_list.extend(parameters_names)
-        new_name = "_".join(name_list)
-        base_name = new_name
-        count = 0
-        while problem.has_name(new_name):
-            new_name = f"{base_name}_{str(count)}"
-            count += 1
-        return new_name
