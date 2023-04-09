@@ -19,7 +19,10 @@ import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import (
+    UPProblemDefinitionError,
+    UPConflictingEffectsException,
+)
 from unified_planning.model import (
     FNode,
     Problem,
