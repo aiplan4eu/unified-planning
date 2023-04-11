@@ -189,16 +189,8 @@ class TestProtobufIO(TestCase):
         problem = Problem("test")
         problem.add_quality_metric(metric=MinimizeSequentialPlanLength())
         problem.add_quality_metric(metric=MinimizeMakespan())
-        problem.add_quality_metric(
-            metric=MinimizeExpressionOnFinalState(
-                problem.environment.expression_manager.true_expression
-            )
-        )
-        problem.add_quality_metric(
-            metric=MaximizeExpressionOnFinalState(
-                problem.environment.expression_manager.true_expression
-            )
-        )
+        problem.add_quality_metric(metric=MinimizeExpressionOnFinalState(6))
+        problem.add_quality_metric(metric=MaximizeExpressionOnFinalState(3.5))
 
         for metric in problem.quality_metrics:
             metric_pb = self.pb_writer.convert(metric)

@@ -96,7 +96,9 @@ class HierarchicalProblem(up.model.problem.Problem):
         new_p._metrics = []
         for m in self._metrics:
             if isinstance(m, up.model.metrics.MinimizeActionCosts):
-                costs = {new_p.action(a.name): c for a, c in m.costs.items()}
+                costs: Dict["up.model.Action", Optional["up.model.Expression"]] = {
+                    new_p.action(a.name): c for a, c in m.costs.items()
+                }
                 new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
             else:
                 new_p._metrics.append(m)

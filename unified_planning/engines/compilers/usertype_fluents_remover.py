@@ -15,6 +15,7 @@
 """This module defines the conditional effects remover class."""
 
 
+from fractions import Fraction
 from itertools import product
 import unified_planning as up
 import unified_planning.engines as engines
@@ -25,6 +26,7 @@ from unified_planning.model import (
     ProblemKind,
     Fluent,
     Parameter,
+    BoolExpression,
     Action,
     InstantaneousAction,
     DurativeAction,
@@ -265,7 +267,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     MinimizeExpressionOnFinalState(
                         utf_remover.remove_usertype_fluents_from_condition(
                             qm.expression
-                        )
+                        ),
+                        environment=new_problem.environment,
                     )
                 )
             elif isinstance(qm, MaximizeExpressionOnFinalState):
@@ -273,30 +276,40 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     MaximizeExpressionOnFinalState(
                         utf_remover.remove_usertype_fluents_from_condition(
                             qm.expression
-                        )
+                        ),
+                        environment=new_problem.environment,
                     )
                 )
             elif isinstance(qm, MinimizeActionCosts):
-                new_costs = {}
+                new_costs: Dict["up.model.Action", Optional["up.model.Expression"]] = {}
                 for new_act, old_act in new_to_old.items():
                     cost = qm.get_action_cost(old_act)
                     if cost is not None:
                         cost = utf_remover.remove_usertype_fluents_from_condition(cost)
                     new_costs[new_act] = cost
-                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+                new_problem.add_quality_metric(
+                    MinimizeActionCosts(new_costs), environment=new_problem.environment
+                )
             elif isinstance(qm, Oversubscription):
-                new_goals = {
+                new_goals: Dict[BoolExpression, Union[Fraction, int]] = {
                     utf_remover.remove_usertype_fluents_from_condition(g): v
                     for g, v in qm.goals.items()
                 }
-                new_problem.add_quality_metric(Oversubscription(new_goals))
+                new_problem.add_quality_metric(
+                    Oversubscription(new_goals, environment=new_problem.environment)
+                )
             elif isinstance(qm, TemporalOversubscription):
-                new_temporal_goals = {
+                new_temporal_goals: Dict[
+                    Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
+                    Union[Fraction, int],
+                ] = {
                     (i, utf_remover.remove_usertype_fluents_from_condition(g)): v
                     for (i, g), v in qm.goals.items()
                 }
                 new_problem.add_quality_metric(
-                    TemporalOversubscription(new_temporal_goals)
+                    TemporalOversubscription(
+                        new_temporal_goals, environment=new_problem.environment
+                    )
                 )
             else:
                 raise NotImplementedError
@@ -336,7 +349,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         em: ExpressionManager,
         original_problem: Problem,
     ) -> SimulatedEffect:
-        result_fluents: List[FNode] = []
+        result_fluents: List[Union[Fluent, FNode]] = []
         for f_exp in simulated_effect.fluents:
             if f_exp.fluent not in fluents_map:
                 result_fluents.append(f_exp)
@@ -396,6 +409,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     true_found = False
                     for _ in original_problem.objects(ret_f_exp.type):
                         current_val = next(result_fluents_iterator)
+                        assert isinstance(current_val, FNode)
                         current_obj = current_val.args[-1].object()
                         if returned_obj == current_obj:
                             assert (

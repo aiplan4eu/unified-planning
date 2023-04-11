@@ -14,8 +14,10 @@
 #
 
 import unified_planning as up
+from unified_planning.environment import Environment, get_environment
+from unified_planning.exceptions import UPProblemDefinitionError
 from fractions import Fraction
-from typing import Dict, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple
 
 
 class PlanQualityMetric:
@@ -27,7 +29,12 @@ class PlanQualityMetric:
     problem goals, but also the problem's quality metric.
     """
 
-    pass
+    def __init__(self, environment: Optional[Environment] = None):
+        self._env = get_environment(environment)
+
+    @property
+    def environment(self) -> Environment:
+        return self._env
 
 
 class MinimizeActionCosts(PlanQualityMetric):
@@ -39,26 +46,68 @@ class MinimizeActionCosts(PlanQualityMetric):
 
     def __init__(
         self,
-        costs: Dict["up.model.Action", Optional["up.model.FNode"]],
-        default: Optional["up.model.FNode"] = None,
+        costs: Dict["up.model.Action", Optional["up.model.Expression"]],
+        default: Optional["up.model.Expression"] = None,
+        environment: Optional[Environment] = None,
     ):
-        self.costs = costs
-        self.default = default
+        PlanQualityMetric.__init__(self, environment)
+        em = self._env.expression_manager
+        self._costs: Dict["up.model.Action", Optional["up.model.FNode"]] = {}
+        for action, cost in costs.items():
+            cost_exp: Optional["up.model.FNode"] = None
+            if cost is not None:
+                cost_exp = em.auto_promote(cost)[0]
+                cost_type = cost_exp.type
+                if not cost_type.is_int_type() and not cost_type.is_real_type():
+                    raise UPProblemDefinitionError(
+                        "The costs of a MinimizeActionCosts must be numeric.",
+                        f"{cost_type} is neither IntType or RealType.",
+                    )
+                if cost_exp.environment != self._env:
+                    raise UPProblemDefinitionError(
+                        f"The cost expression {cost_exp} and the metric don't have the same environment"
+                    )
+            if action.environment != self._env:
+                raise UPProblemDefinitionError(
+                    f"The action {action.name} and the metric don't have the same environment"
+                )
+            self._costs[action] = cost_exp
+        self._default: Optional["up.model.FNode"] = None
+        if default is not None:
+            default_exp: "up.model.FNode" = em.auto_promote(default)[0]
+            default_type = default_exp.type
+            if not default_type.is_int_type() and not default_type.is_real_type():
+                raise UPProblemDefinitionError(
+                    "The costs of a MinimizeActionCosts must be numeric.",
+                    f"{default_type} is neither IntType or RealType.",
+                )
+            if default_exp.environment != self._env:
+                raise UPProblemDefinitionError(
+                    f"The default cost expression {default_exp} and the metric don't have the same environment"
+                )
 
     def __repr__(self):
-        costs = {a.name: c for a, c in self.costs.items()}
-        costs["default"] = self.default
+        costs = {a.name: c for a, c in self._costs.items()}
+        costs["default"] = self._default
         return f"minimize actions-cost: {costs}"
 
     def __eq__(self, other):
         return (
             isinstance(other, MinimizeActionCosts)
-            and self.default == other.default
-            and self.costs == other.costs
+            and self._default == other._default
+            and self._costs == other._costs
         )
 
     def __hash__(self):
         return hash(self.__class__.__name__)
+
+    @property
+    def costs(self) -> Dict["up.model.Action", Optional["up.model.FNode"]]:
+        return self._costs
+
+    @property
+    def default(self) -> Optional["up.model.FNode"]:
+        return self._default
 
     def get_action_cost(self, action: "up.model.Action") -> Optional["up.model.FNode"]:
         """
@@ -70,7 +119,7 @@ class MinimizeActionCosts(PlanQualityMetric):
             it's invalid; every action cost MUST be set, either with the cost mapping
             or with the default.
         """
-        return self.costs.get(action, self.default)
+        return self._costs.get(action, self._default)
 
 
 class MinimizeSequentialPlanLength(PlanQualityMetric):
@@ -108,8 +157,25 @@ class MinimizeExpressionOnFinalState(PlanQualityMetric):
     following the given :class:`~unified_planning.model.Plan`.
     """
 
-    def __init__(self, expression: "up.model.FNode"):
-        self.expression = expression
+    def __init__(
+        self,
+        expression: "up.model.Expression",
+        environment: Optional[Environment] = None,
+    ):
+        PlanQualityMetric.__init__(self, environment)
+        self.expression: "up.model.FNode" = self._env.expression_manager.auto_promote(
+            expression
+        )[0]
+        exp_type = self.expression.type
+        if not exp_type.is_int_type() and not exp_type.is_real_type():
+            raise UPProblemDefinitionError(
+                "The expression of a MinimizeExpressionOnFinalState must be numeric.",
+                f"{exp_type} is neither IntType or RealType.",
+            )
+        if self.expression.environment != self._env:
+            raise UPProblemDefinitionError(
+                "The expression and the metric don't have the same environment"
+            )
 
     def __repr__(self):
         return f"minimize {self.expression}"
@@ -130,8 +196,25 @@ class MaximizeExpressionOnFinalState(PlanQualityMetric):
     following the given :class:`~unified_planning.model.Plan`.
     """
 
-    def __init__(self, expression: "up.model.FNode"):
-        self.expression = expression
+    def __init__(
+        self,
+        expression: "up.model.Expression",
+        environment: Optional[Environment] = None,
+    ):
+        PlanQualityMetric.__init__(self, environment)
+        self.expression: "up.model.FNode" = self._env.expression_manager.auto_promote(
+            expression
+        )[0]
+        exp_type = self.expression.type
+        if not exp_type.is_int_type() and not exp_type.is_real_type():
+            raise UPProblemDefinitionError(
+                "The expression of a MaximizeExpressionOnFinalState must be numeric.",
+                f"{exp_type} is neither IntType or RealType.",
+            )
+        if self.expression.environment != self._env:
+            raise UPProblemDefinitionError(
+                "The expression and the metric don't have the same environment"
+            )
 
     def __repr__(self):
         return f"maximize {self.expression}"
@@ -153,11 +236,31 @@ class Oversubscription(PlanQualityMetric):
     The gained value for each fulfilled `goal` of the problem is stored in this quality metric.
     """
 
-    def __init__(self, goals: Dict["up.model.FNode", Union[Fraction, int]]):
-        goals = dict(
-            (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
-        )
-        self.goals = goals
+    def __init__(
+        self,
+        goals: Dict["up.model.BoolExpression", Union[Fraction, int]],
+        environment: Optional[Environment] = None,
+    ):
+        PlanQualityMetric.__init__(self, environment)
+        em = self._env.expression_manager
+        goal_keys = []
+        gains: List[Union[Fraction, int]] = []
+        for goal, gain in goals.items():
+            (g_exp,) = em.auto_promote(goal)
+            if not g_exp.type.is_bool_type():
+                raise UPProblemDefinitionError(
+                    f"goal {g_exp} type is {g_exp.type}. Expected BoolType."
+                )
+            if g_exp.environment != self._env:
+                raise UPProblemDefinitionError(
+                    f"goal {g_exp} does not have the same environment given to the metric."
+                )
+            goal_keys.append(g_exp)
+            if gain.denominator == 1:
+                gains.append(gain.numerator)
+            else:
+                gains.append(gain)
+        self._goals = dict(zip(goal_keys, gains))
 
     def __repr__(self):
         return f"oversubscription planning goals: {self.goals}"
@@ -167,6 +270,10 @@ class Oversubscription(PlanQualityMetric):
 
     def __hash__(self):
         return hash(self.__class__.__name__)
+
+    @property
+    def goals(self) -> Dict["up.model.fnode.FNode", Union[Fraction, int]]:
+        return self._goals
 
 
 class TemporalOversubscription(PlanQualityMetric):
@@ -179,14 +286,31 @@ class TemporalOversubscription(PlanQualityMetric):
     def __init__(
         self,
         goals: Dict[
-            Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+            Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
             Union[Fraction, int],
         ],
+        environment: Optional[Environment] = None,
     ):
-        goals = dict(
-            (k, f.numerator if f.denominator == 1 else f) for (k, f) in goals.items()
-        )
-        self.goals = goals
+        PlanQualityMetric.__init__(self, environment)
+        em = self._env.expression_manager
+        goal_keys: List[Tuple["up.model.timing.TimeInterval", "up.model.FNode"]] = []
+        gains: List[Union[Fraction, int]] = []
+        for (interval, goal), gain in goals.items():
+            (g_exp,) = em.auto_promote(goal)
+            if not g_exp.type.is_bool_type():
+                raise UPProblemDefinitionError(
+                    f"goal {g_exp} type is {g_exp.type}. Expected BoolType."
+                )
+            if g_exp.environment != self._env:
+                raise UPProblemDefinitionError(
+                    f"goal {g_exp} does not have the same environment given to the metric."
+                )
+            goal_keys.append((interval, g_exp))
+            if gain.denominator == 1:
+                gains.append(gain.numerator)
+            else:
+                gains.append(gain)
+        self._goals = dict(zip(goal_keys, gains))
 
     def __repr__(self):
         return f"oversubscription planning timed goals: {self.goals}"
@@ -196,3 +320,11 @@ class TemporalOversubscription(PlanQualityMetric):
 
     def __hash__(self):
         return hash(self.__class__.__name__)
+
+    @property
+    def goals(
+        self,
+    ) -> Dict[
+        Tuple["up.model.timing.TimeInterval", "up.model.FNode"], Union[Fraction, int]
+    ]:
+        return self._goals

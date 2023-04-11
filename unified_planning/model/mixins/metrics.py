@@ -1,4 +1,4 @@
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from unified_planning.model.metrics import PlanQualityMetric
 from unified_planning.model.problem_kind import ProblemKind
@@ -21,6 +21,10 @@ class MetricsMixin:
 
         :param metric: The `quality metric` that a `Plan` of this `Problem` must satisfy in order to be valid.
         """
+        if metric.environment != self._env:
+            raise up.exceptions.UPUsageError(
+                "The added metric does not have the same environment of the MetricsMixin"
+            )
         self._metrics.append(metric)
 
     @property
@@ -47,8 +51,12 @@ class MetricsMixin:
         for m in self._metrics:
             if isinstance(m, up.model.metrics.MinimizeActionCosts):
                 assert new_actions is not None
-                costs = {new_actions.action(a.name): c for a, c in m.costs.items()}
-                cloned.append(up.model.metrics.MinimizeActionCosts(costs))
+                costs: Dict["up.model.Action", Optional["up.model.Expression"]] = {
+                    new_actions.action(a.name): c for a, c in m.costs.items()
+                }
+                cloned.append(
+                    up.model.metrics.MinimizeActionCosts(costs, environment=other._env)
+                )
             else:
                 cloned.append(m)
         other._metrics = cloned

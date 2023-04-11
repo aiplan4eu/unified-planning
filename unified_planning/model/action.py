@@ -448,6 +448,10 @@ class InstantaneousAction(Action):
             self._fluents_inc_dec,
             "action",
         )
+        if simulated_effect.environment != self.environment:
+            raise UPUsageError(
+                "The added SimulatedEffect does not have the same environment of the Action"
+            )
         self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
