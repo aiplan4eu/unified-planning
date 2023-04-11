@@ -288,7 +288,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         cost = utf_remover.remove_usertype_fluents_from_condition(cost)
                     new_costs[new_act] = cost
                 new_problem.add_quality_metric(
-                    MinimizeActionCosts(new_costs), environment=new_problem.environment
+                    MinimizeActionCosts(new_costs, environment=new_problem.environment)
                 )
             elif isinstance(qm, Oversubscription):
                 new_goals: Dict[BoolExpression, Union[Fraction, int]] = {
