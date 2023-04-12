@@ -24,7 +24,7 @@ import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
 from fractions import Fraction
-from typing import Optional, Iterable, List, Union, Dict, Tuple, Iterator
+from typing import Optional, Iterable, List, Union, Dict, Tuple, Iterator, Sequence
 
 Expression = Union[
     "up.model.fnode.FNode",
@@ -137,7 +137,7 @@ class ExpressionManager(object):
     def create_node(
         self,
         node_type: OperatorKind,
-        args: Iterable["up.model.fnode.FNode"],
+        args: Tuple["up.model.fnode.FNode", ...],
         payload: Optional[
             Union[
                 "up.model.fluent.Fluent",
@@ -158,7 +158,7 @@ class ExpressionManager(object):
         returns the existing one.
 
         :param node_type: The OperationKind referring to this expression (like a PLUS, MINUS, FLUENT_EXP, etc.).
-        :param args: The direct sons in this expression tree; an iterable of expressions.
+        :param args: The direct sons in this expression tree; a tuple of expressions.
         :param payload: In some OperationKind contains the information about the expression; for an INT_EXP
             contains the integer, for a FLUENT_EXP the fluent etc.
         :return: The created expression.
@@ -408,14 +408,14 @@ class ExpressionManager(object):
         return self.create_node(node_type=OperatorKind.SOMETIME_AFTER, args=expressions)
 
     def FluentExp(
-        self, fluent: "up.model.fluent.Fluent", params: Iterable[Expression] = tuple()
+        self, fluent: "up.model.fluent.Fluent", params: Sequence[Expression] = tuple()
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression for the given `fluent` and `parameters`.
         Restriction: `parameters type` must be compatible with the `Fluent` :func:`signature <unified_planning.model.Fluent.signature>`
 
         :param fluent: The `Fluent` that will be set as the `payload` of this expression.
-        :param params: The Iterable of expressions acting as `parameters` for this `Fluent`; mainly the parameters will
+        :param params: The Sequence of expressions acting as `parameters` for this `Fluent`; mainly the parameters will
             be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or
             :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
         :return: The created `Fluent` Expression.

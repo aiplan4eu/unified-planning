@@ -18,7 +18,7 @@ import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model import InstantaneousAction
 from unified_planning.exceptions import UPTypeError
-from typing import Optional, List
+from typing import Optional, List, Iterable
 from collections import OrderedDict
 
 
@@ -169,7 +169,7 @@ class InstantaneousMotionAction(InstantaneousAction):
         new_motion_action._motion_constraints = self._motion_constraints.copy()
         return new_motion_action
 
-    def add_motion_constraints(self, motion_constraints: List[MotionConstraint]):
+    def add_motion_constraints(self, motion_constraints: Iterable[MotionConstraint]):
         """
         Adds the given list of motion constraints.
 

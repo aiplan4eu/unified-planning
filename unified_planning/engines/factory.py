@@ -21,6 +21,7 @@ import inspect
 import configparser
 import unified_planning as up
 from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model import ProblemKind
 from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
@@ -36,7 +37,7 @@ from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
 from unified_planning.engines.engine import OperationMode
-from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, cast
+from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence
 from pathlib import PurePath
 
 
@@ -503,7 +504,7 @@ class Factory:
             msg = f"No available {operation_mode} engine"
         raise up.exceptions.UPNoSuitableEngineAvailableException(msg)
 
-    def _print_credits(self, all_credits: List[Optional["up.engines.Credits"]]):
+    def _print_credits(self, all_credits: Sequence[Optional["up.engines.Credits"]]):
         """
         This function prints the credits of the engine(s) used by an operation mode
         """
@@ -556,12 +557,12 @@ class Factory:
         self,
         operation_mode: "OperationMode",
         name: Optional[str] = None,
-        names: Optional[List[str]] = None,
-        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+        names: Optional[Sequence[str]] = None,
+        params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
-        compilation_kinds: Optional[List["CompilationKind"]] = None,
+        compilation_kinds: Optional[Sequence["CompilationKind"]] = None,
         plan_kind: Optional["PlanKind"] = None,
         anytime_guarantee: Optional["AnytimeGuarantee"] = None,
         problem: Optional["up.model.AbstractProblem"] = None,
@@ -570,7 +571,7 @@ class Factory:
             assert name is None
             assert problem is None, "Parallel simulation is not supported"
             if params is None:
-                params = [{} for i in range(len(names))]
+                params = [{} for _ in names]
             assert isinstance(params, List) and len(names) == len(params)
             engines = []
             all_credits = []
@@ -585,9 +586,9 @@ class Factory:
             assert name is None
             assert names is not None or problem_kind is not None
             if names is None:
-                names = [None for i in range(len(compilation_kinds))]  # type: ignore
+                names = [None for _ in compilation_kinds]  # type: ignore
             if params is None:
-                params = [{} for i in range(len(compilation_kinds))]
+                params = [{} for _ in compilation_kinds]
             assert isinstance(params, List) and len(names) == len(params)
             compilers: List["up.engines.engine.Engine"] = []
             all_credits = []
@@ -682,8 +683,8 @@ class Factory:
         self,
         *,
         name: Optional[str] = None,
-        names: Optional[List[str]] = None,
-        params: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+        names: Optional[Sequence[str]] = None,
+        params: Optional[Union[Dict[str, Any], Sequence[Dict[str, Any]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
@@ -699,7 +700,12 @@ class Factory:
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.ONESHOT_PLANNER,
             name,
@@ -748,8 +754,8 @@ class Factory:
         self,
         *,
         name: Optional[str] = None,
-        names: Optional[List[str]] = None,
-        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+        names: Optional[Sequence[str]] = None,
+        params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         plan_kind: Optional[Union["PlanKind", str]] = None,
     ) -> "up.engines.engine.Engine":
@@ -780,11 +786,11 @@ class Factory:
         self,
         *,
         name: Optional[str] = None,
-        names: Optional[List[str]] = None,
-        params: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+        names: Optional[Sequence[str]] = None,
+        params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
         problem_kind: ProblemKind = ProblemKind(),
         compilation_kind: Optional[Union["CompilationKind", str]] = None,
-        compilation_kinds: Optional[List[Union["CompilationKind", str]]] = None,
+        compilation_kinds: Optional[Sequence[Union["CompilationKind", str]]] = None,
     ) -> "up.engines.engine.Engine":
         """
         Returns a Compiler or a pipeline of Compilers.
@@ -870,7 +876,12 @@ class Factory:
           e.g. Replanner(problem, name='replanner[tamer]')
         """
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.REPLANNER,
             name,
@@ -900,7 +911,12 @@ class Factory:
         if isinstance(plan_kind, str):
             plan_kind = PlanKind[plan_kind]
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.PLAN_REPAIRER,
             name=name,
@@ -927,7 +943,12 @@ class Factory:
           e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         if isinstance(optimality_guarantee, str):
-            optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
         return self._get_engine(
             OperationMode.PORTFOLIO_SELECTOR,
             name=name,

@@ -16,6 +16,7 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
+from typing import List, Tuple
 
 
 class TestInfixNotation(TestCase):

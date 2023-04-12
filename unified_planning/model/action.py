@@ -29,7 +29,7 @@ from unified_planning.exceptions import (
     UPUsageError,
 )
 from fractions import Fraction
-from typing import Dict, List, Set, Tuple, Union, Optional, cast
+from typing import Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
@@ -448,6 +448,10 @@ class InstantaneousAction(Action):
             self._fluents_inc_dec,
             "action",
         )
+        if simulated_effect.environment != self.environment:
+            raise UPUsageError(
+                "The added SimulatedEffect does not have the same environment of the Action"
+            )
         self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
@@ -700,7 +704,7 @@ class SensingAction(InstantaneousAction):
         new_sensing_action._observed_fluents = self._observed_fluents.copy()
         return new_sensing_action
 
-    def add_observed_fluents(self, observed_fluents: List["up.model.fnode.FNode"]):
+    def add_observed_fluents(self, observed_fluents: Iterable["up.model.fnode.FNode"]):
         """
         Adds the given list of observed fluents.
 

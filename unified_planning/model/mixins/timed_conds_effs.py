@@ -360,4 +360,8 @@ class TimedCondsEffs:
             self._fluents_inc_dec.get(timing, set()),
             f"action or problem: {self.name}",  # type: ignore[attr-defined]
         )
+        if simulated_effect.environment != self._environment:
+            raise UPUsageError(
+                "The added SimulatedEffect does not have the same environment of the Action"
+            )
         self._simulated_effects[timing] = simulated_effect

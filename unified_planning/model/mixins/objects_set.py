@@ -17,7 +17,7 @@ from warnings import warn
 import unified_planning as up
 from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Union, Optional, cast
+from typing import Iterator, List, Union, Optional, cast, Iterable
 
 
 class ObjectsSetMixin:
@@ -72,7 +72,7 @@ class ObjectsSetMixin:
             assert typename is not None, "Missing type of the object"
             obj = up.model.object.Object(obj_or_name, typename, self._env)
         if self._has_name_method(obj.name):
-            msg = f"Name {obj.name} already defined!"
+            msg = f"Name {obj.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 obj.name == o.name for o in self._objects
             ):
@@ -85,11 +85,11 @@ class ObjectsSetMixin:
             self._add_user_type_method(obj.type)
         return obj
 
-    def add_objects(self, objects: List["up.model.object.Object"]):
+    def add_objects(self, objects: Iterable["up.model.object.Object"]):
         """
         Adds the given `objects` to the `problem`.
 
-        :param objects: The `list` of `objects` that must be added to the `problem`.
+        :param objects: The `objects` that must be added to the `problem`.
         """
         for obj in objects:
             self.add_object(obj)

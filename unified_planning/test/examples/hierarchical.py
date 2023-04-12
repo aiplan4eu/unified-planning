@@ -21,6 +21,7 @@ from unified_planning.plans.hierarchical_plan import (
 from unified_planning.shortcuts import *
 from unified_planning.model.htn import *
 from collections import namedtuple
+from typing import List
 
 Example = namedtuple("Example", ["problem", "plan"])
 

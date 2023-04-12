@@ -171,7 +171,7 @@ class SimulatedEffect:
 
     def __init__(
         self,
-        fluents: List["up.model.fnode.FNode"],
+        fluents: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]],
         function: Callable[
             [
                 "up.model.problem.AbstractProblem",
@@ -181,17 +181,33 @@ class SimulatedEffect:
             List["up.model.fnode.FNode"],
         ],
     ):
+        self._fluents: List["up.model.fnode.FNode"] = []
+        env = None
         for f in fluents:
-            if not f.is_fluent_exp():
+            if env is None:
+                env = f.environment
+            assert env is not None
+            if isinstance(f, up.model.Fluent):
+                (f_exp,) = env.expression_manager.auto_promote(f)
+            else:
+                f_exp = f
+            assert isinstance(f_exp, up.model.FNode), "Typing not respected"
+            if not f_exp.is_fluent_exp():
                 raise up.exceptions.UPUsageError(
                     "Simulated effects can be defined on fluent expressions with constant parameters"
                 )
-            for c in f.args:
+            for c in f_exp.args:
                 if not (c.is_constant() or c.is_parameter_exp()):
                     raise up.exceptions.UPUsageError(
                         "Simulated effects can be defined on fluent expressions with constant parameters"
                     )
-        self._fluents = fluents
+            if env != f_exp.environment:
+                raise up.exceptions.UPUsageError(
+                    "The same SimulatedEffect contains fluents of different environments."
+                )
+            self._fluents.append(f_exp)
+        assert env is not None
+        self._env: "up.environment.Environment" = env
         self._function = function
 
     def __repr__(self) -> str:
@@ -208,6 +224,10 @@ class SimulatedEffect:
         for f in self._fluents:
             res += hash(f)
         return res
+
+    @property
+    def environment(self) -> "up.environment.Environment":
+        return self._env
 
     @property
     def fluents(self) -> List["up.model.fnode.FNode"]:

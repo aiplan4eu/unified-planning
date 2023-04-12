@@ -27,6 +27,7 @@ from unified_planning.model import (
     Problem,
     Effect,
     Expression,
+    BoolExpression,
     SimulatedEffect,
     Parameter,
     DurationInterval,
@@ -46,6 +47,7 @@ from typing import (
     List,
     Optional,
     OrderedDict,
+    Sequence,
     Tuple,
     Union,
     cast,
@@ -247,7 +249,7 @@ def create_action_with_given_subs(
 
 
 def get_fresh_name(
-    problem: Problem, original_name: str, parameters_names: Iterable[str] = []
+    problem: Problem, original_name: str, parameters_names: Sequence[str] = tuple()
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
     name_list = [original_name]
@@ -404,26 +406,32 @@ def add_invariant_condition_apply_function_to_problem_expressions(
 
     for qm in original_problem.quality_metrics:
         if isinstance(qm, MinimizeActionCosts):
-            new_costs = {}
+            new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
             for new_a, old_a in new_to_old.items():
                 cost = qm.get_action_cost(old_a)
                 if cost is not None:
                     cost = function(cost)
-                new_costs[new_a] = cost
-            new_qm: PlanQualityMetric = MinimizeActionCosts(new_costs)
+                    new_costs[new_a] = cost
+            new_qm: PlanQualityMetric = MinimizeActionCosts(
+                new_costs, environment=new_problem.environment
+            )
         elif isinstance(qm, MinimizeExpressionOnFinalState):
-            new_qm = MinimizeExpressionOnFinalState(function(qm.expression))
+            new_qm = MinimizeExpressionOnFinalState(
+                function(qm.expression), environment=new_problem.environment
+            )
         elif isinstance(qm, MaximizeExpressionOnFinalState):
-            new_qm = MaximizeExpressionOnFinalState(function(qm.expression))
+            new_qm = MaximizeExpressionOnFinalState(
+                function(qm.expression), environment=new_problem.environment
+            )
         elif isinstance(qm, Oversubscription):
-            new_goals: Dict[FNode, Union[Fraction, int]] = {}
+            new_goals: Dict[BoolExpression, Union[Fraction, int]] = {}
             for goal, gain in qm.goals.items():
                 new_goal = function(em.And(goal, condition).simplify())
                 new_goals[new_goal] = new_goals.get(new_goal, 0) + gain
-            new_qm = Oversubscription(new_goals)
+            new_qm = Oversubscription(new_goals, environment=new_problem.environment)
         elif isinstance(qm, TemporalOversubscription):
             new_temporal_goals: Dict[
-                Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+                Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                 Union[Fraction, int],
             ] = {}
             for (interval, goal), gain in qm.goals.items():
@@ -431,7 +439,9 @@ def add_invariant_condition_apply_function_to_problem_expressions(
                 new_temporal_goals[(interval, new_goal)] = (
                     new_temporal_goals.get((interval, new_goal), 0) + gain
                 )
-            new_qm = TemporalOversubscription(new_temporal_goals)
+            new_qm = TemporalOversubscription(
+                new_temporal_goals, environment=new_problem.environment
+            )
         else:
             new_qm = qm
         new_problem.add_quality_metric(new_qm)

@@ -19,15 +19,13 @@ from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.walkers.substituter import Substituter
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
     UPExpressionDefinitionError,
-    UPValueError,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Union, cast
+from typing import Optional, List, Dict, Union, cast, Iterable
 from unified_planning.model.mixins import (
     ObjectsSetMixin,
     UserTypesSetMixin,
@@ -294,17 +292,20 @@ class MultiAgentProblem(  # type: ignore[misc]
             isinstance(goal, bool) or goal.environment == self._env
         ), "goal does not have the same environment of the problem"
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        assert self._env.type_checker.get_type(
+            goal_exp
+        ).is_bool_type(), "A goal must be a boolean expression"
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
     def add_goals(
-        self, goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
+        self,
+        goals: Iterable[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]],
     ):
         """
         Adds the given `goal` to the `MultiAgentProblem`.
 
-        :param goals: The `list` of `goals` that must be added to the `MultiAgentProblem`.
+        :param goals: The `goals` that must be added to the `MultiAgentProblem`.
         """
         for goal in goals:
             self.add_goal(goal)

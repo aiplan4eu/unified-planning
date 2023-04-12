@@ -14,6 +14,7 @@
 #
 """This module defines the dnf remover class."""
 
+from fractions import Fraction
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -23,6 +24,7 @@ from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
     FNode,
     Problem,
+    BoolExpression,
     InstantaneousAction,
     DurativeAction,
     TimeInterval,
@@ -34,7 +36,7 @@ from unified_planning.model import (
     TemporalOversubscription,
 )
 from unified_planning.model.walkers import Dnf
-from typing import List, Optional, Tuple, Dict, cast
+from typing import List, Optional, Tuple, Dict, Union, cast
 from itertools import product
 from functools import partial
 
@@ -233,30 +235,44 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if isinstance(qm, MinimizeActionCosts):
-                new_costs = {}
+                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_act, old_act in new_to_old.items():
                     if old_act is not None:
-                        new_costs[new_act] = qm.get_action_cost(old_act)
+                        new_cost = qm.get_action_cost(old_act)
+                        if new_cost is not None:
+                            new_costs[new_act] = new_cost
                     else:
                         new_costs[new_act] = em.Int(0)
-                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+                new_problem.add_quality_metric(
+                    MinimizeActionCosts(new_costs, environment=new_problem.environment)
+                )
             elif isinstance(qm, Oversubscription):
-                new_oversubscription = {}
+                new_oversubscription: Dict[BoolExpression, Union[Fraction, int]] = {}
                 for g, v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(
                         dnf, new_problem, new_to_old, new_fluents, [g]
                     )
                     new_oversubscription[new_goal] = v
-                new_problem.add_quality_metric(Oversubscription(new_oversubscription))
+                new_problem.add_quality_metric(
+                    Oversubscription(
+                        new_oversubscription, environment=new_problem.environment
+                    )
+                )
             elif isinstance(qm, TemporalOversubscription):
-                new_temporal_oversubscription = {}
+                new_temporal_oversubscription: Dict[
+                    Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
+                    Union[Fraction, int],
+                ] = {}
                 for (t, g), v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(
                         dnf, new_problem, new_to_old, new_fluents, [g]
                     )
                     new_temporal_oversubscription[(t, new_goal)] = v
                 new_problem.add_quality_metric(
-                    TemporalOversubscription(new_temporal_oversubscription)
+                    TemporalOversubscription(
+                        new_temporal_oversubscription,
+                        environment=new_problem.environment,
+                    )
                 )
             else:
                 new_problem.add_quality_metric(qm)
