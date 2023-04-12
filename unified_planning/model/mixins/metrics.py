@@ -55,7 +55,9 @@ class MetricsMixin:
                     new_actions.action(a.name): c for a, c in m.costs.items()
                 }
                 cloned.append(
-                    up.model.metrics.MinimizeActionCosts(costs, environment=other._env)
+                    up.model.metrics.MinimizeActionCosts(
+                        costs, default=m.default, environment=other._env
+                    )
                 )
             else:
                 cloned.append(m)
