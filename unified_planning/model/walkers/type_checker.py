@@ -22,7 +22,8 @@ from unified_planning.model.types import BOOL, TIME, _IntType, _RealType
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError
-from typing import List, Optional
+from typing import List, Optional, cast
+import math
 
 
 class TypeChecker(walkers.dag.DagWalker):
@@ -230,7 +231,6 @@ class TypeChecker(walkers.dag.DagWalker):
             assert upper is None or isinstance(upper, Fraction)
             return self.environment.type_manager.RealType(lower, upper)
         else:
-            print(lower)
             assert lower is None or isinstance(lower, int)
             assert upper is None or isinstance(upper, int)
             return self.environment.type_manager.IntType(lower, upper)
@@ -285,13 +285,13 @@ class TypeChecker(walkers.dag.DagWalker):
             else:
                 lower = min(lower * l, lower * u, upper * l, upper * u)
                 upper = max(lower * l, lower * u, upper * l, upper * u)
-        if (
-            lower == -float("inf") or lower != lower
-        ):  # lower != lower is True only if lower is NaN
+        if lower == -float("inf") or (
+            lower is not None and math.isnan(cast(float, lower))
+        ):
             lower = None
-        if (
-            upper == float("inf") or upper != upper
-        ):  # upper != upper is True only if upper is NaN
+        if upper == float("inf") or (
+            upper is not None and math.isnan(cast(float, upper))
+        ):
             upper = None
         if has_real:
             return self.environment.type_manager.RealType(lower, upper)
