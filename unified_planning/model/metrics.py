@@ -46,27 +46,27 @@ class MinimizeActionCosts(PlanQualityMetric):
 
     def __init__(
         self,
-        costs: Dict["up.model.Action", Optional["up.model.Expression"]],
+        costs: Dict["up.model.Action", "up.model.Expression"],
         default: Optional["up.model.Expression"] = None,
         environment: Optional[Environment] = None,
     ):
         PlanQualityMetric.__init__(self, environment)
         em = self._env.expression_manager
-        self._costs: Dict["up.model.Action", Optional["up.model.FNode"]] = {}
+        self._costs: Dict["up.model.Action", "up.model.FNode"] = {}
         for action, cost in costs.items():
             cost_exp: Optional["up.model.FNode"] = None
-            if cost is not None:
-                cost_exp = em.auto_promote(cost)[0]
-                cost_type = cost_exp.type
-                if not cost_type.is_int_type() and not cost_type.is_real_type():
-                    raise UPProblemDefinitionError(
-                        "The costs of a MinimizeActionCosts must be numeric.",
-                        f"{cost_type} is neither IntType or RealType.",
-                    )
-                if cost_exp.environment != self._env:
-                    raise UPProblemDefinitionError(
-                        f"The cost expression {cost_exp} and the metric don't have the same environment"
-                    )
+            assert cost is not None, "Typing not respected"
+            (cost_exp,) = em.auto_promote(cost)
+            cost_type = cost_exp.type
+            if not cost_type.is_int_type() and not cost_type.is_real_type():
+                raise UPProblemDefinitionError(
+                    "The costs of a MinimizeActionCosts must be numeric.",
+                    f"{cost_type} is neither IntType or RealType.",
+                )
+            if cost_exp.environment != self._env:
+                raise UPProblemDefinitionError(
+                    f"The cost expression {cost_exp} and the metric don't have the same environment"
+                )
             if action.environment != self._env:
                 raise UPProblemDefinitionError(
                     f"The action {action.name} and the metric don't have the same environment"
@@ -87,7 +87,9 @@ class MinimizeActionCosts(PlanQualityMetric):
                 )
 
     def __repr__(self):
-        costs = {a.name: c for a, c in self._costs.items()}
+        costs: Dict[str, Optional["up.model.fnode.FNode"]] = {
+            a.name: c for a, c in self._costs.items()
+        }
         costs["default"] = self._default
         return f"minimize actions-cost: {costs}"
 
@@ -102,7 +104,7 @@ class MinimizeActionCosts(PlanQualityMetric):
         return hash(self.__class__.__name__)
 
     @property
-    def costs(self) -> Dict["up.model.Action", Optional["up.model.FNode"]]:
+    def costs(self) -> Dict["up.model.Action", "up.model.FNode"]:
         return self._costs
 
     @property

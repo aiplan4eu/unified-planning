@@ -227,10 +227,11 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if isinstance(qm, MinimizeActionCosts):
-                new_costs: Dict["up.model.Action", Optional["up.model.Expression"]] = {
-                    new_act: qm.get_action_cost(old_act)
-                    for new_act, old_act in new_to_old.items()
-                }
+                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
+                for new_act, old_act in new_to_old.items():
+                    new_cost = qm.get_action_cost(old_act)
+                    if new_cost is not None:
+                        new_costs[new_act] = new_cost
                 new_problem.add_quality_metric(
                     MinimizeActionCosts(new_costs, environment=new_problem.environment)
                 )

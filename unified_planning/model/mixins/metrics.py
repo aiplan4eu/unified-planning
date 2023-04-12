@@ -51,7 +51,7 @@ class MetricsMixin:
         for m in self._metrics:
             if isinstance(m, up.model.metrics.MinimizeActionCosts):
                 assert new_actions is not None
-                costs: Dict["up.model.Action", Optional["up.model.Expression"]] = {
+                costs: Dict["up.model.Action", "up.model.Expression"] = {
                     new_actions.action(a.name): c for a, c in m.costs.items()
                 }
                 cloned.append(

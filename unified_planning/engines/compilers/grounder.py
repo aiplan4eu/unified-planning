@@ -327,16 +327,14 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         for qm in problem.quality_metrics:
             if isinstance(qm, MinimizeActionCosts):
                 simplifier = grounder_helper.simplifier
-                new_costs: Dict["up.model.Action", Optional["up.model.Expression"]] = {}
+                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_action, (old_action, params) in trace_back_map.items():
                     subs = cast(
                         Dict[Expression, Expression],
                         dict(zip(old_action.parameters, params)),
                     )
                     old_cost = qm.get_action_cost(old_action)
-                    if old_cost is None:
-                        new_costs[new_action] = None
-                    else:
+                    if old_cost is not None:
                         new_costs[new_action] = simplifier.simplify(
                             old_cost.substitute(subs)
                         )

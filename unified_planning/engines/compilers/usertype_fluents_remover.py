@@ -281,12 +281,12 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     )
                 )
             elif isinstance(qm, MinimizeActionCosts):
-                new_costs: Dict["up.model.Action", Optional["up.model.Expression"]] = {}
+                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_act, old_act in new_to_old.items():
                     cost = qm.get_action_cost(old_act)
                     if cost is not None:
                         cost = utf_remover.remove_usertype_fluents_from_condition(cost)
-                    new_costs[new_act] = cost
+                        new_costs[new_act] = cost
                 new_problem.add_quality_metric(
                     MinimizeActionCosts(new_costs, environment=new_problem.environment)
                 )
