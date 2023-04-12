@@ -230,6 +230,7 @@ class TypeChecker(walkers.dag.DagWalker):
             assert upper is None or isinstance(upper, Fraction)
             return self.environment.type_manager.RealType(lower, upper)
         else:
+            print(lower)
             assert lower is None or isinstance(lower, int)
             assert upper is None or isinstance(upper, int)
             return self.environment.type_manager.IntType(lower, upper)
@@ -284,9 +285,13 @@ class TypeChecker(walkers.dag.DagWalker):
             else:
                 lower = min(lower * l, lower * u, upper * l, upper * u)
                 upper = max(lower * l, lower * u, upper * l, upper * u)
-        if lower == -float("inf"):
+        if (
+            lower == -float("inf") or lower != lower
+        ):  # lower != lower is True only if lower is NaN
             lower = None
-        if upper == float("inf"):
+        if (
+            upper == float("inf") or upper != upper
+        ):  # upper != upper is True only if upper is NaN
             upper = None
         if has_real:
             return self.environment.type_manager.RealType(lower, upper)
@@ -295,15 +300,12 @@ class TypeChecker(walkers.dag.DagWalker):
 
     def walk_div(self, expression, args):
         assert len(args) == 2
-        has_real = False
         to_skip = False
         lower = None
         upper = None
         for x in args:
             if x is None or not (x.is_int_type() or x.is_real_type()):
                 return None
-            if x.is_real_type():
-                has_real = True
             if x.lower_bound is None and x.upper_bound is None:
                 to_skip = True
         left = args[0]
@@ -320,10 +322,11 @@ class TypeChecker(walkers.dag.DagWalker):
             lower = None
         if upper == float("inf"):
             upper = None
-        if has_real:
-            return self.environment.type_manager.RealType(lower, upper)
-        else:
-            return self.environment.type_manager.IntType(lower, upper)
+        if lower is not None:
+            lower = Fraction(lower)
+        if upper is not None:
+            upper = Fraction(upper)
+        return self.environment.type_manager.RealType(lower, upper)
 
     @walkers.handles(OperatorKind.LE, OperatorKind.LT)
     def walk_math_relation(self, expression, args):

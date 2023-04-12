@@ -28,6 +28,7 @@ from unified_planning.model import (
     Effect,
     Expression,
     BoolExpression,
+    NumericConstant,
     SimulatedEffect,
     Parameter,
     DurationInterval,
@@ -424,20 +425,26 @@ def add_invariant_condition_apply_function_to_problem_expressions(
                 function(qm.expression), environment=new_problem.environment
             )
         elif isinstance(qm, Oversubscription):
-            new_goals: Dict[BoolExpression, Union[Fraction, int]] = {}
+            new_goals: Dict[BoolExpression, NumericConstant] = {}
             for goal, gain in qm.goals.items():
                 new_goal = function(em.And(goal, condition).simplify())
-                new_goals[new_goal] = new_goals.get(new_goal, 0) + gain
+                new_goals[new_goal] = (
+                    cast(Union[int, Fraction], new_goals.get(new_goal, 0)) + gain
+                )
             new_qm = Oversubscription(new_goals, environment=new_problem.environment)
         elif isinstance(qm, TemporalOversubscription):
             new_temporal_goals: Dict[
                 Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
-                Union[Fraction, int],
+                NumericConstant,
             ] = {}
             for (interval, goal), gain in qm.goals.items():
                 new_goal = function(em.And(goal, condition).simplify())
                 new_temporal_goals[(interval, new_goal)] = (
-                    new_temporal_goals.get((interval, new_goal), 0) + gain
+                    cast(
+                        Union[int, Fraction],
+                        new_temporal_goals.get((interval, new_goal), 0),
+                    )
+                    + gain
                 )
             new_qm = TemporalOversubscription(
                 new_temporal_goals, environment=new_problem.environment

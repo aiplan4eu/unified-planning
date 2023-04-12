@@ -1,4 +1,3 @@
-from fractions import Fraction
 from typing import Optional, List, OrderedDict, Union
 
 import unified_planning as up

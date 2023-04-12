@@ -22,22 +22,14 @@ are represented by the same object.
 import unified_planning as up
 import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
-from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
+from unified_planning.exceptions import (
+    UPTypeError,
+    UPExpressionDefinitionError,
+    UPValueError,
+)
 from fractions import Fraction
 from typing import Optional, Iterable, List, Union, Dict, Tuple, Iterator, Sequence
 
-Expression = Union[
-    "up.model.fnode.FNode",
-    "up.model.fluent.Fluent",
-    "up.model.object.Object",
-    "up.model.parameter.Parameter",
-    "up.model.variable.Variable",
-    "up.model.timing.Timing",
-    bool,
-    int,
-    float,
-    Fraction,
-]
 BoolExpression = Union[
     "up.model.fnode.FNode",
     "up.model.fluent.Fluent",
@@ -45,9 +37,29 @@ BoolExpression = Union[
     "up.model.variable.Variable",
     bool,
 ]
+NumericConstant = Union[int, float, Fraction, str]
+NumericExpression = Union["up.model.fnode.FNode", NumericConstant]
 ConstantExpression = Union[
-    "up.model.fnode.FNode", "up.model.object.Object", bool, int, float, Fraction
+    NumericExpression,
+    "up.model.object.Object",
+    bool,
 ]
+Expression = Union[
+    "up.model.timing.Timing",
+    BoolExpression,
+    ConstantExpression,
+]
+
+
+def uniform_numeric_constant(value: NumericConstant) -> Union[Fraction, int]:
+    """Utility method to handle NumericConstant polymorphism."""
+    try:
+        number = Fraction(value)
+    except ValueError:
+        raise UPValueError(f"Numeric constant {value} can't be converted to a number")
+    if number.denominator == 1:
+        return number.numerator
+    return number
 
 
 class ExpressionManager(object):
@@ -127,6 +139,17 @@ class ExpressionManager(object):
                 res.append(self.Real(Fraction(e)))
             elif isinstance(e, Fraction):
                 res.append(self.Real(e))
+            elif isinstance(e, str):
+                try:
+                    number = Fraction(e)
+                except ValueError:
+                    raise UPValueError(
+                        f"Given expression {e} can't be converted to a number."
+                    )
+                if number.denominator == 1:
+                    res.append(self.Int(number.numerator))
+                else:
+                    res.append(self.Real(number))
             else:
                 assert (
                     e.environment == self.environment

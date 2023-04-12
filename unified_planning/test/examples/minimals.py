@@ -321,7 +321,7 @@ def get_example_problems():
     # counter
     counter_1 = Fluent("counter_1", IntType(0, 10))
     counter_2 = Fluent("counter_2", IntType(0, 10))
-    fake_counter = Fluent("fake_counter", IntType(0, 10))
+    fake_counter = Fluent("fake_counter", RealType(0, 10))
     increase = InstantaneousAction("increase")
     increase.add_increase_effect(counter_1, 1)
     increase.add_effect(counter_2, Plus(counter_2, 1))

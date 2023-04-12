@@ -24,7 +24,6 @@ from unified_planning.exceptions import (
     UPTypeError,
     UPExpressionDefinitionError,
 )
-from fractions import Fraction
 from typing import Optional, List, Dict, Union, cast, Iterable
 from unified_planning.model.mixins import (
     ObjectsSetMixin,
@@ -194,13 +193,10 @@ class MultiAgentProblem(  # type: ignore[misc]
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: Union[
-            "up.model.fnode.FNode",
+            "up.model.expression.NumericExpression",
             "up.model.fluent.Fluent",
             "up.model.object.Object",
             bool,
-            int,
-            float,
-            Fraction,
         ],
     ):
         """
