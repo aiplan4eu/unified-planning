@@ -277,32 +277,44 @@ class TestUsertypeFLuentsRemover(TestCase):
         # d effect -> f1_b_ut1(b1(g1), g1) := g1
         expected_effects[d.name] = {
             Effect(
-                new_f1_b_ut1(And(b1(obj_1), new_g1(obj_1)), obj_1, obj_1),
+                new_f1_b_ut1(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), obj_1, obj_1
+                ),
                 TRUE(),
                 new_g1(obj_1),
             ),
             Effect(
-                new_f1_b_ut1(And(b1(obj_2), new_g1(obj_2)), obj_2, obj_1),
+                new_f1_b_ut1(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), obj_2, obj_1
+                ),
                 TRUE(),
                 And(new_g1(obj_2), new_g1(obj_1)),
             ),
             Effect(
-                new_f1_b_ut1(And(b1(obj_2), new_g1(obj_2)), obj_2, obj_1),
+                new_f1_b_ut1(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), obj_2, obj_1
+                ),
                 FALSE(),
                 And(new_g1(obj_2), Not(new_g1(obj_1))),
             ),
             Effect(
-                new_f1_b_ut1(And(b1(obj_2), new_g1(obj_2)), obj_2, obj_2),
+                new_f1_b_ut1(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), obj_2, obj_2
+                ),
                 TRUE(),
                 new_g1(obj_2),
             ),
             Effect(
-                new_f1_b_ut1(And(b1(obj_1), new_g1(obj_1)), obj_1, obj_2),
+                new_f1_b_ut1(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), obj_1, obj_2
+                ),
                 TRUE(),
                 And(new_g1(obj_1), new_g1(obj_2)),
             ),
             Effect(
-                new_f1_b_ut1(And(b1(obj_1), new_g1(obj_1)), obj_1, obj_2),
+                new_f1_b_ut1(
+                    Exists(And(b1(g1_var), new_g1(g1_var)), g1_var), obj_1, obj_2
+                ),
                 FALSE(),
                 And(new_g1(obj_1), Not(new_g1(obj_2))),
             ),
