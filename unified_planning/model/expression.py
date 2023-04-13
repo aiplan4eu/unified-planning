@@ -53,12 +53,15 @@ Expression = Union[
 
 def uniform_numeric_constant(value: NumericConstant) -> Union[Fraction, int]:
     """Utility method to handle NumericConstant polymorphism."""
+    if not isinstance(value, (float, Fraction)):
+        try:
+            return int(value)
+        except ValueError:
+            pass
     try:
         number = Fraction(value)
     except ValueError:
         raise UPValueError(f"Numeric constant {value} can't be converted to a number")
-    if number.denominator == 1:
-        return number.numerator
     return number
 
 
@@ -91,7 +94,7 @@ class ExpressionManager(object):
         are both valid, and they are converted into (a,b,c)
         """
         for a in args:
-            if isinstance(a, Iterable):
+            if isinstance(a, Iterable) and not isinstance(a, str):
                 for p in a:
                     yield p
             else:
@@ -133,22 +136,17 @@ class ExpressionManager(object):
                 res.append(self.TimingExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
-            elif isinstance(e, int):
-                res.append(self.Int(e))
-            elif isinstance(e, float):
-                res.append(self.Real(Fraction(e)))
-            elif isinstance(e, Fraction):
-                res.append(self.Real(e))
-            elif isinstance(e, str):
-                try:
-                    number = Fraction(e)
-                except ValueError:
-                    raise UPValueError(
-                        f"Given expression {e} can't be converted to a number."
-                    )
-                if number.denominator == 1:
-                    res.append(self.Int(number.numerator))
+            elif (
+                isinstance(e, int)
+                or isinstance(e, float)
+                or isinstance(e, Fraction)
+                or isinstance(e, str)
+            ):
+                number = uniform_numeric_constant(e)
+                if isinstance(number, int):
+                    res.append(self.Int(number))
                 else:
+                    assert isinstance(number, Fraction)
                     res.append(self.Real(number))
             else:
                 assert (
