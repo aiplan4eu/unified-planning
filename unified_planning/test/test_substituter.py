@@ -126,6 +126,20 @@ class TestSubstituter(TestCase):
         )
         self.assertEqual(exp1.substitute(subs), test_sub_exp1)
 
+        exp1 = Equals(f(v2), f(v1))
+        exp2 = And(Forall(exp1, v1), exp1)
+        exp3 = And(exp1, Forall(exp1, v1))
+
+        self.assertEqual(exp1.substitute(subs), Equals(f(s2), f(s1)))
+        self.assertEqual(
+            exp2.substitute(subs),
+            And(Forall(Equals(f(s2), f(v1)), v1), Equals(f(s2), f(s1))),
+        )
+        self.assertEqual(
+            exp3.substitute(subs),
+            And(Equals(f(s2), f(s1)), Forall(Equals(f(s2), f(v1)), v1)),
+        )
+
 
 if __name__ == "__main__":
     main()
