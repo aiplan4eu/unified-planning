@@ -45,7 +45,7 @@ class Substituter(IdentityDagWalker):
             # 1. We create a new substitution in which we remove the
             #    bound variables from the substitution map
             substitutions: Dict[FNode, FNode] = kwargs["subs"]
-            new_subs = {}
+            new_subs: Dict[Expression, Expression] = {}
             for k, v in substitutions.items():
                 # If at least one bound variable is in the cone of k,
                 # we do not consider this substitution in the body of

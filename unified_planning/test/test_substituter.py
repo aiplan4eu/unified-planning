@@ -105,7 +105,7 @@ class TestSubstituter(TestCase):
         exp1 = Forall(Equals(f(v1), f(v2) + f(v3)), v1, v2)
         exp2 = And(exp1, Forall(LT(f(v2), Plus(f(v3), f(v1))), v2, v3))
         s1, s2, s3 = (Variable(f"s{i}", UT) for i in range(1, 4))
-        subs = {
+        subs: Dict[Expression, Expression] = {
             v1: s1,
             v2: s2,
             v3: s3,
