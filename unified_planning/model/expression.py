@@ -22,22 +22,14 @@ are represented by the same object.
 import unified_planning as up
 import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
-from unified_planning.exceptions import UPTypeError, UPExpressionDefinitionError
+from unified_planning.exceptions import (
+    UPTypeError,
+    UPExpressionDefinitionError,
+    UPValueError,
+)
 from fractions import Fraction
 from typing import Optional, Iterable, List, Union, Dict, Tuple, Iterator, Sequence
 
-Expression = Union[
-    "up.model.fnode.FNode",
-    "up.model.fluent.Fluent",
-    "up.model.object.Object",
-    "up.model.parameter.Parameter",
-    "up.model.variable.Variable",
-    "up.model.timing.Timing",
-    bool,
-    int,
-    float,
-    Fraction,
-]
 BoolExpression = Union[
     "up.model.fnode.FNode",
     "up.model.fluent.Fluent",
@@ -45,9 +37,32 @@ BoolExpression = Union[
     "up.model.variable.Variable",
     bool,
 ]
+NumericConstant = Union[int, float, Fraction, str]
+NumericExpression = Union["up.model.fnode.FNode", NumericConstant]
 ConstantExpression = Union[
-    "up.model.fnode.FNode", "up.model.object.Object", bool, int, float, Fraction
+    NumericExpression,
+    "up.model.object.Object",
+    bool,
 ]
+Expression = Union[
+    "up.model.timing.Timing",
+    BoolExpression,
+    ConstantExpression,
+]
+
+
+def uniform_numeric_constant(value: NumericConstant) -> Union[Fraction, int]:
+    """Utility method to handle NumericConstant polymorphism."""
+    if not isinstance(value, (float, Fraction)):
+        try:
+            return int(value)
+        except ValueError:
+            pass
+    try:
+        number = Fraction(value)
+    except ValueError:
+        raise UPValueError(f"Numeric constant {value} can't be converted to a number")
+    return number
 
 
 class ExpressionManager(object):
@@ -79,7 +94,7 @@ class ExpressionManager(object):
         are both valid, and they are converted into (a,b,c)
         """
         for a in args:
-            if isinstance(a, Iterable):
+            if isinstance(a, Iterable) and not isinstance(a, str):
                 for p in a:
                     yield p
             else:
@@ -121,12 +136,18 @@ class ExpressionManager(object):
                 res.append(self.TimingExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
-            elif isinstance(e, int):
-                res.append(self.Int(e))
-            elif isinstance(e, float):
-                res.append(self.Real(Fraction(e)))
-            elif isinstance(e, Fraction):
-                res.append(self.Real(e))
+            elif (
+                isinstance(e, int)
+                or isinstance(e, float)
+                or isinstance(e, Fraction)
+                or isinstance(e, str)
+            ):
+                number = uniform_numeric_constant(e)
+                if isinstance(number, int):
+                    res.append(self.Int(number))
+                else:
+                    assert isinstance(number, Fraction)
+                    res.append(self.Real(number))
             else:
                 assert (
                     e.environment == self.environment

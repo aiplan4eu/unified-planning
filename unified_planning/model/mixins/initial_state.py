@@ -1,4 +1,3 @@
-from fractions import Fraction
 from typing import Union, Dict, Any
 
 import unified_planning as up
@@ -29,13 +28,10 @@ class InitialStateMixin:
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: Union[
-            "up.model.fnode.FNode",
+            "up.model.expression.NumericExpression",
             "up.model.fluent.Fluent",
             "up.model.object.Object",
             bool,
-            int,
-            float,
-            Fraction,
         ],
     ):
         """

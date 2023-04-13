@@ -17,6 +17,7 @@ import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
+from unified_planning.exceptions import UPTypeError
 
 
 class TestProblem(TestCase):
@@ -567,6 +568,16 @@ class TestProblem(TestCase):
                 problem, CompilationKind.GROUNDING
             ).problem
             self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
+
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), 2.0)
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), "2.0")
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), "4/2")
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), Div(4, 2))
+        problem.set_initial_value(distance(l2, l1), "20")
 
 
 if __name__ == "__main__":

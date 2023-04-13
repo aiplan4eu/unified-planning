@@ -27,6 +27,7 @@ from unified_planning.model import (
     Fluent,
     Parameter,
     BoolExpression,
+    NumericConstant,
     Action,
     InstantaneousAction,
     DurativeAction,
@@ -291,7 +292,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     MinimizeActionCosts(new_costs, environment=new_problem.environment)
                 )
             elif isinstance(qm, Oversubscription):
-                new_goals: Dict[BoolExpression, Union[Fraction, int]] = {
+                new_goals: Dict[BoolExpression, NumericConstant] = {
                     utf_remover.remove_usertype_fluents_from_condition(g): v
                     for g, v in qm.goals.items()
                 }
@@ -301,7 +302,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             elif isinstance(qm, TemporalOversubscription):
                 new_temporal_goals: Dict[
                     Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
-                    Union[Fraction, int],
+                    NumericConstant,
                 ] = {
                     (i, utf_remover.remove_usertype_fluents_from_condition(g)): v
                     for (i, g), v in qm.goals.items()

@@ -25,10 +25,8 @@ from unified_planning.exceptions import (
     UPTypeError,
     UPUnboundedVariablesError,
     UPProblemDefinitionError,
-    UPConflictingEffectsException,
     UPUsageError,
 )
-from fractions import Fraction
 from typing import Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
@@ -571,7 +569,7 @@ class DurativeAction(Action, TimedCondsEffs):
             )
         self._duration = duration
 
-    def set_fixed_duration(self, value: Union["up.model.fnode.FNode", int, Fraction]):
+    def set_fixed_duration(self, value: "up.model.expression.NumericExpression"):
         """
         Sets the `duration interval` for this `action` as the interval `[value, value]`.
 
@@ -582,8 +580,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_closed_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this `action` as the interval `[lower, upper]`.
@@ -600,8 +598,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_open_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this action as the interval `]lower, upper[`.
@@ -620,8 +618,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_left_open_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this `action` as the interval `]lower, upper]`.
@@ -640,8 +638,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_right_open_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this `action` as the interval `[lower, upper[`.

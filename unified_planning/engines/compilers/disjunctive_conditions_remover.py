@@ -25,6 +25,7 @@ from unified_planning.model import (
     FNode,
     Problem,
     BoolExpression,
+    NumericConstant,
     InstantaneousAction,
     DurativeAction,
     TimeInterval,
@@ -247,7 +248,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                     MinimizeActionCosts(new_costs, environment=new_problem.environment)
                 )
             elif isinstance(qm, Oversubscription):
-                new_oversubscription: Dict[BoolExpression, Union[Fraction, int]] = {}
+                new_oversubscription: Dict[BoolExpression, NumericConstant] = {}
                 for g, v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(
                         dnf, new_problem, new_to_old, new_fluents, [g]
@@ -261,7 +262,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             elif isinstance(qm, TemporalOversubscription):
                 new_temporal_oversubscription: Dict[
                     Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
-                    Union[Fraction, int],
+                    NumericConstant,
                 ] = {}
                 for (t, g), v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(

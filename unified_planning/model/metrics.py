@@ -16,8 +16,9 @@
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
 from fractions import Fraction
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, Optional, Union, Tuple
 
 
 class PlanQualityMetric:
@@ -240,13 +241,12 @@ class Oversubscription(PlanQualityMetric):
 
     def __init__(
         self,
-        goals: Dict["up.model.BoolExpression", Union[Fraction, int]],
+        goals: Dict["up.model.BoolExpression", NumericConstant],
         environment: Optional[Environment] = None,
     ):
         PlanQualityMetric.__init__(self, environment)
         em = self._env.expression_manager
-        goal_keys = []
-        gains: List[Union[Fraction, int]] = []
+        self._goals: Dict["up.model.fnode.FNode", Union[Fraction, int]] = {}
         for goal, gain in goals.items():
             (g_exp,) = em.auto_promote(goal)
             if not g_exp.type.is_bool_type():
@@ -257,12 +257,7 @@ class Oversubscription(PlanQualityMetric):
                 raise UPProblemDefinitionError(
                     f"goal {g_exp} does not have the same environment given to the metric."
                 )
-            goal_keys.append(g_exp)
-            if gain.denominator == 1:
-                gains.append(gain.numerator)
-            else:
-                gains.append(gain)
-        self._goals = dict(zip(goal_keys, gains))
+            self._goals[g_exp] = uniform_numeric_constant(gain)
 
     def __repr__(self):
         return f"oversubscription planning goals: {self.goals}"
@@ -289,14 +284,16 @@ class TemporalOversubscription(PlanQualityMetric):
         self,
         goals: Dict[
             Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
-            Union[Fraction, int],
+            NumericConstant,
         ],
         environment: Optional[Environment] = None,
     ):
         PlanQualityMetric.__init__(self, environment)
         em = self._env.expression_manager
-        goal_keys: List[Tuple["up.model.timing.TimeInterval", "up.model.FNode"]] = []
-        gains: List[Union[Fraction, int]] = []
+        self._goals: Dict[
+            Tuple["up.model.timing.TimeInterval", "up.model.FNode"],
+            Union[Fraction, int],
+        ] = {}
         for (interval, goal), gain in goals.items():
             (g_exp,) = em.auto_promote(goal)
             if not g_exp.type.is_bool_type():
@@ -307,12 +304,7 @@ class TemporalOversubscription(PlanQualityMetric):
                 raise UPProblemDefinitionError(
                     f"goal {g_exp} does not have the same environment given to the metric."
                 )
-            goal_keys.append((interval, g_exp))
-            if gain.denominator == 1:
-                gains.append(gain.numerator)
-            else:
-                gains.append(gain)
-        self._goals = dict(zip(goal_keys, gains))
+            self._goals[(interval, g_exp)] = uniform_numeric_constant(gain)
 
     def __repr__(self):
         return f"oversubscription planning timed goals: {self.goals}"

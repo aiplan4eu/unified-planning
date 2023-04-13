@@ -1,5 +1,4 @@
-from fractions import Fraction
-from typing import Optional, Union
+from typing import Optional
 
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPProblemDefinitionError
@@ -8,6 +7,7 @@ from unified_planning.model import (
     Timing,
     TimepointKind,
     Fluent,
+    NumericConstant,
 )
 import unified_planning as up
 from unified_planning.model.scheduling.chronicle import Chronicle
@@ -43,7 +43,7 @@ class Activity(Chronicle):
         """Returns the `activity` `duration interval`."""
         return self._duration
 
-    def set_fixed_duration(self, value: Union[int, Fraction, "up.model.fnode.FNode"]):
+    def set_fixed_duration(self, value: "up.model.expression.NumericExpression"):
         """
         Sets the `duration interval` for this `activity` as the interval `[value, value]`.
 
@@ -54,8 +54,8 @@ class Activity(Chronicle):
 
     def set_duration_bounds(
         self,
-        lower: Union[int, Fraction, "up.model.fnode.FNode"],
-        upper: Union[int, Fraction, "up.model.fnode.FNode"],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this `activity` as the interval `[lower, upper]`.
@@ -97,7 +97,7 @@ class Activity(Chronicle):
             )
         self._duration = duration
 
-    def uses(self, resource: Fluent, amount: Union[int, Fraction] = 1):
+    def uses(self, resource: Fluent, amount: NumericConstant = 1):
         """Asserts that the activity borrows a given amount (1 by default) of the resource.
         The borrowed resources will be reusable by another activity at the time epoch immediately
          succeeding the activity end.

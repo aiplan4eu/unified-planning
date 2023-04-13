@@ -15,16 +15,23 @@
 """This module defines all the types."""
 
 import unified_planning
-from fractions import Fraction
-from typing import Optional, Dict, Tuple, Union, cast
-from unified_planning.model.types import Type, _BoolType, _IntType, _RealType
-from unified_planning.model.types import _UserType, _TimeType, BOOL, TIME
+from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from unified_planning.model.types import (
+    Type,
+    _IntType,
+    _RealType,
+    _UserType,
+    BOOL,
+    TIME,
+)
 from unified_planning.model.tamp.types import (
     _MovableType,
     _ConfigurationType,
     OccupancyMap,
 )
 from unified_planning.exceptions import UPTypeError
+from fractions import Fraction
+from typing import Optional, Dict, Tuple, Union, cast
 
 
 class TypeManager:
@@ -97,17 +104,21 @@ class TypeManager:
 
     def RealType(
         self,
-        lower_bound: Optional[Union[Fraction, int]] = None,
-        upper_bound: Optional[Union[Fraction, int]] = None,
+        lower_bound: Optional[NumericConstant] = None,
+        upper_bound: Optional[NumericConstant] = None,
     ) -> Type:
         """
         Returns the `real type` defined in this :class:`~unified_planning.Environment` with the given bounds.
         If the type already exists, it is returned, otherwise it is created and returned.
 
-        :param lower_bound: The Fraction or int used as this type's lower bound.
-        :param upper_bound: The Fraction or int used as this type's upper bound.
+        :param lower_bound: The number used as this type's lower bound.
+        :param upper_bound: The number used as this type's upper bound.
         :return: The retrieved or created `Type`.
         """
+        if lower_bound is not None:
+            lower_bound = uniform_numeric_constant(lower_bound)
+        if upper_bound is not None:
+            upper_bound = uniform_numeric_constant(upper_bound)
         if isinstance(lower_bound, int):
             lower_bound = Fraction(lower_bound)
         if isinstance(upper_bound, int):

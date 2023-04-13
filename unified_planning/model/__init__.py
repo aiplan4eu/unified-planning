@@ -24,6 +24,8 @@ from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
     BoolExpression,
     Expression,
+    NumericConstant,
+    NumericExpression,
     ExpressionManager,
 )
 from unified_planning.model.fnode import FNode
@@ -86,6 +88,8 @@ __all__ = [
     "EffectKind",
     "BoolExpression",
     "Expression",
+    "NumericConstant",
+    "NumericExpression",
     "ExpressionManager",
     "FNode",
     "Fluent",

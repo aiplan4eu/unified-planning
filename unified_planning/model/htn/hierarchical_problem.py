@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-from fractions import Fraction
 from typing import Optional, List, Union, Dict
 from warnings import warn
 
 import unified_planning as up
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task
 from unified_planning.model.htn.task_network import TaskNetwork, AbstractTaskNetwork
@@ -32,14 +32,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         *,
         initial_defaults: Dict[
             "up.model.types.Type",
-            Union[
-                "up.model.fnode.FNode",
-                "up.model.object.Object",
-                bool,
-                int,
-                float,
-                Fraction,
-            ],
+            ConstantExpression,
         ] = {},
     ):
         super().__init__(

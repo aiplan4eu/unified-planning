@@ -16,6 +16,7 @@
 
 from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
+from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
 from enum import Enum, auto
 from fractions import Fraction
 from typing import Union, Optional
@@ -107,9 +108,9 @@ class Timing:
     A `GLOBAL_START Timepoint` with a `delay` of `5` means `5` units of time after the start of the `Plan`.
     """
 
-    def __init__(self, delay: Union[int, Fraction], timepoint: Timepoint):
+    def __init__(self, delay: NumericConstant, timepoint: Timepoint):
         self._timepoint = timepoint
-        self._delay = delay
+        self._delay = uniform_numeric_constant(delay)
 
     def __repr__(self):
         if self._delay == 0:
@@ -164,9 +165,7 @@ class Timing:
         return not self.is_from_start()
 
 
-def StartTiming(
-    delay: Union[int, Fraction] = 0, container: Optional[str] = None
-) -> Timing:
+def StartTiming(delay: NumericConstant = 0, container: Optional[str] = None) -> Timing:
     """
     Returns the start timing of an :class:`~unified_planning.model.Action`.
     Created with a delay > 0 represents "delay" time
@@ -201,7 +200,7 @@ def EndTiming(container: Optional[str] = None) -> Timing:
     return Timing(delay=0, timepoint=Timepoint(TimepointKind.END, container=container))
 
 
-def GlobalStartTiming(delay: Union[int, Fraction] = 0):
+def GlobalStartTiming(delay: NumericConstant = 0):
     """
     Represents the absolute `Timing`.
     Created with a delay > 0 represents `delay` time
