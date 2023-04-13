@@ -140,6 +140,15 @@ class TestSubstituter(TestCase):
             And(Equals(f(s2), f(s1)), Forall(Equals(f(s2), f(v1)), v1)),
         )
 
+        b = Fluent("b", param=UT)
+        exp1 = And(b(v1), Forall(And(b(v1), b(v2)), v2))
+        subs = {b(v1): True}
+        test_sub_exp1 = Forall(b(v2), v2)
+        self.assertEqual(exp1.substitute(subs).simplify(), test_sub_exp1)
+        subs = {b(v2): True}
+        test_sub_exp1 = And(b(v1), Forall(And(b(v1), b(v2)), v2))
+        self.assertEqual(exp1.substitute(subs), test_sub_exp1)
+
 
 if __name__ == "__main__":
     main()
