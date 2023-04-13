@@ -98,6 +98,34 @@ class TestSubstituter(TestCase):
             e6 = Int(1)
             s.substitute(e6, subst)
 
+    def test_shadowing(self):
+        UT = UserType("UT")
+        v1, v2, v3 = (Variable(f"v{i}", UT) for i in range(1, 4))
+        f = Fluent("f", RealType(), var=UT)
+        exp1 = Forall(Equals(f(v1), f(v2) + f(v3)), v1, v2)
+        exp2 = And(exp1, Forall(LT(f(v2), Plus(f(v3), f(v1))), v2, v3))
+        s1, s2, s3 = (Variable(f"s{i}", UT) for i in range(1, 4))
+        subs = {
+            v1: s1,
+            v2: s2,
+            v3: s3,
+        }
+        # only v3 is changed with s3, because it's not bound to a quantifier
+        test_sub_exp1 = Forall(Equals(f(v1), f(v2) + f(s3)), v1, v2)
+        # in the right part, only v1 is changed with s1, because it's not bound to a quantifier
+        test_sub_exp2 = And(
+            test_sub_exp1, Forall(LT(f(v2), Plus(f(v3), f(s1))), v2, v3)
+        )
+        self.assertEqual(exp2.substitute(subs), test_sub_exp2)
+
+        # test nested
+        exp1 = Forall(And(f(v2) > f(v1), Exists(Equals(f(v1), f(v2) + f(v3)), v2)), v1)
+        # v2 is changed with s2 in the Forall, while in the Exists only v3 is changed with s3
+        test_sub_exp1 = Forall(
+            And(f(s2) > f(v1), Exists(Equals(f(v1), f(v2) + f(s3)), v2)), v1
+        )
+        self.assertEqual(exp1.substitute(subs), test_sub_exp1)
+
 
 if __name__ == "__main__":
     main()
