@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # type: ignore
+from abc import ABC
 from functools import partial
 from typing import Tuple, Union, Optional
 import fractions
