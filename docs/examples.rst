@@ -27,6 +27,7 @@ In particular we will go through the following steps:
 * go beyond plan generation showing how to validate a plan and how to ground a planning problem;
 * call multiple planners in parallel.
 
+
 Optimal Planning
 ----------------
 
@@ -42,6 +43,7 @@ Optimal Planning
 
 
 In this notebook we show how to define a problem with an Optimality metric and how to get a solver that gives the optimal solution regarding the given metric.
+
 
 Temporal Planning
 -----------------
@@ -61,6 +63,40 @@ In this notebook we show how to use the unified planning library to model tempor
 
 In particular we model the well-known MatchCellar problem and we call a planner to solve it.
 
+
+Simple Multi-Agent Planning Problem
+-----------------------------------
+
+
+.. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning-simple.ipynb
+   :alt: Open In GitHub
+
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/09-multiagent-planning-simple.ipynb
+   :alt: Open In Colab
+
+
+In this notebook shows how to use the unified planning library to model simple multi-agent problems and what heuristics the planner supports.
+
+
+Depot Multi-Agent Planning Problem
+----------------------------------
+
+
+.. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/10-multiagent-planning.ipynb
+   :alt: Open In GitHub
+
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/10-multiagent-planning.ipynb
+   :alt: Open In Colab
+
+In this notebook we show how to use the unified planning library to model multi-agent problems. In particular we model the well-known Depot problem and we call a planner to solve it.
+
+
 Simulated Effects
 -----------------
 
@@ -79,6 +115,7 @@ In this notebook we show the simulated effects usage in the unified planning lib
 
 In particular, we exploit the use of a simulated effects to model the battery consumption of a robot during a movement defining a function in Python code.
 
+
 Compilers
 ---------
 
@@ -94,6 +131,7 @@ Compilers
 
 
 In this notebook we show the usage of the operation mode "Compiler", explaining how to use a compiler and how to take a plan written for the compiled problem and create the equivalent plan for the original problem.
+
 
 Oversubscription Planning and MetaEngine Usage
 ----------------------------------------------
@@ -168,6 +206,7 @@ Planning Engine Integration
 
 In this notebook we create a new planning engine for the "OneshotPlanner" operation mode, we register the new planner in the UP library and we test it on a simple problem.
 
+
 PDDL I/O
 --------
 
@@ -184,6 +223,23 @@ PDDL I/O
 
 In this notebook we show how to parse a problem from PDDL in the unified_planning and how to write
 a unified_planning problem in PDDL.
+
+
+MA-PDDL Writer
+--------------
+
+
+.. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer-example.ipynb
+   :alt: Open In GitHub
+
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/02-mapddl-writer-example.ipynb
+   :alt: Open In Colab
+
+
+In this notebook we show how to write a unified_planning problem in MA-PDDL.
 
 .. toctree::
    :maxdepth: 2

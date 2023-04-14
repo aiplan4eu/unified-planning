@@ -367,6 +367,9 @@ jobs:
       - name: Install up-aries
         run: pip3 install up-aries
 
+      - name: Install up-fmap
+        run: pip3 install up-fmap
+
       - name: Install jupyter and ipython3
         run: sudo apt install jupyter; sudo apt install ipython3
 
