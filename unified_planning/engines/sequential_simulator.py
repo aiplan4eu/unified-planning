@@ -516,7 +516,8 @@ def evaluate_quality_metric(
         )
     se = StateEvaluator(simulator._problem)
     em = simulator._problem.environment.expression_manager
-    if isinstance(quality_metric, MinimizeActionCosts):
+    if quality_metric.is_minimize_action_costs():
+        assert isinstance(quality_metric, MinimizeActionCosts)
         action_cost = quality_metric.get_action_cost(action)
         if action_cost is None:
             raise UPUsageError(
@@ -567,7 +568,7 @@ def evaluate_quality_metric_in_initial_state(
     se = StateEvaluator(simulator._problem)
     em = simulator._problem.environment.expression_manager
     initial_state = simulator.get_initial_state()
-    if isinstance(quality_metric, MinimizeActionCosts):
+    if quality_metric.is_minimize_action_costs():
         return 0
     elif isinstance(quality_metric, MinimizeSequentialPlanLength):
         return 0

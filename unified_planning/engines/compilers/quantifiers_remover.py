@@ -211,7 +211,8 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
             ng = expression_quantifier_remover.remove_quantifiers(g, problem)
             new_problem.add_goal(ng)
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
                 new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_act, old_act in new_to_old.items():
                     new_cost = qm.get_action_cost(old_act)

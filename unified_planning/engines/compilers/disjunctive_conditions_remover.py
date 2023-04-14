@@ -235,7 +235,8 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_to_old[a] = old_action
 
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
                 new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_act, old_act in new_to_old.items():
                     if old_act is not None:

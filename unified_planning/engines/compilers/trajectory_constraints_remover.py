@@ -208,7 +208,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
         new_problem.clear_quality_metrics()
         for qm in grounded_problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
                 new_costs = {
                     na: qm.get_action_cost(grounded_problem.action(na.name))
                     for na in new_problem.actions

@@ -37,6 +37,34 @@ class PlanQualityMetric:
     def environment(self) -> Environment:
         return self._env
 
+    @staticmethod
+    def is_minimize_action_costs():
+        return False
+
+    @staticmethod
+    def is_minimize_sequential_plan_length():
+        return False
+
+    @staticmethod
+    def is_minimize_makespan():
+        return False
+
+    @staticmethod
+    def is_minimize_expression_on_final_state():
+        return False
+
+    @staticmethod
+    def is_maximize_expression_on_final_state():
+        return False
+
+    @staticmethod
+    def is_oversubscription():
+        return False
+
+    @staticmethod
+    def is_temporal_oversubscription():
+        return False
+
 
 class MinimizeActionCosts(PlanQualityMetric):
     """
@@ -124,6 +152,10 @@ class MinimizeActionCosts(PlanQualityMetric):
         """
         return self._costs.get(action, self._default)
 
+    @staticmethod
+    def is_minimize_action_costs():
+        return True
+
 
 class MinimizeSequentialPlanLength(PlanQualityMetric):
     """This metric means that the number of :func:`actions <unified_planning.plans.SequentialPlan.actions>` in the resulting :class:`~unified_planning.plans.SequentialPlan` must be minimized."""
@@ -136,6 +168,10 @@ class MinimizeSequentialPlanLength(PlanQualityMetric):
 
     def __hash__(self):
         return hash(self.__class__.__name__)
+
+    @staticmethod
+    def is_minimize_sequential_plan_length():
+        return True
 
 
 class MinimizeMakespan(PlanQualityMetric):
@@ -152,6 +188,10 @@ class MinimizeMakespan(PlanQualityMetric):
 
     def __hash__(self):
         return hash(self.__class__.__name__)
+
+    @staticmethod
+    def is_minimize_makespan():
+        return True
 
 
 class MinimizeExpressionOnFinalState(PlanQualityMetric):
@@ -192,6 +232,10 @@ class MinimizeExpressionOnFinalState(PlanQualityMetric):
     def __hash__(self):
         return hash(self.__class__.__name__)
 
+    @staticmethod
+    def is_minimize_expression_on_final_state():
+        return True
+
 
 class MaximizeExpressionOnFinalState(PlanQualityMetric):
     """
@@ -230,6 +274,10 @@ class MaximizeExpressionOnFinalState(PlanQualityMetric):
 
     def __hash__(self):
         return hash(self.__class__.__name__)
+
+    @staticmethod
+    def is_maximize_expression_on_final_state():
+        return True
 
 
 class Oversubscription(PlanQualityMetric):
@@ -271,6 +319,10 @@ class Oversubscription(PlanQualityMetric):
     @property
     def goals(self) -> Dict["up.model.fnode.FNode", Union[Fraction, int]]:
         return self._goals
+
+    @staticmethod
+    def is_oversubscription():
+        return True
 
 
 class TemporalOversubscription(PlanQualityMetric):
@@ -322,3 +374,7 @@ class TemporalOversubscription(PlanQualityMetric):
         Tuple["up.model.timing.TimeInterval", "up.model.FNode"], Union[Fraction, int]
     ]:
         return self._goals
+
+    @staticmethod
+    def is_temporal_oversubscription():
+        return True
