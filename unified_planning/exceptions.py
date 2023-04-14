@@ -13,10 +13,10 @@
 # limitations under the License.
 #
 """This module contains all custom exceptions."""
-from abc import ABCMeta
+from abc import ABC
 
 
-class UPException(Exception, metaclass=ABCMeta):
+class UPException(Exception, ABC):
     """Base class for all custom exceptions of the unified_planning (UP) library."""
 
     pass

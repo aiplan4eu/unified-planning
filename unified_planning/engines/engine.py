@@ -52,7 +52,7 @@ class EngineMeta(ABCMeta):
         return obj
 
 
-class Engine(ABC, metaclass=EngineMeta):
+class Engine(metaclass=EngineMeta):
     """
     Represents the engine interface that must be implemented.
 
