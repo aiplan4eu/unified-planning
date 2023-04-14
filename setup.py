@@ -18,7 +18,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.10",
-    install_requires=["pyparsing", "networkx", "ConfigSpace", "pddl"],
+    install_requires=["pyparsing", "networkx", "ConfigSpace", "pddl", "pysmt"],
     extras_require={
         "dev": ["tarski[arithmetic]", "pytest", "pytest-cov", "mypy"],
         "grpc": ["grpcio", "grpcio-tools", "grpc-stubs"],
