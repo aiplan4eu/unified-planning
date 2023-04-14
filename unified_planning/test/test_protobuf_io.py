@@ -325,7 +325,7 @@ class TestProtobufIO(TestCase):
         global_end_symbol = "up:global_end"
         int_delay = 5
         frac_delay = Fraction(1, 5)
-        act = Action("move")
+        act = InstantaneousAction("move")
 
         # [ ] Delay
         # [ ] Container

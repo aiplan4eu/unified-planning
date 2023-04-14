@@ -15,6 +15,7 @@
 
 from warnings import warn
 import unified_planning as up
+from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import IO, Optional, Callable
 
@@ -24,7 +25,7 @@ class OptimalityGuarantee(Enum):
     SOLVED_OPTIMALLY = auto()
 
 
-class OneshotPlannerMixin:
+class OneshotPlannerMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `OneshotPlanner`."""
 
     def __init__(self):
@@ -78,6 +79,7 @@ class OneshotPlannerMixin:
             raise up.exceptions.UPUsageError(msg)
         return self._solve(problem, heuristic, timeout, output_stream)
 
+    @abstractmethod
     def _solve(
         self,
         problem: "up.model.AbstractProblem",

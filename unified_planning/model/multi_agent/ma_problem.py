@@ -400,3 +400,15 @@ class MultiAgentProblem(  # type: ignore[misc]
             self._kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
+
+    def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
+        """
+        Normalizes the given `Plan`, that is potentially the result of another
+        `Problem`, updating the `Object` references in the `Plan` with the ones of
+        this `Problem` which are syntactically equal.
+
+        :param plan: The `Plan` that must be normalized.
+        :return: A `Plan` syntactically valid for this `Problem`.
+        """
+        raise NotImplementedError
+        # TODO

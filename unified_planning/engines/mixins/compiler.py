@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
-from warnings import warn
 import unified_planning as up
 from unified_planning.model import ProblemKind
+from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Optional
+from warnings import warn
 
 
 class CompilationKind(Enum):
@@ -33,7 +34,7 @@ class CompilationKind(Enum):
     BOUNDED_TYPES_REMOVING = auto()
 
 
-class CompilerMixin:
+class CompilerMixin(ABC):
     """Generic class for a compiler defining it's interface."""
 
     def __init__(self, default: Optional[CompilationKind] = None):
@@ -111,6 +112,7 @@ class CompilerMixin:
         return True
 
     @staticmethod
+    @abstractmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         """
         :param compilation_kind: The tested `CompilationKind`.
@@ -120,6 +122,7 @@ class CompilerMixin:
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
@@ -133,6 +136,7 @@ class CompilerMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _compile(
         self, problem: "up.model.AbstractProblem", compilation_kind: CompilationKind
     ) -> "up.engines.results.CompilerResult":

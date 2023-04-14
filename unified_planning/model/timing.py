@@ -14,6 +14,7 @@
 #
 
 
+from abc import ABCMeta
 from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
@@ -298,7 +299,7 @@ class Interval:
         return self._is_right_open
 
 
-class Duration:
+class Duration(metaclass=ABCMeta):
     pass
 
 

@@ -229,3 +229,15 @@ class SchedulingProblem(  # type: ignore[misc]
         if isinstance(timing, int):
             timing = GlobalStartTiming(timing)
         self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
+
+    def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
+        """
+        Normalizes the given `Plan`, that is potentially the result of another
+        `Problem`, updating the `Object` references in the `Plan` with the ones of
+        this `Problem` which are syntactically equal.
+
+        :param plan: The `Plan` that must be normalized.
+        :return: A `Plan` syntactically valid for this `Problem`.
+        """
+        raise NotImplementedError
+        # TODO

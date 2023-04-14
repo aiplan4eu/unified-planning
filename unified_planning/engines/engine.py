@@ -14,9 +14,10 @@
 #
 """This module defines the engine interface."""
 
-from enum import Enum
 from unified_planning.model import ProblemKind
 from unified_planning.engines.credits import Credits
+from abc import ABCMeta, abstractmethod, ABC
+from enum import Enum
 from typing import Optional
 
 
@@ -35,9 +36,9 @@ class OperationMode(Enum):
     PLAN_REPAIRER = "plan_repairer"
 
 
-class EngineMeta(type):
+class EngineMeta(ABCMeta):
     def __new__(cls, name, bases, dct):
-        obj = type.__new__(cls, name, bases, dct)
+        obj = super().__new__(cls, name, bases, dct)
         for base in bases:
             for om in OperationMode:
                 if (
@@ -51,7 +52,7 @@ class EngineMeta(type):
         return obj
 
 
-class Engine(metaclass=EngineMeta):
+class Engine(ABC, metaclass=EngineMeta):
     """
     Represents the engine interface that must be implemented.
 
@@ -64,6 +65,7 @@ class Engine(metaclass=EngineMeta):
         self._error_on_failed_checks = True
 
     @property
+    @abstractmethod
     def name(self) -> str:
         """Returns the engine name."""
         raise NotImplementedError
@@ -117,12 +119,14 @@ class Engine(metaclass=EngineMeta):
         self._error_on_failed_checks = new_value
 
     @staticmethod
+    @abstractmethod
     def supported_kind() -> ProblemKind:
         """
         Returns the `ProblemKind` supported by this `Engine`."""
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def supports(problem_kind: "ProblemKind") -> bool:
         """
         If an unsupported `Problem` is given to this `Engine`, an exception is raised, unless the

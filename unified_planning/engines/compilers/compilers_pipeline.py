@@ -94,6 +94,16 @@ class CompilersPipeline(engines.engine.Engine, CompilerMixin):
             self.name,
         )
 
+    def _compile(
+        self,
+        problem: "up.model.AbstractProblem",
+        compilation_kind: "up.engines.CompilationKind",
+    ) -> "up.engines.results.CompilerResult":
+        """Method called by :func:`~unified_planning.engines.mixins.CompilerMixin.compile` to get the returned :class:`~unified_planning.engines.CompilerResult`."""
+        raise UPUsageError(
+            "The CompilersPipeline does not implement the _compile method but overrides the compile method directly."
+        )
+
 
 def map_back_action_instance(
     action: ActionInstance,

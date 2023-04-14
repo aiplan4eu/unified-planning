@@ -15,12 +15,13 @@
 """This module defines all the types."""
 
 import unified_planning
-from fractions import Fraction
 from typing import Iterator, Optional, cast
 from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
+from abc import ABCMeta
+from fractions import Fraction
 
 
-class Type:
+class Type(metaclass=ABCMeta):
     """Base class for representing a `Type`."""
 
     def is_bool_type(self) -> bool:

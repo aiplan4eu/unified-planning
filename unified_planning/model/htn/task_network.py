@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from abc import ABCMeta
 from collections import OrderedDict
 from typing import List, Union, Optional, Tuple
 
@@ -36,7 +37,7 @@ from unified_planning.model.timing import Timepoint
 from unified_planning.model.walkers import OperatorsExtractor
 
 
-class AbstractTaskNetwork:
+class AbstractTaskNetwork(metaclass=ABCMeta):
     """Core functionalities to represent task networks,
     either in a method o in an initial task network."""
 
