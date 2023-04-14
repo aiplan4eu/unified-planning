@@ -34,6 +34,7 @@ class OperationMode(Enum):
     SEQUENTIAL_SIMULATOR = "sequential_simulator"
     REPLANNER = "replanner"
     PLAN_REPAIRER = "plan_repairer"
+    ACTION_SELECTOR = "action_selector"
 
 
 class EngineMeta(ABCMeta):

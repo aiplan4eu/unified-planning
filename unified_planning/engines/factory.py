@@ -36,6 +36,7 @@ from unified_planning.engines.mixins.plan_repairer import PlanRepairerMixin
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
+from unified_planning.engines.mixins.action_selector import ActionSelectorMixin
 from unified_planning.engines.engine import OperationMode
 from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence, cast
 from pathlib import PurePath
@@ -659,14 +660,19 @@ class Factory:
                     msg = f"The problem has no quality metrics but the engine is required to be optimal!"
                     raise up.exceptions.UPUsageError(msg)
                 res = EngineClass(problem=problem, **params)
-            elif operation_mode == OperationMode.SEQUENTIAL_SIMULATOR:
+            elif (
+                operation_mode == OperationMode.SEQUENTIAL_SIMULATOR
+                or operation_mode == OperationMode.ACTION_SELECTOR
+            ):
                 assert problem is not None
                 res = EngineClass(
                     problem=problem,
                     error_on_failed_checks=error_failed_checks,
                     **params,
                 )
-                assert isinstance(res, SequentialSimulatorMixin)
+                assert isinstance(res, SequentialSimulatorMixin) or isinstance(
+                    res, ActionSelectorMixin
+                )
             elif operation_mode == OperationMode.COMPILER:
                 res = EngineClass(**params)
                 assert isinstance(res, CompilerMixin)
@@ -959,6 +965,30 @@ class Factory:
             problem_kind=problem_kind,
             plan_kind=plan_kind,
             optimality_guarantee=optimality_guarantee,
+        )
+
+    def ActionSelector(
+        self,
+        problem: "up.model.AbstractProblem",
+        *,
+        name: Optional[str] = None,
+        params: Optional[Dict[str, str]] = None,
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns an ActionSelector. There are two ways to call this method:
+        - using 'problem_kind' through the problem field.
+          e.g. ActionSelector(problem)
+        - using 'name' (the name of a specific action selector) and eventually some 'params'
+          (engine dependent options).
+          e.g. ActionSelector(problem, name='xxx')
+        """
+        return self._get_engine(
+            OperationMode.ACTION_SELECTOR,
+            name,
+            None,
+            params,
+            problem.kind,
+            problem=problem,
         )
 
     def PortfolioSelector(
