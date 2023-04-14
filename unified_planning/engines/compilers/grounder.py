@@ -28,7 +28,6 @@ from unified_planning.model import (
     Expression,
     FNode,
     MinimizeActionCosts,
-    Parameter,
 )
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.model.walkers import Simplifier

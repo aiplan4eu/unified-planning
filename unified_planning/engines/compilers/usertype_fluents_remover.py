@@ -281,7 +281,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         environment=new_problem.environment,
                     )
                 )
-            elif isinstance(qm, MinimizeActionCosts):
+            elif qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
                 new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_act, old_act in new_to_old.items():
                     cost = qm.get_action_cost(old_act)
@@ -591,7 +592,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         for tr in problem.trajectory_constraints:
             defined_names.update(tr.get_contained_names())
         for qm in problem._metrics:
-            if isinstance(qm, MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
                 for cost in qm.costs.values():
                     if cost is not None:
                         defined_names.update(cost.get_contained_names())

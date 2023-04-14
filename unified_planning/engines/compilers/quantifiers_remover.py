@@ -25,12 +25,15 @@ from unified_planning.model import (
     DurativeAction,
     Action,
     ProblemKind,
-    MinimizeActionCosts,
     Oversubscription,
     TemporalOversubscription,
 )
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
-from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+    replace_action,
+    updated_minimize_action_costs,
+)
 from typing import Dict, Optional
 from functools import partial
 
@@ -212,14 +215,10 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
             new_problem.add_goal(ng)
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():
-                assert isinstance(qm, MinimizeActionCosts)
-                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
-                for new_act, old_act in new_to_old.items():
-                    new_cost = qm.get_action_cost(old_act)
-                    if new_cost is not None:
-                        new_costs[new_act] = new_cost
                 new_problem.add_quality_metric(
-                    MinimizeActionCosts(new_costs, environment=new_problem.environment)
+                    updated_minimize_action_costs(
+                        qm, new_to_old, new_problem.environment
+                    )
                 )
             elif isinstance(qm, Oversubscription):
                 new_problem.add_quality_metric(

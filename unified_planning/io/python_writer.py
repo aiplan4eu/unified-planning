@@ -368,7 +368,8 @@ class PythonWriter:
                         f"goals[({_convert_interval(i)}, {converter.convert(goal)})] = {cost}\n"
                     )
             out.write("problem.add_quality_metric(")
-            if isinstance(qm, up.model.metrics.MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, up.model.metrics.MinimizeActionCosts)
                 out.write(f"up.model.metrics.MinimizeActionCosts(costs, {qm.default})")
             elif isinstance(qm, up.model.metrics.MinimizeSequentialPlanLength):
                 out.write("up.model.metrics.MinimizeSequentialPlanLength()")

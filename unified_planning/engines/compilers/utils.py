@@ -18,6 +18,7 @@
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
+from unified_planning.environment import Environment
 from unified_planning.model import (
     FNode,
     TimeInterval,
@@ -406,7 +407,8 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             new_problem.add_goal(arg)
 
     for qm in original_problem.quality_metrics:
-        if isinstance(qm, MinimizeActionCosts):
+        if qm.is_minimize_action_costs():
+            assert isinstance(qm, MinimizeActionCosts)
             new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
             for new_a, old_a in new_to_old.items():
                 cost = qm.get_action_cost(old_a)
@@ -468,3 +470,20 @@ def _apply_function_to_effect(
         function(effect.condition),
         effect.kind,
     )
+
+
+def updated_minimize_action_costs(
+    quality_metric: PlanQualityMetric,
+    new_to_old: Union[Dict[Action, Action], Dict[Action, Optional[Action]]],
+    environment: Environment,
+):
+    assert isinstance(quality_metric, MinimizeActionCosts)
+    new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
+    for new_act, old_act in new_to_old.items():
+        if old_act is not None:
+            new_cost = quality_metric.get_action_cost(old_act)
+            if new_cost is not None:
+                new_costs[new_act] = new_cost
+        else:
+            new_costs[new_act] = environment.expression_manager.Int(0)
+    return MinimizeActionCosts(new_costs, environment=environment)

@@ -515,7 +515,6 @@ def evaluate_quality_metric(
             "Currently this method is implemented only for classical and numeric problems."
         )
     se = StateEvaluator(simulator._problem)
-    em = simulator._problem.environment.expression_manager
     if quality_metric.is_minimize_action_costs():
         assert isinstance(quality_metric, MinimizeActionCosts)
         action_cost = quality_metric.get_action_cost(action)
