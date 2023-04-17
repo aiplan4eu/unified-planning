@@ -37,6 +37,7 @@ class StateEvaluator(QuantifierSimplifier):
     ) -> FNode:
         """
         Evaluates the given expression in the given `State`.
+
         :param expression: The expression that needs to be evaluated.
         :param state: The `State` where the expression needs to be evaluated.
         :param _variable_assignment: For internal use only. Parameter used to solve quantifiers.

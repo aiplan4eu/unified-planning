@@ -691,13 +691,13 @@ class Factory:
         """
         Returns a oneshot planner. There are three ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
-          e.g. OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})
+        e.g. OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})
         - using 'names' (list of specific planners name) and 'params' (list of
-          planners dependent options) to get a Parallel engine.
-          e.g. OneshotPlanner(names=['tamer', 'tamer'],
-                              params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
+        planners dependent options) to get a Parallel engine.
+        e.g. OneshotPlanner(names=['tamer', 'tamer'],
+        params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
         - using 'problem_kind' and 'optimality_guarantee'.
-          e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+        e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         if isinstance(optimality_guarantee, str):
             try:
@@ -726,9 +726,9 @@ class Factory:
         """
         Returns a anytime planner. There are two ways to call this method:
         - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
-          e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
+        e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
         - using 'problem_kind' and 'anytime_guarantee'.
-          e.g. AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)
+        e.g. AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)
 
         An AnytimePlanner is a planner that returns an iterator of solutions.
         Depending on the given anytime_guarantee parameter, every plan being generated is:
@@ -762,14 +762,14 @@ class Factory:
         """
         Returns a plan validator. There are three ways to call this method:
         - using 'name' (the name of a specific plan validator) and 'params'
-          (plan validator dependent options).
-          e.g. PlanValidator(name='tamer', params={'opt': 'val'})
+        (plan validator dependent options).
+        e.g. PlanValidator(name='tamer', params={'opt': 'val'})
         - using 'names' (list of specific plan validators name) and 'params' (list of
-          plan validators dependent options) to get a Parallel engine.
-          e.g. PlanValidator(names=['tamer', 'tamer'],
-                             params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
+        plan validators dependent options) to get a Parallel engine.
+        e.g. PlanValidator(names=['tamer', 'tamer'],
+        params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
         - using 'problem_kind' and 'plan_kind' parameters.
-          e.g. PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)
+        e.g. PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)
         """
         if isinstance(plan_kind, str):
             plan_kind = PlanKind[plan_kind]
@@ -797,20 +797,20 @@ class Factory:
 
         To get a Compiler there are two ways to call this method:
         - using 'name' (the name of a specific compiler) and 'params'
-          (compiler dependent options).
-          e.g. Compiler(name='tamer', params={'opt': 'val'})
+        (compiler dependent options).
+        e.g. Compiler(name='tamer', params={'opt': 'val'})
         - using 'problem_kind' and 'compilation_kind' parameters.
-          e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)
+        e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)
 
         To get a pipeline of Compilers there are two ways to call this method:
         - using 'names' (the names of the specific compilers), 'params'
-          (compilers dependent options) and 'compilation_kinds'.
-          e.g. Compiler(names=['up_quantifiers_remover', 'up_grounder'],
-                        params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
-                        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
+        (compilers dependent options) and 'compilation_kinds'.
+        e.g. Compiler(names=['up_quantifiers_remover', 'up_grounder'],
+        params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
+        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
         - using 'problem_kind' and 'compilation_kinds' parameters.
-          e.g. Compiler(problem_kind=problem.kind,
-                        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
+        e.g. Compiler(problem_kind=problem.kind,
+        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
         """
         if isinstance(compilation_kind, str):
             compilation_kind = CompilationKind[compilation_kind]
@@ -845,10 +845,10 @@ class Factory:
         """
         Returns a SequentialSimulator. There are two ways to call this method:
         - using 'problem_kind' through the problem field.
-          e.g. SequentialSimulator(problem)
+        e.g. SequentialSimulator(problem)
         - using 'name' (the name of a specific simulator) and eventually some 'params'
-          (simulator dependent options).
-          e.g. SequentialSimulator(problem, name='sequential_simulator')
+        (simulator dependent options).
+        e.g. SequentialSimulator(problem, name='sequential_simulator')
         """
         return self._get_engine(
             OperationMode.SEQUENTIAL_SIMULATOR,
@@ -870,10 +870,10 @@ class Factory:
         """
         Returns a Replanner. There are two ways to call this method:
         - using 'problem' (with its kind) and 'optimality_guarantee' parameters.
-          e.g. Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)
+        e.g. Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)
         - using 'name' (the name of a specific replanner) and 'params'
-          (replanner dependent options).
-          e.g. Replanner(problem, name='replanner[tamer]')
+        (replanner dependent options).
+        e.g. Replanner(problem, name='replanner[tamer]')
         """
         if isinstance(optimality_guarantee, str):
             try:
@@ -904,9 +904,9 @@ class Factory:
         """
         Returns a plan repairer. There are two ways to call this method:
         - using 'name' (the name of a plan repairer) and eventually 'params'.
-          e.g. PlanRepairer(name='xxx')
+        e.g. PlanRepairer(name='xxx')
         - using 'problem_kind', 'plan_kind' and 'optimality_guarantee'.
-          e.g. PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+        e.g. PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         if isinstance(plan_kind, str):
             plan_kind = PlanKind[plan_kind]
@@ -937,10 +937,10 @@ class Factory:
         """
         Returns a portfolio selector. There are two ways to call this method:
         - using 'name' (the name of a specific portfolio) and eventually 'params'
-            (portfolio dependent options).
-          e.g. PortfolioSelector(name='ibacop')
+        (portfolio dependent options).
+        e.g. PortfolioSelector(name='ibacop')
         - using 'problem_kind' and 'optimality_guarantee'.
-          e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+        e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
         """
         if isinstance(optimality_guarantee, str):
             try:

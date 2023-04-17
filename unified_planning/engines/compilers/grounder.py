@@ -147,12 +147,12 @@ class GrounderHelper:
         """
         Returns an `Iterator` over all the possible grounded `Actions` of the `Problem` given at construction time.
         Every resulting `Tuple` is made of 3 elements: `original_action`, `parameters`, `grounded_action` where:
-            - The `original_action` is the `Action` of the `Problem` that is grounded.
-            - The `parameters` is the `Tuple of expressions` used to ground the `original_action`.
-            - The `grounded_action` is the `Action` created by grounding the `original_action` with the given `parameters`;
-                the `grounded_action` can be `None` if the grounding of the `original_action` with the given parameters
-                creates an invalid or meaningless `Action` (invalid if it has conflicting `Effects`,
-                meaningless if it has no `effects` or contradicting `conditions`).
+        - The `original_action` is the `Action` of the `Problem` that is grounded.
+        - The `parameters` is the `Tuple of expressions` used to ground the `original_action`.
+        - The `grounded_action` is the `Action` created by grounding the `original_action` with the given `parameters`;
+        the `grounded_action` can be `None` if the grounding of the `original_action` with the given parameters
+        creates an invalid or meaningless `Action` (invalid if it has conflicting `Effects`,
+        meaningless if it has no `effects` or contradicting `conditions`).
         """
         for old_action in self._problem.actions:
             for grounded_params in self.get_possible_parameters(old_action):

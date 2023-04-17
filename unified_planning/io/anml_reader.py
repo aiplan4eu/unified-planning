@@ -86,10 +86,10 @@ class ANMLReader:
     The assumptions made in order for this Reader to work are the followings:
     1. statements containing the duration of an action are not mixed with other statements ( `duration == 3 and at(l_from);` ).
     2. the action duration can be set with:
-        - `duration == expression;`
-        - `duration := expression;`
-        - `duration CT expression and duration CT expression`, where CT are Compare Tokens, so `>`, `>=`, `<` and `<=`.
-        All the other ways to define the duration of an Action are not supported.
+    - `duration == expression;`
+    - `duration := expression;`
+    - `duration CT expression and duration CT expression`, where CT are Compare Tokens, so `>`, `>=`, `<` and `<=`.
+    All the other ways to define the duration of an Action are not supported.
     3. Statements containing both conditions and effects are not supported ( `(at(l_from) == true) := false);` or `(at(l_from) == true) and (at(l_from) := false);` ).
     4. Quantifier body does not support intervals, they can only be defined outside.
     5. Conditional effects are not supported inside an expression block.

@@ -89,8 +89,8 @@ class ExpressionManager(object):
         """
         Helper function to return an Iterator of arguments from args.
         This function is used to allow N-ary operators to express their arguments
-        both as a list of arguments or as a tuple of arguments: e.g.,
-           And([a,b,c]) and And(a,b,c)
+        both as a list of arguments or as a tuple of arguments:
+        e.g. And([a,b,c]) and And(a,b,c)
         are both valid, and they are converted into (a,b,c)
         """
         for a in args:
@@ -204,12 +204,12 @@ class ExpressionManager(object):
         """
         Returns a conjunction of terms.
         This function has polymorphic n-arguments:
-          - `And(a,b,c)`
-          - `And([a,b,c])`
+        - `And(a,b,c)`
+        - `And([a,b,c])`
         Restriction: Arguments must be `boolean`.
 
         :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
+            of it, like `a, b, c`.
         :return: The `AND` expression created.
         """
         tuple_args = tuple(self.auto_promote(*args))
@@ -227,12 +227,12 @@ class ExpressionManager(object):
         """
         Returns an disjunction of terms.
         This function has polymorphic n-arguments:
-          - `Or(a,b,c)`
-          - `Or([a,b,c])`
+        - `Or(a,b,c)`
+        - `Or([a,b,c])`
         Restriction: Arguments must be `boolean`
 
         :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
+            of it, like `a, b, c`.
         :return: The `OR` expression created.
         """
         tuple_args = tuple(self.auto_promote(*args))
@@ -249,12 +249,12 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """Returns an exclusive disjunction of terms in CNF form.
         This function has polimorphic n-arguments:
-          - XOr(a,b,c)
-          - XOr([a,b,c])
+        - XOr(a,b,c)
+        - XOr([a,b,c])
         Restriction: Arguments must be boolean
 
         :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
+            of it, like `a, b, c`.
         :return: The exclusive disjunction in CNF form.
         """
         tuple_args = tuple(self.auto_promote(*args))
@@ -274,7 +274,8 @@ class ExpressionManager(object):
     def Not(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-                `not expression`
+            `not expression`
+
         Restriction: `expression` must be of `boolean type`
 
         :param expression: The `boolean` expression of which the negation must be created.
@@ -291,6 +292,7 @@ class ExpressionManager(object):
         """
         Creates an expression of the form:
             `left -> right`
+
         Restriction: `Left` and `Right` must be of `boolean type`
 
         :param left: The `boolean` expression acting as the premise of the `Implies`.
@@ -306,6 +308,7 @@ class ExpressionManager(object):
         """
         Creates an expression of the form:
             `left <-> right`
+
         Semantically, The expression is `True` only if `left` and `right` have the same value.
         Restriction: `Left` and `Right` must be of `boolean type`
 
@@ -322,8 +325,9 @@ class ExpressionManager(object):
         """
         Creates an expression of the form:
             `Exists (var[0]... var[n]) | expression`
+
         Restriction: expression must be of `boolean type` and
-                    vars must be of `Variable` type
+        vars must be of `Variable` type
 
         :param expression: The main expression of the `existential`. The expression should contain
             the given `variables`.
@@ -347,8 +351,9 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `Forall (var[0]... var[n]) | expression`
+
         Restriction: expression must be of `boolean type` and
-                    vars must be of `Variable` type
+        vars must be of `Variable` type
 
         :param expression: The main expression of the `universal` quantifier. The expression should contain
             the given `variables`.
@@ -370,6 +375,7 @@ class ExpressionManager(object):
     def Always(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `Always(a)`
+
         Restriction: expression must be of `boolean type` and with only one arg.
 
         :param expression: The `boolean` expression of the trajectory constraints.
@@ -381,6 +387,7 @@ class ExpressionManager(object):
     def Sometime(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `Sometime(a)`
+
         Restriction: expression must be of `boolean type` and with only one arg.
 
         :param expression: The `boolean` expression of the trajectory constraints.
@@ -392,6 +399,7 @@ class ExpressionManager(object):
     def AtMostOnce(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `At-Most-Once(a, b)`
+
         Restriction: expression must be of `boolean type` and with only two arg.
 
         :param expression: The `boolean` expression of the trajectory constraints.
@@ -405,6 +413,7 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `Sometime-Before(a, b)`
+
         Restriction: expression must be of `boolean type` and with only one args
 
         :param expression: The `boolean` expression of the trajectory constraints.
@@ -420,6 +429,7 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             `Sometime-After(a, b)`
+
         Restriction: expression must be of `boolean type` and with only two arg.
 
         :param expression: The `boolean` expression of the trajectory constraints.
@@ -572,7 +582,7 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-        `args[0] + ... + args[n]`
+            `args[0] + ... + args[n]`
 
         :param *args: Either an `Iterable` of expressions, like `[a, b, 3]`, or an unpacked version
             of it, like `a, b, 3`.
@@ -603,7 +613,7 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-        `args[0] * ... * args[n]`
+            `args[0] * ... * args[n]`
 
         :param *args: Either an `Iterable` of expressions, like `[a, b, 3]`, or an unpacked version
             of it, like `a, b, 3`.
@@ -620,7 +630,8 @@ class ExpressionManager(object):
 
     def Div(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left / right`.
+        Creates an expression of the form:
+            `left / right`
 
         :param left: The `Div dividend`.
         :param right: The `Div divisor`.
@@ -631,7 +642,8 @@ class ExpressionManager(object):
 
     def LE(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left <= right`.
+        Creates an expression of the form:
+            `left <= right`.
 
         :param left: The left side of the `<=`.
         :param right: The right side of the `<=`.
@@ -642,7 +654,8 @@ class ExpressionManager(object):
 
     def GE(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left >= right`.
+        Creates an expression of the form:
+            `left >= right`.
 
         :param left: The left side of the `>=`.
         :param right: The right side of the `>=`.
@@ -653,7 +666,8 @@ class ExpressionManager(object):
 
     def LT(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left < right`.
+        Creates an expression of the form:
+            `left < right`.
 
         :param left: The left side of the `<`.
         :param right: The right side of the `<`.
@@ -664,7 +678,8 @@ class ExpressionManager(object):
 
     def GT(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left > right`.
+        Creates an expression of the form:
+            `left > right`.
 
         :param left: The left side of the `>`.
         :param right: The right side of the `>`.
@@ -675,7 +690,8 @@ class ExpressionManager(object):
 
     def Equals(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left == right`.
+        Creates an expression of the form:
+            `left == right`.
 
         NOTE: Is not valid for boolean expression, for those use `Iff`.
 

@@ -4,7 +4,7 @@ Planning Engines
 The ``Engine`` class is the class interface that has to be implemented in order to define an engine that exposes one or more operative modes. It has some methods that implements that operation modes and other methods that can be called to know if the engine is suitable for a given problem kind.
 
 Engine selection and preference list
---------
+-------------------------------------
 
 The UP library instantiates planning engines via the ``unified_planning.engines.Factory`` class. A single instance of ``Factory`` is needed for each environment and can be retrieved by the factory property of an ``Environment`` object. This class maintains a set of known engines each with a unique name, and offers methods to add new engines by specifying the name and the python class, to instantiate and retrieve planning engines by name and to read configuration files in custom locations.
 
@@ -24,12 +24,12 @@ A user can set a custom preference list and add external engines to the library 
         class_name: <class-name>
 
 Plug-in system
---------
+---------------
 
 As mentioned at the beginning, one of key characteristics of the UP library is the engine plug-in system. The idea is that the set of planning engines is not fixed a-priori and can be easily extended. In this section we detail this mechanism together with the concept of “meta-engine”, which is an engine using another engine as a service to achieve a certain operation mode. An overview of the engines integrated throughout the project by the consortium partners is available in this section.
 
 Meta-Engines
---------
+-------------
 In addition to plain planning engines, the UP library embeds the concept of “meta-engine”. A meta-engine is a planning engine that needs access to another engine (or meta-engine) services to provide its own services. For example, the ``NaiveReplanner`` meta-engine (partially reported in the snippet below) implements the ``Replanner`` OperationMode by repeatedly calling any ``OneshotPlanner`` engine internally.
 
 .. code-block::

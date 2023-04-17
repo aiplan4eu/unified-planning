@@ -5,3 +5,6 @@ nbsphinx
 nbsphinx_link
 linkify-it-py
 jupyter
+tarski
+networkx
+pyparsing
