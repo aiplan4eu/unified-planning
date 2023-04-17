@@ -168,7 +168,7 @@ In this notebook, we show how to use unified planning library to define hierrach
 
 
 Sequential Simulator
----------------------
+--------------------
 
 
 .. image:: https://img.shields.io/badge/see-Github-579aca?logo=github

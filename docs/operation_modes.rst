@@ -8,7 +8,7 @@ All the operation modes can be invoked by using the `Factory` class, which imple
 We currently support the following operation modes:
 
 OneshotPlanner
----------------
+--------------
 The simplest and more obvious operation mode is called `OneshotPlanner`. The semantics of this OM is very simple: given a problem, return a solution plan for it or declare it unsolvable. This is the usual planning query which is the object of the International Planning Competition and is arguably the expected basic functionality of any “planner”.
 The example below shows a basic usage of the OM: the `OneshotPlanner` constructor selects a planning engine suitable for the given kind of problem and the OM defines a single ``solve(p: AbstractProblem)`` method to be implemented by the engine. This method returns a `PlanGenerationResult` object containing information about the the generated plan (if any), the metrics being optimized, log messages (if any) and a status flag indicating if the problem has been solved, under which optimality guarantee or if the planner encountered errors or proved the problem unsatisfiable.
 
@@ -50,7 +50,7 @@ Finally, it is possible to execute more than one `OneshotPlanner` in parallel by
 
 
 PlanValidator
---------------
+-------------
 Plan validation is the problem of deciding, given a planning problem and a plan, if the plan is a valid solution for the problem. Also, this OM specifies only one method to be implemented by the engines: ``validate(problem : AbstractProblem, plan: Plan)``.
 
 .. literalinclude:: ./code_snippets/oneshot_planner.py
@@ -60,7 +60,7 @@ Plan validation is the problem of deciding, given a planning problem and a plan,
 The result of the `validate` method is a `ValidationResult`, containing a status flag which can be either ``ValidationResultStatus.VALID`` or ``ValidationResultStatus.INVALID``, the name of the engine used and possibly log messages produced by the engine and a map from quality metrics defined in the problem and their evaluations in the plan (`metric_evaluations` map).
 
 SequentialSimulator
---------------------
+-------------------
 
 This OM defines an interactive simulator for exploring the planning space of a given problem. Given a problem at construction time, it is possible to check if an action is applicable in a state, and to compute successor states. States contain the value of all the fluents in the problem, hence it is possible to easily construct visualizations and plots. Moreover, using this OM it is easy to cast the planning problem into Model-Free Reinforcement Learning (by using the simulator for constructing the rollouts) and to construct prototypes of planners and validators (because the simulator essentially encapsulates the operational semantics of the planning problems).
 
@@ -105,7 +105,7 @@ Instead of just returning the transformed problem, the OM (which defines a singl
 
 
 AnytimePlanner
------------------
+--------------
 Similarly to ``OneshotPlanner``, the ``AnytimePlanner`` OM aims at generating valid plans given a problem specification. Differently from `OneshotPlanning`, however,  the `AnytimePlanner` OM generates a stream of solutions instead of a single one, and this is represented in Python by using a `generator`. The `AnytimePlanner` OM defines a single method, called ``get_solutions(Problem: AbstractProblem)``, returning an `iterator` of ``PlanGenerationResults``. The OM does not specify by default which relation should incur among the generated solutions, but it is possible to ask for a specific guarantee by setting the ``anytime_guarantee`` parameter. Values of this enumeration are listed below.
 
 +--------------------+--------------------------------------------------------------------------------------------------------------------------------------+
@@ -137,7 +137,7 @@ The generator returned by the OM can be simply iterated as any sequence object a
         # Done!
 
 Replanner
-----------
+---------
 
 In order to support a re-planning schema, the UP provides a dedicated OM called `Replanner`. The idea of this OM is to work as a `OneshotPlanner` where the problem being solved can change from one call to another. The engines implementing this OM are informed of the single changes to the problem, consisting in adding or removing actions or goals or changing the initial state.
 In this way, an engine can possibly re-use computations done for solving previous calls in order to speed-up subsequent calls. The interface of the OM consists of a ``resolve()`` method devoted to solving the current problem formulation and the following problem modification primitives:
@@ -174,7 +174,7 @@ Importantly, the replanner object needs to be kept in memory from one resolve ca
         # 6) [move_l2_l3]
 
 PlanRepairer
--------------
+------------
 Another OM devoted to supporting online (re)planning is ``PlanRepairer``. The idea of this OM is to generate a valid (and possibly optimal) plan for a given problem. However, differently from `OneshotPlanner`, the engine can use a given plan as a seed for its search. The specified plan might or not be valid and can be ignored; however, the spirit of the OM would be to find a valid/optimal plan close enough to the given seed plan. Ideally, this is useful in situations where a plan has been automatically or manually generated, but the execution of the plan failed and we are looking for a recovery from this failure without regenerating the whole plan from scratch, but instead we seek to fix the plan for the new contingencies.
 The interface of the OM consists of a single method called ``repair(problem: AbstractProblem, plan: Plan)`` returning a ``PlanGenerationResult`` object just like `OneshotPlanner`. Moreover, it is possible to specify an ``optimality_guarantee`` as described in the `OneshotPlanner` section.
 
@@ -186,7 +186,7 @@ The interface of the OM consists of a single method called ``repair(problem: Abs
             new_plan = repairer.repair(problem, broken_plan).plan
 
 PortfolioSelector
--------------------
+-----------------
 This OM provides a service for selecting a promising ``OneshotPlanner`` for a given problem. The UP library filters the available engines selecting those which can, in principle, solve a given problem (this mechanism is applied in all OMs when only the problem kind is specified in the query); however, the UP does not implement sophisticated mechanisms to select among the applicable engines (if more than one engine is available for solving a certain problem). Instead, a simple precedence list is specified (and can be updated by the user either via code or via a configuration file). The ``PortfolioSelector`` OM, instead, allows the user to invoke more sophisticated selection mechanisms, usually derived automatically by means of Machine Learning algorithms.
 The OM defines a single method called ``get_best_oneshot_planners(problem: AbstractProblem)`` which returns an ordered list of engine names and an ordered list of parameters, where a pair engine name and parameters appearing at index ``i`` is considered by the engine to be better than any engine at index ``j > i``. The output is designed to be immediately usable by a ``OneshotPlanner`` call (possibly using parallel execution, as described above.)
 
