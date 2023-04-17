@@ -41,7 +41,7 @@ Analogously, for multi-agent planning problems the UP provides a writer to the M
         writer.write_ma_problem(problem_directory)
 
 ANML Reader & Writer
----------------------
+--------------------
 
 Also for the expressive ANML planning language, the UP provides a reader and a writer. At the time of writing the ANML support is limited to temporal planning, but we plan to add support for hierarchical features as well.
 
@@ -55,7 +55,7 @@ Also for the expressive ANML planning language, the UP provides a reader and a w
     :lines: 18-21
 
 Tarski Interoperability
-------------------------
+-----------------------
 
 Tarski is a python library providing planning support for a fragment of numeric planning. Differently from the UP, tarski does not involve multiple planning engines, but allows the creation, printing, parsing and solving of a planning specification called FSTRIPS. In order to make the UP and the tarski problem representation interoperable (up to the planning fragment supported by tarski), we created two conversion procedures, namely ``convert_problem_to_tarski(p : Problem)``, which takes a UP problem representation and produces an FSTRIPS problem representation as a tarski object, and ``convert_problem_from_tarski(env: Environment, tp: tarski.fstrips.Problem)`` which performs the inverse conversion. These functions allow the use of the tarski toolset starting from UP problems and vice-versa.
 
