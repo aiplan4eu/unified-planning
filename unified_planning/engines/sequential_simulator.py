@@ -34,7 +34,6 @@ from unified_planning.model import (
     UPState,
     Problem,
     MinimizeActionCosts,
-    MinimizeSequentialPlanLength,
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
     Oversubscription,
@@ -530,14 +529,19 @@ def evaluate_quality_metric(
         action_cost = action_cost.substitute(dict(zip(action.parameters, parameters)))
         assert isinstance(action_cost, up.model.FNode)
         return se.evaluate(action_cost, state).constant_value() + metric_value
-    elif isinstance(quality_metric, MinimizeSequentialPlanLength):
+    elif quality_metric.is_minimize_sequential_plan_length():
         return metric_value + 1
-    elif isinstance(
-        quality_metric,
-        (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+    elif (
+        quality_metric.is_minimize_expression_on_final_state()
+        or quality_metric.is_maximize_expression_on_final_state()
     ):
+        assert isinstance(
+            quality_metric,
+            (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+        )
         return se.evaluate(quality_metric.expression, next_state).constant_value()
-    elif isinstance(quality_metric, Oversubscription):
+    elif quality_metric.is_oversubscription():
+        assert isinstance(quality_metric, Oversubscription)
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, next_state).bool_constant_value():
@@ -569,14 +573,19 @@ def evaluate_quality_metric_in_initial_state(
     initial_state = simulator.get_initial_state()
     if quality_metric.is_minimize_action_costs():
         return 0
-    elif isinstance(quality_metric, MinimizeSequentialPlanLength):
+    elif quality_metric.is_minimize_sequential_plan_length():
         return 0
-    elif isinstance(
-        quality_metric,
-        (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+    elif (
+        quality_metric.is_minimize_expression_on_final_state()
+        or quality_metric.is_maximize_expression_on_final_state()
     ):
+        assert isinstance(
+            quality_metric,
+            (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+        )
         return se.evaluate(quality_metric.expression, initial_state).constant_value()
-    elif isinstance(quality_metric, Oversubscription):
+    elif quality_metric.is_oversubscription():
+        assert isinstance(quality_metric, Oversubscription)
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, initial_state).bool_constant_value():

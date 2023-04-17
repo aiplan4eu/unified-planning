@@ -244,7 +244,8 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                         qm, new_to_old, new_problem.environment
                     )
                 )
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 new_oversubscription: Dict[BoolExpression, NumericConstant] = {}
                 for g, v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(

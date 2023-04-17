@@ -36,8 +36,6 @@ from unified_planning.model import (
     FNode,
     ExpressionManager,
     MinimizeActionCosts,
-    MinimizeSequentialPlanLength,
-    MinimizeMakespan,
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
     Oversubscription,
@@ -259,11 +257,10 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             )
 
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeSequentialPlanLength) or isinstance(
-                qm, MinimizeMakespan
-            ):
+            if qm.is_minimize_sequential_plan_length() or qm.is_minimize_makespan():
                 new_problem.add_quality_metric(qm)
-            elif isinstance(qm, MinimizeExpressionOnFinalState):
+            elif qm.is_minimize_expression_on_final_state():
+                assert isinstance(qm, MinimizeExpressionOnFinalState)
                 new_problem.add_quality_metric(
                     MinimizeExpressionOnFinalState(
                         utf_remover.remove_usertype_fluents_from_condition(
@@ -272,7 +269,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         environment=new_problem.environment,
                     )
                 )
-            elif isinstance(qm, MaximizeExpressionOnFinalState):
+            elif qm.is_maximize_expression_on_final_state():
+                assert isinstance(qm, MaximizeExpressionOnFinalState)
                 new_problem.add_quality_metric(
                     MaximizeExpressionOnFinalState(
                         utf_remover.remove_usertype_fluents_from_condition(
@@ -597,9 +595,13 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 for cost in qm.costs.values():
                     if cost is not None:
                         defined_names.update(cost.get_contained_names())
-            elif isinstance(
-                qm, (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState)
+            elif (
+                qm.is_minimize_expression_on_final_state()
+                or qm.is_maximize_expression_on_final_state()
             ):
+                assert isinstance(
+                    qm, (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState)
+                )
                 defined_names.update(qm.expression.get_contained_names())
             elif isinstance(qm, Oversubscription):
                 for g in qm.goals:

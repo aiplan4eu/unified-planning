@@ -371,15 +371,17 @@ class PythonWriter:
             if qm.is_minimize_action_costs():
                 assert isinstance(qm, up.model.metrics.MinimizeActionCosts)
                 out.write(f"up.model.metrics.MinimizeActionCosts(costs, {qm.default})")
-            elif isinstance(qm, up.model.metrics.MinimizeSequentialPlanLength):
+            elif qm.is_minimize_sequential_plan_length():
                 out.write("up.model.metrics.MinimizeSequentialPlanLength()")
-            elif isinstance(qm, up.model.metrics.MinimizeMakespan):
+            elif qm.is_minimize_makespan():
                 out.write("up.model.metrics.MinimizeMakespan()")
-            elif isinstance(qm, up.model.metrics.MinimizeExpressionOnFinalState):
+            elif qm.is_minimize_expression_on_final_state():
+                assert isinstance(qm, up.model.metrics.MinimizeExpressionOnFinalState)
                 out.write(
                     f"up.model.metrics.MinimizeExpressionOnFinalState({converter.convert(qm.expression)})"
                 )
-            elif isinstance(qm, up.model.metrics.MaximizeExpressionOnFinalState):
+            elif qm.is_maximize_expression_on_final_state():
+                assert isinstance(qm, up.model.metrics.MaximizeExpressionOnFinalState)
                 out.write(
                     f"up.model.metrics.MaximizeExpressionOnFinalState({converter.convert(qm.expression)})"
                 )

@@ -418,11 +418,13 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             new_qm: PlanQualityMetric = MinimizeActionCosts(
                 new_costs, environment=new_problem.environment
             )
-        elif isinstance(qm, MinimizeExpressionOnFinalState):
+        elif qm.is_minimize_expression_on_final_state():
+            assert isinstance(qm, MinimizeExpressionOnFinalState)
             new_qm = MinimizeExpressionOnFinalState(
                 function(qm.expression), environment=new_problem.environment
             )
-        elif isinstance(qm, MaximizeExpressionOnFinalState):
+        elif qm.is_maximize_expression_on_final_state():
+            assert isinstance(qm, MaximizeExpressionOnFinalState)
             new_qm = MaximizeExpressionOnFinalState(
                 function(qm.expression), environment=new_problem.environment
             )
@@ -477,6 +479,17 @@ def updated_minimize_action_costs(
     new_to_old: Union[Dict[Action, Action], Dict[Action, Optional[Action]]],
     environment: Environment,
 ):
+    """
+    This method takes a `MinimizeActionCosts` `PlanQualityMetric`, a mapping from the new
+    action introduced by the compiler to the old action of the problem (None if the
+    new action) does not have a counterpart in the original problem) and returns the
+    updated equivalent metric for the new problem. This simply changes the costs keys
+    and does not alter the cost expression, so it does not cover use-cases like grounding.
+
+    :param quality_metric: The `MinimizeActionCosts`metric to update.
+    :param new_to_old: The action's mapping from the compiled problem to the original problem.
+    :param environment: The environment of the new problem (therefore, also of the new actions).
+    """
     assert isinstance(quality_metric, MinimizeActionCosts)
     new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
     for new_act, old_act in new_to_old.items():

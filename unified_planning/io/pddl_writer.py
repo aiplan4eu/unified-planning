@@ -498,7 +498,7 @@ class PDDLWriter:
                     costs[a] = cost_exp
                     if cost_exp is not None:
                         _update_domain_objects(self.domain_objects, obe.get(cost_exp))
-            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+            elif metric.is_minimize_sequential_plan_length():
                 for a in self.problem.actions:
                     costs[a] = self.problem.environment.expression_manager.Int(1)
         elif len(metrics) > 1:
@@ -703,15 +703,22 @@ class PDDLWriter:
         if len(metrics) == 1:
             metric = metrics[0]
             out.write(" (:metric ")
-            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
+            if metric.is_minimize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MinimizeExpressionOnFinalState
+                )
                 out.write(f"minimize {converter.convert(metric.expression)}")
-            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+            elif metric.is_maximize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MaximizeExpressionOnFinalState
+                )
                 out.write(f"maximize {converter.convert(metric.expression)}")
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts) or isinstance(
-                metric, up.model.metrics.MinimizeSequentialPlanLength
+            elif (
+                metric.is_minimize_action_costs()
+                or metric.is_minimize_sequential_plan_length()
             ):
                 out.write(f"minimize (total-cost)")
-            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
+            elif metric.is_minimize_makespan():
                 out.write(f"minimize (total-time)")
             else:
                 raise NotImplementedError

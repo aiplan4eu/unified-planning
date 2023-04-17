@@ -112,8 +112,13 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         else:
             assert len(problem.quality_metrics) == 1
             qm = problem.quality_metrics[0]
-            assert isinstance(qm, up.model.metrics.Oversubscription) or isinstance(
-                qm, up.model.metrics.TemporalOversubscription
+            assert isinstance(
+                qm,
+                (
+                    up.model.metrics.Oversubscription,
+                    qm,
+                    up.model.metrics.TemporalOversubscription,
+                ),
             )
             goals = list(qm.goals.items())
         q = []

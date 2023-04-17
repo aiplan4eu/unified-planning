@@ -26,7 +26,6 @@ from unified_planning.model import (
     FNode,
     Action,
     Effect,
-    Timing,
     ProblemKind,
     Oversubscription,
     TemporalOversubscription,
@@ -235,7 +234,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         qm, new_to_old, new_problem.environment
                     )
                 )
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 new_problem.add_quality_metric(
                     Oversubscription(
                         {
