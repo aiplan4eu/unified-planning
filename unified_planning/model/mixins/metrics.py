@@ -120,9 +120,9 @@ class MetricsMixin:
                 kind.set_quality_metrics("MAKESPAN")
             elif metric.is_minimize_sequential_plan_length():
                 kind.set_quality_metrics("PLAN_LENGTH")
-            elif isinstance(metric, up.model.metrics.Oversubscription):
+            elif metric.is_oversubscription():
                 kind.set_quality_metrics("OVERSUBSCRIPTION")
-            elif isinstance(metric, up.model.metrics.TemporalOversubscription):
+            elif metric.is_temporal_oversubscription():
                 kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
             else:
                 assert False, "Unknown quality metric"

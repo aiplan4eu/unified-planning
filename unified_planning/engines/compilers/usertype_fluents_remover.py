@@ -290,7 +290,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(
                     MinimizeActionCosts(new_costs, environment=new_problem.environment)
                 )
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 new_goals: Dict[BoolExpression, NumericConstant] = {
                     utf_remover.remove_usertype_fluents_from_condition(g): v
                     for g, v in qm.goals.items()
@@ -298,7 +299,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(
                     Oversubscription(new_goals, environment=new_problem.environment)
                 )
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 new_temporal_goals: Dict[
                     Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                     NumericConstant,
@@ -603,10 +605,12 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     qm, (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState)
                 )
                 defined_names.update(qm.expression.get_contained_names())
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 for g in qm.goals:
                     defined_names.update(g.get_contained_names())
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 for _, g in qm.goals:
                     defined_names.update(g.get_contained_names())
 

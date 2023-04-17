@@ -116,7 +116,6 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                 qm,
                 (
                     up.model.metrics.Oversubscription,
-                    qm,
                     up.model.metrics.TemporalOversubscription,
                 ),
             )

@@ -428,7 +428,8 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             new_qm = MaximizeExpressionOnFinalState(
                 function(qm.expression), environment=new_problem.environment
             )
-        elif isinstance(qm, Oversubscription):
+        elif qm.is_oversubscription():
+            assert isinstance(qm, Oversubscription)
             new_goals: Dict[BoolExpression, NumericConstant] = {}
             for goal, gain in qm.goals.items():
                 new_goal = function(em.And(goal, condition).simplify())
@@ -436,7 +437,8 @@ def add_invariant_condition_apply_function_to_problem_expressions(
                     cast(Union[int, Fraction], new_goals.get(new_goal, 0)) + gain
                 )
             new_qm = Oversubscription(new_goals, environment=new_problem.environment)
-        elif isinstance(qm, TemporalOversubscription):
+        elif qm.is_temporal_oversubscription():
+            assert isinstance(qm, TemporalOversubscription)
             new_temporal_goals: Dict[
                 Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                 NumericConstant,

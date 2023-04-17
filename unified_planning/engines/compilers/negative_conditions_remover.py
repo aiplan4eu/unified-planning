@@ -245,7 +245,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         environment=new_problem.environment,
                     )
                 )
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 new_problem.add_quality_metric(
                     TemporalOversubscription(
                         {

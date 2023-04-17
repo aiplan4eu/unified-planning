@@ -257,7 +257,8 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                         new_oversubscription, environment=new_problem.environment
                     )
                 )
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 new_temporal_oversubscription: Dict[
                     Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                     NumericConstant,
