@@ -36,18 +36,24 @@ from functools import partial
 
 
 class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
-    """Quantifiers remover class: this class offers the capability
+    """
+    Quantifiers remover class: this class offers the capability
     to transform a problem with quantifiers into a problem without.
     Every quantifier is compiled away by it's respective logic formula
     instantiated on object.
+
     For example the formula:
-        Forall (s-sempahore) is_green(s)
-    in a problem with 3 objects of type semaphores {s1, s2, s3} is compiled in:
-        And(is_green(s1), is_green(s2), is_green(s3)).
+        ``Forall (s-sempahore) is_green(s)``
+
+    in a problem with 3 objects of type ``semaphores {s1, s2, s3}`` is compiled in:
+        ``And(is_green(s1), is_green(s2), is_green(s3))``
+
     While the respective formula on the same problem:
-        Exists (s-semaphore) is_green(s)
+        ``Exists (s-semaphore) is_green(s)``
+
     becomes:
-        Or(is_green(s1), is_green(s2), is_green(s3))."""
+        ``Or(is_green(s1), is_green(s2), is_green(s3))``
+    """
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
@@ -123,7 +129,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
 
         :param problem: The instance of the up.model.Problem that must be returned without quantifiers.
         :param compilation_kind: The up.engines.CompilationKind that must be applied on the given problem;
-        only QUANTIFIERS_REMOVING is supported by this compiler
+            only QUANTIFIERS_REMOVING is supported by this compiler
         :return: The resulting up.engines.results.CompilerResult data structure.
         """
         assert isinstance(problem, Problem)

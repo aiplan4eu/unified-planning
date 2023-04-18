@@ -68,10 +68,10 @@ class GrounderHelper:
             When this map is set, it represents the groundings that this class does.
             So, for every key in the map, the `Action` is grounded with every `tuple of parameters` in the mapped value.
             For example, if the map is `{a: [(o1, o2), (o2, o3)], b: [(o3), (o4)]}`, the resulting grounded actions will be:
-            - `a (o1, o2)`
-            - `a (o2, o3)`
-            - `b (o3)`
-            - `b (o4)`
+            * `a (o1, o2)`
+            * `a (o2, o3)`
+            * `b (o3)`
+            * `b (o4)`
             If this map is `None`, the `unified_planning` grounding algorithm is applied.
         """
         assert isinstance(problem, Problem)
@@ -99,18 +99,18 @@ class GrounderHelper:
         self, action: Action, parameters: Tuple[FNode, ...] = tuple()
     ) -> Optional[Action]:
         """
-        Grounds the given `action` with the given `parameters`.
-        An `Action` is grounded when it has no :func:`parameters <unified_planning.model.Action.parameters>`.
+        Grounds the given action with the given parameters.
+        An ``Action`` is grounded when it has no :func:`parameters <unified_planning.model.Action.parameters>`.
 
-        The returned `Action` is cached, so if the same method is called twice with the same function parameters,
+        The returned ``Action`` is cached, so if the same method is called twice with the same function parameters,
         the same object is returned, and the same object will be returned in the total problem grounding, so
-        if the resulting `Action` or :class:`~unified_planning.model.Problem` are modified, all the copies
+        if the resulting ``Action`` or :class:`~unified_planning.model.Problem` are modified, all the copies
         returned by this class will be modified.
 
-        :param action: The `Action` that must be grounded with the given `parameters`.
-        :param parameters: The tuple of expressions used to ground the given `action`.
-        :return: The `action` grounded with the given `parameters` or `None` if the grounded
-            action does not have `effects` or the `action conditions` can be easily evaluated as a
+        :param action: The ``Action`` that must be grounded with the given ``parameters``.
+        :param parameters: The tuple of expressions used to ground the given ``action``.
+        :return: The ``action`` grounded with the given ``parameters`` or ``None`` if the grounded
+            action does not have ``effects`` or the ``action conditions`` can be easily evaluated as a
             contradiction.
         """
         assert len(action.parameters) == len(
@@ -145,14 +145,15 @@ class GrounderHelper:
         self,
     ) -> Iterator[Tuple[Action, Tuple[FNode, ...], Optional[Action]]]:
         """
-        Returns an `Iterator` over all the possible grounded `Actions` of the `Problem` given at construction time.
-        Every resulting `Tuple` is made of 3 elements: `original_action`, `parameters`, `grounded_action` where:
-            - The `original_action` is the `Action` of the `Problem` that is grounded.
-            - The `parameters` is the `Tuple of expressions` used to ground the `original_action`.
-            - The `grounded_action` is the `Action` created by grounding the `original_action` with the given `parameters`;
-                the `grounded_action` can be `None` if the grounding of the `original_action` with the given parameters
-                creates an invalid or meaningless `Action` (invalid if it has conflicting `Effects`,
-                meaningless if it has no `effects` or contradicting `conditions`).
+        Returns an iterator over all the possible grounded actions of the problem given at construction time.
+        Every resulting tuple is made of 3 elements: ``original_action``, ``parameters``, ``grounded_action`` where:
+
+        * The ``original_action`` is the `Action` of the ``Problem`` that is grounded.
+        * The ``parameters`` is the `Tuple of expressions` used to ground the ``original_action``.
+        * The ``grounded_action`` is the `Action` created by grounding the ``original_action`` with the given ``parameters``;
+        the ``grounded_action`` can be ``None`` if the grounding of the ``original_action`` with the given parameters
+        creates an invalid or meaningless `Action` (invalid if it has conflicting `Effects`,
+        meaningless if it has no `effects` or contradicting `conditions`).
         """
         for old_action in self._problem.actions:
             for grounded_params in self.get_possible_parameters(old_action):

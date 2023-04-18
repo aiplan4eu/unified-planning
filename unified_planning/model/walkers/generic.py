@@ -35,9 +35,10 @@ class handles(object):
     Use it by specifying the nodetypes that need to be handled by the
     given function. It is possible to use groupd (e.g., OperatorKind.RELATIONS)
     directly. ::
-      @handles(OperatorKind.NODE, ...)
-      def walk_special(...):
-         ...
+    `@handles(OperatorKind.NODE, ...)
+    def walk_special(...):
+        ...`
+
     """
 
     def __init__(self, *nodetypes):

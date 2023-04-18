@@ -59,7 +59,7 @@ class PlanGenerationResultStatus(Enum):
     SOLVED_OPTIMALLY          -> Optimal plan found.
     UNSOLVABLE_PROVEN         -> The problem is impossible, no valid plan exists.
     UNSOLVABLE_INCOMPLETELY   -> The planner could not find a plan, but it's not sure that
-                                 the problem is impossible (The planner is incomplete)
+    the problem is impossible (The planner is incomplete)
     TIMEOUT                   -> The planner ran out of time
     MEMOUT                    -> The planner ran out of memory
     INTERNAL_ERROR            -> The planner had an internal error

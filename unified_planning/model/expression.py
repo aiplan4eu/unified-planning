@@ -89,8 +89,8 @@ class ExpressionManager(object):
         """
         Helper function to return an Iterator of arguments from args.
         This function is used to allow N-ary operators to express their arguments
-        both as a list of arguments or as a tuple of arguments: e.g.,
-           And([a,b,c]) and And(a,b,c)
+        both as a list of arguments or as a tuple of arguments:
+        e.g. And([a,b,c]) and And(a,b,c)
         are both valid, and they are converted into (a,b,c)
         """
         for a in args:
@@ -202,15 +202,17 @@ class ExpressionManager(object):
         self, *args: Union[BoolExpression, Iterable[BoolExpression]]
     ) -> "up.model.fnode.FNode":
         """
-        Returns a conjunction of terms.
-        This function has polymorphic n-arguments:
-          - `And(a,b,c)`
-          - `And([a,b,c])`
-        Restriction: Arguments must be `boolean`.
+        | Returns a conjunction of terms.
+        | This function has polymorphic n-arguments:
 
-        :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
-        :return: The `AND` expression created.
+            * ``And(a,b,c)``
+            * ``And([a,b,c])``
+
+        | Restriction: Arguments must be ``boolean``.
+
+        :param \*args: Either an ``Iterable`` of ``boolean`` expressions, like ``[a, b, c]``, or an unpacked version
+            of it, like ``a, b, c``.
+        :return: The ``AND`` expression created.
         """
         tuple_args = tuple(self.auto_promote(*args))
 
@@ -225,15 +227,17 @@ class ExpressionManager(object):
         self, *args: Union[BoolExpression, Iterable[BoolExpression]]
     ) -> "up.model.fnode.FNode":
         """
-        Returns an disjunction of terms.
-        This function has polymorphic n-arguments:
-          - `Or(a,b,c)`
-          - `Or([a,b,c])`
-        Restriction: Arguments must be `boolean`
+        | Returns an disjunction of terms.
+        | This function has polymorphic n-arguments:
 
-        :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
-        :return: The `OR` expression created.
+            * ``Or(a,b,c)``
+            * ``Or([a,b,c])``
+
+        | Restriction: Arguments must be ``boolean``
+
+        :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+            of it, like ``a, b, c``.
+        :return: The ``OR`` expression created.
         """
         tuple_args = tuple(self.auto_promote(*args))
 
@@ -247,14 +251,17 @@ class ExpressionManager(object):
     def XOr(
         self, *args: Union[BoolExpression, Iterable[BoolExpression]]
     ) -> "up.model.fnode.FNode":
-        """Returns an exclusive disjunction of terms in CNF form.
-        This function has polimorphic n-arguments:
-          - XOr(a,b,c)
-          - XOr([a,b,c])
-        Restriction: Arguments must be boolean
+        """
+        | Returns an exclusive disjunction of terms in CNF form.
+        | This function has polimorphic n-arguments:
 
-        :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
+            * XOr(a,b,c)
+            * XOr([a,b,c])
+
+        | Restriction: Arguments must be boolean
+
+        :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+            of it, like ``a, b, c``.
         :return: The exclusive disjunction in CNF form.
         """
         tuple_args = tuple(self.auto_promote(*args))
@@ -274,11 +281,12 @@ class ExpressionManager(object):
     def Not(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-                `not expression`
-        Restriction: `expression` must be of `boolean type`
+            ``not expression``
 
-        :param expression: The `boolean` expression of which the negation must be created.
-        :return: The created `NOT` expression.
+        Restriction: ``expression`` must be of ``boolean type``
+
+        :param expression: The ``boolean`` expression of which the negation must be created.
+        :return: The created ``Not`` expression.
         """
         (expression,) = self.auto_promote(expression)
         if expression.is_not():
@@ -290,12 +298,13 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-            `left -> right`
-        Restriction: `Left` and `Right` must be of `boolean type`
+            ``left -> right``
 
-        :param left: The `boolean` expression acting as the premise of the `Implies`.
-        :param right: The `boolean` expression acting as the implied part of the `Implies`.
-        :return: The created `Implication`.
+        Restriction: ``Left`` and ``Right`` must be of ``boolean type``
+
+        :param left: The ``boolean`` expression acting as the premise of the ``Implies``.
+        :param right: The ``boolean`` expression acting as the implied part of the ``Implies``.
+        :return: The created ``Implication``.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.IMPLIES, args=(left, right))
@@ -305,13 +314,14 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-            `left <-> right`
-        Semantically, The expression is `True` only if `left` and `right` have the same value.
-        Restriction: `Left` and `Right` must be of `boolean type`
+            ``left <-> right``
 
-        :param left: The `left` member of the `Iff expression`.
-        :param right: The `right` member of the `Iff expression`.
-        :return: The created `Iff` expression.
+        Semantically, The expression is ``True`` only if ``left`` and ``right`` have the same value.
+        Restriction: ``Left`` and ``Right`` must be of ``boolean type``
+
+        :param left: The ``left`` member of the ``Iff expression``.
+        :param right: The ``right`` member of the ``Iff expression``.
+        :return: The created ``Iff`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
@@ -321,14 +331,15 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-            `Exists (var[0]... var[n]) | expression`
-        Restriction: expression must be of `boolean type` and
-                    vars must be of `Variable` type
+            ``Exists (var[0]... var[n]) | expression``
 
-        :param expression: The main expression of the `existential`. The expression should contain
-            the given `variables`.
-        :param *vars: All the `Variables` appearing in the `existential` expression.
-        :return: The created `Existential` expression.
+        Restriction: expression must be of ``boolean type`` and
+        vars must be of ``Variable`` type
+
+        :param expression: The main expression of the ``existential``. The expression should contain
+            the given ``variables``.
+        :param \*vars: All the ``Variables`` appearing in the ``existential`` expression.
+        :return: The created ``Existential`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
         if len(vars) == 0:
@@ -346,14 +357,15 @@ class ExpressionManager(object):
         self, expression: BoolExpression, *vars: "up.model.variable.Variable"
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
-            `Forall (var[0]... var[n]) | expression`
-        Restriction: expression must be of `boolean type` and
-                    vars must be of `Variable` type
+            ``Forall (var[0]... var[n]) | expression``
 
-        :param expression: The main expression of the `universal` quantifier. The expression should contain
-            the given `variables`.
-        :param *vars: All the `Variables` appearing in the `universal` expression.
-        :return: The created `Forall` expression.
+        Restriction: expression must be of ``boolean type`` and
+        vars must be of ``Variable`` type
+
+        :param expression: The main expression of the ``universal`` quantifier. The expression should contain
+            the given ``variables``.
+        :param \*vars: All the ``Variables`` appearing in the ``universal`` expression.
+        :return: The created ``Forall`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
         if len(vars) == 0:
@@ -369,33 +381,36 @@ class ExpressionManager(object):
 
     def Always(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
-            `Always(a)`
-        Restriction: expression must be of `boolean type` and with only one arg.
+            ``Always(a)``
 
-        :param expression: The `boolean` expression of the trajectory constraints.
-        :return: The created `Always` expression.
+        Restriction: expression must be of ``boolean type`` and with only one arg.
+
+        :param expression: The ``boolean`` expression of the trajectory constraints.
+        :return: The created ``Always`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.ALWAYS, args=expressions)
 
     def Sometime(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
-            `Sometime(a)`
-        Restriction: expression must be of `boolean type` and with only one arg.
+            ``Sometime(a)``
 
-        :param expression: The `boolean` expression of the trajectory constraints.
-        :return: The created `Sometime` expression.
+        Restriction: expression must be of ``boolean type`` and with only one arg.
+
+        :param expression: The ``boolean`` expression of the trajectory constraints.
+        :return: The created ``Sometime`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.SOMETIME, args=expressions)
 
     def AtMostOnce(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
-            `At-Most-Once(a, b)`
-        Restriction: expression must be of `boolean type` and with only two arg.
+            ``At-Most-Once(a, b)``
 
-        :param expression: The `boolean` expression of the trajectory constraints.
-        :return: The created `At-Most-Once(a, b)` expression.
+        Restriction: expression must be of ``boolean type`` and with only two arg.
+
+        :param expression: The ``boolean`` expression of the trajectory constraints.
+        :return: The created ``At-Most-Once(a, b)`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
         return self.create_node(node_type=OperatorKind.AT_MOST_ONCE, args=expressions)
@@ -404,11 +419,12 @@ class ExpressionManager(object):
         self, phi: BoolExpression, psi: BoolExpression
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
-            `Sometime-Before(a, b)`
-        Restriction: expression must be of `boolean type` and with only one args
+            ``Sometime-Before(a, b)``
 
-        :param expression: The `boolean` expression of the trajectory constraints.
-        :return: The created `Sometime` expression.
+        Restriction: expression must be of ``boolean type`` and with only one args
+
+        :param expression: The ``boolean`` expression of the trajectory constraints.
+        :return: The created ``Sometime`` expression.
         """
         expressions = tuple(self.auto_promote(phi, psi))
         return self.create_node(
@@ -419,11 +435,12 @@ class ExpressionManager(object):
         self, phi: BoolExpression, psi: BoolExpression
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
-            `Sometime-After(a, b)`
-        Restriction: expression must be of `boolean type` and with only two arg.
+            ``Sometime-After(a, b)``
 
-        :param expression: The `boolean` expression of the trajectory constraints.
-        :return: The created `Sometime-After(a, b)` expression.
+        Restriction: expression must be of ``boolean type`` and with only two arg.
+
+        :param expression: The ``boolean`` expression of the trajectory constraints.
+        :return: The created ``Sometime-After(a, b)`` expression.
         """
         expressions = tuple(self.auto_promote(phi, psi))
         return self.create_node(node_type=OperatorKind.SOMETIME_AFTER, args=expressions)
@@ -432,14 +449,14 @@ class ExpressionManager(object):
         self, fluent: "up.model.fluent.Fluent", params: Sequence[Expression] = tuple()
     ) -> "up.model.fnode.FNode":
         """
-        Creates an expression for the given `fluent` and `parameters`.
-        Restriction: `parameters type` must be compatible with the `Fluent` :func:`signature <unified_planning.model.Fluent.signature>`
+        | Creates an expression for the given ``fluent`` and ``parameters``.
+        | Restriction: ``parameters type`` must be compatible with the ``Fluent`` :func:``signature <unified_planning.model.Fluent.signature>``
 
-        :param fluent: The `Fluent` that will be set as the `payload` of this expression.
-        :param params: The Sequence of expressions acting as `parameters` for this `Fluent`; mainly the parameters will
-            be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or
-            :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
-        :return: The created `Fluent` Expression.
+        :param fluent: The ``Fluent`` that will be set as the ``payload`` of this expression.
+        :param params: The Sequence of expressions acting as ``parameters`` for this ``Fluent``; mainly the parameters will
+            be :class:``Objects <unified_planning.model.Object>`` (when the ``FluentExp`` is grounded) or
+            :func:``Action parameters <unified_planning.model.Action.parameters>`` (when the ``FluentExp`` is lifted).
+        :return: The created ``Fluent`` Expression.
         """
         assert fluent.environment == self.environment
         params_exp = self.auto_promote(params)
@@ -457,12 +474,12 @@ class ExpressionManager(object):
         fluent_exp: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
     ) -> "up.model.fnode.FNode":
         """
-        Creates an expression for the given `agent` and `fluent_exp`.
-        Restriction: agent must be of `agent type` and fluent_exp must be of `fluentExp type`
+        Creates an expression for the given ``agent`` and ``fluent_exp``.
+        Restriction: agent must be of ``agent type`` and fluent_exp must be of ``fluentExp type``
 
-        :param agent: The `Agent` that will be set as the `payload` of this expression.
-        :param fluent_exp: The `Fluent_exp` that will be set as the `args` of this expression.
-        :return: The created `Dot` Expression.
+        :param agent: The ``Agent`` that will be set as the ``payload`` of this expression.
+        :param fluent_exp: The ``Fluent_exp`` that will be set as the ``args`` of this expression.
+        :return: The created ``Dot`` Expression.
         """
         assert agent.environment == self.environment
         (fluent_exp,) = self.auto_promote(fluent_exp)
@@ -476,8 +493,8 @@ class ExpressionManager(object):
         """
         Returns an expression for the given :func:`Action parameter <unified_planning.model.Action.parameters>`.
 
-        :param param: The `Parameter` that must be promoted to `FNode`.
-        :return: The `FNode` containing the given `param` as his payload.
+        :param param: The ``Parameter`` that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given ``param`` as his payload.
         """
         return self.create_node(
             node_type=OperatorKind.PARAM_EXP, args=tuple(), payload=param
@@ -485,10 +502,10 @@ class ExpressionManager(object):
 
     def VariableExp(self, var: "up.model.variable.Variable") -> "up.model.fnode.FNode":
         """
-        Returns an expression for the given `Variable`.
+        Returns an expression for the given ``Variable``.
 
-        :param var: The `Variable` that must be promoted to `FNode`.
-        :return: The `FNode` containing the given `variable` as his payload.
+        :param var: The ``Variable`` that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given ``variable`` as his payload.
         """
         assert var.environment == self.environment
         return self.create_node(
@@ -499,8 +516,8 @@ class ExpressionManager(object):
         """
         Returns an expression for the given object.
 
-        :param obj: The `Object` that must be promoted to `FNode`.
-        :return: The `FNode` containing the given object as his payload.
+        :param obj: The ``Object`` that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given object as his payload.
         """
         assert obj.environment == self.environment
         return self.create_node(
@@ -509,29 +526,29 @@ class ExpressionManager(object):
 
     def TimingExp(self, timing: "up.model.timing.Timing") -> "up.model.fnode.FNode":
         """
-        Returns an expression for the given `Timing`.
+        Returns an expression for the given ``Timing``.
 
-        :param timing: The `Timing` that must be promoted to `FNode`.
-        :return: The `FNode` containing the given `timing` as his payload.
+        :param timing: The ``Timing`` that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given ``timing`` as his payload.
         """
         return self.create_node(
             node_type=OperatorKind.TIMING_EXP, args=tuple(), payload=timing
         )
 
     def TRUE(self) -> "up.model.fnode.FNode":
-        """Return the boolean constant `True`."""
+        """Return the boolean constant ``True``."""
         return self.true_expression
 
     def FALSE(self) -> "up.model.fnode.FNode":
-        """Return the boolean constant `False`."""
+        """Return the boolean constant ``False``."""
         return self.false_expression
 
     def Bool(self, value: bool) -> "up.model.fnode.FNode":
         """
         Return a boolean constant.
 
-        :param value: The boolean value that must be promoted to `FNode`.
-        :return: The `FNode` containing the given `value` as his payload.
+        :param value: The boolean value that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given ``value`` as his payload.
         """
         if type(value) != bool:
             raise UPTypeError("Expecting bool, got %s" % type(value))
@@ -543,10 +560,10 @@ class ExpressionManager(object):
 
     def Int(self, value: int) -> "up.model.fnode.FNode":
         """
-        Return an `int` constant.
+        Return an ``int`` constant.
 
-        :param value: The integer that must be promoted to `FNode`.
-        :return: The `FNode` containing the given `integer` as his payload.
+        :param value: The integer that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given ``integer`` as his payload.
         """
         if type(value) != int:
             raise UPTypeError("Expecting int, got %s" % type(value))
@@ -556,10 +573,10 @@ class ExpressionManager(object):
 
     def Real(self, value: Fraction) -> "up.model.fnode.FNode":
         """
-        Return a `real` constant.
+        Return a ``real`` constant.
 
-        :param value: The `Fraction` that must be promoted to `FNode`.
-        :return: The `FNode` containing the given `value` as his payload.
+        :param value: The ``Fraction`` that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given ``value`` as his payload.
         """
         if type(value) != Fraction:
             raise UPTypeError("Expecting Fraction, got %s" % type(value))
@@ -572,11 +589,11 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-        `args[0] + ... + args[n]`
+            ``args[0] + ... + args[n]``
 
-        :param *args: Either an `Iterable` of expressions, like `[a, b, 3]`, or an unpacked version
-            of it, like `a, b, 3`.
-        :return: The `PLUS` expression created. (like `a + b + 3`)
+        :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+            of it, like ``a, b, 3``.
+        :return: The ``PLUS`` expression created. (like ``a + b + 3``)
         """
         tuple_args = tuple(self.auto_promote(*args))
 
@@ -589,11 +606,11 @@ class ExpressionManager(object):
 
     def Minus(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left - right`.
+        Creates an expression of the form: ``left - right``.
 
-        :param left: The `Minus minuend`.
-        :param right: The `Minus subtrahend`.
-        :return: The created `Minus` expression.
+        :param left: The ``Minus minuend``.
+        :param right: The ``Minus subtrahend``.
+        :return: The created ``Minus`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.MINUS, args=(left, right))
@@ -603,11 +620,11 @@ class ExpressionManager(object):
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
-        `args[0] * ... * args[n]`
+            ``args[0] * ... * args[n]``
 
-        :param *args: Either an `Iterable` of expressions, like `[a, b, 3]`, or an unpacked version
-            of it, like `a, b, 3`.
-        :return: The `TIMES` expression created. (like `a * b * 3`)
+        :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+            of it, like ``a, b, 3``.
+        :return: The ``TIMES`` expression created. (like ``a * b * 3``)
         """
         tuple_args = tuple(self.auto_promote(*args))
 
@@ -620,68 +637,74 @@ class ExpressionManager(object):
 
     def Div(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left / right`.
+        Creates an expression of the form:
+            ``left / right``
 
-        :param left: The `Div dividend`.
-        :param right: The `Div divisor`.
-        :return: The created `DIV` expression.
+        :param left: The ``Div dividend``.
+        :param right: The ``Div divisor``.
+        :return: The created ``DIV`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.DIV, args=(left, right))
 
     def LE(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left <= right`.
+        Creates an expression of the form:
+            ``left <= right``.
 
-        :param left: The left side of the `<=`.
-        :param right: The right side of the `<=`.
-        :return: The created `LE` expression.
+        :param left: The left side of the ``<=``.
+        :param right: The right side of the ``<=``.
+        :return: The created ``LE`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.LE, args=(left, right))
 
     def GE(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left >= right`.
+        Creates an expression of the form:
+            ``left >= right``.
 
-        :param left: The left side of the `>=`.
-        :param right: The right side of the `>=`.
-        :return: The created `GE` expression.
+        :param left: The left side of the ``>=``.
+        :param right: The right side of the ``>=``.
+        :return: The created ``GE`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.LE, args=(right, left))
 
     def LT(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left < right`.
+        Creates an expression of the form:
+            ``left < right``.
 
-        :param left: The left side of the `<`.
-        :param right: The right side of the `<`.
-        :return: The created `LT` expression.
+        :param left: The left side of the ``<``.
+        :param right: The right side of the ``<``.
+        :return: The created ``LT`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.LT, args=(left, right))
 
     def GT(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left > right`.
+        Creates an expression of the form:
+            ``left > right``.
 
-        :param left: The left side of the `>`.
-        :param right: The right side of the `>`.
-        :return: The created `GT` expression.
+        :param left: The left side of the ``>``.
+        :param right: The right side of the ``>``.
+        :return: The created ``GT`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.LT, args=(right, left))
 
     def Equals(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
-        Creates an expression of the form: `left == right`.
+        Creates an expression of the form:
+            ``left == right``.
 
-        NOTE: Is not valid for boolean expression, for those use `Iff`.
+        NOTE: Is not valid for boolean expression, for those use ``Iff``.
 
-        :param left: The left side of the `==`.
-        :param right: The right side of the `==`.
-        :return: The created `Equals` expression.
+        :param left: The left side of the ``==``.
+        :param right: The right side of the ``==``.
+        :return: The created ``Equals`` expression.
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.EQUALS, args=(left, right))
