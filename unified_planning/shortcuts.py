@@ -37,44 +37,50 @@ from fractions import Fraction
 
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     """
-    Returns a conjunction of terms.
-    This function has polymorphic n-arguments:
-    - `And(a,b,c)`
-    - `And([a,b,c])`
-    Restriction: Arguments must be `boolean`.
+    | Returns a conjunction of terms.
+    | This function has polymorphic n-arguments:
 
-    :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
-    :return: The `AND` expression created.
+        * ``And(a,b,c)``
+        * ``And([a,b,c])``
+
+    | Restriction: Arguments must be ``boolean``.
+
+    :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+        of it, like ``a, b, c``.
+    :return: The ``AND`` expression created.
     """
     return get_environment().expression_manager.And(*args)
 
 
 def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     """
-    Returns an disjunction of terms.
-    This function has polymorphic n-arguments:
-    - `Or(a,b,c)`
-    - `Or([a,b,c])`
-    Restriction: Arguments must be `boolean`
+    | Returns an disjunction of terms.
+    | This function has polymorphic n-arguments:
 
-    :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
-    :return: The `OR` expression created.
+        * ``Or(a,b,c)``
+        * ``Or([a,b,c])``
+
+    | Restriction: Arguments must be ``boolean``
+
+    :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+        of it, like ``a, b, c``.
+    :return: The ``OR`` expression created.
     """
     return get_environment().expression_manager.Or(*args)
 
 
 def XOr(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
     """
-    Returns an exclusive disjunction of terms in CNF form.
-    This function has polimorphic n-arguments:
-    - XOr(a,b,c)
-    - XOr([a,b,c])
-    Restriction: Arguments must be boolean
+    | Returns an exclusive disjunction of terms in CNF form.
+    | This function has polimorphic n-arguments:
 
-    :param *args: Either an `Iterable` of `boolean expressions`, like `[a, b, c]`, or an unpacked version
-        of it, like `a, b, c`.
+        * XOr(a,b,c)
+        * XOr([a,b,c])
+
+    | Restriction: Arguments must be boolean
+
+    :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+        of it, like ``a, b, c``.
     :return: The exclusive disjunction in CNF form.
     """
     return get_environment().expression_manager.XOr(*args)
@@ -83,11 +89,12 @@ def XOr(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
 def Not(expression: BoolExpression) -> FNode:
     """
     Creates an expression of the form:
-        `not expression`
-    Restriction: `expression` must be of `boolean type`
+        ``not expression``
 
-    :param expression: The `boolean` expression of which the negation must be created.
-    :return: The created `NOT` expression.
+    Restriction: ``expression`` must be of ``boolean type``
+
+    :param expression: The ``boolean`` expression of which the negation must be created.
+    :return: The created ``Not`` expression.
     """
     return get_environment().expression_manager.Not(expression)
 
@@ -95,12 +102,13 @@ def Not(expression: BoolExpression) -> FNode:
 def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
     """
     Creates an expression of the form:
-        `left -> right`
-    Restriction: `Left` and `Right` must be of `boolean type`
+        ``left -> right``
 
-    :param left: The `boolean` expression acting as the premise of the `Implies`.
-    :param right: The `boolean` expression acting as the implied part of the `Implies`.
-    :return: The created `Implication`.
+    Restriction: ``Left`` and ``Right`` must be of ``boolean type``
+
+    :param left: The ``boolean`` expression acting as the premise of the ``Implies``.
+    :param right: The ``boolean`` expression acting as the implied part of the ``Implies``.
+    :return: The created ``Implication``.
     """
     return get_environment().expression_manager.Implies(left, right)
 
@@ -108,13 +116,14 @@ def Implies(left: BoolExpression, right: BoolExpression) -> FNode:
 def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
     """
     Creates an expression of the form:
-        `left <-> right`
-    Semantically, The expression is `True` only if `left` and `right` have the same value.
-    Restriction: `Left` and `Right` must be of `boolean type`
+        ``left <-> right``
 
-    :param left: The `left` member of the `Iff expression`.
-    :param right: The `right` member of the `Iff expression`.
-    :return: The created `Iff` expression.
+    Semantically, The expression is ``True`` only if ``left`` and ``right`` have the same value.
+    Restriction: ``Left`` and ``Right`` must be of ``boolean type``
+
+    :param left: The ``left`` member of the ``Iff expression``.
+    :param right: The ``right`` member of the ``Iff expression``.
+    :return: The created ``Iff`` expression.
     """
     return get_environment().expression_manager.Iff(left, right)
 
@@ -124,14 +133,15 @@ def Exists(
 ) -> FNode:
     """
     Creates an expression of the form:
-        `Exists (var[0]... var[n]) | expression`
-    Restriction: expression must be of `boolean type` and
-                vars must be of `Variable` type
+        ``Exists (var[0]... var[n]) | expression``
 
-    :param expression: The main expression of the `existential`. The expression should contain
-        the given `variables`.
-    :param *vars: All the `Variables` appearing in the `existential` expression.
-    :return: The created `Existential` expression.
+    Restriction: expression must be of ``boolean type`` and
+    vars must be of ``Variable`` type
+
+    :param expression: The main expression of the ``existential``. The expression should contain
+        the given ``variables``.
+    :param \*vars: All the ``Variables`` appearing in the ``existential`` expression.
+    :return: The created ``Existential`` expression.
     """
     return get_environment().expression_manager.Exists(expression, *vars)
 
@@ -140,14 +150,15 @@ def Forall(
     expression: BoolExpression, *vars: "unified_planning.model.Variable"
 ) -> FNode:
     """Creates an expression of the form:
-        `Forall (var[0]... var[n]) | expression`
-    Restriction: expression must be of `boolean type` and
-                vars must be of `Variable` type
+        ``Forall (var[0]... var[n]) | expression``
 
-    :param expression: The main expression of the `universal` quantifier. The expression should contain
-        the given `variables`.
-    :param *vars: All the `Variables` appearing in the `universal` expression.
-    :return: The created `Forall` expression.
+    Restriction: expression must be of ``boolean type`` and
+                vars must be of ``Variable`` type
+
+    :param expression: The main expression of the ``universal`` quantifier. The expression should contain
+        the given ``variables``.
+    :param \*vars: All the ``Variables`` appearing in the ``universal`` expression.
+    :return: The created ``Forall`` expression.
     """
     return get_environment().expression_manager.Forall(expression, *vars)
 
@@ -156,68 +167,78 @@ def FluentExp(
     fluent: "unified_planning.model.Fluent", params: Sequence[Expression] = tuple()
 ) -> FNode:
     """
-    Creates an expression for the given `fluent` and `parameters`.
-    Restriction: `parameters type` must be compatible with the `Fluent` :func:`signature <unified_planning.model.Fluent.signature>`
+    | Creates an expression for the given ``fluent`` and ``parameters``.
+    | Restriction: ``parameters type`` must be compatible with the ``Fluent`` :func:``signature <unified_planning.model.Fluent.signature>``
 
-    :param fluent: The `Fluent` that will be set as the `payload` of this expression.
-    :param params: The Iterable of expressions acting as `parameters` for this `Fluent`; mainly the parameters will
-        be :class:`Objects <unified_planning.model.Object>` (when the `FluentExp` is grounded) or :func:`Action parameters <unified_planning.model.Action.parameters>` (when the `FluentExp` is lifted).
-    :return: The created `Fluent` Expression.
+    :param fluent: The ``Fluent`` that will be set as the ``payload`` of this expression.
+    :param params: The Iterable of expressions acting as ``parameters`` for this ``Fluent``; mainly the parameters will
+        be :class:``Objects <unified_planning.model.Object>`` (when the ``FluentExp`` is grounded) or :func:``Action parameters <unified_planning.model.Action.parameters>`` (when the ``FluentExp`` is lifted).
+    :return: The created ``Fluent`` Expression.
     """
     return get_environment().expression_manager.FluentExp(fluent, params)
 
 
 def Always(expression: BoolExpression) -> FNode:
-    """Creates an expression of the form:
-        `Always(a)`
-    Restriction: expression must be of `boolean type` and with only one arg.
+    """
+    Creates an expression of the form:
+        ``Always(a)``
 
-    :param expression: The `boolean` expression of the trajectory constraints.
-    :return: The created `Always` expression.
+    Restriction: expression must be of ``boolean type`` and with only one arg.
+
+    :param expression: The ``boolean`` expression of the trajectory constraints.
+    :return: The created ``Always`` expression.
     """
     return get_environment().expression_manager.Always(expression)
 
 
 def Sometime(expression: BoolExpression) -> FNode:
-    """Creates an expression of the form:
-        `Sometime(a)`
-    Restriction: expression must be of `boolean type` and with only one arg.
+    """
+    Creates an expression of the form:
+        ``Sometime(a)``
 
-    :param expression: The `boolean` expression of the trajectory constraints.
-    :return: The created `Sometime` expression.
+    Restriction: expression must be of ``boolean type`` and with only one arg.
+
+    :param expression: The ``boolean`` expression of the trajectory constraints.
+    :return: The created ``Sometime`` expression.
     """
     return get_environment().expression_manager.Sometime(expression)
 
 
 def SometimeBefore(*expression: BoolExpression) -> FNode:
-    """Creates an expression of the form:
-        `Sometime-Before(a, b)`
-    Restriction: expression must be of `boolean type` and with only one args
+    """
+    Creates an expression of the form:
+        ``Sometime-Before(a, b)``
 
-    :param expression: The `boolean` expression of the trajectory constraints.
-    :return: The created `Sometime` expression.
+    Restriction: expression must be of ``boolean type`` and with only one args
+
+    :param expression: The ``boolean`` expression of the trajectory constraints.
+    :return: The created ``Sometime`` expression.
     """
     return get_environment().expression_manager.SometimeBefore(*expression)
 
 
 def SometimeAfter(*expression: BoolExpression) -> FNode:
-    """Creates an expression of the form:
-        `Sometime-After(a, b)`
-    Restriction: expression must be of `boolean type` and with only two arg.
+    """
+    Creates an expression of the form:
+        ``Sometime-After(a, b)``
 
-    :param expression: The `boolean` expression of the trajectory constraints.
-    :return: The created `Sometime-After(a, b)` expression.
+    Restriction: expression must be of ``boolean type`` and with only two arg.
+
+    :param expression: The ``boolean`` expression of the trajectory constraints.
+    :return: The created ``Sometime-After(a, b)`` expression.
     """
     return get_environment().expression_manager.SometimeAfter(*expression)
 
 
 def AtMostOnce(expression: BoolExpression) -> FNode:
-    """Creates an expression of the form:
-        `At-Most-Once(a, b)`
-    Restriction: expression must be of `boolean type` and with only two arg.
+    """
+    Creates an expression of the form:
+        ``At-Most-Once(a, b)``
 
-    :param expression: The `boolean` expression of the trajectory constraints.
-    :return: The created `At-Most-Once(a, b)` expression.
+    Restriction: expression must be of ``boolean type`` and with only two arg.
+
+    :param expression: The ``boolean`` expression of the trajectory constraints.
+    :return: The created ``At-Most-Once(a, b)`` expression.
     """
     return get_environment().expression_manager.AtMostOnce(expression)
 
@@ -226,18 +247,18 @@ def ParameterExp(param: "unified_planning.model.Parameter") -> FNode:
     """
     Returns an expression for the given :func:`Action parameter <unified_planning.model.Action.parameters>`.
 
-    :param param: The `Parameter` that must be promoted to `FNode`.
-    :return: The `FNode` containing the given `param` as his payload.
+    :param param: The ``Parameter`` that must be promoted to ``FNode``.
+    :return: The ``FNode`` containing the given ``param`` as his payload.
     """
     return get_environment().expression_manager.ParameterExp(param)
 
 
 def VariableExp(var: "unified_planning.model.Variable") -> FNode:
     """
-    Returns an expression for the given `Variable`.
+    Returns an expression for the given ``Variable``.
 
-    :param var: The `Variable` that must be promoted to `FNode`.
-    :return: The `FNode` containing the given `variable` as his payload.
+    :param var: The ``Variable`` that must be promoted to ``FNode``.
+    :return: The ``FNode`` containing the given ``variable`` as his payload.
     """
     return get_environment().expression_manager.VariableExp(var)
 
@@ -246,29 +267,29 @@ def ObjectExp(obj: "unified_planning.model.Object") -> FNode:
     """
     Returns an expression for the given object.
 
-    :param obj: The `Object` that must be promoted to `FNode`.
-    :return: The `FNode` containing the given object as his payload.
+    :param obj: The ``Object`` that must be promoted to ``FNode``.
+    :return: The ``FNode`` containing the given object as his payload.
     """
     return get_environment().expression_manager.ObjectExp(obj)
 
 
 def TimingExp(timing: "up.model.timing.Timing") -> "up.model.fnode.FNode":
     """
-    Returns an expression for the given `Timing`.
+    Returns an expression for the given ``Timing``.
 
-    :param timing: The `Timing` that must be promoted to `FNode`.
-    :return: The `FNode` containing the given `timing` as his payload.
+    :param timing: The ``Timing`` that must be promoted to ``FNode``.
+    :return: The ``FNode`` containing the given ``timing`` as his payload.
     """
     return get_environment().expression_manager.TimingExp(timing)
 
 
 def TRUE() -> FNode:
-    """Return the boolean constant `True`."""
+    """Return the boolean constant ``True``."""
     return get_environment().expression_manager.TRUE()
 
 
 def FALSE() -> FNode:
-    """Return the boolean constant `False`."""
+    """Return the boolean constant ``False``."""
     return get_environment().expression_manager.FALSE()
 
 
@@ -276,28 +297,28 @@ def Bool(value: bool) -> FNode:
     """
     Return a boolean constant.
 
-    :param value: The boolean value that must be promoted to `FNode`.
-    :return: The `FNode` containing the given `value` as his payload.
+    :param value: The boolean value that must be promoted to ``FNode``.
+    :return: The ``FNode`` containing the given ``value`` as his payload.
     """
     return get_environment().expression_manager.Bool(value)
 
 
 def Int(value: int) -> FNode:
     """
-    Return an `int` constant.
+    Return an ``int`` constant.
 
-    :param value: The integer that must be promoted to `FNode`.
-    :return: The `FNode` containing the given `integer` as his payload.
+    :param value: The integer that must be promoted to ``FNode``.
+    :return: The ``FNode`` containing the given ``integer`` as his payload.
     """
     return get_environment().expression_manager.Int(value)
 
 
 def Real(value: Fraction) -> FNode:
     """
-    Return a `real` constant.
+    Return a ``real`` constant.
 
-    :param value: The `Fraction` that must be promoted to `FNode`.
-    :return: The `FNode` containing the given `value` as his payload.
+    :param value: The ``Fraction`` that must be promoted to ``FNode``.
+    :return: The ``FNode`` containing the given ``value`` as his payload.
     """
     return get_environment().expression_manager.Real(value)
 
@@ -305,22 +326,23 @@ def Real(value: Fraction) -> FNode:
 def Plus(*args: Union[Expression, Iterable[Expression]]) -> FNode:
     """
     Creates an expression of the form:
-    `args[0] + ... + args[n]`
+        ``args[0] + ... + args[n]``
 
-    :param *args: Either an `Iterable` of expressions, like `[a, b, 3]`, or an unpacked version
-        of it, like `a, b, 3`.
-    :return: The `PLUS` expression created. (like `a + b + 3`)
+    :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+        of it, like ``a, b, 3``.
+    :return: The ``PLUS`` expression created. (like ``a + b + 3``)
     """
     return get_environment().expression_manager.Plus(*args)
 
 
 def Minus(left: Expression, right: Expression) -> FNode:
     """
-    Creates an expression of the form: `left - right`.
+    Creates an expression of the form:
+        ``left - right``
 
-    :param left: The `Minus minuend`.
-    :param right: The `Minus subtrahend`.
-    :return: The created `Minus` expression.
+    :param left: The ``Minus minuend``.
+    :param right: The ``Minus subtrahend``.
+    :return: The created ``Minus`` expression.
     """
     return get_environment().expression_manager.Minus(left, right)
 
@@ -328,79 +350,85 @@ def Minus(left: Expression, right: Expression) -> FNode:
 def Times(*args: Union[Expression, Iterable[Expression]]) -> FNode:
     """
     Creates an expression of the form:
-    `args[0] * ... * args[n]`
+        ``args[0] * ... * args[n]``
 
-    :param *args: Either an `Iterable` of expressions, like `[a, b, 3]`, or an unpacked version
-        of it, like `a, b, 3`.
-    :return: The `TIMES` expression created. (like `a * b * 3`)
+    :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+        of it, like ``a, b, 3``.
+    :return: The ``TIMES`` expression created. (like ``a * b * 3``)
     """
     return get_environment().expression_manager.Times(*args)
 
 
 def Div(left: Expression, right: Expression) -> FNode:
     """
-    Creates an expression of the form: `left / right`.
+    Creates an expression of the form:
+        ``left / right``.
 
-    :param left: The `Div dividend`.
-    :param right: The `Div divisor`.
-    :return: The created `DIV` expression.
+    :param left: The ``Div dividend``.
+    :param right: The ``Div divisor``.
+    :return: The created ``DIV`` expression.
     """
     return get_environment().expression_manager.Div(left, right)
 
 
 def LE(left: Expression, right: Expression) -> FNode:
     """
-    Creates an expression of the form: `left <= right`.
+    Creates an expression of the form:
+        ``left <= right``.
 
-    :param left: The left side of the `<=`.
-    :param right: The right side of the `<=`.
-    :return: The created `LE` expression.
+    :param left: The left side of the ``<=``.
+    :param right: The right side of the ``<=``.
+    :return: The created ``LE`` expression.
     """
     return get_environment().expression_manager.LE(left, right)
 
 
 def GE(left: Expression, right: Expression) -> FNode:
     """
-    Creates an expression of the form: `left >= right`.
+    Creates an expression of the form:
+        ``left >= right``.
 
-    :param left: The left side of the `>=`.
-    :param right: The right side of the `>=`.
-    :return: The created `GE` expression.
+    :param left: The left side of the ``>=``.
+    :param right: The right side of the ``>=``.
+    :return: The created ``GE`` expression.
     """
     return get_environment().expression_manager.GE(left, right)
 
 
 def LT(left: Expression, right: Expression) -> FNode:
     """
-    Creates an expression of the form: `left < right`.
+    Creates an expression of the form:
+        ``left < right``.
 
-    :param left: The left side of the `<`.
-    :param right: The right side of the `<`.
-    :return: The created `LT` expression.
+    :param left: The left side of the ``<``.
+    :param right: The right side of the ``<``.
+    :return: The created ``LT`` expression.
     """
     return get_environment().expression_manager.LT(left, right)
 
 
 def GT(left: Expression, right: Expression) -> FNode:
     """
-    Creates an expression of the form: `left > right`.
+    Creates an expression of the form:
+        ``left > right``.
 
-    :param left: The left side of the `>`.
-    :param right: The right side of the `>`.
-    :return: The created `GT` expression.
+    :param left: The left side of the ``>``.
+    :param right: The right side of the ``>``.
+    :return: The created ``GT`` expression.
     """
     return get_environment().expression_manager.GT(left, right)
 
 
 def Equals(left: Expression, right: Expression) -> FNode:
     """
-    Creates an expression of the form: `left == right`.
+    Creates an expression of the form:
+        ``left == right``.
 
-    NOTE: Is not valid for boolean expression, for those use `Iff`.
+    NOTE: Is not valid for boolean expression, for those use ``Iff``.
 
-    :param left: The left side of the `==`.
-    :param right: The right side of the `==`.
-    :return: The created `Equals` expression.
+    :param left: The left side of the ``==``.
+    :param right: The right side of the ``==``.
+    :return: The created ``Equals`` expression.
     """
     return get_environment().expression_manager.Equals(left, right)
 
@@ -410,12 +438,12 @@ def Dot(
     fluent_exp: Union[FNode, "unified_planning.model.Fluent"],
 ) -> FNode:
     """
-    Creates an expression for the given `agent` and `fluent_exp`.
-    Restriction: agent must be of `agent type` and fluent_exp must be of `fluentExp type`
+    Creates an expression for the given ``agent`` and ``fluent_exp``.
+    Restriction: agent must be of ``agent type`` and fluent_exp must be of ``fluentExp type``
 
-    :param agent: The `Agent` that will be set as the `payload` of this expression.
-    :param fluent_exp: The `Fluent_exp` that will be set as the `args` of this expression.
-    :return: The created `Dot` Expression.
+    :param agent: The ``Agent`` that will be set as the ``payload`` of this expression.
+    :param fluent_exp: The ``Fluent_exp`` that will be set as the ``args`` of this expression.
+    :return: The created ``Dot`` Expression.
     """
     return get_environment().expression_manager.Dot(agent, fluent_exp)
 
@@ -509,14 +537,14 @@ def OneshotPlanner(
 ) -> Engine:
     """
     Returns a oneshot planner. There are three ways to call this method:
-    - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
-    e.g. OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})
-    - using 'names' (list of specific planners name) and 'params' (list of
-    planner dependent options) to get a Parallel engine.
-    e.g. OneshotPlanner(names=['tamer', 'tamer'],
-    params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])
-    - using 'problem_kind' and 'optimality_guarantee'.
-    e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+
+    * using ``name`` (the name of a specific planner) and ``params`` (planner dependent options).
+        e.g. ``OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})``
+    * using ``names`` (list of specific planners name) and ``params`` (list of planner dependent options) to get a ``Parallel`` engine.
+        e.g. ``OneshotPlanner(names=['tamer', 'tamer'],
+        params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])``
+    * using ``problem_kind`` and ``optimality_guarantee``.
+        e.g. ``OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
     """
     return get_environment().factory.OneshotPlanner(
         name=name,
@@ -536,19 +564,21 @@ def AnytimePlanner(
 ) -> Engine:
     """
     Returns a anytime planner. There are two ways to call this method:
-    - using 'name' (the name of a specific planner) and 'params' (planner dependent options).
-    e.g. AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})
-    - using 'problem_kind' and 'anytime_guarantee'.
-    e.g. AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)
 
-    An AnytimePlanner is a planner that returns an iterator of solutions.
-    Depending on the given anytime_guarantee parameter, every plan being generated is:
-    - strictly better in terms of quality than the previous one (INCREASING_QUALITY);
-    - optimal (OPTIMAL_PLANS);
-    - just a different plan, with no specific guarantee (None).
+    * using ``name`` (the name of a specific planner) and ``params`` (planner dependent options).
+        e.g. ``AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})``
+    * using ``problem_kind`` and ``anytime_guarantee``.
+        e.g. ``AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)``
+
+    An ``AnytimePlanner`` is a planner that returns an ``Iterator`` of solutions.
+    Depending on the given ``anytime_guarantee`` parameter, every plan being generated is:
+
+    * strictly better in terms of quality than the previous one (``INCREASING_QUALITY``);
+    * optimal (``OPTIMAL_PLANS``);
+    * just a different plan, with no specific guarantee (``None``).
 
     It raises an exception if the problem has no optimality metrics and anytime_guarantee
-    is equal to INCREASING_QUALITY or OPTIMAL_PLAN.
+    is equal to ``INCREASING_QUALITY`` or ``OPTIMAL_PLAN``.
     """
     return get_environment().factory.AnytimePlanner(
         name=name,
@@ -568,15 +598,14 @@ def PlanValidator(
 ) -> Engine:
     """
     Returns a plan validator. There are three ways to call this method:
-    - using 'name' (the name of a specific plan validator) and 'params'
-    (plan validator dependent options).
-    e.g. PlanValidator(name='tamer', params={'opt': 'val'})
-    - using 'names' (list of specific plan validators name) and 'params' (list of
-    plan validators dependent options) to get a Parallel engine.
-    e.g. PlanValidator(names=['tamer', 'tamer'],
-    params=[{'opt1': 'val1'}, {'opt2': 'val2'}])
-    - using 'problem_kind' and 'plan_kind' parameters.
-    e.g. PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)
+
+    * using ``name`` (the name of a specific plan validator) and ``params`` (plan validator dependent options).
+        e.g. ``PlanValidator(name='tamer', params={'opt': 'val'})``
+    * using ``names`` (list of specific plan validators name) and ``params`` (list of plan validators dependent options) to get a ``Parallel`` engine.
+        e.g. ``PlanValidator(names=['tamer', 'tamer'],
+        params=[{'opt1': 'val1'}, {'opt2': 'val2'}])``
+    * using 'problem_kind' and 'plan_kind' parameters.
+        e.g. ``PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)``
     """
     return get_environment().factory.PlanValidator(
         name=name,
@@ -599,24 +628,24 @@ def Compiler(
     ] = None,
 ) -> "up.engines.engine.Engine":
     """
-    Returns a Compiler or a pipeline of Compilers.
+    Returns a compiler or a pipeline of compilers.
 
-    To get a Compiler there are two ways to call this method:
-    - using 'name' (the name of a specific compiler) and 'params'
-    (compiler dependent options).
-    e.g. Compiler(name='tamer', params={'opt': 'val'})
-    - using 'problem_kind' and 'compilation_kind' parameters.
-    e.g. Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)
+    To get a compiler there are two ways to call this method:
 
-    To get a pipeline of Compilers there are two ways to call this method:
-    - using 'names' (the names of the specific compilers), 'params'
-    (compilers dependent options) and 'compilation_kinds'.
-    e.g. Compiler(names=['up_quantifiers_remover', 'up_grounder'],
-    params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
-    compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
-    - using 'problem_kind' and 'compilation_kinds' parameters.
-    e.g. Compiler(problem_kind=problem.kind,
-    compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])
+    * using ``name`` (the name of a specific compiler) and ``params`` (compiler dependent options).
+        e.g. ``Compiler(name='tamer', params={'opt': 'val'})``
+    * using ``problem_kind`` and ``compilation_kind`` parameters.
+        e.g. ``Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)``
+
+    To get a pipeline of compilers there are two ways to call this method:
+
+    * using ``names`` (the names of the specific compilers), ``params`` (compilers dependent options) and ``compilation_kinds``.
+        e.g. ``Compiler(names=['up_quantifiers_remover', 'up_grounder'],
+        params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
+        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])``
+    * using ``problem_kind`` and ``compilation_kinds`` parameters.
+        e.g. ``Compiler(problem_kind=problem.kind,
+        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])``
     """
     return get_environment().factory.Compiler(
         name=name,
@@ -635,12 +664,12 @@ def SequentialSimulator(
     params: Optional[Dict[str, str]] = None,
 ) -> "up.engines.engine.Engine":
     """
-    Returns a SequentialSimulator. There are two ways to call this method:
-    - using 'problem_kind' through the problem field.
-    e.g. SequentialSimulator(problem)
-    - using 'name' (the name of a specific simulator) and eventually some 'params'
-    (simulator dependent options).
-    e.g. SequentialSimulator(problem, name='sequential_simulator')
+    Returns a sequential simulator. There are two ways to call this method:
+
+    * using ``problem_kind`` through the problem field.
+        e.g. ``SequentialSimulator(problem)``
+    * using ``name`` (the name of a specific simulator) and eventually some ``params`` (simulator dependent options).
+    e.g. ``SequentialSimulator(problem, name='sequential_simulator')``
     """
     return get_environment().factory.SequentialSimulator(
         problem=problem, name=name, params=params
@@ -656,11 +685,11 @@ def Replanner(
 ) -> "up.engines.engine.Engine":
     """
     Returns a Replanner. There are two ways to call this method:
-    - using 'problem' (with its kind) and 'optimality_guarantee' parameters.
-    e.g. Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)
-    - using 'name' (the name of a specific replanner) and 'params'
-    (replanner dependent options).
-    e.g. Replanner(problem, name='replanner[tamer]')
+
+    * using ``problem`` (with its kind) and ``optimality_guarantee`` parameters.
+        e.g. ``Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)``
+    * using ``name`` (the name of a specific replanner) and ``params`` (replanner dependent options).
+        e.g. ``Replanner(problem, name='replanner[tamer]')``
     """
     return get_environment().factory.Replanner(
         problem=problem,
@@ -680,10 +709,11 @@ def PlanRepairer(
 ) -> "up.engines.engine.Engine":
     """
     Returns a plan repairer. There are two ways to call this method:
-    - using 'name' (the name of a plan repairer) and eventually 'params'.
-    e.g. PlanRepairer(name='xxx')
-    - using 'problem_kind', 'plan_kind' and 'optimality_guarantee'.
-    e.g. PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+
+    * using ``name`` (the name of a plan repairer) and eventually ``params``.
+        e.g. ``PlanRepairer(name='xxx')``
+    * using ``problem_kind``, ``plan_kind`` and ``optimality_guarantee``.
+        e.g. ``PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
     """
     return get_environment().factory.PlanRepairer(
         name=name,
@@ -703,11 +733,11 @@ def PortfolioSelector(
 ) -> "up.engines.engine.Engine":
     """
     Returns a portfolio selector. There are two ways to call this method:
-    - using 'name' (the name of a specific portfolio) and eventually 'params'
-    (portfolio dependent options).
-    e.g. PortfolioSelector(name='ibacop')
-    - using 'problem_kind' and 'optimality_guarantee'.
-    e.g. OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)
+
+    * using ``name`` (the name of a specific portfolio) and eventually ``params`` (portfolio dependent options).
+        e.g. ``PortfolioSelector(name='ibacop')``
+    * using ``problem_kind`` and ``optimality_guarantee``.
+        e.g. ``OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
     """
     return get_environment().factory.PortfolioSelector(
         name=name,
