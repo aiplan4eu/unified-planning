@@ -43,16 +43,16 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
     instantiated on object.
 
     For example the formula:
-        `Forall (s-sempahore) is_green(s)`
+        ``Forall (s-sempahore) is_green(s)``
 
-    in a problem with 3 objects of type `semaphores {s1, s2, s3}` is compiled in:
-        `And(is_green(s1), is_green(s2), is_green(s3))`
+    in a problem with 3 objects of type ``semaphores {s1, s2, s3}`` is compiled in:
+        ``And(is_green(s1), is_green(s2), is_green(s3))``
 
     While the respective formula on the same problem:
-        `Exists (s-semaphore) is_green(s)`
+        ``Exists (s-semaphore) is_green(s)``
 
     becomes:
-        `Or(is_green(s1), is_green(s2), is_green(s3))`
+        ``Or(is_green(s1), is_green(s2), is_green(s3))``
     """
 
     def __init__(self):

@@ -538,13 +538,12 @@ def OneshotPlanner(
     """
     Returns a oneshot planner. There are three ways to call this method:
 
-    * using ``name`` (the name of a specific planner) and ``params`` (planner dependent options).
-        e.g. ``OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})``
-    * using ``names`` (list of specific planners name) and ``params`` (list of planner dependent options) to get a ``Parallel`` engine.
-        e.g. ``OneshotPlanner(names=['tamer', 'tamer'],
-        params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])``
-    * using ``problem_kind`` and ``optimality_guarantee``.
-        e.g. ``OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
+    *   | using ``name`` (the name of a specific planner) and ``params`` (planner dependent options).
+        | e.g. ``OneshotPlanner(name='tamer', params={'heuristic': 'hadd'})``
+    *   | using ``names`` (list of specific planners name) and ``params`` (list of planner dependent options) to get a ``Parallel`` engine.
+        | e.g. ``OneshotPlanner(names=['tamer', 'tamer'], params=[{'heuristic': 'hadd'}, {'heuristic': 'hmax'}])``
+    *   | using ``problem_kind`` and ``optimality_guarantee``.
+        | e.g. ``OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
     """
     return get_environment().factory.OneshotPlanner(
         name=name,
@@ -565,10 +564,10 @@ def AnytimePlanner(
     """
     Returns a anytime planner. There are two ways to call this method:
 
-    * using ``name`` (the name of a specific planner) and ``params`` (planner dependent options).
-        e.g. ``AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})``
-    * using ``problem_kind`` and ``anytime_guarantee``.
-        e.g. ``AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)``
+    *   | using ``name`` (the name of a specific planner) and ``params`` (planner dependent options).
+        | e.g. ``AnytimePlanner(name='tamer', params={'heuristic': 'hadd'})``
+    *   | using ``problem_kind`` and ``anytime_guarantee``.
+        | e.g. ``AnytimePlanner(problem_kind=problem.kind, anytime_guarantee=INCREASING_QUALITY)``
 
     An ``AnytimePlanner`` is a planner that returns an ``Iterator`` of solutions.
     Depending on the given ``anytime_guarantee`` parameter, every plan being generated is:
@@ -599,13 +598,12 @@ def PlanValidator(
     """
     Returns a plan validator. There are three ways to call this method:
 
-    * using ``name`` (the name of a specific plan validator) and ``params`` (plan validator dependent options).
-        e.g. ``PlanValidator(name='tamer', params={'opt': 'val'})``
-    * using ``names`` (list of specific plan validators name) and ``params`` (list of plan validators dependent options) to get a ``Parallel`` engine.
-        e.g. ``PlanValidator(names=['tamer', 'tamer'],
-        params=[{'opt1': 'val1'}, {'opt2': 'val2'}])``
-    * using 'problem_kind' and 'plan_kind' parameters.
-        e.g. ``PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)``
+    *   | using ``name`` (the name of a specific plan validator) and ``params`` (plan validator dependent options).
+        | e.g. ``PlanValidator(name='tamer', params={'opt': 'val'})``
+    *   | using ``names`` (list of specific plan validators name) and ``params`` (list of plan validators dependent options) to get a ``Parallel`` engine.
+        | e.g. ``PlanValidator(names=['tamer', 'tamer'], params=[{'opt1': 'val1'}, {'opt2': 'val2'}])``
+    *   | using ``problem_kind`` and ``plan_kind`` parameters.
+        | e.g. ``PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind)``
     """
     return get_environment().factory.PlanValidator(
         name=name,
@@ -632,20 +630,17 @@ def Compiler(
 
     To get a compiler there are two ways to call this method:
 
-    * using ``name`` (the name of a specific compiler) and ``params`` (compiler dependent options).
-        e.g. ``Compiler(name='tamer', params={'opt': 'val'})``
-    * using ``problem_kind`` and ``compilation_kind`` parameters.
-        e.g. ``Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)``
+    *   | using ``name`` (the name of a specific compiler) and ``params`` (compiler dependent options).
+        | e.g. ``Compiler(name='tamer', params={'opt': 'val'})``
+    *   | using ``problem_kind`` and ``compilation_kind`` parameters.
+        | e.g. ``Compiler(problem_kind=problem.kind, compilation_kind=GROUNDING)``
 
     To get a pipeline of compilers there are two ways to call this method:
 
-    * using ``names`` (the names of the specific compilers), ``params`` (compilers dependent options) and ``compilation_kinds``.
-        e.g. ``Compiler(names=['up_quantifiers_remover', 'up_grounder'],
-        params=[{'opt1': 'val1'}, {'opt2': 'val2'}],
-        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])``
-    * using ``problem_kind`` and ``compilation_kinds`` parameters.
-        e.g. ``Compiler(problem_kind=problem.kind,
-        compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])``
+    *   | using ``names`` (the names of the specific compilers), ``params`` (compilers dependent options) and ``compilation_kinds``.
+        | e.g. ``Compiler(names=['up_quantifiers_remover', 'up_grounder'], params=[{'opt1': 'val1'}, {'opt2': 'val2'}], compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])``
+    *   | using ``problem_kind`` and ``compilation_kinds`` parameters.
+        | e.g. ``Compiler(problem_kind=problem.kind, compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])``
     """
     return get_environment().factory.Compiler(
         name=name,
@@ -666,10 +661,10 @@ def SequentialSimulator(
     """
     Returns a sequential simulator. There are two ways to call this method:
 
-    * using ``problem_kind`` through the problem field.
-        e.g. ``SequentialSimulator(problem)``
-    * using ``name`` (the name of a specific simulator) and eventually some ``params`` (simulator dependent options).
-    e.g. ``SequentialSimulator(problem, name='sequential_simulator')``
+    *   | using ``problem_kind`` through the problem field.
+        | e.g. ``SequentialSimulator(problem)``
+    *   | using ``name`` (the name of a specific simulator) and eventually some ``params`` (simulator dependent options).
+        | e.g. ``SequentialSimulator(problem, name='sequential_simulator')``
     """
     return get_environment().factory.SequentialSimulator(
         problem=problem, name=name, params=params
@@ -686,10 +681,10 @@ def Replanner(
     """
     Returns a Replanner. There are two ways to call this method:
 
-    * using ``problem`` (with its kind) and ``optimality_guarantee`` parameters.
-        e.g. ``Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)``
-    * using ``name`` (the name of a specific replanner) and ``params`` (replanner dependent options).
-        e.g. ``Replanner(problem, name='replanner[tamer]')``
+    *   | using ``problem`` (with its kind) and ``optimality_guarantee`` parameters.
+        | e.g. ``Replanner(problem, optimality_guarantee=SOLVED_OPTIMALLY)``
+    *   | using ``name`` (the name of a specific replanner) and ``params`` (replanner dependent options).
+        | e.g. ``Replanner(problem, name='replanner[tamer]')``
     """
     return get_environment().factory.Replanner(
         problem=problem,
@@ -710,10 +705,10 @@ def PlanRepairer(
     """
     Returns a plan repairer. There are two ways to call this method:
 
-    * using ``name`` (the name of a plan repairer) and eventually ``params``.
-        e.g. ``PlanRepairer(name='xxx')``
-    * using ``problem_kind``, ``plan_kind`` and ``optimality_guarantee``.
-        e.g. ``PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
+    *   | using ``name`` (the name of a plan repairer) and eventually ``params``.
+        | e.g. ``PlanRepairer(name='xxx')``
+    *   | using ``problem_kind``, ``plan_kind`` and ``optimality_guarantee``.
+        | e.g. ``PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
     """
     return get_environment().factory.PlanRepairer(
         name=name,
@@ -734,10 +729,10 @@ def PortfolioSelector(
     """
     Returns a portfolio selector. There are two ways to call this method:
 
-    * using ``name`` (the name of a specific portfolio) and eventually ``params`` (portfolio dependent options).
-        e.g. ``PortfolioSelector(name='ibacop')``
-    * using ``problem_kind`` and ``optimality_guarantee``.
-        e.g. ``OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
+    *   | using ``name`` (the name of a specific portfolio) and eventually ``params`` (portfolio dependent options).
+        | e.g. ``PortfolioSelector(name='ibacop')``
+    *   | using ``problem_kind`` and ``optimality_guarantee``.
+        | e.g. ``OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
     """
     return get_environment().factory.PortfolioSelector(
         name=name,

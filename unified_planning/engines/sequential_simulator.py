@@ -60,7 +60,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         SequentialSimulatorMixin.__init__(self, problem)
         pk = problem.kind
         if not Grounder.supports(pk):
-            msg = f"The Grounder used in the {type(self)} does not support the given problem"
+            msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
             else:
@@ -83,7 +83,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         """
         if action not in self._actions:
             raise UPUsageError(
-                f"The given action does not belong to the {type(self)} problem."
+                f"The given action: {action.name} does not belong to the given problem."
             )
         grounded_act = self._grounder.ground_action(action, params)
         assert (
@@ -180,7 +180,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         )
         if not isinstance(state, up.model.UPState):
             raise UPUsageError(
-                f"The UPSequentialSimulator uses the UPState but {type(state)} is given."
+                f"The UPSequentialSimulator uses the UPState but {type(state).__name__} is given."
             )
         grounded_action = self._ground_action(action, params)
         if grounded_action is None:
