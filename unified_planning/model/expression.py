@@ -550,7 +550,7 @@ class ExpressionManager(object):
         :param value: The boolean value that must be promoted to ``FNode``.
         :return: The ``FNode`` containing the given ``value`` as his payload.
         """
-        if type(value) != bool:
+        if not isinstance(value, bool):
             raise UPTypeError("Expecting bool, got %s" % type(value))
 
         if value:
@@ -565,7 +565,7 @@ class ExpressionManager(object):
         :param value: The integer that must be promoted to ``FNode``.
         :return: The ``FNode`` containing the given ``integer`` as his payload.
         """
-        if type(value) != int:
+        if not isinstance(value, int):
             raise UPTypeError("Expecting int, got %s" % type(value))
         return self.create_node(
             node_type=OperatorKind.INT_CONSTANT, args=tuple(), payload=value
@@ -578,7 +578,7 @@ class ExpressionManager(object):
         :param value: The ``Fraction`` that must be promoted to ``FNode``.
         :return: The ``FNode`` containing the given ``value`` as his payload.
         """
-        if type(value) != Fraction:
+        if not isinstance(value, Fraction):
             raise UPTypeError("Expecting Fraction, got %s" % type(value))
         return self.create_node(
             node_type=OperatorKind.REAL_CONSTANT, args=tuple(), payload=value
