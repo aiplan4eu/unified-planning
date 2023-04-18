@@ -88,7 +88,8 @@ class HierarchicalProblem(up.model.problem.Problem):
         new_p._goals = self._goals[:]
         new_p._metrics = []
         for m in self._metrics:
-            if isinstance(m, up.model.metrics.MinimizeActionCosts):
+            if m.is_minimize_action_costs():
+                assert isinstance(m, up.model.metrics.MinimizeActionCosts)
                 costs: Dict["up.model.Action", "up.model.Expression"] = {
                     new_p.action(a.name): c for a, c in m.costs.items()
                 }

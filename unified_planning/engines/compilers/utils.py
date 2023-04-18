@@ -18,6 +18,7 @@
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
+from unified_planning.environment import Environment
 from unified_planning.model import (
     FNode,
     TimeInterval,
@@ -406,7 +407,8 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             new_problem.add_goal(arg)
 
     for qm in original_problem.quality_metrics:
-        if isinstance(qm, MinimizeActionCosts):
+        if qm.is_minimize_action_costs():
+            assert isinstance(qm, MinimizeActionCosts)
             new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
             for new_a, old_a in new_to_old.items():
                 cost = qm.get_action_cost(old_a)
@@ -416,15 +418,18 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             new_qm: PlanQualityMetric = MinimizeActionCosts(
                 new_costs, environment=new_problem.environment
             )
-        elif isinstance(qm, MinimizeExpressionOnFinalState):
+        elif qm.is_minimize_expression_on_final_state():
+            assert isinstance(qm, MinimizeExpressionOnFinalState)
             new_qm = MinimizeExpressionOnFinalState(
                 function(qm.expression), environment=new_problem.environment
             )
-        elif isinstance(qm, MaximizeExpressionOnFinalState):
+        elif qm.is_maximize_expression_on_final_state():
+            assert isinstance(qm, MaximizeExpressionOnFinalState)
             new_qm = MaximizeExpressionOnFinalState(
                 function(qm.expression), environment=new_problem.environment
             )
-        elif isinstance(qm, Oversubscription):
+        elif qm.is_oversubscription():
+            assert isinstance(qm, Oversubscription)
             new_goals: Dict[BoolExpression, NumericConstant] = {}
             for goal, gain in qm.goals.items():
                 new_goal = function(em.And(goal, condition).simplify())
@@ -432,7 +437,8 @@ def add_invariant_condition_apply_function_to_problem_expressions(
                     cast(Union[int, Fraction], new_goals.get(new_goal, 0)) + gain
                 )
             new_qm = Oversubscription(new_goals, environment=new_problem.environment)
-        elif isinstance(qm, TemporalOversubscription):
+        elif qm.is_temporal_oversubscription():
+            assert isinstance(qm, TemporalOversubscription)
             new_temporal_goals: Dict[
                 Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                 NumericConstant,
@@ -468,3 +474,31 @@ def _apply_function_to_effect(
         function(effect.condition),
         effect.kind,
     )
+
+
+def updated_minimize_action_costs(
+    quality_metric: PlanQualityMetric,
+    new_to_old: Union[Dict[Action, Action], Dict[Action, Optional[Action]]],
+    environment: Environment,
+):
+    """
+    This method takes a `MinimizeActionCosts` `PlanQualityMetric`, a mapping from the new
+    action introduced by the compiler to the old action of the problem (None if the
+    new action) does not have a counterpart in the original problem) and returns the
+    updated equivalent metric for the new problem. This simply changes the costs keys
+    and does not alter the cost expression, so it does not cover use-cases like grounding.
+
+    :param quality_metric: The `MinimizeActionCosts`metric to update.
+    :param new_to_old: The action's mapping from the compiled problem to the original problem.
+    :param environment: The environment of the new problem (therefore, also of the new actions).
+    """
+    assert isinstance(quality_metric, MinimizeActionCosts)
+    new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
+    for new_act, old_act in new_to_old.items():
+        if old_act is not None:
+            new_cost = quality_metric.get_action_cost(old_act)
+            if new_cost is not None:
+                new_costs[new_act] = new_cost
+        else:
+            new_costs[new_act] = environment.expression_manager.Int(0)
+    return MinimizeActionCosts(new_costs, environment=environment)

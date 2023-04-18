@@ -26,14 +26,16 @@ from unified_planning.model import (
     FNode,
     Action,
     Effect,
-    Timing,
     ProblemKind,
-    MinimizeActionCosts,
     Oversubscription,
     TemporalOversubscription,
 )
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
-from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+    replace_action,
+    updated_minimize_action_costs,
+)
 from unified_planning.exceptions import (
     UPExpressionDefinitionError,
     UPProblemDefinitionError,
@@ -226,16 +228,14 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem.add_goal(ng)
 
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
-                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
-                for new_act, old_act in new_to_old.items():
-                    new_cost = qm.get_action_cost(old_act)
-                    if new_cost is not None:
-                        new_costs[new_act] = new_cost
+            if qm.is_minimize_action_costs():
                 new_problem.add_quality_metric(
-                    MinimizeActionCosts(new_costs, environment=new_problem.environment)
+                    updated_minimize_action_costs(
+                        qm, new_to_old, new_problem.environment
+                    )
                 )
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 new_problem.add_quality_metric(
                     Oversubscription(
                         {
@@ -245,7 +245,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         environment=new_problem.environment,
                     )
                 )
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 new_problem.add_quality_metric(
                     TemporalOversubscription(
                         {

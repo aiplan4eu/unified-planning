@@ -36,8 +36,6 @@ from unified_planning.model import (
     FNode,
     ExpressionManager,
     MinimizeActionCosts,
-    MinimizeSequentialPlanLength,
-    MinimizeMakespan,
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
     Oversubscription,
@@ -259,11 +257,10 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             )
 
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeSequentialPlanLength) or isinstance(
-                qm, MinimizeMakespan
-            ):
+            if qm.is_minimize_sequential_plan_length() or qm.is_minimize_makespan():
                 new_problem.add_quality_metric(qm)
-            elif isinstance(qm, MinimizeExpressionOnFinalState):
+            elif qm.is_minimize_expression_on_final_state():
+                assert isinstance(qm, MinimizeExpressionOnFinalState)
                 new_problem.add_quality_metric(
                     MinimizeExpressionOnFinalState(
                         utf_remover.remove_usertype_fluents_from_condition(
@@ -272,7 +269,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         environment=new_problem.environment,
                     )
                 )
-            elif isinstance(qm, MaximizeExpressionOnFinalState):
+            elif qm.is_maximize_expression_on_final_state():
+                assert isinstance(qm, MaximizeExpressionOnFinalState)
                 new_problem.add_quality_metric(
                     MaximizeExpressionOnFinalState(
                         utf_remover.remove_usertype_fluents_from_condition(
@@ -281,7 +279,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         environment=new_problem.environment,
                     )
                 )
-            elif isinstance(qm, MinimizeActionCosts):
+            elif qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
                 new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_act, old_act in new_to_old.items():
                     cost = qm.get_action_cost(old_act)
@@ -291,7 +290,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(
                     MinimizeActionCosts(new_costs, environment=new_problem.environment)
                 )
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 new_goals: Dict[BoolExpression, NumericConstant] = {
                     utf_remover.remove_usertype_fluents_from_condition(g): v
                     for g, v in qm.goals.items()
@@ -299,7 +299,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(
                     Oversubscription(new_goals, environment=new_problem.environment)
                 )
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 new_temporal_goals: Dict[
                     Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                     NumericConstant,
@@ -591,18 +592,25 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         for tr in problem.trajectory_constraints:
             defined_names.update(tr.get_contained_names())
         for qm in problem._metrics:
-            if isinstance(qm, MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
                 for cost in qm.costs.values():
                     if cost is not None:
                         defined_names.update(cost.get_contained_names())
-            elif isinstance(
-                qm, (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState)
+            elif (
+                qm.is_minimize_expression_on_final_state()
+                or qm.is_maximize_expression_on_final_state()
             ):
+                assert isinstance(
+                    qm, (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState)
+                )
                 defined_names.update(qm.expression.get_contained_names())
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 for g in qm.goals:
                     defined_names.update(g.get_contained_names())
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 for _, g in qm.goals:
                     defined_names.update(g.get_contained_names())
 

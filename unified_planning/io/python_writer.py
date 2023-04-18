@@ -353,38 +353,45 @@ class PythonWriter:
             out.write(f"problem.add_goal(goal={converter.convert(g)})\n")
 
         for qm in self.problem.quality_metrics:  # adding metrics
-            if isinstance(qm, up.model.metrics.MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, up.model.metrics.MinimizeActionCosts)
                 out.write("costs = {}\n")
                 for a, ac in qm.costs.items():
                     out.write(f"costs[act_{a.name}] = {converter.convert(ac)}\n")
-            elif isinstance(qm, up.model.metrics.Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, up.model.metrics.Oversubscription)
                 out.write("goals = {}\n")
                 for goal, cost in qm.goals.items():
                     out.write(f"goals[{converter.convert(goal)}] = {cost}\n")
-            elif isinstance(qm, up.model.metrics.TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, up.model.metrics.TemporalOversubscription)
                 out.write("goals = {}\n")
                 for (i, goal), cost in qm.goals.items():
                     out.write(
                         f"goals[({_convert_interval(i)}, {converter.convert(goal)})] = {cost}\n"
                     )
             out.write("problem.add_quality_metric(")
-            if isinstance(qm, up.model.metrics.MinimizeActionCosts):
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, up.model.metrics.MinimizeActionCosts)
                 out.write(f"up.model.metrics.MinimizeActionCosts(costs, {qm.default})")
-            elif isinstance(qm, up.model.metrics.MinimizeSequentialPlanLength):
+            elif qm.is_minimize_sequential_plan_length():
                 out.write("up.model.metrics.MinimizeSequentialPlanLength()")
-            elif isinstance(qm, up.model.metrics.MinimizeMakespan):
+            elif qm.is_minimize_makespan():
                 out.write("up.model.metrics.MinimizeMakespan()")
-            elif isinstance(qm, up.model.metrics.MinimizeExpressionOnFinalState):
+            elif qm.is_minimize_expression_on_final_state():
+                assert isinstance(qm, up.model.metrics.MinimizeExpressionOnFinalState)
                 out.write(
                     f"up.model.metrics.MinimizeExpressionOnFinalState({converter.convert(qm.expression)})"
                 )
-            elif isinstance(qm, up.model.metrics.MaximizeExpressionOnFinalState):
+            elif qm.is_maximize_expression_on_final_state():
+                assert isinstance(qm, up.model.metrics.MaximizeExpressionOnFinalState)
                 out.write(
                     f"up.model.metrics.MaximizeExpressionOnFinalState({converter.convert(qm.expression)})"
                 )
-            elif isinstance(qm, up.model.metrics.Oversubscription):
+            elif qm.is_oversubscription():
                 out.write("up.model.metrics.Oversubscription(goals)")
-            elif isinstance(qm, up.model.metrics.TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, up.model.metrics.TemporalOversubscription)
                 out.write("up.model.metrics.TemporalOversubscription(goals)")
             else:
                 raise NotImplementedError

@@ -49,7 +49,8 @@ class MetricsMixin:
         We make sure that any action appearing in hte metric is from the new set passed as parameter."""
         cloned: List[PlanQualityMetric] = []
         for m in self._metrics:
-            if isinstance(m, up.model.metrics.MinimizeActionCosts):
+            if m.is_minimize_action_costs():
+                assert isinstance(m, up.model.metrics.MinimizeActionCosts)
                 assert new_actions is not None
                 costs: Dict["up.model.Action", "up.model.Expression"] = {
                     new_actions.action(a.name): c for a, c in m.costs.items()
@@ -75,7 +76,10 @@ class MetricsMixin:
         fluents_to_only_increase = set()
         fluents_to_only_decrease = set()
         for metric in self._metrics:
-            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
+            if metric.is_minimize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MinimizeExpressionOnFinalState
+                )
                 kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
@@ -91,7 +95,10 @@ class MetricsMixin:
                     }
                 else:
                     kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+            elif metric.is_maximize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MaximizeExpressionOnFinalState
+                )
                 kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
@@ -107,15 +114,15 @@ class MetricsMixin:
                     }
                 else:
                     kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
+            elif metric.is_minimize_action_costs():
                 kind.set_quality_metrics("ACTIONS_COST")
-            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
+            elif metric.is_minimize_makespan():
                 kind.set_quality_metrics("MAKESPAN")
-            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+            elif metric.is_minimize_sequential_plan_length():
                 kind.set_quality_metrics("PLAN_LENGTH")
-            elif isinstance(metric, up.model.metrics.Oversubscription):
+            elif metric.is_oversubscription():
                 kind.set_quality_metrics("OVERSUBSCRIPTION")
-            elif isinstance(metric, up.model.metrics.TemporalOversubscription):
+            elif metric.is_temporal_oversubscription():
                 kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
             else:
                 assert False, "Unknown quality metric"

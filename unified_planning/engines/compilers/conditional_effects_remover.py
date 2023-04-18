@@ -18,12 +18,13 @@
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.compilers.utils import updated_minimize_action_costs
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPConflictingEffectsException,
 )
-from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
+from unified_planning.model import Problem, ProblemKind
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     check_and_simplify_preconditions,
@@ -261,14 +262,11 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
 
         new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
-                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
-                for new_act, old_act in new_to_old.items():
-                    new_cost = qm.get_action_cost(old_act)
-                    if new_cost is not None:
-                        new_costs[new_act] = new_cost
+            if qm.is_minimize_action_costs():
                 new_problem.add_quality_metric(
-                    MinimizeActionCosts(new_costs, environment=new_problem.environment)
+                    updated_minimize_action_costs(
+                        qm, new_to_old, new_problem.environment
+                    )
                 )
             else:
                 new_problem.add_quality_metric(qm)

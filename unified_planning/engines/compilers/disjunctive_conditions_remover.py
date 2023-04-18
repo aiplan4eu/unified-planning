@@ -18,7 +18,11 @@ from fractions import Fraction
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+    replace_action,
+    updated_minimize_action_costs,
+)
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
@@ -32,7 +36,6 @@ from unified_planning.model import (
     Timing,
     Action,
     ProblemKind,
-    MinimizeActionCosts,
     Oversubscription,
     TemporalOversubscription,
 )
@@ -235,19 +238,14 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_to_old[a] = old_action
 
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
-                new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
-                for new_act, old_act in new_to_old.items():
-                    if old_act is not None:
-                        new_cost = qm.get_action_cost(old_act)
-                        if new_cost is not None:
-                            new_costs[new_act] = new_cost
-                    else:
-                        new_costs[new_act] = em.Int(0)
+            if qm.is_minimize_action_costs():
                 new_problem.add_quality_metric(
-                    MinimizeActionCosts(new_costs, environment=new_problem.environment)
+                    updated_minimize_action_costs(
+                        qm, new_to_old, new_problem.environment
+                    )
                 )
-            elif isinstance(qm, Oversubscription):
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 new_oversubscription: Dict[BoolExpression, NumericConstant] = {}
                 for g, v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(
@@ -259,7 +257,8 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                         new_oversubscription, environment=new_problem.environment
                     )
                 )
-            elif isinstance(qm, TemporalOversubscription):
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
                 new_temporal_oversubscription: Dict[
                     Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                     NumericConstant,
