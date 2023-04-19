@@ -849,15 +849,12 @@ class MAPDDLWriter:
         # Iterate the actions to retrieve domain objects
         import unified_planning.model.walkers as walkers
 
+        get_dots = walkers.AnyGetter(lambda x: x.is_dot())
         for a in agent.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 for p in a.preconditions:
-                    if p.is_dot():
-                        _update_domain_objects_ag(self.domain_objects_agents, p.agent())
-                    elif p.args[0].is_dot():
-                        _update_domain_objects_ag(
-                            self.domain_objects_agents, p.args[0].agent()
-                        )
+                    for d in get_dots.get(p):
+                        _update_domain_objects_ag(self.domain_objects_agents, d.agent())
                     _update_domain_objects(self.domain_objects, obe.get(p))
                 for e in a.effects:
                     if e.is_conditional():
@@ -869,10 +866,10 @@ class MAPDDLWriter:
             elif isinstance(a, DurativeAction):
                 _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
                 _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
-                for interval, cl in a.conditions.items():
+                for cl in a.conditions.values():
                     for c in cl:
                         _update_domain_objects(self.domain_objects, obe.get(c))
-                for t, el in a.effects.items():
+                for el in a.effects.values():
                     for e in el:
                         if e.is_conditional():
                             _update_domain_objects(

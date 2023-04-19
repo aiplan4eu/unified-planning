@@ -23,6 +23,7 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
     UPExpressionDefinitionError,
+    UPPlanDefinitionError,
 )
 from typing import Optional, List, Dict, Union, cast, Iterable
 from unified_planning.model.mixins import (
@@ -30,6 +31,7 @@ from unified_planning.model.mixins import (
     UserTypesSetMixin,
     AgentsSetMixin,
 )
+from fractions import Fraction
 
 
 class MultiAgentProblem(  # type: ignore[misc]
@@ -404,11 +406,34 @@ class MultiAgentProblem(  # type: ignore[misc]
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
         """
         Normalizes the given `Plan`, that is potentially the result of another
-        `Problem`, updating the `Object` references in the `Plan` with the ones of
-        this `Problem` which are syntactically equal.
+        `MAProblem`, updating the `Object` references in the `Plan` with the ones of
+        this `MAProblem` which are syntactically equal.
 
         :param plan: The `Plan` that must be normalized.
         :return: A `Plan` syntactically valid for this `Problem`.
         """
-        raise NotImplementedError
-        # TODO
+        return plan.replace_action_instances(self._replace_action_instance)
+
+    def _replace_action_instance(
+        self, action_instance: "up.plans.ActionInstance"
+    ) -> "up.plans.ActionInstance":
+        em = self.environment.expression_manager
+        if action_instance.agent is None:
+            raise UPPlanDefinitionError(
+                f"An ActionInstance for a multi-agent problem must have an Agent; {action_instance} has no Agent."
+            )
+        new_a = action_instance.agent.action(action_instance.action.name)
+        params = []
+        for p in action_instance.actual_parameters:
+            if p.is_object_exp():
+                obj = self.object(p.object().name)
+                params.append(em.ObjectExp(obj))
+            elif p.is_bool_constant():
+                params.append(em.Bool(p.is_true()))
+            elif p.is_int_constant():
+                params.append(em.Int(cast(int, p.constant_value())))
+            elif p.is_real_constant():
+                params.append(em.Real(cast(Fraction, p.constant_value())))
+            else:
+                raise NotImplementedError
+        return up.plans.ActionInstance(new_a, tuple(params), action_instance.agent)
