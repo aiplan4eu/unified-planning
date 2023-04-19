@@ -990,6 +990,14 @@ class Factory:
     def print_engines_info(
         self, stream: IO[str] = sys.stdout, full_credits: bool = True
     ):
+        """
+        Writes the info of all the installed engines in the given stream.
+
+        :param stream: The ``IO[str]`` where all the engine's info are written;
+            defaults to sys.stdout.
+        :param full_credits: If ``False`` a shorter version of the info is written;
+            defaults to ``True``.
+        """
         stream.write("These are the engines currently available:\n")
         for Engine in self._engines.values():
             credits = Engine.get_credits()
@@ -1010,7 +1018,26 @@ class Factory:
         plan_kind: Optional[Union["PlanKind", str]] = None,
         compilation_kind: Optional[Union["CompilationKind", str]] = None,
     ) -> List[str]:
-        """TODO"""
+        """
+        | Returns all the engine names installed that are able to handle all the given
+          requirements.
+
+        | Since the semantic of the parameters given to this function depends on the chosen ``OperationMode``,
+          an user must have clear their meaning in the Operation Mode context.
+
+        :param problem_kind: An engine is returned only if it supports this ``problem_kind``.
+        :param operation_mode: An engine is returned only if it implements this ``operation_mode``; defaults to ``ONESHOT_PLANNER``.
+        :param optimality_guarantee: An engine is returned only if it satisfies this ``optimality_guarantee``. This parameter
+            can be specified only if the ``operation_mode`` is ``ONESHOT_PLANNER``, ``REPLANNER``, ``PLAN_REPAIRER``
+            or ``PORTFOLIO_SELECTOR``.
+        :param anytime_guarantee: An engine is returned only if it satisfies this ``anytime_guarantee``. This parameter
+            can be specified only if the ``operation_mode`` is ``ANYTIME_PLANNER``.
+        :param plan_kind: An engine is returned only if it is able to handle this ``plan_kind``. This parameter
+            can be specified only if the ``operation_mode`` is ``PLAN_VALIDATOR`` or ``PLAN_REPAIRER``.
+        :param compilation_kind: An engine is returned only if it is able to handle this ``compilation_kind``. This
+            parameter can be specified only if the ``operation_mode`` is ``COMPILER``.
+        :return: The list of engines names that satisfy all the given requirements.
+        """
         if isinstance(optimality_guarantee, str):
             try:
                 optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
