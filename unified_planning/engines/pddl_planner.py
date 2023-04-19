@@ -91,8 +91,8 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
 
     def _get_engine_epsilon(self) -> Optional[Fraction]:
         """
-        Must be implemented only if the Engine supports Temporal problems, and therefore
-        might return TimeTriggeredPlans.
+        | Returns the epsilon used by the engine.
+        | Note: must be implemented only if the engine supports temporal problems.
         """
         raise NotImplementedError
 
