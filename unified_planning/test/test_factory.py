@@ -45,6 +45,6 @@ class TestFactory(TestCase):
     def test_get_all_applicable_engines(self):
         basic = self.problems["basic"].problem
         factory = basic.environment.factory
-        print(factory.get_all_applicable_engines(basic.kind))
+        print(factory.get_all_applicable_engines(ProblemKind()))
 
         assert False
