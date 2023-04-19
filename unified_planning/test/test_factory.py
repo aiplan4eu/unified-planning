@@ -42,9 +42,17 @@ class TestFactory(TestCase):
 
     @skipIfEngineNotAvailable("pyperplan")
     @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_get_all_applicable_engines(self):
-        basic = self.problems["basic"].problem
-        factory = basic.environment.factory
-        print(factory.get_all_applicable_engines(ProblemKind()))
+        problem = self.problems["basic"].problem
+        factory = problem.environment.factory
+        names = factory.get_all_applicable_engines(problem.kind)
+        expected_names = ["tamer", "opt-pddl-planner"]
+        for name in expected_names:
+            self.assertIn(name, names)
 
-        assert False
+        problem = self.problems["basic_without_negative_preconditions"].problem
+        names = factory.get_all_applicable_engines(problem.kind)
+        expected_names = ["tamer", "opt-pddl-planner", "pyperplan"]
+        for name in expected_names:
+            self.assertIn(name, names)
