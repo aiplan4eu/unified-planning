@@ -16,11 +16,16 @@ import os
 import inspect
 import tempfile
 import unified_planning
+from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, skipIfEngineNotAvailable
 
 
 class TestFactory(TestCase):
+    def setUp(self):
+        TestCase.setUp(self)
+        self.problems = get_example_problems()
+
     @skipIfEngineNotAvailable("pyperplan")
     @skipIfEngineNotAvailable("tamer")
     def test_config_file(self):
@@ -34,3 +39,12 @@ class TestFactory(TestCase):
             environment.factory.configure_from_file(config_filename)
             self.assertTrue("pyperplan" not in environment.factory.preference_list)
             self.assertEqual(environment.factory.preference_list, ["tamer"])
+
+    @skipIfEngineNotAvailable("pyperplan")
+    @skipIfEngineNotAvailable("tamer")
+    def test_get_all_applicable_engines(self):
+        basic = self.problems["basic"].problem
+        factory = basic.environment.factory
+        print(factory.get_all_applicable_engines(basic.kind))
+
+        assert False
