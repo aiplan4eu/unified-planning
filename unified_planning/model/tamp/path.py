@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from abc import ABC
 from dataclasses import dataclass
 from typing import Tuple, List
 
 
-class Path:
+class Path(ABC):
     """
     This class represents a geometric path.
     A geometric path is a list of waypoints,

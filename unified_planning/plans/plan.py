@@ -17,6 +17,7 @@
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model import AbstractProblem
+from abc import ABC, abstractmethod
 from typing import Callable, Optional, Tuple, Dict
 from enum import Enum, auto
 
@@ -115,7 +116,7 @@ class PlanKind(Enum):
     HIERARCHICAL_PLAN = auto()
 
 
-class Plan:
+class Plan(ABC):
     """Represents a generic plan."""
 
     def __init__(
@@ -134,6 +135,7 @@ class Plan:
         """Returns the `Plan` `kind`"""
         return self._kind
 
+    @abstractmethod
     def replace_action_instances(
         self, replace_function: Callable[[ActionInstance], Optional[ActionInstance]]
     ) -> "Plan":
@@ -148,6 +150,7 @@ class Plan:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
         """
         This function takes a `PlanKind` and returns the representation of `self`

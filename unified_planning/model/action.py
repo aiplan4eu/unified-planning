@@ -27,13 +27,13 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPUsageError,
 )
+from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
+from abc import ABC, abstractmethod
 from typing import Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
-from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 
-
-class Action:
+class Action(ABC):
     """This is the `Action` interface."""
 
     def __init__(
@@ -66,12 +66,15 @@ class Action:
                     n, t, self._environment
                 )
 
+    @abstractmethod
     def __eq__(self, oth: object) -> bool:
         raise NotImplementedError
 
+    @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
 
+    @abstractmethod
     def clone(self):
         raise NotImplementedError
 

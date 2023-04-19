@@ -13,14 +13,15 @@
 # limitations under the License.
 #
 
+from abc import ABC, abstractmethod
 import inspect
 from typing import Iterator, List, Optional, Tuple, Union, Sequence
 from warnings import warn
 import unified_planning as up
-from unified_planning.exceptions import UPUsageError, UPInvalidActionError
+from unified_planning.exceptions import UPUsageError
 
 
-class SequentialSimulatorMixin:
+class SequentialSimulatorMixin(ABC):
     """
     SequentialSimulatorMixin abstract class.
     This class defines the interface that an :class:`~unified_planning.engines.Engine`
@@ -103,6 +104,7 @@ class SequentialSimulatorMixin:
         """
         return self._get_initial_state()
 
+    @abstractmethod
     def _get_initial_state(self) -> "up.model.State":
         """Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.get_initial_state."""
         raise NotImplementedError
@@ -130,6 +132,7 @@ class SequentialSimulatorMixin:
         )
         return self._is_applicable(state, act, params)
 
+    @abstractmethod
     def _is_applicable(
         self,
         state: "up.model.State",
@@ -166,6 +169,7 @@ class SequentialSimulatorMixin:
         )
         return self._apply(state, act, params)
 
+    @abstractmethod
     def _apply(
         self,
         state: "up.model.State",
@@ -188,6 +192,7 @@ class SequentialSimulatorMixin:
         """
         return self._get_applicable_actions(state)
 
+    @abstractmethod
     def _get_applicable_actions(
         self, state: "up.model.State"
     ) -> Iterator[Tuple["up.model.Action", Tuple["up.model.FNode", ...]]]:
@@ -211,6 +216,7 @@ class SequentialSimulatorMixin:
         """
         return self._is_goal(state)
 
+    @abstractmethod
     def _is_goal(self, state: "up.model.State") -> bool:
         """
         Method called by the up.engines.mixins.sequential_simulator.SequentialSimulatorMixin.is_goal.

@@ -13,14 +13,16 @@
 # limitations under the License.
 #
 
+from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
 
 
-class State:
+class State(ABC):
     """This is an abstract class representing a classical `State`"""
 
+    @abstractmethod
     def get_value(self, value: "up.model.FNode") -> "up.model.FNode":
         """
         This method retrieves the value in the state.

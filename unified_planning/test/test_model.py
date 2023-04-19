@@ -90,15 +90,8 @@ class TestModel(TestCase):
 
     def test_clone_action(self):
         Location = UserType("Location")
-        a = Action("move", l_from=Location, l_to=Location)
-        with self.assertRaises(NotImplementedError):
-            a.clone()
-        with self.assertRaises(NotImplementedError):
-            hash(a)
-        with self.assertRaises(NotImplementedError):
-            a == a.name
-        with self.assertRaises(NotImplementedError):
-            a.is_conditional()
+        with self.assertRaises(TypeError):
+            a = Action("move", l_from=Location, l_to=Location)  # type: ignore[abstract]
 
     def test_clone_effect(self):
         x = FluentExp(Fluent("x"))

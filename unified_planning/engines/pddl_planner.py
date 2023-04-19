@@ -14,6 +14,7 @@
 #
 """This module defines an interface for a generic PDDL planner."""
 
+from abc import ABCMeta, abstractmethod
 import asyncio
 from asyncio.subprocess import PIPE
 import select
@@ -71,6 +72,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         self._process = None
         self._writer = None
 
+    @abstractmethod
     def _get_cmd(
         self, domain_filename: str, problem_filename: str, plan_filename: str
     ) -> List[str]:
@@ -266,6 +268,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             status, plan, log_messages=logs, engine_name=self.name
         )
 
+    @abstractmethod
     def _result_status(
         self,
         problem: "up.model.Problem",

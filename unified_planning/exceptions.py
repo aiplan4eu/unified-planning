@@ -25,6 +25,10 @@ class UPProblemDefinitionError(UPException):
     pass
 
 
+class UPPlanDefinitionError(UPException):
+    pass
+
+
 class UPTypeError(UPException, TypeError):
     pass
 

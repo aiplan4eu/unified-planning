@@ -47,9 +47,9 @@ class TestProblem(TestCase):
         self.assertEqual(str(Location), "Location")
 
         pos = ag1.fluent("pos")
-        self.assertEqual(str(pos), "Location pos")
-        self.assertEqual(pos.arity, 0)
-        self.assertTrue(pos.type.is_user_type())
+        self.assertEqual(str(pos), "bool pos[position=Location]")
+        self.assertEqual(pos.arity, 1)
+        self.assertTrue(pos.type.is_bool_type())
 
         cargo_at = problem.ma_environment.fluent("cargo_at")
         self.assertEqual(cargo_at.name, "cargo_at")
@@ -87,7 +87,7 @@ class TestProblem(TestCase):
         self.assertEqual(l_to.name, "l_to")
         self.assertEqual(l_to.type, Location)
         self.assertEqual(len(move.preconditions), 2)
-        self.assertEqual(len(move.effects), 1)
+        self.assertEqual(len(move.effects), 2)
 
         load = ag1.action("load")
         loc = load.parameter("loc")
@@ -137,5 +137,15 @@ class TestProblem(TestCase):
         self.assertTrue(problem.initial_value(cargo_at(l1)) is not None)
         self.assertTrue(problem.initial_value(cargo_at(l2)) is not None)
         self.assertTrue(problem.initial_value(cargo_at(l3)) is not None)
-        self.assertTrue(problem.initial_value(Dot(ag1, pos)) is not None)
+        self.assertTrue(problem.initial_value(Dot(ag1, pos(l1))) is not None)
+        self.assertTrue(problem.initial_value(Dot(ag1, pos(l2))) is not None)
+        self.assertTrue(problem.initial_value(Dot(ag1, pos(l3))) is not None)
         self.assertEqual(len(problem.goals), 1)
+
+    def test_normalize_plan(self):
+        problem, plan = self.problems["ma-loader"]
+
+        cloned_problem = problem.clone()
+        cloned_plan = cloned_problem.normalize_plan(plan)
+        for a, ca in zip(plan.actions, cloned_plan.actions):
+            self.assertTrue(a.is_semantically_equivalent(ca))

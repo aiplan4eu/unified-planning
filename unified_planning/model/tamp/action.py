@@ -18,11 +18,12 @@ import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model import InstantaneousAction
 from unified_planning.exceptions import UPTypeError
+from abc import ABC, abstractmethod
 from typing import Optional, List, Iterable
 from collections import OrderedDict
 
 
-class MotionConstraint:
+class MotionConstraint(ABC):
     """
     This class represents a motion constraint.
 
@@ -33,9 +34,11 @@ class MotionConstraint:
     def __init__(self, environment: Optional[Environment] = None):
         self._environment = get_environment(environment)
 
+    @abstractmethod
     def __eq__(self, oth) -> bool:
         raise NotImplementedError
 
+    @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
 

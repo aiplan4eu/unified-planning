@@ -17,11 +17,12 @@ import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from abc import ABC
 from fractions import Fraction
 from typing import Dict, Optional, Union, Tuple
 
 
-class PlanQualityMetric:
+class PlanQualityMetric(ABC):
     """
     This is the base class of any metric for :class:`~unified_planning.model.Plan` quality.
 

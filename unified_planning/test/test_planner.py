@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from typing import Callable
 import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
@@ -29,6 +30,7 @@ from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
 from unified_planning.engines.results import POSITIVE_OUTCOMES
+from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 
@@ -288,6 +290,42 @@ class TestPlanner(TestCase):
             planner.skip_checks = True
             plan = planner.solve(problem).plan
             self.assertIsNotNone(plan)
+
+    def test_engine_class(self):
+        with self.assertRaises(TypeError):
+            Engine()  # type: ignore[abstract]
+
+        class OneshotEnginePartial(Engine, OneshotPlannerMixin):
+            @property
+            def name(self):
+                return "PartialEngine"
+
+            def supports(self):
+                return True
+
+            def supported_kind(self):
+                return ProblemKind()
+
+        with self.assertRaises(TypeError):
+            OneshotEnginePartial()  # type: ignore[abstract]
+
+        class OneshotEngineComplete(OneshotEnginePartial):
+            @property
+            def name(self):
+                return "CompleteEngine"
+
+            def _solve(
+                self,
+                problem: "up.model.AbstractProblem",
+                heuristic: Optional[
+                    Callable[["up.model.state.State"], Optional[float]]
+                ] = None,
+                timeout: Optional[float] = None,
+                output_stream: Optional[IO[str]] = None,
+            ) -> "up.engines.results.PlanGenerationResult":
+                raise NotImplementedError
+
+        OneshotEngineComplete()
 
 
 if __name__ == "__main__":
