@@ -363,15 +363,13 @@ def ground_minimize_action_costs_metric(
         the static fluents in the action cost with their value.
     :return: The equivalent MinimizeActionCosts metric for the grounded problem.
     """
-    new_costs: Dict[Action, Optional[FNode]] = {}
+    new_costs: Dict[Action, Expression] = {}
     for new_action, (old_action, params) in trace_back_map.items():
         subs = cast(
             Dict[Expression, Expression],
             dict(zip(old_action.parameters, params)),
         )
         old_cost = metric.get_action_cost(old_action)
-        if old_cost is None:
-            new_costs[new_action] = None
-        else:
+        if old_cost is not None:
             new_costs[new_action] = simplifier.simplify(old_cost.substitute(subs))
     return MinimizeActionCosts(new_costs)

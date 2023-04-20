@@ -118,6 +118,7 @@ class MetricsMixin:
                 else:
                     kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             elif metric.is_minimize_action_costs():
+                assert isinstance(metric, up.model.metrics.MinimizeActionCosts)
                 kind.set_quality_metrics("ACTIONS_COST")
                 for cost in metric.costs.values():
                     if cost is None:
