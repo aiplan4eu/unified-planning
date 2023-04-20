@@ -123,8 +123,8 @@ class SimulatedEnvironment(Environment):
             raise UPUsageError("The given action is not applicable!")
         self._state = new_state
         res = {}
-        if isinstance(action, up.model.contingent.sensing_action.SensingAction):
-            for f in action.observed_fluents:
+        if isinstance(action.action, up.model.contingent.sensing_action.SensingAction):
+            for f in action.action.observed_fluents:
                 res[f] = self._state.get_value(f)
         return res
 
