@@ -115,6 +115,7 @@ class MinimizeActionCosts(PlanQualityMetric):
                 raise UPProblemDefinitionError(
                     f"The default cost expression {default_exp} and the metric don't have the same environment"
                 )
+            self._default = default_exp
 
     def __repr__(self):
         costs: Dict[str, Optional["up.model.fnode.FNode"]] = {
