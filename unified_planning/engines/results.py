@@ -17,9 +17,9 @@
 
 from fractions import Fraction
 import unified_planning as up
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import AbstractProblem, PlanQualityMetric
-from unified_planning.plans import ActionInstance
+from unified_planning.exceptions import UPUsageError, UPValueError
+from unified_planning.model import AbstractProblem, Problem, PlanQualityMetric
+from unified_planning.plans import ActionInstance, TimeTriggeredPlan
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, Dict, Optional, List, Union
@@ -169,6 +169,83 @@ class PlanGenerationResult(Result):
                 and self.status == PlanGenerationResultStatus.SOLVED_SATISFICING
             )
         )
+
+
+def correct_plan_generation_result(
+    result: PlanGenerationResult,
+    problem: Problem,
+    engine_epsilon: Optional[Union[int, float, str, Fraction]],
+) -> PlanGenerationResult:
+    """
+    This function takes a PlanGenerationResult of a temporal problem and
+    corrects it considering the epsilon requested by the problem.
+
+    This method works only with TimeTriggeredPlans when the result contains a Plan.
+
+    :param result: The PlanGenerationResult that must be checked.
+    :param problem: The Problem the given PlanGenerationResult refers to.
+    :param engine_epsilon: The epsilon used by the Engine; if None it means that the
+        Engine does not guarantee a minimum separation value.
+    :return: The new PlanGenerationResult that enforces policy of handling different
+        epsilons between the engine and the problem.
+    """
+    assert result.plan is None or isinstance(
+        result.plan, TimeTriggeredPlan
+    ), "This method works only for TimeTriggeredPlans"
+    if not isinstance(engine_epsilon, Fraction) and engine_epsilon is not None:
+        try:
+            engine_epsilon = Fraction(engine_epsilon)
+        except ValueError as e:
+            raise UPValueError(
+                f"Given engine_epsilon is not convertible to Fraction: {str(e)}."
+            )
+    if engine_epsilon == problem.epsilon:
+        return result
+    elif engine_epsilon is None or (
+        problem.epsilon is not None and engine_epsilon < problem.epsilon
+    ):
+        # if engine_epsilon is not specified or it's smaller than the problem's
+        # requested epsilon, if the plan is not found the result is fine.
+        # If the plan is found, it must be checked for the plan's epsilon.
+        # if the plan epsilon is smaller than the one requested by the problem,
+        # the result is not valid.
+        assert problem.epsilon is not None
+        if result.status in POSITIVE_OUTCOMES:
+            # check that the solution fits the problem
+            assert isinstance(result.plan, TimeTriggeredPlan)
+            plan_epsilon = result.plan.extract_epsilon(problem)
+            if plan_epsilon is not None and plan_epsilon < problem.epsilon:
+                return PlanGenerationResult(
+                    PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                    None,
+                    result.engine_name,
+                    result.metrics,
+                    result.log_messages,
+                )
+    elif problem.epsilon is None or (
+        engine_epsilon is not None and problem.epsilon < engine_epsilon
+    ):
+        # If the problem's epsilon is not specified or it's smaller than the
+        # epsilon specified by the Engine, the given solution might not be
+        # final, therefore unsatisfiability or optimality can't be proven
+        assert engine_epsilon is not None
+        if result.status == PlanGenerationResultStatus.UNSOLVABLE_PROVEN:
+            return PlanGenerationResult(
+                PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                None,
+                result.engine_name,
+                result.metrics,
+                result.log_messages,
+            )
+        elif result.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY:
+            return PlanGenerationResult(
+                PlanGenerationResultStatus.SOLVED_SATISFICING,
+                None,
+                result.engine_name,
+                result.metrics,
+                result.log_messages,
+            )
+    return result
 
 
 @dataclass

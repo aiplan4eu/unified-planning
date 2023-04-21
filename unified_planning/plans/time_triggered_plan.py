@@ -16,9 +16,10 @@
 
 import unified_planning as up
 import unified_planning.plans as plans
+from unified_planning.model import InstantaneousAction, Timing, DurativeAction, Problem
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
-from typing import Callable, Optional, Tuple, List
+from typing import Callable, Optional, Set, Tuple, List, Union
 from fractions import Fraction
 
 
@@ -151,3 +152,64 @@ class TimeTriggeredPlan(plans.plan.Plan):
             return self
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+
+    def extract_epsilon(self, problem: Problem) -> Optional[Fraction]:
+        """
+        Returns the epsilon of this plan. The epsilon is the minimum time that
+        elapses between 2 events of this plan.
+
+        :param problem: The problem referred by this plan.
+        :return: The minimum time elapses between 2 events of this plan. None is
+            returned if the plan does not have at least 2 events.
+        """
+        times: Set[Fraction] = {Fraction(0)}
+        for i in problem.timed_goals.keys():
+            times.add(Fraction(i.lower.delay))
+            times.add(Fraction(i.upper.delay))
+        for t in problem.timed_effects.keys():
+            times.add(Fraction(t.delay))
+        for start, ai, duration in self._actions:
+            times.add(start)
+            if duration is None:
+                assert isinstance(
+                    ai.action, InstantaneousAction
+                ), "Error, None duration specified for non InstantaneousAction"
+                continue
+            times.add(start + duration)
+            action = ai.action
+            assert isinstance(action, DurativeAction)
+            for t in action.effects.keys():
+                times.add(_absolute_time(t, start, duration))
+            for t in action.simulated_effects.keys():
+                times.add(_absolute_time(t, start, duration))
+            for i in action.conditions.keys():
+                times.add(_absolute_time(i.lower, start, duration))
+                times.add(_absolute_time(i.upper, start, duration))
+
+        sorted_times: List[Fraction] = sorted(times)
+        epsilon = sorted_times[-1]
+        if epsilon == Fraction(0):
+            return None
+        prev_time = sorted_times[0]
+        for current_time in sorted_times[1:]:
+            epsilon = min(epsilon, current_time - prev_time)
+            prev_time = current_time
+        return epsilon
+
+
+def _absolute_time(
+    relative_time: Timing, start: Fraction, duration: Fraction
+) -> Fraction:
+    """
+    Given the start time and the timing in the action returns the absolute
+    time of the given timing.
+
+    :param relative_time: The timing in the action.
+    :param start: the starting time of the action.
+    :param duration: The duration of the action.
+    :return: The absolute time of the given timing.
+    """
+    if relative_time.is_from_start():
+        return start + relative_time.delay
+    else:
+        return start + duration + relative_time.delay

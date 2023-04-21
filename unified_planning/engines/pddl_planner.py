@@ -89,6 +89,13 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         """
         raise NotImplementedError
 
+    def _get_engine_epsilon(self) -> Optional[Fraction]:
+        """
+        | Returns the epsilon used by the engine.
+        | Note: must be implemented only if the engine supports temporal problems.
+        """
+        raise NotImplementedError
+
     def _plan_from_file(
         self,
         problem: "up.model.Problem",
@@ -264,9 +271,16 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         status: PlanGenerationResultStatus = self._result_status(
             problem, plan, retval, logs
         )
-        return PlanGenerationResult(
+        res = PlanGenerationResult(
             status, plan, log_messages=logs, engine_name=self.name
         )
+        problem_kind = problem.kind
+        if problem_kind.has_continuous_time() or problem_kind.has_discrete_time():
+            if isinstance(plan, up.plans.TimeTriggeredPlan) or plan is None:
+                return up.engines.results.correct_plan_generation_result(
+                    res, problem, self._get_engine_epsilon()
+                )
+        return res
 
     @abstractmethod
     def _result_status(

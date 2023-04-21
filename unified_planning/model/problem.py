@@ -15,11 +15,13 @@
 """This module defines the problem class."""
 
 
+from numbers import Real
 import unified_planning as up
 import unified_planning.model.tamp
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
+    TimeModelMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
@@ -40,6 +42,7 @@ from typing import Optional, List, Dict, Set, Tuple, Union, cast
 class Problem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
+    TimeModelMixin,
     FluentsSetMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
@@ -61,6 +64,7 @@ class Problem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
+        TimeModelMixin.__init__(self, epsilon_default=None, discrete_time=False)
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
@@ -93,6 +97,8 @@ class Problem(  # type: ignore[misc]
         s = []
         if self.name is not None:
             s.append(f"problem name = {str(self.name)}\n\n")
+        if self._epsilon is not None:
+            s.append(f"epsilon separation = {self._epsilon}\n\n")
         if len(self.user_types) > 0:
             s.append(f"types = {str(list(self.user_types))}\n\n")
         s.append("fluents = [\n")
@@ -221,6 +227,7 @@ class Problem(  # type: ignore[misc]
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
+        TimeModelMixin._clone_to(self, new_p)
 
         new_p._actions = [a.clone() for a in self._actions]
         new_p._timed_effects = {
@@ -312,6 +319,13 @@ class Problem(  # type: ignore[misc]
                     static_fluents.remove(e.fluent.fluent())
         return static_fluents
 
+    @property
+    def timed_goals(
+        self,
+    ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
+        """Returns all the `timed goals` in the `Problem`."""
+        return self._timed_goals
+
     def add_timed_goal(
         self,
         interval: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
@@ -341,16 +355,16 @@ class Problem(  # type: ignore[misc]
         if goal_exp not in goals:
             goals.append(goal_exp)
 
-    @property
-    def timed_goals(
-        self,
-    ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
-        """Returns all the `timed goals` in the `Problem`."""
-        return self._timed_goals
-
     def clear_timed_goals(self):
         """Removes all the `timed goals` from the `Problem`."""
         self._timed_goals = {}
+
+    @property
+    def timed_effects(
+        self,
+    ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
+        """Returns all the `timed effects` in the `Problem`."""
+        return self._timed_effects
 
     def add_timed_effect(
         self,
@@ -480,18 +494,16 @@ class Problem(  # type: ignore[misc]
         )
         self._timed_effects.setdefault(timing, []).append(effect)
 
-    @property
-    def timed_effects(
-        self,
-    ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
-        """Returns all the `timed effects` in the `Problem`."""
-        return self._timed_effects
-
     def clear_timed_effects(self):
         """Removes all the `timed effects` from the `Problem`."""
         self._timed_effects = {}
         self._fluents_assigned = {}
         self._fluents_inc_dec = {}
+
+    @property
+    def goals(self) -> List["up.model.fnode.FNode"]:
+        """Returns all the `goals` in the `Problem`."""
+        return self._goals
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
@@ -509,6 +521,15 @@ class Problem(  # type: ignore[misc]
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
+
+    def clear_goals(self):
+        """Removes all the `goals` from the `Problem`."""
+        self._goals = []
+
+    @property
+    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
+        """Returns the 'trajectory_constraints' in the 'Problem'."""
+        return self._trajectory_constraints
 
     def add_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
         """
@@ -538,20 +559,6 @@ class Problem(  # type: ignore[misc]
                 or constraint.is_always()
             ), "trajectory constraint not in the correct form"
         self._trajectory_constraints.append(constraint.simplify())
-
-    @property
-    def goals(self) -> List["up.model.fnode.FNode"]:
-        """Returns all the `goals` in the `Problem`."""
-        return self._goals
-
-    @property
-    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
-        """Returns the 'trajectory_constraints' in the 'Problem'."""
-        return self._trajectory_constraints
-
-    def clear_goals(self):
-        """Removes all the `goals` from the `Problem`."""
-        self._goals = []
 
     def clear_trajectory_constraints(self):
         """Removes the trajectory_constraints."""
@@ -621,6 +628,9 @@ class Problem(  # type: ignore[misc]
         else:
             if not self._kind.has_simple_numeric_planning():
                 self._kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        if self._kind.has_continuous_time() and self.discrete_time:
+            self._kind.set_time("DISCRETE_TIME")
+            self._kind.unset_time("CONTINUOUS_TIME")
         return self._kind
 
     def _update_problem_kind_effect(
