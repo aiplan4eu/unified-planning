@@ -352,7 +352,7 @@ class MultiAgentProblem(  # type: ignore[misc]
     def _update_problem_kind_condition(self, exp: "up.model.fnode.FNode"):
         ops = self._operators_extractor.get(exp)
         if OperatorKind.EQUALS in ops:
-            self._kind.set_conditions_kind("EQUALITY")
+            self._kind.set_conditions_kind("EQUALITIES")
         if OperatorKind.NOT in ops:
             self._kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         if OperatorKind.OR in ops:

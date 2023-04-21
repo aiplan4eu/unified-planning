@@ -34,20 +34,28 @@ FEATURES = {
         "DISCRETE_TIME",
         "INTERMEDIATE_CONDITIONS_AND_EFFECTS",
         "EXTERNAL_CONDITIONS_AND_EFFECTS",
-        "TIMED_EFFECT",
+        "TIMED_EFFECTS",
         "TIMED_GOALS",
         "DURATION_INEQUALITIES",
     ],
-    "EXPRESSION_DURATION": ["STATIC_FLUENTS_IN_DURATION", "FLUENTS_IN_DURATION"],
+    "EXPRESSION_DURATION": ["STATIC_FLUENTS_IN_DURATIONS", "FLUENTS_IN_DURATIONS"],
     "NUMBERS": ["CONTINUOUS_NUMBERS", "DISCRETE_NUMBERS", "BOUNDED_TYPES"],
     "CONDITIONS_KIND": [
         "NEGATIVE_CONDITIONS",
         "DISJUNCTIVE_CONDITIONS",
-        "EQUALITY",
+        "EQUALITIES",
         "EXISTENTIAL_CONDITIONS",
         "UNIVERSAL_CONDITIONS",
     ],
-    "EFFECTS_KIND": ["CONDITIONAL_EFFECTS", "INCREASE_EFFECTS", "DECREASE_EFFECTS"],
+    "EFFECTS_KIND": [
+        "CONDITIONAL_EFFECTS",
+        "INCREASE_EFFECTS",
+        "DECREASE_EFFECTS",
+        "STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS",
+        "STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS",
+        "FLUENTS_IN_BOOLEAN_ASSIGNMENTS",
+        "FLUENTS_IN_NUMERIC_ASSIGNMENTS",
+    ],
     "TYPING": ["FLAT_TYPING", "HIERARCHICAL_TYPING"],
     "FLUENTS_TYPE": ["NUMERIC_FLUENTS", "OBJECT_FLUENTS"],
     "QUALITY_METRICS": [
@@ -58,6 +66,7 @@ FEATURES = {
         "OVERSUBSCRIPTION",
         "TEMPORAL_OVERSUBSCRIPTION",
     ],
+    "ACTIONS_COST_KIND": ["STATIC_FLUENTS_IN_ACTIONS_COST", "FLUENTS_IN_ACTIONS_COST"],
     "SIMULATED_ENTITIES": ["SIMULATED_EFFECTS"],
     "CONSTRAINTS_KIND": ["TRAJECTORY_CONSTRAINTS"],
     "HIERARCHICAL": [
@@ -183,14 +192,14 @@ classical_kind.set_problem_class("ACTION_BASED")
 classical_kind.set_typing("FLAT_TYPING")
 classical_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
 classical_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-classical_kind.set_conditions_kind("EQUALITY")
+classical_kind.set_conditions_kind("EQUALITIES")
 
 full_classical_kind = ProblemKind()
 full_classical_kind.set_problem_class("ACTION_BASED")
 full_classical_kind.set_typing("FLAT_TYPING")
 full_classical_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
 full_classical_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-full_classical_kind.set_conditions_kind("EQUALITY")
+full_classical_kind.set_conditions_kind("EQUALITIES")
 full_classical_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
 full_classical_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 full_classical_kind.set_effects_kind("CONDITIONAL_EFFECTS")
@@ -229,10 +238,10 @@ temporal_kind.set_problem_class("ACTION_BASED")
 temporal_kind.set_typing("FLAT_TYPING")
 temporal_kind.set_time("CONTINUOUS_TIME")
 temporal_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-temporal_kind.set_time("TIMED_EFFECT")
+temporal_kind.set_time("TIMED_EFFECTS")
 temporal_kind.set_time("TIMED_GOALS")
 temporal_kind.set_time("DURATION_INEQUALITIES")
-temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
+temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
 
 quality_metrics_kind = ProblemKind()
 quality_metrics_kind.set_quality_metrics("PLAN_LENGTH")
@@ -251,7 +260,7 @@ multi_agent_kind.set_typing("FLAT_TYPING")
 multi_agent_kind.set_typing("HIERARCHICAL_TYPING")
 multi_agent_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
 multi_agent_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-multi_agent_kind.set_conditions_kind("EQUALITY")
+multi_agent_kind.set_conditions_kind("EQUALITIES")
 multi_agent_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
 multi_agent_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 multi_agent_kind.set_effects_kind("CONDITIONAL_EFFECTS")

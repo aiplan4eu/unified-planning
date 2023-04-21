@@ -26,7 +26,7 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
     def __init__(self):
-        up.engines.PDDLPlanner.__init__(self, False)
+        up.engines.PDDLPlanner.__init__(self, False, True)
         self._options = ["-planner", "opt-hrmax"]
 
     @property
@@ -162,14 +162,20 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_quality_metrics("FINAL_VALUE")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
         return supported_kind

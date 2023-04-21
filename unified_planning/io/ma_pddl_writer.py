@@ -46,6 +46,7 @@ from unified_planning.io.pddl_writer import (
     ConverterToPDDLString,
     PDDL_KEYWORDS,
     INITIAL_LETTER,
+    _write_effect,
 )
 
 
@@ -87,17 +88,25 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 
 
 class MAPDDLWriter:
-    """This class can be used to write a :class:`~unified_planning.model.MultiAgentProblem` in `MA-PDDL`."""
+    """
+    This class can be used to write a :class:`~unified_planning.model.MultiAgentProblem` in `MA-PDDL`.
+    The constructor of this class takes the problem to write and 2 flags:
+    needs_requirements determines if the printed problem must have the :requirements,
+    rewrite_bool_assignments determines if this writer will write
+    non constant boolean assignment as conditional effects.
+    """
 
     def __init__(
         self,
         problem: "up.model.multi_agent.MultiAgentProblem",
         needs_requirements: bool = True,
+        rewrite_bool_assignments: bool = False,
     ):
         self._env = problem.environment
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
+        self.rewrite_bool_assignments = rewrite_bool_assignments
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
             Union[
@@ -138,7 +147,7 @@ class MAPDDLWriter:
                     "PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0)."
                 )
             if (
-                self.problem_kind.has_timed_effect()
+                self.problem_kind.has_timed_effects()
                 or self.problem_kind.has_timed_goals()
             ):
                 raise UPProblemDefinitionError(
@@ -161,7 +170,7 @@ class MAPDDLWriter:
                     out.write(" :negative-preconditions")
                 if self.problem_kind.has_disjunctive_conditions():
                     out.write(" :disjunctive-preconditions")
-                if self.problem_kind.has_equality():
+                if self.problem_kind.has_equalities():
                     out.write(" :equality")
                 if (
                     self.problem_kind.has_continuous_numbers()
@@ -431,26 +440,13 @@ class MAPDDLWriter:
                     if len(a.effects) > 0:
                         out.write("\n  :effect (and\n")
                         for e in a.effects:
-                            if e.is_conditional():
-                                out.write(f"   (when {converter.convert(e.condition)}")
-                            if e.value.is_true():
-                                out.write(f"   {converter.convert(e.fluent)}\n")
-                            elif e.value.is_false():
-                                out.write(f"   (not {converter.convert(e.fluent)})\n")
-                            elif e.is_increase():
-                                out.write(
-                                    f"   (increase {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
-                                )
-                            elif e.is_decrease():
-                                out.write(
-                                    f"   (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
-                                )
-                            else:
-                                out.write(
-                                    f"   (assign {converter.convert(e.fluent)} {converter.convert(e.value)})\n"
-                                )
-                            if e.is_conditional():
-                                out.write(f")\n")
+                            _write_effect(
+                                e,
+                                None,
+                                out,
+                                converter,
+                                self.rewrite_bool_assignments,
+                            )
 
                         if a in costs:
                             out.write(
@@ -505,33 +501,13 @@ class MAPDDLWriter:
                         out.write("\n  :effect (and")
                         for t, el in a.effects.items():
                             for e in el:
-                                if t.is_from_start():
-                                    out.write(f" (at start")
-                                else:
-                                    out.write(f" (at end")
-                                if e.is_conditional():
-                                    out.write(
-                                        f" (when {converter.convert(e.condition)}"
-                                    )
-                                if e.value.is_true():
-                                    out.write(f" {converter.convert(e.fluent)}")
-                                elif e.value.is_false():
-                                    out.write(f" (not {converter.convert(e.fluent)})")
-                                elif e.is_increase():
-                                    out.write(
-                                        f" (increase {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                                    )
-                                elif e.is_decrease():
-                                    out.write(
-                                        f" (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                                    )
-                                else:
-                                    out.write(
-                                        f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                                    )
-                                if e.is_conditional():
-                                    out.write(f")")
-                                out.write(")")
+                                _write_effect(
+                                    e,
+                                    t,
+                                    out,
+                                    converter,
+                                    self.rewrite_bool_assignments,
+                                )
                         if a in costs:
                             out.write(
                                 f" (at end (increase (total-cost) {converter.convert(costs[a])}))"

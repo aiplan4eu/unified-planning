@@ -305,7 +305,7 @@ def convert_problem_to_tarski(
     """
     features: List[str] = []
     kind = problem.kind
-    if kind.has_equality():
+    if kind.has_equalities():
         features.append("equality")
     if (
         kind.has_continuous_numbers()

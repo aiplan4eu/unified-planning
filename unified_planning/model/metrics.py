@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import UPProblemDefinitionError, UPUsageError
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
 from abc import ABC
 from fractions import Fraction
@@ -115,6 +115,7 @@ class MinimizeActionCosts(PlanQualityMetric):
                 raise UPProblemDefinitionError(
                     f"The default cost expression {default_exp} and the metric don't have the same environment"
                 )
+            self._default = default_exp
 
     def __repr__(self):
         costs: Dict[str, Optional["up.model.fnode.FNode"]] = {
@@ -151,6 +152,10 @@ class MinimizeActionCosts(PlanQualityMetric):
             it's invalid; every action cost MUST be set, either with the cost mapping
             or with the default.
         """
+        if not isinstance(action, up.model.Action):
+            raise UPUsageError(
+                f"An `Action` was expected for this method, got {action}!"
+            )
         return self._costs.get(action, self._default)
 
     @staticmethod
