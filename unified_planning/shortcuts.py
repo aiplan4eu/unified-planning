@@ -29,9 +29,10 @@ from unified_planning.engines import (
     CompilationKind,
     OptimalityGuarantee,
     OperationMode,
+    AnytimeGuarantee,
 )
 from unified_planning.plans import PlanKind
-from typing import IO, Any, Iterable, Union, Dict, Optional, Sequence
+from typing import IO, Any, Iterable, Union, Dict, Optional, Sequence, List
 from fractions import Fraction
 
 
@@ -739,6 +740,45 @@ def PortfolioSelector(
         params=params,
         problem_kind=problem_kind,
         optimality_guarantee=optimality_guarantee,
+    )
+
+
+def get_all_applicable_engines(
+    problem_kind: ProblemKind,
+    operation_mode: OperationMode = OperationMode.ONESHOT_PLANNER,
+    *,
+    optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
+    anytime_guarantee: Optional[Union["AnytimeGuarantee", str]] = None,
+    plan_kind: Optional[Union["PlanKind", str]] = None,
+    compilation_kind: Optional[Union["CompilationKind", str]] = None,
+) -> List[str]:
+    """
+    | Returns all the engine names installed that are able to handle all the given
+        requirements.
+
+    | Since the semantic of the parameters given to this function depends on the chosen ``OperationMode``,
+        an user must have clear their meaning in the Operation Mode context.
+
+    :param problem_kind: An engine is returned only if it supports this ``problem_kind``.
+    :param operation_mode: An engine is returned only if it implements this ``operation_mode``; defaults to ``ONESHOT_PLANNER``.
+    :param optimality_guarantee: An engine is returned only if it satisfies this ``optimality_guarantee``. This parameter
+        can be specified only if the ``operation_mode`` is ``ONESHOT_PLANNER``, ``REPLANNER``, ``PLAN_REPAIRER``
+        or ``PORTFOLIO_SELECTOR``.
+    :param anytime_guarantee: An engine is returned only if it satisfies this ``anytime_guarantee``. This parameter
+        can be specified only if the ``operation_mode`` is ``ANYTIME_PLANNER``.
+    :param plan_kind: An engine is returned only if it is able to handle this ``plan_kind``. This parameter
+        can be specified only if the ``operation_mode`` is ``PLAN_VALIDATOR`` or ``PLAN_REPAIRER``.
+    :param compilation_kind: An engine is returned only if it is able to handle this ``compilation_kind``. This
+        parameter can be specified only if the ``operation_mode`` is ``COMPILER``.
+    :return: The list of engines names that satisfy all the given requirements.
+    """
+    return get_environment().factory.get_all_applicable_engines(
+        problem_kind,
+        operation_mode,
+        optimality_guarantee=optimality_guarantee,
+        anytime_guarantee=anytime_guarantee,
+        plan_kind=plan_kind,
+        compilation_kind=compilation_kind,
     )
 
 

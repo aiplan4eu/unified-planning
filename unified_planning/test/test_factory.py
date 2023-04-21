@@ -56,3 +56,6 @@ class TestFactory(TestCase):
         expected_names = ["tamer", "opt-pddl-planner", "pyperplan"]
         for name in expected_names:
             self.assertIn(name, names)
+
+        global_env_names = get_all_applicable_engines(problem.kind)
+        self.assertEqual(global_env_names, names)
