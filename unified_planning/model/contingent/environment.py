@@ -123,9 +123,13 @@ class SimulatedEnvironment(Environment):
             raise UPUsageError("The given action is not applicable!")
         self._state = new_state
         res = {}
+        subs: Dict["up.model.Expression", "up.model.Expression"] = dict(
+            zip(action.action.parameters, action.actual_parameters)
+        )
         if isinstance(action.action, up.model.contingent.sensing_action.SensingAction):
             for f in action.action.observed_fluents:
-                res[f] = self._state.get_value(f)
+                f_exp = f.substitute(subs)
+                res[f_exp] = self._state.get_value(f_exp)
         return res
 
     def is_goal_reached(self) -> bool:
