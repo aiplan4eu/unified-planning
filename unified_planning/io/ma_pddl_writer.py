@@ -536,7 +536,24 @@ class MAPDDLWriter:
                     else:
                         out.write(f"\n  {converter.convert(f)}")
                 elif v.is_false():
-                    pass
+                    if f.is_dot():
+                        fluent = f.args[0].fluent()
+                        args = f.args
+                        if (
+                            fluent in self.all_public_fluents
+                            or fluent in ag.fluents
+                            and f.agent().name == ag.name
+                        ):
+                            out.write(f"\n  (not {converter.convert(f)})")
+                        elif (
+                            f.agent().name != ag.name
+                            and fluent in self.all_public_fluents
+                        ):
+                            out.write(f"\n  (not {converter.convert(f)})")
+                        else:
+                            out.write(f"")
+                    else:
+                        out.write(f"\n  (not {converter.convert(f)})")
                 else:
                     out.write(f"\n  (= {converter.convert(f)} {converter.convert(v)})")
             if self.problem.kind.has_actions_cost():
