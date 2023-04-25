@@ -94,7 +94,7 @@ class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
@@ -104,7 +104,7 @@ class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
         supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("TIMED_EFFECT")
+        supported_kind.set_time("TIMED_EFFECTS")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
@@ -158,24 +158,6 @@ class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
-        """new_problem.clear_timed_effects()
-        for t, el in problem.timed_effects.items():
-            for e in el:
-                if e.is_conditional():
-                    f, v = e.fluent.fluent(), e.value
-                    if not f.type.is_bool_type():
-                        raise UPProblemDefinitionError(
-                            f"The condition of effect: {e}\ncould not be removed without changing the problem."
-                        )
-                    else:
-                        em = env.expression_manager
-                        c = e.condition
-                        nv = simplifier.simplify(
-                            em.Or(em.And(c, v), em.And(em.Not(c), f))
-                        )
-                        new_problem.add_timed_effect(t, e.fluent, nv)
-                else:
-                    new_problem._add_effect_instance(t, e.clone()))"""
 
         for ag in problem.agents:
             new_ag = new_problem.agent(ag.name)
@@ -279,17 +261,6 @@ class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
                 else:
                     raise NotImplementedError
             new_problem.add_agent(new_ag)
-
-        """new_problem.clear_quality_metrics()
-        for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
-                new_costs = {
-                    new_act: qm.get_action_cost(old_act)
-                    for new_act, old_act in new_to_old.items()
-                }
-                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
-            else:
-                new_problem.add_quality_metric(qm)"""
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
