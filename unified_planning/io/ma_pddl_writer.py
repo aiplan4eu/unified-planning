@@ -99,12 +99,14 @@ class MAPDDLWriter:
     def __init__(
         self,
         problem: "up.model.multi_agent.MultiAgentProblem",
+        explicit_false_initial_states: Optional[bool] = False,
         needs_requirements: bool = True,
         rewrite_bool_assignments: bool = False,
     ):
         self._env = problem.environment
         self.problem = problem
         self.problem_kind = self.problem.kind
+        self.explicit_false_initial_states = explicit_false_initial_states
         self.needs_requirements = needs_requirements
         self.rewrite_bool_assignments = rewrite_bool_assignments
         # otn represents the old to new renamings
@@ -536,24 +538,27 @@ class MAPDDLWriter:
                     else:
                         out.write(f"\n  {converter.convert(f)}")
                 elif v.is_false():
-                    if f.is_dot():
-                        fluent = f.args[0].fluent()
-                        args = f.args
-                        if (
-                            fluent in self.all_public_fluents
-                            or fluent in ag.fluents
-                            and f.agent().name == ag.name
-                        ):
-                            out.write(f"\n  (not {converter.convert(f)})")
-                        elif (
-                            f.agent().name != ag.name
-                            and fluent in self.all_public_fluents
-                        ):
-                            out.write(f"\n  (not {converter.convert(f)})")
+                    if self.explicit_false_initial_states:
+                        if f.is_dot():
+                            fluent = f.args[0].fluent()
+                            args = f.args
+                            if (
+                                fluent in self.all_public_fluents
+                                or fluent in ag.fluents
+                                and f.agent().name == ag.name
+                            ):
+                                out.write(f"\n  (not {converter.convert(f)})")
+                            elif (
+                                f.agent().name != ag.name
+                                and fluent in self.all_public_fluents
+                            ):
+                                out.write(f"\n  (not {converter.convert(f)})")
+                            else:
+                                out.write(f"")
                         else:
-                            out.write(f"")
+                            out.write(f"\n  (not {converter.convert(f)})")
                     else:
-                        out.write(f"\n  (not {converter.convert(f)})")
+                        pass
                 else:
                     out.write(f"\n  (= {converter.convert(f)} {converter.convert(v)})")
             if self.problem.kind.has_actions_cost():
