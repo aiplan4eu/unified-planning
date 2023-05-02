@@ -886,6 +886,13 @@ def get_example_problems():
     robot_static_fluents_duration = Example(problem=problem, plan=t_plan)
     problems["robot_with_static_fluents_duration"] = robot_static_fluents_duration
 
+    # Robot with timed_goals (extension of the previous problem with timed goals)
+    problem = problem.clone()
+    name = "robot_with_static_fluents_duration_timed_goals"
+    problem.name = name
+    problem.add_timed_goal(GlobalStartTiming() + 50, is_at(l5, r1))
+    problems[name] = Example(problem=problem, plan=t_plan)
+
     # travel
     problem = Problem("travel")
 
