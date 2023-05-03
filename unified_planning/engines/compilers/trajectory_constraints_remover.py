@@ -74,7 +74,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
         if new_kind.has_trajectory_constraints():
-            new_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+            new_kind.unset_constraints_kind("TRAJECTORY_CONSTRAINTS")
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     @staticmethod

@@ -12,49 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the bounded types remover class."""
+"""This module defines the global constraints remover class."""
 
 
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.model import Problem, ProblemKind, Fluent, FNode
-from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.types import _RealType, _IntType
-from unified_planning.model.walkers import FluentsSubstituter
+from unified_planning.model import Problem, ProblemKind
 from unified_planning.engines.compilers.utils import (
     add_invariant_condition_apply_function_to_problem_expressions,
     replace_action,
 )
-from typing import List, Dict, OrderedDict, Optional, Union, cast
+from typing import Optional
 from functools import partial
 
 
-class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
+class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
     """
-    Bounded types remover class: this class offers the capability
-    to transform a :class:`~unified_planning.model.Problem` with Bounded :class:`Types <unified_planning.model.Type>`
-    into a `Problem` without bounded `Types` (only IntType and RealType can be bounded).
-    This capability is offered by the :meth:`~unified_planning.engines.compilers.BoundedTypesRemover.compile`
+    Global constraints remover class: this class offers the capability
+    to transform a :class:`~unified_planning.model.Problem` with global constraints
+    into a `Problem` without global constraints.
+    This capability is offered by the :meth:`~unified_planning.engines.compilers.GlobalConstraintsRemover.compile`
     method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
     is the compiled Problem.
 
-    This is done by changing the type of the fluents to unbounded types, and adding to every action's condition and
-    every goal of the problem the artificial condition that emulates the typing bound.
+    This is done by setting the global constraints as action's preconditions and goals, so that at every step of the the constraints are checked.
 
-    For example, if we have a fluent `F` of type `int[0, 5]`, the added condition would be `0 <= F <= 5`.
-
-    This `Compiler` supports only the the `BOUNDED_TYPES_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    This `Compiler` supports only the the `GLOBAL_CONSTRAINTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
-        CompilerMixin.__init__(self, CompilationKind.BOUNDED_TYPES_REMOVING)
+        CompilerMixin.__init__(self, CompilationKind.GLOBAL_CONSTRAINTS_REMOVING)
 
     @property
     def name(self):
-        return "btrm"
+        return "gcrm"
 
     @staticmethod
     def supported_kind() -> ProblemKind:
@@ -88,7 +82,6 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_EFFECTS")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
-        supported_kind.set_time("SELF_OVERLAPPING")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
@@ -103,19 +96,19 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= BoundedTypesRemover.supported_kind()
+        return problem_kind <= GlobalConstraintsRemover.supported_kind()
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.BOUNDED_TYPES_REMOVING
+        return compilation_kind == CompilationKind.GLOBAL_CONSTRAINTS_REMOVING
 
     @staticmethod
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
-        if new_kind.has_bounded_types():
-            new_kind.unset_numbers("BOUNDED_TYPES")
+        if new_kind.has_global_constraints():
+            new_kind.unset_constraints("GLOBAL_CONSTRAINTS")
         return new_kind
 
     def _compile(
@@ -126,9 +119,9 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
         """
         Takes an instance of a :class:`~unified_planning.model.Problem` and the wanted :class:`~unified_planning.engines.CompilationKind`
         and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>`
-        field does not have bounded types.
+        field does not have global constraints.
 
-        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without bounded types.
+        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without global constraints.
         :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
             only :class:`~unified_planning.engines.CompilationKind.BOUNDED_TYPES_REMOVING` is supported by this compiler
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
@@ -136,68 +129,17 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
         env = problem.environment
         em = env.expression_manager
-        tm = env.type_manager
         new_problem = Problem(f"{problem.name}_{self.name}", env)
         new_problem.add_objects(problem.all_objects)
+        new_problem.add_fluents(problem.fluents)
 
-        int_type = tm.IntType()
-        real_type = tm.RealType()
-        conditions: List[FNode] = []
-
-        new_fluents: Dict[Fluent, Fluent] = {}
-        for old_fluent in problem.fluents:
-
-            new_fluent = None
-            # old_fluent.type != int_type is used to check if the type of the old_fluent
-            # has lower or upper bound
-            if old_fluent.type.is_int_type() and old_fluent.type != int_type:
-                old_fluent_type: Union[_IntType, _RealType] = cast(
-                    _IntType, old_fluent.type
-                )
-                assert (
-                    old_fluent_type.lower_bound is not None
-                    or old_fluent_type.upper_bound is not None
-                ), "Error, old_fluent_type should equal int_type"
-                signature = OrderedDict(
-                    ((p.name, p.type) for p in old_fluent.signature)
-                )
-                new_fluent = Fluent(old_fluent.name, int_type, signature, env)
-
-            # old_fluent.type != real_type is used to check if the type of the old_fluent
-            # has lower or upper bound
-            elif old_fluent.type.is_real_type() and old_fluent.type != real_type:
-                old_fluent_type = cast(_RealType, old_fluent.type)
-                assert (
-                    old_fluent_type.lower_bound is not None
-                    or old_fluent_type.upper_bound is not None
-                ), "Error, old_fluent_type should equal real_type"
-                signature = OrderedDict(
-                    ((p.name, p.type) for p in old_fluent.signature)
-                )
-                new_fluent = Fluent(old_fluent.name, real_type, signature, env)
-
-            if new_fluent is not None:
-                new_problem.add_fluent(new_fluent)
-                new_fluents[old_fluent] = new_fluent
-                for fluent_exp in get_all_fluent_exp(new_problem, new_fluent):
-                    if old_fluent_type.lower_bound is not None:
-                        conditions.append(
-                            em.LE(old_fluent_type.lower_bound, fluent_exp)
-                        )
-                    if old_fluent_type.upper_bound is not None:
-                        conditions.append(
-                            em.LE(fluent_exp, old_fluent_type.upper_bound)
-                        )
-            else:
-                new_problem.add_fluent(old_fluent)
-
-        fluents_substituter = FluentsSubstituter(new_fluents, env)
         new_to_old = add_invariant_condition_apply_function_to_problem_expressions(
             problem,
             new_problem,
-            em.And(conditions),
-            fluents_substituter.substitute_fluents,
+            em.And(problem.global_constraints).simplify(),
         )
+
+        new_problem.clear_global_constraints()
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name

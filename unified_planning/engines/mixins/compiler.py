@@ -32,6 +32,7 @@ class CompilationKind(Enum):
     TRAJECTORY_CONSTRAINTS_REMOVING = auto()
     USERTYPE_FLUENTS_REMOVING = auto()
     BOUNDED_TYPES_REMOVING = auto()
+    GLOBAL_CONSTRAINTS_REMOVING = auto()
 
 
 class CompilerMixin(ABC):

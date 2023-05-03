@@ -72,6 +72,8 @@ TEMPORAL_OVERSUBSCRIPTION = 40
 STATIC_FLUENTS_IN_ACTIONS_COST = 45
 FLUENTS_IN_ACTIONS_COST = 46
 SIMULATED_EFFECTS = 25
+TRAJECTORY_CONSTRAINTS = 47
+GLOBAL_CONSTRAINTS = 48
 METHOD_PRECONDITIONS = 32
 TASK_NETWORK_CONSTRAINTS = 33
 INITIAL_TASK_NETWORK_VARIABLES = 34
@@ -472,7 +474,11 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _EXPRESSIONKIND._serialized_start=5268
   _EXPRESSIONKIND._serialized_end=5444
   _FEATURE._serialized_start=5447
+<<<<<<< HEAD
   _FEATURE._serialized_end=6681
+=======
+  _FEATURE._serialized_end=6711
+>>>>>>> 5b9ab3b1 (Initial implementation of global constraints and compiler)
   _EXPRESSION._serialized_start=26
   _EXPRESSION._serialized_end=131
   _ATOM._serialized_start=133
@@ -577,6 +583,11 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _COMPILERRESULT._serialized_end=5265
   _COMPILERRESULT_MAPBACKPLANENTRY._serialized_start=5198
   _COMPILERRESULT_MAPBACKPLANENTRY._serialized_end=5265
+<<<<<<< HEAD
   _UNIFIEDPLANNING._serialized_start=6684
   _UNIFIEDPLANNING._serialized_end=6900
+=======
+  _UNIFIEDPLANNING._serialized_start=6714
+  _UNIFIEDPLANNING._serialized_end=6930
+>>>>>>> 5b9ab3b1 (Initial implementation of global constraints and compiler)
 # @@protoc_insertion_point(module_scope)

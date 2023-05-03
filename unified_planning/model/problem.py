@@ -23,6 +23,7 @@ from unified_planning.model.mixins import (
     ActionsSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
+    GlobalConstraintsMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
     InitialStateMixin,
@@ -33,7 +34,6 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
-    UPConflictingEffectsException,
 )
 from fractions import Fraction
 from typing import Optional, List, Dict, Set, Tuple, Union, cast
@@ -44,6 +44,7 @@ class Problem(  # type: ignore[misc]
     UserTypesSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
+    GlobalConstraintsMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
@@ -70,6 +71,7 @@ class Problem(  # type: ignore[misc]
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
+        GlobalConstraintsMixin.__init__(self, self.environment)
         ActionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
@@ -97,6 +99,7 @@ class Problem(  # type: ignore[misc]
 
     def __repr__(self) -> str:
         s = []
+        custom_str = lambda x: f"  {str(x)}\n"
         if self.name is not None:
             s.append(f"problem name = {str(self.name)}\n\n")
         if self._epsilon is not None:
@@ -104,12 +107,10 @@ class Problem(  # type: ignore[misc]
         if len(self.user_types) > 0:
             s.append(f"types = {str(list(self.user_types))}\n\n")
         s.append("fluents = [\n")
-        for f in self.fluents:
-            s.append(f"  {str(f)}\n")
+        s.extend(map(custom_str, self.fluents))
         s.append("]\n\n")
         s.append("actions = [\n")
-        for a in self.actions:
-            s.append(f"  {str(a)}\n")
+        s.extend(map(custom_str, self.actions))
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
@@ -141,18 +142,19 @@ class Problem(  # type: ignore[misc]
                     s.append(f"    {str(g)}\n")
             s.append("]\n\n")
         s.append("goals = [\n")
-        for g in self.goals:
-            s.append(f"  {str(g)}\n")
+        s.extend(map(custom_str, self.goals))
         s.append("]\n\n")
         if self.trajectory_constraints:
             s.append("trajectory constraints = [\n")
-            for c in self.trajectory_constraints:
-                s.append(f"  {str(c)}\n")
+            s.extend(map(custom_str, self.trajectory_constraints))
+            s.append("]\n\n")
+        if self.global_constraints:
+            s.append("global constraints = [\n")
+            s.extend(map(custom_str, self.global_constraints))
             s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
-            for qm in self.quality_metrics:
-                s.append(f"  {str(qm)}\n")
+            s.extend(map(custom_str, self.quality_metrics))
             s.append("]\n\n")
         return "".join(s)
 
@@ -167,6 +169,8 @@ class Problem(  # type: ignore[misc]
         if not ObjectsSetMixin.__eq__(self, oth):
             return False
         if not FluentsSetMixin.__eq__(self, oth):
+            return False
+        if not GlobalConstraintsMixin.__eq__(self, oth):
             return False
         if not InitialStateMixin.__eq__(self, oth):
             return False
@@ -202,6 +206,7 @@ class Problem(  # type: ignore[misc]
         res = hash(self._name)
 
         res += FluentsSetMixin.__hash__(self)
+        res += GlobalConstraintsMixin.__hash__(self)
         res += ObjectsSetMixin.__hash__(self)
         res += UserTypesSetMixin.__hash__(self)
         res += InitialStateMixin.__hash__(self)
@@ -659,8 +664,12 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_goals) > 0:
             self._kind.set_time("TIMED_GOALS")
             self._kind.set_time("CONTINUOUS_TIME")
-        if len(self._trajectory_constraints) > 0:
+        if self._trajectory_constraints:
             self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+        if self._global_constraints:
+            self._kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
+            for gc in self._global_constraints:
+                self._update_problem_kind_condition(gc, linear_checker)
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)
