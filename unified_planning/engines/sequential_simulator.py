@@ -251,10 +251,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :return: The new `State` created by the given action; `None` if the evaluation of the effects
             creates conflicting effects.
         """
-        state, reason = self.specific_apply_unsafe(
+        new_state, reason = self.specific_apply_unsafe(
             state, action_or_action_instance, parameters
         )
-        return state
+        return new_state
 
     def _evaluate_effect(
         self,

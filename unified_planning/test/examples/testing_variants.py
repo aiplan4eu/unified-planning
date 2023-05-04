@@ -229,8 +229,8 @@ def get_example_problems():
     move.add_effect(robot_is_at(l_from), False)
     move.add_effect(robot_is_at(l_to), True)
     move.add_effect(robot_was_at(l_from), True)
-    for loc in locations:
-        move.add_effect(robot_was_at(loc), False)
+    for l_obj in locations:
+        move.add_effect(robot_was_at(l_obj), False)
 
     load = InstantaneousAction("load", loc=Location)
     loc = load.parameter("loc")
@@ -265,13 +265,13 @@ def get_example_problems():
     problem.add_goal(cargo_at(l1))
     # for all the possible couples of locations, it must never be True that:
     # The robot is loaded when crossing a weak bridge.
-    for l_from, l_to in product(locations, repeat=2):
+    for l_from_v, l_to_v in product(locations, repeat=2):
         problem.add_global_constraint(
             Not(
                 And(
-                    weak_bridge(l_from, l_to),
-                    robot_was_at(l_from),
-                    robot_is_at(l_to),
+                    weak_bridge(l_from_v, l_to_v),
+                    robot_was_at(l_from_v),
+                    robot_is_at(l_to_v),
                     cargo_mounted,
                 )
             )
