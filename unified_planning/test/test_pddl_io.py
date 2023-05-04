@@ -475,6 +475,7 @@ class TestPddlIO(TestCase):
                 kind.has_intermediate_conditions_and_effects()
                 or kind.has_object_fluents()
                 or kind.has_oversubscription()
+                or kind.has_timed_goals()
             ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:

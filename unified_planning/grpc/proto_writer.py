@@ -528,7 +528,7 @@ class ProtobufWriter(Converter):
     @handles(model.Problem, model.htn.HierarchicalProblem)
     def _convert_problem(self, problem: model.Problem) -> proto.Problem:
         goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
-        for t, gs in problem.timed_goals:
+        for t, gs in problem.timed_goals.items():
             goals += [
                 proto.Goal(goal=self.convert(g), timing=self.convert(t)) for g in gs
             ]
