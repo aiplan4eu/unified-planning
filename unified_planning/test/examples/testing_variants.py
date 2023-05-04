@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from itertools import product
 import unified_planning
 from unified_planning.shortcuts import *
 from collections import namedtuple
@@ -206,6 +207,86 @@ def get_example_problems():
     problems[
         "robot_locations_connected_without_battery"
     ] = robot_locations_connected_without_battery
+
+    # robot_loader_weak_bridge
+    # version of robot loader with weak bridges that can't be crossed with
+    # the cargo loaded. Uses global_constraints.
+    Location = UserType("Location")
+    locations = [Object(f"l{i}", Location) for i in range(1, 4)]
+    l1, l2, l3 = locations
+    robot_is_at = Fluent("robot_is_at", BoolType(), position=Location)
+    robot_was_at = Fluent("robot_was_at", BoolType(), past_position=Location)
+    cargo_at = Fluent("cargo_at", BoolType(), position=Location)
+    cargo_mounted = Fluent("cargo_mounted")
+    weak_bridge = Fluent("weak_bridge", BoolType(), l_from=Location, l_to=Location)
+
+    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(robot_is_at(l_from))
+    move.add_precondition(Not(robot_is_at(l_to)))
+    move.add_effect(robot_is_at(l_from), False)
+    move.add_effect(robot_is_at(l_to), True)
+    move.add_effect(robot_was_at(l_from), True)
+    for loc in locations:
+        move.add_effect(robot_was_at(loc), False)
+
+    load = InstantaneousAction("load", loc=Location)
+    loc = load.parameter("loc")
+    load.add_precondition(cargo_at(loc))
+    load.add_precondition(robot_is_at(loc))
+    load.add_precondition(Not(cargo_mounted))
+    load.add_effect(cargo_at(loc), False)
+    load.add_effect(cargo_mounted, True)
+
+    unload = InstantaneousAction("unload", loc=Location)
+    loc = unload.parameter("loc")
+    unload.add_precondition(Not(cargo_at(loc)))
+    unload.add_precondition(robot_is_at(loc))
+    unload.add_precondition(cargo_mounted)
+    unload.add_effect(cargo_at(loc), True)
+    unload.add_effect(cargo_mounted, False)
+
+    problem = Problem("robot_loader_weak_bridge")
+    problem.add_fluent(robot_is_at, default_initial_value=False)
+    problem.add_fluent(robot_was_at, default_initial_value=False)
+    problem.add_fluent(cargo_at, default_initial_value=False)
+    problem.add_fluent(cargo_mounted, default_initial_value=False)
+    problem.add_fluent(weak_bridge, default_initial_value=False)
+    problem.add_action(move)
+    problem.add_action(load)
+    problem.add_action(unload)
+    problem.add_objects(locations)
+    problem.set_initial_value(robot_is_at(l1), True)
+    problem.set_initial_value(robot_was_at(l1), True)
+    problem.set_initial_value(cargo_at(l3), True)
+    problem.set_initial_value(weak_bridge(l3, l1), True)
+    problem.add_goal(cargo_at(l1))
+    # for all the possible couples of locations, it must never be True that:
+    # The robot is loaded when crossing a weak bridge.
+    for l_from, l_to in product(locations, repeat=2):
+        problem.add_global_constraint(
+            Not(
+                And(
+                    weak_bridge(l_from, l_to),
+                    robot_was_at(l_from),
+                    robot_is_at(l_to),
+                    cargo_mounted,
+                )
+            )
+        )
+    plan = up.plans.SequentialPlan(
+        [
+            up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+            up.plans.ActionInstance(load, (ObjectExp(l3),)),
+            up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l2))),
+            up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1))),
+            up.plans.ActionInstance(unload, (ObjectExp(l1),)),
+        ]
+    )
+    robot_loader_weak_bridge = Example(problem=problem, plan=plan)
+    problems["robot_loader_weak_bridge"] = robot_loader_weak_bridge
 
     # hierarchical blocks world exists
     Entity = UserType("Entity", None)  # None can be avoided

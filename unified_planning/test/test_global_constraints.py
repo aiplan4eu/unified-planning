@@ -52,6 +52,9 @@ class TestGlobalConstraintsRemover(TestCase):
             compilation_kind=CompilationKind.GLOBAL_CONSTRAINTS_REMOVING,
         ) as compiler:
             compiled_problem = compiler.compile(problem).problem
-
-        print(compiled_problem)
-        assert False
+            # The goal of the original problem is x and we add not(x), so the goal becomes False
+            self.assertEqual(len(compiled_problem.goals), 1)
+            self.assertEqual(
+                compiled_problem.goals[0],
+                compiled_problem.environment.expression_manager.FALSE(),
+            )

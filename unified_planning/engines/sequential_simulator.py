@@ -14,6 +14,7 @@
 #
 
 
+from enum import Enum, auto
 from fractions import Fraction
 from warnings import warn
 import unified_planning as up
@@ -29,7 +30,6 @@ from unified_planning.exceptions import (
 )
 from unified_planning.model import (
     FNode,
-    Type,
     ExpressionManager,
     UPState,
     Problem,
@@ -41,6 +41,13 @@ from unified_planning.model import (
 from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import StateEvaluator
 from typing import Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union, cast
+
+
+class InapplicabilityReasons(Enum):
+    """TODO"""
+
+    CONFLICTING_EFFECTS = auto()
+    VIOLATES_GLOBAL_CONSTRAINTS = auto()
 
 
 class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
@@ -68,6 +75,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
+        self._global_constraints = self._problem.environment.expression_manager.And(
+            self._problem.global_constraints
+        )
 
     def _ground_action(
         self, action: "up.model.Action", params: Tuple["up.model.FNode", ...]
@@ -155,13 +165,13 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         else:
             return self.apply_unsafe(state, action, parameters)
 
-    def apply_unsafe(
+    def specific_apply_unsafe(
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
         parameters: Optional[Sequence["up.model.Expression"]] = None,
-    ) -> Optional["up.model.State"]:
-        """
+    ) -> Tuple[Optional["up.model.State"], Optional[InapplicabilityReasons]]:
+        """TODO
         Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
         `action` are applied; therefore some `fluent` values are updated.
         IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
@@ -183,7 +193,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             )
         grounded_action = self._ground_action(action, params)
         if grounded_action is None:
-            return None
+            return None, InapplicabilityReasons.CONFLICTING_EFFECTS
         assert isinstance(action, up.model.InstantaneousAction)
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
@@ -194,7 +204,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     effect, state, updated_values, assigned_fluent, em
                 )
             except UPConflictingEffectsException:
-                return None
+                return None, InapplicabilityReasons.CONFLICTING_EFFECTS
             if fluent is not None:
                 assert value is not None
                 updated_values[fluent] = value
@@ -211,13 +221,40 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     or old_value.constant_value() != v.constant_value()
                 ):
                     if not f.type.is_bool_type():
-                        return None
+                        return None, InapplicabilityReasons.CONFLICTING_EFFECTS
                     # solve with add-after-delete logic
                     elif not old_value.bool_constant_value():
                         updated_values[f] = v
                 else:
                     updated_values[f] = v
-        return state.make_child(updated_values)
+        new_state = state.make_child(updated_values)
+        if self._se.evaluate(self._global_constraints, state).bool_constant_value():
+            return new_state, None
+        return None, InapplicabilityReasons.VIOLATES_GLOBAL_CONSTRAINTS
+
+    def apply_unsafe(
+        self,
+        state: "up.model.State",
+        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
+        parameters: Optional[Sequence["up.model.Expression"]] = None,
+    ) -> Optional["up.model.State"]:
+        """
+        Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
+        `action` are applied; therefore some `fluent` values are updated.
+        IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
+
+        :param state: The state in which the given action's conditions are checked and the effects evaluated.
+        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
+            and effects evaluated.
+        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
+            an `ActionInstance` is given instead.
+        :return: The new `State` created by the given action; `None` if the evaluation of the effects
+            creates conflicting effects.
+        """
+        state, reason = self.specific_apply_unsafe(
+            state, action_or_action_instance, parameters
+        )
+        return state
 
     def _evaluate_effect(
         self,
@@ -479,6 +516,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")

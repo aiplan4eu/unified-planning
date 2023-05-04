@@ -554,6 +554,10 @@ class ProtobufWriter(Converter):
             features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
             hierarchy=hierarchy,
+            global_constraints=[
+                proto.Condition(cond=self.convert(gc), span=None)
+                for gc in problem.global_constraints
+            ],
         )
 
     @handles(model.metrics.MinimizeActionCosts)

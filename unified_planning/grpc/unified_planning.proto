@@ -513,6 +513,9 @@ message Problem {
     // features: hierarchical
     Hierarchy hierarchy = 12;
 
+    // Global constraints of the planning problem.
+    repeated Condition global_constraints = 13;
+
 }
 
 // Features of the problem.

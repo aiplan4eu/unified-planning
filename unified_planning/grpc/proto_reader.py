@@ -336,6 +336,10 @@ class ProtobufReader(Converter):
                 timing = self.convert(g.timing)
                 problem.add_timed_goal(interval=timing, goal=goal)
 
+        for gc in msg.global_constraints:
+            assert not gc.HasField("span"), "Global constraints can't have a time_span"
+            problem.add_global_constraint(self.convert(gc.cond, problem))
+
         for metric in msg.metrics:
             problem.add_quality_metric(self.convert(metric, problem))
 

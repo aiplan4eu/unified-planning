@@ -471,6 +471,7 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _PLANGENERATIONRESULT_METRICSENTRY._serialized_options = b'8\001'
   _COMPILERRESULT_MAPBACKPLANENTRY._options = None
   _COMPILERRESULT_MAPBACKPLANENTRY._serialized_options = b'8\001'
+<<<<<<< HEAD
   _EXPRESSIONKIND._serialized_start=5268
   _EXPRESSIONKIND._serialized_end=5444
   _FEATURE._serialized_start=5447
@@ -479,6 +480,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 =======
   _FEATURE._serialized_end=6711
 >>>>>>> 5b9ab3b1 (Initial implementation of global constraints and compiler)
+=======
+  _EXPRESSIONKIND._serialized_start=5308
+  _EXPRESSIONKIND._serialized_end=5484
+  _FEATURE._serialized_start=5487
+  _FEATURE._serialized_end=6751
+>>>>>>> f6d5b61d (Added support in GRPC, UP simulator and UP validator)
   _EXPRESSION._serialized_start=26
   _EXPRESSION._serialized_end=131
   _ATOM._serialized_start=133
@@ -542,6 +549,7 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _METRIC_METRICKIND._serialized_start=2787
   _METRIC_METRICKIND._serialized_end=3019
   _PROBLEM._serialized_start=3022
+<<<<<<< HEAD
   _PROBLEM._serialized_end=3376
   _ACTIONINSTANCE._serialized_start=3379
   _ACTIONINSTANCE._serialized_end=3507
@@ -590,4 +598,49 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _UNIFIEDPLANNING._serialized_start=6714
   _UNIFIEDPLANNING._serialized_end=6930
 >>>>>>> 5b9ab3b1 (Initial implementation of global constraints and compiler)
+=======
+  _PROBLEM._serialized_end=3416
+  _ACTIONINSTANCE._serialized_start=3419
+  _ACTIONINSTANCE._serialized_end=3547
+  _METHODINSTANCE._serialized_start=3550
+  _METHODINSTANCE._serialized_end=3724
+  _METHODINSTANCE_SUBTASKSENTRY._serialized_start=3677
+  _METHODINSTANCE_SUBTASKSENTRY._serialized_end=3724
+  _PLANHIERARCHY._serialized_start=3727
+  _PLANHIERARCHY._serialized_end=3877
+  _PLANHIERARCHY_ROOTTASKSENTRY._serialized_start=3829
+  _PLANHIERARCHY_ROOTTASKSENTRY._serialized_end=3877
+  _PLAN._serialized_start=3879
+  _PLAN._serialized_end=3954
+  _PLANREQUEST._serialized_start=3957
+  _PLANREQUEST._serialized_end=4216
+  _PLANREQUEST_ENGINEOPTIONSENTRY._serialized_start=4117
+  _PLANREQUEST_ENGINEOPTIONSENTRY._serialized_end=4169
+  _PLANREQUEST_MODE._serialized_start=4171
+  _PLANREQUEST_MODE._serialized_end=4216
+  _VALIDATIONREQUEST._serialized_start=4218
+  _VALIDATIONREQUEST._serialized_end=4285
+  _LOGMESSAGE._serialized_start=4287
+  _LOGMESSAGE._serialized_end=4410
+  _LOGMESSAGE_LOGLEVEL._serialized_start=4355
+  _LOGMESSAGE_LOGLEVEL._serialized_end=4410
+  _PLANGENERATIONRESULT._serialized_start=4413
+  _PLANGENERATIONRESULT._serialized_end=4860
+  _PLANGENERATIONRESULT_METRICSENTRY._serialized_start=4617
+  _PLANGENERATIONRESULT_METRICSENTRY._serialized_end=4663
+  _PLANGENERATIONRESULT_STATUS._serialized_start=4666
+  _PLANGENERATIONRESULT_STATUS._serialized_end=4860
+  _ENGINE._serialized_start=4862
+  _ENGINE._serialized_end=4884
+  _VALIDATIONRESULT._serialized_start=4887
+  _VALIDATIONRESULT._serialized_end=5073
+  _VALIDATIONRESULT_VALIDATIONRESULTSTATUS._serialized_start=5025
+  _VALIDATIONRESULT_VALIDATIONRESULTSTATUS._serialized_end=5073
+  _COMPILERRESULT._serialized_start=5076
+  _COMPILERRESULT._serialized_end=5305
+  _COMPILERRESULT_MAPBACKPLANENTRY._serialized_start=5238
+  _COMPILERRESULT_MAPBACKPLANENTRY._serialized_end=5305
+  _UNIFIEDPLANNING._serialized_start=6754
+  _UNIFIEDPLANNING._serialized_end=6970
+>>>>>>> f6d5b61d (Added support in GRPC, UP simulator and UP validator)
 # @@protoc_insertion_point(module_scope)

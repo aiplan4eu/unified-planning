@@ -233,6 +233,7 @@ class Problem(  # type: ignore[misc]
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
+        GlobalConstraintsMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
         TimeModelMixin._clone_to(self, new_p)
 

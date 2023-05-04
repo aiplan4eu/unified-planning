@@ -115,6 +115,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
 
@@ -243,6 +244,11 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
 
         for g in problem.goals:
             new_problem.add_goal(utf_remover.remove_usertype_fluents_from_condition(g))
+
+        for gc in problem.global_constraints:
+            new_problem.add_global_constraint(
+                utf_remover.remove_usertype_fluents_from_condition(gc)
+            )
 
         for t, el in problem.timed_effects.items():
             for e in el:

@@ -94,3 +94,30 @@ class TestProblem(TestCase):
         for qm, val in me.items():
             self.assertIsInstance(qm, MinimizeActionCosts)
             self.assertEqual(val, 10)
+
+    def test_global_constraints(self):
+        problem = self.problems["robot_loader_weak_bridge"].problem
+        move = problem.action("move")
+        load = problem.action("load")
+        unload = problem.action("unload")
+        l1, l2, l3 = [problem.object(f"l{i}") for i in range(1, 4)]
+        # the plan is bad because going loaded from l3 to l1 violates a global constraint
+        bad_plan = up.plans.SequentialPlan(
+            [
+                up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+                up.plans.ActionInstance(load, (ObjectExp(l3),)),
+                up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1))),
+                up.plans.ActionInstance(unload, (ObjectExp(l1),)),
+            ]
+        )
+        with PlanValidator(name="sequential_plan_validator") as pv:
+            self.assertEqual(pv.name, "sequential_plan_validator")
+            self.assertTrue(pv.supports(problem.kind))
+            validation_result = pv.validate(problem, bad_plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+            self.assertIn("violates global constraints.", str(validation_result))
+            # when removing the global constraints, the bad plan should become valid
+            problem = problem.clone()
+            problem.clear_global_constraints()
+            validation_result = pv.validate(problem, bad_plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)

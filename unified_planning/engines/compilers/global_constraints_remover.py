@@ -37,7 +37,7 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
     method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
     is the compiled Problem.
 
-    This is done by setting the global constraints as action's preconditions and goals, so that at every step of the the constraints are checked.
+    This is done by setting the global constraints as action's preconditions and goals, so that at every step the constraints are checked.
 
     This `Compiler` supports only the the `GLOBAL_CONSTRAINTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
@@ -123,7 +123,7 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
         :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without global constraints.
         :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
-            only :class:`~unified_planning.engines.CompilationKind.BOUNDED_TYPES_REMOVING` is supported by this compiler
+            only :class:`~unified_planning.engines.CompilationKind.GLOBAL_CONSTRAINTS_REMOVING` is supported by this compiler
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
         """
         assert isinstance(problem, Problem)
