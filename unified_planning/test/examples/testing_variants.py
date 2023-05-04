@@ -229,7 +229,7 @@ def get_example_problems():
     move.add_effect(robot_is_at(l_from), False)
     move.add_effect(robot_is_at(l_to), True)
     move.add_effect(robot_was_at(l_from), True)
-    for l_obj in locations:
+    for l_obj in locations:  # note that this works for the add-after-delete semantic
         move.add_effect(robot_was_at(l_obj), False)
 
     load = InstantaneousAction("load", loc=Location)
@@ -239,6 +239,9 @@ def get_example_problems():
     load.add_precondition(Not(cargo_mounted))
     load.add_effect(cargo_at(loc), False)
     load.add_effect(cargo_mounted, True)
+    load.add_effect(robot_was_at(loc), True)
+    for l_obj in locations:
+        load.add_effect(robot_was_at(l_obj), False)
 
     unload = InstantaneousAction("unload", loc=Location)
     loc = unload.parameter("loc")
@@ -247,6 +250,9 @@ def get_example_problems():
     unload.add_precondition(cargo_mounted)
     unload.add_effect(cargo_at(loc), True)
     unload.add_effect(cargo_mounted, False)
+    unload.add_effect(robot_was_at(loc), True)
+    for l_obj in locations:
+        unload.add_effect(robot_was_at(l_obj), False)
 
     problem = Problem("robot_loader_weak_bridge")
     problem.add_fluent(robot_is_at, default_initial_value=False)
@@ -262,6 +268,7 @@ def get_example_problems():
     problem.set_initial_value(robot_was_at(l1), True)
     problem.set_initial_value(cargo_at(l3), True)
     problem.set_initial_value(weak_bridge(l3, l1), True)
+    problem.set_initial_value(weak_bridge(l1, l3), True)
     problem.add_goal(cargo_at(l1))
     # for all the possible couples of locations, it must never be True that:
     # The robot is loaded when crossing a weak bridge.
