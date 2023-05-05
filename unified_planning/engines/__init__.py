@@ -20,6 +20,7 @@ from unified_planning.engines.credits import Credits
 from unified_planning.engines.factory import Factory
 from unified_planning.engines.parallel import Parallel
 from unified_planning.engines.pddl_planner import PDDLPlanner
+from unified_planning.engines.pddl_anytime_planner import PDDLAnytimePlanner
 from unified_planning.engines.plan_validator import SequentialPlanValidator
 from unified_planning.engines.oversubscription_planner import OversubscriptionPlanner
 from unified_planning.engines.replanner import Replanner
@@ -52,6 +53,7 @@ __all__ = [
     "Grounder",
     "Parallel",
     "PDDLPlanner",
+    "PDDLAnytimePlanner",
     "SequentialPlanValidator",
     "SequentialSimulatorMixin",
     "UPSequentialSimulator",
