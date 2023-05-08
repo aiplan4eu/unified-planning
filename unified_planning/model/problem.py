@@ -677,6 +677,10 @@ class Problem(  # type: ignore[misc]
         if self._kind.has_continuous_time() and self.discrete_time:
             self._kind.set_time("DISCRETE_TIME")
             self._kind.unset_time("CONTINUOUS_TIME")
+        if self._self_overlapping and (
+            self._kind.has_continuous_time() or self._kind.has_discrete_time()
+        ):
+            self._kind.set_time("SELF_OVERLAPPING")
         return self._kind
 
     def _update_problem_kind_effect(

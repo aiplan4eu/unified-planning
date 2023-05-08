@@ -45,7 +45,7 @@ class SchedulingProblem(  # type: ignore[misc]
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         self._kind = up.model.problem_kind.ProblemKind()
         self._kind.set_problem_class("SCHEDULING")
-        # TODO: complete with ore precise kinds
+        # TODO: complete with more precise kinds
         return self._kind
 
     def __init__(
