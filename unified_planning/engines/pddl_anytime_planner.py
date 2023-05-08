@@ -120,13 +120,13 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         This method takes the output stream of a PDDLEngine and modifies the fields of the given
         writer.
         Those fields are:
+        - writer.problem: The Problem being solved by the anytime planner.
         - writer.storing: Flag defining if the parsing is storing intermediate parts of a plan or not.
         - writer.res_queue: The Queue of PlanGenerationResult where every generated result must be added.
         - writer.current_plan: The List of ActionInstances (or Tuple[Fraction, ActionInstance, Optional[Fraction]]
             for temporal problems) that currently contains the plan being parsed; must be set to an empty when the
             plan is generated and added to the Queue.
         - writer.last_plan_found: The last complete plan found and parsed.
-        TODO decide if and how to add some examples to this documentation.
         """
         raise NotImplementedError
 
