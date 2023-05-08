@@ -37,7 +37,7 @@ from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
 from unified_planning.engines.engine import OperationMode
-from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence
+from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence, cast
 from pathlib import PurePath
 
 
@@ -397,6 +397,77 @@ class Factory:
         if EngineImpl.is_compatible_engine(engine):
             self._engines[f"{name}[{engine_name}]"] = EngineImpl[engine]
 
+    def _engine_satisfies_conditions(
+        self,
+        EngineClass: Type["up.engines.engine.Engine"],
+        operation_mode: "OperationMode",
+        problem_kind: ProblemKind,
+        optimality_guarantee: Optional["OptimalityGuarantee"],
+        compilation_kind: Optional["CompilationKind"],
+        plan_kind: Optional["PlanKind"],
+        anytime_guarantee: Optional["AnytimeGuarantee"],
+    ) -> bool:
+        if not getattr(EngineClass, "is_" + operation_mode.value)():
+            return False
+        if (
+            operation_mode == OperationMode.ONESHOT_PLANNER
+            or operation_mode == OperationMode.REPLANNER
+            or operation_mode == OperationMode.PORTFOLIO_SELECTOR
+        ):
+            assert (
+                issubclass(EngineClass, OneshotPlannerMixin)
+                or issubclass(EngineClass, ReplannerMixin)
+                or issubclass(EngineClass, PortfolioSelectorMixin)
+            )
+            assert anytime_guarantee is None
+            assert compilation_kind is None
+            assert plan_kind is None
+            if optimality_guarantee is not None and not EngineClass.satisfies(
+                optimality_guarantee
+            ):
+                return False
+        elif operation_mode == OperationMode.PLAN_VALIDATOR:
+            assert issubclass(EngineClass, PlanValidatorMixin)
+            assert optimality_guarantee is None
+            assert anytime_guarantee is None
+            assert compilation_kind is None
+            if plan_kind is not None and not EngineClass.supports_plan(plan_kind):
+                return False
+        elif operation_mode == OperationMode.COMPILER:
+            assert issubclass(EngineClass, CompilerMixin)
+            assert optimality_guarantee is None
+            assert anytime_guarantee is None
+            assert plan_kind is None
+            if compilation_kind is not None and not EngineClass.supports_compilation(
+                compilation_kind
+            ):
+                return False
+        elif operation_mode == OperationMode.ANYTIME_PLANNER:
+            assert issubclass(EngineClass, AnytimePlannerMixin)
+            assert optimality_guarantee is None
+            assert compilation_kind is None
+            assert plan_kind is None
+            if anytime_guarantee is not None and not EngineClass.ensures(
+                anytime_guarantee
+            ):
+                return False
+        elif operation_mode == OperationMode.PLAN_REPAIRER:
+            assert issubclass(EngineClass, PlanRepairerMixin)
+            assert anytime_guarantee is None
+            assert compilation_kind is None
+            if plan_kind is not None and not EngineClass.supports_plan(plan_kind):
+                return False
+            if optimality_guarantee is not None and not EngineClass.satisfies(
+                optimality_guarantee
+            ):
+                return False
+        else:
+            assert optimality_guarantee is None
+            assert anytime_guarantee is None
+            assert compilation_kind is None
+            assert plan_kind is None
+        return EngineClass.supports(problem_kind)
+
     def _get_engine_class(
         self,
         operation_mode: "OperationMode",
@@ -418,77 +489,25 @@ class Factory:
         assert optimality_guarantee is None or compilation_kind is None
         for name in self._preference_list:
             EngineClass = self._engines[name]
-            if getattr(EngineClass, "is_" + operation_mode.value)():
-                if (
-                    operation_mode == OperationMode.ONESHOT_PLANNER
-                    or operation_mode == OperationMode.REPLANNER
-                    or operation_mode == OperationMode.PORTFOLIO_SELECTOR
-                ):
-                    assert (
-                        issubclass(EngineClass, OneshotPlannerMixin)
-                        or issubclass(EngineClass, ReplannerMixin)
-                        or issubclass(EngineClass, PortfolioSelectorMixin)
-                    )
-                    assert anytime_guarantee is None
-                    assert compilation_kind is None
-                    assert plan_kind is None
-                    if optimality_guarantee is not None and not EngineClass.satisfies(
-                        optimality_guarantee
-                    ):
-                        continue
-                elif operation_mode == OperationMode.PLAN_VALIDATOR:
-                    assert issubclass(EngineClass, PlanValidatorMixin)
-                    assert optimality_guarantee is None
-                    assert anytime_guarantee is None
-                    assert compilation_kind is None
-                    if plan_kind is not None and not EngineClass.supports_plan(
-                        plan_kind
-                    ):
-                        continue
-                elif operation_mode == OperationMode.COMPILER:
-                    assert issubclass(EngineClass, CompilerMixin)
-                    assert optimality_guarantee is None
-                    assert anytime_guarantee is None
-                    assert plan_kind is None
-                    if (
-                        compilation_kind is not None
-                        and not EngineClass.supports_compilation(compilation_kind)
-                    ):
-                        continue
-                elif operation_mode == OperationMode.ANYTIME_PLANNER:
-                    assert issubclass(EngineClass, AnytimePlannerMixin)
-                    assert optimality_guarantee is None
-                    assert compilation_kind is None
-                    assert plan_kind is None
-                    if anytime_guarantee is not None and not EngineClass.ensures(
-                        anytime_guarantee
-                    ):
-                        continue
-                elif operation_mode == OperationMode.PLAN_REPAIRER:
-                    assert issubclass(EngineClass, PlanRepairerMixin)
-                    assert anytime_guarantee is None
-                    assert compilation_kind is None
-                    if plan_kind is not None and not EngineClass.supports_plan(
-                        plan_kind
-                    ):
-                        continue
-                    if optimality_guarantee is not None and not EngineClass.satisfies(
-                        optimality_guarantee
-                    ):
-                        continue
-                else:
-                    assert optimality_guarantee is None
-                    assert anytime_guarantee is None
-                    assert compilation_kind is None
-                    assert plan_kind is None
-                if EngineClass.supports(problem_kind):
-                    return EngineClass
-                else:
-                    x = [name] + [
-                        str(EngineClass.supports(ProblemKind({f})))
-                        for f in problem_features
-                    ]
-                    planners_features.append(x)
+            if self._engine_satisfies_conditions(
+                EngineClass,
+                operation_mode,
+                problem_kind,
+                optimality_guarantee,
+                compilation_kind,
+                plan_kind,
+                anytime_guarantee,
+            ):
+                return EngineClass
+            elif getattr(EngineClass, "is_" + operation_mode.value)():
+                # The EngineClass satisfies the given OperationMode but does not
+                # satisfy some other features; add it to the error report features if
+                # no NoSuitableEngineAvailable are found.
+                x = [name] + [
+                    str(EngineClass.supports(ProblemKind({f})))
+                    for f in problem_features
+                ]
+                planners_features.append(x)
         if len(planners_features) > 0:
             header = ["Engine"] + problem_features
             msg = f"No available engine supports all the problem features:\n{format_table(header, planners_features)}"
@@ -741,7 +760,12 @@ class Factory:
         is equal to ``INCREASING_QUALITY`` or ``OPTIMAL_PLAN``.
         """
         if isinstance(anytime_guarantee, str):
-            anytime_guarantee = AnytimeGuarantee[anytime_guarantee]
+            try:
+                anytime_guarantee = AnytimeGuarantee[anytime_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{anytime_guarantee} is not a valid AnytimeGuarantee."
+                )
         return self._get_engine(
             OperationMode.ANYTIME_PLANNER,
             name,
@@ -809,18 +833,24 @@ class Factory:
             | e.g. ``Compiler(problem_kind=problem.kind, compilation_kinds=[QUANTIFIERS_REMOVING, GROUNDING])``
         """
         if isinstance(compilation_kind, str):
-            compilation_kind = CompilationKind[compilation_kind]
-
+            try:
+                compilation_kind = CompilationKind[compilation_kind]
+            except KeyError:
+                raise UPUsageError(
+                    f"{compilation_kind} is not a valid CompilationKind."
+                )
         kinds: Optional[List[CompilationKind]] = None
         if compilation_kinds is not None:
             kinds = []
             for kind in compilation_kinds:
                 if isinstance(kind, str):
-                    kinds.append(CompilationKind[kind])
+                    try:
+                        kinds.append(CompilationKind[kind])
+                    except KeyError:
+                        raise UPUsageError(f"{kind} is not a valid CompilationKind.")
                 else:
-                    assert isinstance(kind, CompilationKind)
+                    assert isinstance(kind, CompilationKind), "Typing not respected"
                     kinds.append(kind)
-
         return self._get_engine(
             OperationMode.COMPILER,
             name,
@@ -906,7 +936,10 @@ class Factory:
             | e.g. ``PlanRepairer(problem_kind=problem.kind, plan_kind=plan.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
         """
         if isinstance(plan_kind, str):
-            plan_kind = PlanKind[plan_kind]
+            try:
+                plan_kind = PlanKind[plan_kind]
+            except KeyError:
+                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
         if isinstance(optimality_guarantee, str):
             try:
                 optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
@@ -937,7 +970,7 @@ class Factory:
         *   | using ``name`` (the name of a specific portfolio) and eventually ``params`` (portfolio dependent options).
             | e.g. ``PortfolioSelector(name='ibacop')``
         *   | using ``problem_kind`` and ``optimality_guarantee``.
-            | e.g. ``OneshotPlanner(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
+            | e.g. ``PortfolioSelector(problem_kind=problem.kind, optimality_guarantee=SOLVED_OPTIMALLY)``
         """
         if isinstance(optimality_guarantee, str):
             try:
@@ -957,6 +990,14 @@ class Factory:
     def print_engines_info(
         self, stream: IO[str] = sys.stdout, full_credits: bool = True
     ):
+        """
+        Writes the info of all the installed engines in the given stream.
+
+        :param stream: The ``IO[str]`` where all the engine's info are written;
+            defaults to sys.stdout.
+        :param full_credits: If ``False`` a shorter version of the info is written;
+            defaults to ``True``.
+        """
         stream.write("These are the engines currently available:\n")
         for Engine in self._engines.values():
             credits = Engine.get_credits()
@@ -966,3 +1007,74 @@ class Factory:
                 stream.write(
                     f"This engine supports the following features:\n{str(Engine.supported_kind())}\n\n"
                 )
+
+    def get_all_applicable_engines(
+        self,
+        problem_kind: ProblemKind,
+        operation_mode: OperationMode = OperationMode.ONESHOT_PLANNER,
+        *,
+        optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
+        anytime_guarantee: Optional[Union["AnytimeGuarantee", str]] = None,
+        plan_kind: Optional[Union["PlanKind", str]] = None,
+        compilation_kind: Optional[Union["CompilationKind", str]] = None,
+    ) -> List[str]:
+        """
+        | Returns all the engine names installed that are able to handle all the given
+          requirements.
+
+        | Since the semantic of the parameters given to this function depends on the chosen ``OperationMode``,
+          an user must have clear their meaning in the Operation Mode context.
+
+        :param problem_kind: An engine is returned only if it supports this ``problem_kind``.
+        :param operation_mode: An engine is returned only if it implements this ``operation_mode``; defaults to ``ONESHOT_PLANNER``.
+        :param optimality_guarantee: An engine is returned only if it satisfies this ``optimality_guarantee``. This parameter
+            can be specified only if the ``operation_mode`` is ``ONESHOT_PLANNER``, ``REPLANNER``, ``PLAN_REPAIRER``
+            or ``PORTFOLIO_SELECTOR``.
+        :param anytime_guarantee: An engine is returned only if it satisfies this ``anytime_guarantee``. This parameter
+            can be specified only if the ``operation_mode`` is ``ANYTIME_PLANNER``.
+        :param plan_kind: An engine is returned only if it is able to handle this ``plan_kind``. This parameter
+            can be specified only if the ``operation_mode`` is ``PLAN_VALIDATOR`` or ``PLAN_REPAIRER``.
+        :param compilation_kind: An engine is returned only if it is able to handle this ``compilation_kind``. This
+            parameter can be specified only if the ``operation_mode`` is ``COMPILER``.
+        :return: The list of engines names that satisfy all the given requirements.
+        """
+        if isinstance(optimality_guarantee, str):
+            try:
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{optimality_guarantee} is not a valid OptimalityGuarantee."
+                )
+        if isinstance(anytime_guarantee, str):
+            try:
+                anytime_guarantee = AnytimeGuarantee[anytime_guarantee]
+            except KeyError:
+                raise UPUsageError(
+                    f"{anytime_guarantee} is not a valid AnytimeGuarantee."
+                )
+        if isinstance(compilation_kind, str):
+            try:
+                compilation_kind = CompilationKind[compilation_kind]
+            except KeyError:
+                raise UPUsageError(
+                    f"{compilation_kind} is not a valid CompilationKind."
+                )
+        if isinstance(plan_kind, str):
+            try:
+                plan_kind = PlanKind[plan_kind]
+            except KeyError:
+                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
+        names: List[str] = []
+        for name in self._preference_list:
+            EngineClass = self._engines[name]
+            if self._engine_satisfies_conditions(
+                EngineClass,
+                operation_mode,
+                problem_kind,
+                cast(Optional[OptimalityGuarantee], optimality_guarantee),
+                cast(Optional[CompilationKind], compilation_kind),
+                plan_kind,
+                cast(Optional[AnytimeGuarantee], anytime_guarantee),
+            ):
+                names.append(name)
+        return names
