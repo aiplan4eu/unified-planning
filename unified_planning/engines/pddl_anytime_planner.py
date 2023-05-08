@@ -15,10 +15,9 @@
 """This module defines an interface for a generic PDDL planner."""
 
 from abc import abstractmethod
-from fractions import Fraction
 import os
 from queue import Queue
-from typing import IO, Callable, Iterator, Optional, List, Tuple, Union, cast
+from typing import IO, Callable, Iterator, Optional, List, Tuple, Union
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.engine import OperationMode
@@ -27,7 +26,7 @@ from unified_planning.engines.results import (
     PlanGenerationResult,
     PlanGenerationResultStatus,
 )
-from unified_planning.plans import ActionInstance, Plan
+from unified_planning.plans import Plan
 
 # This module implements two different mechanisms to execute a PDDL planner in a
 # subprocess, processing the output in real-time and imposing a timeout.
@@ -47,6 +46,22 @@ USE_ASYNCIO_ON_UNIX = False
 ENV_USE_ASYNCIO = os.environ.get("UP_USE_ASYNCIO_PDDL_PLANNER")
 if ENV_USE_ASYNCIO is not None:
     USE_ASYNCIO_ON_UNIX = ENV_USE_ASYNCIO.lower() in ["true", "1"]
+
+
+class Writer(up.AnyBaseClass):
+    def __init__(self, output_stream, res_queue, engine, problem):
+        self._output_stream: IO[str] = output_stream
+        self._engine: "PDDLAnytimePlanner" = engine
+        self.problem = problem
+        self.current_plan: List[str] = []
+        self.storing: bool = False
+        self.res_queue: Queue[PlanGenerationResult] = res_queue
+        self.last_plan_found: Optional[Plan] = None
+
+    def write(self, txt: str):
+        if self._output_stream is not None:
+            self._output_stream.write(txt)
+        self._engine._parse_planner_output(self, txt)
 
 
 class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlannerMixin):
@@ -100,7 +115,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         return super()._solve(problem, heuristic, timeout, output_stream)
 
     @abstractmethod
-    def _parse_planner_output(self, writer: up.AnyBaseClass, planner_output: str):
+    def _parse_planner_output(self, writer: "Writer", planner_output: str):
         """
         This method takes the output stream of a PDDLEngine and modifies the fields of the given
         writer.
@@ -125,25 +140,8 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
 
         q: Queue[PlanGenerationResult] = Queue()
 
-        class Writer(up.AnyBaseClass):
-            def __init__(self, output_stream, res_queue, engine):
-                self._output_stream = output_stream
-                self._engine = engine
-                self.current_plan: Union[
-                    List[ActionInstance],
-                    List[Tuple[Fraction, ActionInstance, Optional[Fraction]]],
-                ] = cast(List[ActionInstance], [])
-                self.storing: bool = False
-                self.res_queue: Queue[PlanGenerationResult] = res_queue
-                self.last_plan_found: Optional[Plan] = None
-
-            def write(self, txt: str):
-                if self._output_stream is not None:
-                    self._output_stream.write(txt)
-                self._engine._parse_planner_output(self, txt)
-
         def run():
-            writer: IO[str] = Writer(output_stream, q, self)
+            writer: IO[str] = Writer(output_stream, q, self, problem)
             res = self._solve(problem, output_stream=writer, anytime=True)
             q.put(res)
 
