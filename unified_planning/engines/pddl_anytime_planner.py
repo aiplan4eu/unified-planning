@@ -18,7 +18,7 @@ from abc import abstractmethod
 from fractions import Fraction
 import os
 from queue import Queue
-from typing import IO, Callable, Iterator, Optional, List, Tuple, Union
+from typing import IO, Callable, Iterator, Optional, List, Tuple, Union, cast
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.engine import OperationMode
@@ -132,7 +132,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
                 self.current_plan: Union[
                     List[ActionInstance],
                     List[Tuple[Fraction, ActionInstance, Optional[Fraction]]],
-                ] = []
+                ] = cast(List[ActionInstance], [])
                 self.storing: bool = False
                 self.res_queue: Queue[PlanGenerationResult] = res_queue
                 self.last_plan_found: Optional[Plan] = None
