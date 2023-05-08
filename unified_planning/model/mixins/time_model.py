@@ -33,9 +33,11 @@ class TimeModelMixin:
         self,
         epsilon_default: Optional[Fraction],
         discrete_time: bool,
+        self_overlapping: bool,
     ):
         self._epsilon = epsilon_default
         self._discrete_time = discrete_time
+        self._self_overlapping = self_overlapping
 
     @property
     def epsilon(self) -> Optional[Fraction]:
@@ -73,6 +75,19 @@ class TimeModelMixin:
     def discrete_time(self, new_value: bool):
         self._discrete_time = new_value
 
+    @property
+    def self_overlapping(self) -> bool:
+        """
+        The ``self_overlapping`` flag determines if 2 (or more) different instances of the same
+        action grounded with the same parameters can be running at the same time.
+        """
+        return self._self_overlapping
+
+    @self_overlapping.setter
+    def self_overlapping(self, new_value: bool):
+        self._self_overlapping = new_value
+
     def _clone_to(self, other: "TimeModelMixin"):
         other.epsilon = self._epsilon
         other.discrete_time = self._discrete_time
+        other.self_overlapping = self._self_overlapping

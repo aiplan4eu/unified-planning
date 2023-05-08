@@ -64,7 +64,9 @@ class Problem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
-        TimeModelMixin.__init__(self, epsilon_default=None, discrete_time=False)
+        TimeModelMixin.__init__(
+            self, epsilon_default=None, discrete_time=False, self_overlapping=False
+        )
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )

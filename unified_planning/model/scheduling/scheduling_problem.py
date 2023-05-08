@@ -57,7 +57,12 @@ class SchedulingProblem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
-        TimeModelMixin.__init__(self, epsilon_default=Fraction(1), discrete_time=True)
+        TimeModelMixin.__init__(
+            self,
+            epsilon_default=Fraction(1),
+            discrete_time=True,
+            self_overlapping=False,
+        )
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
