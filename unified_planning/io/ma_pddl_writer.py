@@ -289,12 +289,64 @@ class MAPDDLWriter:
                         "MA-PDDL supports only boolean and numerical fluents"
                     )
 
+            predicates_agent_goal = []
+            functions_agent_goal = []
+            for g in self.problem.goals:
+                if g.is_dot():
+                    f = g.args[0].fluent()
+                    agent = g.agent()
+                    # args = g.args
+                    # objects = g.args[0].args
+                    if f not in ag.fluents and f not in self.all_public_fluents:
+                        if f.type.is_bool_type():
+                            params = []
+                            i = 0
+                            for param in f.signature:
+                                if param.type.is_user_type():
+                                    params.append(
+                                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
+                                    )
+                                    i += 1
+                                else:
+                                    raise UPTypeError(
+                                        "MA-PDDL supports only user type parameters"
+                                    )
+                            predicates_agent_goal.append(
+                                f'(a_{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+                            )
+                        elif f.type.is_int_type() or f.type.is_real_type():
+                            params = []
+                            i = 0
+                            for param in f.signature:
+                                if param.type.is_user_type():
+                                    params.append(
+                                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
+                                    )
+                                    i += 1
+                                else:
+                                    raise UPTypeError(
+                                        "MA-PDDL supports only user type parameters"
+                                    )
+                            functions_agent_goal.append(
+                                f'(a_{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+                            )
+                        else:
+                            raise UPTypeError(
+                                "MA-PDDL supports only boolean and numerical fluents"
+                            )
+
             nl = "\n  "
             out.write(
                 f" (:predicates\n "
                 if len(predicates_environment) > 0
                 or len(predicates_agent) > 0
+                or len(predicates_agent_goal) > 0
                 or len(predicates_public_agent) > 0
+                else ""
+            )
+            out.write(
+                f"  {nl.join(predicates_agent_goal)}\n"
+                if len(predicates_agent_goal) > 0
                 else ""
             )
             out.write(
@@ -318,6 +370,7 @@ class MAPDDLWriter:
                 f")\n"
                 if len(predicates_environment) > 0
                 or len(predicates_agent) > 0
+                or len(predicates_agent_goal) > 0
                 or len(predicates_public_agent) > 0
                 else ""
             )
@@ -326,12 +379,18 @@ class MAPDDLWriter:
                 f" (:functions\n"
                 if len(functions_environment) > 0
                 or len(functions_agent) > 0
+                or len(functions_agent_goal) > 0
                 or len(functions_public_agent) > 0
                 else ""
             )
             out.write(
                 f' {" ".join(functions_environment)}\n'
                 if len(functions_environment) > 0
+                else ""
+            )
+            out.write(
+                f' {" ".join(functions_agent_goal)}\n'
+                if len(functions_agent_goal) > 0
                 else ""
             )
             out.write(
@@ -348,6 +407,7 @@ class MAPDDLWriter:
                 f" )\n"
                 if len(functions_environment) > 0
                 or len(functions_agent) > 0
+                or len(functions_agent_goal) > 0
                 or len(functions_public_agent) > 0
                 else ""
             )
