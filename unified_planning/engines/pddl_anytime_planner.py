@@ -15,7 +15,10 @@
 """This module defines an interface for a generic PDDL planner."""
 
 from abc import abstractmethod
+from fractions import Fraction
 import os
+from queue import Queue
+from typing import IO, Callable, Iterator, Optional, List, Tuple, Union
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.engine import OperationMode
@@ -24,7 +27,7 @@ from unified_planning.engines.results import (
     PlanGenerationResult,
     PlanGenerationResultStatus,
 )
-from typing import IO, Callable, Iterator, Optional, List, Tuple, Union
+from unified_planning.plans import ActionInstance, Plan
 
 # This module implements two different mechanisms to execute a PDDL planner in a
 # subprocess, processing the output in real-time and imposing a timeout.
@@ -98,6 +101,18 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
 
     @abstractmethod
     def _parse_planner_output(self, writer: up.AnyBaseClass, planner_output: str):
+        """
+        This method takes the output stream of a PDDLEngine and modifies the fields of the given
+        writer.
+        Those fields are:
+        - writer.storing: Flag defining if the parsing is storing intermediate parts of a plan or not.
+        - writer.res_queue: The Queue of PlanGenerationResult where every generated result must be added.
+        - writer.current_plan: The List of ActionInstances (or Tuple[Fraction, ActionInstance, Optional[Fraction]]
+            for temporal problems) that currently contains the plan being parsed; must be set to an empty when the
+            plan is generated and added to the Queue.
+        - writer.last_plan_found: The last complete plan found and parsed.
+        TODO decide if and how to add some examples to this documentation.
+        """
         raise NotImplementedError
 
     def _get_solutions(
@@ -107,18 +122,20 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         output_stream: Optional[IO[str]] = None,
     ) -> Iterator["up.engines.results.PlanGenerationResult"]:
         import threading
-        import queue
 
-        q: queue.Queue = queue.Queue()
+        q: Queue[PlanGenerationResult] = Queue()
 
         class Writer(up.AnyBaseClass):
             def __init__(self, output_stream, res_queue, engine):
                 self._output_stream = output_stream
-                self._res_queue = res_queue
                 self._engine = engine
-                self._plan = []
-                self._storing = False
-                self._sequential_plan = None
+                self.current_plan: Union[
+                    List[ActionInstance],
+                    List[Tuple[Fraction, ActionInstance, Optional[Fraction]]],
+                ] = []
+                self.storing: bool = False
+                self.res_queue: Queue[PlanGenerationResult] = res_queue
+                self.last_plan_found: Optional[Plan] = None
 
             def write(self, txt: str):
                 if self._output_stream is not None:
