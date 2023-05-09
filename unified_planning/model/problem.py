@@ -23,7 +23,6 @@ from unified_planning.model.mixins import (
     ActionsSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
-    GlobalConstraintsMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
     InitialStateMixin,
@@ -44,7 +43,6 @@ class Problem(  # type: ignore[misc]
     UserTypesSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
-    GlobalConstraintsMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
@@ -71,7 +69,6 @@ class Problem(  # type: ignore[misc]
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
-        GlobalConstraintsMixin.__init__(self, self.environment)
         ActionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
@@ -148,10 +145,6 @@ class Problem(  # type: ignore[misc]
             s.append("trajectory constraints = [\n")
             s.extend(map(custom_str, self.trajectory_constraints))
             s.append("]\n\n")
-        if self.global_constraints:
-            s.append("global constraints = [\n")
-            s.extend(map(custom_str, self.global_constraints))
-            s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
             s.extend(map(custom_str, self.quality_metrics))
@@ -169,8 +162,6 @@ class Problem(  # type: ignore[misc]
         if not ObjectsSetMixin.__eq__(self, oth):
             return False
         if not FluentsSetMixin.__eq__(self, oth):
-            return False
-        if not GlobalConstraintsMixin.__eq__(self, oth):
             return False
         if not InitialStateMixin.__eq__(self, oth):
             return False
@@ -206,7 +197,6 @@ class Problem(  # type: ignore[misc]
         res = hash(self._name)
 
         res += FluentsSetMixin.__hash__(self)
-        res += GlobalConstraintsMixin.__hash__(self)
         res += ObjectsSetMixin.__hash__(self)
         res += UserTypesSetMixin.__hash__(self)
         res += InitialStateMixin.__hash__(self)
@@ -233,7 +223,6 @@ class Problem(  # type: ignore[misc]
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
-        GlobalConstraintsMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
         TimeModelMixin._clone_to(self, new_p)
 
@@ -616,6 +605,31 @@ class Problem(  # type: ignore[misc]
         self._trajectory_constraints = []
 
     @property
+    def state_invariants(self) -> List["up.model.fnode.FNode"]:
+        """Returns the List of ``state_invariants`` in the problem."""
+        em = self._env.expression_manager
+        state_invariants = []
+        for tc in self._trajectory_constraints:
+            if tc.is_always():
+                state_invariants.append(tc.arg(0))
+            elif tc.is_and():
+                for a in tc.args:
+                    if a.is_always():
+                        state_invariants.append(a.arg(0))
+            elif tc.is_forall() and tc.arg(0).is_always():
+                state_invariants.append(em.Forall(tc.arg(0).arg(0), *tc.variables()))
+        return state_invariants
+
+    def add_state_invariant(self, invariant: "up.model.expression.BoolExpression"):
+        """
+        Adds the given ``invariant`` to the problem's state invariants.
+        State invariants are added as ``Always`` trajectory constraints.
+
+        :param invariant: The invariant expression to add to this problem as a state invariant.
+        """
+        self.add_trajectory_constraint(self._env.expression_manager.Always(invariant))
+
+    @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """
         Calculates and returns the `problem kind` of this `planning problem`.
@@ -665,12 +679,12 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_goals) > 0:
             self._kind.set_time("TIMED_GOALS")
             self._kind.set_time("CONTINUOUS_TIME")
-        if self._trajectory_constraints:
-            self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
-        if self._global_constraints:
-            self._kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
-            for gc in self._global_constraints:
-                self._update_problem_kind_condition(gc, linear_checker)
+        for tc in self._trajectory_constraints:
+            if tc.is_always():
+                self._kind.set_constraints_kind("STATE_INVARIANTS")
+            else:
+                self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+            # HERE
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)

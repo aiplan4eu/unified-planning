@@ -100,7 +100,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
-        supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
@@ -159,7 +159,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             if next_state is None:
                 if reason == InapplicabilityReasons.CONFLICTING_EFFECTS:
                     msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
-                elif reason == InapplicabilityReasons.VIOLATES_GLOBAL_CONSTRAINTS:
+                elif reason == InapplicabilityReasons.VIOLATES_STATE_INVARIANTS:
                     msg = f"{str(i)}-th action instance {str(ai)} violates global constraints."
                 else:
                     raise NotImplementedError("Reason not implemented")

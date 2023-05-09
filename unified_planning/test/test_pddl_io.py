@@ -526,6 +526,15 @@ class TestPddlIO(TestCase):
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
 
+                self.assertEqual(
+                    len(problem.trajectory_constraints),
+                    len(parsed_problem.trajectory_constraints),
+                )
+                self.assertEqual(
+                    set(map(str, problem.trajectory_constraints)),
+                    set(map(str, parsed_problem.trajectory_constraints)),
+                )
+
     def test_basic_with_object_constant(self):
         problem = self.problems["basic_with_object_constant"].problem
 

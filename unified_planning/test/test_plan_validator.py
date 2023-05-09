@@ -118,6 +118,6 @@ class TestProblem(TestCase):
             self.assertIn("violates global constraints.", str(validation_result))
             # when removing the global constraints, the bad plan should become valid
             problem = problem.clone()
-            problem.clear_global_constraints()
+            problem.clear_trajectory_constraints()
             validation_result = pv.validate(problem, bad_plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.VALID)

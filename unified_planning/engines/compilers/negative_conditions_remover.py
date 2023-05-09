@@ -132,7 +132,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
         supported_kind.set_time("SELF_OVERLAPPING")
-        supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
@@ -235,9 +235,9 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             ng = fluent_remover.remove_negative_fluents(g)
             new_problem.add_goal(ng)
 
-        for gc in problem.global_constraints:
-            ngc = fluent_remover.remove_negative_fluents(gc)
-            new_problem.add_global_constraint(ngc)
+        for tc in problem.trajectory_constraints:
+            ntc = fluent_remover.remove_negative_fluents(tc)
+            new_problem.add_trajectory_constraint(ntc)
 
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():

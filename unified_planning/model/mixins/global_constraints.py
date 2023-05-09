@@ -38,7 +38,7 @@ class GlobalConstraintsMixin:
         """Returns the List of ``global_constraints`` in the problem."""
         return self._global_constraints
 
-    def add_global_constraint(self, constraint: "up.model.expression.BoolExpression"):
+    def add_state_invariant(self, constraint: "up.model.expression.BoolExpression"):
         """
         Adds the given ``constraint`` to the problem's global constraints.
 

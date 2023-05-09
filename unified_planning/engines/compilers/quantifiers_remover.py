@@ -100,7 +100,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("DURATION_INEQUALITIES")
         supported_kind.set_time("SELF_OVERLAPPING")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
+        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
@@ -224,9 +224,13 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
             for g in gl:
                 ng = expression_quantifier_remover.remove_quantifiers(g, problem)
                 new_problem.add_timed_goal(i, ng)
-        for gc in problem.global_constraints:
-            ngc = expression_quantifier_remover.remove_quantifiers(gc, problem)
-            new_problem.add_global_constraint(ngc)
+        for tc in problem.trajectory_constraints:
+            ngc = expression_quantifier_remover.remove_quantifiers(tc, problem)
+            if ngc.is_and():
+                for arg in ngc.args:
+                    new_problem.add_trajectory_constraint(arg)
+            else:
+                new_problem.add_trajectory_constraint(ngc)
         for g in problem.goals:
             ng = expression_quantifier_remover.remove_quantifiers(g, problem)
             new_problem.add_goal(ng)

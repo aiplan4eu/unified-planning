@@ -47,7 +47,7 @@ class InapplicabilityReasons(Enum):
     """TODO"""
 
     CONFLICTING_EFFECTS = auto()
-    VIOLATES_GLOBAL_CONSTRAINTS = auto()
+    VIOLATES_STATE_INVARIANTS = auto()
 
 
 class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
@@ -75,8 +75,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
-        self._global_constraints = self._problem.environment.expression_manager.And(
-            self._problem.global_constraints
+        self._state_invariants = self._problem.environment.expression_manager.And(
+            self._problem.state_invariants
         )
 
     def _ground_action(
@@ -228,9 +228,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 else:
                     updated_values[f] = v
         new_state = state.make_child(updated_values)
-        if self._se.evaluate(self._global_constraints, state).bool_constant_value():
+        if self._se.evaluate(self._state_invariants, state).bool_constant_value():
             return new_state, None
-        return None, InapplicabilityReasons.VIOLATES_GLOBAL_CONSTRAINTS
+        return None, InapplicabilityReasons.VIOLATES_STATE_INVARIANTS
 
     def apply_unsafe(
         self,
@@ -516,7 +516,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")

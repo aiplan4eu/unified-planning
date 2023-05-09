@@ -76,9 +76,9 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.disjunctive_conditions_remover",
         "DisjunctiveConditionsRemover",
     ),
-    "up_global_constraints_remover": (
-        "unified_planning.engines.compilers.global_constraints_remover",
-        "GlobalConstraintsRemover",
+    "up_state_invariants_remover": (
+        "unified_planning.engines.compilers.state_invariants_remover",
+        "StateInvariantsRemover",
     ),
     "up_negative_conditions_remover": (
         "unified_planning.engines.compilers.negative_conditions_remover",
@@ -129,9 +129,9 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_bounded_types_remover",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
-    "up_global_constraints_remover",
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
+    "up_state_invariants_remover",
     "up_usertype_fluents_remover",
     "tarski_grounder",
     "fast-downward-reachability-grounder",

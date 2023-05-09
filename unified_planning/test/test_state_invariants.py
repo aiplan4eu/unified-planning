@@ -40,16 +40,16 @@ class TestGlobalConstraintsRemover(TestCase):
     def test_basic_problem(self):
         problem = self.problems["basic"].problem.clone()
         x = problem.fluent("x")
-        problem.add_global_constraint(Not(x))
+        problem.add_state_invariant(Not(x))
 
         problem_kind = problem.kind
-        self.assertEqual(len(problem.global_constraints), 1)
-        self.assertTrue(problem.global_constraints[0] == Not(x))
-        self.assertTrue(problem_kind.has_global_constraints())
+        self.assertEqual(len(problem.state_invariants), 1)
+        self.assertTrue(problem.state_invariants[0] == Not(x))
+        self.assertTrue(problem_kind.has_state_invariants())
 
         with Compiler(
             problem_kind=problem_kind,
-            compilation_kind=CompilationKind.GLOBAL_CONSTRAINTS_REMOVING,
+            compilation_kind=CompilationKind.STATE_INVARIANTS_REMOVING,
         ) as compiler:
             compiled_problem = compiler.compile(problem).problem
             # The goal of the original problem is x and we add not(x), so the goal becomes False

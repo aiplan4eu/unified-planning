@@ -73,7 +73,7 @@ STATIC_FLUENTS_IN_ACTIONS_COST = 45
 FLUENTS_IN_ACTIONS_COST = 46
 SIMULATED_EFFECTS = 25
 TRAJECTORY_CONSTRAINTS = 47
-GLOBAL_CONSTRAINTS = 48
+STATE_INVARIANTS = 48
 METHOD_PRECONDITIONS = 32
 TASK_NETWORK_CONSTRAINTS = 33
 INITIAL_TASK_NETWORK_VARIABLES = 34
@@ -472,6 +472,7 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _COMPILERRESULT_MAPBACKPLANENTRY._options = None
   _COMPILERRESULT_MAPBACKPLANENTRY._serialized_options = b'8\001'
 <<<<<<< HEAD
+<<<<<<< HEAD
   _EXPRESSIONKIND._serialized_start=5268
   _EXPRESSIONKIND._serialized_end=5444
   _FEATURE._serialized_start=5447
@@ -486,6 +487,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _FEATURE._serialized_start=5487
   _FEATURE._serialized_end=6751
 >>>>>>> f6d5b61d (Added support in GRPC, UP simulator and UP validator)
+=======
+  _EXPRESSIONKIND._serialized_start=5313
+  _EXPRESSIONKIND._serialized_end=5489
+  _FEATURE._serialized_start=5492
+  _FEATURE._serialized_end=6754
+>>>>>>> 68d76d76 (changed global constraints to state invariants)
   _EXPRESSION._serialized_start=26
   _EXPRESSION._serialized_end=131
   _ATOM._serialized_start=133
@@ -549,6 +556,7 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _METRIC_METRICKIND._serialized_start=2787
   _METRIC_METRICKIND._serialized_end=3019
   _PROBLEM._serialized_start=3022
+<<<<<<< HEAD
 <<<<<<< HEAD
   _PROBLEM._serialized_end=3376
   _ACTIONINSTANCE._serialized_start=3379
@@ -643,4 +651,49 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _UNIFIEDPLANNING._serialized_start=6754
   _UNIFIEDPLANNING._serialized_end=6970
 >>>>>>> f6d5b61d (Added support in GRPC, UP simulator and UP validator)
+=======
+  _PROBLEM._serialized_end=3421
+  _ACTIONINSTANCE._serialized_start=3424
+  _ACTIONINSTANCE._serialized_end=3552
+  _METHODINSTANCE._serialized_start=3555
+  _METHODINSTANCE._serialized_end=3729
+  _METHODINSTANCE_SUBTASKSENTRY._serialized_start=3682
+  _METHODINSTANCE_SUBTASKSENTRY._serialized_end=3729
+  _PLANHIERARCHY._serialized_start=3732
+  _PLANHIERARCHY._serialized_end=3882
+  _PLANHIERARCHY_ROOTTASKSENTRY._serialized_start=3834
+  _PLANHIERARCHY_ROOTTASKSENTRY._serialized_end=3882
+  _PLAN._serialized_start=3884
+  _PLAN._serialized_end=3959
+  _PLANREQUEST._serialized_start=3962
+  _PLANREQUEST._serialized_end=4221
+  _PLANREQUEST_ENGINEOPTIONSENTRY._serialized_start=4122
+  _PLANREQUEST_ENGINEOPTIONSENTRY._serialized_end=4174
+  _PLANREQUEST_MODE._serialized_start=4176
+  _PLANREQUEST_MODE._serialized_end=4221
+  _VALIDATIONREQUEST._serialized_start=4223
+  _VALIDATIONREQUEST._serialized_end=4290
+  _LOGMESSAGE._serialized_start=4292
+  _LOGMESSAGE._serialized_end=4415
+  _LOGMESSAGE_LOGLEVEL._serialized_start=4360
+  _LOGMESSAGE_LOGLEVEL._serialized_end=4415
+  _PLANGENERATIONRESULT._serialized_start=4418
+  _PLANGENERATIONRESULT._serialized_end=4865
+  _PLANGENERATIONRESULT_METRICSENTRY._serialized_start=4622
+  _PLANGENERATIONRESULT_METRICSENTRY._serialized_end=4668
+  _PLANGENERATIONRESULT_STATUS._serialized_start=4671
+  _PLANGENERATIONRESULT_STATUS._serialized_end=4865
+  _ENGINE._serialized_start=4867
+  _ENGINE._serialized_end=4889
+  _VALIDATIONRESULT._serialized_start=4892
+  _VALIDATIONRESULT._serialized_end=5078
+  _VALIDATIONRESULT_VALIDATIONRESULTSTATUS._serialized_start=5030
+  _VALIDATIONRESULT_VALIDATIONRESULTSTATUS._serialized_end=5078
+  _COMPILERRESULT._serialized_start=5081
+  _COMPILERRESULT._serialized_end=5310
+  _COMPILERRESULT_MAPBACKPLANENTRY._serialized_start=5243
+  _COMPILERRESULT_MAPBACKPLANENTRY._serialized_end=5310
+  _UNIFIEDPLANNING._serialized_start=6757
+  _UNIFIEDPLANNING._serialized_end=6973
+>>>>>>> 68d76d76 (changed global constraints to state invariants)
 # @@protoc_insertion_point(module_scope)

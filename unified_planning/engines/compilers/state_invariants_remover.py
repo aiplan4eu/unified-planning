@@ -28,7 +28,7 @@ from typing import Optional
 from functools import partial
 
 
-class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
+class StateInvariantsRemover(engines.engine.Engine, CompilerMixin):
     """
     Global constraints remover class: this class offers the capability
     to transform a :class:`~unified_planning.model.Problem` with global constraints
@@ -39,12 +39,12 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     This is done by setting the global constraints as action's preconditions and goals, so that at every step the constraints are checked.
 
-    This `Compiler` supports only the the `GLOBAL_CONSTRAINTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    This `Compiler` supports only the the `STATE_INVARIANTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
-        CompilerMixin.__init__(self, CompilationKind.GLOBAL_CONSTRAINTS_REMOVING)
+        CompilerMixin.__init__(self, CompilationKind.STATE_INVARIANTS_REMOVING)
 
     @property
     def name(self):
@@ -83,7 +83,8 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        supported_kind.set_constraints_kind("GLOBAL_CONSTRAINTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
+        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
@@ -96,11 +97,11 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= GlobalConstraintsRemover.supported_kind()
+        return problem_kind <= StateInvariantsRemover.supported_kind()
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.GLOBAL_CONSTRAINTS_REMOVING
+        return compilation_kind == CompilationKind.STATE_INVARIANTS_REMOVING
 
     @staticmethod
     def resulting_problem_kind(
@@ -108,7 +109,7 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
         if new_kind.has_global_constraints():
-            new_kind.unset_constraints("GLOBAL_CONSTRAINTS")
+            new_kind.unset_constraints("STATE_INVARIANTS")
         return new_kind
 
     def _compile(
@@ -123,7 +124,7 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
         :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without global constraints.
         :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
-            only :class:`~unified_planning.engines.CompilationKind.GLOBAL_CONSTRAINTS_REMOVING` is supported by this compiler
+            only :class:`~unified_planning.engines.CompilationKind.STATE_INVARIANTS_REMOVING` is supported by this compiler
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
         """
         assert isinstance(problem, Problem)
@@ -136,10 +137,24 @@ class GlobalConstraintsRemover(engines.engine.Engine, CompilerMixin):
         new_to_old = add_invariant_condition_apply_function_to_problem_expressions(
             problem,
             new_problem,
-            em.And(problem.global_constraints).simplify(),
+            em.And(problem.state_invariants).simplify(),
         )
 
-        new_problem.clear_global_constraints()
+        # Add to the problem all the trajectory constraints that are not an always
+        new_traj_constraints = []
+        for tc in new_problem.trajectory_constraints:
+            if tc.is_and():
+                for a in tc.args:
+                    if not a.is_always():
+                        new_traj_constraints.append(a)
+            elif tc.is_forall():
+                if not tc.arg(0).is_always():
+                    new_traj_constraints.append(tc)
+            elif not tc.is_always():
+                new_traj_constraints.append(tc)
+        new_problem.clear_trajectory_constraints()
+        for ntc in new_traj_constraints:
+            new_problem.add_trajectory_constraint(ntc)
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name

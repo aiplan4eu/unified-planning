@@ -273,7 +273,7 @@ def get_example_problems():
     # for all the possible couples of locations, it must never be True that:
     # The robot is loaded when crossing a weak bridge.
     for l_from_v, l_to_v in product(locations, repeat=2):
-        problem.add_global_constraint(
+        problem.add_state_invariant(
             Not(
                 And(
                     weak_bridge(l_from_v, l_to_v),

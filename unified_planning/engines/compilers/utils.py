@@ -331,15 +331,6 @@ def add_invariant_condition_apply_function_to_problem_expressions(
     for constraint in original_problem.trajectory_constraints:
         new_problem.add_trajectory_constraint(function(constraint))
 
-    new_global_constraint = em.And(
-        *map(function, original_problem.global_constraints), condition
-    ).simplify()
-    if new_global_constraint.is_and():
-        for arg in new_global_constraint.args:
-            new_problem.add_global_constraint(arg)
-    else:
-        new_problem.add_global_constraint(new_global_constraint)
-
     for original_action in original_problem.actions:
         params = OrderedDict(((p.name, p.type) for p in original_action.parameters))
         if isinstance(original_action, InstantaneousAction):

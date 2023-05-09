@@ -92,7 +92,16 @@ def op_to_node_type(op: str) -> OperatorKind:
         return OperatorKind.IMPLIES
     elif op == "up:iff":
         return OperatorKind.IFF
-
+    elif op == "up:always":
+        return OperatorKind.ALWAYS
+    elif op == "up:at_most_once":
+        return OperatorKind.AT_MOST_ONCE
+    elif op == "up:sometime":
+        return OperatorKind.SOMETIME
+    elif op == "up:sometime_after":
+        return OperatorKind.SOMETIME_AFTER
+    elif op == "up:sometime_before":
+        return OperatorKind.SOMETIME_BEFORE
     raise ValueError(f"Unknown operator `{op}`")
 
 
@@ -336,9 +345,8 @@ class ProtobufReader(Converter):
                 timing = self.convert(g.timing)
                 problem.add_timed_goal(interval=timing, goal=goal)
 
-        for gc in msg.global_constraints:
-            assert not gc.HasField("span"), "Global constraints can't have a time_span"
-            problem.add_global_constraint(self.convert(gc.cond, problem))
+        for tc in msg.trajectory_constraints:
+            problem.add_trajectory_constraint(self.convert(tc, problem))
 
         for metric in msg.metrics:
             problem.add_quality_metric(self.convert(metric, problem))

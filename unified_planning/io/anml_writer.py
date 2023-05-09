@@ -365,8 +365,8 @@ class ANMLWriter:
             for g in gl:
                 out.write(f"{self._convert_anml_interval(i)} {converter.convert(g)};\n")
 
-        for gc in self.problem.global_constraints:
-            out.write(f"[ all ] {converter.convert(gc)};\n")
+        for si in self.problem.state_invariants:
+            out.write(f"[ all ] {converter.convert(si)};\n")
 
     def print_problem(self):
         """Prints to std output the `ANML` problem."""

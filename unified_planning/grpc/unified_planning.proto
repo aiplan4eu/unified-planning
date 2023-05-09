@@ -513,8 +513,8 @@ message Problem {
     // features: hierarchical
     Hierarchy hierarchy = 12;
 
-    // Global constraints of the planning problem.
-    repeated Condition global_constraints = 13;
+    // Trajectory constraints of the planning problem.
+    repeated Expression trajectory_constraints = 13;
 
 }
 
@@ -577,7 +577,7 @@ enum Feature {
     SIMULATED_EFFECTS = 25;
     // CONSTRAINTS_KIND
     TRAJECTORY_CONSTRAINTS = 47;
-    GLOBAL_CONSTRAINTS = 48;
+    STATE_INVARIANTS = 48;
     // HIERARCHICAL
     METHOD_PRECONDITIONS = 32;
     TASK_NETWORK_CONSTRAINTS = 33;

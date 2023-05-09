@@ -34,6 +34,7 @@ from unified_planning.model.operators import (
     IRA_OPERATORS,
     RELATIONS,
     OperatorKind,
+    TRAJECTORY_CONSTRAINTS,
 )
 from unified_planning.model.timing import TimepointKind
 
@@ -67,6 +68,16 @@ def map_operator(op: int) -> str:
         return "up:exists"
     elif op == OperatorKind.FORALL:
         return "up:forall"
+    elif op == OperatorKind.ALWAYS:
+        return "up:always"
+    elif op == OperatorKind.AT_MOST_ONCE:
+        return "up:at_most_once"
+    elif op == OperatorKind.SOMETIME:
+        return "up:sometime"
+    elif op == OperatorKind.SOMETIME_AFTER:
+        return "up:sometime_after"
+    elif op == OperatorKind.SOMETIME_BEFORE:
+        return "up:sometime_before"
     raise ValueError(f"Unknown operator `{op}`")
 
 
@@ -241,7 +252,11 @@ class FNode2Protobuf(walkers.DagWalker):
             type=proto_type(expression.fluent().type),
         )
 
-    @walkers.handles(BOOL_OPERATORS.union(IRA_OPERATORS).union(RELATIONS))
+    @walkers.handles(
+        BOOL_OPERATORS.union(IRA_OPERATORS)
+        .union(RELATIONS)
+        .union(TRAJECTORY_CONSTRAINTS)
+    )
     def walk_operator(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
@@ -554,9 +569,8 @@ class ProtobufWriter(Converter):
             features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
             hierarchy=hierarchy,
-            global_constraints=[
-                proto.Condition(cond=self.convert(gc), span=None)
-                for gc in problem.global_constraints
+            trajectory_constraints=[
+                self.convert(tc) for tc in problem.trajectory_constraints
             ],
         )
 
