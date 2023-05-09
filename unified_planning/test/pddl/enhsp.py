@@ -91,26 +91,14 @@ class ENHSP(PDDLAnytimePlanner):
         else:
             return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
 
-    def _parse_planner_output(self, writer: Writer, planner_output: str):
-        assert isinstance(self._writer, PDDLWriter)
-        for l in planner_output.splitlines():
-            if "Found Plan:" in l:
-                writer.storing = True
-            elif "Plan-Length:" in l:
-                plan_str = "\n".join(writer.current_plan)
-                plan = self._plan_from_str(
-                    writer.problem, plan_str, self._writer.get_item_named
-                )
-                res = PlanGenerationResult(
-                    PlanGenerationResultStatus.INTERMEDIATE,
-                    plan=plan,
-                    engine_name=self.name,
-                )
-                writer.res_queue.put(res)
-                writer.current_plan = []
-                writer.storing = False
-            elif writer.storing and l:
-                writer.current_plan.append(l.split(":")[1])
+    def _starting_plan_str(self) -> str:
+        return "Found Plan:"
+
+    def _ending_plan_str(self) -> str:
+        return "Plan-Length:"
+
+    def _parse_plan_line(self, plan_line: str) -> str:
+        return plan_line.split(":")[1]
 
     @staticmethod
     def satisfies(optimality_guarantee: up.engines.OptimalityGuarantee) -> bool:
