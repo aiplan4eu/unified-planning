@@ -26,6 +26,7 @@ from unified_planning.engines.results import (
     PlanGenerationResult,
     PlanGenerationResultStatus,
 )
+from unified_planning.io import PDDLWriter
 from unified_planning.plans import Plan
 
 # This module implements two different mechanisms to execute a PDDL planner in a
@@ -114,7 +115,6 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             self._mode_running = OperationMode.ONESHOT_PLANNER
         return super()._solve(problem, heuristic, timeout, output_stream)
 
-    @abstractmethod
     def _parse_planner_output(self, writer: "Writer", planner_output: str):
         """
         This method takes the output stream of a PDDLEngine and modifies the fields of the given
@@ -127,6 +127,44 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             for temporal problems) that currently contains the plan being parsed; must be set to an empty when the
             plan is generated and added to the Queue.
         - writer.last_plan_found: The last complete plan found and parsed.
+        """
+        assert isinstance(self._writer, PDDLWriter)
+        for l in planner_output.splitlines():
+            if self._starting_plan_str() in l:
+                writer.storing = True
+            elif self._ending_plan_str() in l:
+                plan_str = "\n".join(writer.current_plan)
+                plan = self._plan_from_str(
+                    writer.problem, plan_str, self._writer.get_item_named
+                )
+                res = PlanGenerationResult(
+                    PlanGenerationResultStatus.INTERMEDIATE,
+                    plan=plan,
+                    engine_name=self.name,
+                )
+                writer.res_queue.put(res)
+                writer.current_plan = []
+                writer.storing = False
+            elif writer.storing and l:
+                writer.current_plan.append(self._parse_plan_line(l))
+
+    def _starting_plan_str(self) -> str:
+        """
+        Returns the string representing the starting of a plan in the engine's output.
+        """
+        raise NotImplementedError
+
+    def _ending_plan_str(self) -> str:
+        """
+        Returns the string representing the ending of a plan in the engine's output.
+        """
+        raise NotImplementedError
+
+    def _parse_plan_line(self, plan_line: str) -> str:
+        """
+        Takes an engine's output line in between the starting_plan string and the engine_plan
+        string and returns the string representing the parsed plan.
+        TODO document this better
         """
         raise NotImplementedError
 
