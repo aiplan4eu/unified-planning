@@ -160,7 +160,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if reason == InapplicabilityReasons.CONFLICTING_EFFECTS:
                     msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
                 elif reason == InapplicabilityReasons.VIOLATES_STATE_INVARIANTS:
-                    msg = f"{str(i)}-th action instance {str(ai)} violates global constraints."
+                    msg = f"{str(i)}-th action instance {str(ai)} violates state invariants."
                 else:
                     raise NotImplementedError("Reason not implemented")
             if msg is not None:

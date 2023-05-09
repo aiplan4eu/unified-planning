@@ -44,7 +44,18 @@ from typing import Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union, 
 
 
 class InapplicabilityReasons(Enum):
-    """TODO"""
+    """
+    Represents the possible reasons for an action being inapplicable after the
+    ``SequentialSimulator.is_applicable`` method returns ``True`` but then the
+    ``SequentialSimulator.apply_unsafe`` returns ``None``.
+
+    Possible values:
+
+    *   | ``CONFLICTING_EFFECTS``: The action applied in the given state creates conflicting effects;
+        | This generally means that the action gives 2 different values to the same fluent instance.
+    *   | ``VIOLATES_STATE_INVARIANTS``: The new state does not satisfy the state invariants of the problem.
+        | State invariants are the ``Always`` expressions of the trajectory constraints.
+    """
 
     CONFLICTING_EFFECTS = auto()
     VIOLATES_STATE_INVARIANTS = auto()
@@ -171,7 +182,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
         parameters: Optional[Sequence["up.model.Expression"]] = None,
     ) -> Tuple[Optional["up.model.State"], Optional[InapplicabilityReasons]]:
-        """TODO
+        """
         Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
         `action` are applied; therefore some `fluent` values are updated.
         IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
@@ -181,8 +192,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             and effects evaluated.
         :param parameters: The parameters to ground the given `Action`. This param must be `None` if
             an `ActionInstance` is given instead.
-        :return: The new `State` created by the given action; `None` if the evaluation of the effects
-            creates conflicting effects.
+        :return: The new `State` created by the given action; `None` if the evaluation of the effects violates
+            the semantic of something in the problem (e.g. state_invariants or conflicting effects).
         """
         action, params = self._get_action_and_parameters(
             action_or_action_instance, parameters
@@ -248,8 +259,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             and effects evaluated.
         :param parameters: The parameters to ground the given `Action`. This param must be `None` if
             an `ActionInstance` is given instead.
-        :return: The new `State` created by the given action; `None` if the evaluation of the effects
-            creates conflicting effects.
+        :return: The new `State` created by the given action; `None` if the evaluation of the effects violates
+            the semantic of something in the problem (e.g. state_invariants or conflicting effects).
         """
         new_state, reason = self.specific_apply_unsafe(
             state, action_or_action_instance, parameters

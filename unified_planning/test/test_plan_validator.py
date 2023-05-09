@@ -95,7 +95,7 @@ class TestProblem(TestCase):
             self.assertIsInstance(qm, MinimizeActionCosts)
             self.assertEqual(val, 10)
 
-    def test_global_constraints(self):
+    def test_state_invariants(self):
         problem = self.problems["robot_loader_weak_bridge"].problem
         move = problem.action("move")
         load = problem.action("load")
@@ -115,8 +115,8 @@ class TestProblem(TestCase):
             self.assertTrue(pv.supports(problem.kind))
             validation_result = pv.validate(problem, bad_plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
-            self.assertIn("violates global constraints.", str(validation_result))
-            # when removing the global constraints, the bad plan should become valid
+            self.assertIn("violates state invariants.", str(validation_result))
+            # when removing the trajectory constraints, the bad plan should become valid
             problem = problem.clone()
             problem.clear_trajectory_constraints()
             validation_result = pv.validate(problem, bad_plan)

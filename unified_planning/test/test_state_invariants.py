@@ -32,7 +32,7 @@ from unified_planning.engines.compilers import ConditionalEffectsRemover
 from unified_planning.engines import CompilationKind
 
 
-class TestGlobalConstraintsRemover(TestCase):
+class TestStateInvariantsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()

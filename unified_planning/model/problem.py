@@ -684,7 +684,6 @@ class Problem(  # type: ignore[misc]
                 self._kind.set_constraints_kind("STATE_INVARIANTS")
             else:
                 self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
-            # HERE
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)
