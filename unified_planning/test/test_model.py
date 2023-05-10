@@ -32,11 +32,11 @@ class TestModel(TestCase):
     def test_expression(self):
         test_type = UserType("test_type")
         identity = Fluent("identity", test_type, obj=test_type)
-        id = Fluent("id", test_type, obj_id=IntType())
+        id = Fluent("id", test_type, obj_id=IntType(0, 10))
         self.assertEqual(id(1).type, test_type)
         env_2 = up.environment.Environment()
         test_type_2 = env_2.type_manager.UserType("test_type")
-        it_2 = env_2.type_manager.IntType()
+        it_2 = env_2.type_manager.IntType(0, 10)
         id_2 = Fluent("id", test_type_2, obj_id=it_2, environment=env_2)
         obj_2 = Object("obj", test_type_2, env_2)
         self.assertEqual(id_2(1).type, test_type_2)
@@ -390,3 +390,8 @@ class TestModel(TestCase):
             ),
             str(problem),
         )
+
+    def test_parameters(self):
+        int_5 = IntType(5)
+        with self.assertRaises(UPTypeError):
+            Fluent("x", p1=int_5)

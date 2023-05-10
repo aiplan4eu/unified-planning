@@ -24,6 +24,68 @@ Example = namedtuple("Example", ["problem", "plan"])
 def get_example_problems():
     problems = {}
 
+    # basic_bool_fluent_param
+    x = Fluent("x", int_param=BoolType())
+    a = InstantaneousAction("a")
+    a.add_precondition(Not(x(True)))
+    a.add_effect(x(True), True)
+    problem = Problem("basic_bool_fluent_param")
+    problem.add_fluent(x, default_initial_value=False)
+    problem.add_action(a)
+    problem.set_initial_value(x(False), True)
+    problem.add_goal(And(x(True), x(False)))
+    plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
+    basic_bool_fluent_param = Example(problem=problem, plan=plan)
+    problems["basic_bool_fluent_param"] = basic_bool_fluent_param
+
+    # basic_int_fluent_param
+    int_3_6 = IntType(3, 6)
+    x = Fluent("x", int_param=int_3_6)
+    a = InstantaneousAction("a")
+    a.add_precondition(Not(x(3)))
+    a.add_effect(x(3), True)
+    problem = Problem("basic_int_fluent_param")
+    problem.add_fluent(x, default_initial_value=False)
+    problem.add_action(a)
+    problem.set_initial_value(x(4), True)
+    problem.add_goal(And(x(3), x(4), Not(x(5))))
+    plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
+    basic_int_fluent_param = Example(problem=problem, plan=plan)
+    problems["basic_int_fluent_param"] = basic_int_fluent_param
+
+    # basic_bounded_int_action_param
+    int_3_6 = IntType(3, 6)
+    x = Fluent("x", int_param=int_3_6)
+    a = InstantaneousAction("a", int_param=int_3_6)
+    a.add_precondition(Not(x(a.int_param)))
+    a.add_effect(x(a.int_param), True)
+    problem = Problem("basic_bounded_int_action_param")
+    problem.add_fluent(x, default_initial_value=False)
+    problem.add_action(a)
+    problem.add_goal(And(x(3), x(4), Not(x(5))))
+    plan = up.plans.SequentialPlan(
+        [up.plans.ActionInstance(a, (Int(3),)), up.plans.ActionInstance(a, (Int(4),))]
+    )
+    basic_bounded_int_action_param = Example(problem=problem, plan=plan)
+    problems["basic_bounded_int_action_param"] = basic_bounded_int_action_param
+
+    # basic_unbounded_int_action_param
+    int_3_6 = IntType(3, 6)
+    int_3 = IntType(3)
+    x = Fluent("x", int_param=int_3_6)
+    a = InstantaneousAction("a", int_param=int_3)
+    a.add_precondition(Not(x(a.int_param)))
+    a.add_effect(x(a.int_param), True)
+    problem = Problem("basic_unbounded_int_action_param")
+    problem.add_fluent(x, default_initial_value=False)
+    problem.add_action(a)
+    problem.add_goal(And(x(3), x(4), Not(x(5))))
+    plan = up.plans.SequentialPlan(
+        [up.plans.ActionInstance(a, (Int(3),)), up.plans.ActionInstance(a, (Int(4),))]
+    )
+    basic_unbounded_int_action_param = Example(problem=problem, plan=plan)
+    problems["basic_unbounded_int_action_param"] = basic_unbounded_int_action_param
+
     # robot_real_constants
     # this version of the problem robot has reals instead of integers as constants
     Location = UserType("Location")
