@@ -327,7 +327,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     def _create_new_durative_action_with_given_conds_at_given_times(
         self,
-        new_problem: "up.model.Problem",
+        new_problem: "up.model.AbstractProblem",
         interval_list: List[TimeInterval],
         cond_list: List[FNode],
         original_action: DurativeAction,
@@ -367,7 +367,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     def _create_new_action_with_given_precond(
         self,
-        new_problem: "up.model.Problem",
+        new_problem: "up.model.AbstractProblem",
         precond: FNode,
         original_action: InstantaneousAction,
         dnf: Dnf,

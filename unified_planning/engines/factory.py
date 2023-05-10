@@ -106,11 +106,11 @@ DEFAULT_ENGINES = {
     "up_grounder": ("unified_planning.engines.compilers.grounder", "Grounder"),
     "up_ma_disjunctive_conditions_remover": (
         "unified_planning.engines.compilers.ma_disjunctive_conditions_remover",
-        "MA_DisjunctiveConditionsRemover",
+        "MADisjunctiveConditionsRemover",
     ),
     "up_ma_conditional_effects_remover": (
         "unified_planning.engines.compilers.ma_conditional_effects_remover",
-        "MA_ConditionalEffectsRemover",
+        "MAConditionalEffectsRemover",
     ),
 }
 
