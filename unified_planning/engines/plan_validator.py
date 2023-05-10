@@ -15,6 +15,7 @@
 
 
 from typing import Optional
+import warnings
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
@@ -80,6 +81,12 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("INT_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_numbers("BOUNDED_TYPES")
@@ -100,6 +107,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
@@ -136,7 +144,19 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 raise UPProblemDefinitionError(
                     "The UP does not support more than one quality metric in the problem."
                 )
-        simulator = UPSequentialSimulator(problem)
+        # To support infinite domain action's parameters the checks on the simulator must be disabled
+        # and, if the problem is not supported for different reasons, re-raise the warning/exception
+        with warnings.catch_warnings(record=True) as _:
+            simulator = UPSequentialSimulator(problem, error_on_failed_checks=False)
+        kind = problem.kind
+        kind.unset_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        kind.unset_parameters("REAL_ACTION_PARAMETERS")
+        if not self.skip_checks and not simulator.supports(kind):
+            msg = f"We cannot establish whether {self.name} can validate this problem!"
+            if self.error_on_failed_checks:
+                raise up.exceptions.UPUsageError(msg)
+            else:
+                warnings.warn(msg)
         prev_state: Optional[State] = simulator.get_initial_state()
         if metric is not None:
             metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)

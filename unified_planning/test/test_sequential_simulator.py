@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import warnings
 import unified_planning as up
 import pytest
 from itertools import product
@@ -222,3 +223,43 @@ class TestSimulator(TestCase):
             goal_state = simulator.apply_unsafe(init, act)
 
             self.assertTrue(simulator.is_goal(goal_state))
+
+    def test_parameters_type(self):
+        # Test that the simulator correctly handles fluents with bool parameters
+        problem, plan = self.problems["basic_bool_fluent_param"]
+        simulator = UPSequentialSimulator(problem)
+        state = simulator.get_initial_state()
+        for ai in plan.actions:
+            state = simulator.apply(state, ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(state))
+
+        # Test that the simulator correctly handles fluents with integer parameters
+        problem, plan = self.problems["basic_int_fluent_param"]
+        simulator = UPSequentialSimulator(problem)
+        state = simulator.get_initial_state()
+        for ai in plan.actions:
+            state = simulator.apply(state, ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(state))
+
+        # Test that the simulator correctly handles actions with bounded integer parameters
+        problem, plan = self.problems["basic_bounded_int_action_param"]
+        simulator = UPSequentialSimulator(problem)
+        state = simulator.get_initial_state()
+        self.assertEqual(4, len(tuple(simulator.get_applicable_actions(state))))
+        for ai in plan.actions:
+            state = simulator.apply(state, ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(state))
+
+        # Test that the simulator correctly handles actions with bounded integer parameters
+        problem, plan = self.problems["basic_unbounded_int_action_param"]
+        with warnings.catch_warnings(record=True) as _:
+            simulator = UPSequentialSimulator(problem, error_on_failed_checks=False)
+        state = simulator.get_initial_state()
+        # self.assertEqual(3, len(tuple(simulator.get_applicable_actions(state))))
+        for ai in plan.actions:
+            state = simulator.apply(state, ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(state))

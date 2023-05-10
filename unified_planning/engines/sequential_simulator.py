@@ -459,6 +459,13 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("INT_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+        # TODO decide if this can be supported with get_all_applicable engines raising an exceptions or not.
+        # supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        # supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_numbers("BOUNDED_TYPES")

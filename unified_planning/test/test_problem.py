@@ -525,6 +525,9 @@ class TestProblem(TestCase):
             "robot_locations_connected",
             "robot_locations_visited",
             "robot_fluent_of_user_type_with_int_id",
+            "basic_int_fluent_param",
+            "basic_bounded_int_action_param",
+            "basic_unbounded_int_action_param",
         ]
         for problem, _ in self.problems.values():
             if problem.name in names_of_SNP_problems:

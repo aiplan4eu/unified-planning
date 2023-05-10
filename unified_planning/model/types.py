@@ -251,7 +251,7 @@ def domain_size(
         ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError("Parameter not groundable!")
-        return ub - lb
+        return ub - lb + 1
     else:
         raise UPProblemDefinitionError("Parameter not groundable!")
 
