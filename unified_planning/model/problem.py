@@ -64,7 +64,9 @@ class Problem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
-        TimeModelMixin.__init__(self, epsilon_default=None, discrete_time=False)
+        TimeModelMixin.__init__(
+            self, epsilon_default=None, discrete_time=False, self_overlapping=False
+        )
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
@@ -675,6 +677,10 @@ class Problem(  # type: ignore[misc]
         if self._kind.has_continuous_time() and self.discrete_time:
             self._kind.set_time("DISCRETE_TIME")
             self._kind.unset_time("CONTINUOUS_TIME")
+        if self._self_overlapping and (
+            self._kind.has_continuous_time() or self._kind.has_discrete_time()
+        ):
+            self._kind.set_time("SELF_OVERLAPPING")
         return self._kind
 
     def _update_problem_kind_effect(
