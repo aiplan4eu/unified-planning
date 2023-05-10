@@ -54,11 +54,11 @@ from unified_planning.engines.compilers.utils import (
 from unified_planning.utils import powerset
 
 
-class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
+class MAConditionalEffectsRemover(ConditionalEffectsRemover):
     """
     Conditional effects remover class: this class offers the capability
     to transform a :class:`~unified_planning.model.MultiAgentProblem` with conditional :class:`Effects <unified_planning.model.Effect>`
-    into a `Problem` without conditional `Effects`. This capability is offered by the :meth:`~unified_planning.engines.compilers.MA_ConditionalEffectsRemover.compile`
+    into a `Problem` without conditional `Effects`. This capability is offered by the :meth:`~unified_planning.engines.compilers.MAConditionalEffectsRemover.compile`
     method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
     is the compiled Problem.
 
@@ -118,7 +118,7 @@ class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= MA_ConditionalEffectsRemover.supported_kind()
+        return problem_kind <= MAConditionalEffectsRemover.supported_kind()
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
@@ -208,7 +208,6 @@ class MA_ConditionalEffectsRemover(ConditionalEffectsRemover):
                                 new_action._set_preconditions(simplified_preconditions)
                                 new_to_old[new_action] = action
                                 new_ag.add_action(new_action)
-                                # new_problem.add_action(new_action)
                 elif isinstance(action, up.model.DurativeAction):
                     timing_cond_effects: Dict[
                         "up.model.Timing", List["up.model.Effect"]

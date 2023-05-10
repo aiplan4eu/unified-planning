@@ -40,6 +40,7 @@ from unified_planning.model import (
     MaximizeExpressionOnFinalState,
     Oversubscription,
     TemporalOversubscription,
+    AbstractProblem,
 )
 from unified_planning.plans import ActionInstance
 from typing import (
@@ -251,7 +252,9 @@ def create_action_with_given_subs(
 
 
 def get_fresh_name(
-    problem: Problem, original_name: str, parameters_names: Sequence[str] = tuple()
+    problem: AbstractProblem,
+    original_name: str,
+    parameters_names: Sequence[str] = tuple(),
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
     name_list = [original_name]
