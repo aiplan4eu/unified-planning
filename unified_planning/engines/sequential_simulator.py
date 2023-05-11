@@ -239,9 +239,11 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 else:
                     updated_values[f] = v
         new_state = state.make_child(updated_values)
-        if self._se.evaluate(self._state_invariants, state).bool_constant_value():
-            return new_state, None
-        return None, InapplicabilityReasons.VIOLATES_STATE_INVARIANTS
+        if not self._se.evaluate(
+            self._state_invariants, new_state
+        ).bool_constant_value():
+            return None, InapplicabilityReasons.VIOLATES_STATE_INVARIANTS
+        return new_state, None
 
     def apply_unsafe(
         self,
