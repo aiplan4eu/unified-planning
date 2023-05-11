@@ -17,7 +17,7 @@
 from abc import abstractmethod
 import os
 from queue import Queue
-from typing import IO, Callable, Iterator, Optional, List, Tuple, Union
+from typing import IO, Callable, Iterator, Optional, List, Tuple, Union, cast
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.engine import OperationMode
@@ -177,10 +177,12 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         import threading
 
         q: Queue[PlanGenerationResult] = Queue()
+        writer: IO[str] = Writer(output_stream, q, self, problem)
 
         def run():
-            writer: IO[str] = Writer(output_stream, q, self, problem)
-            res = self._solve(problem, output_stream=writer, anytime=True)
+            res = self._solve(
+                problem, output_stream=writer, timeout=timeout, anytime=True
+            )
             q.put(res)
 
         try:
@@ -190,6 +192,15 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             while status == PlanGenerationResultStatus.INTERMEDIATE:
                 res = q.get()
                 status = res.status
+                # If there is a timeout return the last plan found
+                if status == PlanGenerationResultStatus.TIMEOUT and res.plan is None:
+                    res = PlanGenerationResult(
+                        status,
+                        cast(Writer, writer).last_plan_found,
+                        res.engine_name,
+                        res.metrics,
+                        res.log_messages,
+                    )
                 yield res
         finally:
             if self._process is not None:

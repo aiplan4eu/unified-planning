@@ -32,7 +32,6 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 class ENHSP(PDDLAnytimePlanner):
     def __init__(self):
         PDDLAnytimePlanner.__init__(self, False, True)
-        self._options = ["-planner", "opt-hrmax"]
 
     @property
     def name(self) -> str:
@@ -53,7 +52,9 @@ class ENHSP(PDDLAnytimePlanner):
             problem_filename,
             "-sp",
             plan_filename,
-        ] + self._options
+            "-planner",
+            "opt-hrmax",
+        ]
 
     def _get_anytime_cmd(
         self, domanin_filename: str, problem_filename: str, plan_filename: str
