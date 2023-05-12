@@ -68,13 +68,6 @@ class TarskiGrounder(Engine, CompilerMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
-        # TODO check if following kinds are supported
-        # supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
-        # supported_kind.set_parameters("INT_FLUENT_PARAMETERS")
-        # supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
-        # supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
-        # supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
-        # supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITIES")
