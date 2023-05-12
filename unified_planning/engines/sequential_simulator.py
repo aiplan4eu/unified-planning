@@ -71,7 +71,7 @@ class InapplicabilityReasons(Enum):
     *   | ``CONFLICTING_EFFECTS``: The action applied in the given state creates conflicting effects;
         | This generally means that the action gives 2 different values to the same fluent instance.
     *   | ``VIOLATES_STATE_INVARIANTS``: The new state does not satisfy the state invariants of the problem.
-        | State invariants are the ``Always`` expressions of the trajectory constraints.
+        | State invariants are the ``Always`` expressions of the trajectory constraints or the bounded types.
     """
 
     VIOLATES_CONDITIONS = auto()
@@ -106,7 +106,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         self._se = StateEvaluator(self._problem)
         self._initial_state: Optional[UPState] = None
 
-        # Add state invariants without quantifiers
+        # Add state invariants without quantifiers to get all the grounded
+        # fluent instances that might modify the state invariants
         qrm = ExpressionQuantifiersRemover(self._problem.environment)
         self._state_invariants: List[FNode] = [
             qrm.remove_quantifiers(si, self._problem).simplify()
@@ -252,9 +253,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             and effects evaluated.
         :param parameters: The parameters to ground the given `Action`. This param must be `None` if
             an `ActionInstance` is given instead.
-        :return: The new `State` created by the given action; `None` if the evaluation of the effects violates
-            the semantic of something in the problem (e.g. state_invariants or conflicting effects).
-        :raises:
+        :return: The new `State` created by the given action.
+        :raises UPConflictingEffectsException: If to the same fluent are assigned 2 different
+            values.
+        :raises UPInvalidActionError: If the action is invalid or if it violates some state invariants.
         """
         action, params = self._get_action_and_parameters(
             action_or_action_instance, parameters
@@ -322,29 +324,24 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :param em: The current environment expression manager.
         :param evaluated_fluent: In case the fluent is already evaluated outside, pass it to
             avoid doing the same thing again.
-        :param evaluated_fluent: In case the condition is already evaluated outside, pass it to
+        :param evaluated_condition: In case the condition is already evaluated outside, pass it to
             avoid doing the same thing again.
         :return: The Tuple[Fluent, Value], where the fluent is the one affected by the given
             effect and value is the new value assigned to the fluent.
         :raises UPConflictingEffectsException: If to the same fluent are assigned 2 different
             values.
         """
+        evaluate: Callable[[FNode], FNode] = lambda exp: self._se.evaluate(exp, state)
         if evaluated_fluent is not None:
             fluent = evaluated_fluent
         else:
-            evaluated_args = tuple(
-                self._se.evaluate(a, state) for a in effect.fluent.args
-            )
-            fluent = self._problem.environment.expression_manager.FluentExp(
-                effect.fluent.fluent(), evaluated_args
-            )
+            fluent = effect.fluent.fluent()(*tuple(map(evaluate, effect.fluent.args)))
         if evaluated_condition is None:
             evaluated_condition = (
-                not effect.is_conditional()
-                or self._se.evaluate(effect.condition, state).is_true()
+                not effect.is_conditional() or evaluate(effect.condition).is_true()
             )
         if evaluated_condition:
-            new_value = self._se.evaluate(effect.value, state)
+            new_value = evaluate(effect.value)
             if effect.is_assignment():
                 old_value = updated_values.get(fluent, None)
                 if (
@@ -374,7 +371,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     )
                 # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
                 # otherwise we take it's evaluation in the state as it's value.
-                f_eval = updated_values.get(fluent, self._se.evaluate(fluent, state))
+                f_eval = updated_values.get(fluent, evaluate(fluent))
                 if effect.is_increase():
                     return (
                         fluent,
@@ -417,12 +414,12 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
     ) -> Tuple[List["up.model.FNode"], Optional[InapplicabilityReasons]]:
         """
         Returns the list of ``unsatisfied action's conditions`` evaluated in the given ``state``, together with
-        an Optional reason of why the can't be applied to the given state. If the ``full_check``
+        an Optional reason of why the action can't be applied to the given state. If the ``full_check``
         flag is set, the returned list can be empty but the action can't be applied in the given state,.
         To be sure that the action is applicable, the ``InapplicabilityReason`` returned must be ``None``.
         If the flag ``early_termination`` is set, the method ends and returns at the first ``unsatisfied condition``.
         Note that the returned list might also contain conditions that were not originally in the action, if this
-        action violates some other semantic bound (for example bounded types or state invariants).
+        action violates some other semantic constraints (for example bounded types or state invariants).
 
         :param state: The state in which the given action's conditions are checked.
         :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
