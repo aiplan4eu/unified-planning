@@ -38,9 +38,9 @@ class OneshotPlannerMixin(ABC):
     @staticmethod
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
         """
-        :param optimality_guarantee: The `optimality_guarantee` that must be satisfied.
-        :return: `True` if the `OneshotPlannerMixin` implementation satisfies the given
-        `optimality_guarantee`, `False` otherwise.
+        :param optimality_guarantee: The ``optimality_guarantee`` that must be satisfied.
+        :return: ``True`` if the ``OneshotPlannerMixin`` implementation satisfies the given
+            ``optimality_guarantee``, ``False`` otherwise.
         """
         return False
 
