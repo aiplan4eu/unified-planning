@@ -14,7 +14,7 @@
 #
 
 
-from typing import Optional
+from typing import Optional, cast
 import warnings
 import unified_planning as up
 import unified_planning.environment
@@ -154,11 +154,13 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         kind.unset_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         kind.unset_parameters("REAL_ACTION_PARAMETERS")
         if not self.skip_checks and not simulator.supports(kind):
-            msg = f"We cannot establish whether {self.name} can validate this problem!"
+            msg: Optional[
+                str
+            ] = f"We cannot establish whether {self.name} can validate this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
             else:
-                warnings.warn(msg)
+                warnings.warn(cast(str, msg))
         prev_state: Optional[State] = simulator.get_initial_state()
         if metric is not None:
             metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
