@@ -23,12 +23,16 @@ from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
+from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.exceptions import (
     UPUsageError,
     UPConflictingEffectsException,
     UPInvalidActionError,
+    UPUnreachableCodeError,
+    UPProblemDefinitionError,
 )
 from unified_planning.model import (
+    Fluent,
     FNode,
     ExpressionManager,
     UPState,
@@ -39,8 +43,19 @@ from unified_planning.model import (
     Oversubscription,
 )
 from unified_planning.model.types import _RealType
-from unified_planning.model.walkers import StateEvaluator
-from typing import Dict, Iterator, List, Optional, Sequence, Set, Tuple, Union, cast
+from unified_planning.model.walkers import StateEvaluator, ExpressionQuantifiersRemover
+from typing import (
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 
 class InapplicabilityReasons(Enum):
@@ -51,12 +66,15 @@ class InapplicabilityReasons(Enum):
 
     Possible values:
 
+    *   | ``VIOLATES_CONDITIONS``: The action's conditions don't evaluate to True in the given state;
+        | Generally the most frequent and common cause of action's inapplicability.
     *   | ``CONFLICTING_EFFECTS``: The action applied in the given state creates conflicting effects;
         | This generally means that the action gives 2 different values to the same fluent instance.
     *   | ``VIOLATES_STATE_INVARIANTS``: The new state does not satisfy the state invariants of the problem.
         | State invariants are the ``Always`` expressions of the trajectory constraints.
     """
 
+    VIOLATES_CONDITIONS = auto()
     CONFLICTING_EFFECTS = auto()
     VIOLATES_STATE_INVARIANTS = auto()
 
@@ -86,8 +104,41 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
-        self._state_invariants = self._problem.environment.expression_manager.And(
-            self._problem.state_invariants
+        self._initial_state: Optional[UPState] = None
+
+        # Add state invariants without quantifiers
+        qrm = ExpressionQuantifiersRemover(self._problem.environment)
+        self._state_invariants: List[FNode] = [
+            qrm.remove_quantifiers(si, self._problem).simplify()
+            for si in self._problem.state_invariants
+        ]
+        # Set of all the fluents appearing in the state_invariants. Used to skip checks
+        # if None of this fluent is modified
+        self._fluent_exps_in_state_invariants: Set[FNode] = set()
+        for si in self._state_invariants:
+            self._fluent_exps_in_state_invariants |= (
+                si.environment.free_vars_extractor.get(si)
+            )
+
+        # Add bounded types as state invariants
+        em = self._problem.environment.expression_manager
+        for f in self._problem.fluents:
+            lower_bound, upper_bound = None, None
+            f_type = f.type
+            if f_type.is_int_type() or f_type.is_real_type():
+                f_type = cast(_RealType, f_type)
+                lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
+            if lower_bound is not None:
+                for f_e in get_all_fluent_exp(self._problem, f):
+                    self._fluent_exps_in_state_invariants.add(f_e)
+                    self._state_invariants.append(em.LE(lower_bound, f_e))
+            if upper_bound is not None:
+                for f_e in get_all_fluent_exp(self._problem, f):
+                    self._fluent_exps_in_state_invariants.add(f_e)
+                    self._state_invariants.append(em.LE(f_e, upper_bound))
+
+        self._fluents_in_state_invariants: Set[Fluent] = set(
+            (fe.fluent() for fe in self._fluent_exps_in_state_invariants)
         )
 
     def _ground_action(
@@ -120,7 +171,15 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         of the state given here, therefore an up.model.UPState.
         """
         assert isinstance(self._problem, Problem), "supported_kind not respected"
-        return UPState(self._problem.initial_values)
+        if self._initial_state is None:
+            self._initial_state = UPState(self._problem.initial_values)
+            for si in self._state_invariants:
+                if not self._se.evaluate(si, self._initial_state).bool_constant_value():
+                    raise UPProblemDefinitionError(
+                        "The initial state of the problem already violates the state invariants"
+                    )
+        assert self._initial_state is not None
+        return self._initial_state
 
     def _is_applicable(
         self,
@@ -140,14 +199,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :return: Whether or not the action is applicable in the given `state`.
         """
         try:
-            is_applicable = (
-                len(
-                    self.get_unsatisfied_conditions(
-                        state, action, parameters, early_termination=True
-                    )
-                )
-                == 0
+            _, reason = self.get_unsatisfied_conditions(
+                state, action, parameters, early_termination=True, full_check=True
             )
+            is_applicable = reason is None
         except UPInvalidActionError:
             is_applicable = False
         return is_applicable
@@ -171,17 +226,22 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :return: `None` if the `action` is not applicable in the given `state`, the new State generated
             if the action is applicable.
         """
-        if not self.is_applicable(state, action, parameters):
+        _, reason = self.get_unsatisfied_conditions(
+            state, action, parameters, early_termination=True, full_check=False
+        )
+        if reason is not None:
             return None
-        else:
+        try:
             return self.apply_unsafe(state, action, parameters)
+        except (UPInvalidActionError, UPConflictingEffectsException):
+            return None
 
-    def specific_apply_unsafe(
+    def apply_unsafe(
         self,
         state: "up.model.State",
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
         parameters: Optional[Sequence["up.model.Expression"]] = None,
-    ) -> Tuple[Optional["up.model.State"], Optional[InapplicabilityReasons]]:
+    ) -> "up.model.State":
         """
         Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
         `action` are applied; therefore some `fluent` values are updated.
@@ -194,6 +254,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             an `ActionInstance` is given instead.
         :return: The new `State` created by the given action; `None` if the evaluation of the effects violates
             the semantic of something in the problem (e.g. state_invariants or conflicting effects).
+        :raises:
         """
         action, params = self._get_action_and_parameters(
             action_or_action_instance, parameters
@@ -204,69 +265,35 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             )
         grounded_action = self._ground_action(action, params)
         if grounded_action is None:
-            return None, InapplicabilityReasons.CONFLICTING_EFFECTS
+            raise UPInvalidActionError("Apply_unsafe got an inapplicable action.")
         assert isinstance(action, up.model.InstantaneousAction)
         updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
-        for effect in grounded_action.effects:
-            try:
-                fluent, value = self._evaluate_effect(
-                    effect, state, updated_values, assigned_fluent, em
-                )
-            except UPConflictingEffectsException:
-                return None, InapplicabilityReasons.CONFLICTING_EFFECTS
-            if fluent is not None:
-                assert value is not None
-                updated_values[fluent] = value
+
         if grounded_action.simulated_effect is not None:
             for f, v in zip(
                 grounded_action.simulated_effect.fluents,
                 grounded_action.simulated_effect.function(self._problem, state, {}),
             ):
-                old_value = updated_values.get(f, None)
-                # If f was already modified and it was modified by an increase/decrease or with an assign
-                # with a different value
-                if old_value is not None and (
-                    f not in assigned_fluent
-                    or old_value.constant_value() != v.constant_value()
-                ):
-                    if not f.type.is_bool_type():
-                        return None, InapplicabilityReasons.CONFLICTING_EFFECTS
-                    # solve with add-after-delete logic
-                    elif not old_value.bool_constant_value():
-                        updated_values[f] = v
-                else:
-                    updated_values[f] = v
+                updated_values[f] = v
+                assigned_fluent.add(f)
+
+        for effect in grounded_action.effects:
+            fluent, value = self._evaluate_effect(
+                effect, state, updated_values, assigned_fluent, em
+            )
+            if fluent is not None:
+                assert value is not None
+                updated_values[fluent] = value
+
         new_state = state.make_child(updated_values)
-        if not self._se.evaluate(
-            self._state_invariants, new_state
-        ).bool_constant_value():
-            return None, InapplicabilityReasons.VIOLATES_STATE_INVARIANTS
-        return new_state, None
-
-    def apply_unsafe(
-        self,
-        state: "up.model.State",
-        action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
-        parameters: Optional[Sequence["up.model.Expression"]] = None,
-    ) -> Optional["up.model.State"]:
-        """
-        Returns a new `State`, which is a copy of the given `state` but the applicable `effects` of the
-        `action` are applied; therefore some `fluent` values are updated.
-        IMPORTANT NOTE: Assumes that `self.is_applicable(state, event)` returns `True`.
-
-        :param state: The state in which the given action's conditions are checked and the effects evaluated.
-        :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked
-            and effects evaluated.
-        :param parameters: The parameters to ground the given `Action`. This param must be `None` if
-            an `ActionInstance` is given instead.
-        :return: The new `State` created by the given action; `None` if the evaluation of the effects violates
-            the semantic of something in the problem (e.g. state_invariants or conflicting effects).
-        """
-        new_state, reason = self.specific_apply_unsafe(
-            state, action_or_action_instance, parameters
-        )
+        for si in self._state_invariants:
+            if not self._se.evaluate(si, new_state).bool_constant_value():
+                raise UPInvalidActionError(
+                    "The given action is not applicable because it violates state invariants.",
+                    "Bounded numeric types are checked as state invariants.",
+                )
         return new_state
 
     def _evaluate_effect(
@@ -276,6 +303,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         updated_values: Dict["up.model.FNode", "up.model.FNode"],
         assigned_fluent: Set["up.model.FNode"],
         em: ExpressionManager,
+        evaluated_fluent: Optional[FNode] = None,
+        evaluated_condition: Optional[bool] = None,
     ) -> Tuple[Optional[FNode], Optional[FNode]]:
         """
         Evaluates the given effect in the state, and returns the fluent affected
@@ -291,18 +320,30 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :param assigned_fluent: The set containing all the fluents already assigned in the
             event containing this effect.
         :param em: The current environment expression manager.
+        :param evaluated_fluent: In case the fluent is already evaluated outside, pass it to
+            avoid doing the same thing again.
+        :param evaluated_fluent: In case the condition is already evaluated outside, pass it to
+            avoid doing the same thing again.
         :return: The Tuple[Fluent, Value], where the fluent is the one affected by the given
             effect and value is the new value assigned to the fluent.
         :raises UPConflictingEffectsException: If to the same fluent are assigned 2 different
             values.
         """
-        evaluated_args = tuple(self._se.evaluate(a, state) for a in effect.fluent.args)
-        fluent = self._problem.environment.expression_manager.FluentExp(
-            effect.fluent.fluent(), evaluated_args
-        )
-        if (not effect.is_conditional()) or self._se.evaluate(
-            effect.condition, state
-        ).is_true():
+        if evaluated_fluent is not None:
+            fluent = evaluated_fluent
+        else:
+            evaluated_args = tuple(
+                self._se.evaluate(a, state) for a in effect.fluent.args
+            )
+            fluent = self._problem.environment.expression_manager.FluentExp(
+                effect.fluent.fluent(), evaluated_args
+            )
+        if evaluated_condition is None:
+            evaluated_condition = (
+                not effect.is_conditional()
+                or self._se.evaluate(effect.condition, state).is_true()
+            )
+        if evaluated_condition:
             new_value = self._se.evaluate(effect.value, state)
             if effect.is_assignment():
                 old_value = updated_values.get(fluent, None)
@@ -312,7 +353,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 ):
                     if not fluent.type.is_bool_type():
                         raise UPConflictingEffectsException(
-                            f"The fluent {fluent} is modified by 2 different assignments in the same event."
+                            f"The fluent {fluent} is modified by 2 different assignments in the same action."
                         )
                     # solve with add-after-delete logic
                     elif not old_value.bool_constant_value():
@@ -321,7 +362,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                         return None, None
                 elif old_value is not None and fluent not in assigned_fluent:
                     raise UPConflictingEffectsException(
-                        f"The fluent {fluent} is modified by 1 assignments and an increase/decrease in the same event."
+                        f"The fluent {fluent} is modified by 1 assignments and an increase/decrease in the same action."
                     )
                 else:
                     assigned_fluent.add(fluent)
@@ -329,7 +370,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             else:
                 if fluent in assigned_fluent:
                     raise UPConflictingEffectsException(
-                        f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same event."
+                        f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same action."
                     )
                 # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
                 # otherwise we take it's evaluation in the state as it's value.
@@ -372,17 +413,24 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         action_or_action_instance: Union["up.model.Action", "up.plans.ActionInstance"],
         parameters: Optional[Sequence["up.model.Expression"]] = None,
         early_termination: bool = False,
-    ) -> List["up.model.FNode"]:
+        full_check: bool = False,
+    ) -> Tuple[List["up.model.FNode"], Optional[InapplicabilityReasons]]:
         """
-        Returns the list of `unsatisfied action's conditions` evaluated in the given `state`.
-        If the flag `early_termination` is set, the method ends and returns at the first `unsatisfied condition`.
+        Returns the list of ``unsatisfied action's conditions`` evaluated in the given ``state``, together with
+        an Optional reason of why the can't be applied to the given state. If the ``full_check``
+        flag is set, the returned list can be empty but the action can't be applied in the given state,.
+        To be sure that the action is applicable, the ``InapplicabilityReason`` returned must be ``None``.
+        If the flag ``early_termination`` is set, the method ends and returns at the first ``unsatisfied condition``.
         Note that the returned list might also contain conditions that were not originally in the action, if this
-        action violates some other semantic bound (for example bounded types).
+        action violates some other semantic bound (for example bounded types or state invariants).
 
         :param state: The state in which the given action's conditions are checked.
         :param action_or_action_instance: The `ActionInstance` or the `Action` of which conditions are checked.
         :param parameters: The parameters to ground the given `Action`. This param must be `None` if
             an `ActionInstance` is given instead.
+        :param early_termination: When ``True``, the first error found is returned.
+        :param full_check: When ``True``, fails also if the action applied creates any semantic problems; such as
+            conflicting_effects or violates state_invariants.
         :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
             `condition` evaluated to `False` if the flag `early_termination` is set.
         """
@@ -395,83 +443,111 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             raise UPInvalidActionError(
                 "The given action grounded with the given parameters does not create a valid action."
             )
+        evaluate: Callable[[FNode], FNode] = lambda exp: self._se.evaluate(exp, state)
+        reason: Optional[InapplicabilityReasons] = None
         unsatisfied_conditions = []
         for c in g_action.preconditions:
-            evaluated_cond = self._se.evaluate(c, state)
+            evaluated_cond = evaluate(c)
             if (
                 not evaluated_cond.is_bool_constant()
                 or not evaluated_cond.bool_constant_value()
             ):
                 unsatisfied_conditions.append(c)
+                reason = InapplicabilityReasons.VIOLATES_CONDITIONS
                 if early_termination:
-                    return unsatisfied_conditions
+                    return unsatisfied_conditions, reason
 
-        # check that the assignments will respect the bound typing
-        new_bounded_types_values: Dict["up.model.FNode", "up.model.FNode"] = {}
+        updated_values: Dict["up.model.FNode", "up.model.FNode"] = {}
         assigned_fluent: Set["up.model.FNode"] = set()
         em = self._problem.environment.expression_manager
-        for effect in g_action.effects:
-            lower_bound, upper_bound = None, None
-            f_type = effect.fluent.type
-            if f_type.is_int_type() or f_type.is_real_type():
-                f_type = cast(_RealType, effect.fluent.type)
-                lower_bound, upper_bound = f_type.lower_bound, f_type.upper_bound
-            if lower_bound is not None or upper_bound is not None:
-                fluent, value = self._evaluate_effect(
-                    effect, state, new_bounded_types_values, assigned_fluent, em
-                )
-                if fluent is not None:
-                    assert value is not None
-                    new_bounded_types_values[fluent] = value
-                    if lower_bound is not None and lower_bound > cast(
-                        Fraction, value.constant_value()
-                    ):
-                        unsatisfied_conditions.append(em.LE(lower_bound, fluent))
-                        if early_termination:
-                            return unsatisfied_conditions
-                    if upper_bound is not None and upper_bound < cast(
-                        Fraction, value.constant_value()
-                    ):
-                        unsatisfied_conditions.append(em.LE(fluent, upper_bound))
-                        if early_termination:
-                            return unsatisfied_conditions
-        if g_action.simulated_effect is not None:
-            to_check = False
-            for f in g_action.simulated_effect.fluents:
-                f_type = cast(_RealType, f.type)
-                if (f_type.is_int_type() or f_type.is_real_type()) and (
-                    f_type.lower_bound is not None or f_type.upper_bound is not None
-                ):
-                    to_check = True
-                    break
-            if to_check:
+
+        if full_check:
+            # Add simulated effects to updated_values and assigned_fluent before other effects
+            sim_eff = g_action.simulated_effect
+            if sim_eff is not None:
                 for f, v in zip(
-                    g_action.simulated_effect.fluents,
-                    g_action.simulated_effect.function(self._problem, state, {}),
+                    sim_eff.fluents,
+                    sim_eff.function(self._problem, state, {}),
                 ):
-                    lower_bound, upper_bound = None, None
-                    if f.type.is_int_type() or f.type.is_real_type():
-                        f_type = cast(_RealType, f.type)
-                        lower_bound, upper_bound = (
-                            f_type.lower_bound,
-                            f_type.upper_bound,
-                        )
-                    if lower_bound is not None or upper_bound is not None:
-                        if (
-                            lower_bound is not None
-                            and cast(Fraction, v.constant_value()) < lower_bound
-                        ):
-                            unsatisfied_conditions.append(em.LE(lower_bound, f))
+                    updated_values[f] = v
+                    assigned_fluent.add(f)
+
+            for e in g_action.conditional_effects:
+                if not e.fluent.type.is_bool_type():
+                    evaluated_condition = evaluate(e.condition).bool_constant_value()
+                    if evaluated_condition:
+                        try:
+                            fluent, value = self._evaluate_effect(
+                                e,
+                                state,
+                                updated_values,
+                                assigned_fluent,
+                                em,
+                                evaluated_condition=evaluated_condition,
+                            )
+                            assert fluent is not None and value is not None
+                            updated_values[fluent] = value
+                        except UPConflictingEffectsException:
+                            reason = InapplicabilityReasons.CONFLICTING_EFFECTS
                             if early_termination:
-                                break
-                        if (
-                            upper_bound is not None
-                            and cast(Fraction, v.constant_value()) > upper_bound
-                        ):
-                            unsatisfied_conditions.append(em.LE(f, upper_bound))
+                                return unsatisfied_conditions, reason
+
+            if updated_values:
+                for e in g_action.unconditional_effects:
+                    ev_fluent = e.fluent.fluent()(*tuple(map(evaluate, e.fluent.args)))
+                    values = updated_values.get(ev_fluent, None)
+                    if values is not None:
+                        try:
+                            fluent, value = self._evaluate_effect(
+                                e,
+                                state,
+                                updated_values,
+                                assigned_fluent,
+                                em,
+                                evaluated_fluent=ev_fluent,
+                                evaluated_condition=True,
+                            )
+                            assert fluent is not None and value is not None
+                            updated_values[fluent] = value
+                        except UPConflictingEffectsException:
+                            reason = InapplicabilityReasons.CONFLICTING_EFFECTS
                             if early_termination:
-                                break
-        return unsatisfied_conditions
+                                return unsatisfied_conditions, reason
+
+            for e in g_action.effects:
+                if e.fluent.fluent() in self._fluents_in_state_invariants:
+                    ev_fluent = e.fluent.fluent()(*tuple(map(evaluate, e.fluent.args)))
+                    if ev_fluent in self._fluent_exps_in_state_invariants:
+                        if ev_fluent not in updated_values:
+                            try:
+                                fluent, value = self._evaluate_effect(
+                                    e,
+                                    state,
+                                    updated_values,
+                                    assigned_fluent,
+                                    em,
+                                    evaluated_fluent=ev_fluent,
+                                )
+                                assert fluent is not None and value is not None
+                                updated_values[fluent] = value
+                            except UPConflictingEffectsException:
+                                raise UPUnreachableCodeError(
+                                    "Conflicting effects should be caught above"
+                                )
+
+            if not isinstance(state, up.model.UPState):
+                raise UPUsageError(
+                    f"The UPSequentialSimulator uses the UPState but {type(state).__name__} is given."
+                )
+            new_partial_state = state.make_child(updated_values)
+            for si in self._state_invariants:
+                if not self._se.evaluate(si, new_partial_state).bool_constant_value():
+                    unsatisfied_conditions.append(si)
+                    if reason is None:
+                        reason = InapplicabilityReasons.VIOLATES_STATE_INVARIANTS
+                    if early_termination:
+                        break
+        return unsatisfied_conditions, reason
 
     def get_unsatisfied_goals(
         self, state: "up.model.State", early_termination: bool = False

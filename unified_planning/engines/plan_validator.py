@@ -146,23 +146,22 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         for i, ai in zip(range(1, len(plan.actions) + 1), plan.actions):
             assert prev_state is not None
             try:
-                unsat_conds = simulator.get_unsatisfied_conditions(prev_state, ai)
+                unsat_conds, reason = simulator.get_unsatisfied_conditions(
+                    prev_state, ai
+                )
                 if unsat_conds:
+                    assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
-            except UPConflictingEffectsException as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
             except UPInvalidActionError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
-            next_state, reason = simulator.specific_apply_unsafe(prev_state, ai)
-            if next_state is None:
-                if reason == InapplicabilityReasons.CONFLICTING_EFFECTS:
-                    msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
-                elif reason == InapplicabilityReasons.VIOLATES_STATE_INVARIANTS:
-                    msg = f"{str(i)}-th action instance {str(ai)} violates state invariants."
-                else:
-                    raise NotImplementedError("Reason not implemented")
+            try:
+                next_state = simulator.apply_unsafe(prev_state, ai)
+            except UPInvalidActionError as e:
+                msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
+            except UPConflictingEffectsException as e:
+                msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 return ValidationResult(
