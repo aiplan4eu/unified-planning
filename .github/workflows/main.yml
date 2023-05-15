@@ -51,6 +51,9 @@ jobs:
         with:
           python-version: "3.8"
 
+      - name: Install pandoc
+        run: sudo apt-get install -y pandoc enchant
+
       - name: Install python requirements
         run: |
           pip install --upgrade pip
