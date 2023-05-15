@@ -831,13 +831,12 @@ class Problem(  # type: ignore[misc]
         elif type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")
         for param in fluent.signature:
-            # TODO understand if here we need a check that the fluent is not unused
             pt = param.type
             self._update_problem_kind_type(pt)
             if pt.is_bool_type():
                 self._kind.set_parameters("BOOL_FLUENT_PARAMETERS")
             elif pt.is_int_type():
-                self._kind.set_parameters("INT_FLUENT_PARAMETERS")
+                self._kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
 
     def _update_problem_kind_action(
         self,

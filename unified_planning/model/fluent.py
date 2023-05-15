@@ -70,7 +70,6 @@ class Fluent:
                 self._signature.append(
                     up.model.parameter.Parameter(param_name, param_type, self._env)
                 )
-        msg: Optional[str] = None
         for param in self._signature:
             pt = param.type
             if pt.is_real_type() or (

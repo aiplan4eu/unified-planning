@@ -83,7 +83,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
-        supported_kind.set_parameters("INT_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
         supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
         supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")

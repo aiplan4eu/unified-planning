@@ -477,7 +477,7 @@ class TestPddlIO(TestCase):
                 or kind.has_oversubscription()
                 or kind.has_timed_goals()
                 or kind.has_bool_fluent_parameters()
-                or kind.has_int_fluent_parameters()
+                or kind.has_bounded_int_fluent_parameters()
                 or kind.has_bool_action_parameters()
                 or kind.has_bounded_int_action_parameters()
                 or kind.has_unbounded_int_action_parameters()
