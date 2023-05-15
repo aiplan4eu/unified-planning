@@ -349,6 +349,7 @@ jobs:
     needs: [
         basic-check,
         check-protobuf,
+        check-documentation,
       ]
 
     steps:
@@ -420,6 +421,7 @@ jobs:
         run-tests-macos,
         check-protobuf,
         run-colab-notebooks,
+        check-documentation,
       ] # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
 
