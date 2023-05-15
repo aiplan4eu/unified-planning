@@ -728,11 +728,12 @@ def ActionSelector(
 ) -> "up.engines.engine.Engine":
     """
     Returns an ActionSelector. There are two ways to call this method:
-    - using 'problem_kind' through the problem field.
-      e.g. ActionSelector(problem)
-    - using 'name' (the name of a specific action selector) and eventually some 'params'
-      (engine dependent options).
-      e.g. ActionSelector(problem, name='xxx')
+
+    *   | using ``problem_kind`` through the problem field.
+        | e.g. ``ActionSelector(problem)``
+    *   | using ``name`` (the name of a specific action selector) and eventually some ``params``
+        | (engine dependent options).
+        | e.g. ``ActionSelector(problem, name='xxx')``
     """
     return get_environment().factory.ActionSelector(
         problem=problem, name=name, params=params

@@ -976,11 +976,12 @@ class Factory:
     ) -> "up.engines.engine.Engine":
         """
         Returns an ActionSelector. There are two ways to call this method:
-        - using 'problem_kind' through the problem field.
-          e.g. ActionSelector(problem)
-        - using 'name' (the name of a specific action selector) and eventually some 'params'
-          (engine dependent options).
-          e.g. ActionSelector(problem, name='xxx')
+
+        *   | using ``problem_kind`` through the problem field.
+            | e.g. ``ActionSelector(problem)``
+        *   | using ``name`` (the name of a specific action selector) and eventually some ``params``
+            | (engine dependent options).
+            | e.g. ``ActionSelector(problem, name='xxx')``
         """
         return self._get_engine(
             OperationMode.ACTION_SELECTOR,
