@@ -15,7 +15,6 @@
 """This module defines the conditional effects remover class."""
 
 
-from fractions import Fraction
 from itertools import product
 import unified_planning as up
 import unified_planning.engines as engines
@@ -116,6 +115,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
 

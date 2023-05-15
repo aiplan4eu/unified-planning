@@ -513,6 +513,9 @@ message Problem {
     // features: hierarchical
     Hierarchy hierarchy = 12;
 
+    // Trajectory constraints of the planning problem.
+    repeated Expression trajectory_constraints = 13;
+
 }
 
 // Features of the problem.
@@ -572,6 +575,9 @@ enum Feature {
     FLUENTS_IN_ACTIONS_COST = 46;
     // SIMULATED_ENTITIES
     SIMULATED_EFFECTS = 25;
+    // CONSTRAINTS_KIND
+    TRAJECTORY_CONSTRAINTS = 48;
+    STATE_INVARIANTS = 49;
     // HIERARCHICAL
     METHOD_PRECONDITIONS = 32;
     TASK_NETWORK_CONSTRAINTS = 33;

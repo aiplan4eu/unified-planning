@@ -259,7 +259,7 @@ class PDDLGrammar:
         )
 
         objects = set_results_name(
-            OneOrMore(Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))),
+            ZeroOrMore(Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))),
             "objects",
         )
 
@@ -310,7 +310,7 @@ class PDDLGrammar:
             + Optional(
                 Suppress("(")
                 + ":constraints"
-                + set_results_name(nested_expr(), "constraints")
+                + set_results_name(OneOrMore(nested_expr()), "constraints")
                 + Suppress(")")
             )
             + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
@@ -1557,16 +1557,17 @@ class PDDLReader:
                 raise SyntaxError("Missing goal section in problem file.")
 
             if "constraints" in problem_res:
-                problem.add_trajectory_constraint(
-                    self._parse_exp(
-                        problem,
-                        None,
-                        types_map,
-                        {},
-                        CustomParseResults(problem_res["constraints"][0]),
-                        problem_str,
+                for tc in problem_res["constraints"]:
+                    problem.add_trajectory_constraint(
+                        self._parse_exp(
+                            problem,
+                            None,
+                            types_map,
+                            {},
+                            CustomParseResults(tc),
+                            problem_str,
+                        )
                     )
-                )
 
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(
                 problem

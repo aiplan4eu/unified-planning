@@ -33,7 +33,6 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
-    UPConflictingEffectsException,
 )
 from fractions import Fraction
 from typing import Optional, List, Dict, Set, Tuple, Union, cast
@@ -97,6 +96,7 @@ class Problem(  # type: ignore[misc]
 
     def __repr__(self) -> str:
         s = []
+        custom_str = lambda x: f"  {str(x)}\n"
         if self.name is not None:
             s.append(f"problem name = {str(self.name)}\n\n")
         if self._epsilon is not None:
@@ -104,12 +104,10 @@ class Problem(  # type: ignore[misc]
         if len(self.user_types) > 0:
             s.append(f"types = {str(list(self.user_types))}\n\n")
         s.append("fluents = [\n")
-        for f in self.fluents:
-            s.append(f"  {str(f)}\n")
+        s.extend(map(custom_str, self.fluents))
         s.append("]\n\n")
         s.append("actions = [\n")
-        for a in self.actions:
-            s.append(f"  {str(a)}\n")
+        s.extend(map(custom_str, self.actions))
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
@@ -141,18 +139,15 @@ class Problem(  # type: ignore[misc]
                     s.append(f"    {str(g)}\n")
             s.append("]\n\n")
         s.append("goals = [\n")
-        for g in self.goals:
-            s.append(f"  {str(g)}\n")
+        s.extend(map(custom_str, self.goals))
         s.append("]\n\n")
         if self.trajectory_constraints:
             s.append("trajectory constraints = [\n")
-            for c in self.trajectory_constraints:
-                s.append(f"  {str(c)}\n")
+            s.extend(map(custom_str, self.trajectory_constraints))
             s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
-            for qm in self.quality_metrics:
-                s.append(f"  {str(qm)}\n")
+            s.extend(map(custom_str, self.quality_metrics))
             s.append("]\n\n")
         return "".join(s)
 
@@ -610,6 +605,31 @@ class Problem(  # type: ignore[misc]
         self._trajectory_constraints = []
 
     @property
+    def state_invariants(self) -> List["up.model.fnode.FNode"]:
+        """Returns the List of ``state_invariants`` in the problem."""
+        em = self._env.expression_manager
+        state_invariants = []
+        for tc in self._trajectory_constraints:
+            if tc.is_always():
+                state_invariants.append(tc.arg(0))
+            elif tc.is_and():
+                for a in tc.args:
+                    if a.is_always():
+                        state_invariants.append(a.arg(0))
+            elif tc.is_forall() and tc.arg(0).is_always():
+                state_invariants.append(em.Forall(tc.arg(0).arg(0), *tc.variables()))
+        return state_invariants
+
+    def add_state_invariant(self, invariant: "up.model.expression.BoolExpression"):
+        """
+        Adds the given ``invariant`` to the problem's state invariants.
+        State invariants are added as ``Always`` trajectory constraints.
+
+        :param invariant: The invariant expression to add to this problem as a state invariant.
+        """
+        self.add_trajectory_constraint(self._env.expression_manager.Always(invariant))
+
+    @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """
         Calculates and returns the `problem kind` of this `planning problem`.
@@ -659,8 +679,11 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_goals) > 0:
             self._kind.set_time("TIMED_GOALS")
             self._kind.set_time("CONTINUOUS_TIME")
-        if len(self._trajectory_constraints) > 0:
-            self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+        for tc in self._trajectory_constraints:
+            if tc.is_always():
+                self._kind.set_constraints_kind("STATE_INVARIANTS")
+            else:
+                self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)

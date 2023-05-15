@@ -34,6 +34,7 @@ from unified_planning.engines.results import (
     FailedValidationReason,
 )
 from unified_planning.engines.sequential_simulator import (
+    InapplicabilityReasons,
     UPSequentialSimulator,
     evaluate_quality_metric,
     evaluate_quality_metric_in_initial_state,
@@ -99,6 +100,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
@@ -141,21 +143,25 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         if metric is not None:
             metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
         msg = None
-        for i, ai in enumerate(plan.actions):
+        for i, ai in zip(range(1, len(plan.actions) + 1), plan.actions):
             assert prev_state is not None
             try:
-                unsat_conds = simulator.get_unsatisfied_conditions(prev_state, ai)
+                unsat_conds, reason = simulator.get_unsatisfied_conditions(
+                    prev_state, ai
+                )
                 if unsat_conds:
+                    assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
-            except UPConflictingEffectsException as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects: {str(e)}"
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
             except UPInvalidActionError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
-            next_state = simulator.apply_unsafe(prev_state, ai)
-            if next_state is None:
-                msg = f"{str(i)}-th action instance {str(ai)} creates conflicting effects."
+            try:
+                next_state = simulator.apply_unsafe(prev_state, ai)
+            except UPInvalidActionError as e:
+                msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
+            except UPConflictingEffectsException as e:
+                msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 return ValidationResult(

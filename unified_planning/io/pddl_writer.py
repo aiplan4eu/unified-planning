@@ -400,7 +400,10 @@ class PDDLWriter:
                 out.write(" :conditional-effects")
             if self.problem_kind.has_existential_conditions():
                 out.write(" :existential-preconditions")
-            if self.problem_kind.has_trajectory_constraints():
+            if (
+                self.problem_kind.has_trajectory_constraints()
+                or self.problem_kind.has_state_invariants()
+            ):
                 out.write(" :constraints")
             if self.problem_kind.has_universal_conditions():
                 out.write(" :universal-preconditions")

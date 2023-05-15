@@ -405,6 +405,8 @@ def add_invariant_condition_apply_function_to_problem_expressions(
     if new_goal.is_and():
         for arg in new_goal.args:
             new_problem.add_goal(arg)
+    else:
+        new_problem.add_goal(new_goal)
 
     for qm in original_problem.quality_metrics:
         if qm.is_minimize_action_costs():

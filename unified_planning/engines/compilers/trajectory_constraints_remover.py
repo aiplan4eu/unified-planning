@@ -73,8 +73,11 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
-        if new_kind.has_trajectory_constraints():
-            new_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+        if new_kind.has_trajectory_constraints() or new_kind.has_state_invariants():
+            new_kind.unset_constraints_kind("TRAJECTORY_CONSTRAINTS")
+            new_kind.unset_constraints_kind("STATE_INVARIANTS")
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     @staticmethod
@@ -109,6 +112,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
 
@@ -159,7 +163,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for a in new_problem.actions:
             map_value = map_grounded_action[a]
             assert isinstance(a, InstantaneousAction)
-            E: List["up.model.effect.Effect"] = list()
+            effects_to_add: List["up.model.effect.Effect"] = []
             # create an empty list to store the new effects for each trajectory constraints
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
@@ -170,19 +174,29 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     )
                 elif c.is_at_most_once():
                     precondition, to_add = self._manage_amo_compilation(
-                        env, c.args[0], self._monitoring_atom_dict[c], a, E
+                        env, c.args[0], self._monitoring_atom_dict[c], a, effects_to_add
                     )
                 elif c.is_sometime_before():
                     precondition, to_add = self._manage_sb_compilation(
-                        env, c.args[0], c.args[1], self._monitoring_atom_dict[c], a, E
+                        env,
+                        c.args[0],
+                        c.args[1],
+                        self._monitoring_atom_dict[c],
+                        a,
+                        effects_to_add,
                     )
                 elif c.is_sometime():
                     self._manage_sometime_compilation(
-                        env, c.args[0], self._monitoring_atom_dict[c], a, E
+                        env, c.args[0], self._monitoring_atom_dict[c], a, effects_to_add
                     )
                 elif c.is_sometime_after():
                     self._manage_sa_compilation(
-                        env, c.args[0], c.args[1], self._monitoring_atom_dict[c], a, E
+                        env,
+                        c.args[0],
+                        c.args[1],
+                        self._monitoring_atom_dict[c],
+                        a,
+                        effects_to_add,
                     )
                 else:
                     raise Exception(
@@ -190,9 +204,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     )
                 if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
                     if to_add and not precondition.is_true():
-                        a.preconditions.append(precondition)
-            for eff in E:
-                a.effects.append(eff)
+                        a.add_precondition(precondition)
+            for eff in effects_to_add:
+                a._add_effect_instance(eff)
             if env.expression_manager.FALSE() not in a.preconditions:
                 A_prime.append(a)
             trace_back_map[a] = map_value

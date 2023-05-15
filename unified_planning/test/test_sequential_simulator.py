@@ -192,7 +192,7 @@ class TestSimulator(TestCase):
         with SequentialSimulator(problem=problem) as simulator:
             init = simulator.get_initial_state()
 
-            self.assertTrue(simulator.is_applicable(init, test_int))
+            self.assertFalse(simulator.is_applicable(init, test_int))
             self.assertIsNone(simulator.apply(init, test_int))
 
             new_state = simulator.apply(init, unset_cond_2)
