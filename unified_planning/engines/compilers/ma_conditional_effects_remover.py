@@ -130,7 +130,7 @@ class MAConditionalEffectsRemover(ConditionalEffectsRemover):
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
         if new_kind.has_conditional_effects():
-            new_kind.unset_effects_kind("MA_CONDITIONAL_EFFECTS")
+            new_kind.unset_effects_kind("CONDITIONAL_EFFECTS")
             new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         return new_kind
 
