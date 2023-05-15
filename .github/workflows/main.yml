@@ -43,7 +43,7 @@ jobs:
       - name: Test all packages imports
         run: python3 scripts/test_imports.py
 
-    check-documentation:
+  check-documentation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
