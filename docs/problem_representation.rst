@@ -55,7 +55,7 @@ Contingent Example
 A contingent planning problem represents an action-based problem in which the exact initial state is not entirely known and some of the actions produce “observations” upon execution. More specifically, some actions can be SensingActions, which indicate which fluents they observe and after the successful execution of such actions, the observed fluents become known to the executor. The inherent non-determinism in the initial state can therefore be “shrinked” by performing suitable SensingActions and a plan is then a strategy that prescribes what to execute based on the past observations.
 
 .. literalinclude:: ./code_snippets/multi_agent_and_contingent.py
-    :lines: 44-94
+    :lines: 44-93
 
 
 Hierarchical Example
