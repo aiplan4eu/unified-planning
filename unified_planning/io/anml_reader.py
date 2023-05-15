@@ -91,8 +91,8 @@ class ANMLReader:
         * ``duration == expression;``
         * ``duration := expression;``
         * ``duration CT expression and duration CT expression``, where ``CT`` are Compare Tokens, so ``>``, ``>=``, ``<`` and ``<=``.
-        All the other ways to define the duration of an Action are not supported.
 
+        All the other ways to define the duration of an Action are not supported.
     #. Statements containing both conditions and effects are **not** supported ( ``(at(l_from) == true) := false);`` or ``(at(l_from) == true) and (at(l_from) := false);`` ).
     #. Quantifier body does not support intervals, they can only be defined outside.
     #. Conditional effects are not supported inside an expression block.

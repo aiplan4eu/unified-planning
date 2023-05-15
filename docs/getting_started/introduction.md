@@ -14,6 +14,6 @@ The purpose of the library is to provide an abstraction layer for planning techn
 The library is being developed publicly under a permissive open-source license (Apache 2.0) and the progress and the code can be followed at https://github.com/aiplan4eu/unified-planning.
 
 
-Check out our [Getting Started Guide](./getting_started.rst) and the full [API Reference ](./api-ref.rst).
+Check out our [Getting Started Guide](getting-started) and the full [API Reference](api-reference).
 
 Github page of the project available [here](https://github.com/aiplan4eu/unified-planning).

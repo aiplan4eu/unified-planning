@@ -93,7 +93,7 @@ class SequentialPlan(plans.plan.Plan):
         Returns a new `SequentialPlan` where every `ActionInstance` of the current `Plan` is replaced using the given function.
 
         :param replace_function: The function that applied to an `ActionInstance A` returns the `ActionInstance B`; `B`
-        replaces `A` in the resulting `SequentialPlan`.
+            replaces `A` in the resulting `SequentialPlan`.
         :return: The `SequentialPlan` where every `ActionInstance` is replaced using the given `replace_function`.
         """
         new_ai = []

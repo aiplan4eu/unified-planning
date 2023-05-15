@@ -43,6 +43,37 @@ jobs:
       - name: Test all packages imports
         run: python3 scripts/test_imports.py
 
+  check-documentation:
+    runs-on: ubuntu-latest
+    needs: [
+        basic-check,
+        check-protobuf,
+      ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+
+      - name: Install pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+
+      - name: Install python requirements
+        run: |
+          pip install --upgrade pip
+          pip install .
+          pip install -r docs/requirements.txt
+
+      - name: Listing dependency versions
+        run: pip freeze
+
+      - name: Building docs
+        run: make html
+        working-directory: ./docs
+
   run-tests-ubuntu-20-04:
     runs-on: ubuntu-20.04
     needs: [
@@ -394,6 +425,7 @@ jobs:
         run-tests-macos,
         check-protobuf,
         run-colab-notebooks,
+        check-documentation,
       ] # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
 

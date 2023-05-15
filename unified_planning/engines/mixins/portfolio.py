@@ -36,7 +36,7 @@ class PortfolioSelectorMixin(ABC):
         """
         :param optimality_guarantee: The `optimality_guarantee` that must be satisfied.
         :return: `True` if the `PortfolioSelectorMixin` implementation satisfies the given
-        `optimality_guarantee`, `False` otherwise.
+            `optimality_guarantee`, `False` otherwise.
         """
         return False
 
