@@ -111,7 +111,7 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
-        new_kind.unset_conditions_kind("MA_DISJUNCTIVE_CONDITIONS")
+        new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     def _compile(
@@ -152,14 +152,14 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                     )
                     if new_precond.is_or():
                         for and_exp in new_precond.args:
-                            na = self._ma_create_new_action_with_given_precond(
+                            na = self._create_new_action_with_given_precond(
                                 new_problem, and_exp, a, dnf
                             )
                             if na is not None:
                                 new_to_old[na] = a
                                 new_ag.add_action(na)
                     else:
-                        na = self._ma_create_new_action_with_given_precond(
+                        na = self._create_new_action_with_given_precond(
                             new_problem, new_precond, a, dnf
                         )
                         if na is not None:
@@ -184,7 +184,7 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                         Tuple[List[FNode], ...], product(*conditions)
                     )
                     for cond_list in conditions_tuple:
-                        nda = self._ma_create_new_durative_action_with_given_conds_at_given_times(
+                        nda = self._create_new_durative_action_with_given_conds_at_given_times(
                             new_ag, interval_list, cond_list, a, dnf
                         )
                         if nda is not None:
@@ -255,7 +255,7 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                 fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
                 fake_action.add_effect(fake_fluent, True)
                 for and_exp in g.args:
-                    na = self._ma_create_new_action_with_given_precond(
+                    na = self._create_new_action_with_given_precond(
                         new_problem, and_exp, fake_action, dnf
                     )
                     if na is not None:
@@ -270,33 +270,3 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                 if new_goal not in new_problem.goals:
                     new_problem.add_goal(new_goal)
         return new_goals
-
-    def _ma_create_new_durative_action_with_given_conds_at_given_times(
-        self,
-        new_problem: "MultiAgentProblem",
-        interval_list: List[TimeInterval],
-        cond_list: List[FNode],
-        original_action: DurativeAction,
-        dnf: Dnf,
-    ) -> Optional[DurativeAction]:
-        return self._create_new_durative_action_with_given_conds_at_given_times(
-            new_problem,
-            interval_list,
-            cond_list,
-            original_action,
-            dnf,
-        )
-
-    def _ma_create_new_action_with_given_precond(
-        self,
-        new_problem: "MultiAgentProblem",
-        precond: FNode,
-        original_action: InstantaneousAction,
-        dnf: Dnf,
-    ) -> Optional[InstantaneousAction]:
-        return self._create_new_action_with_given_precond(
-            new_problem,
-            precond,
-            original_action,
-            dnf,
-        )
