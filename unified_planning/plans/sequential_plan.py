@@ -54,8 +54,14 @@ class SequentialPlan(plans.plan.Plan):
                 )
         self._actions = actions
 
+    def __str__(self) -> str:
+        ret = ["SequentialPlan:"]
+        convert_ai = lambda ai: f"    {ai}"
+        ret.extend(map(convert_ai, self._actions))
+        return "\n".join(ret)
+
     def __repr__(self) -> str:
-        return str(self._actions)
+        return f"SequentialPlan({self._actions})"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SequentialPlan) and len(self._actions) == len(oth._actions):
