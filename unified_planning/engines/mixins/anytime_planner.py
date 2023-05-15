@@ -40,7 +40,7 @@ class AnytimePlannerMixin(ABC):
         """
         :param anytime_guarantee: The `anytime_guarantee` that must be satisfied.
         :return: `True` if the `AnytimePlannerMixin` implementation ensures the given
-        `anytime_guarantee`, `False` otherwise.
+            `anytime_guarantee`, `False` otherwise.
         """
         return False
 

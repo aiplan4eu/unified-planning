@@ -15,7 +15,7 @@ The following example shows a simple robotic planning problem modeling a robot m
     :lines: 3-38
 
 
-In the current version, the Unified-Planning library allows the specification of classical, numerical and temporal planning problems. In order to support the latitude expressiveness levels we have operators for arithmetic such as plus minus times and division and specific temporal operators to attach conditions and effects to specific timings within the duration of an action. The library :ref:`documentation <api-ref>` provides examples and describes the use of these functionalities.
+In the current version, the Unified-Planning library allows the specification of classical, numerical and temporal planning problems. In order to support the latitude expressiveness levels we have operators for arithmetic such as plus minus times and division and specific temporal operators to attach conditions and effects to specific timings within the duration of an action. The library :ref:`documentation <api-reference>` provides examples and describes the use of these functionalities.
 
 
 Temporal Example
