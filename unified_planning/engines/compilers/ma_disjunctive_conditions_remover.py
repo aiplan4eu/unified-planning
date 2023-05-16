@@ -19,28 +19,20 @@ import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
-    FNode,
-    Problem,
     InstantaneousAction,
     DurativeAction,
-    TimeInterval,
-    Timing,
     Action,
     ProblemKind,
-    Oversubscription,
 )
 from unified_planning.model.walkers import Dnf
-from typing import List, Optional, Tuple, Dict, cast
-from itertools import product
+from typing import List, Optional, Dict
 from functools import partial
 from unified_planning.engines.compilers.disjunctive_conditions_remover import (
     DisjunctiveConditionsRemover,
 )
 from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
-from unified_planning.model.multi_agent.agent import Agent
-from typing import Dict, Iterable, List, Optional, Tuple, cast
+from typing import Dict, List, Optional
 
 
 class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
@@ -66,45 +58,14 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
 
     @staticmethod
     def supported_kind() -> ProblemKind:
-        supported_kind = ProblemKind()
+        supported_kind = DisjunctiveConditionsRemover.supported_kind()
+        supported_kind.unset_problem_class("ACTION_BASED")
         supported_kind.set_problem_class("ACTION_BASED_MULTI_AGENT")
-        supported_kind.set_typing("FLAT_TYPING")
-        supported_kind.set_typing("HIERARCHICAL_TYPING")
-        supported_kind.set_numbers("CONTINUOUS_NUMBERS")
-        supported_kind.set_numbers("DISCRETE_NUMBERS")
-        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
-        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
-        supported_kind.set_fluents_type("NUMERIC_FLUENTS")
-        supported_kind.set_fluents_type("OBJECT_FLUENTS")
-        supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITIES")
-        supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
-        supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
-        supported_kind.set_effects_kind("INCREASE_EFFECTS")
-        supported_kind.set_effects_kind("DECREASE_EFFECTS")
-        supported_kind.set_time("CONTINUOUS_TIME")
-        supported_kind.set_time("DISCRETE_TIME")
-        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("TIMED_EFFECTS")
-        supported_kind.set_time("TIMED_GOALS")
-        supported_kind.set_time("DURATION_INEQUALITIES")
-        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        supported_kind.set_quality_metrics("ACTIONS_COST")
-        supported_kind.set_quality_metrics("PLAN_LENGTH")
-        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
-        supported_kind.set_quality_metrics("MAKESPAN")
-        supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
 
     @staticmethod
     def supports(problem_kind):
         return problem_kind <= MADisjunctiveConditionsRemover.supported_kind()
-
-    @staticmethod
-    def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
 
     @staticmethod
     def resulting_problem_kind(
@@ -146,52 +107,10 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
             new_problem.agent(ag.name).clear_actions()
             new_ag = new_problem.agent(ag.name)
             for a in ag.actions:
-                if isinstance(a, InstantaneousAction):
-                    new_precond = dnf.get_dnf_expression(
-                        env.expression_manager.And(a.preconditions)
-                    )
-                    if new_precond.is_or():
-                        for and_exp in new_precond.args:
-                            na = self._create_new_action_with_given_precond(
-                                new_problem, and_exp, a, dnf
-                            )
-                            if na is not None:
-                                new_to_old[na] = a
-                                new_ag.add_action(na)
-                    else:
-                        na = self._create_new_action_with_given_precond(
-                            new_problem, new_precond, a, dnf
-                        )
-                        if na is not None:
-                            new_to_old[na] = a
-                            new_ag.add_action(na)
-                elif isinstance(a, DurativeAction):
-                    interval_list: List[TimeInterval] = []
-                    conditions: List[List[FNode]] = []
-                    # save the timing, calculate the dnf of the and of all the conditions at the same time
-                    # and then save it in conditions.
-                    # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
-                    for i, cl in a.conditions.items():
-                        interval_list.append(i)
-                        new_cond = dnf.get_dnf_expression(
-                            env.expression_manager.And(cl)
-                        )
-                        if new_cond.is_or():
-                            conditions.append(new_cond.args)
-                        else:
-                            conditions.append([new_cond])
-                    conditions_tuple = cast(
-                        Tuple[List[FNode], ...], product(*conditions)
-                    )
-                    for cond_list in conditions_tuple:
-                        nda = self._create_new_durative_action_with_given_conds_at_given_times(
-                            new_ag, interval_list, cond_list, a, dnf
-                        )
-                        if nda is not None:
-                            new_to_old[nda] = a
-                            new_ag.add_action(nda)
-                else:
-                    raise NotImplementedError
+                for na in self._create_non_disjunctive_actions(a, new_problem, dnf):
+                    new_to_old[na] = a
+                    new_ag.add_action(na)
+
             new_problem.add_agent(new_ag)
 
             # Meaningful action is the list of the actions that modify fluents that are not added

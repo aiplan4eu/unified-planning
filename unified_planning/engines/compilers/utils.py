@@ -58,7 +58,7 @@ from typing import (
 
 
 def check_and_simplify_conditions(
-    problem: Problem, action: DurativeAction, simplifier
+    problem: AbstractProblem, action: DurativeAction, simplifier
 ) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
     """
     Simplifies conditions and if it is False (a contraddiction)
@@ -95,7 +95,7 @@ def check_and_simplify_conditions(
 
 
 def check_and_simplify_preconditions(
-    problem: Problem, action: InstantaneousAction, simplifier
+    problem: AbstractProblem, action: InstantaneousAction, simplifier
 ) -> Tuple[bool, List[FNode]]:
     """
     Simplifies preconditions and if it is False (a contraddiction)
