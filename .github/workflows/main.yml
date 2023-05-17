@@ -3,7 +3,7 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "619437baa48f167c5a05c845340ed89c48d9f014"
+  up_tamer_commit: "7912ef322348b9c4c0928f9c4fe12c5b0fca2e6f"
   up_pyperplan_commit: "71e0c1fe65f9564f04912168ee26699eff144095"
   up_fast_downward_commit: "7ccd86de2ce8992a2bc720b1a4b43002b6e1230b"
   up_fmap_commit: "ad3a878eb049749cdf3ff2ce7d44014dfc4c4424"

@@ -68,7 +68,7 @@ class TestInfixNotation(TestCase):
         ut = UserType("ut")
         o_1 = Object("o_1", ut)
         o_2 = Object("o_2", ut)
-        f_i = Fluent("f_i", ut, id=IntType())
+        f_i = Fluent("f_i", ut, id=IntType(1, 5))
         f_o = Fluent("f_o", ut)
         expressions: List[Tuple[FNode, FNode]] = [
             (Equals(o_1, o_2), o_1.Equals(o_2)),

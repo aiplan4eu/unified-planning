@@ -30,6 +30,7 @@ from unified_planning.model.mixins import (
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
+from unified_planning.model.types import _IntType
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
@@ -829,9 +830,13 @@ class Problem(  # type: ignore[misc]
                 self._kind.set_fluents_type("NUMERIC_FLUENTS")
         elif type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")
-        for p in fluent.signature:
-            # TODO understant if here we need a check that the fluent is not unused
-            self._update_problem_kind_type(p.type)
+        for param in fluent.signature:
+            pt = param.type
+            self._update_problem_kind_type(pt)
+            if pt.is_bool_type():
+                self._kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+            elif pt.is_int_type():
+                self._kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
 
     def _update_problem_kind_action(
         self,
@@ -842,8 +847,21 @@ class Problem(  # type: ignore[misc]
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
-        for p in action.parameters:
-            self._update_problem_kind_type(p.type)
+        for param in action.parameters:
+            pt = param.type
+            self._update_problem_kind_type(pt)
+            if pt.is_bool_type():
+                self._kind.set_parameters("BOOL_ACTION_PARAMETERS")
+            elif pt.is_real_type():
+                self._kind.set_parameters("REAL_ACTION_PARAMETERS")
+            elif pt.is_int_type():
+                if (
+                    cast(_IntType, pt).lower_bound is None
+                    or cast(_IntType, pt).upper_bound is None
+                ):
+                    self._kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+                else:
+                    self._kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         if isinstance(action, up.model.action.SensingAction):
             self._kind.set_problem_class("CONTINGENT")
         if isinstance(action, up.model.tamp.InstantaneousMotionAction):

@@ -47,8 +47,10 @@ def convert_type_str(s: str, problem: Problem) -> model.types.Type:
     elif s == "up:integer":
         return problem.environment.type_manager.IntType()
     elif "up:integer[" in s:
-        lb = int(s.split("[")[1].split(",")[0])
-        ub = int(s.split(",")[1].split("]")[0])
+        str_lb = s.split("[")[1].split(",")[0]
+        lb = None if "-inf" in str_lb else int(str_lb)
+        str_ub = s.split(",")[1].split("]")[0]
+        ub = None if "inf" in str_ub else int(str_ub)
         return problem.environment.type_manager.IntType(lb, ub)
     elif s == "up:real":
         return problem.environment.type_manager.RealType()

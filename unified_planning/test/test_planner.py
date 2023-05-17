@@ -77,6 +77,24 @@ class TestPlanner(TestCase):
                 self.assertEqual("Tamer does not support timeout.", str(w[-1].message))
 
     @skipIfEngineNotAvailable("tamer")
+    def test_basic_parameters(self):
+        problem_names = [
+            "basic_bool_fluent_param",
+            "basic_int_fluent_param",
+            "basic_bounded_int_action_param",
+        ]
+        problem = self.problems["basic_bool_fluent_param"].problem
+        for problem_name in problem_names:
+            problem = self.problems[problem_name].problem
+        with OneshotPlanner(name="tamer") as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem).plan
+            self.assertIsNotNone(plan)
+            with PlanValidator(name="sequential_plan_validator") as validator:
+                val_res = validator.validate(problem, plan)
+                self.assertTrue(val_res)
+
+    @skipIfEngineNotAvailable("tamer")
     def test_basic_parallel(self):
         problem = self.problems["basic"].problem
         a = problem.action("a")

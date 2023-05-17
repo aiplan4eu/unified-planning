@@ -19,9 +19,10 @@ that defines the types of its parameters.
 """
 
 import unified_planning as up
+from unified_planning.model.types import domain_size, domain_item, _IntType
 from unified_planning.environment import get_environment, Environment
-from unified_planning.model.types import domain_size, domain_item
-from typing import List, OrderedDict, Optional, Union, Iterator
+from unified_planning.exceptions import UPTypeError
+from typing import List, OrderedDict, Optional, Union, Iterator, cast
 
 
 class Fluent:
@@ -68,6 +69,18 @@ class Fluent:
             for param_name, param_type in kwargs.items():
                 self._signature.append(
                     up.model.parameter.Parameter(param_name, param_type, self._env)
+                )
+        for param in self._signature:
+            pt = param.type
+            if pt.is_real_type() or (
+                pt.is_int_type()
+                and (
+                    cast(_IntType, pt).lower_bound is None
+                    or cast(_IntType, pt).upper_bound is None
+                )
+            ):
+                raise UPTypeError(
+                    f"Parameter {param} of fluent {name} has type {pt}; fluents parameters must have finite domains."
                 )
 
     def __repr__(self) -> str:

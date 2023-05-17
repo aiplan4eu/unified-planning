@@ -18,7 +18,7 @@ import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model import AbstractProblem
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Tuple, Dict
+from typing import Callable, Optional, Sequence, Tuple, Dict
 from enum import Enum, auto
 
 
@@ -36,16 +36,17 @@ class ActionInstance:
     def __init__(
         self,
         action: "up.model.Action",
-        params: Tuple["up.model.FNode", ...] = tuple(),
+        params: Sequence["up.model.Expression"] = tuple(),
         agent: Optional["up.model.multi_agent.Agent"] = None,
         motion_paths: Optional[
             Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
         ] = None,
     ):
-        assert len(action.parameters) == len(params)
+        auto_promote = action.environment.expression_manager.auto_promote
         self._agent = agent
         self._action = action
-        self._params = tuple(params)
+        self._params = tuple(auto_promote(params))
+        assert len(action.parameters) == len(self._params)
         self._motion_paths = motion_paths
 
     def __repr__(self) -> str:
