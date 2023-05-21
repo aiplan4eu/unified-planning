@@ -1013,6 +1013,38 @@ class Factory:
                     f"This engine supports the following features:\n{str(Engine.supported_kind())}\n\n"
                 )
 
+    def print_engines_info_2(
+        self,
+        stream: IO[str] = sys.stdout,
+        print_credits: bool = True,
+        full_credits: bool = False,
+    ):
+        """
+        Writes the info of all the installed engines in the given stream.
+
+        :param stream: The ``IO[str]`` where all the engine's info are written;
+            defaults to sys.stdout.
+        :param print_credits: If ``True`` also writes the engine credits; defaults to ``True``.
+        :param full_credits: If ``False`` a shorter version of the info is written;
+            defaults to ``True``.
+        """
+        stream.write("These are the engines currently available:\n")
+        for engine_name, Engine in self._engines.items():
+            credits = Engine.get_credits() if print_credits else None
+            stream.write("---------------------------------------\n")
+            stream.write(f"Engine name: {engine_name}\n")
+            if credits is not None:
+                credits.write_credits(stream, full_credits)
+            supported_operation_modes = [
+                om.value for om in OperationMode if getattr(Engine, "is_" + om.value)()
+            ]
+            stream.write("Supported operation modes:\n    - ")
+            stream.write("\n    - ".join(supported_operation_modes))
+            stream.write("\n")
+            stream.write(
+                f"This engine supports the following features:\n{str(Engine.supported_kind())}\n\n"
+            )
+
     def get_all_applicable_engines(
         self,
         problem_kind: ProblemKind,
