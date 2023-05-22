@@ -55,7 +55,7 @@ Plan validation is the problem of deciding, given a planning problem and a plan,
 
 .. literalinclude:: ./code_snippets/oneshot_planner.py
     :caption: Getting PlanValidator with Engine name
-    :lines: 84-91
+    :lines: 84-89
 
 The result of the `validate` method is a `ValidationResult`, containing a status flag which can be either ``ValidationResultStatus.VALID`` or ``ValidationResultStatus.INVALID``, the name of the engine used and possibly log messages produced by the engine and a map from quality metrics defined in the problem and their evaluations in the plan (`metric_evaluations` map).
 

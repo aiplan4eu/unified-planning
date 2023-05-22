@@ -85,7 +85,11 @@ plan = result.plan
 with PlanValidator(name="tamer") as validator:
     result = validator.validate(problem, plan)
     print(result)
-# ValidationResult(
-#    status=<ValidationResultStatus.VALID: 1>,
-#    engine_name='tamer'
-# )
+# status: VALID
+# engine: Tamer
+
+assert (
+    str(result)
+    == """status: VALID
+engine: Tamer"""
+), str(result)
