@@ -285,7 +285,7 @@ class ValidationResult(Result):
         ]
         if self.metric_evaluations is not None:
             ret.append(f"metrics: ")
-            for metric, value in self.metric_evaluations:
+            for metric, value in self.metric_evaluations.items():
                 ret.append(f"    {metric}: {value}")
         if self.reason is not None:
             ret.append(f"reason: {self.reason.name}")
