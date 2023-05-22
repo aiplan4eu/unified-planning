@@ -724,7 +724,7 @@ class Factory:
         """
         if isinstance(optimality_guarantee, str):
             try:
-                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
@@ -766,7 +766,7 @@ class Factory:
         """
         if isinstance(anytime_guarantee, str):
             try:
-                anytime_guarantee = AnytimeGuarantee[anytime_guarantee]
+                anytime_guarantee = AnytimeGuarantee[anytime_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{anytime_guarantee} is not a valid AnytimeGuarantee."
@@ -839,7 +839,7 @@ class Factory:
         """
         if isinstance(compilation_kind, str):
             try:
-                compilation_kind = CompilationKind[compilation_kind]
+                compilation_kind = CompilationKind[compilation_kind.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{compilation_kind} is not a valid CompilationKind."
@@ -850,7 +850,7 @@ class Factory:
             for kind in compilation_kinds:
                 if isinstance(kind, str):
                     try:
-                        kinds.append(CompilationKind[kind])
+                        kinds.append(CompilationKind[kind.upper()])
                     except KeyError:
                         raise UPUsageError(f"{kind} is not a valid CompilationKind.")
                 else:
@@ -908,7 +908,7 @@ class Factory:
         """
         if isinstance(optimality_guarantee, str):
             try:
-                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
@@ -942,12 +942,12 @@ class Factory:
         """
         if isinstance(plan_kind, str):
             try:
-                plan_kind = PlanKind[plan_kind]
+                plan_kind = PlanKind[plan_kind.upper()]
             except KeyError:
                 raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
         if isinstance(optimality_guarantee, str):
             try:
-                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
@@ -979,7 +979,7 @@ class Factory:
         """
         if isinstance(optimality_guarantee, str):
             try:
-                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
@@ -993,46 +993,44 @@ class Factory:
         )
 
     def print_engines_info(
-        self, stream: IO[str] = sys.stdout, full_credits: bool = True
-    ):
-        """
-        Writes the info of all the installed engines in the given stream.
-
-        :param stream: The ``IO[str]`` where all the engine's info are written;
-            defaults to sys.stdout.
-        :param full_credits: If ``False`` a shorter version of the info is written;
-            defaults to ``True``.
-        """
-        stream.write("These are the engines currently available:\n")
-        for Engine in self._engines.values():
-            credits = Engine.get_credits()
-            if credits is not None:
-                stream.write("---------------------------------------\n")
-                credits.write_credits(stream, full_credits)
-                stream.write(
-                    f"This engine supports the following features:\n{str(Engine.supported_kind())}\n\n"
-                )
-
-    def print_engines_info_2(
         self,
         stream: IO[str] = sys.stdout,
-        print_credits: bool = True,
-        full_credits: bool = False,
+        *,
+        operation_mode: Optional[Union[OperationMode, str]] = None,
+        show_supported_kind: bool = True,
+        show_credits: bool = False,
+        full_credits: bool = True,
     ):
         """
-        Writes the info of all the installed engines in the given stream.
+        Writes the info of all the installed engines in the given stream; the
+        default stream is the stdout.
 
         :param stream: The ``IO[str]`` where all the engine's info are written;
             defaults to sys.stdout.
-        :param print_credits: If ``True`` also writes the engine credits; defaults to ``True``.
-        :param full_credits: If ``False`` a shorter version of the info is written;
+        :param operation_mode: If specified, writes info about the engines that support
+            that OperationMode.
+        :param show_supported_kind: If ``True`` writes the supported_kind of the engines.
             defaults to ``True``.
+        :param show_credits: If ``True`` writes the credits of the engines.
+            defaults to ``False``.
+        :param full_credits: If ``True`` writes a longer version of the credits; ignored
+            if ``show_credits`` is ``False``; defaults to ``True``.
         """
         stream.write("These are the engines currently available:\n")
+        if isinstance(operation_mode, str):
+            try:
+                operation_mode = OperationMode[operation_mode.upper()]
+            except KeyError:
+                raise UPUsageError(f"{operation_mode} is not a valid OperationMode.")
         for engine_name, Engine in self._engines.items():
-            credits = Engine.get_credits() if print_credits else None
+            if (
+                operation_mode is not None
+                and not getattr(Engine, "is_" + operation_mode.value)()
+            ):
+                continue
+            credits = Engine.get_credits() if show_credits else None
             stream.write("---------------------------------------\n")
-            stream.write(f"Engine name: {engine_name}\n")
+            stream.write(f"Engine's factory name: {engine_name}\n")
             if credits is not None:
                 credits.write_credits(stream, full_credits)
             supported_operation_modes = [
@@ -1041,9 +1039,11 @@ class Factory:
             stream.write("Supported operation modes:\n    - ")
             stream.write("\n    - ".join(supported_operation_modes))
             stream.write("\n")
-            stream.write(
-                f"This engine supports the following features:\n{str(Engine.supported_kind())}\n\n"
-            )
+            if show_supported_kind:
+                stream.write(
+                    f"This engine supports the following features:\n{str(Engine.supported_kind())}\n"
+                )
+            stream.write("\n")
 
     def get_all_applicable_engines(
         self,
@@ -1077,28 +1077,28 @@ class Factory:
         """
         if isinstance(optimality_guarantee, str):
             try:
-                optimality_guarantee = OptimalityGuarantee[optimality_guarantee]
+                optimality_guarantee = OptimalityGuarantee[optimality_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
                 )
         if isinstance(anytime_guarantee, str):
             try:
-                anytime_guarantee = AnytimeGuarantee[anytime_guarantee]
+                anytime_guarantee = AnytimeGuarantee[anytime_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{anytime_guarantee} is not a valid AnytimeGuarantee."
                 )
         if isinstance(compilation_kind, str):
             try:
-                compilation_kind = CompilationKind[compilation_kind]
+                compilation_kind = CompilationKind[compilation_kind.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{compilation_kind} is not a valid CompilationKind."
                 )
         if isinstance(plan_kind, str):
             try:
-                plan_kind = PlanKind[plan_kind]
+                plan_kind = PlanKind[plan_kind.upper()]
             except KeyError:
                 raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
         names: List[str] = []
