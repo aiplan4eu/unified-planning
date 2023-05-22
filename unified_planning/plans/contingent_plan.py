@@ -16,7 +16,7 @@
 import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.exceptions import UPUsageError
-from typing import Callable, Dict, Iterator, Optional, List, Set, Tuple
+from typing import Callable, Dict, Iterator, Optional, List, Set, Tuple, Deque
 from collections import deque
 
 
@@ -246,7 +246,7 @@ def visit_tree(root_node: ContingentPlanNode) -> Iterator[ContingentPlanNode]:
     :param root_node: The starting node of the tree.
     :return: The Iterator over all the Nodes in the tree.
     """
-    stack: deque[ContingentPlanNode] = deque()
+    stack: Deque[ContingentPlanNode] = deque()
     stack.append(root_node)
     already_visited: Set[ContingentPlanNode] = set()
     while stack:
