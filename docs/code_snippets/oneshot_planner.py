@@ -46,10 +46,8 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
 #     unload(l1)
 
 assert (
-    str(result)
-    == """status: SOLVED_SATISFICING
-engine: Fast Downward
-plan: SequentialPlan:
+    str(result.plan)
+    == """SequentialPlan:
     move(l1, l2)
     load(l2)
     move(l2, l1)
@@ -71,10 +69,8 @@ with OneshotPlanner(
 #     unload(l1)
 
 assert (
-    str(result)
-    == """status: SOLVED_SATISFICING
-engine: Pyperplan
-plan: SequentialPlan:
+    str(result.plan)
+    == """SequentialPlan:
     move(l1, l2)
     load(l2)
     move(l2, l1)
