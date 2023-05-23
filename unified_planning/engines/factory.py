@@ -44,6 +44,8 @@ from pathlib import PurePath
 DEFAULT_ENGINES = {
     "fast-downward": ("up_fast_downward", "FastDownwardPDDLPlanner"),
     "fast-downward-opt": ("up_fast_downward", "FastDownwardOptimalPDDLPlanner"),
+    "symk": ("up_symk", "SymKPDDLPlanner"),
+    "symk-opt": ("up_symk", "SymKOptimalPDDLPlanner"),
     "pyperplan": ("up_pyperplan.engine", "EngineImpl"),
     "pyperplan-opt": ("up_pyperplan.engine", "OptEngineImpl"),
     "enhsp": ("up_enhsp.enhsp_planner", "ENHSPSatEngine"),
@@ -118,6 +120,8 @@ DEFAULT_META_ENGINES = {
 DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward",
     "fast-downward-opt",
+    "symk",
+    "symk-opt",
     "pyperplan",
     "pyperplan-opt",
     "enhsp",
