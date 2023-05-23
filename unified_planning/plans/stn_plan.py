@@ -256,7 +256,7 @@ class STNPlan(plans.plan.Plan):
                 str_upper_bound = str(upper_bound.numerator)
             else:
                 str_upper_bound = str(float(upper_bound))
-            return f"    {id[left_element]} <-> {id[right_element]} in [{str_lower_bound}, {str_upper_bound}]"
+            return f"    {id[left_element]} --[{str_lower_bound}, {str_upper_bound}]--> {id[right_element]}"
 
         constraints = cast(
             Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]],
