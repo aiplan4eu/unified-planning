@@ -150,7 +150,12 @@ class HierarchicalPlan(Plan):
         return hash(self._flat_plan) + hash(self._decomposition)
 
     def __repr__(self):
-        return str(self.action_plan)
+        return (
+            f"# Action Plan\n{self.action_plan}\n# Decomposition\n{self.decomposition}"
+        )
+
+    def __str__(self) -> str:
+        return "Hiearchical " + str(self.action_plan)
 
     @property
     def decomposition(self) -> Decomposition:

@@ -37,15 +37,22 @@ problem.add_goal(package_at(l1))
 with OneshotPlanner(problem_kind=problem.kind) as planner:
     result = planner.solve(problem)
     print(result)
-# PlanGenerationResult(
-#    status=<PlanGenerationResultStatus.SOLVED_SATISFICING: 1>,
-#    plan=[move(l1, l2), load(l2), move(l2, l1), unload(l1)],
-#    engine_name='Fast Downward',
-#    metrics=None
-#    log_messages=[]
-# )
+# status: SOLVED_SATISFICING
+# engine: Fast Downward
+# plan: SequentialPlan:
+#     move(l1, l2)
+#     load(l2)
+#     move(l2, l1)
+#     unload(l1)
 
-assert str(result.plan) == "[move(l1, l2), load(l2), move(l2, l1), unload(l1)]"
+assert (
+    str(result.plan)
+    == """SequentialPlan:
+    move(l1, l2)
+    load(l2)
+    move(l2, l1)
+    unload(l1)"""
+), str(result)
 
 with OneshotPlanner(
     names=["tamer", "pyperplan"],
@@ -53,22 +60,32 @@ with OneshotPlanner(
 ) as planner:
     result = planner.solve(problem)
     print(result)
-# PlanGenerationResult(
-#    status=<PlanGenerationResultStatus.SOLVED_SATISFICING: 1>,
-#    plan=[move(l1, l2), load(l2), move(l2, l1), unload(l1)],
-#    engine_name='Fast Downward',
-#    metrics=None
-#    log_messages=[]
-# )
+# status: SOLVED_SATISFICING
+# engine: Pyperplan
+# plan: SequentialPlan:
+#     move(l1, l2)
+#     load(l2)
+#     move(l2, l1)
+#     unload(l1)
 
-assert str(result.plan) == "[move(l1, l2), load(l2), move(l2, l1), unload(l1)]"
+assert (
+    str(result.plan)
+    == """SequentialPlan:
+    move(l1, l2)
+    load(l2)
+    move(l2, l1)
+    unload(l1)"""
+), str(result)
 
 plan = result.plan
 with PlanValidator(name="tamer") as validator:
     result = validator.validate(problem, plan)
     print(result)
-# ValidationResult(
-#    status=<ValidationResultStatus.VALID: 1>,
-#    engine_name='tamer',
-#    log_messages=[]
-# )
+# status: VALID
+# engine: Tamer
+
+assert (
+    str(result)
+    == """status: VALID
+engine: Tamer"""
+), str(result)

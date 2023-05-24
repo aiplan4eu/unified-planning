@@ -716,7 +716,8 @@ class ProtobufWriter(Converter):
         for a in plan.timed_actions:
             id = ids.get(a[1]) if ids else None
             start_time = self.convert(a[0])
-            end_time = self.convert(a[0] + a[2])
+            duration = 0 if a[2] is None else a[2]
+            end_time = self.convert(a[0] + duration)
             instance = self._convert_action_instance(
                 a[1], start_time=start_time, end_time=end_time, id=id
             )

@@ -782,8 +782,36 @@ def get_all_applicable_engines(
     )
 
 
-def print_engines_info(stream: IO[str] = sys.stdout, full_credits: bool = False):
-    get_environment().factory.print_engines_info(stream, full_credits)
+def print_engines_info(
+    stream: IO[str] = sys.stdout,
+    *,
+    operation_mode: Optional[Union[OperationMode, str]] = None,
+    show_supported_kind: bool = True,
+    show_credits: bool = False,
+    full_credits: bool = True,
+):
+    """
+    Writes the info of all the installed engines in the given stream; the
+    default stream is the stdout.
+
+    :param stream: The ``IO[str]`` where all the engine's info are written;
+        defaults to sys.stdout.
+    :param operation_mode: If specified, writes info about the engines that support
+        that OperationMode.
+    :param show_supported_kind: If ``True`` writes the supported_kind of the engines.
+        defaults to ``True``.
+    :param show_credits: If ``True`` writes the credits of the engines.
+        defaults to ``False``.
+    :param full_credits: If ``True`` writes a longer version of the credits; ignored
+        if ``show_credits`` is ``False``; defaults to ``True``.
+    """
+    get_environment().factory.print_engines_info(
+        stream,
+        operation_mode=operation_mode,
+        show_supported_kind=show_supported_kind,
+        show_credits=show_credits,
+        full_credits=full_credits,
+    )
 
 
 def set_credits_stream(stream: Optional[IO[str]]):
