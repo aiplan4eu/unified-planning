@@ -40,6 +40,12 @@ from unified_planning.exceptions import (
     UPException,
 )
 from unified_planning.model.types import _UserType
+from unified_planning.plans import (
+    SequentialPlan,
+    TimeTriggeredPlan,
+    Plan,
+    ActionInstance,
+)
 from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
 from io import StringIO
 from functools import reduce
@@ -709,6 +715,27 @@ class PDDLWriter:
             )
         out.write(")\n")
 
+    def _write_plan(self, plan: Plan, out: IO[str]):
+        def _format_action_instance(action_instance: ActionInstance) -> str:
+            param_str = ""
+            if action_instance.actual_parameters:
+                param_str = f" {' '.join((p.object().name for p in action_instance.actual_parameters))}"
+            return f"({action_instance.action.name}{param_str})"
+
+        if isinstance(plan, SequentialPlan):
+            for ai in plan.actions:
+                out.write(f"{_format_action_instance(ai)}\n")
+        elif isinstance(plan, TimeTriggeredPlan):
+            for s, ai, dur in plan.timed_actions:
+                start = s.numerator if s.denominator == 1 else float(s)
+                out.write(f"{start}: {_format_action_instance(ai)}")
+                if dur is not None:
+                    duration = dur.numerator if dur.denominator == 1 else float(dur)
+                    out.write(f"[{duration}]")
+                out.write("\n")
+        else:
+            raise NotImplementedError
+
     def print_domain(self):
         """Prints to std output the `PDDL` domain."""
         self._write_domain(sys.stdout)
@@ -716,6 +743,10 @@ class PDDLWriter:
     def print_problem(self):
         """Prints to std output the `PDDL` problem."""
         self._write_problem(sys.stdout)
+
+    def print_plan(self, plan: Plan):
+        """Prints to std output the `PDDL` plan."""
+        self._write_plan(plan, sys.stdout)
 
     def get_domain(self) -> str:
         """Returns the `PDDL` domain."""
@@ -729,6 +760,12 @@ class PDDLWriter:
         self._write_problem(out)
         return out.getvalue()
 
+    def get_plan(self, plan: Plan) -> str:
+        """Returns the `PDDL` plan."""
+        out = StringIO()
+        self._write_plan(plan, out)
+        return out.getvalue()
+
     def write_domain(self, filename: str):
         """Dumps to file the `PDDL` domain."""
         with open(filename, "w") as f:
@@ -738,6 +775,11 @@ class PDDLWriter:
         """Dumps to file the `PDDL` problem."""
         with open(filename, "w") as f:
             self._write_problem(f)
+
+    def write_plan(self, plan: Plan, filename: str):
+        """Dumps to file the `PDDL` plan."""
+        with open(filename, "w") as f:
+            self._write_plan(plan, f)
 
     def _get_mangled_name(
         self,
