@@ -2,7 +2,7 @@
 
 import argparse
 import warnings
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 import unified_planning as up
 from unified_planning.cmd.arg_parser import create_up_parser
 from unified_planning.shortcuts import *
@@ -52,7 +52,7 @@ def oneshot_planning(
     args: argparse.Namespace,
 ):
     original_problem = parse_problem(parser, args)
-    problem = original_problem
+    problem: AbstractProblem = original_problem
     compilation_kind, compilation_kinds = args.compilation_kind, args.compilation_kinds
     compilation_res: Optional[CompilerResult] = None
     if compilation_kind is not None or compilation_kinds is not None:
@@ -62,7 +62,9 @@ def oneshot_planning(
             compilation_kinds=compilation_kinds,
         ) as compiler:
             compilation_res = compiler.compile(problem)
-            problem = compilation_res.problem
+            assert compilation_res is not None
+            assert compilation_res.problem is not None
+            problem = cast(AbstractProblem, compilation_res.problem)
     with OneshotPlanner(
         name=args.engine_name,
         names=args.engine_names,
@@ -76,9 +78,9 @@ def oneshot_planning(
         plan = plan_gen_res.plan
         plan_filename = args.plan_filename
         if plan is not None and compilation_res is not None:
-            plan = plan.replace_action_instances(
-                compilation_res.map_back_action_instance
-            )
+            map_back_action_instance = compilation_res.map_back_action_instance
+            assert map_back_action_instance is not None
+            plan = plan.replace_action_instances(map_back_action_instance)
         if plan is None:
             print("No plan found!")
             exit(1)
@@ -110,7 +112,7 @@ def anytime_planning(
     args: argparse.Namespace,
 ):
     original_problem = parse_problem(parser, args)
-    problem = original_problem
+    problem: AbstractProblem = original_problem
     compilation_kind, compilation_kinds = args.compilation_kind, args.compilation_kinds
     compilation_res: Optional[CompilerResult] = None
     if compilation_kind is not None or compilation_kinds is not None:
@@ -120,7 +122,9 @@ def anytime_planning(
             compilation_kinds=compilation_kinds,
         ) as compiler:
             compilation_res = compiler.compile(problem)
-            problem = compilation_res.problem
+            assert compilation_res is not None
+            assert compilation_res.problem is not None
+            problem = cast(AbstractProblem, compilation_res.problem)
     with AnytimePlanner(
         name=args.engine_name,
         anytime_guarantee=args.anytime_guarantee,
@@ -137,9 +141,9 @@ def anytime_planning(
                 plan = plan_gen_res.plan
                 plan_filename = args.plan_filename
                 if plan is not None and compilation_res is not None:
-                    plan = plan.replace_action_instances(
-                        compilation_res.map_back_action_instance
-                    )
+                    map_back_action_instance = compilation_res.map_back_action_instance
+                    assert map_back_action_instance is not None
+                    plan = plan.replace_action_instances(map_back_action_instance)
                 if plan is not None:
                     last_plan_found = plan
                     print("Plan found:", plan, sep="\n")
@@ -211,8 +215,7 @@ def plan_validation(
         unused_options.append("--kinds")
     if unused_options:
         warnings.warn(
-            "With plan-validation mode the following specified options are ignored:",
-            *unused_options,
+            f"With plan-validation mode the following specified options are ignored: {unused_options}",
             stacklevel=4,
         )
 
@@ -228,15 +231,17 @@ def plan_repair(
         parser.error("plan-repair mode requires the --plan option")
     problem_kind = problem.kind
     reader = PDDLReader()
-    plan = reader.parse_plan(problem, plan_filename)
+    plan_to_repair = reader.parse_plan(problem, plan_filename)
 
     with PlanRepairer(
         name=engine_name,
         problem_kind=problem_kind,
-        plan_kind=plan.kind,
+        plan_kind=plan_to_repair.kind,
         optimality_guarantee=args.optimality_guarantee,
     ) as repairer:
-        plan_gen_res: PlanGenerationResult = repairer.repair(problem, plan)
+        plan_gen_res: PlanGenerationResult = repairer.repair(
+            problem, plan_to_repair, optimality_guarantee=args.optimality_guarantee
+        )
         print(f"Status returned by {repairer.name}: {plan_gen_res.status.name}")
         plan = plan_gen_res.plan
         plan_filename = args.plan_filename
@@ -268,8 +273,7 @@ def plan_repair(
         unused_options.append("--kinds")
     if unused_options:
         warnings.warn(
-            "With plan-repair mode the following specified options are ignored:",
-            *unused_options,
+            f"With plan-repair mode the following specified options are ignored: {unused_options}",
             stacklevel=4,
         )
 
@@ -328,16 +332,15 @@ def parse_problem(
         )
     if pddl is not None:
         assert len(pddl) == 2, "ArgParsing error"
-        reader = PDDLReader()
-        problem = reader.parse_problem(*pddl)
-        return problem
+        p_reader = PDDLReader()
+        problem = p_reader.parse_problem(*pddl)
     elif anml is not None:
         assert (
             len(anml) == 1
         ), "For now only 1 anml file can be parsed"  # TODO remove this when ANMLReader can parse multiple files
-        reader = ANMLReader()
-        problem = reader.parse_problem(*anml)
-        return problem
+        a_reader = ANMLReader()
+        problem = a_reader.parse_problem(*anml)
+    return problem
 
     # engine_name: Optional[str],
     # engine_names: Optional[List[str]],
