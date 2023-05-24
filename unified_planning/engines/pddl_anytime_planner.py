@@ -165,9 +165,9 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         Takes an engine's output line in between the starting_plan string and the engine_plan
         string and returns the string representing the parsed plan.
         The representation to obtain is:
-        ``(action-name (param1) (param2) (param3...))`` in each line for SequentialPlans
-        ``(start-time) (action-name (param1) (param2) (param3...)) (duration)`` in each line for TimeTriggeredPlans,
-        where ``(duration)`` is optional
+        ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
+        ``start-time: (action-name param1 param2 ... paramN) [duration]`` in each line for TimeTriggeredPlans,
+        where ``[duration]`` is optional and not specified for InstantaneousActions.
         """
         raise NotImplementedError
 
