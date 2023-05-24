@@ -33,6 +33,7 @@ from typing import (
     Set,
     Tuple,
     Union,
+    cast,
 )
 
 
@@ -103,6 +104,7 @@ def flatten_dict_structure(
         if not v:
             yield (k, None, None, k)
         for tup in v:
+            assert len(tup) == 3, str(tup)
             yield (k, *tup)
 
 
@@ -228,6 +230,40 @@ class STNPlan(plans.plan.Plan):
 
     def __repr__(self) -> str:
         return str(self._stn)
+
+    def __str__(self) -> str:
+        # give an ID, starting from 0, to every STNPlanNode in the Plan
+        swap_couple = lambda x: (x[1], x[0])
+        id: Dict[STNPlanNode, int] = dict(
+            map(swap_couple, enumerate(self._stn.distances.keys()))
+        )
+        convert_action_id = lambda action_id: f"    {action_id[1]}) {action_id[0]}"
+        ret = ["STNPlan:", "  Actions:"]
+        ret.extend(map(convert_action_id, id.items()))
+        ret.append("  Constraints:")
+
+        def convert_constraint(constraint):
+            left_element, lower_bound, upper_bound, right_element = constraint
+            if lower_bound is None:
+                str_lower_bound = "-inf"
+            elif lower_bound.denominator == 1:
+                str_lower_bound = str(lower_bound.numerator)
+            else:
+                str_lower_bound = str(float(lower_bound))
+            if upper_bound is None:
+                str_upper_bound = "+inf"
+            elif upper_bound.denominator == 1:
+                str_upper_bound = str(upper_bound.numerator)
+            else:
+                str_upper_bound = str(float(upper_bound))
+            return f"    {id[left_element]} --[{str_lower_bound}, {str_upper_bound}]--> {id[right_element]}"
+
+        constraints = cast(
+            Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]],
+            self.get_constraints(),
+        )
+        ret.extend(map(convert_constraint, flatten_dict_structure(constraints)))
+        return "\n".join(ret)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, STNPlan):

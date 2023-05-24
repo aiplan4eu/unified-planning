@@ -155,6 +155,17 @@ class PlanGenerationResult(Result):
             )
         return self
 
+    def __str__(self) -> str:
+        ret = [
+            f"status: {self.status.name}",
+            f"engine: {self.engine_name}",
+        ]
+        if self.plan is not None:
+            ret.append(f"plan: {self.plan}")
+        else:
+            ret.append("plan: None")
+        return "\n".join(ret)
+
     def is_definitive_result(self, *args) -> bool:
         optimality_required = False
         if len(args) > 0:
@@ -267,6 +278,21 @@ class ValidationResult(Result):
             or self.reason == FailedValidationReason.INAPPLICABLE_ACTION
         ), "The inapplicable_action can be set only if the reason of the failed plan is an inapplicable action."
 
+    def __str__(self) -> str:
+        ret = [
+            f"status: {self.status.name}",
+            f"engine: {self.engine_name}",
+        ]
+        if self.metric_evaluations is not None:
+            ret.append(f"metrics: ")
+            for metric, value in self.metric_evaluations.items():
+                ret.append(f"    {metric}: {value}")
+        if self.reason is not None:
+            ret.append(f"reason: {self.reason.name}")
+        if self.inapplicable_action is not None:
+            ret.append(f"inapplicable action: {self.inapplicable_action}")
+        return "\n".join(ret)
+
     def is_definitive_result(self, *args) -> bool:
         return True
 
@@ -298,6 +324,13 @@ class CompilerResult(Result):
             raise UPUsageError(
                 f"The compiled Problem is {str(self.problem)} but the map_back_action_instance Callable is None."
             )
+
+    def __str__(self) -> str:
+        ret = [
+            f"problem: {self.problem}",
+            f"engine: {self.engine_name}",
+        ]
+        return "\n".join(ret)
 
     def is_definitive_result(self, *args) -> bool:
         return self.problem is not None

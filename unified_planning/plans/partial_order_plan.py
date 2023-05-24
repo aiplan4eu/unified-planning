@@ -87,7 +87,37 @@ class PartialOrderPlan(plans.plan.Plan):
             )
 
     def __repr__(self) -> str:
-        return str(self._graph)
+        return f"PartialOrderPlan({repr(self.get_adjacency_list)})"
+
+    def __str__(self) -> str:
+        ret = ["PartialOrderPlan:", "  actions:"]
+
+        # give an ID, starting from 0, to every ActionInstance in the Plan
+        swap_couple = lambda x: (x[1], x[0])
+        id: Dict[ActionInstance, int] = dict(
+            map(swap_couple, enumerate(nx.topological_sort(self._graph)))
+        )
+        convert_action_id = lambda action_id: f"    {action_id[1]}) {action_id[0]}"
+        ret.extend(map(convert_action_id, id.items()))
+
+        ret.append("  constraints:")
+        adj_list = self.get_adjacency_list
+
+        def convert_action_adjlist(action_adjlist):
+            action = action_adjlist[0]
+            adj_list = action_adjlist[1]
+            get_id_as_str = lambda ai: str(id[ai])
+            adj_list_str = " ,".join(map(get_id_as_str, adj_list))
+            return f"    {id[action]} < {adj_list_str}"
+
+        ret.extend(
+            map(
+                convert_action_adjlist,
+                ((act, adj) for act, adj in adj_list.items() if adj),
+            )
+        )
+
+        return "\n".join(ret)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, PartialOrderPlan):

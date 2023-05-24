@@ -65,7 +65,19 @@ class TimeTriggeredPlan(plans.plan.Plan):
         self._actions = actions
 
     def __repr__(self) -> str:
-        return str(self._actions)
+        return f"TimeTriggeredPlan({self._actions})"
+
+    def __str__(self) -> str:
+        def convert_ai(start_ai_dur):
+            start, ai, dur = start_ai_dur
+            if dur is None:
+                return f"    {float(start)}: {ai}"
+            else:
+                return f"    {float(start)}: {ai}: {float(dur)}"
+
+        ret = ["TimeTriggeredPlan:"]
+        ret.extend(map(convert_ai, sorted(self._actions)))
+        return "\n".join(ret)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, TimeTriggeredPlan) and len(self._actions) == len(
