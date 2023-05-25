@@ -32,6 +32,7 @@ setup(
         "lpg": ["up-lpg==0.0.6.3"],
         "fmap": ["up-fmap==0.0.6"],
         "aries": ["up-aries>=0.0.8"],
+        "symk": ["up-symk>=0.0.3"],
         "engines": [
             "tarski[arithmetic]",
             "up-pyperplan==0.3.0.4.dev1",
@@ -41,6 +42,7 @@ setup(
             "up-lpg==0.0.6.3",
             "up-fmap==0.0.6",
             "up-aries>=0.0.8",
+            "up-symk>=0.0.3"
         ],
     },
     license="APACHE",
