@@ -662,7 +662,9 @@ class ProtobufReader(Converter):
     def _convert_action_instance(
         self, msg: proto.ActionInstance, problem: Problem
     ) -> Tuple[
-        str, ActionInstance, Optional[Tuple[model.Timing, model.timing.Duration]]
+        str,
+        ActionInstance,
+        Optional[Tuple[fractions.Fraction, Optional[fractions.Fraction]]],
     ]:
         # action instance parameters are atoms but in UP they are FNodes
         # converting to up.model.FNode
@@ -678,7 +680,11 @@ class ProtobufReader(Converter):
             start_time = self.convert(msg.start_time)
             end_time = self.convert(msg.end_time)
             duration = end_time - start_time
-            return id, action_instance, (start_time, duration)
+            return (
+                id,
+                action_instance,
+                (start_time, None if duration == 0 else duration),
+            )
         else:
             return id, action_instance, None
 

@@ -102,11 +102,12 @@ class TestProblem(TestCase):
         unload = problem.action("unload")
         l1, l2, l3 = [problem.object(f"l{i}") for i in range(1, 4)]
         # the plan is bad because going loaded from l3 to l1 violates a global constraint
+        invalid_action = up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1)))
         bad_plan = up.plans.SequentialPlan(
             [
                 up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
                 up.plans.ActionInstance(load, (ObjectExp(l3),)),
-                up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1))),
+                invalid_action,
                 up.plans.ActionInstance(unload, (ObjectExp(l1),)),
             ]
         )
@@ -115,7 +116,7 @@ class TestProblem(TestCase):
             self.assertTrue(pv.supports(problem.kind))
             validation_result = pv.validate(problem, bad_plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
-            self.assertIn("violates state invariants.", str(validation_result))
+            self.assertEqual(invalid_action, validation_result.inapplicable_action)
             # when removing the trajectory constraints, the bad plan should become valid
             problem = problem.clone()
             problem.clear_trajectory_constraints()
