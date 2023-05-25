@@ -32,7 +32,7 @@ setup(
         "lpg": ["up-lpg==0.0.6.3"],
         "fmap": ["up-fmap==0.0.6"],
         "aries": ["up-aries>=0.0.8"],
-        "bfgp": ["up-bfgp==0.0.1"]
+        "bfgp": ["up-bfgp==0.0.1"],
         "symk": ["up-symk>=0.0.3"],
         "engines": [
             "tarski[arithmetic]",
@@ -43,7 +43,7 @@ setup(
             "up-lpg==0.0.6.3",
             "up-fmap==0.0.6",
             "up-aries>=0.0.8",
-            "up-bfgp==0.0.1"
+            "up-bfgp==0.0.1",
             "up-symk>=0.0.3",
         ],
     },
