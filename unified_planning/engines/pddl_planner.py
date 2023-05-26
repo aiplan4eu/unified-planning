@@ -104,6 +104,59 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         """
         raise NotImplementedError
 
+    def _plan_from_file(
+        self,
+        problem: "up.model.Problem",
+        plan_filename: str,
+        get_item_named: Callable[
+            [str],
+            Union[
+                "up.model.Type",
+                "up.model.Action",
+                "up.model.Fluent",
+                "up.model.Object",
+                "up.model.Parameter",
+                "up.model.Variable",
+            ],
+        ],
+    ) -> "up.plans.Plan":
+        """
+        Takes a problem, a filename and a map of renaming and returns the plan parsed from the file.
+        :param problem: The up.model.problem.Problem instance for which the plan is generated.
+        :param plan_filename: The path of the file in which the plan is written.
+        :param get_item_named: A function that takes a name and returns the original up.model element instance
+            linked to that renaming.
+        :return: The up.plans.Plan corresponding to the parsed plan from the file
+        """
+        reader = PDDLReader(problem.environment)
+        return reader.parse_plan(problem, plan_filename, get_item_named)
+
+    def _plan_from_str(
+        self,
+        problem: "up.model.Problem",
+        plan_str: str,
+        get_item_named: Callable[
+            [str],
+            Union[
+                "up.model.Type",
+                "up.model.Action",
+                "up.model.Fluent",
+                "up.model.Object",
+                "up.model.Parameter",
+                "up.model.Variable",
+            ],
+        ],
+    ) -> "up.plans.Plan":
+        """
+        Takes a problem, a string and a map of renaming and returns the plan parsed from the string.
+        :param problem: The up.model.problem.Problem instance for which the plan is generated.
+        :param plan_str: The plan in string.
+        :param get_item_named: A function that takes a name and returns the original up.model element instance linked to that renaming.
+        :return: The up.plans.Plan corresponding to the parsed plan from the string
+        """
+        reader = PDDLReader(problem.environment)
+        return reader.parse_plan_string(problem, plan_str, get_item_named)
+
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
@@ -179,8 +232,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 up.engines.results.LogMessage(LogLevel.ERROR, "".join(proc_err))
             )
             if os.path.isfile(plan_filename):
-                reader = PDDLReader(problem.environment)
-                plan = reader.parse_plan(
+                plan = self._plan_from_file(
                     problem, plan_filename, self._writer.get_item_named
                 )
             if timeout_occurred and retval != 0:

@@ -1,32 +1,16 @@
 #!/usr/bin/env python
 
 import argparse
-import warnings
-from typing import List, Optional, Tuple, cast
+from typing import Optional, cast
 import unified_planning as up
 from unified_planning.cmd.arg_parser import create_up_parser
 from unified_planning.shortcuts import *
 from unified_planning.engines import (
-    OperationMode,
-    AnytimeGuarantee,
-    OptimalityGuarantee,
-    CompilationKind,
     CompilerResult,
     PlanGenerationResult,
     ValidationResult,
 )
-from unified_planning.io import PDDLReader, PDDLWriter, ANMLReader, ANMLWriter
-
-# TODO in anytime_planning decide if use this handling or the KeyboardException Handler
-# import signal
-# import sys
-# def signal_handler(sig, frame):
-#     print('You pressed Ctrl+C!')
-#     sys.exit(0)
-
-# signal.signal(signal.SIGINT, signal_handler)
-# print('Press Ctrl+C')
-# signal.pause()
+from unified_planning.io import PDDLReader, PDDLWriter, ANMLReader
 
 
 def main(args=None):
