@@ -552,7 +552,12 @@ class ProtobufWriter(Converter):
         hierarchy = None
         if isinstance(problem, model.htn.HierarchicalProblem):
             hierarchy = self.build_hierarchy(problem)
-
+        epsilon = None
+        if problem.epsilon is not None:
+            epsilon = proto.Real(
+                numerator=problem.epsilon.numerator,
+                denominator=problem.epsilon.denominator,
+            )
         return proto.Problem(
             domain_name=problem_name + "_domain",
             problem_name=problem_name,
@@ -572,6 +577,9 @@ class ProtobufWriter(Converter):
             trajectory_constraints=[
                 self.convert(tc) for tc in problem.trajectory_constraints
             ],
+            discrete_time=problem.discrete_time,
+            self_overlapping=problem.self_overlapping,
+            epsilon=epsilon,
         )
 
     @handles(model.metrics.MinimizeActionCosts)
