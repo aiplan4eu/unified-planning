@@ -27,6 +27,7 @@ class OperationMode(Enum):
     """
 
     ONESHOT_PLANNER = "oneshot_planner"
+    FEWSHOT_PLANNER = "fewshot_planner"
     ANYTIME_PLANNER = "anytime_planner"
     PLAN_VALIDATOR = "plan_validator"
     PORTFOLIO_SELECTOR = "portfolio_selector"
