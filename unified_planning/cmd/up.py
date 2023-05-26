@@ -260,18 +260,6 @@ def parse_problem(
         problem = a_reader.parse_problem(anml)
     return problem
 
-    # engine_name: Optional[str],
-    # engine_names: Optional[List[str]],
-    # pddl: Optional[List[str]],
-    # anml: Optional[List[str]],
-    # optimality_guarantee: Optional[str],
-    # anytime_guarantee: Optional[str],
-    # plan_filename: Optional[str],
-    # pddl_out: Optional[List[str]],
-    # anml_out: Optional[str],
-    # kind: Optional[str],
-    # kinds: Optional[List[str]],
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])
