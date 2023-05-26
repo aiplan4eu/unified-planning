@@ -3,6 +3,7 @@ from unified_planning.engines import (
     AnytimeGuarantee,
     OptimalityGuarantee,
     CompilationKind,
+    OperationMode,
 )
 
 
@@ -12,18 +13,6 @@ def create_up_parser() -> argparse.ArgumentParser:
         allow_abbrev=False,
     )
     compilation_kind_explaination = f"COMPILATION_KIND is one of {{{','.join((ck.name.lower() for ck in CompilationKind))}}}"
-    # parser.add_argument(
-    #     "mode",
-    #     type=str,
-    #     choices=[
-    #         "oneshot-planning",
-    #         "anytime-planning",
-    #         "plan-validation",
-    #         "plan-repair",
-    #         "compile",
-    #     ],
-    #     help="the operation mode to perform",
-    # )
     subparsers = parser.add_subparsers(
         title="modes",
         description="valid modes",
@@ -43,13 +32,11 @@ def create_up_parser() -> argparse.ArgumentParser:
 
     plan_validation_parser = subparsers.add_parser(
         "plan-validation",
-        epilog=compilation_kind_explaination,
     )
     plan_validation_parser.set_defaults(cmd="plan-validation")
 
     plan_repair_parser = subparsers.add_parser(
         "plan-repair",
-        epilog=compilation_kind_explaination,
     )
     plan_repair_parser.set_defaults(cmd="plan-repair")
 
@@ -58,6 +45,29 @@ def create_up_parser() -> argparse.ArgumentParser:
         epilog=compilation_kind_explaination,
     )
     compile_parser.set_defaults(cmd="compile")
+
+    list_engines_parser = subparsers.add_parser(
+        "list-engines",
+    )
+    compile_parser.set_defaults(cmd="list-engines")
+
+    # Options:
+    # --engine, -e
+    # --engines
+    # --pddl
+    # --anml
+    # --timeout
+    # --plan
+    # --compilation-kind
+    # --compilation-kinds
+    # --optimality-guarantee
+    # --anytime-guarantee
+    # --pddl-output
+    # --anml-output
+    # --kind
+    # --kinds
+    # --operation-mode
+    # --log, -l
 
     for sub_parser in (
         oneshot_planning_parser,
@@ -128,6 +138,14 @@ def create_up_parser() -> argparse.ArgumentParser:
             dest="compilation_kinds",
             metavar="COMPILATION_KIND",
         )
+        sub_parser.add_argument(
+            "--logs",
+            "-l",
+            action="store_true",
+            help="If set shows the logs of the planner",
+            dest="show_log",
+            default=False,
+        )
 
     for sub_parser in (plan_validation_parser, plan_repair_parser):
         sub_parser.add_argument(
@@ -190,5 +208,21 @@ def create_up_parser() -> argparse.ArgumentParser:
         help="The sequence of compilations to apply to the problem",
         dest="kinds",
         metavar="COMPILATION_KIND",
+    )
+
+    list_engines_parser.add_argument(
+        "--operation-mode",
+        type=str,
+        help="Only the engines capable of handling this operation mode are listed",
+        dest="operation_mode",
+        choices=[om.name.lower() for om in OperationMode],
+    )
+
+    list_engines_parser.add_argument(
+        "--show-kind",
+        action="store_true",
+        help="If specified, shows the engine's supported kind",
+        dest="show_kind",
+        default=False,
     )
     return parser

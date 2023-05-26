@@ -15,6 +15,7 @@
 
 
 import pyparsing
+from typing import Union, Sequence, List
 
 
 def parse_string(obj, problem_str, parse_all):
@@ -24,11 +25,19 @@ def parse_string(obj, problem_str, parse_all):
         return obj.parse_string(problem_str, parse_all=parse_all)
 
 
-def parse_file(obj, problem_str, parse_all):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.parseFile(problem_str, parseAll=parse_all)
+def parse_file(obj, problem_filename: Union[str, Sequence[str]], parse_all):
+    if isinstance(problem_filename, str):
+        if pyparsing.__version__ < "3.0.0":
+            return obj.parseFile(problem_filename, parseAll=parse_all)
+        else:
+            return obj.parse_file(problem_filename, parse_all=parse_all)
     else:
-        return obj.parse_file(problem_str, parse_all=parse_all)
+        problem_parts: List[str] = []
+        for filename in problem_filename:
+            assert isinstance(filename, str), "Typing not respected"
+            with open(filename) as file:
+                problem_parts.append(file.read())
+        return parse_string(obj, "\n".join(problem_parts), parse_all)
 
 
 def set_results_name(obj, name):

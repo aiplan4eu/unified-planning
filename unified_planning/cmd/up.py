@@ -29,22 +29,34 @@ from unified_planning.io import PDDLReader, PDDLWriter, ANMLReader, ANMLWriter
 # signal.pause()
 
 
-def main():
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     parser = create_up_parser()
-    args = parser.parse_args()
+    parsed_args = parser.parse_args(args)
 
-    engine_name, engine_names = args.engine_name, args.engine_names
-    if engine_name is not None and engine_names is not None:
-        parser.error("--engine (or -e) and --engines are mutually exclusive")
+    try:
+        engine_name, engine_names = parsed_args.engine_name, parsed_args.engine_names
+        if engine_name is not None and engine_names is not None:
+            parser.error("--engine (or -e) and --engines are mutually exclusive")
+    except AttributeError:
+        pass
 
-    if args.mode == "oneshot-planning":
-        oneshot_planning(parser, args)
-    elif args.mode == "anytime-planning":
-        anytime_planning(parser, args)
-    elif args.mode == "plan-validation":
-        plan_validation(parser, args)
-    elif args.mode == "compile":
-        compile(parser, args)
+    if parsed_args.mode == "oneshot-planning":
+        oneshot_planning(parser, parsed_args)
+    elif parsed_args.mode == "anytime-planning":
+        anytime_planning(parser, parsed_args)
+    elif parsed_args.mode == "plan-validation":
+        plan_validation(parser, parsed_args)
+    elif parsed_args.mode == "compile":
+        compile(parser, parsed_args)
+    elif parsed_args.mode == "list-engines":
+        print_engines_info(
+            operation_mode=parsed_args.operation_mode,
+            show_supported_kind=parsed_args.show_kind,
+        )
+    else:
+        raise NotImplementedError
 
 
 def oneshot_planning(
@@ -72,7 +84,9 @@ def oneshot_planning(
         problem_kind=problem.kind,
     ) as planner:
         plan_gen_res: PlanGenerationResult = planner.solve(
-            problem, timeout=args.timeout
+            problem,
+            timeout=args.timeout,
+            output_stream=sys.stdout if args.show_log else None,
         )
         print(f"Status returned by {planner.name}: {plan_gen_res.status.name}")
         plan = plan_gen_res.plan
@@ -89,22 +103,6 @@ def oneshot_planning(
             if plan_filename is not None:
                 writer = PDDLWriter(original_problem)
                 writer.write_plan(plan, plan_filename)
-    unused_options: List[str] = []
-    if args.anytime_guarantee is not None:
-        unused_options.append("--anytime-guarantee")
-    if args.pddl_out is not None:
-        unused_options.append("--pddl-output")
-    if args.anml_out is not None:
-        unused_options.append("--anml-output")
-    if args.kind is not None:
-        unused_options.append("--kind")
-    if args.kinds is not None:
-        unused_options.append("--kinds")
-    if unused_options:
-        warnings.warn(
-            f"With oneshot-planning mode the following specified options are ignored: {unused_options}",
-            stacklevel=4,
-        )
 
 
 def anytime_planning(
@@ -133,7 +131,9 @@ def anytime_planning(
         last_plan_found = None
         try:
             for plan_gen_res in anytime_planner.get_solutions(
-                problem, timeout=args.timeout
+                problem,
+                timeout=args.timeout,
+                output_stream=sys.stdout if args.show_log else None,
             ):
                 print(
                     f"Status returned by {anytime_planner.name}: {plan_gen_res.status.name}"
@@ -156,24 +156,6 @@ def anytime_planning(
             if plan_filename is not None:
                 writer = PDDLWriter(original_problem)
                 writer.write_plan(last_plan_found, plan_filename)
-    unused_options: List[str] = []
-    if args.engine_names is not None:
-        unused_options.append("--engines")
-    if args.optimality_guarantee is not None:
-        unused_options.append("--optimality-guarantee")
-    if args.pddl_out is not None:
-        unused_options.append("--pddl-output")
-    if args.anml_out is not None:
-        unused_options.append("--anml-output")
-    if args.kind is not None:
-        unused_options.append("--kind")
-    if args.kinds is not None:
-        unused_options.append("--kinds")
-    if unused_options:
-        warnings.warn(
-            f"With oneshot-planning mode the following specified options are ignored: {unused_options}",
-            stacklevel=4,
-        )
 
 
 def plan_validation(
@@ -197,27 +179,6 @@ def plan_validation(
     ) as validator:
         val_res: ValidationResult = validator.validate(problem, plan)
         print(val_res)
-
-    unused_options: List[str] = []
-    if args.optimality_guarantee is not None:
-        unused_options.append("--optimality-guarantee")
-    if args.anytime_guarantee is not None:
-        unused_options.append("--anytime-guarantee")
-    if args.pddl_out is not None:
-        unused_options.append("--pddl-output")
-    if args.anml_out is not None:
-        unused_options.append("--anml-output")
-    if args.timeout is not None:
-        unused_options.append("--timeout")
-    if args.kind is not None:
-        unused_options.append("--kind")
-    if args.kinds is not None:
-        unused_options.append("--kinds")
-    if unused_options:
-        warnings.warn(
-            f"With plan-validation mode the following specified options are ignored: {unused_options}",
-            stacklevel=4,
-        )
 
 
 def plan_repair(
@@ -254,29 +215,6 @@ def plan_repair(
                 writer = PDDLWriter(problem)
                 writer.write_plan(plan, plan_filename)
 
-    unused_options: List[str] = []
-    if args.engine_names is not None:
-        unused_options.append("--engines")
-    if args.optimality_guarantee is not None:
-        unused_options.append("--optimality-guarantee")
-    if args.anytime_guarantee is not None:
-        unused_options.append("--anytime-guarantee")
-    if args.pddl_out is not None:
-        unused_options.append("--pddl-output")
-    if args.anml_out is not None:
-        unused_options.append("--anml-output")
-    if args.timeout is not None:
-        unused_options.append("--timeout")
-    if args.kind is not None:
-        unused_options.append("--kind")
-    if args.kinds is not None:
-        unused_options.append("--kinds")
-    if unused_options:
-        warnings.warn(
-            f"With plan-repair mode the following specified options are ignored: {unused_options}",
-            stacklevel=4,
-        )
-
 
 def compile(
     parser: argparse.ArgumentParser,
@@ -301,25 +239,6 @@ def compile(
         problem = compilation_res.problem
         print(problem)
 
-    unused_options: List[str] = []
-    if args.anytime_guarantee is not None:
-        unused_options.append("--anytime-guarantee")
-    if args.pddl_out is not None:
-        unused_options.append("--pddl-output")
-    if args.anml_out is not None:
-        unused_options.append("--anml-output")
-    if args.timeout is not None:
-        unused_options.append("--timeout")
-    if args.kind is not None:
-        unused_options.append("--kind")
-    if args.kinds is not None:
-        unused_options.append("--kinds")
-    if unused_options:
-        warnings.warn(
-            f"With oneshot-planning mode the following specified options are ignored: {unused_options}",
-            stacklevel=4,
-        )
-
 
 def parse_problem(
     parser: argparse.ArgumentParser,
@@ -335,11 +254,10 @@ def parse_problem(
         p_reader = PDDLReader()
         problem = p_reader.parse_problem(*pddl)
     elif anml is not None:
-        assert (
-            len(anml) == 1
-        ), "For now only 1 anml file can be parsed"  # TODO remove this when ANMLReader can parse multiple files
+        if len(anml) == 1:
+            anml = anml[0]
         a_reader = ANMLReader()
-        problem = a_reader.parse_problem(*anml)
+        problem = a_reader.parse_problem(anml)
     return problem
 
     # engine_name: Optional[str],
@@ -356,4 +274,4 @@ def parse_problem(
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
