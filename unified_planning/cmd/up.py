@@ -19,13 +19,6 @@ def main(args=None):
     parser = create_up_parser()
     parsed_args = parser.parse_args(args)
 
-    try:
-        engine_name, engine_names = parsed_args.engine_name, parsed_args.engine_names
-        if engine_name is not None and engine_names is not None:
-            parser.error("--engine (or -e) and --engines are mutually exclusive")
-    except AttributeError:
-        pass
-
     if parsed_args.mode == "oneshot-planning":
         oneshot_planning(parser, parsed_args)
     elif parsed_args.mode == "anytime-planning":

@@ -76,14 +76,8 @@ def create_up_parser() -> argparse.ArgumentParser:
         plan_repair_parser,
         compile_parser,
     ):
-        sub_parser.add_argument(
-            "--engine",
-            "-e",
-            type=str,
-            help="The name of the engine to use",
-            dest="engine_name",
-        )
-        sub_parser.add_argument(
+        mutually_exclusive = sub_parser.add_mutually_exclusive_group()
+        mutually_exclusive.add_argument(
             "--pddl",
             type=str,
             nargs=2,
@@ -91,7 +85,7 @@ def create_up_parser() -> argparse.ArgumentParser:
             dest="pddl",
             metavar="PDDL_FILENAME",
         )
-        sub_parser.add_argument(
+        mutually_exclusive.add_argument(
             "--anml",
             type=str,
             nargs="+",
@@ -99,10 +93,28 @@ def create_up_parser() -> argparse.ArgumentParser:
             dest="anml",
             metavar="ANML_FILENAME",
         )
+        # skip oneshot-planning, defined later mutually exclusive with --engines
+        if sub_parser != oneshot_planning_parser:
+            sub_parser.add_argument(
+                "--engine",
+                "-e",
+                type=str,
+                help="The name of the engine to use",
+                dest="engine_name",
+            )
 
-    oneshot_planning_parser.add_argument(
+    mutually_exclusive = oneshot_planning_parser.add_mutually_exclusive_group()
+    mutually_exclusive.add_argument(
+        "--engine",
+        "-e",
+        type=str,
+        help="The name of the engine to use",
+        dest="engine_name",
+    )
+    mutually_exclusive.add_argument(
         "--engines",
         type=str,
+        nargs="+",
         help="The names of the engines to put in parallel",
         dest="engine_names",
     )
@@ -122,27 +134,28 @@ def create_up_parser() -> argparse.ArgumentParser:
             metavar="PLAN_FILENAME",
         )
         sub_parser.add_argument(
-            "--compilation-kind",
-            type=str,
-            help="The compilation to apply before the engine",
-            dest="compilation_kind",
-            metavar="COMPILATION_KIND",
-        )
-        sub_parser.add_argument(
-            "--compilation-kinds",
-            type=str,
-            nargs="+",
-            help="The Sequence of compilations to apply before the engine",
-            dest="compilation_kinds",
-            metavar="COMPILATION_KIND",
-        )
-        sub_parser.add_argument(
             "--logs",
             "-l",
             action="store_true",
             help="If set shows the logs of the planner",
             dest="show_log",
             default=False,
+        )
+        mutually_exclusive = sub_parser.add_mutually_exclusive_group()
+        mutually_exclusive.add_argument(
+            "--compilation-kind",
+            type=str,
+            help="The compilation to apply before the engine",
+            dest="compilation_kind",
+            metavar="COMPILATION_KIND",
+        )
+        mutually_exclusive.add_argument(
+            "--compilation-kinds",
+            type=str,
+            nargs="+",
+            help="The Sequence of compilations to apply before the engine",
+            dest="compilation_kinds",
+            metavar="COMPILATION_KIND",
         )
 
     for sub_parser in (plan_validation_parser, plan_repair_parser):
@@ -191,7 +204,8 @@ def create_up_parser() -> argparse.ArgumentParser:
         metavar="ANML_FILENAME",
     )
 
-    compile_parser.add_argument(
+    compile_parser_mutually_exclusive = compile_parser.add_mutually_exclusive_group()
+    compile_parser_mutually_exclusive.add_argument(
         "--kind",
         type=str,
         help="The compilation to apply to the problem",
@@ -199,7 +213,7 @@ def create_up_parser() -> argparse.ArgumentParser:
         metavar="COMPILATION_KIND",
     )
 
-    compile_parser.add_argument(
+    compile_parser_mutually_exclusive.add_argument(
         "--kinds",
         type=str,
         nargs="+",
