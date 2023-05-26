@@ -80,7 +80,6 @@ def create_up_parser() -> argparse.ArgumentParser:
             "--engine",
             "-e",
             type=str,
-            # choices=[available engines], #TODO decide if put choices here
             help="The name of the engine to use",
             dest="engine_name",
         )
@@ -104,7 +103,6 @@ def create_up_parser() -> argparse.ArgumentParser:
     oneshot_planning_parser.add_argument(
         "--engines",
         type=str,
-        # choices=[available engines], #TODO decide if put choices here
         help="The names of the engines to put in parallel",
         dest="engine_names",
     )
