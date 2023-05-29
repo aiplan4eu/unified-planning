@@ -1535,13 +1535,14 @@ class PDDLReader:
                     )
                     problem.add_unknown_initial_constraint(arg)
                 else:
-                    problem.set_initial_value(
-                        self._parse_exp(
-                            problem, None, types_map, {}, init, problem_str
-                        ),
-                        self._em.TRUE(),
+                    exp = self._parse_exp(
+                        problem, None, types_map, {}, init, problem_str
                     )
-
+                    if not exp.is_not():
+                        problem.set_initial_value(
+                            exp,
+                            self._em.TRUE(),
+                        )
             if "goal" in problem_res:
                 problem.add_goal(
                     self._parse_exp(
