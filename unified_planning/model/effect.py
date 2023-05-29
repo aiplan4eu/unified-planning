@@ -62,7 +62,7 @@ class Effect:
         fluents_in_fluent.remove(fluent)
         if fluents_in_fluent:
             raise UPProblemDefinitionError(
-                f"The fluent contains other fluents in his arguments: {fluents_in_fluent}"
+                f"The fluent: {fluent} contains other fluents in his arguments: {fluents_in_fluent}"
             )
         self._fluent = fluent
         self._value = value
