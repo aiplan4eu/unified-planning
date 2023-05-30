@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 # type: ignore
-from abc import ABC
 from functools import partial
 from typing import Tuple, Union, Optional
 import fractions
@@ -361,6 +360,12 @@ class ProtobufReader(Converter):
             problem._initial_task_network = self.convert(
                 msg.hierarchy.initial_task_network, problem
             )
+
+        problem.discrete_time = msg.discrete_time
+        problem.self_overlapping = msg.self_overlapping
+        if msg.HasField("epsilon"):
+            value = msg.epsilon
+            problem.epsilon = fractions.Fraction(value.numerator, value.denominator)
 
         return problem
 
@@ -823,6 +828,10 @@ class ProtobufReader(Converter):
             "INVALID"
         ):
             r_status = unified_planning.engines.ValidationResultStatus.INVALID
+        elif result.status == proto.ValidationResult.ValidationResultStatus.Value(
+            "UNKNOWN"
+        ):
+            r_status = unified_planning.engines.ValidationResultStatus.UNKNOWN
         else:
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
         return unified_planning.engines.ValidationResult(

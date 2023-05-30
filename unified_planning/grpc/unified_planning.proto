@@ -516,6 +516,14 @@ message Problem {
     // Trajectory constraints of the planning problem.
     repeated Expression trajectory_constraints = 13;
 
+    // Flag defining if the time is discrete
+    bool discrete_time = 14;
+
+    // Flag defining if the self_overlapping is allowed
+    bool self_overlapping = 15;
+
+    // Optional. epsilon required by the problem
+    Real epsilon = 16;
 }
 
 // Features of the problem.
@@ -765,6 +773,8 @@ message ValidationResult {
         VALID = 0;
         // The Plan is not valid for the Problem.
         INVALID = 1;
+        // The engine can't determine if the plan is VALID or INVALID for the Problem.
+        UNKNOWN = 2;
     }
     ValidationResultStatus status = 1;
 

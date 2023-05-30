@@ -402,6 +402,7 @@ class TestProtobufProblems(TestCase):
     def test_all_problems(self):
         for name, example in self.problems.items():
             problem = example.problem
+            kind = problem.kind
             problem_pb = self.pb_writer.convert(problem)
             problem_up = self.pb_reader.convert(problem_pb)
 
@@ -411,6 +412,20 @@ class TestProtobufProblems(TestCase):
                 hash(problem_up),
                 f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
             )
+            if kind.has_continuous_time():
+                problem = problem.clone()
+                problem.epsilon = "2"
+                problem.self_overlapping = True
+                problem.discrete_time = True
+                problem_pb = self.pb_writer.convert(problem)
+                problem_up = self.pb_reader.convert(problem_pb)
+
+                self.assertEqual(problem, problem_up)
+                self.assertEqual(
+                    hash(problem),
+                    hash(problem_up),
+                    f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
+                )
 
     def test_all_plans(self):
         for name, example in self.problems.items():

@@ -20,9 +20,12 @@ A `condition` can be added to make it a `conditional effect`.
 
 
 import unified_planning as up
-from unified_planning.exceptions import UPConflictingEffectsException
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPProblemDefinitionError,
+)
 from enum import Enum, auto
-from typing import List, Callable, Dict, Optional, Set, Tuple, Union
+from typing import List, Callable, Dict, Optional, Set, Union
 
 
 class EffectKind(Enum):
@@ -54,6 +57,13 @@ class Effect:
         condition: "up.model.fnode.FNode",
         kind: EffectKind = EffectKind.ASSIGN,
     ):
+        fve = fluent.environment.free_vars_extractor
+        fluents_in_fluent = fve.get(fluent)
+        fluents_in_fluent.remove(fluent)
+        if fluents_in_fluent:
+            raise UPProblemDefinitionError(
+                f"The fluent: {fluent} contains other fluents in his arguments: {fluents_in_fluent}"
+            )
         self._fluent = fluent
         self._value = value
         self._condition = condition
