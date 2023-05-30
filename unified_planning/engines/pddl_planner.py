@@ -26,6 +26,7 @@ import re
 import time
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.engine import OperationMode
 import unified_planning.engines.mixins as mixins
 from unified_planning.engines.results import (
     LogLevel,
@@ -74,6 +75,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         """
         engines.engine.Engine.__init__(self)
         mixins.OneshotPlannerMixin.__init__(self)
+        self._mode_running = OperationMode.ONESHOT_PLANNER
         self._needs_requirements = needs_requirements
         self._rewrite_bool_assignments = rewrite_bool_assignments
         self._process = None
@@ -219,7 +221,15 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             plan_filename = os.path.join(tempdir, "plan.txt")
             self._writer.write_domain(domain_filename)
             self._writer.write_problem(problem_filename)
-            cmd = self._get_cmd(domain_filename, problem_filename, plan_filename)
+            if self._mode_running == OperationMode.ONESHOT_PLANNER:
+                cmd = self._get_cmd(domain_filename, problem_filename, plan_filename)
+            elif self._mode_running == OperationMode.ANYTIME_PLANNER:
+                assert isinstance(
+                    self, up.engines.pddl_anytime_planner.PDDLAnytimePlanner
+                )
+                cmd = self._get_anytime_cmd(
+                    domain_filename, problem_filename, plan_filename
+                )
             if output_stream is None:
                 # If we do not have an output stream to write to, we simply call
                 # a subprocess and retrieve the final output and error with communicate
