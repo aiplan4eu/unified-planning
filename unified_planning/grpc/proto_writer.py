@@ -906,5 +906,7 @@ class ProtobufWriter(Converter):
             return proto.ValidationResult.ValidationResultStatus.Value("VALID")
         elif status == unified_planning.engines.ValidationResultStatus.INVALID:
             return proto.ValidationResult.ValidationResultStatus.Value("INVALID")
+        elif status == unified_planning.engines.ValidationResultStatus.UNKNOWN:
+            return proto.ValidationResult.ValidationResultStatus.Value("UNKNOWN")
         else:
             raise UPException(f"Unknown result status: {status}")

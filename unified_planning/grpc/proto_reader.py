@@ -828,6 +828,10 @@ class ProtobufReader(Converter):
             "INVALID"
         ):
             r_status = unified_planning.engines.ValidationResultStatus.INVALID
+        elif result.status == proto.ValidationResult.ValidationResultStatus.Value(
+            "UNKNOWN"
+        ):
+            r_status = unified_planning.engines.ValidationResultStatus.UNKNOWN
         else:
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
         return unified_planning.engines.ValidationResult(
