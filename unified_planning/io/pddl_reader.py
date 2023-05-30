@@ -1539,9 +1539,19 @@ class PDDLReader:
                         problem, None, types_map, {}, init, problem_str
                     )
                     if not exp.is_not():
+                        if not exp.is_fluent_exp():
+                            raise SyntaxError(
+                                f"In init expected predicate, found {exp}\n"
+                                + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                            )
                         problem.set_initial_value(
                             exp,
                             self._em.TRUE(),
+                        )
+                    elif not exp.arg(0).is_fluent_exp():
+                        raise SyntaxError(
+                            f"In init expected (not predicate), found {exp}\n"
+                            + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
             if "goal" in problem_res:
                 problem.add_goal(

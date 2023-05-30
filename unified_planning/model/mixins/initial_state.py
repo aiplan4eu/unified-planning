@@ -43,6 +43,7 @@ class InitialStateMixin:
         :param value: The `value` assigned in the initial state to the given `fluent`.
         """
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
+        assert fluent_exp.is_fluent_exp(), "fluent field must be a fluent"
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
         self._initial_value[fluent_exp] = value_exp
