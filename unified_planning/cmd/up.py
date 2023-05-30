@@ -10,7 +10,7 @@ from unified_planning.engines import (
     PlanGenerationResult,
     ValidationResult,
 )
-from unified_planning.io import PDDLReader, PDDLWriter, ANMLReader
+from unified_planning.io import PDDLReader, PDDLWriter, ANMLReader, ANMLWriter
 
 
 def main(args=None):
@@ -214,7 +214,19 @@ def compile(
     ) as compiler:
         compilation_res = compiler.compile(problem)
         problem = compilation_res.problem
-        print(problem)
+        written_to_file = False
+        if args.anml_out is not None:
+            writer = ANMLWriter(problem)
+            writer.write_problem(args.anml_out)
+            written_to_file = True
+        if args.pddl_out is not None:
+            domain_filename, problem_filename = args.pddl_out
+            writer = PDDLWriter(problem)
+            writer.write_domain(domain_filename)
+            writer.write_problem(problem_filename)
+            written_to_file = True
+        if not written_to_file:
+            print(problem)
 
 
 def parse_problem(

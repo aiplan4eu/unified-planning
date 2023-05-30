@@ -129,7 +129,7 @@ def create_up_parser() -> argparse.ArgumentParser:
         sub_parser.add_argument(
             "--plan",
             type=str,
-            help="The filename where to write or read the plan",
+            help="The filename where to write the plan",
             dest="plan_filename",
             metavar="PLAN_FILENAME",
         )
@@ -162,7 +162,7 @@ def create_up_parser() -> argparse.ArgumentParser:
         sub_parser.add_argument(
             "--plan",
             type=str,
-            help="The filename where to write or read the plan",
+            help="The filename where to read the plan",
             dest="plan_filename",
             metavar="PLAN_FILENAME",
             required=True,
