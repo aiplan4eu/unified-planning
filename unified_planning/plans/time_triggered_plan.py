@@ -115,6 +115,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
     ) -> List[Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]]:
         """
         Returns the sequence of tuples (`start`, `action_instance`, `duration`) where:
+
         - `start` is when the `ActionInstance` starts;
         - `action_instance` is the `grounded Action` applied;
         - `duration` is the (optional) duration of the `ActionInstance`.

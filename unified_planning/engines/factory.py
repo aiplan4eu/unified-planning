@@ -1033,8 +1033,10 @@ class Factory:
             ):
                 continue
             credits = Engine.get_credits() if show_credits else None
-            stream.write("---------------------------------------\n")
-            stream.write(f"Engine's factory name: {engine_name}\n")
+            engine_name_str = f"Engine's factory name: {engine_name}\n\n"
+            stream.write("-" * (len(engine_name_str) - 2))
+            stream.write("\n")
+            stream.write(engine_name_str)
             if credits is not None:
                 credits.write_credits(stream, full_credits)
             supported_operation_modes = [
@@ -1045,7 +1047,7 @@ class Factory:
             stream.write("\n")
             if show_supported_kind:
                 stream.write(
-                    f"This engine supports the following features:\n{str(Engine.supported_kind())}\n"
+                    f"\nThis engine supports the following features:\n{str(Engine.supported_kind())}\n"
                 )
             stream.write("\n")
 

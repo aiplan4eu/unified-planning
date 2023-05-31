@@ -73,7 +73,7 @@ from unified_planning.model import (
     Variable,
 )
 from fractions import Fraction
-from typing import Dict, Set, Tuple, Union, Callable, List, Optional
+from typing import Dict, Sequence, Set, Tuple, Union, Callable, List, Optional
 from pyparsing import ParseResults
 from unified_planning.io.utils import parse_string, parse_file
 
@@ -198,14 +198,17 @@ class ANMLReader:
         return self._problem
 
     def parse_problem(
-        self, problem_filename: str, problem_name: Optional[str] = None
+        self,
+        problem_filename: Union[str, Sequence[str]],
+        problem_name: Optional[str] = None,
     ) -> "up.model.Problem":
         """
         Takes in input a filename containing an `ANML` problem and returns the parsed `Problem`.
 
         Check the class documentation for the assumptions made for this parser to work.
 
-        :param problem_filename: The path to the file containing the `ANML` problem.
+        :param problem_filename: The path to the file containing the `ANML` problem
+            or to the files to concatenate to obtain the complete problem.
         :param problem_name: Optionally, the name to give to the created problem; if it is None,
             `problem_filename` will be set as the problem name.
         :return: The `Problem` parsed from the given anml file.
@@ -215,7 +218,10 @@ class ANMLReader:
         grammar = ANMLGrammar()
         parse_file(grammar.problem, problem_filename, parse_all=True)
         if problem_name is None:
-            problem_name = problem_filename
+            if isinstance(problem_filename, str):
+                problem_name = problem_filename
+            else:
+                problem_name = "_".join(problem_filename)
         self._problem = self._parse_problem(grammar, problem_name)
         return self._problem
 
