@@ -216,14 +216,14 @@ def compile(
         problem = compilation_res.problem
         written_to_file = False
         if args.anml_out is not None:
-            writer = ANMLWriter(problem)
-            writer.write_problem(args.anml_out)
+            anml_writer = ANMLWriter(problem)
+            anml_writer.write_problem(args.anml_out)
             written_to_file = True
         if args.pddl_out is not None:
             domain_filename, problem_filename = args.pddl_out
-            writer = PDDLWriter(problem)
-            writer.write_domain(domain_filename)
-            writer.write_problem(problem_filename)
+            pddl_writer = PDDLWriter(problem)
+            pddl_writer.write_domain(domain_filename)
+            pddl_writer.write_problem(problem_filename)
             written_to_file = True
         if not written_to_file:
             print(problem)
