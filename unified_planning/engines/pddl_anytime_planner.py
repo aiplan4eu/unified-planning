@@ -206,7 +206,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             res = self._solve(
                 problem, output_stream=writer, timeout=timeout, anytime=True
             )
-            q.put(self._generate_last_result(res, writer.last_plan_found))
+            q.put(self._generate_last_result(res, cast(Writer, writer).last_plan_found))
 
         try:
             t = threading.Thread(target=run, daemon=True)
