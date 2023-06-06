@@ -171,6 +171,26 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         """
         raise NotImplementedError
 
+    def _generate_last_result(
+        self, solve_result: PlanGenerationResult, last_plan_found: Optional[Plan]
+    ) -> PlanGenerationResult:
+        """
+        IMPORTANT FOR ENGINES IMPLEMENTING THIS CLASS
+
+        This method takes the result returned by the _solve method and the last_plan_found
+        by the engine and returns a new PlanGenerationResult. If the engine writes his last
+        plan to a file there is no need to overwrite this method; but if the engine does not
+        write the last plan on a file or if the last result returned is not correct for some
+        reason; this method allows an easy modification.
+
+        :param solve_result: The PlanGenerationResult returned by the solve method.
+        :param last_plan_found: The last plan found by the engine; obtained parsing the planner's
+            output.
+        :return: The PlanGenerationResult compatible with the engine semantic; defaults to the
+            solve_result given in input.
+        """
+        return solve_result
+
     def _get_solutions(
         self,
         problem: "up.model.AbstractProblem",
@@ -186,7 +206,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             res = self._solve(
                 problem, output_stream=writer, timeout=timeout, anytime=True
             )
-            q.put(res)
+            q.put(self._generate_last_result(res, writer.last_plan_found))
 
         try:
             t = threading.Thread(target=run, daemon=True)
