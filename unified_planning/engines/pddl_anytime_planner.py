@@ -172,20 +172,24 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         raise NotImplementedError
 
     def _generate_last_result(
-        self, solve_result: PlanGenerationResult, last_plan_found: Optional[Plan]
+        self,
+        solve_result: PlanGenerationResult,
+        last_plan_found: Optional[Plan],
+        last_status: PlanGenerationResultStatus,
     ) -> PlanGenerationResult:
         """
         IMPORTANT FOR ENGINES IMPLEMENTING THIS CLASS
 
-        This method takes the result returned by the _solve method and the last_plan_found
-        by the engine and returns a new PlanGenerationResult. If the engine writes his last
-        plan to a file there is no need to overwrite this method; but if the engine does not
-        write the last plan on a file or if the last result returned is not correct for some
-        reason; this method allows an easy modification.
+        This method takes the result returned by the _solve method, the last_plan_found
+        by the engine  and the status of the last plan and returns a new PlanGenerationResult.
+        If the engine writes his last plan to a file there is no need to overwrite this method;
+        but if the engine does not write the last plan on a file or if the last result returned
+        is not correct for some reason; this method allows an easy modification.
 
         :param solve_result: The PlanGenerationResult returned by the solve method.
         :param last_plan_found: The last plan found by the engine; obtained parsing the planner's
             output.
+        :param last_status: The correct status of the last plan returned.
         :return: The PlanGenerationResult compatible with the engine semantic; defaults to the
             solve_result given in input.
         """
@@ -206,7 +210,17 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             res = self._solve(
                 problem, output_stream=writer, timeout=timeout, anytime=True
             )
-            q.put(self._generate_last_result(res, cast(Writer, writer).last_plan_found))
+            last_status = self._result_status(
+                cast(up.model.Problem, problem),
+                cast(Writer, writer).last_plan_found,
+                self._last_retval,
+                self._last_logs,
+            )
+            q.put(
+                self._generate_last_result(
+                    res, cast(Writer, writer).last_plan_found, last_status
+                )
+            )
 
         try:
             t = threading.Thread(target=run, daemon=True)

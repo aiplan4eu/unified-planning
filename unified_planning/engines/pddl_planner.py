@@ -290,6 +290,9 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         status: PlanGenerationResultStatus = self._result_status(
             problem, plan, retval, logs
         )
+        if self._mode_running == OperationMode.ANYTIME_PLANNER:
+            self._last_retval = retval
+            self._last_logs = logs
         res = PlanGenerationResult(
             status, plan, log_messages=logs, engine_name=self.name
         )
