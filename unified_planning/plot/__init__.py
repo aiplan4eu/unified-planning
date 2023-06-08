@@ -12,3 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from unified_planning.plot.plan_plot import (
+    plot_plan,
+    plot_sequential_plan,
+    plot_stn_plan,
+    plot_contingent_plan,
+    plot_partial_order_plan,
+    plot_time_triggered_plan,
+)

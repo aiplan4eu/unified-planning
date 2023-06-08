@@ -21,7 +21,7 @@ import unified_planning as up
 from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 from unified_planning.model import FNode, Problem, State
 from unified_planning.model.walkers import StateEvaluator
-from unified_planning.plans.plan import ActionInstance
+from unified_planning.plans.plan import ActionInstance, Plan
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
@@ -32,12 +32,13 @@ from unified_planning.plans.contingent_plan import (
 )
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
 import datetime
-import plotly.express as px
-import matplotlib.pyplot as plt
+import plotly.express as px  # type: ignore[import]
+import matplotlib.pyplot as plt  # type: ignore[import]
 import networkx as nx
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, Callable
 
 # Defaults
+FIGSIZE = (12.8, 7.2)
 ARROWSIZE = 20
 NODE_SIZE = 2000
 NODE_COLOR = "#1f78b4"
@@ -48,12 +49,45 @@ EDGE_FONT_SIZE = 6
 EDGE_FONT_COLOR = "k"
 
 
+def plot_plan(
+    plan: "Plan",
+    *,
+    filename: Optional[str] = None,
+    figsize: Tuple[float, float] = FIGSIZE,
+):
+    """
+    Method to plot a generic plan; for more control over the overall plot use
+    the specific methods for each type of plan.
+
+    :param plan: The plan to plot.
+    :param filename: The path of the file where the plot is saved; if not specified
+        the plot will be shown in a pop-up.
+    :param figsize: Width and height in inches.
+    """
+    functions_map = {
+        SequentialPlan: plot_sequential_plan,
+        TimeTriggeredPlan: plot_time_triggered_plan,
+        STNPlan: plot_sequential_plan,
+        ContingentPlan: plot_contingent_plan,
+        PartialOrderPlan: plot_partial_order_plan,
+    }
+    plot_plan_function = functions_map.get(type(plan), None)
+    if plot_plan_function is None:
+        raise NotImplementedError(
+            f"{type(plan).__name__} is not supported in the plot_plan function"
+        )
+    plot_plan_function(plan=plan, filename=filename, figsize=figsize)  # type: ignore[operator]
+
+
 def plot_sequential_plan(
+    # TODO consider plotting quality metrics
+    # TODO consider plotting different subgraphs for the expressions (same x, different y reference)
     plan: "SequentialPlan",
     problem: Optional[Problem] = None,
     expression_or_expressions: Optional[Union[FNode, List[FNode]]] = None,
     *,
     filename: Optional[str] = None,
+    figsize: Tuple[float, float] = FIGSIZE,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["ActionInstance"], str]] = None,
     arrowsize: int = ARROWSIZE,
@@ -83,6 +117,7 @@ def plot_sequential_plan(
         defines the mode of this method.
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
+    :param figsize: Width and height in inches.
     :param top_bottom: If ``True`` the graph will be vertical, if ``False`` it will be
         horizontal.
     :param generate_node_label: The function used to generate the node labels
@@ -114,6 +149,7 @@ def plot_sequential_plan(
                 current_ai = next_ai
         fig, _, _ = _draw_base_graph(
             graph,
+            figsize=figsize,
             top_bottom=top_bottom,
             generate_node_label=generate_node_label,
             arrowsize=arrowsize,
@@ -146,39 +182,47 @@ def plot_sequential_plan(
             problem
         )  # TODO handle unsupported kind
         _plot_expressions(
-            plan, problem, expressions, sequential_simulator, filename=filename
+            plan,
+            problem,
+            expressions,
+            sequential_simulator,
+            filename=filename,
+            figsize=figsize,
         )
 
 
 def plot_time_triggered_plan(
-    problem: Problem,
     plan: "TimeTriggeredPlan",
     *,
     filename: Optional[str] = None,
+    figsize: Tuple[float, float] = FIGSIZE,
+    instantaneous_actions_length: int = 1,
+    action_grouping: str = "action",  # action_instance, grounded_action, action_name
+    # action_color: str = find a way to personalize color
+    # params to add, self_overlapping, different colors
 ):
     """
+    # TODO finish documentation when parameters are fixed
     Plots the TimeTriggered plan as a timeline.
 
-    :param problem: The problem for which the plan is generated.
     :param plan: The plan to plot as a timeline
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
+    :param figsize: Width and height in inches.
     """
-    plan_epsilon = plan.extract_epsilon(problem)
     # The data frame created
     data_frame = []
-    tick_vals: Set[Union[int, float]] = set()
+    tick_vals: Set[datetime.datetime] = set()
     x_ticks: Dict[datetime.datetime, str] = {}
+    y_remapping: Dict[str, str] = {}
+    start: Union[float, Fraction] = 0.0
     for i, (start, ai, duration) in enumerate(
         sorted(plan.timed_actions, reverse=True, key=lambda x: (x[0], str(x[1])))
     ):
-        end = start  # TODO understand if end = start prints a decent action -> NO IT DOES NOT
         if duration is not None:
-            end = start + duration
+            end: Union[float, Fraction] = start + duration
         else:
-            end = (
-                start + plan_epsilon / 10
-            )  # TODO find a better way to represent instantaneous actions in TimeTriggeredPlan
+            end = start + instantaneous_actions_length
         start, end = float(start), float(end)
         start_date = datetime.datetime.fromtimestamp(start)
         end_date = datetime.datetime.fromtimestamp(end)
@@ -186,24 +230,32 @@ def plot_time_triggered_plan(
         tick_vals.add(end_date)
         x_ticks.setdefault(start_date, str(start))
         x_ticks.setdefault(end_date, str(end))
+        y_key = f"{ai}_{i}"
+        y_remapping[y_key] = str(ai)
         data_frame.append(
             {
                 "Action name": f"{ai}_{i}",
                 "start": start_date,
                 "end": end_date,
-                "color": str(ai),
+                "color": str(ai.action.name),
             }
         )
     plan_plot = px.timeline(
         data_frame, x_start="start", x_end="end", y="Action name", color="color"
     )
-    tick_vals_list = list(tick_vals)
+    x_tick_vals_list = list(tick_vals)
+    y_tick_vals_list = list(y_remapping.keys())
     plan_plot.update_layout(
         xaxis=dict(
             tickmode="array",
-            tickvals=tick_vals_list,
-            ticktext=list(map(x_ticks.get, tick_vals_list)),
-        )
+            tickvals=x_tick_vals_list,
+            ticktext=list(map(x_ticks.get, x_tick_vals_list)),
+        ),
+        yaxis=dict(
+            tickmode="array",
+            tickvals=y_tick_vals_list,
+            ticktext=list(map(y_remapping.get, y_tick_vals_list)),
+        ),
     )
     if filename is not None:
         assert isinstance(filename, str), "typing not respected"
@@ -216,6 +268,7 @@ def plot_stn_plan(
     plan: "STNPlan",
     *,
     filename: Optional[str] = None,
+    figsize: Tuple[float, float] = FIGSIZE,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["STNPlanNode"], str]] = None,
     arrowsize: int = ARROWSIZE,
@@ -239,6 +292,7 @@ def plot_stn_plan(
     :param plan: The plan to plot.
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
+    :param figsize: Width and height in inches.
     :param top_bottom: If ``True`` the graph will be vertical, if ``False`` it will be
         horizontal.
     :param generate_node_label: The function used to generate the node labels
@@ -288,7 +342,8 @@ def plot_stn_plan(
             )
 
     fig, ax, pos = _draw_base_graph(
-        plan._graph,
+        graph,
+        figsize=figsize,
         top_bottom=top_bottom,
         generate_node_label=generate_node_label,
         arrowsize=arrowsize,
@@ -318,6 +373,7 @@ def plot_contingent_plan(
     plan: "ContingentPlan",
     *,
     filename: Optional[str] = None,
+    figsize: Tuple[float, float] = FIGSIZE,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["ContingentPlanNode"], str]] = None,
     arrowsize: int = ARROWSIZE,
@@ -339,6 +395,7 @@ def plot_contingent_plan(
     :param plan: The plan to plot.
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
+    :param figsize: Width and height in inches.
     :param top_bottom: If ``True`` the graph will be vertical, if ``False`` it will be
         horizontal.
     :param generate_node_label: The function used to generate the node labels
@@ -386,7 +443,8 @@ def plot_contingent_plan(
             edge_labels[(node, child)] = edge_label_function(fluents)
 
     fig, ax, pos = _draw_base_graph(
-        plan._graph,
+        graph,
+        figsize=figsize,
         top_bottom=top_bottom,
         generate_node_label=generate_node_label,
         arrowsize=arrowsize,
@@ -416,6 +474,7 @@ def plot_partial_order_plan(
     plan: "PartialOrderPlan",
     *,
     filename: Optional[str] = None,
+    figsize: Tuple[float, float] = FIGSIZE,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["ActionInstance"], str]] = None,
     arrowsize: int = ARROWSIZE,
@@ -433,6 +492,7 @@ def plot_partial_order_plan(
     :param plan: The plan to plot.
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
+    :param figsize: Width and height in inches.
     :param top_bottom: If ``True`` the graph will be vertical, if ``False`` it will be
         horizontal.
     :param generate_node_label: The function used to generate the node labels
@@ -465,6 +525,7 @@ def plot_partial_order_plan(
     """
     fig, _, _ = _draw_base_graph(
         plan._graph,
+        figsize=figsize,
         top_bottom=top_bottom,
         generate_node_label=generate_node_label,
         arrowsize=arrowsize,
@@ -484,30 +545,37 @@ def plot_partial_order_plan(
 def _draw_base_graph(
     graph: nx.DiGraph,
     *,
+    figsize: Sequence[float] = FIGSIZE,
     top_bottom: bool = False,
     generate_node_label: Optional[
-        Union[Callable[["ContingentPlanNode"], str], Callable[["ActionInstance"], str]]
+        Union[
+            Callable[["ContingentPlanNode"], str],
+            Callable[["ActionInstance"], str],
+            Optional[Callable[["STNPlanNode"], str]],
+        ]
     ] = None,
-    arrowsize: int = 20,
-    node_size: Union[int, Sequence[int]] = 2000,
-    node_color: Union[str, Sequence[str]] = "#1f78b4",
-    edge_color: Union[str, Sequence[str]] = "k",
-    font_size: int = 8,
-    font_color: str = "k",
+    arrowsize: int = ARROWSIZE,
+    node_size: Union[int, Sequence[int]] = NODE_SIZE,
+    node_color: Union[str, Sequence[str]] = NODE_COLOR,
+    edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
+    font_size: int = FONT_SIZE,
+    font_color: str = FONT_COLOR,
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
 ):
     # input "sanitization"
-    if not top_bottom:
+    if top_bottom:
+        graph.graph.setdefault("graph", {})["rankdir"] = "TB"
+    else:
         graph.graph.setdefault("graph", {})["rankdir"] = "LR"
     if generate_node_label is None:
-        node_label = str
+        node_label: Callable[[Any], str] = str
     else:
         node_label = generate_node_label
     if draw_networkx_kwargs is None:
         draw_networkx_kwargs = {}
 
     # drawing part
-    fig = plt.figure()
+    fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
     pos = nx.nx_agraph.graphviz_layout(graph, prog="dot")
     nx.draw_networkx(
@@ -574,6 +642,7 @@ def _plot_expressions(
     sequential_simulator: UPSequentialSimulator,
     *,
     filename: Optional[str] = None,
+    figsize: Tuple[float, float] = FIGSIZE,
 ):
 
     se = StateEvaluator(problem)
@@ -581,7 +650,9 @@ def _plot_expressions(
     def get_numeric_value_from_state(
         expression: FNode, state: State
     ) -> Union[int, float]:
-        exp_value = se.evaluate(expression, state).constant_value()
+        exp_value: Union[int, float, Fraction] = se.evaluate(
+            expression, state
+        ).constant_value()
         if isinstance(exp_value, Fraction):
             exp_value = float(exp_value)
         assert isinstance(exp_value, (int, float))
@@ -602,17 +673,19 @@ def _plot_expressions(
     # Populate initial state
     initial_state = sequential_simulator.get_initial_state()
     state_sequence: List[State] = [initial_state]
-    current_state = initial_state
+    current_state: Optional[State] = initial_state
     label_str = "<initial value>"
     x_labels: List[str] = [label_str]
-    data_frame_element = {"Action name": label_str}
+    data_frame_element: Dict[str, Any] = {"Action name": label_str}
     expressions_str = list(map(str, numeric_expressions))
     for exp, exp_str in zip(numeric_expressions, expressions_str):
+        assert current_state is not None
         data_frame_element[exp_str] = get_numeric_value_from_state(exp, current_state)
     data_frame = [data_frame_element]
 
     for action_instance in plan.actions:
         # Compute the new state
+        assert current_state is not None
         current_state = sequential_simulator.apply(current_state, action_instance)
         if current_state is None:
             # TODO consider raising an exception
@@ -630,7 +703,14 @@ def _plot_expressions(
             )
         data_frame.append(data_frame_element)
 
-    plan_plot = px.line(data_frame, x="Action name", y=expressions_str, markers=True)
+    plan_plot = px.line(
+        data_frame,
+        x="Action name",
+        y=expressions_str,
+        markers=True,
+        width=figsize[0],
+        height=[figsize[1]],
+    )
 
     if bool_expressions:
 
