@@ -190,10 +190,6 @@ class TestPlanner(TestCase):
                 plan = final_report.plan.replace_action_instances(
                     res.map_back_action_instance
                 )
-                import unified_planning.plot.plan_plot as pp
-
-                pp.plot_time_triggered_plan_4(problem, plan)
-                assert False
 
                 self.assertEqual(
                     final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
