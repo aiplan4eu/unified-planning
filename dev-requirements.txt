@@ -10,3 +10,4 @@ black==22.6.0
 plotly
 matplotlib
 kaleido
+pandas
