@@ -16,10 +16,13 @@
 
 from fractions import Fraction
 from functools import partial
-from numbers import Real
 import unified_planning as up
-from unified_planning.engines.sequential_simulator import UPSequentialSimulator
-from unified_planning.model import FNode, Problem, State
+from unified_planning.engines.sequential_simulator import (
+    UPSequentialSimulator,
+    evaluate_quality_metric_in_initial_state,
+    evaluate_quality_metric,
+)
+from unified_planning.model import FNode, Problem, State, PlanQualityMetric, Expression
 from unified_planning.model.walkers import StateEvaluator
 from unified_planning.plans.plan import ActionInstance, Plan
 from unified_planning.plans.sequential_plan import SequentialPlan
@@ -35,7 +38,18 @@ import datetime
 import plotly.express as px  # type: ignore[import]
 import matplotlib.pyplot as plt  # type: ignore[import]
 import networkx as nx
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union, Callable
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    Callable,
+)
 
 # Defaults
 FIGSIZE = (12.8, 7.2)
@@ -80,11 +94,13 @@ def plot_plan(
 
 
 def plot_sequential_plan(
-    # TODO consider plotting quality metrics
     # TODO consider plotting different subgraphs for the expressions (same x, different y reference)
     plan: "SequentialPlan",
     problem: Optional[Problem] = None,
-    expression_or_expressions: Optional[Union[FNode, List[FNode]]] = None,
+    expression_or_expressions: Optional[Union[Expression, Iterable[Expression]]] = None,
+    metric_or_metrics: Optional[
+        Union[PlanQualityMetric, Iterable[PlanQualityMetric]]
+    ] = None,
     *,
     filename: Optional[str] = None,
     figsize: Tuple[float, float] = FIGSIZE,
@@ -101,23 +117,28 @@ def plot_sequential_plan(
     """
     This method has 2 different usage:
 
-    #. when ``expression_or_expressions`` is specified; the problem is required
-        and all the arguments different from ``filename`` are ignored. This plots
-        all given expressions in a graph, showing the changes during the execution
-        of the plan.
-    #. when ``expression_or_expressions`` is NOT specified; this plots the
-        sequential plan simply as a straight graph.
+    #. when ``expression_or_expressions`` or ``metric_or_metrics`` is specified;
+        the problem is required and all the arguments different from ``filename``
+        are ignored. This plots all given expressions and metrics in a graph,
+        showing the changes during the execution of the plan.
+    #. when ``expression_or_expressions`` and ``metric_or_metrics`` are NOT
+        specified; this plots the sequential plan simply as a straight graph.
         Minor note: the colors parameter must be a string accepted by
+        `draw_networkx <https://networkx.org/documentation/stable/reference/generated/networkx.drawing.nx_pylab.draw_networkx.html#networkx.drawing.nx_pylab.draw_networkx>`_.
 
     :param plan: The plan to plot or the plan used to get the values of the
         expressions to plot.
     :param problem: The Problem for which the plan is generated; used only if
-        ``expression_or_expressions`` is specified.
+        ``expression_or_expressions`` or ``metric_or_metrics`` are specified.
     :param expression_or_expressions: The Expressions to plot; this parameter
+        defines the mode of this method.
+    :param metric_or_metrics: The PlanQUalityMetrics to plot; this parameter
         defines the mode of this method.
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
-    :param figsize: Width and height in inches.
+    :param figsize: Width and height in inches or pixels/100 if
+        ``expression_or_expressions`` or ``metric_or_metrics`` are specified; for
+        example, 10 will be 1000 pixels.
     :param top_bottom: If ``True`` the graph will be vertical, if ``False`` it will be
         horizontal.
     :param generate_node_label: The function used to generate the node labels
@@ -139,7 +160,7 @@ def plot_sequential_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
-    if expression_or_expressions is None:
+    if expression_or_expressions is None and metric_or_metrics is None:
         # plot sequential_plan as graph
         graph = nx.DiGraph()
         if plan.actions:
@@ -168,23 +189,33 @@ def plot_sequential_plan(
         assert (
             problem is not None
         ), "As documented, if some expressions must be plotted, the problem is required."
-        if isinstance(expression_or_expressions, FNode):
-            expressions: List[FNode] = [expression_or_expressions]
-        else:
-            expressions = list(expression_or_expressions)
+        auto_promote = problem.environment.expression_manager.auto_promote
+        expressions = (
+            []
+            if expression_or_expressions is None
+            else auto_promote(expression_or_expressions)
+        )
         for expression in expressions:
-            assert isinstance(expression, FNode), "Typing not respected"
+            assert isinstance(expression, FNode)
             et = expression.type
             assert (
                 et.is_bool_type() or et.is_int_type() or et.is_real_type()
             ), f"Expression {expression} has type {et}; but only bool, int or real are plottable"
-        sequential_simulator = UPSequentialSimulator(
-            problem
-        )  # TODO handle unsupported kind
+        if isinstance(metric_or_metrics, PlanQualityMetric):
+            metrics: List[PlanQualityMetric] = [metric_or_metrics]
+        elif metric_or_metrics is not None:
+            metrics = list(metric_or_metrics)
+        else:
+            metrics = []
+        assert all(
+            isinstance(metric, PlanQualityMetric) for metric in metrics
+        ), "Typing not respected"
+        sequential_simulator = UPSequentialSimulator(problem)
         _plot_expressions(
             plan,
             problem,
             expressions,
+            metrics,
             sequential_simulator,
             filename=filename,
             figsize=figsize,
@@ -197,18 +228,15 @@ def plot_time_triggered_plan(
     filename: Optional[str] = None,
     figsize: Tuple[float, float] = FIGSIZE,
     instantaneous_actions_length: int = 1,
-    action_grouping: str = "action",  # action_instance, grounded_action, action_name
-    # action_color: str = find a way to personalize color
-    # params to add, self_overlapping, different colors
 ):
     """
-    # TODO finish documentation when parameters are fixed
     Plots the TimeTriggered plan as a timeline.
 
     :param plan: The plan to plot as a timeline
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
-    :param figsize: Width and height in inches.
+    :param figsize: Width and height in pixels/100; for example (10, 15) means 1000
+        pixels wide and 1500 pixels high.
     """
     # The data frame created
     data_frame = []
@@ -241,7 +269,13 @@ def plot_time_triggered_plan(
             }
         )
     plan_plot = px.timeline(
-        data_frame, x_start="start", x_end="end", y="Action name", color="color"
+        data_frame,
+        x_start="start",
+        x_end="end",
+        y="Action name",
+        color="color",
+        width=figsize[0] * 100,
+        height=figsize[1] * 100,
     )
     x_tick_vals_list = list(tick_vals)
     y_tick_vals_list = list(y_remapping.keys())
@@ -639,6 +673,7 @@ def _plot_expressions(
     plan: "SequentialPlan",
     problem: Problem,
     expressions: List[FNode],
+    metrics: List[PlanQualityMetric],
     sequential_simulator: UPSequentialSimulator,
     *,
     filename: Optional[str] = None,
@@ -647,16 +682,20 @@ def _plot_expressions(
 
     se = StateEvaluator(problem)
 
+    def fraction_to_float(number: Union[int, Fraction]) -> Union[int, float]:
+        if isinstance(number, Fraction):
+            if number.denominator == 1:
+                return number.numerator
+            return float(number)
+        return number
+
     def get_numeric_value_from_state(
         expression: FNode, state: State
     ) -> Union[int, float]:
-        exp_value: Union[int, float, Fraction] = se.evaluate(
+        exp_value: Union[int, Fraction] = se.evaluate(
             expression, state
         ).constant_value()
-        if isinstance(exp_value, Fraction):
-            exp_value = float(exp_value)
-        assert isinstance(exp_value, (int, float))
-        return exp_value
+        return fraction_to_float(exp_value)
 
     bool_expressions = []
     numeric_expressions = []
@@ -672,6 +711,10 @@ def _plot_expressions(
     # Populate the data_frame with the numeric expressions
     # Populate initial state
     initial_state = sequential_simulator.get_initial_state()
+    metric_values: Dict[PlanQualityMetric, Union[int, Fraction]] = {
+        metric: evaluate_quality_metric_in_initial_state(sequential_simulator, metric)
+        for metric in metrics
+    }
     state_sequence: List[State] = [initial_state]
     current_state: Optional[State] = initial_state
     label_str = "<initial value>"
@@ -681,17 +724,35 @@ def _plot_expressions(
     for exp, exp_str in zip(numeric_expressions, expressions_str):
         assert current_state is not None
         data_frame_element[exp_str] = get_numeric_value_from_state(exp, current_state)
+    for metric, value in metric_values.items():
+        data_frame_element[str(metric)] = fraction_to_float(value)
     data_frame = [data_frame_element]
 
     for action_instance in plan.actions:
         # Compute the new state
         assert current_state is not None
+        previous_state = current_state
         current_state = sequential_simulator.apply(current_state, action_instance)
         if current_state is None:
-            # TODO consider raising an exception
             print(f"Error in applying: {action_instance}")
             break
         state_sequence.append(current_state)
+
+        # Update the metric values
+        eqm = partial(
+            evaluate_quality_metric,
+            simulator=sequential_simulator,
+            state=previous_state,
+            action=action_instance.action,
+            parameters=action_instance.actual_parameters,
+            next_state=current_state,
+        )
+        metric_values = dict(
+            map(
+                lambda x: (x[0], eqm(quality_metric=x[0], metric_value=x[1])),
+                metric_values.items(),
+            )
+        )
 
         # Populate the data_frame
         label_str = str(action_instance)
@@ -701,17 +762,21 @@ def _plot_expressions(
             data_frame_element[exp_str] = get_numeric_value_from_state(
                 exp, current_state
             )
+        for metric, value in metric_values.items():
+            data_frame_element[str(metric)] = fraction_to_float(value)
         data_frame.append(data_frame_element)
 
+    expressions_str.extend(map(str, metrics))
     plan_plot = px.line(
         data_frame,
         x="Action name",
         y=expressions_str,
         markers=True,
-        width=figsize[0],
-        height=[figsize[1]],
+        width=figsize[0] * 100,
+        height=figsize[1] * 100,
     )
 
+    # plot boolean expressions
     if bool_expressions:
 
         def get_bool_value_from_state(expression: FNode, state: State) -> int:
