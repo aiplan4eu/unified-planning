@@ -214,11 +214,7 @@ def get_example_problems():
         )
     }
 
-    action = up.plans.ActionInstance(
-        move, (ObjectExp(r1), ObjectExp(c1), ObjectExp(c2)), None, motion_paths
-    )
-
-    plan = up.plans.SequentialPlan([action])
+    plan = up.plans.SequentialPlan([move(r1, c1, c2, motion_paths=motion_paths)])
 
     tamp_feasible = Example(problem=problem, plan=plan)
     problems["tamp_feasible"] = tamp_feasible

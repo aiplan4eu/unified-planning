@@ -130,13 +130,13 @@ def get_example_problems():
 
     plan = up.plans.SequentialPlan(
         [
-            up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l1)), robot1),
-            up.plans.ActionInstance(load, (ObjectExp(l1),), robot1),
-            up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)), robot1),
-            up.plans.ActionInstance(unload, (ObjectExp(l2),), robot1),
-            up.plans.ActionInstance(load, (ObjectExp(l2),), robot2),
-            up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3)), robot2),
-            up.plans.ActionInstance(unload, (ObjectExp(l3),), robot2),
+            move(l2, l1, agent=robot1),
+            load(l1, agent=robot1),
+            move(l1, l2, agent=robot1),
+            unload(l2, agent=robot1),
+            load(l2, agent=robot2),
+            move(l2, l3, agent=robot2),
+            unload(l3, agent=robot2),
         ]
     )
     ma_loader = Example(problem=problem, plan=plan)

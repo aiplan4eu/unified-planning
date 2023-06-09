@@ -29,7 +29,7 @@ from unified_planning.exceptions import (
 )
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from abc import ABC, abstractmethod
-from typing import Dict, List, Set, Union, Optional, Iterable
+from typing import Any, Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
 
@@ -73,6 +73,19 @@ class Action(ABC):
     @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
+
+    def __call__(
+        self,
+        *args: "up.model.Expression",
+        agent: Optional["up.model.multi_agent.Agent"] = None,
+        motion_paths: Optional[
+            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
+        ] = None,
+    ) -> "up.plans.plan.ActionInstance":
+        params = tuple(args)
+        return up.plans.plan.ActionInstance(
+            self, params, agent=agent, motion_paths=motion_paths
+        )
 
     @abstractmethod
     def clone(self):

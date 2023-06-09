@@ -15,8 +15,9 @@
 
 
 import unified_planning as up
-from unified_planning.environment import Environment, get_environment
 from unified_planning.model import AbstractProblem
+from unified_planning.environment import Environment, get_environment
+from unified_planning.exceptions import UPTypeError
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Sequence, Tuple, Dict
 from enum import Enum, auto
@@ -43,10 +44,21 @@ class ActionInstance:
         ] = None,
     ):
         auto_promote = action.environment.expression_manager.auto_promote
+        assert agent is None or isinstance(
+            agent, up.model.multi_agent.Agent
+        ), "Typing not respected"
         self._agent = agent
         self._action = action
         self._params = tuple(auto_promote(params))
         assert len(action.parameters) == len(self._params)
+        for param, assigned_value in zip(action.parameters, self._params):
+            if not param.type.is_compatible(assigned_value.type):
+                raise UPTypeError(
+                    f"Incompatible parameter type assignment. {assigned_value} can't be assigned to: {param}"
+                )
+        assert motion_paths is None or isinstance(
+            motion_paths, dict
+        ), "Typing not respected"
         self._motion_paths = motion_paths
 
     def __repr__(self) -> str:

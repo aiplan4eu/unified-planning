@@ -947,9 +947,9 @@ def get_example_problems():
 
     plan = up.plans.SequentialPlan(
         [
-            up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
-            up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
-            up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
+            move(l1, l3),
+            move(l3, l4),
+            move(l4, l5),
         ]
     )
     travel = Example(problem=problem, plan=plan)
