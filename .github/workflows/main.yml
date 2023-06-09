@@ -32,6 +32,12 @@ jobs:
           python3 -m pip install tarski[arithmetic]
           sudo apt install -y gringo
 
+      - name: Install plotly
+        run: python3 -m pip install plotly
+
+      - name: Install matplotlib
+        run: python3 -m pip install matplotlib
+
       - name: Black check
         run: |
           python3 -m pip install black==22.6.0
