@@ -193,6 +193,20 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         :return: The PlanGenerationResult compatible with the engine semantic; defaults to the
             solve_result given in input.
         """
+        if last_plan_found is None:
+            return solve_result
+        if solve_result.status in (
+            PlanGenerationResultStatus.UNSOLVABLE_PROVEN,
+            PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+        ):
+            assert last_plan_found is not None
+            return PlanGenerationResult(
+                last_status,
+                last_plan_found,
+                solve_result.engine_name,
+                solve_result.metrics,
+                solve_result.log_messages,
+            )
         return solve_result
 
     def _get_solutions(
