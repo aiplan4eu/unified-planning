@@ -295,7 +295,11 @@ def plot_time_triggered_plan(
         assert isinstance(filename, str), "typing not respected"
         plan_plot.write_image(file=filename, format="png")
     else:
-        plan_plot.show()
+        try:
+            plan_plot.show()
+        except Exception as e:
+            if not "could not locate runnable browser" in str(e.value):
+                raise e
 
 
 def plot_stn_plan(
@@ -799,4 +803,8 @@ def _plot_expressions(
         assert isinstance(filename, str), "typing not respected"
         plan_plot.write_image(file=filename, format="png")
     else:
-        plan_plot.show()
+        try:
+            plan_plot.show()
+        except Exception as e:
+            if not "could not locate runnable browser" in str(e.value):
+                raise e
