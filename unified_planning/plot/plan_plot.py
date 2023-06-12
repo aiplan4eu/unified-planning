@@ -94,7 +94,6 @@ def plot_plan(
 
 
 def plot_sequential_plan(
-    # TODO consider plotting different subgraphs for the expressions (same x, different y reference)
     plan: "SequentialPlan",
     problem: Optional[Problem] = None,
     expression_or_expressions: Optional[Union[Expression, Iterable[Expression]]] = None,
