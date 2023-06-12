@@ -122,7 +122,7 @@ class TestSimulator(TestCase):
             _ = simulator.apply(state, move, (ts_1, block_3, block_2))
         with self.assertRaises(UPUsageError):
             ai = ActionInstance(
-                move, (ObjectExp(ts_1), ObjectExp(block_3), ObjectExp(block_2))
+                move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2))
             )
             _ = simulator.apply(state, ai, (ts_1, block_3, block_2))
 
