@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from unified_planning.model.fnode import FNode
 from unified_planning.environment import get_environment, Environment

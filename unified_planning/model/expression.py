@@ -30,18 +30,6 @@ from unified_planning.exceptions import (
 from fractions import Fraction
 from typing import Optional, Iterable, List, Union, Dict, Tuple, Iterator, Sequence
 
-Expression = Union[
-    "up.model.fnode.FNode",
-    "up.model.fluent.Fluent",
-    "up.model.object.Object",
-    "up.model.parameter.Parameter",
-    "up.model.variable.Variable",
-    "up.model.timing.Timing",
-    bool,
-    int,
-    float,
-    Fraction,
-]
 BoolExpression = Union[
     "up.model.fnode.FNode",
     "up.model.fluent.Fluent",
